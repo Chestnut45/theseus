@@ -1,0 +1,47 @@
+{
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "build and renderdoc",
+            "dependsOn": [
+                "build",
+                "renderdoc"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "type": "process",
+            "label": "build",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "."
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            },
+            "problemMatcher": "$gcc"
+        },
+        {
+            "type": "shell",
+            "label": "renderdoc",
+            "command": "${workspaceRoot}/gpudbg",
+            "args": [
+                "n"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "cmake:build"
+            ],
+            "problemMatcher": []
+        }
+    ],
+    "version": "2.0.0"
+}
