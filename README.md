@@ -25,8 +25,6 @@
 
 ### Setting up Dev Environment
 
-If dev environment not set up yet from other samples or TechLab 2050, follow these steps:
-
 1) Install gcc or clang
 2) Install Visual Studio Code
 3) Install CMake
