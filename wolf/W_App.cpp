@@ -171,7 +171,7 @@ void App::Run()
             if (m_updateSamples.size() > m_perfSamplesPerSecond) m_updateSamples.erase(m_updateSamples.begin());
             if (m_renderSamples.size() > m_perfSamplesPerSecond) m_renderSamples.erase(m_renderSamples.begin());
             if (m_totalSamples.size() > m_perfSamplesPerSecond) m_totalSamples.erase(m_totalSamples.begin());
-            m_sampleAccum = 0.0f;
+            m_sampleAccum -= m_sampleRate;
         }
 
         glfwSwapBuffers(m_pWindow);

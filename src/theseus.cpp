@@ -22,10 +22,8 @@ Theseus::~Theseus()
 
 void Theseus::Update(float delta)
 {
-    // Close game with escape key
+    // Debug hotkeys
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) Shutdown();
-
-    // Show debug with tilde key
     if (wolf::Input::IsKeyDown(GLFW_KEY_GRAVE_ACCENT)) ShowDebug();
     
     // TODO: Update logic
