@@ -64,6 +64,7 @@ add_subdirectory(thirdparty/glew/build/cmake)
 include_directories(
     wolf/
     thirdparty/
+    thirdparty/imgui
     thirdparty/glfw/include
     thirdparty/glew/include
     thirdparty/assimp/include
@@ -77,6 +78,12 @@ file(GLOB_RECURSE WOLF_HEADER_FILES
 	${CMAKE_SOURCE_DIR}/wolf/*.h
     ${CMAKE_SOURCE_DIR}/wolf/*.hpp)
 
+file(GLOB_RECURSE IMGUI_SOURCES
+    ${CMAKE_SOURCE_DIR}/thirdparty/imgui/*.cpp
+    )
+
+add_library(ImGui STATIC ${IMGUI_SOURCES})
+
 file(GLOB_RECURSE SOURCE_FILES
 	${CMAKE_SOURCE_DIR}/src/*.c
 	${CMAKE_SOURCE_DIR}/src/*.cpp)
@@ -88,6 +95,7 @@ file(GLOB_RECURSE HEADER_FILES
 add_executable(theseus
     ${WOLF_SOURCE_FILES}
     ${WOLF_HEADER_FILES}
+    ${IMGUI_SOURCES}
     ${SOURCE_FILES}
     ${HEADER_FILES}
     )

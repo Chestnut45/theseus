@@ -1,7 +1,6 @@
 #include "theseus.h"
 
-#include "W_Input.h"
-#include "W_Logging.h"
+#include <wolf.h>
 
 // Application entrypoint
 int main(int, char**)
@@ -23,12 +22,20 @@ Theseus::~Theseus()
 
 void Theseus::Update(float delta)
 {
+    // Close game with escape key
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) Shutdown();
+
+    // Show debug with tilde key
+    if (wolf::Input::IsKeyDown(GLFW_KEY_GRAVE_ACCENT)) ShowDebug();
     
     // TODO: Update logic
 }
 
 void Theseus::Render()
 {
+    // Clear the default framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     // TODO: Rendering logic
 }

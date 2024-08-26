@@ -38,7 +38,7 @@ namespace wolf
             static bool IsLMBReleased();
             static bool IsRMBReleased();
             static bool IsMMBReleased();
-            static bool IsMouseCaptured() { return m_mouseCaptured; };
+            static bool IsMouseCaptured() { return s_mouseCaptured; };
             static const glm::vec2& GetMousePos();
             static const glm::vec2& GetMouseDelta();
             static const glm::vec2& GetMouseScroll();
@@ -53,24 +53,24 @@ namespace wolf
         private:
 
             // Window pointer
-            static inline GLFWwindow* m_pWindow = nullptr;
+            static inline GLFWwindow* s_pWindow = nullptr;
 
             // Key state
-            static inline bool m_keys[NUM_KEYS] = {false};
-            static inline bool m_prevKeys[NUM_KEYS] = {false};
+            static inline bool s_keys[NUM_KEYS] = {false};
+            static inline bool s_prevKeys[NUM_KEYS] = {false};
 
             // Mouse state
-            static inline bool m_mouseCaptured = false;
-            static inline bool m_lmbDown = false;
-            static inline bool m_rmbDown = false;
-            static inline bool m_mmbDown = false;
-            static inline bool m_prevLmbDown = false;
-            static inline bool m_prevRmbDown = false;
-            static inline bool m_prevMmbDown = false;
-            static inline glm::vec2 m_mousePos = glm::vec2(0.0f);
-            static inline glm::vec2 m_prevMousePos = glm::vec2(0.0f);
-            static inline glm::vec2 m_mouseDelta = glm::vec2(0.0f);
-            static inline glm::vec2 m_mouseScroll = glm::vec2(0.0f);
+            static inline bool s_mouseCaptured = false;
+            static inline bool s_lmbDown = false;
+            static inline bool s_rmbDown = false;
+            static inline bool s_mmbDown = false;
+            static inline bool s_prevLmbDown = false;
+            static inline bool s_prevRmbDown = false;
+            static inline bool s_prevMmbDown = false;
+            static inline glm::vec2 s_mousePos = glm::vec2(0.0f);
+            static inline glm::vec2 s_prevMousePos = glm::vec2(0.0f);
+            static inline glm::vec2 s_mouseDelta = glm::vec2(0.0f);
+            static inline glm::vec2 s_mouseScroll = glm::vec2(0.0f);
 
             // GLFW callbacks
             static void _KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);

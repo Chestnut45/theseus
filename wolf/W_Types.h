@@ -24,6 +24,15 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+// Dear ImGui: https://github.com/ocornut/imgui
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_glfw.h>
+#include <imgui/backends/imgui_impl_opengl3.h>
+#include <imgui/misc/cpp/imgui_stdlib.h>
+
+// Font awesome icons: https://github.com/FortAwesome/Font-Awesome/blob/6.x/webfonts/fa-regular-400.ttf
+#include <IconsFontAwesome6.h>
+
 namespace wolf
 {
 #ifndef MATH_PI
