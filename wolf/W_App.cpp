@@ -1,4 +1,5 @@
 #include "W_App.h"
+#include <W_Audio.h>
 #include "W_Input.h"
 #include "W_Logging.h"
 
@@ -47,6 +48,9 @@ App::App(const std::string& name, int width, int height)
 
     glfwSetWindowUserPointer(m_pWindow, this);
     glfwMakeContextCurrent(m_pWindow);
+
+    // Initialize to default vsync setting
+    SetVsync(m_vsync);
     
     // Setup input
     Input::_Setup(m_pWindow);
@@ -90,12 +94,15 @@ App::App(const std::string& name, int width, int height)
     // Output current OpenGL context version
     Log("OpenGL Context: ", glGetString(GL_VERSION));
 
-    // Initialize to default vsync setting
-    SetVsync(m_vsync);
+    // Initialize audio system
+    Audio::_Setup();
 }
 
 App::~App()
 {
+    // Shutdown audio system
+    Audio::_Shutdown();
+    
     // Shutdown ImGui
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

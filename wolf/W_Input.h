@@ -1,5 +1,12 @@
 #pragma once
 
+//-----------------------------------------------------------------------------
+// File:			W_Input.h
+// Original Author:	D'Anyil Landry
+//
+// Static helper class for easy access to keyboard / mouse state
+//-----------------------------------------------------------------------------
+
 #include <algorithm>
 #include <vector>
 
@@ -20,6 +27,7 @@ namespace wolf
             static const int NUM_KEYS = GLFW_KEY_LAST - GLFW_KEY_SPACE;
 
             // Key inputs
+            // NOTE: Use the GLFW_KEY_* definitions
             static bool IsKeyDown(int key);
             static bool IsKeyJustDown(int key);
             static bool IsKeyHeld(int key);

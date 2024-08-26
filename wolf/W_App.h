@@ -1,5 +1,13 @@
 #pragma once
 
+//-----------------------------------------------------------------------------
+// File:			W_App.h
+// Original Author:	Gordon Wood
+// Modifications:   D'Anyil Landry
+//
+// Class representing an OpenGL application
+//-----------------------------------------------------------------------------
+
 #include <string>
 #include <vector>
 #include <W_Types.h>

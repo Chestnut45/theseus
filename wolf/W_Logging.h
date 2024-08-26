@@ -1,5 +1,12 @@
 #pragma once
 
+//-----------------------------------------------------------------------------
+// File:			W_Logging.h
+// Original Author:	D'Anyil Landry
+//
+// Very simple console logging functions for quick and dirty debugging
+//-----------------------------------------------------------------------------
+
 #include <iostream>
 #include <unordered_map>
 #include <string>
@@ -8,6 +15,7 @@ namespace wolf
 {
 
 // Various logging functions to output arguments to console prefixed with severity messages
+// FatalError(...) also calls exit(1) internally
 // TODO: Optionally dump to file?
 
 template <typename... Args>

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "W_App.h"
+#include "W_Audio.h"
 #include "W_BufferManager.h"
 #include "W_Buffer.h"
 #include "W_Common.h"
@@ -10,6 +11,7 @@
 #include "W_Program.h"
 #include "W_ProgramManager.h"
 #include "W_RNG.h"
+#include "W_Scene.h"
 #include "W_Types.h"
 #include "W_VertexBuffer.h"
 #include "W_VertexDeclaration.h"

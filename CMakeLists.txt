@@ -64,12 +64,15 @@ add_subdirectory(thirdparty/glew/build/cmake)
 include_directories(
     wolf/
     thirdparty/
+    thirdparty/entt
+    thirdparty/soloud/include
     thirdparty/imgui
     thirdparty/glfw/include
     thirdparty/glew/include
     thirdparty/assimp/include
     ${OPENGL_INCLUDE_DIRS})
 
+# Wolf
 file(GLOB_RECURSE WOLF_SOURCE_FILES
 	${CMAKE_SOURCE_DIR}/wolf/*.c
     ${CMAKE_SOURCE_DIR}/wolf/*.cpp)
@@ -78,12 +81,18 @@ file(GLOB_RECURSE WOLF_HEADER_FILES
 	${CMAKE_SOURCE_DIR}/wolf/*.h
     ${CMAKE_SOURCE_DIR}/wolf/*.hpp)
 
+# ImGui
 file(GLOB_RECURSE IMGUI_SOURCES
-    ${CMAKE_SOURCE_DIR}/thirdparty/imgui/*.cpp
-    )
-
+    ${CMAKE_SOURCE_DIR}/thirdparty/imgui/*.cpp)
 add_library(ImGui STATIC ${IMGUI_SOURCES})
 
+# SoLoud
+file(GLOB_RECURSE SOLOUD_SOURCES
+    ${CMAKE_SOURCE_DIR}/thirdparty/soloud/src/*.cpp
+    ${CMAKE_SOURCE_DIR}/thirdparty/soloud/src/*.c)
+add_library(SoLoud STATIC ${SOLOUD_SOURCES})
+
+# Game source and headers
 file(GLOB_RECURSE SOURCE_FILES
 	${CMAKE_SOURCE_DIR}/src/*.c
 	${CMAKE_SOURCE_DIR}/src/*.cpp)
@@ -96,6 +105,7 @@ add_executable(theseus
     ${WOLF_SOURCE_FILES}
     ${WOLF_HEADER_FILES}
     ${IMGUI_SOURCES}
+    ${SOLOUD_SOURCES}
     ${SOURCE_FILES}
     ${HEADER_FILES}
     )

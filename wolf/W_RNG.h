@@ -1,5 +1,12 @@
 #pragma once
 
+//-----------------------------------------------------------------------------
+// File:			W_RNG.h
+// Original Author:	D'Anyil Landry
+//
+// A class representing a seeded instance of a pseudo random number generator
+//-----------------------------------------------------------------------------
+
 #include <cstdint>
 #include <random>
 
@@ -9,7 +16,6 @@
 namespace wolf
 {
 
-// Represents a seedable instance of a pseudo random number generator
 class RNG
 {
 // Public interface
