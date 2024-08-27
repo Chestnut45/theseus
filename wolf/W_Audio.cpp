@@ -17,6 +17,15 @@ void Audio::Play(const std::string& path)
     m_core.play(sound);
 }
 
+void Audio::Load(const std::string& path)
+{
+    // Create / retrieve sound cache
+    SoLoud::Wav& sound = m_sources[path];
+    sound.load(path.c_str());
+
+    // TODO: Return success status or playable sound instance?
+}
+
 void Audio::_Setup()
 {
     m_core.init();

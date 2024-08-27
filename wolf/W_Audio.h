@@ -22,11 +22,20 @@ class Audio
 // Public interface
 public:
 
-    // Plays the audio from the file path specified
-    // Accepts .mp3, .WAV, .ogg, or .FLAC files
-    // File will be loaded from disk on the first play, then
-    // cached for all subsequent calls to Play()
+    // Plays the audio from the file path specified.
+    // Accepts .mp3, .WAV, .ogg, or .FLAC files.
+    // 
+    // File will be loaded from disk on first play, then
+    // cached for all subsequent calls to Play
     static void Play(const std::string& path);
+
+    // Loads the audio from the file path specified.
+    // Accepts .mp3, .WAV, .ogg, or .FLAC files.
+    // 
+    // NOTE: It's not required to pre-load a file before playing,
+    // but you may want to in the case of large (>100kb) files to
+    // prevent a lag spike when first played.
+    static void Load(const std::string& path);
 
     // TODO: Looping, filter options?
 
