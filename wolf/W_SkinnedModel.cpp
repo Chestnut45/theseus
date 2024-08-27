@@ -112,14 +112,14 @@ void SkinnedModel::_readNodeHierarchy(const aiScene* pScene, MeshNode* pMeshNode
         pMeshNode->m_boneTransforms[boneIdx] = mat4_cast(t);
     }
 
-    for (uint i = 0 ; i < pNode->mNumChildren ; i++) {
+    for (glm::uint i = 0 ; i < pNode->mNumChildren ; i++) {
         _readNodeHierarchy(pScene, pMeshNode, animationTime, pNode->mChildren[i], GlobalTransformation);
     }
 }
 
 const aiNodeAnim* SkinnedModel::_findNodeAnim(const aiAnimation* pAnimation, const std::string& nodeName)
 {
-    for (uint i = 0 ; i < pAnimation->mNumChannels ; i++) 
+    for (glm::uint i = 0 ; i < pAnimation->mNumChannels ; i++) 
     {
         const aiNodeAnim* pNodeAnim = pAnimation->mChannels[i];
         
@@ -149,8 +149,8 @@ void SkinnedModel::_calcInterpolatedScaling(aiVector3D& out, float animationTime
         return;
     }
 
-    uint ScalingIndex = _findScaling(animationTime, pNodeAnim);
-    uint NextScalingIndex = (ScalingIndex + 1);
+    glm::uint ScalingIndex = _findScaling(animationTime, pNodeAnim);
+    glm::uint NextScalingIndex = (ScalingIndex + 1);
     if(NextScalingIndex >= pNodeAnim->mNumScalingKeys)
         NextScalingIndex = pNodeAnim->mNumScalingKeys - 1;
     assert(NextScalingIndex < pNodeAnim->mNumScalingKeys);
@@ -174,8 +174,8 @@ void SkinnedModel::_calcInterpolatedPosition(aiVector3D& out, float animationTim
         return;
     }
             
-    uint PositionIndex = _findPosition(animationTime, pNodeAnim);
-    uint NextPositionIndex = (PositionIndex + 1);
+    glm::uint PositionIndex = _findPosition(animationTime, pNodeAnim);
+    glm::uint NextPositionIndex = (PositionIndex + 1);
     if(NextPositionIndex >= pNodeAnim->mNumPositionKeys)
         NextPositionIndex = pNodeAnim->mNumPositionKeys - 1;
     assert(NextPositionIndex < pNodeAnim->mNumPositionKeys);
@@ -200,8 +200,8 @@ void SkinnedModel::_calcInterpolatedRotation(aiQuaternion& out, float animationT
         return;
     }
     
-    uint RotationIndex = _findRotation(animationTime, pNodeAnim);
-    uint NextRotationIndex = (RotationIndex + 1);
+    glm::uint RotationIndex = _findRotation(animationTime, pNodeAnim);
+    glm::uint NextRotationIndex = (RotationIndex + 1);
     if(NextRotationIndex >= pNodeAnim->mNumRotationKeys)
         NextRotationIndex = pNodeAnim->mNumRotationKeys - 1;
     assert(NextRotationIndex < pNodeAnim->mNumRotationKeys);
@@ -218,11 +218,11 @@ void SkinnedModel::_calcInterpolatedRotation(aiQuaternion& out, float animationT
     out = out.Normalize();
 }
 
-uint SkinnedModel::_findScaling(float animationTime, const aiNodeAnim* pNodeAnim)
+glm::uint SkinnedModel::_findScaling(float animationTime, const aiNodeAnim* pNodeAnim)
 {
     assert(pNodeAnim->mNumScalingKeys > 0);
     
-    for (uint i = 0 ; i < pNodeAnim->mNumScalingKeys - 1 ; i++) {
+    for (glm::uint i = 0 ; i < pNodeAnim->mNumScalingKeys - 1 ; i++) {
         if (animationTime < (float)pNodeAnim->mScalingKeys[i + 1].mTime) {
             return i;
         }
@@ -231,9 +231,9 @@ uint SkinnedModel::_findScaling(float animationTime, const aiNodeAnim* pNodeAnim
     return pNodeAnim->mNumScalingKeys - 1;
 }
 
-uint SkinnedModel::_findPosition(float animationTime, const aiNodeAnim* pNodeAnim)
+glm::uint SkinnedModel::_findPosition(float animationTime, const aiNodeAnim* pNodeAnim)
 {    
-    for (uint i = 0 ; i < pNodeAnim->mNumPositionKeys - 1 ; i++) {
+    for (glm::uint i = 0 ; i < pNodeAnim->mNumPositionKeys - 1 ; i++) {
         if (animationTime < (float)pNodeAnim->mPositionKeys[i + 1].mTime) {
             return i;
         }
@@ -242,11 +242,11 @@ uint SkinnedModel::_findPosition(float animationTime, const aiNodeAnim* pNodeAni
     return pNodeAnim->mNumPositionKeys - 1;
 }
 
-uint SkinnedModel::_findRotation(float animationTime, const aiNodeAnim* pNodeAnim)
+glm::uint SkinnedModel::_findRotation(float animationTime, const aiNodeAnim* pNodeAnim)
 {
     assert(pNodeAnim->mNumRotationKeys > 0);
 
-    for (uint i = 0 ; i < pNodeAnim->mNumRotationKeys - 1 ; i++) {
+    for (glm::uint i = 0 ; i < pNodeAnim->mNumRotationKeys - 1 ; i++) {
         if (animationTime < (float)pNodeAnim->mRotationKeys[i + 1].mTime) {
             return i;
         }

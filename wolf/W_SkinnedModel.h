@@ -46,9 +46,9 @@ class SkinnedModel : public Model
 		void _calcInterpolatedScaling(aiVector3D& out, float animationTime, const aiNodeAnim* pNodeAnim);
 		void _calcInterpolatedPosition(aiVector3D& out, float animationTime, const aiNodeAnim* pNodeAnim);
 		void _calcInterpolatedRotation(aiQuaternion& out, float animationTime, const aiNodeAnim* pNodeAnim);
-		uint _findScaling(float animationTime, const aiNodeAnim* pNodeAnim);
-		uint _findPosition(float animationTime, const aiNodeAnim* pNodeAnim);
-		uint _findRotation(float animationTime, const aiNodeAnim* pNodeAnim);
+		glm::uint _findScaling(float animationTime, const aiNodeAnim* pNodeAnim);
+		glm::uint _findPosition(float animationTime, const aiNodeAnim* pNodeAnim);
+		glm::uint _findRotation(float animationTime, const aiNodeAnim* pNodeAnim);
 
         std::map<std::string,AnimClip> m_animClips;
         std::vector<AnimState> m_animStates; // one per m_meshNodes (not all necessarily will be used, but 1:1 mapping exists for simplicity)

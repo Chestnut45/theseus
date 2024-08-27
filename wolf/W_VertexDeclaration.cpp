@@ -122,7 +122,7 @@ void VertexDeclaration::End(int stride /* override if you don't want it to calcu
 							  g_aTypeMap[info.m_type],
 							  isColor ? true : g_aNormalizeMap[info.m_type],
 							  iVertSize,
-							  (void*)iOfs);
+							  (void*)(uintptr_t)iOfs);
 		glEnableVertexAttribArray(info.m_attr);
 
 		if( info.m_iOffset == -1 )
