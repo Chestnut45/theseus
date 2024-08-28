@@ -13,6 +13,7 @@
 //-----------------------------------------------------------------------------
 
 #include <entt/entity/registry.hpp>
+#include <entt/entity/handle.hpp>
 
 namespace wolf
 {
@@ -58,14 +59,32 @@ public:
     // Data / implementation
     private:
 
-
+        entt::handle m_handle;
     };
 
     // Object management
 
-    // Returns a reference to a newly-created empty scene object
-    Object& CreateObject(const std::string& name);
-    
+    // Returns a reference to a newly-created empty scene object.
+    // If no name is supplied, one is automatically generated.
+    // If an object with the given name already exists, it is returned instead.
+    Object& CreateObject(const std::string& name = "_autogen");
+
+    // Gets a pointer to the object with the given name,
+    // or a null pointer if no object with that name exists.
+    Object* GetObject(const std::string& name);
+
+    // Deletes all objects and components from the scene
+    void Clear();
+
+
+    // Alternative object management
+
+    // Creates an empty scene object and returns its ID
+    unsigned int CreateObject();
+
+    // Gets a pointer to the object with the given ID,
+    // or a null pointer if no object with that ID exists.
+    Object* GetObject(unsigned int id);
 
 // Data / implementation
 private:

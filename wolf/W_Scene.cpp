@@ -3,6 +3,14 @@
 namespace wolf
 {
 
+Scene::Scene()
+{
+}
+
+Scene::~Scene()
+{
+}
+
 
 
 }
