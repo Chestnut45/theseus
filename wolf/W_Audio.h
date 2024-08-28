@@ -7,6 +7,7 @@
 // A class providing simple access to audio playback for applications
 //-----------------------------------------------------------------------------
 
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 
@@ -16,26 +17,32 @@
 namespace wolf
 {
 
+typedef uint32_t AudioID;
+
 class Audio
 {
 
 // Public interface
 public:
 
-    // Plays the audio from the file path specified.
-    // Accepts .mp3, .WAV, .ogg, or .FLAC files.
+    // Plays an audio sample by filepath.
+    // On first use the sample is loaded from disk
+    // and cached for all subsequent plays.
     // 
-    // File will be loaded from disk on first play, then
-    // cached for all subsequent calls to Play
-    static void Play(const std::string& path);
+    // NOTE: Multiple instances of the same sample can
+    // be played simultaneously with different arguments.
+    static void Play(const std::string& filepath, bool loop = false, float volume = 1.0f, float pan = 0.0f);
 
-    // Loads the audio from the file path specified.
+    // Stops all instances of an audio sample that are currently playing
+    static void Stop(const std::string& filepath);
+
+    // Loads an audio sample from the filepath specified.
     // Accepts .mp3, .WAV, .ogg, or .FLAC files.
     // 
     // NOTE: It's not required to pre-load a file before playing,
     // but you may want to in the case of large (>100kb) files to
     // prevent a lag spike when first played.
-    static void Load(const std::string& path);
+    static void Load(const std::string& filepath);
 
     // TODO: Looping, filter options?
 
@@ -45,8 +52,8 @@ private:
     // SoLoud engine core
     static inline SoLoud::Soloud m_core;
 
-    // Loaded audio sources
-    static inline std::unordered_map<std::string, SoLoud::Wav> m_sources;
+    // Loaded audio samples
+    static inline std::unordered_map<std::string, SoLoud::Wav> m_samples;
 
     // Init/Deinit functions, automatically called by wolf::App during initialization
     static void _Setup();
