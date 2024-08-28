@@ -25,9 +25,10 @@ class Audio
 // Public interface
 public:
 
-    // Plays an audio sample by filepath.
-    // On first use the sample is loaded from disk
-    // and cached for all subsequent plays.
+    // Plays an audio sample from the filepath specified.
+    // Accepts .mp3, .WAV, .ogg, or .FLAC files.
+    // If not already loaded, the audio sample will be
+    // loaded from disk and cached for subsequent use.
     // 
     // NOTE: Multiple instances of the same sample can
     // be played simultaneously with different arguments.
