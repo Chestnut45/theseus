@@ -36,12 +36,14 @@ public:
     Scene& operator=(Scene&& other) = default;
 
     // Types
+    typedef uint32_t ObjectID;
     class Object
     {
     // Public interface
     public:
 
-        // 
+        // TESTING
+        ObjectID GetID() { return (ObjectID)m_handle.entity(); };
 
         // Used internally but must be public
         // NOTE: Don't instantiate scene objects directly! Use Scene::CreateObject().
@@ -79,12 +81,12 @@ public:
 
     // Alternative object management
 
-    // Creates an empty scene object and returns its ID
-    unsigned int CreateObject();
+    // Gets a reference to a newly-created empty scene object.
+    Object& CreateObject();
 
     // Gets a pointer to the object with the given ID,
     // or a null pointer if no object with that ID exists.
-    Object* GetObject(unsigned int id);
+    Object* GetObject(ObjectID id);
 
 // Data / implementation
 private:
