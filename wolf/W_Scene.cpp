@@ -24,7 +24,7 @@ Scene::Object* Scene::GetObject(ObjectID id)
     return m_registry.try_get<Object>(id);
 }
 
-void Scene::Delete(ObjectID id)
+void Scene::DeleteObject(ObjectID id)
 {
     // Destroy the object and all of its components
     Object* p_object = GetObject(id);
@@ -35,7 +35,7 @@ void Scene::Delete(ObjectID id)
         // is modified immediately on deletion
         for (int i = p_object->m_children.size() - 1; i >= 0; i--)
         {
-            Delete(p_object->m_children[i]->GetID());
+            DeleteObject(p_object->m_children[i]->GetID());
         }
 
         // Remove any dangling references from the hierarchy
