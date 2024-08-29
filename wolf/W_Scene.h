@@ -56,13 +56,16 @@ public:
         Object(Object&& other) = delete;
         Object& operator=(Object&& other) = delete;
 
-        // Accessors
+        // General management
 
         // Retrieve the ID of this object.
         inline ObjectID GetID() { return m_id; }
 
         // Retrieve a reference to the scene this object belongs to
         inline Scene& GetScene() { return m_scene; }
+
+        // Deletes this object and all its components from the scene
+        inline void Delete() { m_scene.DeleteObject(m_id); }
 
         // Component management
 
@@ -118,8 +121,8 @@ public:
         // Gets the list of children objects by id
         inline const std::vector<Object*>& GetChildren() const { return m_children; }
 
-        // Deletes this object and all its components from the scene
-        inline void Delete() { m_scene.DeleteObject(m_id); }
+        // True if this object has 1 or more children
+        inline bool HasChildren() const { return m_children.size() > 0; }
 
         // Used internally but must be public
         // NOTE: Don't instantiate Objects directly! Use Scene::CreateObject().
@@ -164,13 +167,13 @@ public:
     // Deletes all objects and components
     void Clear();
 
-    // Helper function to iterate all components of a single type efficiently.
+    // Helper function to iterate all components of any type(s) efficiently.
     // Returns an iterable container you can use in an auto for loop with structured binding.
     // Example usage is in the README.md
-    template <typename T>
+    template <typename... T>
     constexpr auto Each()
     {
-        return m_registry.view<T>().each();
+        return m_registry.view<T&&...>().each();
     }
 
     // Helper function to iterate all objects in the scene efficiently.

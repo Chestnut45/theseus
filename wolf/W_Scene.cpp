@@ -116,6 +116,7 @@ void _SceneTests()
     object1.AddChild(object2);
     object2.AddChild(object3);
     object1.AddComponent<int>(45);
+    object1.AddComponent<float>(3.1415926535f);
     object2.AddComponent<std::string>("test string");
     object3.AddComponent<TestComponent>("test component");
     object4.AddComponent<TestComponent>("test component the second");
@@ -123,11 +124,19 @@ void _SceneTests()
     assert(object1.GetChildren()[0] == &object2 && "object2 should be a child of object1");
     assert(object2.GetParent() == &object1 && "object1 should be the parent of object2");
     assert(*object1.GetComponent<int>() == 45 && "primitive types should behave as components");
-    assert(object1.GetComponent<float>() == nullptr && "we never added a float, should return null");
+    assert(object1.GetComponent<std::string>() == nullptr && "we never added a string to 1, should return null");
     assert(*object2.GetComponent<std::string>() == "test string" && "string data should be stable");
     assert(object3.GetComponent<TestComponent>()->GetString() == "test component" && "custom component types as well");
     object2.Delete();
     assert(object1.GetChildren().size() == 0 && "deleting a child should update the parent");
+
+    // Testing iterating objects with multiple component types
+    // for (auto&&[objectID, i, f] : scene.Each<int, float>())
+    // {
+    //     assert(objectID == object1.GetID());
+    //     assert(i = 45);
+    //     assert(f = 3.1415926535f);
+    // }
 }
 
 }
