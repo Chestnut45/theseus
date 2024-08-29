@@ -6,7 +6,7 @@
 
 1) Install Visual Studio Community Edition 
 2) Install Visual Studio Code
-3) Install CMake
+3) Install CMake (At least version 3.12)
 4) Ensure CMake is on your PATH
 5) Install C/C++ VS Code Extension (0.28.3 or above)
 6) Install CMake Tools VS Code extension (version 1.4.1 or above)
@@ -27,7 +27,7 @@
 
 1) Install gcc or clang
 2) Install Visual Studio Code
-3) Install CMake
+3) Install CMake (At least version 3.12)
 4) Ensure CMake is on your PATH
 5) Install C/C++ VS Code Extension (0.28.3 or above)
 6) Install CMake Tools VS Code extension (version 1.4.1 or above)
@@ -175,7 +175,7 @@ object3.GetParent(); // nullptr
 const std::vector<wolf::Scene::Object*>& children = object1.GetChildren();
 ```
 
-To create a game system that updates objects or components, you can use the Scene::EachObject() and Scene::Each<T> methods along with structured bindings for very efficient iteration. The first variable bound will be the object ID, and the second will be a reference to the actual component:
+To create a game system that updates objects or components, you can use the Scene::EachObject() and Scene::Each<T> methods along with structured bindings for very efficient iteration. The first variable bound will be the object ID of the object the component belongs to, and the subsequent variables will get references to the components themselves.
 
 ```C++
 // Iterate all Sprite components
@@ -184,7 +184,13 @@ for (auto&&[objectID, sprite] : scene.Each<Sprite>())
     // sprite.Render(...) or something
 }
 
-// Iterate all objects in the scene
+// Iterate all objects with at least both component types
+for (auto&&[objectID, collider, transform] : scene.Each<Collider, Transform>())
+{
+    // ...
+}
+
+// Iterate all objects in the scene, regardless of components
 for (auto&&[objectID, object] : scene.EachObject())
 {
     // Collect only objects with no children
@@ -193,8 +199,6 @@ for (auto&&[objectID, object] : scene.EachObject())
         // ...
     }
 }
-
-// TODO: Iterate objects that have at least X, Y, Z, components
 ```
 
 ## EventManager

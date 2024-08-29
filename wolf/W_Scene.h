@@ -173,7 +173,7 @@ public:
     template <typename... T>
     constexpr auto Each()
     {
-        return m_registry.view<T&&...>().each();
+        return m_registry.view<T...>().each();
     }
 
     // Helper function to iterate all objects in the scene efficiently.

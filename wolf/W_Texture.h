@@ -63,6 +63,9 @@ class Texture
 
 		unsigned int GetWidth() const { return m_width; }
 		unsigned int GetHeight() const { return m_height; }
+
+		inline GLuint GetID() const { return m_glTex; }
+		
 		//-------------------------------------------------------------------------
 
 	private:

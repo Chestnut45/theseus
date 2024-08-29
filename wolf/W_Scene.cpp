@@ -98,6 +98,7 @@ void Scene::Object::RemoveChild(Scene::Object& object)
 
 void _SceneTests()
 {
+    // Component type
     class TestComponent
     {
     public:
@@ -107,6 +108,7 @@ void _SceneTests()
         std::string m_s;
     };
 
+    // Create the scene and objects
     Scene scene;
     Scene::Object& object1 = scene.CreateObject();
     Scene::Object& object2 = scene.CreateObject();
@@ -121,22 +123,43 @@ void _SceneTests()
     object3.AddComponent<TestComponent>("test component");
     object4.AddComponent<TestComponent>("test component the second");
     object5.AddComponent<TestComponent>("test component 3: the squeaquel");
+
+    // Test hierarchy and component system
     assert(object1.GetChildren()[0] == &object2 && "object2 should be a child of object1");
     assert(object2.GetParent() == &object1 && "object1 should be the parent of object2");
     assert(*object1.GetComponent<int>() == 45 && "primitive types should behave as components");
     assert(object1.GetComponent<std::string>() == nullptr && "we never added a string to 1, should return null");
     assert(*object2.GetComponent<std::string>() == "test string" && "string data should be stable");
     assert(object3.GetComponent<TestComponent>()->GetString() == "test component" && "custom component types as well");
+
+    // Test deletion
     object2.Delete();
+    object4.Delete();
+    object5.Delete();
     assert(object1.GetChildren().size() == 0 && "deleting a child should update the parent");
 
     // Testing iterating objects with multiple component types
-    // for (auto&&[objectID, i, f] : scene.Each<int, float>())
-    // {
-    //     assert(objectID == object1.GetID());
-    //     assert(i = 45);
-    //     assert(f = 3.1415926535f);
-    // }
+
+    // Iterate all components of a single type
+    for (auto&&[objectID, i] : scene.Each<int>())
+    {
+        assert(objectID == object1.GetID());
+        assert(i = 45);
+    }
+
+    // Iterate all objects with AT LEAST all the given component types
+    for (auto&&[objectID, i, f] : scene.Each<int, float>())
+    {
+        assert(objectID == object1.GetID());
+        assert(i = 45);
+        assert(f = 3.1415926535f);
+    }
+
+    // Iterate all objects in the scene
+    for (auto&&[objectID, object] : scene.EachObject())
+    {
+        assert(objectID == object1.GetID());
+    }
 }
 
 }
