@@ -42,3 +42,19 @@
 5) Hit F5 to run in debugger if all compiled well
 6) You may need to choose your build target (theseus) from the dropdown the first time
 7) If you see errors about including "GL/glu.h", you may also need libglu1 development libraries (apt-get install libglu1-mesa libglu1-mesa-dev)
+
+# TODO: Quick Start
+
+## App
+
+## Input
+
+## Audio
+
+## RNG
+
+## Scene
+
+## ImGui
+
+## Debugging Tools
