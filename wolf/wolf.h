@@ -5,6 +5,7 @@
 #include "W_BufferManager.h"
 #include "W_Buffer.h"
 #include "W_Common.h"
+#include "W_EventManager.h"
 #include "W_IndexBuffer.h"
 #include "W_Input.h"
 #include "W_Logging.h"

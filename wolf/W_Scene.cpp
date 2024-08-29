@@ -96,4 +96,38 @@ void Scene::Object::RemoveChild(Scene::Object& object)
     }
 }
 
+void _SceneTests()
+{
+    class TestComponent
+    {
+    public:
+        TestComponent(const std::string& string) : m_s(string) {}
+        const std::string& GetString() const { return m_s; }
+    private:
+        std::string m_s;
+    };
+
+    Scene scene;
+    Scene::Object& object1 = scene.CreateObject();
+    Scene::Object& object2 = scene.CreateObject();
+    Scene::Object& object3 = scene.CreateObject();
+    Scene::Object& object4 = scene.CreateObject();
+    Scene::Object& object5 = scene.CreateObject();
+    object1.AddChild(object2);
+    object2.AddChild(object3);
+    object1.AddComponent<int>(45);
+    object2.AddComponent<std::string>("test string");
+    object3.AddComponent<TestComponent>("test component");
+    object4.AddComponent<TestComponent>("test component the second");
+    object5.AddComponent<TestComponent>("test component 3: the squeaquel");
+    assert(object1.GetChildren()[0] == &object2 && "object2 should be a child of object1");
+    assert(object2.GetParent() == &object1 && "object1 should be the parent of object2");
+    assert(*object1.GetComponent<int>() == 45 && "primitive types should behave as components");
+    assert(object1.GetComponent<float>() == nullptr && "we never added a float, should return null");
+    assert(*object2.GetComponent<std::string>() == "test string" && "string data should be stable");
+    assert(object3.GetComponent<TestComponent>()->GetString() == "test component" && "custom component types as well");
+    object2.Delete();
+    assert(object1.GetChildren().size() == 0 && "deleting a child should update the parent");
+}
+
 }

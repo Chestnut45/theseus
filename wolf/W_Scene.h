@@ -188,4 +188,7 @@ private:
     entt::basic_registry<ObjectID> m_registry;
 };
 
+// Tests the features and expected behaviour of the scene system
+void _SceneTests();
+
 }

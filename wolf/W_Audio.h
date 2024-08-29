@@ -4,7 +4,7 @@
 // File:			W_Audio.h
 // Original Author:	D'Anyil Landry
 //
-// A class providing simple access to audio playback for applications
+// A static class providing simple access to audio playback for applications
 //-----------------------------------------------------------------------------
 
 #include <cstdint>
@@ -51,10 +51,10 @@ public:
 private:
     
     // SoLoud engine core
-    static inline SoLoud::Soloud m_core;
+    static inline SoLoud::Soloud s_core;
 
     // Loaded audio samples
-    static inline std::unordered_map<std::string, SoLoud::Wav> m_samples;
+    static inline std::unordered_map<std::string, SoLoud::Wav> s_samples;
 
     // Init/Deinit functions, automatically called by wolf::App during initialization
     static void _Setup();
