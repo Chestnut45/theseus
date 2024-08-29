@@ -19,5 +19,5 @@ class Theseus : public wolf::App
     // Data / implementation
     private:
 
-        
+        wolf::Scene m_scene;
 };

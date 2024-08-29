@@ -12,8 +12,8 @@
 // group of components.
 //-----------------------------------------------------------------------------
 
+#include <vector>
 #include <entt/entity/registry.hpp>
-#include <entt/entity/handle.hpp>
 
 namespace wolf
 {
@@ -36,18 +36,16 @@ public:
     Scene& operator=(Scene&& other) = default;
 
     // Types
+    
     typedef uint32_t ObjectID;
+    
+    // An object within a scene hierarchy.
+    // Can have components of arbitrary type attached.
     class Object
     {
     // Public interface
     public:
 
-        // TESTING
-        ObjectID GetID() { return (ObjectID)m_handle.entity(); };
-
-        // Used internally but must be public
-        // NOTE: Don't instantiate scene objects directly! Use Scene::CreateObject().
-        Object(Scene& scene);
         ~Object();
 
         // Delete copy constructor/assignment
@@ -57,42 +55,120 @@ public:
         // Delete move constructor/assignment
         Object(Object&& other) = delete;
         Object& operator=(Object&& other) = delete;
+
+        // Accessors
+
+        // Retrieve the ID of this object.
+        inline ObjectID GetID() { return m_id; }
+
+        // Retrieve a reference to the scene this object belongs to
+        inline Scene& GetScene() { return m_scene; }
+
+        // Component management
+
+        // Adds a component to the object by in-place construction.
+        // Pass your component's constructor arguments directly to this function!
+        template <typename T, typename... Args>
+        T& AddComponent(Args&&... args)
+        {
+            return m_scene.m_registry.emplace<T>(m_id, args...);
+        }
+
+        // Gets a pointer to the component, or nullptr if it doesn't exist
+        template <typename T>
+        T* GetComponent()
+        {
+            return m_scene.m_registry.try_get<T>(m_id);
+        }
+
+        // Deletes the component from the object, if it exists
+        template <typename T>
+        void DeleteComponent()
+        {
+            m_scene.m_registry.remove<T>(m_id);
+        }
+
+        // Returns true if the object has all of the given components
+        template <typename... T>
+        bool HasAll()
+        {
+            return m_scene.m_registry.all_of<T...>(m_id);
+        }
+        
+        // Returns true if the object has any of the given components
+        template <typename... T>
+        bool HasAny()
+        {
+            return m_scene.m_registry.any_of<T...>(m_id);
+        }
+
+        // Hierarchy management
+        
+        // Adds an object to our list of children
+        // If the object already has a parent, it is removed from that parent first
+        void AddChild(Object& object);
+
+        // Removes the given child object from our list of children, and
+        // updates the child object's parent pointer to be empty
+        void RemoveChild(Object& object);
+
+        // Returns a pointer to the parent object, or nullptr if we have none
+        inline Object* GetParent() const { return m_parent; }
+
+        // Gets the list of children objects by id
+        inline const std::vector<Object*>& GetChildren() const { return m_children; }
+
+        // Deletes this object and all its components from the scene
+        inline void Delete() { m_scene.Delete(m_id); }
+
+        // Used internally but must be public
+        // NOTE: Don't instantiate Objects directly! Use Scene::CreateObject().
+        Object(Scene& scene, ObjectID id);
     
     // Data / implementation
     private:
 
-        entt::handle m_handle;
+        // Non-owning reference to the scene that created this object
+        Scene& m_scene;
+
+        // Our ID within the scene
+        const ObjectID m_id;
+
+        // Pointer to our parent object, if any
+        Object* m_parent = nullptr;
+
+        // List of child objects
+        std::vector<Object*> m_children;
+
+        // This token guarantees pointer stability for objects within the scene.
+        // Add it to your component class if you want to store and reuse pointers
+        // to the component type over multiple frames.
+        static constexpr auto in_place_delete = true;
+
+        // Necessary for the scene to create and delete objects
+        friend class Scene;
     };
 
     // Object management
 
-    // Returns a reference to a newly-created empty scene object.
-    // If no name is supplied, one is automatically generated.
-    // If an object with the given name already exists, it is returned instead.
-    Object& CreateObject(const std::string& name = "_autogen");
-
-    // Gets a pointer to the object with the given name,
-    // or a null pointer if no object with that name exists.
-    Object* GetObject(const std::string& name);
-
-    // Deletes all objects and components from the scene
-    void Clear();
-
-
-    // Alternative object management
-
-    // Gets a reference to a newly-created empty scene object.
+    // Create and return a reference to an empty scene object.
     Object& CreateObject();
 
     // Gets a pointer to the object with the given ID,
     // or a null pointer if no object with that ID exists.
     Object* GetObject(ObjectID id);
 
+    // Deletes an object and all of its components
+    void Delete(ObjectID id);
+
+    // Deletes all objects and components
+    void Clear();
+
 // Data / implementation
 private:
 
-    entt::registry m_registry;
-
+    // Registry that contains all object and component data
+    entt::basic_registry<ObjectID> m_registry;
 };
 
 }
