@@ -72,7 +72,17 @@ if (m_windowResized)
 }
 ```
 
-## Scene
+## Input
+
+## Audio
+
+## RNG
+
+## Shapes
+
+## EventManager
+
+## Scene TODO: Redo this
 
 The wolf::Scene class can be used as a container to manage a hierarchy of game objects with arbitrary type components.
 
@@ -200,15 +210,3 @@ for (auto&&[objectID, object] : scene.EachObject())
     }
 }
 ```
-
-## EventManager
-
-the wolf::EventManager is in progress...
-
-## Input
-
-## Audio
-
-## ImGui
-
-## RNG
