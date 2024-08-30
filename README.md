@@ -47,7 +47,7 @@
 
 ## App
 
-The wolf::App abstract class has a few new concrete methods and flags you can use:
+The 'W_App' module has a few new concrete methods and flags for window management that can be used by derived app classes:
 
 ```C++
 // Anywhere inside your app's update loop...
@@ -63,28 +63,100 @@ SetVsync(false);
 ShowDebug();
 
 // Detect when the window was resized
+// NOTE: This will be set to true automatically when the
+// window is resized, but must be reset manually.
 if (m_windowResized)
 {
     // Do stuff...
 
-    // Reset the flag
+    // Reset the flag manually
     m_windowResized = false;
 }
 ```
 
 ## Input
 
+The 'W_Input' module now handles all input for the program instead of it being handles by wolf::App. The input module has static functions available anywhere in the program for keyboard and mouse input detection. Check out 'wolf/W_Input.h' for the full API.
+
+```C++
+// Detect if the spacebar was just pressed this frame
+if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE)) { /*...*/ }
+
+// Detect if the left mouse button was just released this frame
+if (wolf::Input::IsLMBReleased()) { /*...*/ }
+
+// Get the amount of vertical mouse scroll this frame
+float vScroll = wolf::Input::GetMouseScroll().y;
+
+```
+
 ## Audio
+
+The 'W_Audio' module allows very simple access to loading and playing audio files quickly. It's primarily designed for a "fire and forget" style of usage and can be used from anywhere in the program.
+
+```C++
+// Play a sound effect at half volume in the left channel
+wolf::Audio::Play("data/sfx.mp3" /* file path */, false /* no loop */, 0.5f /* half volume */, -1.0f /* left channel */);
+
+// Play a looping song at default volume and pan
+wolf::Audio::Play("data/song.wav" /* file path */, true /* loop */);
+
+// Stop all currently-playing instances of a sound file
+wolf::Audio::Stop("data/song2.ogg");
+
+// Preload a large audio file from disk to be played later without incurring a load on first play
+wolf::Audio::Load("data/largeFile.FLAC");
+```
 
 ## RNG
 
+The 'W_RNG' module is an instantiable, seedable pseudo random number generator.
+
+```C++
+// Create an instance of the rng with the seed 12345
+wolf::RNG rng(12345);
+
+// Get a random boolean
+bool vBool = rng.FlipCoin();
+
+// Get a float between 0 and 1 (inclusive)
+float vFloat = rng.NextFloat(0.0f, 1.0f);
+
+// Get an int between 32 and 64 (inclusive)
+int vInt = rng.NextInt(32, 64);
+```
+
 ## Shapes
+
+The 'W_Shapes' module has a few lightweight classes for representing 2D shapes and detecting collisions between them.
+
+```C++
+// Create a unit circle at the origin
+wolf::Circle circle(glm::vec2(0, 0), 0.5f);
+
+// Test for intersection with a point
+bool contains = circle.Intersects(glm::vec2(0, 0));
+
+// Test for intersection with another circle
+bool intersects = circle.Intersects(wolf::Circle(glm::vec2(0, 0), 40.0f));
+
+// Create a rectangle from (-1, -1) to (8, 8)
+wolf::Rectangle rectangle(-1 /* left */, 8 /* top */, 8 /* right */, -1 /* bottom */);
+
+// Create the same rectangle but by defining origin and size
+wolf::Rectangle rectangle2(glm::vec2(-1, 8) /* top left coordinate */, glm::vec2(9, 9) /* width and height */);
+
+// Test for intersections
+bool test = rectangle.Intersects(glm::vec2(0, 0));
+```
 
 ## EventManager
 
-## Scene TODO: Redo this
+The "W_EventManager" module can be used anywhere in the program to send events of any type to registered listeners. It is in progress and will be documented as soon as it is functional.
 
-The wolf::Scene class can be used as a container to manage a hierarchy of game objects with arbitrary type components.
+## Scene
+
+The 'W_Scene' module can be used as a container to manage a hierarchy of game objects with components of any type.
 
 To create and delete objects in a scene:
 
@@ -134,7 +206,7 @@ To construct a new component and add it to an object:
 
 ```C++
 // Pass your component's constructor arguments directly to the AddComponent template function
-// NOTE: You can only add a component to an object if it does not already have one of that type!
+// NOTE: Not safe to call if the component already exists!
 CustomComponent& component = object.AddComponent<CustomComponent>(45);
 ```
 
@@ -150,10 +222,11 @@ if (pComponent)
 
 To delete a component from an object:
 ```C++
+// Safe to call even if the component does not exist
 object.DeleteComponent<CustomComponent>();
 ```
 
-To query an object about multiple components:
+To query an object about whether it has multiple components:
 
 ```C++
 // True if object has BOTH a Collider and Health component
@@ -185,7 +258,7 @@ object3.GetParent(); // nullptr
 const std::vector<wolf::Scene::Object*>& children = object1.GetChildren();
 ```
 
-To create a game system that updates objects or components, you can use the Scene::EachObject() and Scene::Each<T> methods along with structured bindings for very efficient iteration. The first variable bound will be the object ID of the object the component belongs to, and the subsequent variables will get references to the components themselves.
+To create a game system that updates objects or components, you can use the Scene::EachObject() and Scene::Each<T...> methods along with structured bindings for very efficient iteration. The first variable bound will be the object ID of the object containing the components, and the subsequent variables will get references to the components themselves, in the same order you declare.
 
 ```C++
 // Iterate all Sprite components

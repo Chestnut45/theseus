@@ -27,13 +27,22 @@ namespace wolf
             static const int NUM_KEYS = GLFW_KEY_LAST - GLFW_KEY_SPACE;
 
             // Key inputs
-            // NOTE: Use the GLFW_KEY_* definitions
+            // NOTE: Use the GLFW_KEY_* definitions for key identifiers
+
+            // True if the key is down this frame
             static bool IsKeyDown(int key);
+
+            // True if the key is down this frame and was up last frame
             static bool IsKeyJustDown(int key);
+
+            // True if the key is down this frame and last frame
             static bool IsKeyHeld(int key);
+
+            // True if the key was down last frame but up this frame
             static bool IsKeyReleased(int key);
 
             // Mouse inputs
+            // Same convention as above for Down, JustDown, Held, and Released
             static bool IsLMBDown();
             static bool IsRMBDown();
             static bool IsMMBDown();
@@ -47,8 +56,16 @@ namespace wolf
             static bool IsRMBReleased();
             static bool IsMMBReleased();
             static bool IsMouseCaptured() { return s_mouseCaptured; };
+
+            // Get the mouse position in pixel coordinates,
+            // relative to the top-left corner of the window.
             static const glm::vec2& GetMousePos();
+
+            // Get the relative movement of the mouse since
+            // last frame, measured in pixels.
             static const glm::vec2& GetMouseDelta();
+
+            // Get the amount of mouse scroll this frame on both axes.
             static const glm::vec2& GetMouseScroll();
 
             // Mouse config

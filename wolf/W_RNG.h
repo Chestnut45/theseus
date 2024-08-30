@@ -10,9 +10,6 @@
 #include <cstdint>
 #include <random>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-
 namespace wolf
 {
 

@@ -5,6 +5,7 @@ int main(int, char**)
 {
     // Tests
     wolf::_SceneTests();
+    wolf::_ShapeTests();
     
     Theseus app;
     app.Run();

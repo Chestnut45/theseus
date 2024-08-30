@@ -13,6 +13,7 @@
 #include "W_ProgramManager.h"
 #include "W_RNG.h"
 #include "W_Scene.h"
+#include "W_Shapes.h"
 #include "W_Types.h"
 #include "W_VertexBuffer.h"
 #include "W_VertexDeclaration.h"
