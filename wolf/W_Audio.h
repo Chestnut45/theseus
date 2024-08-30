@@ -4,7 +4,7 @@
 // File:			W_Audio.h
 // Original Author:	D'Anyil Landry
 //
-// A static class providing simple access to audio playback for applications
+// A static class providing simple access to audio playback for applications.
 //-----------------------------------------------------------------------------
 
 #include <cstdint>

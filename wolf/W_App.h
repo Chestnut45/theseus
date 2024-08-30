@@ -5,7 +5,7 @@
 // Original Author:	Gordon Wood
 // Modifications:   D'Anyil Landry
 //
-// Class representing an OpenGL application
+// Abstract class representing an OpenGL application.
 //-----------------------------------------------------------------------------
 
 #include <string>

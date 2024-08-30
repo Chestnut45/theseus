@@ -1,5 +1,12 @@
 #pragma once
 
+//-----------------------------------------------------------------------------
+// File:			W_Shapes.h
+// Original Author:	D'Anyil Landry
+//
+// Some helper classes for testing intersections with 2D shapes and points.
+//-----------------------------------------------------------------------------
+
 #include <glm/glm.hpp>
 
 namespace wolf

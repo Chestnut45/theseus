@@ -4,7 +4,7 @@
 // File:			W_RNG.h
 // Original Author:	D'Anyil Landry
 //
-// A class representing a seeded instance of a pseudo random number generator
+// A class representing a seeded instance of a pseudo random number generator.
 //-----------------------------------------------------------------------------
 
 #include <cstdint>

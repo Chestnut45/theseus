@@ -4,7 +4,7 @@
 // File:			W_Input.h
 // Original Author:	D'Anyil Landry
 //
-// Static helper class for easy access to keyboard / mouse state
+// Static helper class for easy access to keyboard / mouse state.
 //-----------------------------------------------------------------------------
 
 #include <algorithm>

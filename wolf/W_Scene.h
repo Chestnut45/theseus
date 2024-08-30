@@ -6,10 +6,6 @@
 //
 // A class representing a hierarchical collection of objects with arbitrary
 // structs or classes as components.
-// 
-// Scenes don't directly simulate or render components, but offer efficient
-// APIs for iterating individual components or objects containing the same
-// group of components.
 //-----------------------------------------------------------------------------
 
 #include <vector>

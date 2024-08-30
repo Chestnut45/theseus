@@ -4,7 +4,7 @@
 // File:			W_Logging.h
 // Original Author:	D'Anyil Landry
 //
-// Very simple console logging functions for quick and dirty debugging
+// Very simple console logging functions for quick and dirty debugging.
 //-----------------------------------------------------------------------------
 
 #include <iostream>
