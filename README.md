@@ -76,7 +76,7 @@ if (m_windowResized)
 
 ## Input
 
-The 'W_Input' module now handles all input for the program instead of it being handles by wolf::App. The input module has static functions available anywhere in the program for keyboard and mouse input detection. Check out 'wolf/W_Input.h' for the full API.
+The 'W_Input' module now handles all input for the program, instead of it being handled by wolf::App. The input module has static functions available anywhere in the program for keyboard and mouse input detection. Check out 'wolf/W_Input.h' for the full API.
 
 ```C++
 // Detect if the spacebar was just pressed this frame
@@ -87,7 +87,6 @@ if (wolf::Input::IsLMBReleased()) { /*...*/ }
 
 // Get the amount of vertical mouse scroll this frame
 float vScroll = wolf::Input::GetMouseScroll().y;
-
 ```
 
 ## Audio
@@ -147,7 +146,8 @@ wolf::Rectangle rectangle(-1 /* left */, 8 /* top */, 8 /* right */, -1 /* botto
 wolf::Rectangle rectangle2(glm::vec2(-1, 8) /* top left coordinate */, glm::vec2(9, 9) /* width and height */);
 
 // Test for intersections
-bool test = rectangle.Intersects(glm::vec2(0, 0));
+bool testPoint = rectangle.Intersects(glm::vec2(0, 0));
+bool testRect = rectangle.Intersects(wolf::Rectangle(0, 0, 8, 8));
 ```
 
 ## EventManager
@@ -202,7 +202,7 @@ wolf::EventManager::TriggerEvent(MyEvent(123, &someSceneObject));
 
 // Queue events for later
 wolf::EventManager::EnqueueEvent(MyEvent(456, &anotherObject));
-wolf::EventManager::EnqueueEvent(MyEvent(456, &anotherObject));
+wolf::EventManager::EnqueueEvent(MyEvent(789, &anotherObject));
 
 // Dispatch all queued events of a certain type
 wolf::EventManager::Dispatch<MyEvent>();
@@ -232,19 +232,9 @@ auto& object3 = scene.CreateObject();
 // Delete objects either way
 object2.Delete();
 scene.DeleteObject(object3.GetID());
-```
-
-If you want to store object IDs or get access to an object's scene:
-
-```C++
-// Get an object's ID to store somewhere
-wolf::Scene::ObjectID id = object1.GetID();
-
-// Get a reference to the object's scene
-wolf::Scene& sceneRef = object1.GetScene();
 
 // Query for an object in the scene by ID
-wolf::Scene::Object* pObject = scene.GetObject(id);
+wolf::Scene::Object* pObject = scene.GetObject(object1.GetID());
 ```
 
 Then, to add some components to those objects, you'll have to define a component type. Any class or struct is a valid component type as long as it uses at least one public constructor.
@@ -318,7 +308,7 @@ finger.GetParent(); // nullptr
 const auto& children = object1.GetChildren();
 ```
 
-To create a game system that updates objects or components, you can use the Scene::EachObject() and Scene::Each<T...> methods along with structured bindings for very efficient iteration. The first variable bound will be the object ID of the object containing the components, and the subsequent variables will get references to the components themselves, in the same order you declare.
+To create a game system that updates objects or components, you can use the Scene::EachObject() and Scene::Each<T...> methods along with structured bindings for very efficient iteration. The first variable bound will be the object ID of the object containing the components, and the subsequent variables will get references to the components themselves, in the same order that you pass the component types as template arguments.
 
 ```C++
 // Iterate all Sprite components
