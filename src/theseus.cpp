@@ -3,10 +3,10 @@
 // Application entrypoint
 int main(int, char**)
 {
-    // Tests
-    wolf::_SceneTests();
-    wolf::_ShapeTests();
-    wolf::_EventManagerTests();
+    // Unit tests
+    // wolf::_SceneTests();
+    // wolf::_ShapeTests();
+    // wolf::_EventManagerTests();
     
     Theseus app;
     app.Run();
@@ -28,9 +28,6 @@ void Theseus::Update(float delta)
     // Debug hotkeys
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) Shutdown();
     if (wolf::Input::IsKeyDown(GLFW_KEY_GRAVE_ACCENT)) ShowDebug();
-
-    // DEBUG: Audio test
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE)) wolf::Audio::Play("data/omg.mp3");
     
     // TODO: Update logic
 }

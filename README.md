@@ -152,7 +152,64 @@ bool test = rectangle.Intersects(glm::vec2(0, 0));
 
 ## EventManager
 
-The "W_EventManager" module can be used anywhere in the program to send events of any type to registered listeners. It is in progress and will be documented as soon as it is functional.
+The "W_EventManager" module can be used anywhere in the program to send events of any type to registered listeners. Instead of making a general purpose "Event" class with expensive string hashing for event parameter creation and retrieval, the event queues and listeners are templated so you can create new event types trivially.
+
+Any type is a valid event type, but POD structs are the simplest to use.
+
+```C++
+// Example event type
+struct MyEvent
+{
+    int m_data;
+    wolf::Scene::Object* m_pObject;
+};
+```
+
+In order to register a listener, you'll need to create a listener function as a member method of some class or struct. A listener member function is any member function that accepts a const reference to some event type.
+
+```C++
+// Example listener type
+struct MyListener
+{
+    // Example listener function for 'MyEvent' events
+    void TheActualFunction(const MyEvent& event)
+    {
+        // Do something with the event parameters...
+        auto pSprite = event.m_pObject->GetComponent<Sprite>();
+        // ...
+    }
+};
+
+// Create an instance of your type with the listener method.
+MyListener instance;
+
+// Add the listener by passing the event type, listener type, and a
+// pointer to the listener function as template arguments, and a
+// reference to the actual instance of the listener as a regular argument.
+wolf::EventManager::AddListener<MyEvent, MyListener, &MyListener::TheActualFunction>(instance);
+
+// Removing listeners follows the exact same syntax:
+wolf::EventManager::RemoveListener<MyEvent, MyListener, &MyListener::TheActualFunction>(instance);
+```
+
+If you'd like every instance of a certain type to automatically listen for events, you could call AddListener in the constructor, and RemoveListener in the destructor.
+
+To actually send out events to all registered listeners, you can either trigger an event immediately, or enqueue events to dispatch later. The TriggerEvent and EnqueueEvent functions are also templated by event type, but it can be deduced by the argument you pass so there's no need to explicitly state the template type.
+
+```C++
+// Dispatch an event immediately
+wolf::EventManager::TriggerEvent(MyEvent(123, &someSceneObject));
+
+// Queue events for later
+wolf::EventManager::EnqueueEvent(MyEvent(456, &anotherObject));
+wolf::EventManager::EnqueueEvent(MyEvent(456, &anotherObject));
+
+// Dispatch all queued events of a certain type
+wolf::EventManager::Dispatch<MyEvent>();
+
+// Dispatch all queued events, regardless of type
+wolf::EventManager::Dispatch();
+```
 
 ## Scene
 
@@ -166,11 +223,13 @@ wolf::Scene scene;
 
 // Create some objects in the scene
 // NOTE: It's important to capture by reference here, since scene objects are not copyable or moveable.
-wolf::Scene::Object& object = scene.CreateObject();
+wolf::Scene::Object& object1 = scene.CreateObject();
+
+// Capturing with auto& is also acceptable
 auto& object2 = scene.CreateObject();
 auto& object3 = scene.CreateObject();
 
-// Delete an object
+// Delete objects either way
 object2.Delete();
 scene.DeleteObject(object3.GetID());
 ```
@@ -179,10 +238,10 @@ If you want to store object IDs or get access to an object's scene:
 
 ```C++
 // Get an object's ID to store somewhere
-wolf::Scene::ObjectID id = object.GetID();
+wolf::Scene::ObjectID id = object1.GetID();
 
 // Get a reference to the object's scene
-wolf::Scene& sceneRef = object.GetScene();
+wolf::Scene& sceneRef = object1.GetScene();
 
 // Query for an object in the scene by ID
 wolf::Scene::Object* pObject = scene.GetObject(id);
@@ -240,22 +299,23 @@ To change hierarchical relationships between objects:
 
 ```C++
 // Create some objects
-auto& object1 = scene.CreateObject();
-auto& object2 = scene.CreateObject();
-auto& object3 = scene.CreateObject();
+auto& hand = scene.CreateObject();
+auto& thumb = scene.CreateObject();
+auto& finger = scene.CreateObject();
 
-// Set relationships
-object1.AddChild(object2);
-object1.AddChild(object3);
-object1.RemoveChild(object3);
+// Add / remove child objects
+hand.AddChild(thumb);
+hand.AddChild(finger);
+hand.RemoveChild(finger);
 
 // Query relationships
-object1.GetParent(); // nullptr
-object2.GetParent(); // &object1
-object3.GetParent(); // nullptr
+hand.GetParent(); // nullptr
+thumb.GetParent(); // &hand
+finger.GetParent(); // nullptr
 
 // Get a const reference to a vector of pointers to all child objects
-const std::vector<wolf::Scene::Object*>& children = object1.GetChildren();
+// NOTE: Type is const std::vector<wolf::Scene::Object*>&
+const auto& children = object1.GetChildren();
 ```
 
 To create a game system that updates objects or components, you can use the Scene::EachObject() and Scene::Each<T...> methods along with structured bindings for very efficient iteration. The first variable bound will be the object ID of the object containing the components, and the subsequent variables will get references to the components themselves, in the same order you declare.

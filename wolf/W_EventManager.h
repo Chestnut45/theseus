@@ -39,10 +39,33 @@ public:
     // Event dispatch
 
     // Dispatches an event of the given type immediately to all connected listeners.
+    // NOTE: Execution order of listeners is not guaranteed!
     template <typename EventType>
-    static void TriggerEvent(EventType&& event)
+    static void TriggerEvent(const EventType& event)
     {
         s_dispatcher.trigger(event);
+    }
+
+    // Adds an event of the given type to the internal queue.
+    template <typename EventType>
+    static void EnqueueEvent(const EventType& event)
+    {
+        s_dispatcher.enqueue(event);
+    }
+
+    // Dispatches all queued events of the given type immediately.
+    // NOTE: Execution order of listeners is not guaranteed!
+    template <typename EventType>
+    static void Dispatch()
+    {
+        s_dispatcher.update<EventType>();
+    }
+
+    // Dispatches all queued events of any type immediately.
+    // NOTE: Execution order of listeners is not guaranteed!
+    static void Dispatch()
+    {
+        s_dispatcher.update();
     }
 
 // Implementation
