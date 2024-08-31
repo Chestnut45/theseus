@@ -44,7 +44,7 @@ void Audio::Load(const std::string& filepath)
 
 void Audio::_Setup()
 {
-    s_core.init();
+    s_core.init(1U, SoLoud::Soloud::BACKENDS::MINIAUDIO);
 }
 
 void Audio::_Shutdown()
