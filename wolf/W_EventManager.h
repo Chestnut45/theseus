@@ -20,31 +20,20 @@ public:
 
     // Listener management
 
-    // A listener function is a member method of a type that
-    // takes an 'EventType &' argument; return value does not matter.
-    typedef void (*ListenerFunction)();
-
-    // Connects a listener function to the given event type.
+    // Connects a listener to the given event type.
+    // A listener is any member method that has an EventType& parameter.
     // Example usage is in the README.md
-    template <typename EventType, ListenerFunction function, typename... Listener>
-    static void Connect(Listener&&... listener)
+    template <typename EventType, typename ListenerType, void (ListenerType::*Function)(const EventType&)>
+    static void AddListener(ListenerType& listener)
     {
-        // s_dispatcher.sink<EventType>().connect<ListenerFunction>(listener);
+        s_dispatcher.template sink<EventType>().template connect<Function>(listener);
     }
 
     // Disconnects a listener from the given event type.
-    // Example usage is in the README.md
-    template <typename EventType, void(*ListenerFunction)(EventType&), typename... Listener>
-    static void Disconnect(Listener&&... listener)
+    template <typename EventType, typename ListenerType, void (ListenerType::*Function)(const EventType&)>
+    static void RemoveListener(ListenerType& listener)
     {
-        // s_dispatcher.sink<EventType>().disconnect<ListenerFunction>(listener);
-    }
-
-    // Disconnects all listeners from the given instance
-    template <typename EventType, typename... Listener>
-    static void Disconnect(Listener&&... listener)
-    {
-        // s_dispatcher.sink<EventType>().disconnect(listener...);
+        s_dispatcher.template sink<EventType>().template disconnect<Function>(listener);
     }
 
     // Event dispatch
@@ -53,7 +42,7 @@ public:
     template <typename EventType>
     static void TriggerEvent(EventType&& event)
     {
-        // s_dispatcher.trigger<EventType>(event);
+        s_dispatcher.trigger(event);
     }
 
 // Implementation
