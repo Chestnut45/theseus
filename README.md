@@ -151,7 +151,7 @@ bool testRect = rectangle.Intersects(wolf::Rectangle(0, 0, 8, 8));
 
 ## EventManager
 
-The "W_EventManager" module can be used anywhere in the program to send events of any type to registered listeners. Instead of making a general purpose "Event" class with expensive string hashing for event parameter creation and retrieval, the event queues and listeners are templated so you can create new event types trivially.
+The 'W_EventManager' module can be used anywhere in the program to send events of any type to registered listeners. Instead of making a general purpose "Event" class with expensive string hashing for event parameter creation and retrieval, the event queues and listeners are templated so you can create new event types trivially.
 
 Any type is a valid event type, but POD structs are the simplest to use.
 
