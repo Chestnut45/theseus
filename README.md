@@ -130,14 +130,13 @@ int vInt = rng.NextInt(32, 64);
 The 'W_Shapes' module has a few lightweight classes for representing 2D shapes and detecting collisions between them.
 
 ```C++
-// Create a unit circle at the origin
+// Create some circles at the origin
 wolf::Circle circle(glm::vec2(0, 0), 0.5f);
+wolf::Circle circle2(glm::vec2(0, 0), 40.0f)
 
-// Test for intersection with a point
+// Test for intersections
 bool contains = circle.Intersects(glm::vec2(0, 0));
-
-// Test for intersection with another circle
-bool intersects = circle.Intersects(wolf::Circle(glm::vec2(0, 0), 40.0f));
+bool intersects = circle.Intersects(circle2);
 
 // Create a rectangle from (-1, -1) to (8, 8)
 wolf::Rectangle rectangle(-1 /* left */, 8 /* top */, 8 /* right */, -1 /* bottom */);
