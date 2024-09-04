@@ -16,8 +16,6 @@ int main(int, char**)
 Theseus::Theseus() : App("Theseus", 1280, 720)
 {
     // TODO: Initialization logic
-
-    // SOME CHANGE
 }
 
 Theseus::~Theseus()
