@@ -128,7 +128,7 @@ void App::Run()
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGui::DockSpaceOverViewport(0U, (const ImGuiViewport*)__null, ImGuiDockNodeFlags_PassthruCentralNode);
+        ImGui::DockSpaceOverViewport(0U, (const ImGuiViewport*)nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
 
         glfwGetFramebufferSize(m_pWindow, &m_width, &m_height);
         if(m_width != 0 && m_height != 0)
@@ -157,11 +157,11 @@ void App::Run()
 
             // Update
             Update(m_elapsedTime);
-            m_lastUpdate = (glfwGetTime() - currentTime);
+            m_lastUpdate = (float)(glfwGetTime() - currentTime);
 
             // Render
             Render();
-            m_lastRender = (glfwGetTime() - m_lastUpdate - currentTime);
+            m_lastRender = (float)(glfwGetTime() - m_lastUpdate - currentTime);
         }
 
         // Render ImGui frame
@@ -211,20 +211,20 @@ void App::SetVsync(bool p_vsync)
 void App::ShowDebug()
 {
     // Default window positioning
-    ImGui::SetNextWindowPos(ImVec2(m_width - 256, 0));
+    ImGui::SetNextWindowPos(ImVec2((float)(m_width - 256), 0));
     ImGui::SetNextWindowSize(ImVec2(256, 254));
     ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
     
     // Performance monitoring
     ImGui::SeparatorText("Performance:");
     ImGui::Text("Average FPS: %.0f", m_averageFPS);
-    ImGui::PlotLines("Update:", m_updateSamples.data(), m_updateSamples.size(), 0, (const char*)nullptr, 0.0f, 16.67f, ImVec2{128.0f, 32.0f});
+    ImGui::PlotLines("Update:", m_updateSamples.data(), (int)m_updateSamples.size(), 0, (const char*)nullptr, 0.0f, 16.67f, ImVec2{128.0f, 32.0f});
     ImGui::SameLine();
     ImGui::Text("%.2fms", m_lastUpdate * 1000);
-    ImGui::PlotLines("Render:", m_renderSamples.data(), m_renderSamples.size(), 0, (const char*)nullptr, 0.0f, 16.67f, ImVec2{128.0f, 32.0f});
+    ImGui::PlotLines("Render:", m_renderSamples.data(), (int)m_renderSamples.size(), 0, (const char*)nullptr, 0.0f, 16.67f, ImVec2{128.0f, 32.0f});
     ImGui::SameLine();
     ImGui::Text("%.2fms", m_lastRender * 1000);
-    ImGui::PlotLines("Total:", m_totalSamples.data(), m_totalSamples.size(), 0, (const char*)nullptr, 0.0f, 16.67f, ImVec2{128.0f, 32.0f});
+    ImGui::PlotLines("Total:", m_totalSamples.data(), (int)m_totalSamples.size(), 0, (const char*)nullptr, 0.0f, 16.67f, ImVec2{128.0f, 32.0f});
     ImGui::SameLine();
     ImGui::Text("%.2fms", m_elapsedTime * 1000);
 

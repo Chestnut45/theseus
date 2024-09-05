@@ -43,7 +43,7 @@ public:
     // Basic RNG
     
     // Generates a uniformly distributed boolean
-    inline bool FlipCoin() { return (bool)std::uniform_int_distribution<uint8_t>{0, 1}(m_engine); };
+    inline bool FlipCoin() { return (bool)std::uniform_int_distribution<short>{0, 1}(m_engine); };
 
     // Generates a uniformly distributed float within the range [min, max]
     // NOTE: If max < min, min is always returned as a fail-safe

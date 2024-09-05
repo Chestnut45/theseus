@@ -4,7 +4,7 @@
 
 ### Setting up Dev Environment
 
-1) Install Visual Studio Community Edition 
+1) Install Visual Studio Community Edition
 2) Install Visual Studio Code
 3) Install CMake (At least version 3.12)
 4) Ensure CMake is on your PATH
@@ -16,7 +16,9 @@
 
 1) Open the project in VS Code
 2) Ctrl+Shift+P then type/choose CMake: Configure
-3) Choose one of the available options (e.g. gcc)
+3) Choose one of the available options:
+    A) If you want to use MSVC: "Visual Studio Community 2022 Release - amd64"
+    B) If you want to use GCC/Mingw: "GCC 13.2.0 x86_64-w64-mingw32 (mingw64)"
 4) Ctrl+Shift+P then type/choose CMake: Build
 5) Hit F5 to run in debugger if all compiled well (if not, make sure your compiler / kit from step 3 supports C++20)
 6) You may need to choose your build target (theseus) from the dropdown the first time

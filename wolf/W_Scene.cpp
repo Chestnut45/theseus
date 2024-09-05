@@ -1,5 +1,7 @@
 #include "W_Scene.h"
 
+#include <string>
+
 namespace wolf
 {
 
@@ -33,7 +35,7 @@ void Scene::DeleteObject(ObjectID id)
         // Delete all child objects first
         // NOTE: Done in reverse order since the vector
         // is modified immediately on deletion
-        for (int i = p_object->m_children.size() - 1; i >= 0; i--)
+        for (int i = (int)p_object->m_children.size() - 1; i >= 0; i--)
         {
             DeleteObject(p_object->m_children[i]->GetID());
         }

@@ -34,8 +34,8 @@ void Input::CaptureMouse()
 
     // Set cursor position and update state
     glfwSetCursorPos(s_pWindow, x, y);
-    s_mousePos.x = x;
-    s_mousePos.y = y;
+    s_mousePos.x = (float)x;
+    s_mousePos.y = (float)y;
     s_prevMousePos = s_mousePos;
     s_mouseDelta = glm::vec2(0.0f);
 
@@ -53,8 +53,8 @@ void Input::ReleaseMouse()
     // Ensure there are no jumps in delta from releasing the mouse
     double x, y;
     glfwGetCursorPos(s_pWindow, &x, &y);
-    s_mousePos.x = x;
-    s_mousePos.y = y;
+    s_mousePos.x = (float)x;
+    s_mousePos.y = (float)y;
     s_prevMousePos = s_mousePos;
     s_mouseDelta = glm::vec2(0.0f);
 }
@@ -85,8 +85,8 @@ void Input::_MousePosCallback(GLFWwindow* window, double xpos, double ypos)
 
 void Input::_MouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    s_mouseScroll.x = xoffset;
-    s_mouseScroll.y = yoffset;
+    s_mouseScroll.x = (float)xoffset;
+    s_mouseScroll.y = (float)yoffset;
 }
 
 void Input::_Poll()
@@ -112,8 +112,8 @@ void Input::_Poll()
     s_prevMousePos = s_mousePos;
     double x, y;
     glfwGetCursorPos(s_pWindow, &x, &y);
-    s_mousePos.x = x;
-    s_mousePos.y = y;
+    s_mousePos.x = (float)x;
+    s_mousePos.y = (float)y;
     s_mouseDelta = s_mousePos - s_prevMousePos;
 
     // Reset mouse scroll

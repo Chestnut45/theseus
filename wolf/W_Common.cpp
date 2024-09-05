@@ -17,7 +17,8 @@ namespace wolf
 //----------------------------------------------------------
 void* LoadWholeFile(const std::string& filename, int* pOutFileSize)
 {
-	FILE* fp = fopen(filename.c_str(), "rb");
+	FILE* fp = nullptr;
+	fopen_s(&fp, filename.c_str(), "rb");
 	if( !fp )
 		return 0;
 
@@ -26,7 +27,7 @@ void* LoadWholeFile(const std::string& filename, int* pOutFileSize)
 	fseek(fp, 0, SEEK_SET);
 
 	if(pOutFileSize)
-		*pOutFileSize = len;
+		*pOutFileSize = (int)len;
 
 	char* pRet = new char[len+1];
 	fread(pRet, sizeof(char), len, fp);

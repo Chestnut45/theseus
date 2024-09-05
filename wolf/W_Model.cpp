@@ -212,11 +212,11 @@ void Model::_precacheBoneVertexData(const aiMesh* pSrcMesh, Mesh* pMesh)
 
     m_pBoneVertMappings = new BoneVertMapping[pSrcMesh->mNumVertices];
 
-    for(int boneIdx = 0; boneIdx < pSrcMesh->mNumBones; boneIdx++) 
+    for(unsigned int boneIdx = 0; boneIdx < pSrcMesh->mNumBones; boneIdx++) 
     {
         aiBone* pSrcBone = pSrcMesh->mBones[boneIdx];
 
-        for(int boneWeightIdx = 0; boneWeightIdx < pSrcBone->mNumWeights; boneWeightIdx++)
+        for(unsigned int boneWeightIdx = 0; boneWeightIdx < pSrcBone->mNumWeights; boneWeightIdx++)
         {
             int vertIdx = pSrcBone->mWeights[boneWeightIdx].mVertexId;
             float weight = pSrcBone->mWeights[boneWeightIdx].mWeight;

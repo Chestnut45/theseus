@@ -127,7 +127,7 @@ namespace tiny {
                         return this->ReadJson(obj);
 		}
 
-		int Count() { return vo_.size(); }
+		int Count() { return (int)vo_.size(); }
 
 	private:
 		std::vector<std::string> vo_;
@@ -185,10 +185,10 @@ namespace tiny {
 					break;
 				}
 				if (nextc == '{') {
-					tokens = FetchObjStr(json, i, offset);
+					tokens = FetchObjStr(json, (int)i, offset);
 				}
 				else if (nextc == '[') {
-					tokens = FetchArrayStr(json, i, offset);
+					tokens = FetchArrayStr(json, (int)i, offset);
 				}
 				i += offset;
 				continue;
@@ -221,17 +221,17 @@ namespace tiny {
 			std::string tokens;
 			int offset = 0;
 			if (nextc == '{') {
-				tokens = FetchObjStr(json, i, offset);
+				tokens = FetchObjStr(json, (int)i, offset);
 			}
 			else if (nextc == '[') {
-				tokens = FetchArrayStr(json, i, offset);
+				tokens = FetchArrayStr(json, (int)i, offset);
 			}
 			else if (nextc == '\"') {
-				tokens = FetchStrStr(json, i, offset);
+				tokens = FetchStrStr(json, (int)i, offset);
 			}
-			else if (( isdigit(nextc) || nextc == '-') && LastValidChar(i) == ':')
+			else if (( isdigit(nextc) || nextc == '-') && LastValidChar((int)i) == ':')
 			{
-				tokens = FetchNumStr(json, i, offset);
+				tokens = FetchNumStr(json, (int)i, offset);
 			}
 			else {
 				continue;
@@ -261,7 +261,7 @@ namespace tiny {
 	{
 		for (size_t i = cur; i < s.size(); i++){
 			if (isspace(s[i])) continue;
-			return i - cur;
+			return (int)(i - cur);
 		}
 		return 0;
 	}
@@ -284,7 +284,7 @@ namespace tiny {
 				break;
 			}
 		}
-		offset = i - inpos;
+		offset = (int)(i - inpos);
 		return objstr;
 	}
 
@@ -306,7 +306,7 @@ namespace tiny {
 				break;
 			}
 		}
-		offset = i - inpos;
+		offset = (int)(i - inpos);
 		return objstr;
 	}
 
@@ -325,7 +325,7 @@ namespace tiny {
 				break;
 			}
 		}
-		offset = i - inpos;
+		offset = (int)(i - inpos);
 
 		return Trims(objstr, '\"', '\"');
 	}
@@ -341,7 +341,7 @@ namespace tiny {
 			}
 			objstr.push_back(c);
 		}
-		offset = i - inpos;
+		offset = (int)(i - inpos);
 
 		return objstr;
 	}
@@ -456,7 +456,7 @@ namespace tiny {
 		std::ostringstream oss;
 		oss << prefix;
 		int i = 0;
-		int size = Items_.size();
+		int size = (int)Items_.size();
 		std::string seq = ",";
 		for (; i < size; ++i) {
 			Value& v = Items_[i];
