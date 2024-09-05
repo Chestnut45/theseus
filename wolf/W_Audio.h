@@ -45,7 +45,7 @@ public:
     // prevent a lag spike when first played.
     static void Load(const std::string& filepath);
 
-    // TODO: Looping, filter options?
+    // TODO: Filters? (reverb, delay, bitcrushing, etc.)
 
 // Implementation
 private:
