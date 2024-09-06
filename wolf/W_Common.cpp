@@ -4,6 +4,7 @@
 //
 // See header for notes
 //-----------------------------------------------------------------------------
+
 #include "W_Common.h"
 #include "W_Types.h"
 
@@ -17,8 +18,7 @@ namespace wolf
 //----------------------------------------------------------
 void* LoadWholeFile(const std::string& filename, int* pOutFileSize)
 {
-	FILE* fp = nullptr;
-	fopen_s(&fp, filename.c_str(), "rb");
+	FILE* fp = fopen(filename.c_str(), "rb");
 	if( !fp )
 		return 0;
 
@@ -57,7 +57,7 @@ bool CompileShader(GLuint* pShader, GLenum shaderType, const std::string& filena
 
 	const GLchar* sources[] = 
 	{
-		"#version 150\n",
+		"#version 460\n",
 		pSource
 	};
     *pShader = glCreateShader(shaderType);
