@@ -1,7 +1,5 @@
 #include "W_EventManager.h"
 
-#include "W_Logging.h"
-
 namespace wolf
 {
 
@@ -22,13 +20,16 @@ void _EventManagerTests()
     {
         void OnTestEvent(const TestEvent& event)
         {
-            Log(event.m_data);
+            listenerCalls1++;
         }
 
         void OnTestEvent2(const TestEvent2& event)
         {
-            Log(event.x, " ", event.p);
+            listenerCalls2++;
         }
+
+        int listenerCalls1 = 0;
+        int listenerCalls2 = 0;
     };
 
     // Add 2 listeners
@@ -41,17 +42,17 @@ void _EventManagerTests()
 
     EventManager::RemoveListener<TestEvent, TestListener, &TestListener::OnTestEvent>(listener);
 
-    EventManager::TriggerEvent(TestEvent(69));
+    EventManager::TriggerEvent(TestEvent(123));
 
     EventManager::EnqueueEvent(TestEvent(12345));
     EventManager::EnqueueEvent(TestEvent(67890));
-    EventManager::EnqueueEvent(TestEvent(42069));
+    EventManager::EnqueueEvent(TestEvent());
 
     EventManager::Dispatch<TestEvent>();
 
     EventManager::EnqueueEvent(TestEvent(12345));
     EventManager::EnqueueEvent(TestEvent(67890));
-    EventManager::EnqueueEvent(TestEvent(42069));
+    EventManager::EnqueueEvent(TestEvent(123));
 
     EventManager::AddListener<TestEvent2, TestListener, &TestListener::OnTestEvent2>(listener);
     EventManager::TriggerEvent(TestEvent2(123, nullptr));
@@ -60,6 +61,12 @@ void _EventManagerTests()
     EventManager::Dispatch();
 
     EventManager::RemoveListener<TestEvent, TestListener, &TestListener::OnTestEvent>(listener2);
+
+    // Make sure all listener functions fired correctly
+    assert(listener.listenerCalls1 == 1);
+    assert(listener.listenerCalls2 == 1);
+    assert(listener2.listenerCalls1 == 8);
+    assert(listener2.listenerCalls2 == 0);
 }
 
 }
