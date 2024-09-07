@@ -222,11 +222,9 @@ To create and delete objects in a scene:
 // Create an empty scene
 wolf::Scene scene;
 
-// Create some objects in the scene
-// NOTE: It's important to capture by reference here, since scene objects are not copyable or moveable.
-wolf::Scene::Object& object1 = scene.CreateObject();
-
-// Capturing with auto& is also acceptable
+// Create some game objects in the scene
+// NOTE: It's important to capture by reference here, since game objects are not copyable or moveable.
+wolf::GameObject& object1 = scene.CreateObject();
 auto& object2 = scene.CreateObject();
 auto& object3 = scene.CreateObject();
 
@@ -234,8 +232,8 @@ auto& object3 = scene.CreateObject();
 object2.Delete();
 scene.DeleteObject(object3.GetID());
 
-// Query for an object in the scene by ID
-wolf::Scene::Object* pObject = scene.GetObject(object1.GetID());
+// Query for a game object in the scene by ID
+wolf::GameObject* pObject = scene.GetObject(object1.GetID());
 ```
 
 Then, to add some components to those objects, you'll have to define a component type. Any class or struct is a valid component type as long as it uses at least one public constructor.
@@ -252,7 +250,7 @@ private:
 };
 ```
 
-To construct a new component and add it to an object:
+To construct a new component and add it to a game object:
 
 ```C++
 // Pass your component's constructor arguments directly to the AddComponent template function
@@ -270,13 +268,14 @@ if (pComponent)
 }
 ```
 
-To delete a component from an object:
+To delete a component from a game object:
+
 ```C++
 // Safe to call even if the component does not exist
 object.DeleteComponent<CustomComponent>();
 ```
 
-To query an object about whether it has multiple components:
+To query a game object about whether it has multiple components:
 
 ```C++
 // True if object has BOTH a Collider and Health component
@@ -286,7 +285,7 @@ bool hurtable = object.HasAll<Collider, Health>();
 bool renderable = object.HasAny<Sprite, Mesh>();
 ```
 
-To change hierarchical relationships between objects:
+To change hierarchical relationships between game objects:
 
 ```C++
 // Create some objects
@@ -305,30 +304,30 @@ thumb.GetParent(); // &hand
 finger.GetParent(); // nullptr
 
 // Get a const reference to a vector of pointers to all child objects
-// NOTE: Type is const std::vector<wolf::Scene::Object*>&
+// NOTE: Type is const std::vector<wolf::GameObject*>&
 const auto& children = object1.GetChildren();
 ```
 
-To create a game system that updates objects or components, you can use the Scene::EachObject() and Scene::Each<T...> methods along with structured bindings for very efficient iteration. The first variable bound will be the object ID of the object containing the components, and the subsequent variables will get references to the components themselves, in the same order that you pass the component types as template arguments.
+To create a system that updates game objects or components, you can use the Scene::Each<T...> method along with structured bindings for very efficient iteration. The first variable bound will be the game object ID of the game object containing the components, and the subsequent variables will get references to the components themselves, in the same order that you pass the component types as template arguments.
 
 ```C++
-// Iterate all Sprite components
-for (auto&&[objectID, sprite] : scene.Each<Sprite>())
+// Iterate all Sprite2D components
+for (auto&&[id, sprite] : scene.Each<Sprite2D>())
 {
     // sprite.Render(...) or something
 }
 
 // Iterate all objects with at least both component types
-for (auto&&[objectID, collider, transform] : scene.Each<Collider, Transform>())
+for (auto&&[id, hitbox, transform] : scene.Each<Hitbox2D, Transform2D>())
 {
     // ...
 }
 
-// Iterate all objects in the scene, regardless of components
-for (auto&&[objectID, object] : scene.EachObject())
+// Iterate all game objects in the scene, regardless of components
+for (auto&&[id, object] : scene.Each<GameObject>())
 {
-    // Collect only objects with no children
-    if (object.HasChildren())
+    // Collect only game objects with no children
+    if (!object.HasChildren())
     {
         // ...
     }

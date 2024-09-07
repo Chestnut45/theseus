@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "W_GameObject.h"
+
 namespace wolf
 {
 
@@ -15,21 +17,21 @@ Scene::~Scene()
 {
 }
 
-Scene::Object& Scene::CreateObject()
+GameObject& Scene::CreateObject()
 {
-    ObjectID id = m_registry.create();
-    return m_registry.emplace<Object>(id, *this, id);
+    GameObjectID id = m_registry.create();
+    return m_registry.emplace<GameObject>(id, *this, id);
 }
 
-Scene::Object* Scene::GetObject(ObjectID id)
+GameObject* Scene::GetObject(GameObjectID id)
 {
-    return m_registry.try_get<Object>(id);
+    return m_registry.try_get<GameObject>(id);
 }
 
-void Scene::DeleteObject(ObjectID id)
+void Scene::DeleteObject(GameObjectID id)
 {
-    // Destroy the object and all of its components
-    Object* p_object = GetObject(id);
+    // Destroy the game object and all of its components
+    GameObject* p_object = GetObject(id);
     if (p_object)
     {
         // Delete all child objects first
@@ -41,7 +43,7 @@ void Scene::DeleteObject(ObjectID id)
         }
 
         // Remove any dangling references from the hierarchy
-        Object* parent = p_object->GetParent();
+        GameObject* parent = p_object->GetParent();
         if (parent)
         {
             parent->RemoveChild(*p_object);
@@ -55,47 +57,6 @@ void Scene::DeleteObject(ObjectID id)
 void Scene::Clear()
 {
     m_registry.clear();
-}
-
-// Scene::Object implementation
-
-Scene::Object::Object(Scene& scene, Scene::ObjectID id)
-    : m_scene(scene), m_id(id)
-{
-}
-
-Scene::Object::~Object()
-{
-}
-
-void Scene::Object::AddChild(Scene::Object& object)
-{
-    // Get the object's parent
-    Object* parent = object.GetParent();
-    if (parent)
-    {
-        // Early out if the object is already one of our children
-        if (parent == this) return;
-
-        // Remove existing relationship
-        parent->RemoveChild(object);
-    }
-
-    // Update references
-    m_children.push_back(&object);
-    object.m_parent = this;
-}
-
-void Scene::Object::RemoveChild(Scene::Object& object)
-{
-    // Find the child object in our list of children
-    const auto& it = std::find(m_children.begin(), m_children.end(), &object);
-    if (it != m_children.end())
-    {
-        // If found, remove and update child's parent
-        object.m_parent = nullptr;
-        m_children.erase(it);
-    }
 }
 
 void _SceneTests()
@@ -112,11 +73,11 @@ void _SceneTests()
 
     // Create the scene and objects
     Scene scene;
-    Scene::Object& object1 = scene.CreateObject();
-    Scene::Object& object2 = scene.CreateObject();
-    Scene::Object& object3 = scene.CreateObject();
-    Scene::Object& object4 = scene.CreateObject();
-    Scene::Object& object5 = scene.CreateObject();
+    GameObject& object1 = scene.CreateObject();
+    GameObject& object2 = scene.CreateObject();
+    GameObject& object3 = scene.CreateObject();
+    GameObject& object4 = scene.CreateObject();
+    GameObject& object5 = scene.CreateObject();
     object1.AddChild(object2);
     object2.AddChild(object3);
     object1.AddComponent<int>(45);
@@ -158,7 +119,7 @@ void _SceneTests()
     }
 
     // Iterate all objects in the scene
-    for (auto&&[objectID, object] : scene.EachObject())
+    for (auto&&[objectID, object] : scene.Each<GameObject>())
     {
         assert(objectID == object1.GetID());
     }
