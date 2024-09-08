@@ -25,3 +25,4 @@
 #include "W_MaterialManager.h"
 #include "W_Model.h"
 #include "W_SkinnedModel.h"
+#include "W_Sprite2D.h"
