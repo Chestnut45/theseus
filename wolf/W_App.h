@@ -46,6 +46,9 @@ namespace wolf
         bool m_fullscreen = false;
         bool m_vsync = false;
 
+        // Timing
+        float m_programLifetime = 0.0f;
+
         // Displays debug information in an imgui window
         void ShowDebug();
     
@@ -55,7 +58,6 @@ namespace wolf
         friend void WindowResizeCallback(GLFWwindow* window, int width, int height);
 
         // Timing
-        float m_programLifetime = 0.0f;
         float m_lastUpdate = 0.0f;
         float m_lastRender = 0.0f;
         float m_lastTime = 0.0f;

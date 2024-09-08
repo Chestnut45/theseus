@@ -214,7 +214,7 @@ wolf::EventManager::Dispatch();
 
 ## Scene
 
-The 'W_Scene' module can be used as a container to manage a hierarchy of game objects with components of any type.
+The 'W_Scene' module can be used as a container to create and manage a hierarchy of game objects with components of any type.
 
 To create and delete objects in a scene:
 

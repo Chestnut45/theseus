@@ -16,11 +16,15 @@ class Camera2D
 {
 public:
     Camera2D(float screenWidth, float screenHeight);
+    ~Camera2D();
 
     void SetPosition(const glm::vec2& position);
     void SetZoom(float zoom);
 
     const glm::mat4& GetProjectionMatrix() const;
+
+    // Updates the camera's uniform buffer and binds it to the given index (0 default)
+    void Bind(int index = 0);
 
 private:
     void UpdateMatrix();
@@ -32,6 +36,8 @@ private:
 
     float m_screenWidth;
     float m_screenHeight;
+
+    GLuint m_ubo = 0;
 };
 }
 

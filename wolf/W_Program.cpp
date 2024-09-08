@@ -215,7 +215,7 @@ void Program::_compile(std::size_t variantKey, const std::set<std::string>& keyw
     GLuint uiVS, uiPS;
     
     // Construct the "preamble" which is our version string + all the keywords as #defines
-    std::string preamble = "#version 150\n";
+    std::string preamble = "#version 460\n";
     for(auto it = keywords.begin(); it != keywords.end(); ++it)
     {
         preamble += std::string("#define ") + *it + "\n";

@@ -17,6 +17,16 @@ Camera2D::Camera2D(float screenWidth, float screenHeight)
 {
     // Initialize the orthographic projection matrix
     m_projectionMatrix = glm::ortho(0.0f, screenWidth, 0.0f, screenHeight);
+
+    // Create the uniform buffer object
+    glGenBuffers(1, &m_ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), &m_projectionMatrix[0], GL_STREAM_DRAW);
+}
+
+Camera2D::~Camera2D()
+{
+    glDeleteBuffers(1, &m_ubo);
 }
 
 void Camera2D::SetPosition(const glm::vec2& position)
@@ -38,6 +48,15 @@ const glm::mat4& Camera2D::GetProjectionMatrix() const
         const_cast<Camera2D*>(this)->UpdateMatrix();
     }
     return m_projectionMatrix;
+}
+
+void Camera2D::Bind(int index)
+{
+    // Bind the uniform buffer
+    glBindBufferBase(GL_UNIFORM_BUFFER, index, m_ubo);
+
+    // Write our current matrix to it
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), &m_projectionMatrix[0]);
 }
 
 void Camera2D::UpdateMatrix()
