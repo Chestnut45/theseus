@@ -23,9 +23,7 @@ void Timer::Stop()
 {
     if (m_isRunning) {
         m_isRunning = false;
-        if (m_callback) {
-            m_callback();
-        }
+        m_hasElapsed = true;
     }
 }
 
@@ -40,18 +38,5 @@ bool Timer::IsRunning() const
     return m_isRunning;
 }
 
-Timer::Duration Timer::Elapsed() const
-{
-    if (m_isRunning) {
-        return std::chrono::duration_cast<Duration>(Clock::now() - m_startTime);
-    }
-    return Duration::zero();
-}
-
-template<typename... Args>
-void Timer::SetCallback(void(*callback)(Args...), Args... args)
-{
-    m_callback.connect<Args...>(callback, args...);
-}
 
 } // namespace wolf
