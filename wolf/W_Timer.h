@@ -4,6 +4,7 @@
 //
 //
 // A class that's responsible for the Engine's Timer.
+// nice to have "threading"
 //-----------------------------------------------------------------------------
 
 #ifndef W_TIMER_H
@@ -31,7 +32,7 @@ public:
     void Stop();
     void Reset();
     bool IsRunning() const;
-    
+
     /// @return The elapsed duration in milliseconds.
     Duration Elapsed() const;
 
