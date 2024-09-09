@@ -55,6 +55,15 @@ public:
     // Helper to center a sprite
     void SetOriginToCenterOfTexture();
 
+    // Set the tint of the sprite with a floating point RGB color
+    void SetTint(const glm::vec3& tint) { m_tint = tint; }
+    const glm::vec3& GetTint() const { return m_tint; }
+
+    // Set the layer of this sprite
+    // 0 is the topmost layer
+    void SetLayer(int layer) { m_layer = layer; }
+    int GetLayer() const { return m_layer; }
+
     // Draw the sprite at the given position in world space
     // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
     void Draw(const glm::vec2& position, float rotationRadians = 0.0f, const glm::vec2& scale = glm::vec2(1.0f), const glm::vec3& color = glm::vec3(1.0f));
@@ -71,7 +80,14 @@ private:
     wolf::Texture* m_pTexture = nullptr;
 
     // Origin to draw the sprite at, pixel coordinates from bottom left
-    glm::vec2 m_origin{0.0f, 0.0f};
+    glm::vec2 m_origin{0.0f};
+
+    // Tint color of the sprite
+    glm::vec3 m_tint{1.0f};
+
+    // The layer of the sprite
+    // Topmost layer is 0
+    int m_layer = 0;
 
     // Static resources shared by all sprites
     static inline wolf::Program* s_pProgram = nullptr;

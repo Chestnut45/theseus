@@ -12,6 +12,10 @@ uniform vec3 spriteTint;
 
 void main()
 {
-    vec3 textureColor = texture(spriteTexture, texCoords).rgb;
-    finalColor = textureColor * spriteTint;
+    vec4 textureColor = texture(spriteTexture, texCoords);
+
+    // Discard transparent pixels
+    if (textureColor.a == 0.0) discard;
+    
+    finalColor = textureColor.rgb * spriteTint;
 }

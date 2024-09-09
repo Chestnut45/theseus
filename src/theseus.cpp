@@ -17,25 +17,30 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
 {
     // TODO: Initialization logic
 
+    // Enable depth test
+    glEnable(GL_DEPTH_TEST);
+
     // Create test player object
     m_pPlayerObject = &m_scene.CreateObject();
 
     // Add the test sprite to the player object
     auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
     sprite.SetOriginToCenterOfTexture();
-    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(8.0f, 8.0f));
+    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4, 4));
 
     // Add the main camera as a component of the player object
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
     m_scene.SetActiveCamera(camera);
 
-    // Test hierarchical transforms with child object
+    // Test hierarchical transforms with a child object
     auto& childObject = m_scene.CreateObject();
-    m_pPlayerObject->AddChild(childObject);
     auto& childSprite = childObject.AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
     childSprite.SetOriginToCenterOfTexture();
+    childSprite.SetTint(glm::vec3(1, 0, 0));
     auto t = childObject.GetComponent<wolf::Transform2D>();
-    t->SetPosition(glm::vec2(32, 32));
+    t->SetPosition(glm::vec2(-16, 0)); // Local translation, relative to parent object's transform (including scale!)
+    t->RotateDegrees(90); // Local rotation, relative to parent object's transform
+    m_pPlayerObject->AddChild(childObject);
 }
 
 Theseus::~Theseus()
@@ -61,12 +66,12 @@ void Theseus::Update(float delta)
         m_windowResized = false;
     }
 
-    // DEBUG: Test Scene2D transforms by adjusting the player object
+    // Test transform hierarchy
     wolf::Transform2D* t = m_pPlayerObject->GetComponent<wolf::Transform2D>();
     if (t)
     {
+        // Rotate the player's transform
         t->RotateDegrees(-180 * delta);
-        // t->SetScale(glm::vec2(abs(sin(m_programLifetime)) * 8));
 
         // Debug player movement
         float moveSpeed = 256;
@@ -83,7 +88,7 @@ void Theseus::Render()
 {
     // Clear the default framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Render the scene
     m_scene.Render();

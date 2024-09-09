@@ -83,9 +83,12 @@ void Sprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm:
     model = glm::translate(model, glm::vec3(glm::vec2(-0.5f) * texSize * scale, 0.0f));
     model = glm::scale(model, glm::vec3(scale * texSize, 1.0f));
 
+    // Determine tint to use
+    const glm::vec3& tint = color == glm::vec3(1.0f) ? m_tint : color;
+
     // Set uniforms
     s_pProgram->SetUniform("model", model);
-    s_pProgram->SetUniform("spriteTint", color);
+    s_pProgram->SetUniform("spriteTint", tint);
 
     // Issue draw call
     s_pVAO->Bind();
