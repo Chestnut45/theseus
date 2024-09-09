@@ -46,7 +46,7 @@ public:
     // Game object management
 
     // Create and return a reference to an empty game object.
-    GameObject& CreateObject();
+    virtual GameObject& CreateObject();
 
     // Gets a pointer to the game object with the given ID,
     // or a null pointer if no object with that ID exists.
@@ -69,7 +69,7 @@ public:
     }
 
 // Data / implementation
-private:
+protected:
 
     // Registry that contains all game object and component data
     entt::basic_registry<GameObjectID> m_registry;

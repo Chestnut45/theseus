@@ -19,9 +19,6 @@ class Theseus : public wolf::App
     // Data / implementation
     private:
 
-        // Main scene
-        wolf::Scene m_scene;
-
-        // Main camera
-        wolf::Camera2D m_camera;
+        wolf::Scene2D m_scene;
+        wolf::GameObject* m_pPlayerObject = nullptr;
 };

@@ -2,6 +2,7 @@
 //-----------------------------------------------------------------------------
 // File:			W_Camera.h
 // Original Author:	Youssef Ashraf
+// Modifications: D'Anyil Landry
 //
 // A header for the camera class.
 //-----------------------------------------------------------------------------
@@ -15,29 +16,47 @@ namespace wolf
 class Camera2D
 {
 public:
-    Camera2D(float screenWidth, float screenHeight);
-    ~Camera2D();
 
+    // Create a camera with the given view dimensions
+    Camera2D(float viewWidth, float viewHeight);
+    ~Camera2D();
+    
+    // View setters
+    void SetViewSize(float width, float height);
     void SetPosition(const glm::vec2& position);
     void SetZoom(float zoom);
 
-    const glm::mat4& GetProjectionMatrix() const;
+    // View getters
+    inline const glm::vec2& GetViewSize() const { return m_viewSize; }
+    inline const glm::vec2& GetPosition() const { return m_position; }
+    inline float GetZoom() const { return m_zoom; }
+    
 
-    // Updates the camera's uniform buffer and binds it to the given index (0 default)
+    // Returns a const reference to the combined view-projection matrix of the camera
+    const glm::mat4& GetMatrix() const;
+
+    // Binds the camera's uniform buffer to the given index of GL_UNIFORM_BUFFER
+    // Updates the UBO if necessary
     void Bind(int index = 0);
 
 private:
-    void UpdateMatrix();
 
+    // Internal functions
+    void _UpdateMatrix() const;
+    void _UpdateUBO() const;
+
+    // View data
+    glm::vec2 m_viewSize;
     glm::vec2 m_position;
     float m_zoom;
-    glm::mat4 m_projectionMatrix;
-    bool m_needsMatrixUpdate;
 
-    float m_screenWidth;
-    float m_screenHeight;
+    // Combined view/projection matrix data
+    mutable glm::mat4 m_viewProjectionMatrix;
+    mutable bool m_needsMatrixUpdate;
 
-    GLuint m_ubo = 0;
+    // Uniform buffer object ID
+    GLuint m_ubo;
+    mutable bool m_needsUBOUpdate;
 };
 }
 

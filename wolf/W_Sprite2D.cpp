@@ -7,17 +7,94 @@
 namespace wolf
 {
 
+Sprite2D::Sprite2D()
+{
+    _IncreaseRefCount();
+}
+
 Sprite2D::Sprite2D(const std::string& texturePath)
 {
     // Load texture
     m_pTexture = wolf::TextureManager::CreateTexture(texturePath);
 
-    // Setup default filter and wrap modes
-    m_pTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+    // Setup default filter modes
+    if (m_pTexture) m_pTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
 
-    // Set size
-    m_size = glm::vec2(m_pTexture->GetWidth(), m_pTexture->GetHeight());
+    _IncreaseRefCount();
+}
 
+Sprite2D::~Sprite2D()
+{
+    // Update manager's reference count for the loaded texture
+    wolf::TextureManager::DestroyTexture(m_pTexture);
+
+    refCount--;
+    if (refCount == 0)
+    {
+        // Cleanup static shared resources
+        wolf::ProgramManager::DestroyProgram(s_pProgram);
+        wolf::BufferManager::DestroyBuffer(s_pVertexBuffer);
+        wolf::BufferManager::DestroyBuffer(s_pIndexBuffer);
+        delete s_pVAO;
+    }
+}
+
+void Sprite2D::SetTexture(const std::string& texturePath)
+{
+    // Remove old texture
+    if (m_pTexture) wolf::TextureManager::DestroyTexture(m_pTexture);
+
+    // Load new texture
+    m_pTexture = wolf::TextureManager::CreateTexture(texturePath);
+
+    // Setup default filter modes
+    if (m_pTexture) m_pTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+}
+
+void Sprite2D::SetOrigin(const glm::vec2& origin)
+{
+    m_origin = origin;
+}
+
+void Sprite2D::SetOriginToCenterOfTexture()
+{
+    const glm::vec2 texSize = glm::vec2(m_pTexture->GetWidth(), m_pTexture->GetHeight());
+    m_origin.x = texSize.x * 0.5f;
+    m_origin.y = texSize.y * 0.5f;
+}
+
+void Sprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& color)
+{
+    // Only render if texture was properly loaded
+    if (!m_pTexture) return;
+
+    // Bind shader and texture
+    s_pProgram->Bind();
+    m_pTexture->Bind(0);
+
+    // Grab the texture size
+    const glm::vec2 texSize = glm::vec2(m_pTexture->GetWidth(), m_pTexture->GetHeight());
+
+    // Build model matrix
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(position - m_origin * scale, 0.0f));
+    model = glm::translate(model, glm::vec3(glm::vec2(0.5f) * texSize * scale, 0.0f));
+    model = glm::rotate(model, rotationRadians, glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::translate(model, glm::vec3(glm::vec2(-0.5f) * texSize * scale, 0.0f));
+    model = glm::scale(model, glm::vec3(scale * texSize, 1.0f));
+
+    // Set uniforms
+    s_pProgram->SetUniform("model", model);
+    s_pProgram->SetUniform("spriteTint", color);
+
+    // Issue draw call
+    s_pVAO->Bind();
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr);
+    glBindVertexArray(0);
+}
+
+void Sprite2D::_IncreaseRefCount()
+{
     // Update reference count and initialize static shared resources
     if (refCount == 0)
     {
@@ -56,50 +133,6 @@ Sprite2D::Sprite2D(const std::string& texturePath)
         s_pVAO->End();
     }
     refCount++;
-}
-
-Sprite2D::~Sprite2D()
-{
-    // Update manager's reference count for the loaded texture
-    wolf::TextureManager::DestroyTexture(m_pTexture);
-
-    refCount--;
-    if (refCount == 0)
-    {
-        // Cleanup static shared resources
-        wolf::ProgramManager::DestroyProgram(s_pProgram);
-        wolf::BufferManager::DestroyBuffer(s_pVertexBuffer);
-        wolf::BufferManager::DestroyBuffer(s_pIndexBuffer);
-        delete s_pVAO;
-    }
-}
-
-void Sprite2D::Draw(const glm::vec2& worldPosition, float rotationDegrees, const glm::vec2& scale, const glm::vec3& color)
-{
-    // Bind sprite shader
-    s_pProgram->Bind();
-
-    // Bind sprite texture to texture unit 0
-    m_pTexture->Bind(0);
-
-    // Initialize with identity matrix
-    glm::mat4 model = glm::mat4(1.0f);
-
-    // Build model matrix
-    model = glm::translate(model, glm::vec3(worldPosition, 0.0f));
-    model = glm::translate(model, glm::vec3(glm::vec2(0.5f) * m_size * scale, 0.0f));
-    model = glm::rotate(model, glm::radians(rotationDegrees), glm::vec3(0.0f, 0.0f, 1.0f));
-    model = glm::translate(model, glm::vec3(glm::vec2(-0.5f) * m_size * scale, 0.0f));
-    model = glm::scale(model, glm::vec3(scale * m_size, 1.0f));
-
-    // Set uniforms
-    s_pProgram->SetUniform("model", model);
-    s_pProgram->SetUniform("spriteTint", color);
-
-    // Issue draw call
-    s_pVAO->Bind();
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr);
-    glBindVertexArray(0);
 }
 
 }

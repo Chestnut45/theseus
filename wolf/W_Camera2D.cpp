@@ -1,6 +1,7 @@
 //-----------------------------------------------------------------------------
 // File:			W_Camera.cpp
 // Original Author:	Youssef Ashraf
+// Modifications: D'Anyil Landry
 //
 // A class that's responsible for the camera.
 //-----------------------------------------------------------------------------
@@ -8,25 +9,33 @@
 
 namespace wolf
 {
-Camera2D::Camera2D(float screenWidth, float screenHeight)
-    : m_position(0.0f, 0.0f),
+Camera2D::Camera2D(float viewWidth, float viewHeight)
+    : m_viewSize(viewWidth, viewHeight),
+      m_position(0.0f, 0.0f),
       m_zoom(1.0f),
       m_needsMatrixUpdate(true),
-      m_screenWidth(screenWidth),
-      m_screenHeight(screenHeight)
+      m_ubo(0),
+      m_needsUBOUpdate(true)
 {
-    // Initialize the orthographic projection matrix
-    m_projectionMatrix = glm::ortho(0.0f, screenWidth, 0.0f, screenHeight);
+    // Initialize the view projection matrix
+    _UpdateMatrix();
 
     // Create the uniform buffer object
     glGenBuffers(1, &m_ubo);
     glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), &m_projectionMatrix[0], GL_STREAM_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), &m_viewProjectionMatrix[0], GL_STREAM_DRAW);
 }
 
 Camera2D::~Camera2D()
 {
     glDeleteBuffers(1, &m_ubo);
+}
+
+void Camera2D::SetViewSize(float width, float height)
+{
+    m_viewSize.x = width;
+    m_viewSize.y = height;
+    m_needsMatrixUpdate = true;
 }
 
 void Camera2D::SetPosition(const glm::vec2& position)
@@ -41,29 +50,40 @@ void Camera2D::SetZoom(float zoom)
     m_needsMatrixUpdate = true;
 }
 
-const glm::mat4& Camera2D::GetProjectionMatrix() const
+const glm::mat4& Camera2D::GetMatrix() const
 {
-    if (m_needsMatrixUpdate)
-    {
-        const_cast<Camera2D*>(this)->UpdateMatrix();
-    }
-    return m_projectionMatrix;
+    if (m_needsMatrixUpdate) _UpdateMatrix();
+    return m_viewProjectionMatrix;
 }
 
 void Camera2D::Bind(int index)
 {
-    // Bind the uniform buffer
+    if (m_needsMatrixUpdate) _UpdateMatrix();
+    if (m_needsUBOUpdate) _UpdateUBO();
     glBindBufferBase(GL_UNIFORM_BUFFER, index, m_ubo);
-
-    // Write our current matrix to it
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), &m_projectionMatrix[0]);
 }
 
-void Camera2D::UpdateMatrix()
+void Camera2D::_UpdateMatrix() const
 {
-    // Update the orthographic projection matrix with the camera position and zoom
-    m_projectionMatrix = glm::ortho(0.0f, m_screenWidth / m_zoom, 0.0f, m_screenHeight / m_zoom);
-    m_projectionMatrix = glm::translate(m_projectionMatrix, glm::vec3(-m_position.x, -m_position.y, 0.0f));
+    // Calculate the half-extents of the view
+    float halfWidth = m_viewSize.x / m_zoom * 0.5f;
+    float halfHeight = m_viewSize.y / m_zoom * 0.5f;
+
+    // Calculate the orthographic projection (centered at the camera's position)
+    m_viewProjectionMatrix = glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight);
+
+    // Calculate the view translation
+    m_viewProjectionMatrix = glm::translate(m_viewProjectionMatrix, glm::vec3(-m_position.x, -m_position.y, 0.0f));
+
+    // Update flags
     m_needsMatrixUpdate = false;
+    m_needsUBOUpdate = true;
 }
+
+void Camera2D::_UpdateUBO() const
+{
+    glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), &m_viewProjectionMatrix[0]);
+}
+
 }

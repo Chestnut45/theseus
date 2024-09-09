@@ -5,6 +5,9 @@
 // Original Author:	D'Anyil Landry
 //
 // A class representing a renderable 2D sprite component.
+// 
+// Sprites can have an origin point other than [0, 0] (The bottom-left corner)
+
 //-----------------------------------------------------------------------------
 
 #include "W_Texture.h"
@@ -22,8 +25,12 @@ class Sprite2D
 // Public implementation
 public:
 
+    // Create an empty sprite component
+    Sprite2D();
+
     // Create a sprite component with a texture loaded from the given path
     Sprite2D(const std::string& texturePath);
+
     ~Sprite2D();
 
     // Delete copy constructor/assignment
@@ -34,22 +41,37 @@ public:
     Sprite2D(Sprite2D&& other) = delete;
     Sprite2D& operator=(Sprite2D&& other) = delete;
 
-    // Draw the sprite at the given world position
-    // NOTE: Requires a Camera2D to be bound to slot 0 before drawing
-    void Draw(const glm::vec2& worldPosition, float rotationDegrees = 0.0f, const glm::vec2& scale = glm::vec2(1.0f), const glm::vec3& color = glm::vec3(1.0f));
+    // Updates the texture to the one at the given file path
+    void SetTexture(const std::string& texturePath);
+
+    // Gets a pointer to the texture this sprite uses
+    inline wolf::Texture* GetTexture() const { return m_pTexture; }
+
+    // Set or get the origin to render the sprite from
+    // Measured in pixel coordinates from the bottom-left of the texture
+    void SetOrigin(const glm::vec2& origin);
+    inline const glm::vec2& GetOrigin() const { return m_origin; }
+
+    // Helper to center a sprite
+    void SetOriginToCenterOfTexture();
+
+    // Draw the sprite at the given position in world space
+    // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
+    void Draw(const glm::vec2& position, float rotationRadians = 0.0f, const glm::vec2& scale = glm::vec2(1.0f), const glm::vec3& color = glm::vec3(1.0f));
 
     // TODO: Draw the sprite at the given screen position (independent of camera's view, only projection)
-
-    // TODO: Allow sprites to be centered (offset position)
 
 // Implementaton
 private:
 
-    // Per-sprite texture pointer
+    // Internal functions
+    void _IncreaseRefCount();
+
+    // Pointer to the sprite's texture
     wolf::Texture* m_pTexture = nullptr;
 
-    // Size of the sprite (width, height in pixels)
-    glm::vec2 m_size;
+    // Origin to draw the sprite at, pixel coordinates from bottom left
+    glm::vec2 m_origin{0.0f, 0.0f};
 
     // Static resources shared by all sprites
     static inline wolf::Program* s_pProgram = nullptr;

@@ -13,9 +13,20 @@ int main(int, char**)
     return 0;
 }
 
-Theseus::Theseus() : App("Theseus", 1280, 720), m_camera(1280, 720)
+Theseus::Theseus() : App("Theseus", 1280, 720)
 {
     // TODO: Initialization logic
+
+    // Create test player object
+    m_pPlayerObject = &m_scene.CreateObject();
+
+    // Add the test sprite to the player object
+    auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
+    sprite.SetOriginToCenterOfTexture();
+
+    // Add the main camera as a component of the player object
+    auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
+    m_scene.SetActiveCamera(camera);
 }
 
 Theseus::~Theseus()
@@ -25,10 +36,29 @@ Theseus::~Theseus()
 
 void Theseus::Update(float delta)
 {
-    // Debug hotkeys
+    // Hotkeys
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) Shutdown();
     if (wolf::Input::IsKeyDown(GLFW_KEY_GRAVE_ACCENT)) ShowDebug();
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE)) wolf::Audio::Play("data/sounds/omg.mp3");
+
+    // Handle the window resized flag
+    if (m_windowResized)
+    {
+        // Update the active camera's view size
+        wolf::Camera2D* camera = m_scene.GetActiveCamera();
+        if (camera) camera->SetViewSize(m_width, m_height);
+
+        // Reset the flag
+        m_windowResized = false;
+    }
+
+    // DEBUG: Test Scene2D transforms by adjusting the player object
+    wolf::Transform2D* t = m_pPlayerObject->GetComponent<wolf::Transform2D>();
+    if (t)
+    {
+        t->RotateDegrees(-180 * delta);
+        t->SetScale(glm::vec2(abs(sin(m_programLifetime)) * 8));
+    }
     
     // TODO: Update logic
 }
@@ -39,18 +69,8 @@ void Theseus::Render()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // DEBUG: Sprite testing
-    static wolf::Sprite2D sprite("data/textures/sPlayerTest.png");
-
-    // Bind the camera buffer
-    m_camera.Bind();
-
-    // Draw the test sprite in world space rotating and changing scale and tint over time
-    sprite.Draw({0, 0}, // Position
-                sin(m_programLifetime) * 180, // Rotation
-                {4, 4}, // Scale
-                {sin(m_programLifetime), cos(m_programLifetime), tan(m_programLifetime)} // Color
-                );
+    // Render the scene
+    m_scene.Render();
 
     // TODO: Rendering logic
 }
