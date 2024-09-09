@@ -9,11 +9,12 @@
 //-----------------------------------------------------------------------------
 
 #include "W_Types.h"
+#include "W_BaseComponent.h"
 
 namespace wolf
 {
 
-class Transform2D
+class Transform2D : public BaseComponent
 {
 
 // Public interface
@@ -37,24 +38,31 @@ public:
     
     void SetPosition(const glm::vec2& position) { m_position = position; }
     void Translate(const glm::vec2& offset) { m_position += offset; }
-    const glm::vec2& GetPosition() const { return m_position; }
     
     void SetRotation(float rotation) { m_rotation = rotation; }
     void SetRotationDegrees(float rotationDegrees) { m_rotation = glm::radians(rotationDegrees); }
     void Rotate(float rotation) { m_rotation += rotation; }
     void RotateDegrees(float rotationDegrees) { m_rotation += glm::radians(rotationDegrees); }
-    float GetRotation() const { return m_rotation; }
     
     void SetScale(const glm::vec2& scale) { m_scale = scale; }
     void Scale(const glm::vec2& scale) { m_scale *= scale; }
-    const glm::vec2& GetScale() const { return m_scale; }
 
-    // Calculates and returns a combined transformation matrix
-    glm::mat4 GetMatrix() const;
+    // Accessors to local transform data
+    const glm::vec2& GetLocalPosition() const { return m_position; }
+    float GetLocalRotation() const { return m_rotation; }
+    const glm::vec2& GetLocalScale() const { return m_scale; }
+    glm::mat4 GetLocalMatrix() const;
+
+    // Get the global transform data from the game object hierarchy
+    glm::vec2 GetGlobalPosition() const;
+    float GetGlobalRotation() const;
+    glm::vec2 GetGlobalScale() const;
+    glm::mat4 GetGlobalMatrix() const;
 
 // Implementation
 private:
 
+    // Transform data
     glm::vec2 m_position;
     glm::vec2 m_scale;
     float m_rotation;

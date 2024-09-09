@@ -45,10 +45,10 @@ void Scene2D::Render()
     // Bind the active camera
     m_pActiveCamera->Bind();
 
-    // Render all sprites
+    // Render all sprites with transform components
     for (auto&&[_, sprite, transform] : Each<Sprite2D, Transform2D>())
     {
-        sprite.Draw(transform.GetPosition(), transform.GetRotation(), transform.GetScale());
+        sprite.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
     }
 }
 

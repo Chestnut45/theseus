@@ -12,6 +12,7 @@
 #include <cstdint>
 
 #include "W_Scene.h"
+#include "W_BaseComponent.h"
 
 namespace wolf
 {
@@ -49,7 +50,15 @@ public:
     template <typename T, typename... Args>
     T& AddComponent(Args&&... args)
     {
-        return m_scene.m_registry.emplace<T>(m_id, args...);
+        T& component = m_scene.m_registry.emplace<T>(m_id, args...);
+
+        // Compile-time check for base component derived components
+        if constexpr (std::is_base_of_v<BaseComponent, T>)
+        {
+            component.m_pGameObject = this;
+        }
+
+        return component;
     }
 
     // Gets a pointer to the component, or nullptr if it doesn't exist

@@ -23,10 +23,19 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     // Add the test sprite to the player object
     auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
     sprite.SetOriginToCenterOfTexture();
+    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(8.0f, 8.0f));
 
     // Add the main camera as a component of the player object
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
     m_scene.SetActiveCamera(camera);
+
+    // Test hierarchical transforms with child object
+    auto& childObject = m_scene.CreateObject();
+    m_pPlayerObject->AddChild(childObject);
+    auto& childSprite = childObject.AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
+    childSprite.SetOriginToCenterOfTexture();
+    auto t = childObject.GetComponent<wolf::Transform2D>();
+    t->SetPosition(glm::vec2(32, 32));
 }
 
 Theseus::~Theseus()
@@ -57,7 +66,14 @@ void Theseus::Update(float delta)
     if (t)
     {
         t->RotateDegrees(-180 * delta);
-        t->SetScale(glm::vec2(abs(sin(m_programLifetime)) * 8));
+        // t->SetScale(glm::vec2(abs(sin(m_programLifetime)) * 8));
+
+        // Debug player movement
+        float moveSpeed = 256;
+        if (wolf::Input::IsKeyDown(GLFW_KEY_W)) t->Translate(glm::vec2(0, delta * moveSpeed));
+        if (wolf::Input::IsKeyDown(GLFW_KEY_A)) t->Translate(glm::vec2(-delta * moveSpeed, 0));
+        if (wolf::Input::IsKeyDown(GLFW_KEY_S)) t->Translate(glm::vec2(0, -delta * moveSpeed));
+        if (wolf::Input::IsKeyDown(GLFW_KEY_D)) t->Translate(glm::vec2(delta * moveSpeed, 0));
     }
     
     // TODO: Update logic

@@ -2,6 +2,7 @@
 
 #include "W_App.h"
 #include "W_Audio.h"
+#include "W_BaseComponent.h"
 #include "W_BufferManager.h"
 #include "W_Buffer.h"
 #include "W_Camera2D.h"
