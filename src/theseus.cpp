@@ -41,6 +41,8 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     t->SetPosition(glm::vec2(-16, 0)); // Local translation, relative to parent object's transform (including scale!)
     t->RotateDegrees(90); // Local rotation, relative to parent object's transform
     m_pPlayerObject->AddChild(childObject);
+
+    m_timer.Start();
 }
 
 Theseus::~Theseus()
@@ -79,6 +81,14 @@ void Theseus::Update(float delta)
         if (wolf::Input::IsKeyDown(GLFW_KEY_A)) t->Translate(glm::vec2(-delta * moveSpeed, 0));
         if (wolf::Input::IsKeyDown(GLFW_KEY_S)) t->Translate(glm::vec2(0, -delta * moveSpeed));
         if (wolf::Input::IsKeyDown(GLFW_KEY_D)) t->Translate(glm::vec2(delta * moveSpeed, 0));
+    }
+
+    // Example usage of Timer
+    if (m_timer.Elapsed().count() > 1000) // Check if 1k ms has passed
+    {
+        m_timer.Reset(); // reset the timer
+        // do something every second
+        std::cout << "1 second has passed!" << std::endl;
     }
     
     // TODO: Update logic
