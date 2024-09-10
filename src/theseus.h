@@ -19,7 +19,6 @@ class Theseus : public wolf::App
     // Data / implementation
     private:
 
-        wolf::Scene2D m_scene;
+        wolf::Scene m_scene;
         wolf::GameObject* m_pPlayerObject = nullptr;
-        wolf::Timer m_timer;
 };

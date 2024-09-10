@@ -49,7 +49,7 @@
 
 ## App
 
-The 'W_App' module has a few new concrete methods and flags for window management that can be used by derived app classes:
+The `wolf::App` abstract base class module has a few new concrete methods and flags for window management that can be used by derived classes:
 
 ```C++
 // Anywhere inside your app's update loop...
@@ -78,7 +78,7 @@ if (m_windowResized)
 
 ## Input
 
-The 'W_Input' module now handles all input for the program, instead of it being handled by wolf::App. The input module has static functions available anywhere in the program for keyboard and mouse input detection. Check out 'wolf/W_Input.h' for the full API.
+The `wolf::Input` module now handles all input for the program, instead of it being handled by wolf::App. The input module has static functions available anywhere in the program for keyboard and mouse input detection. Check out 'wolf/W_Input.h' for the full API.
 
 ```C++
 // Detect if the spacebar was just pressed this frame
@@ -93,7 +93,7 @@ float vScroll = wolf::Input::GetMouseScroll().y;
 
 ## Audio
 
-The 'W_Audio' module allows very simple access to loading and playing audio files quickly. It's primarily designed for a "fire and forget" style of usage and can be used from anywhere in the program.
+The `wolf::Audio` module allows very simple access to loading and playing audio files quickly. It's primarily designed for a "fire and forget" style of usage and can be used from anywhere in the program.
 
 ```C++
 // Play a sound effect at half volume in the left channel
@@ -111,7 +111,7 @@ wolf::Audio::Load("data/largeFile.FLAC");
 
 ## RNG
 
-The 'W_RNG' module is an instantiable, seedable pseudo random number generator.
+The `wolf::RNG` module is an instantiable, seedable pseudo random number generator.
 
 ```C++
 // Create an instance of the rng with the seed 12345
@@ -127,9 +127,36 @@ float vFloat = rng.NextFloat(0.0f, 1.0f);
 int vInt = rng.NextInt(32, 64);
 ```
 
+## Timer
+
+The `wolf::Timer` module is a high-resolution timer that can be used to delay or schedule repeated events or actions.
+
+```C++
+// Create and start a timer
+wolf::Timer timer;
+timer.Start();
+
+// Later in update loop...
+
+// Do something when 1 second has elapsed
+if (timer.Elapsed() >= 1.0f)
+{
+    // Multiple ways to stop / continue using the timer...
+
+    // Elapsed will remain some value >= 1.0f and the timer will stop
+    timer.Stop();
+
+    // Elapsed will reset to 0 and the timer will NOT continue running
+    timer.Reset();
+
+    // Elapsed will reset to 0 and the timer WILL continue running
+    timer.Restart();
+}
+```
+
 ## Shapes
 
-The 'W_Shapes' module has a few lightweight classes for representing 2D shapes and detecting collisions between them.
+The `W_Shapes.h` header has a few lightweight classes for representing 2D shapes and detecting collisions between them.
 
 ```C++
 // Create some circles at the origin
@@ -153,7 +180,7 @@ bool testRect = rectangle.Intersects(wolf::Rectangle(0, 0, 8, 8));
 
 ## EventManager
 
-The 'W_EventManager' module can be used anywhere in the program to send events of any type to registered listeners. Instead of making a general purpose "Event" class with expensive string hashing for event parameter creation and retrieval, the event queues and listeners are templated so you can create new event types trivially.
+The `wolf::EventManager` module can be used anywhere in the program to send events of any type to registered listeners. Instead of making a general purpose "Event" class with expensive string hashing for event parameter creation and retrieval, the event queues and listeners are templated so you can create new event types trivially.
 
 Any type is a valid event type, but POD structs are the simplest to use.
 
@@ -214,78 +241,106 @@ wolf::EventManager::Dispatch();
 
 ## Scene
 
-The 'W_Scene' module can be used as a container to create and manage a hierarchy of game objects with components of any type.
-
-To create and delete objects in a scene:
+The `wolf::Scene` module can be used as a container to create and manage a hierarchy of game objects with components of any type. There are a few components included in wolf with built-in behaviour such as Transform2D, Sprite2D, and Camera2D.
 
 ```C++
 // Create an empty scene
 wolf::Scene scene;
 
-// Create some game objects in the scene
-// NOTE: It's important to capture by reference here, since game objects are not copyable or moveable.
+// Create an empty game object
 wolf::GameObject& object1 = scene.CreateObject();
-auto& object2 = scene.CreateObject();
-auto& object3 = scene.CreateObject();
 
-// Delete objects either way
-object2.Delete();
-scene.DeleteObject(object3.GetID());
+// Create some objects with a Transform2D component
+auto& object2 = scene.CreateObject2D();
+auto& object3 = scene.CreateObject2D();
+
+// Delete objects either by reference or by ID
+object1.Delete();
+scene.DeleteObject(object2.GetID());
 
 // Query for a game object in the scene by ID
-wolf::GameObject* pObject = scene.GetObject(object1.GetID());
+wolf::GameObject* pObject = scene.GetObject(object3.GetID());
+
+// Add a sprite to the object
+auto& sprite = pObject->AddComponent<wolf::Sprite2D>("data/textures/sprite.png");
+
+// Attach a camera to a game object and set it as the active camera
+// TODO: The camera will follow the game object it is attached to, if any
+auto& camera = pObject->AddComponent<wolf::Camera2D>(1280, 720);
+scene.SetActiveCamera(camera);
+
+// Update the scene and all components in it
+scene.Update(delta);
+
+// Render all renderable components in the scene using the active camera
+scene.Render();
 ```
 
-Then, to add some components to those objects, you'll have to define a component type. Any class or struct is a valid component type as long as it uses at least one public constructor.
+In addition to the built-in components, you can trivially create custom component types and attach them to game objects. To use custom components, you'll have to define a component type. Any class or struct is a valid component type as long as it uses at least one public constructor (Compiler-generated default constructor is acceptable too).
 
 ```C++
-class CustomComponent
+struct CustomComponent
+{
+    int m_value;
+};
+
+// Create and add a component to a game object
+// Pass your component's constructor arguments directly to the AddComponent template function
+CustomComponent& component = object.AddComponent<CustomComponent>(45);
+
+// Query a game object for a component type
+CustomComponent* pComponent = object.GetComponent<CustomComponent>();
+if (pComponent)
+{
+    // Object has a CustomComponent...
+}
+
+// Deletion will call the component's destructor automatically
+object.DeleteComponent<CustomComponent>();
+```
+
+If you want your component to have direct access to the game object that it's attached to (for instance to traverse the game object hierarchy or access other components), there are 2 main options.
+
+By far the simplest option is just to include "W_GameObject.h" and make your component type inherit from wolf::BaseComponent. Doing this will give your component access to a pointer to its game object via the GetGameObject() method. The only restriction is that GetGameObject() will return nullptr inside any constructors for your component, so if your component requires access to the game object immediately during construction, you'll have to use some sort of Init() method after the component is created.
+
+```C++
+class AnotherComponent : public wolf::BaseComponent
 {
 public:
-    CustomComponent(int value) : m_value(value) {}
-    int GetValue() const { return m_value; }
+    void SomeFunction()
+    {
+        GameObject* pParentObject = GetGameObject()->GetParent();
+    }
 
 private:
     int m_value;
 };
 ```
 
-To construct a new component and add it to a game object:
+The other option is to use dependency injection and just pass a reference to the game object as one of the constructor arguments. This keeps your component inheritence-free, but requires a little extra work when creating components. An upside of this method is that you can pass by reference instead of pointer (since the game object is guaranteed to outlive the component, the reference is never invalidated).
 
 ```C++
-// Pass your component's constructor arguments directly to the AddComponent template function
-// NOTE: Not safe to call if the component already exists!
-CustomComponent& component = object.AddComponent<CustomComponent>(45);
-```
-
-To query an object for a component:
-
-```C++
-CustomComponent* pComponent = object.GetComponent<CustomComponent>();
-if (pComponent)
+struct DIComponent
 {
-    // Object has a CustomComponent...
-}
-```
+    DIComponent(GameObject& object) : m_object(object) {}
+    GameObject& m_object;
+};
 
-To delete a component from a game object:
-
-```C++
-// Safe to call even if the component does not exist
-object.DeleteComponent<CustomComponent>();
+// Creating the component
+auto& component = object.AddComponent<DIComponent>(object);
 ```
 
 To query a game object about whether it has multiple components:
 
 ```C++
-// True if object has BOTH a Collider and Health component
-bool hurtable = object.HasAll<Collider, Health>();
+// True if object has BOTH a Hurtbox and Health component
+bool hurtable = object.HasAll<Hurtbox, Health>();
 
-// True if object has EITHER a Sprite or Mesh component
-bool renderable = object.HasAny<Sprite, Mesh>();
+// True if object has EITHER a Sprite2D or Mesh component
+bool renderable = object.HasAny<Sprite2D, Mesh>();
 ```
 
-To change hierarchical relationships between game objects:
+Game objects can also form a hierarchy by parenting other game objects. This allows for components like Transform2D which walk up the hierarchy to compute the global transformation for child objects.
 
 ```C++
 // Create some objects
@@ -308,7 +363,7 @@ finger.GetParent(); // nullptr
 const auto& children = object1.GetChildren();
 ```
 
-To create a system that updates game objects or components, you can use the Scene::Each<T...> method along with structured bindings for very efficient iteration. The first variable bound will be the game object ID of the game object containing the components, and the subsequent variables will get references to the components themselves, in the same order that you pass the component types as template arguments.
+To create a custom system that updates game objects or components, you can use the Scene::Each<T...> method along with structured bindings for very efficient iteration. The first variable bound to the structured binding will be the ID of the game object containing the components, and the subsequent variables will get references to the components themselves, in the same order that you pass the component types as template arguments.
 
 ```C++
 // Iterate all Sprite2D components
@@ -317,13 +372,14 @@ for (auto&&[id, sprite] : scene.Each<Sprite2D>())
     // sprite.Render(...) or something
 }
 
-// Iterate all objects with at least both component types
+// Iterate all objects with at least both a Hitbox2D and Transform2D
 for (auto&&[id, hitbox, transform] : scene.Each<Hitbox2D, Transform2D>())
 {
     // ...
 }
 
 // Iterate all game objects in the scene, regardless of components
+// Notice you can iterate the objects themselves directly with the exact same syntax as iterating components
 for (auto&&[id, object] : scene.Each<GameObject>())
 {
     // Collect only game objects with no children

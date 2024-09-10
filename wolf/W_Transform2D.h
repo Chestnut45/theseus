@@ -9,7 +9,7 @@
 //-----------------------------------------------------------------------------
 
 #include "W_Types.h"
-#include "W_BaseComponent.h"
+#include "W_GameObject.h"
 
 namespace wolf
 {

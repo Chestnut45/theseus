@@ -3,6 +3,8 @@
 #include <string>
 
 #include "W_GameObject.h"
+#include "W_Sprite2D.h"
+#include "W_Transform2D.h"
 
 namespace wolf
 {
@@ -21,6 +23,14 @@ GameObject& Scene::CreateObject()
 {
     GameObjectID id = m_registry.create();
     return m_registry.emplace<GameObject>(id, *this, id);
+}
+
+GameObject& Scene::CreateObject2D()
+{
+    GameObjectID id = m_registry.create();
+    GameObject& object = m_registry.emplace<GameObject>(id, *this, id);
+    object.AddComponent<Transform2D>();
+    return object;
 }
 
 GameObject* Scene::GetObject(GameObjectID id)
@@ -57,6 +67,35 @@ void Scene::DeleteObject(GameObjectID id)
 void Scene::Clear()
 {
     m_registry.clear();
+}
+
+void Scene::SetActiveCamera(Camera2D& camera)
+{
+    m_pActiveCamera = &camera;
+}
+
+void Scene::RemoveActiveCamera()
+{
+    m_pActiveCamera = nullptr;
+}
+
+void Scene::Update(float delta)
+{
+    // TODO: Sync all Camera2D components to their transforms (smooth following?)
+}
+
+void Scene::Render()
+{
+    if (!m_pActiveCamera) return;
+
+    // Bind the active camera
+    m_pActiveCamera->Bind();
+
+    // Render all sprites with transform components
+    for (auto&&[_, sprite, transform] : Each<Sprite2D, Transform2D>())
+    {
+        sprite.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
+    }
 }
 
 void _SceneTests()

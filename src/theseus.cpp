@@ -21,7 +21,7 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     glEnable(GL_DEPTH_TEST);
 
     // Create test player object
-    m_pPlayerObject = &m_scene.CreateObject();
+    m_pPlayerObject = &m_scene.CreateObject2D();
 
     // Add the test sprite to the player object
     auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
@@ -31,9 +31,6 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     // Add the main camera as a component of the player object
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
     m_scene.SetActiveCamera(camera);
-
-    // Start the timer
-    m_timer.Start();
 }
 
 Theseus::~Theseus()
@@ -72,27 +69,6 @@ void Theseus::Update(float delta)
         if (wolf::Input::IsKeyDown(GLFW_KEY_A)) t->Translate(glm::vec2(-delta * moveSpeed, 0));
         if (wolf::Input::IsKeyDown(GLFW_KEY_S)) t->Translate(glm::vec2(0, -delta * moveSpeed));
         if (wolf::Input::IsKeyDown(GLFW_KEY_D)) t->Translate(glm::vec2(delta * moveSpeed, 0));
-    }
-
-    // Example timer usage
-
-    // Do something when 1 second has elapsed
-    if (m_timer.Elapsed() >= 1.0f)
-    {
-        wolf::Log("1 second has passed!");
-
-        // Multiple ways to stop / continue using the timer...
-
-        // Elapsed will remain some value >= 1.0f and the timer will stop
-        m_timer.Stop();
-        assert(m_timer.Elapsed() >= 1.0f);
-
-        // Elapsed will reset to 0 and the timer will NOT continue running
-        m_timer.Reset();
-        assert(m_timer.Elapsed() == 0.0f);
-
-        // Elapsed will reset to 0 and the timer WILL continue running
-        m_timer.Restart();
     }
     
     // TODO: Update logic

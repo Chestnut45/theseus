@@ -19,7 +19,6 @@
 #include "W_ProgramManager.h"
 #include "W_RNG.h"
 #include "W_Scene.h"
-#include "W_Scene2D.h"
 #include "W_Shapes.h"
 #include "W_SkinnedModel.h"
 #include "W_Sprite2D.h"

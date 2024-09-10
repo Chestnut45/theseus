@@ -6,16 +6,12 @@
 //
 // A class representing a hierarchical collection of game objects with arbitrary
 // structs or classes as components.
-// 
-// A scene doesn't simulate components or objects directly, but offers efficient
-// APIs for iterating objects and components within the scene.
-// 
-// For an implementation with built-in functionality, consider wolf::Scene2D,
-// which has built-in support for simulating and rendering 2D components.
 //-----------------------------------------------------------------------------
 
 #include <vector>
 #include <entt/entity/registry.hpp>
+
+#include "W_Camera2D.h"
 
 namespace wolf
 {
@@ -46,7 +42,10 @@ public:
     // Game object management
 
     // Create and return a reference to an empty game object.
-    virtual GameObject& CreateObject();
+    GameObject& CreateObject();
+
+    // Create and return a reference to a game object with a Transform2D component
+    GameObject& CreateObject2D();
 
     // Gets a pointer to the game object with the given ID,
     // or a null pointer if no object with that ID exists.
@@ -57,6 +56,19 @@ public:
 
     // Deletes all game objects and components
     void Clear();
+
+    // Active camera management
+    void SetActiveCamera(Camera2D& camera);
+    void RemoveActiveCamera();
+    Camera2D* GetActiveCamera() const { return m_pActiveCamera; }
+
+    // Simulation / rendering
+
+    // Updates the scene
+    void Update(float delta);
+
+    // Renders the scene using the currently active Camera2D
+    void Render();
 
     // Helper function to iterate all components of any type(s) efficiently.
     // Returns an iterable container you can use in an auto for loop with structured binding.
@@ -73,6 +85,8 @@ protected:
 
     // Registry that contains all game object and component data
     entt::basic_registry<GameObjectID> m_registry;
+
+    Camera2D* m_pActiveCamera = nullptr;
 
     // Needed for game objects to have access to the scene's registry
     friend class GameObject;
