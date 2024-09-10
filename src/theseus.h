@@ -19,6 +19,9 @@ class Theseus : public wolf::App
     // Data / implementation
     private:
 
+        // The main game scene
         wolf::Scene m_scene;
+
+        // A pointer to the player game object
         wolf::GameObject* m_pPlayerObject = nullptr;
 };

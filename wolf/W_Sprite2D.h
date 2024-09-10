@@ -52,15 +52,18 @@ public:
     void SetOrigin(const glm::vec2& origin);
     inline const glm::vec2& GetOrigin() const { return m_origin; }
 
-    // Helper to center a sprite
+    // Helper to center a sprite to its texture
+    // This affects where the sprite will be rendered when using Draw()
     void SetOriginToCenterOfTexture();
 
-    // Set the tint of the sprite with a floating point RGB color
+    // Set the tint of the sprite with a floating point [0, 1] RGB color
     void SetTint(const glm::vec3& tint) { m_tint = tint; }
     const glm::vec3& GetTint() const { return m_tint; }
 
     // Set the layer of this sprite
     // 0 is the topmost layer
+    // NOTE: Unused yet, will require the rendering system to iterate
+    // the used layers or use depth testing to sort the sprites.
     void SetLayer(int layer) { m_layer = layer; }
     int GetLayer() const { return m_layer; }
 

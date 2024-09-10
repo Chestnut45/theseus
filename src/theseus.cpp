@@ -20,15 +20,18 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     // Enable depth test
     glEnable(GL_DEPTH_TEST);
 
-    // Create test player object
+    // Create player object with a 2D transform component
     m_pPlayerObject = &m_scene.CreateObject2D();
 
-    // Add the test sprite to the player object
+    // Add a test sprite to the player object
     auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
     sprite.SetOriginToCenterOfTexture();
+
+    // Scale up the player object's transform (affects the sprite size)
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4, 4));
 
     // Add the main camera as a component of the player object
+    // NOTE: This should make the camera follow the player game object eventually
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
     m_scene.SetActiveCamera(camera);
 }
