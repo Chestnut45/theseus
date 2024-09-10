@@ -97,16 +97,20 @@ The `wolf::Audio` module allows very simple access to loading and playing audio 
 
 ```C++
 // Play a sound effect at half volume in the left channel
-wolf::Audio::Play("data/sfx.mp3" /* file path */, false /* no loop */, 0.5f /* half volume */, -1.0f /* left channel */);
+wolf::Audio::Play("data/sounds/sfx.mp3" /* file path */,
+                   false /* no loop */,
+                   0.5f /* half volume */,
+                   -1.0f /* left channel */
+                   );
 
 // Play a looping song at default volume and pan
-wolf::Audio::Play("data/song.wav" /* file path */, true /* loop */);
+wolf::Audio::Play("data/sounds/song.wav", true);
 
 // Stop all currently-playing instances of a sound file
-wolf::Audio::Stop("data/song2.ogg");
+wolf::Audio::Stop("data/sounds/song2.ogg");
 
 // Preload a large audio file from disk to be played later without incurring a load on first play
-wolf::Audio::Load("data/largeFile.FLAC");
+wolf::Audio::Load("data/sounds/largeFile.FLAC");
 ```
 
 ## RNG
@@ -117,13 +121,13 @@ The `wolf::RNG` module is an instantiable, seedable pseudo random number generat
 // Create an instance of the rng with the seed 12345
 wolf::RNG rng(12345);
 
-// Get a random boolean
+// Get a uniformly distributed random boolean
 bool vBool = rng.FlipCoin();
 
-// Get a float between 0 and 1 (inclusive)
+// Get a uniformly distributed random float between 0 and 1 (inclusive)
 float vFloat = rng.NextFloat(0.0f, 1.0f);
 
-// Get an int between 32 and 64 (inclusive)
+// Get a uniformly distributed random int between 32 and 64 (inclusive)
 int vInt = rng.NextInt(32, 64);
 ```
 
@@ -200,7 +204,7 @@ In order to register a listener, you'll need to create a listener function as a 
 struct MyListener
 {
     // Example listener function for 'MyEvent' events
-    void TheActualFunction(const MyEvent& event)
+    void MyEventHandler(const MyEvent& event)
     {
         // Do something with the event parameters...
         auto pSprite = event.m_pObject->GetComponent<Sprite>();
@@ -214,19 +218,19 @@ MyListener instance;
 // Add the listener by passing the event type, listener type, and a
 // pointer to the listener function as template arguments, and a
 // reference to the actual instance of the listener as a regular argument.
-wolf::EventManager::AddListener<MyEvent, MyListener, &MyListener::TheActualFunction>(instance);
+wolf::EventManager::AddListener<MyEvent, MyListener, &MyListener::MyEventHandler>(instance);
 
 // Removing listeners follows the exact same syntax:
-wolf::EventManager::RemoveListener<MyEvent, MyListener, &MyListener::TheActualFunction>(instance);
+wolf::EventManager::RemoveListener<MyEvent, MyListener, &MyListener::MyEventHandler>(instance);
 ```
 
-If you'd like every instance of a certain type to automatically listen for events, you could call AddListener in the constructor, and RemoveListener in the destructor.
+If you'd like every instance of a certain type to automatically listen for specific events, you could add a listener in the constructor, and remove it in the destructor. This comes with the caveat of needing to write move/copy constructors and assignment operators for your type (or deleting them if the type never has to be copied or moved, which should be the case for most game components).
 
 To actually send out events to all registered listeners, you can either trigger an event immediately, or enqueue events to dispatch later. The TriggerEvent and EnqueueEvent functions are also templated by event type, but it can be deduced by the argument you pass so there's no need to explicitly state the template type.
 
 ```C++
 // Dispatch an event immediately
-wolf::EventManager::TriggerEvent(MyEvent(123, &someSceneObject));
+wolf::EventManager::TriggerEvent(MyEvent(123, &someGameObject));
 
 // Queue events for later
 wolf::EventManager::EnqueueEvent(MyEvent(456, &anotherObject));
@@ -241,7 +245,7 @@ wolf::EventManager::Dispatch();
 
 ## Scene
 
-The `wolf::Scene` module can be used as a container to create and manage a hierarchy of game objects with components of any type. There are a few components included in wolf with built-in behaviour such as Transform2D, Sprite2D, and Camera2D.
+The `wolf::Scene` module can be used as a container to create and manage a hierarchy of game objects with components of any type. This is an example of an object-focused entity component system, and will be the backbone for the game's systems. We added a few core components to wolf with built-in behaviour such as Transform2D, Sprite2D, and Camera2D.
 
 ```C++
 // Create an empty scene
@@ -254,6 +258,14 @@ wolf::GameObject& object1 = scene.CreateObject();
 auto& object2 = scene.CreateObject2D();
 auto& object3 = scene.CreateObject2D();
 
+// Add a sprite component to the object
+auto& sprite = pObject->AddComponent<wolf::Sprite2D>("data/textures/sprite.png");
+
+// Attach a camera to a game object and set it as the active camera in the scene
+// TODO: The camera should follow the game object it is attached to, if any
+auto& camera = pObject->AddComponent<wolf::Camera2D>(1280, 720);
+scene.SetActiveCamera(camera);
+
 // Delete objects either by reference or by ID
 object1.Delete();
 scene.DeleteObject(object2.GetID());
@@ -261,13 +273,7 @@ scene.DeleteObject(object2.GetID());
 // Query for a game object in the scene by ID
 wolf::GameObject* pObject = scene.GetObject(object3.GetID());
 
-// Add a sprite to the object
-auto& sprite = pObject->AddComponent<wolf::Sprite2D>("data/textures/sprite.png");
-
-// Attach a camera to a game object and set it as the active camera
-// TODO: The camera will follow the game object it is attached to, if any
-auto& camera = pObject->AddComponent<wolf::Camera2D>(1280, 720);
-scene.SetActiveCamera(camera);
+// Later in the update / render loops...
 
 // Update the scene and all components in it
 scene.Update(delta);
@@ -317,7 +323,7 @@ private:
 };
 ```
 
-The other option is to use dependency injection and just pass a reference to the game object as one of the constructor arguments. This keeps your component inheritence-free, but requires a little extra work when creating components. An upside of this method is that you can pass by reference instead of pointer (since the game object is guaranteed to outlive the component, the reference is never invalidated).
+The other option is to use dependency injection and just pass a reference to the game object as one of the constructor arguments. This keeps your component inheritence-free, but requires a little extra work when creating components. An upside of this method is that you can pass by reference instead of pointer (since the game object is guaranteed to outlive the component, and components cannot be copied or moved, the reference is never invalidated).
 
 ```C++
 struct DIComponent
@@ -382,7 +388,7 @@ for (auto&&[id, hitbox, transform] : scene.Each<Hitbox2D, Transform2D>())
 // Notice you can iterate the objects themselves directly with the exact same syntax as iterating components
 for (auto&&[id, object] : scene.Each<GameObject>())
 {
-    // Collect only game objects with no children
+    // Collect only game objects with no children (root objects)
     if (!object.HasChildren())
     {
         // ...
