@@ -34,6 +34,7 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     // NOTE: This should make the camera follow the player game object eventually
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
     m_scene.SetActiveCamera(camera);
+    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>(m_pPlayerObject->GetComponent<wolf::Transform2D>());
 }
 
 Theseus::~Theseus()
@@ -60,20 +61,25 @@ void Theseus::Update(float delta)
     }
 
     // Test transform hierarchy
-    wolf::Transform2D* t = m_pPlayerObject->GetComponent<wolf::Transform2D>();
-    if (t)
-    {
-        // Rotate the player's transform
-        t->RotateDegrees(-180 * delta);
+    // wolf::Transform2D* t = m_pPlayerObject->GetComponent<wolf::Transform2D>();
+    // if (t)
+    // {
+    //     // Rotate the player's transform
+    //     t->RotateDegrees(-180 * delta);
 
-        // Debug player movement
-        float moveSpeed = 256;
-        if (wolf::Input::IsKeyDown(GLFW_KEY_W)) t->Translate(glm::vec2(0, delta * moveSpeed));
-        if (wolf::Input::IsKeyDown(GLFW_KEY_A)) t->Translate(glm::vec2(-delta * moveSpeed, 0));
-        if (wolf::Input::IsKeyDown(GLFW_KEY_S)) t->Translate(glm::vec2(0, -delta * moveSpeed));
-        if (wolf::Input::IsKeyDown(GLFW_KEY_D)) t->Translate(glm::vec2(delta * moveSpeed, 0));
-    }
+    //     // Debug player movement
+    //     float moveSpeed = 256;
+    //     if (wolf::Input::IsKeyDown(GLFW_KEY_W)) t->Translate(glm::vec2(0, delta * moveSpeed));
+    //     if (wolf::Input::IsKeyDown(GLFW_KEY_A)) t->Translate(glm::vec2(-delta * moveSpeed, 0));
+    //     if (wolf::Input::IsKeyDown(GLFW_KEY_S)) t->Translate(glm::vec2(0, -delta * moveSpeed));
+    //     if (wolf::Input::IsKeyDown(GLFW_KEY_D)) t->Translate(glm::vec2(delta * moveSpeed, 0));
+    // }
     
+    auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
+    if (playerController)
+    {
+        playerController->Update(delta); // Call Update to handle movement, rolling, and jumping
+    }
     // TODO: Update logic
 }
 
