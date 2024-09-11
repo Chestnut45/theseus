@@ -1,5 +1,7 @@
 #include "theseus.h"
 
+#include "PlayerController.h"
+
 // Application entrypoint
 int main(int, char**)
 {
