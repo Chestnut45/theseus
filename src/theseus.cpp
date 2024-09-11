@@ -74,11 +74,11 @@ void Theseus::Update(float delta)
     //     if (wolf::Input::IsKeyDown(GLFW_KEY_S)) t->Translate(glm::vec2(0, -delta * moveSpeed));
     //     if (wolf::Input::IsKeyDown(GLFW_KEY_D)) t->Translate(glm::vec2(delta * moveSpeed, 0));
     // }
-    
+
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
     {
-        playerController->Update(delta); // Call Update to handle movement, rolling, and jumping
+        playerController->Update(delta); 
     }
     // TODO: Update logic
 }
