@@ -25,6 +25,7 @@
 
 ### Known Issues
 1) Debugging is currently only configured for use with GDB, if you want to use MSVC with debugging you'll need to setup vsdbg.exe from the C/C++ VS Code extension, or use the visual studio builtin debugger
+2) If build succeeds but the app immediately closes before displaying the window, you may need to copy glew32d.dll from /build/bin to C:/Windows/System32
 
 ## Linux
 
