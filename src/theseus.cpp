@@ -4,9 +4,9 @@
 int main(int, char**)
 {
     // Unit tests
-    // wolf::_SceneTests();
-    // wolf::_ShapeTests();
-    // wolf::_EventManagerTests();
+    wolf::_SceneTests();
+    wolf::_ShapeTests();
+    wolf::_EventManagerTests();
     
     Theseus app;
     app.Run();
