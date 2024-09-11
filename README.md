@@ -20,7 +20,7 @@
     A) If you want to use MSVC: e.g. "Visual Studio Community 2022 Release - amd64"\
     B) If you want to use GCC/Mingw: e.g. "GCC 13.2.0 x86_64-w64-mingw32 (mingw64)"
 4) Ctrl+Shift+P then type/choose CMake: Build
-5) Hit F5 to run in debugger if all compiled well (if not, make sure your compiler / kit from step 3 supports C++20)\
+5) Hit F5 to run in debugger if all compiled well (if not, make sure your compiler / kit from step 3 supports C++20)
 6) You may need to choose your build target (theseus) from the dropdown the first time
 
 ### Known Issues
