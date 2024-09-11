@@ -29,4 +29,3 @@
 #include "W_Types.h"
 #include "W_VertexBuffer.h"
 #include "W_VertexDeclaration.h"
-#include "PlayerController.h"
