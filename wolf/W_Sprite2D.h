@@ -10,11 +10,12 @@
 
 //-----------------------------------------------------------------------------
 
-#include "W_Texture.h"
-#include "W_VertexDeclaration.h"
-#include "W_VertexBuffer.h"
-#include "W_ProgramManager.h"
 #include <string>
+
+#include "W_ProgramManager.h"
+#include "W_Texture.h"
+#include "W_VertexBuffer.h"
+#include "W_VertexDeclaration.h"
 
 namespace wolf
 {
