@@ -65,6 +65,8 @@ add_subdirectory(thirdparty/assimp)
 add_subdirectory(thirdparty/glew/build/cmake)
 
 include_directories(
+    src/
+    src/components/
     wolf/
     thirdparty/
     thirdparty/entt
