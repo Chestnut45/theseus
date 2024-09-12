@@ -17,8 +17,6 @@ int main(int, char**)
 
 Theseus::Theseus() : App("Theseus", 1280, 720)
 {
-    // TODO: Initialization logic
-
     // Enable depth test
     glEnable(GL_DEPTH_TEST);
 
@@ -33,7 +31,8 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4, 4));
 
     // Add the main camera as a component of the player object
-    // NOTE: This should make the camera follow the player game object eventually
+    // TODO: This should make the camera follow the player game object smoothly
+    // NOTE: Will implement in wolf::Scene::Update(float)
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
     m_scene.SetActiveCamera(camera);
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>(m_pPlayerObject->GetComponent<wolf::Transform2D>());
@@ -49,7 +48,6 @@ void Theseus::Update(float delta)
     // Hotkeys
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) Shutdown();
     if (wolf::Input::IsKeyDown(GLFW_KEY_GRAVE_ACCENT)) ShowDebug();
-    // if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE)) wolf::Audio::Play("data/sounds/omg.mp3");
 
     // Handle the window resized flag
     if (m_windowResized)
@@ -62,27 +60,15 @@ void Theseus::Update(float delta)
         m_windowResized = false;
     }
 
-    // Test transform hierarchy
-    // wolf::Transform2D* t = m_pPlayerObject->GetComponent<wolf::Transform2D>();
-    // if (t)
-    // {
-    //     // Rotate the player's transform
-    //     t->RotateDegrees(-180 * delta);
-
-    //     // Debug player movement
-    //     float moveSpeed = 256;
-    //     if (wolf::Input::IsKeyDown(GLFW_KEY_W)) t->Translate(glm::vec2(0, delta * moveSpeed));
-    //     if (wolf::Input::IsKeyDown(GLFW_KEY_A)) t->Translate(glm::vec2(-delta * moveSpeed, 0));
-    //     if (wolf::Input::IsKeyDown(GLFW_KEY_S)) t->Translate(glm::vec2(0, -delta * moveSpeed));
-    //     if (wolf::Input::IsKeyDown(GLFW_KEY_D)) t->Translate(glm::vec2(delta * moveSpeed, 0));
-    // }
-
+    // Update the player controller
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
     {
         playerController->Update(delta); 
     }
-    // TODO: Update logic
+
+    // Update all components / game objects in the scene
+    m_scene.Update(delta);
 }
 
 void Theseus::Render()
@@ -93,6 +79,4 @@ void Theseus::Render()
 
     // Render the scene
     m_scene.Render();
-
-    // TODO: Rendering logic
 }
