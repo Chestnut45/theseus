@@ -19,7 +19,7 @@ bool TileMap::LoadTileSet(const std::string& filepath)
 
 int TileMap::GetTile(int x, int y) const
 {
-
+    return 0;
 }
 
 void TileMap::SetTile(int x, int y, int tileID)
