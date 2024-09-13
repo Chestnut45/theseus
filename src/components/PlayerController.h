@@ -1,13 +1,19 @@
 #pragma once
+//-----------------------------------------------------------------------------
+// File:			PlayerController.h
+// Original Author:	Youssef Ashraf
+// ver 1.0
+// A class that's responsible for the Player Controller component.
+//-----------------------------------------------------------------------------
 
 #include <wolf.h>
 
 class PlayerController : public wolf::BaseComponent
 {
 public:
-    enum class PlayerState
+    enum class PlayerAction
     {
-        IDLE,
+        NONE,
         WALKING,
         JUMPING,
         ROLLING
@@ -38,8 +44,8 @@ private:
     // Member variables
     wolf::Transform2D* m_pTransform = nullptr;
 
-    // Player state
-    PlayerState m_state = PlayerState::IDLE;
+    // Player action
+    PlayerAction m_action = PlayerAction::NONE;
 
     // Movement variables
     float m_moveSpeed = 200.0f;
@@ -55,4 +61,6 @@ private:
     float m_jumpHeight = 10.0f;
     float m_jumpSpeed = 300.0f;
     float m_jumpTimer = 0.0f;
+
+    glm::vec2 m_lastDirection = glm::vec2(0.0f);
 };
