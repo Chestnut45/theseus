@@ -24,4 +24,7 @@ class Theseus : public wolf::App
 
         // A pointer to the player game object
         wolf::GameObject* m_pPlayerObject = nullptr;
+
+        //manager for handling different states
+        GameStateManager* m_stateManager;
 };
