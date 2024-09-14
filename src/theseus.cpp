@@ -39,10 +39,7 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
 
     // Add Velocity and PlayerController components to the player object
     auto& pVelocity = m_pPlayerObject->AddComponent<VelocityComponent>();
-    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>(
-        m_pPlayerObject->GetComponent<wolf::Transform2D>(), 
-        &pVelocity
-    );
+    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
 
     // Initialize the game state manager and set the initial state to Main Menu
     m_stateManager = new GameStateManager();

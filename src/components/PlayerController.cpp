@@ -1,23 +1,20 @@
 #include "PlayerController.h"
 #include "VelocityComponent.h"
+#include "W_Transform2D.h"
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
 // Original Author: Youssef Ashraf
-// ver 1.6, updated to use member variables for components,
-// Player State Management, Velocity-Based Movement, Decoupled,
+// ver 1.7, updated to use GetGameObject() for dynamic component retrieval.
 //-----------------------------------------------------------------------------
 
-// Constructor
-PlayerController::PlayerController(wolf::Transform2D* pTransform, VelocityComponent* pVelocity)
-    : m_pTransform(pTransform), m_pVelocity(pVelocity)
-{
-}
-
-// Update function called every frame
 void PlayerController::Update(float delta)
 {
-    if (m_pTransform && m_pVelocity)
+    // Dynamically get components on the same GameObject
+    auto* pTransform = GetGameObject()->GetComponent<wolf::Transform2D>();
+    auto* pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
+
+    if (pTransform && pVelocity)
     {
         // Handle player states based on current action
         switch (m_action)
@@ -56,13 +53,22 @@ void PlayerController::HandleMovement(float delta)
     if (glm::length(direction) > 0.0f)
     {
         direction = glm::normalize(direction);
-        m_pVelocity->SetVelocity(direction * m_moveSpeed); // Set velocity 
+        auto* pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
+        if (pVelocity)
+        {
+            pVelocity->SetVelocity(direction * m_moveSpeed); // Set velocity
+        }
+
         m_lastDirection = direction;
         m_action = PlayerAction::WALKING;
     }
     else if (m_action == PlayerAction::WALKING)
     {
-        m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop movement
+        auto* pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
+        if (pVelocity)
+        {
+            pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop movement
+        }
         m_action = PlayerAction::NONE;
     }
 }
@@ -73,13 +79,20 @@ void PlayerController::HandleRolling(float delta)
     if (m_isRolling)
     {
         glm::vec2 rollDirection = m_lastDirection;
-        m_pVelocity->SetVelocity(rollDirection * m_rollSpeed); // Continue rolling in last known direction
+        auto* pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
+        if (pVelocity)
+        {
+            pVelocity->SetVelocity(rollDirection * m_rollSpeed); // Continue rolling in last known direction
+        }
 
         m_rollTimer -= delta;
         if (m_rollTimer <= 0)
         {
             m_isRolling = false;
-            m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop rolling
+            if (pVelocity)
+            {
+                pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop rolling
+            }
             m_action = PlayerAction::NONE;
         }
     }
@@ -98,7 +111,11 @@ void PlayerController::HandleJumping(float delta)
 
     if (m_isJumping)
     {
-        m_pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed)); // Set upward velocity for jump
+        auto* pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
+        if (pVelocity)
+        {
+            pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed)); // Set upward velocity for jump
+        }
 
         m_jumpTimer -= delta;
 
@@ -106,7 +123,10 @@ void PlayerController::HandleJumping(float delta)
         {
             m_isJumping = false;
             m_action = PlayerAction::NONE;
-            m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop upward velocity
+            if (pVelocity)
+            {
+                pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop upward velocity
+            }
         }
     }
     else if (wolf::Input::IsKeyJustDown(GLFW_KEY_J) && !m_isJumping)

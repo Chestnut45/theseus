@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
 // Original Author: Youssef Ashraf
-// ver 1.2.
+// ver 1.3.
 //-----------------------------------------------------------------------------
 
 #include <wolf.h>
@@ -20,8 +20,7 @@ public:
         ROLLING
     };
 
-    PlayerController() = default;
-    PlayerController(wolf::Transform2D* pTransform, VelocityComponent* pVelocity);
+    PlayerController() = default;  // No arguments needed for constructor
 
     void Update(float delta);
 
@@ -37,10 +36,6 @@ private:
 
     // Get the direction for rolling
     glm::vec2 GetRollDirection() const;
-
-    //pointer to transform and velocity
-    wolf::Transform2D* m_pTransform = nullptr;
-    VelocityComponent* m_pVelocity = nullptr;
 
     // Player action
     PlayerAction m_action = PlayerAction::NONE;
