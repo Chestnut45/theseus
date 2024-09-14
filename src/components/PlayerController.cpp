@@ -100,6 +100,12 @@ void PlayerController::HandleRolling(float delta)
     }
     else if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && !m_isRolling)
     {
+        // Check if we have a valid direction, otherwise use the last known direction
+        glm::vec2 rollDirection = GetRollDirection();
+        if (glm::length(rollDirection) > 0.0f)
+        {
+            m_lastDirection = rollDirection; // Update last known direction
+        }
         // Start rolling in the last known direction (can be stationary if no input)
         m_isRolling = true;
         m_rollTimer = m_rollDuration;

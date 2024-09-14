@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File:			VelocityComponent.h
+// Original Author:	Youssef Ashraf
+// ver 1.0
+// A class that's responsible for the Velocity component to be added in certain game objects.
+//-----------------------------------------------------------------------------
 #include "VelocityComponent.h"
 
 VelocityComponent::VelocityComponent(wolf::Transform2D* pTransform)
@@ -7,12 +13,9 @@ VelocityComponent::VelocityComponent(wolf::Transform2D* pTransform)
 
 void VelocityComponent::Update(float delta)
 {
-    if (m_pTransform)
-    {
-        // add velocity to the transform (local position = lp + velocity * delta time)
-        glm::vec2 newPosition = m_pTransform->GetLocalPosition() + (m_velocity * delta);
-        m_pTransform->SetPosition(newPosition);
-    }
+    // Apply velocity to the transform, updating the position
+    glm::vec2 newPosition = m_pTransform->GetLocalPosition() + (m_velocity * delta);
+    m_pTransform->SetPosition(newPosition);
 }
 
 // set the velocity vector
