@@ -1,16 +1,17 @@
+#pragma once
 //-----------------------------------------------------------------------------
 // File:			VelocityComponent.h
 // Original Author:	Youssef Ashraf
 // ver 1.0
 // A class that's responsible for the Velocity component to be added in certain game objects.
 //-----------------------------------------------------------------------------
-
-#pragma once
-
 #include <wolf.h>
 #include <glm/glm.hpp>
 
-class VelocityComponent : public wolf::BaseComponent{
+class VelocityComponent : public wolf::BaseComponent
+{
+// forgot to make this public, was private by default
+public:
     VelocityComponent() = default;
     VelocityComponent(wolf::Transform2D* pTransform);
 
@@ -18,12 +19,13 @@ class VelocityComponent : public wolf::BaseComponent{
 
     void SetVelocity(const glm::vec2& velocity);
 
-    // Get current velocity
+    // Get the current velocity
     const glm::vec2& GetVelocity() const;
 
-    private:
+private:
     // Reference to the object's transform
-    wolf::Transform2D* m_pTransform = nullptr;  
+    wolf::Transform2D* m_pTransform = nullptr;
+
     // Velocity vector (x, y)
-    glm::vec2 m_velocity = glm::vec2(0.0f, 0.0f); 
+    glm::vec2 m_velocity = glm::vec2(0.0f, 0.0f);
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <wolf.h>
+#include "GameStateManager.h"
 
 class Theseus : public wolf::App
 {
@@ -16,7 +17,6 @@ class Theseus : public wolf::App
         // Rendering logic, called every frame
         void Render() override;
     
-    // Data / implementation
     private:
 
         // The main game scene

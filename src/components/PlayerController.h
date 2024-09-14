@@ -1,12 +1,13 @@
 #pragma once
 //-----------------------------------------------------------------------------
-// File:			PlayerController.h
-// Original Author:	Youssef Ashraf
-// ver 1.0
+// File:            PlayerController.h
+// Original Author: Youssef Ashraf
+// ver 1.1, added VelocityComponent support for movement.
 // A class that's responsible for the Player Controller component.
 //-----------------------------------------------------------------------------
 
 #include <wolf.h>
+#include "VelocityComponent.h"
 
 class PlayerController : public wolf::BaseComponent
 {
@@ -20,7 +21,7 @@ public:
     };
 
     PlayerController() = default;
-    PlayerController(wolf::Transform2D* pTransform);
+    PlayerController(wolf::Transform2D* pTransform, VelocityComponent* pVelocity);
 
     // Update function called every frame
     void Update(float delta);
@@ -41,8 +42,9 @@ private:
     // Direction for rolling
     glm::vec2 GetRollDirection() const;
 
-    // Member variables
+    // Member variables, transform and our velocity
     wolf::Transform2D* m_pTransform = nullptr;
+    VelocityComponent* m_pVelocity = nullptr;
 
     // Player action
     PlayerAction m_action = PlayerAction::NONE;

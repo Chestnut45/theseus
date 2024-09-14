@@ -1,13 +1,15 @@
 #include "PlayerController.h"
+
 //-----------------------------------------------------------------------------
-// File:			PlayerController.h
-// Original Author:	Youssef Ashraf
-// ver 1.2, updated player state conditions and set constraints.
+// File:            PlayerController.cpp
+// Original Author: Youssef Ashraf
+// ver 1.4, updated to encapsulate VelocityComponent update.
 // A class that's responsible for the Player Controller component.
 //-----------------------------------------------------------------------------
+
 // Constructor
-PlayerController::PlayerController(wolf::Transform2D* pTransform)
-    : m_pTransform(pTransform)
+PlayerController::PlayerController(wolf::Transform2D* pTransform, VelocityComponent* pVelocity)
+    : m_pTransform(pTransform), m_pVelocity(pVelocity)
 {
 }
 
@@ -34,6 +36,12 @@ void PlayerController::Update(float delta)
             HandleJumping(delta);   // Allow jumping while walking
             break;
     }
+
+    // Update the VelocityComponent (encapsulated within PlayerController)
+    if (m_pVelocity)
+    {
+        m_pVelocity->Update(delta);  // Update the velocity and position
+    }
 }
 
 // Handle movement input (WASD)
@@ -59,7 +67,7 @@ void PlayerController::HandleMovement(float delta)
     {
         // Normalize direction for smooth movement
         direction = glm::normalize(direction);
-        m_pTransform->Translate(direction * m_moveSpeed * delta);
+        m_pVelocity->SetVelocity(direction * m_moveSpeed); // Set velocity
 
         // Store the last known direction for rolling
         m_lastDirection = direction;
@@ -67,7 +75,9 @@ void PlayerController::HandleMovement(float delta)
     }
     else if (m_action == PlayerAction::WALKING)
     {
-        m_action = PlayerAction::NONE; // If no input, switch to idle (NONE)
+        // Stop movement if no input
+        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        m_action = PlayerAction::NONE;
     }
 }
 
@@ -78,24 +88,18 @@ void PlayerController::HandleRolling(float delta)
     {
         // Only move in the roll direction, no new input allowed
         glm::vec2 rollDirection = m_lastDirection;
-        m_pTransform->Translate(rollDirection * m_rollSpeed * delta);
+        m_pVelocity->SetVelocity(rollDirection * m_rollSpeed);
 
         m_rollTimer -= delta;
         if (m_rollTimer <= 0)
         {
             m_isRolling = false;
+            m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop rolling
             m_action = PlayerAction::NONE;
         }
     }
     else if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && !m_isRolling)
     {
-        // Check if we have a valid direction, otherwise use the last known direction
-        glm::vec2 rollDirection = GetRollDirection();
-        if (glm::length(rollDirection) > 0.0f)
-        {
-            m_lastDirection = rollDirection; // Update last known direction
-        }
-
         // Start rolling in the last known direction (can be stationary if no input)
         m_isRolling = true;
         m_rollTimer = m_rollDuration;
@@ -110,14 +114,15 @@ void PlayerController::HandleJumping(float delta)
 
     if (m_isJumping)
     {
-        // Simulate jumping (simple Y-axis translation)
-        m_pTransform->Translate(glm::vec2(0, m_jumpSpeed * delta));
+        // Simulate jumping by setting upward velocity
+        m_pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed));
         m_jumpTimer -= delta;
 
         if (m_jumpTimer <= 0)
         {
             m_isJumping = false;
             m_action = PlayerAction::NONE;  // Reset to idle after jump
+            m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop upward velocity
         }
     }
     else if (wolf::Input::IsKeyJustDown(GLFW_KEY_J) && !m_isJumping)
