@@ -20,8 +20,8 @@ public:
         // TODO: Implement main menu logic here
         
         // Example: Check for input to transition to the PlayState.
-        // You could check if the user has pressed the "Play" button or made another selection.
-        // For example, this can be linked to some UI framework like ImGui or custom input handling.
+        // we could check if the user has pressed the "Play" button or made another selection.
+        // For example, this can be linked our ui framework like ImGui
         // if (/* check if the user presses the Play button or selects 'Start Game' */) 
         // {
         //     // Transition to the PlayState when the player selects "Play"
@@ -38,7 +38,7 @@ public:
         // TODO: Implement main menu rendering here
         
         // Example: Render the main menu UI elements like "Play", "Options", "Quit"
-        // You can use a GUI library like ImGui or a custom solution to draw the menu
+        // we can use a GUI library like ImGui or a custom solution to draw the menu
         // Example:
         //  - Display "Play" button
         //  - Display "Options" button
