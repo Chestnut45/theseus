@@ -1,10 +1,11 @@
 #include "PlayerController.h"
+#include "VelocityComponent.h"
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
 // Original Author: Youssef Ashraf
-// ver 1.4, updated to encapsulate VelocityComponent update.
-// A class that's responsible for the Player Controller component.
+// ver 1.6, updated to use member variables for components,
+// Player State Management, Velocity-Based Movement, Decoupled,
 //-----------------------------------------------------------------------------
 
 // Constructor
@@ -16,31 +17,28 @@ PlayerController::PlayerController(wolf::Transform2D* pTransform, VelocityCompon
 // Update function called every frame
 void PlayerController::Update(float delta)
 {
-    // Handle player states based on current action
-    switch (m_action)
+    if (m_pTransform && m_pVelocity)
     {
-        case PlayerAction::ROLLING:
-            HandleRolling(delta);
-            break;
+        // Handle player states based on current action
+        switch (m_action)
+        {
+            case PlayerAction::ROLLING:
+                HandleRolling(delta);
+                break;
 
-        case PlayerAction::JUMPING:
-            HandleJumping(delta);
-            HandleMovement(delta);  // Allow movement while jumping
-            break;
+            case PlayerAction::JUMPING:
+                HandleJumping(delta);
+                HandleMovement(delta);  // Allow movement while jumping
+                break;
 
-        case PlayerAction::WALKING:
-        case PlayerAction::NONE:
-        default:
-            HandleMovement(delta);
-            HandleRolling(delta);   // Rolling can interrupt walking
-            HandleJumping(delta);   // Allow jumping while walking
-            break;
-    }
-
-    // Update the VelocityComponent (encapsulated within PlayerController)
-    if (m_pVelocity)
-    {
-        m_pVelocity->Update(delta);  // Update the velocity and position
+            case PlayerAction::WALKING:
+            case PlayerAction::NONE:
+            default:
+                HandleMovement(delta);
+                HandleRolling(delta);   // Rolling can interrupt walking
+                HandleJumping(delta);   // Allow jumping while walking
+                break;
+        }
     }
 }
 
@@ -50,33 +48,21 @@ void PlayerController::HandleMovement(float delta)
     if (m_action == PlayerAction::ROLLING) return; // Disable movement during roll
 
     glm::vec2 direction(0.0f);
-    if (wolf::Input::IsKeyDown(GLFW_KEY_W)) {
-        direction.y += 1.0f;
-    }
-    if (wolf::Input::IsKeyDown(GLFW_KEY_S)) {
-        direction.y -= 1.0f;
-    }
-    if (wolf::Input::IsKeyDown(GLFW_KEY_A)) {
-        direction.x -= 1.0f;
-    }
-    if (wolf::Input::IsKeyDown(GLFW_KEY_D)) {
-        direction.x += 1.0f;
-    }
+    if (wolf::Input::IsKeyDown(GLFW_KEY_W)) direction.y += 1.0f;
+    if (wolf::Input::IsKeyDown(GLFW_KEY_S)) direction.y -= 1.0f;
+    if (wolf::Input::IsKeyDown(GLFW_KEY_A)) direction.x -= 1.0f;
+    if (wolf::Input::IsKeyDown(GLFW_KEY_D)) direction.x += 1.0f;
 
     if (glm::length(direction) > 0.0f)
     {
-        // Normalize direction for smooth movement
         direction = glm::normalize(direction);
-        m_pVelocity->SetVelocity(direction * m_moveSpeed); // Set velocity
-
-        // Store the last known direction for rolling
+        m_pVelocity->SetVelocity(direction * m_moveSpeed); // Set velocity 
         m_lastDirection = direction;
         m_action = PlayerAction::WALKING;
     }
     else if (m_action == PlayerAction::WALKING)
     {
-        // Stop movement if no input
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop movement
         m_action = PlayerAction::NONE;
     }
 }
@@ -86,9 +72,8 @@ void PlayerController::HandleRolling(float delta)
 {
     if (m_isRolling)
     {
-        // Only move in the roll direction, no new input allowed
         glm::vec2 rollDirection = m_lastDirection;
-        m_pVelocity->SetVelocity(rollDirection * m_rollSpeed);
+        m_pVelocity->SetVelocity(rollDirection * m_rollSpeed); // Continue rolling in last known direction
 
         m_rollTimer -= delta;
         if (m_rollTimer <= 0)
@@ -100,13 +85,6 @@ void PlayerController::HandleRolling(float delta)
     }
     else if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && !m_isRolling)
     {
-        // Check if we have a valid direction, otherwise use the last known direction
-        glm::vec2 rollDirection = GetRollDirection();
-        if (glm::length(rollDirection) > 0.0f)
-        {
-            m_lastDirection = rollDirection; // Update last known direction
-        }
-        // Start rolling in the last known direction (can be stationary if no input)
         m_isRolling = true;
         m_rollTimer = m_rollDuration;
         m_action = PlayerAction::ROLLING;
@@ -120,20 +98,19 @@ void PlayerController::HandleJumping(float delta)
 
     if (m_isJumping)
     {
-        // Simulate jumping by setting upward velocity
-        m_pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed));
+        m_pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed)); // Set upward velocity for jump
+
         m_jumpTimer -= delta;
 
         if (m_jumpTimer <= 0)
         {
             m_isJumping = false;
-            m_action = PlayerAction::NONE;  // Reset to idle after jump
+            m_action = PlayerAction::NONE;
             m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop upward velocity
         }
     }
     else if (wolf::Input::IsKeyJustDown(GLFW_KEY_J) && !m_isJumping)
     {
-        // Start jump
         m_isJumping = true;
         m_jumpTimer = m_jumpHeight / m_jumpSpeed;
         m_action = PlayerAction::JUMPING;
@@ -148,7 +125,7 @@ glm::vec2 PlayerController::GetRollDirection() const
     if (wolf::Input::IsKeyDown(GLFW_KEY_S)) direction.y -= 1.0f;
     if (wolf::Input::IsKeyDown(GLFW_KEY_A)) direction.x -= 1.0f;
     if (wolf::Input::IsKeyDown(GLFW_KEY_D)) direction.x += 1.0f;
-    
+
     // Return normalized direction or zero if no input
     return glm::length(direction) > 0.0f ? glm::normalize(direction) : glm::vec2(0.0f);
 }

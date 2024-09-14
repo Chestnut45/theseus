@@ -1,8 +1,9 @@
 #include "theseus.h"
-
 #include "PlayerController.h"
 #include "GameInc.h"
 #include "VelocityComponent.h"
+#include "MainMenuState.h"
+#include "GameStateManager.h"
 
 // Application entrypoint
 int main(int, char**)
@@ -33,23 +34,24 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4, 4));
 
     // Add the main camera as a component of the player object
-    // TODO: This should make the camera follow the player game object smoothly
-    // NOTE: Will implement in wolf::Scene::Update(float)
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
     m_scene.SetActiveCamera(camera);
-    wolf::Transform2D* pTransform = m_pPlayerObject->GetComponent<wolf::Transform2D>();
-    VelocityComponent* pVelocity = &m_pPlayerObject->AddComponent<VelocityComponent>(pTransform);
-    PlayerController* playerController = &m_pPlayerObject->AddComponent<PlayerController>(pTransform, pVelocity);
-    m_stateManager = new GameStateManager();  // Initialize m_stateManager
 
-    // Set the initial state to the Main Menu
+    // Add Velocity and PlayerController components to the player object
+    auto& pVelocity = m_pPlayerObject->AddComponent<VelocityComponent>();
+    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>(
+        m_pPlayerObject->GetComponent<wolf::Transform2D>(), 
+        &pVelocity
+    );
+
+    // Initialize the game state manager and set the initial state to Main Menu
+    m_stateManager = new GameStateManager();
     m_stateManager->SetState(new MainMenuState(m_stateManager));
 }
 
 Theseus::~Theseus()
 {
-    // TODO: Shutdown logic
-    delete m_stateManager;
+    delete m_stateManager; // Clean up state manager
 }
 
 void Theseus::Update(float delta)
@@ -58,38 +60,43 @@ void Theseus::Update(float delta)
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) Shutdown();
     if (wolf::Input::IsKeyDown(GLFW_KEY_GRAVE_ACCENT)) ShowDebug();
 
-    // Handle the window resized flag
+    // Handle window resizing
     if (m_windowResized)
     {
-        // Update the active camera's view size
         wolf::Camera2D* camera = m_scene.GetActiveCamera();
         if (camera) camera->SetViewSize(m_width, m_height);
-
-        // Reset the flag
         m_windowResized = false;
+    }
+
+    // Update all entities with both Transform2D and VelocityComponent
+    for (auto&& [id, transform, velocity] : m_scene.Each<wolf::Transform2D, VelocityComponent>())
+    {
+        transform.Translate(velocity.GetVelocity() * delta);
     }
 
     // Update the player controller
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
     {
-        playerController->Update(delta); 
+        playerController->Update(delta);
     }
+
+    // Update the current game state (MainMenu, Play, etc.)
     if (m_stateManager)
     {
         m_stateManager->Update(delta);
     }
 
-    // Update all components / game objects in the scene
+    // Update all other game objects and components
     m_scene.Update(delta);
 }
 
 void Theseus::Render()
 {
-    // Clear the default framebuffer
+    // Clear the framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Render the scene
+    // Render the game scene
     m_scene.Render();
 }
