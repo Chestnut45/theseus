@@ -7,7 +7,9 @@
 // A renderable component representing a regular 2D grid of textured tiles.
 //-----------------------------------------------------------------------------
 
+#include <string>
 #include <vector>
+#include <unordered_map>
 
 #include <W_GameObject.h>
 #include <W_ProgramManager.h>
@@ -73,10 +75,24 @@ private:
     std::vector<int> m_tileData;
 
     // Array texture object ID
-    GLuint m_ArrayTexture = 0;
+    GLuint m_arrayTexture = 0;
+
+    // File path to currently loaded tile set
+    std::string m_tileSetPath;
+
+    // Type defining an entry in the tile set ID map
+    struct TileSetEntry
+    {
+        GLuint m_texID = 0;
+        GLuint m_refCount = 1;
+    };
+
+    // Static map of loaded tile sets
+    static inline std::unordered_map<std::string, TileSetEntry> s_tileSetIDMap;
 
     // Static rendering resources
     static inline wolf::Program* s_pProgram = nullptr;
     static inline wolf::VertexBuffer* s_pVertexBuffer = nullptr;
+    static inline wolf::IndexBuffer* s_pIndexBuffer = nullptr;
     static inline wolf::VertexDeclaration* s_pVAO = nullptr;
 };
