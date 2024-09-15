@@ -7,6 +7,7 @@
 // A renderable component representing a regular 2D grid of textured tiles.
 //-----------------------------------------------------------------------------
 
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -22,8 +23,11 @@ class TileMap : public wolf::BaseComponent
 // Interface
 public:
 
+    // Empty tile ID
+    static const int EMPTY_TILE = -1;
+
     // Create an empty tilemap from (0, 0) to (width, height).
-    TileMap(int width, int height);
+    TileMap(int mapWidth, int mapHeight);
     ~TileMap();
 
     // Delete copy constructor/assignment
@@ -41,7 +45,7 @@ public:
     // 
     // IDs will be assigned to the tiles in line order, starting from 0.
     // 
-    // NOTE: All tile textures must have the same dimensions.
+    // NOTE: All tile images in a tile set must have the same dimensions.
     // NOTE: The maximum number of tiles in a tile set is 2048.
     // NOTE: Returns false if any files fail to load or the above rules are broken.
     bool LoadTileSet(const std::string& filepath);
@@ -62,23 +66,41 @@ public:
     // NOTE: Resizing will clear the map too!
     void Resize(int width, int height);
 
-    // TODO: Rendering interface
+    // Draw the tilemap at the given position, rotation, and scale in world space
+    // Multiplies final pixel color by provided tint color
+    // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
+    void Draw(const glm::vec2& position, float rotationRadians = 0.0f, const glm::vec2& scale = glm::vec2(1.0f), const glm::vec3& tint = glm::vec3(1.0f));
 
 // Implementation
 private:
 
-    // Dimensions
+    // Map dimensions
     int m_width;
     int m_height;
+
+    // Tile dimensions
+    int m_tileWidth = 0;
+    int m_tileHeight = 0;
 
     // Flattened tile array
     std::vector<int> m_tileData;
 
-    // Array texture object ID
+    // Tile set texture data
     GLuint m_arrayTexture = 0;
-
-    // File path to currently loaded tile set
     std::string m_tileSetPath;
+
+    // Per-tilemap GPU resources
+    GLuint m_VBO = 0;
+    GLuint m_VAO = 0;
+
+    // Update flags
+    bool m_VBODirty = true;
+
+    // Helper methods
+    void _UpdateVBO();
+    void _GenerateVAO();
+
+    // Static resources
 
     // Type defining an entry in the tile set ID map
     struct TileSetEntry
@@ -87,12 +109,14 @@ private:
         GLuint m_refCount = 1;
     };
 
-    // Static map of loaded tile sets
+    // Map from file path to refernece counted tile set array texture ID
     static inline std::unordered_map<std::string, TileSetEntry> s_tileSetIDMap;
 
     // Static rendering resources
     static inline wolf::Program* s_pProgram = nullptr;
-    static inline wolf::VertexBuffer* s_pVertexBuffer = nullptr;
-    static inline wolf::IndexBuffer* s_pIndexBuffer = nullptr;
-    static inline wolf::VertexDeclaration* s_pVAO = nullptr;
+    static inline wolf::VertexBuffer* s_pQuadVertexBuffer = nullptr;
+    static inline wolf::IndexBuffer* s_pQuadIndexBuffer = nullptr;
+
+    // Reference counting for static resources
+    static inline size_t s_refCount = 0;
 };

@@ -1,4 +1,4 @@
-// Vertex shader inputs
+// Vertex shader outputs
 in vec2 texCoords;
 
 // Final color output
@@ -12,10 +12,12 @@ uniform vec3 spriteTint;
 
 void main()
 {
+    // Sample sprite texture
     vec4 textureColor = texture(spriteTexture, texCoords);
 
     // Discard transparent pixels
     if (textureColor.a == 0.0) discard;
     
+    // Apply tint
     finalColor = textureColor.rgb * spriteTint;
 }

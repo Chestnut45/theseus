@@ -28,8 +28,8 @@ Sprite2D::~Sprite2D()
     // Update manager's reference count for the loaded texture
     wolf::TextureManager::DestroyTexture(m_pTexture);
 
-    refCount--;
-    if (refCount == 0)
+    s_refCount--;
+    if (s_refCount == 0)
     {
         // Cleanup static shared resources
         wolf::ProgramManager::DestroyProgram(s_pProgram);
@@ -99,7 +99,7 @@ void Sprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm:
 void Sprite2D::_IncreaseRefCount()
 {
     // Update reference count and initialize static shared resources
-    if (refCount == 0)
+    if (s_refCount == 0)
     {
         // Load shader program
         s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/sprite2d.vs", "data/shaders/sprite2d.fs");
@@ -135,7 +135,7 @@ void Sprite2D::_IncreaseRefCount()
         s_pVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
         s_pVAO->End();
     }
-    refCount++;
+    s_refCount++;
 }
 
 }

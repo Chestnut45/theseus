@@ -1,19 +1,66 @@
 #include "TileMap.h"
 
-#include <cstdint>
 #include <fstream>
+
+#include <W_BufferManager.h>
 #include <W_Logging.h>
+#include <W_ProgramManager.h>
+
 #include <stb_image.h>
 
-TileMap::TileMap(int width, int height)
-    :   m_width(width),
-        m_height(height),
-        m_tileData(width * height, 0)
+TileMap::TileMap(int mapWidth, int mapHeight)
+    :   m_width(mapWidth),
+        m_height(mapHeight),
+        m_tileData(mapWidth * mapHeight, EMPTY_TILE)
 {
+    if (s_refCount == 0)
+    {
+        // Initialize static resources
+
+        // Shader program for all tilemaps
+        s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/tilemap.vs", "data/shaders/tilemap.fs");
+        
+        // Generate quad vertex buffer data
+        float quadVerts[16] =
+        {
+            0.0f, 0.0f, 0.0f, 1.0f,
+            1.0f, 0.0f, 1.0f, 1.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            1.0f, 1.0f, 1.0f, 0.0f
+        };
+
+        // Create quad vertex buffer
+        s_pQuadVertexBuffer = wolf::BufferManager::CreateVertexBuffer(quadVerts, sizeof(quadVerts));
+
+        // Generate quad index buffer data
+        unsigned short quadInds[6] =
+        {
+            0, 2, 1, 1, 2, 3
+        };
+
+        // Create index buffer
+        s_pQuadIndexBuffer = wolf::BufferManager::CreateIndexBuffer(quadInds, 6);
+    }
+    s_refCount++;
+
+    // Generate VAO and VBO
+    _GenerateVAO();
 }
 
 TileMap::~TileMap()
 {
+    // Cleanup per-tilemap resources
+    glDeleteVertexArrays(1, &m_VAO);
+    glDeleteBuffers(1, &m_VBO);
+
+    s_refCount--;
+    if (s_refCount == 0)
+    {
+        // Cleanup static resources
+        wolf::ProgramManager::DestroyProgram(s_pProgram);
+        wolf::BufferManager::DestroyBuffer(s_pQuadVertexBuffer);
+        wolf::BufferManager::DestroyBuffer(s_pQuadIndexBuffer);
+    }
 }
 
 bool TileMap::LoadTileSet(const std::string& filepath)
@@ -78,9 +125,9 @@ bool TileMap::LoadTileSet(const std::string& filepath)
         size_t texelDataSize = width * height * channels;
 
         // Ensure first image loads correctly
-        if (texelDataSize <= 0)
+        if (!pFirstImageData)
         {
-            wolf::Error("Couldn't open image file: \"", line, "\"");
+            wolf::Error("Couldn't open tile image file: \"", line, "\"");
             stbi_image_free(pFirstImageData);
             return false;
         }
@@ -110,6 +157,14 @@ bool TileMap::LoadTileSet(const std::string& filepath)
             int nextHeight = 0;
             int nextChannels = 0;
             unsigned char* pNextImageData = stbi_load(line.c_str(), &nextWidth, &nextHeight, &nextChannels, 4);
+
+            // Make sure the next image loaded correctly
+            if (!pNextImageData)
+            {
+                wolf::Error("Couldn't load tile image file: \"", line, "\"");
+                stbi_image_free(pNextImageData);
+                return false;
+            }
 
             // Calculate size of next image data
             size_t nextTexelDataSize = nextWidth * nextHeight * nextChannels;
@@ -148,6 +203,7 @@ bool TileMap::LoadTileSet(const std::string& filepath)
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         // Create the map entry so the array texture can be shared between multiple tilemaps
+        // NOTE: Entry's reference counter initializes to one automatically
         TileSetEntry entry;
         entry.m_texID = m_arrayTexture;
         s_tileSetIDMap[filepath] = entry;
@@ -162,20 +218,115 @@ bool TileMap::LoadTileSet(const std::string& filepath)
 
 int TileMap::GetTile(int x, int y) const
 {
-    return 0;
+    // Calculate index and return empty if out of bounds
+    int index = y * m_width + x;
+    if (index < 0 || index >= m_tileData.size()) return EMPTY_TILE;
+
+    // Return actual tile value if in bounds
+    return m_tileData[index];
 }
 
 void TileMap::SetTile(int x, int y, int tileID)
 {
+    // Calculate index and do nothing if out of bounds
+    int index = y * m_width + x;
+    if (index < 0 || index >= m_tileData.size()) return;
 
+    // Update tile id and set update flag
+    m_tileData[index] = tileID;
+    m_VBODirty = true;
 }
 
 void TileMap::Clear()
 {
-
+    // Set every tile to -1
+    std::fill(m_tileData.begin(), m_tileData.end(), EMPTY_TILE);
+    m_VBODirty = true;
 }
 
 void TileMap::Resize(int width, int height)
 {
+    // Resize the internal flattened tile ID array and clear
+    m_tileData.resize(width * height);
+    Clear();
+
+    // Regenerate VAO and VBO
+    _GenerateVAO();
+}
+
+void TileMap::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint)
+{
+    // Ensure VBO data is up-to-date
+    if (m_VBODirty) _UpdateVBO();
+
+
+}
+
+void TileMap::_UpdateVBO()
+{
+    // Buffer to hold new VBO data
+    std::vector<float> data;
+
+    // Iterate through all tiles in the map
+    int n = m_tileData.size();
+    for (int i = 0; i < n; ++i)
+    {
+        int tile = m_tileData[i];
+        if (tile != EMPTY_TILE)
+        {
+            // Add the tile's data to the local buffer
+
+            // NOTE: This could be optimized by caching a LUT containing
+            // the positions for each tile index in the flattened array.
+            data.push_back(i / m_width); // X coordinate
+            data.push_back(i % m_width); // Y coordinate
+            data.push_back(tile); // Index into the tile set
+        }
+    }
+
+    // Upload to GPU buffer
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, data.size() * sizeof(float), data.data());
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     
+    // Reset flag
+    m_VBODirty = false;
+}
+
+void TileMap::_GenerateVAO()
+{
+    // Delete VAO and VBO if already initialized
+    if (m_VAO) glDeleteVertexArrays(1, &m_VAO);
+    if (m_VBO) glDeleteBuffers(1, &m_VBO);
+
+    // Create VAO
+    glGenVertexArrays(1, &m_VAO);
+    glBindVertexArray(m_VAO);
+
+    // Bind the static quad vertex buffers
+    s_pQuadVertexBuffer->Bind();
+    s_pQuadIndexBuffer->Bind();
+
+    // Setup quad vertex attributes
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, nullptr);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    // Create and bind tile VBO
+    glGenBuffers(1, &m_VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+
+    // Create storage for tile VBO
+    glBufferData(GL_ARRAY_BUFFER, m_tileData.size() * sizeof(float) * 3, nullptr, GL_STATIC_DRAW);
+
+    // Add instanced tile vertex attribute
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, nullptr);
+    glEnableVertexAttribArray(2);
+    glVertexAttribDivisor(2, 1);
+
+    // Unbind VAO and buffers
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
