@@ -42,6 +42,7 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
 
     // Add the main camera as a component of the player object
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
+    camera.SetFollowSpeed(2.0f);
     m_scene.SetActiveCamera(camera);
 
     // Add a test tilemap
@@ -49,9 +50,30 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     auto& tileMap = tileMapObject.AddComponent<wolf::TileMap>(64, 64);
     tileMapObject.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
     tileMap.LoadTileSet("data/labyrinth.tileset");
-    tileMap.SetTile(0, 0, Tile::WallTop);
-    tileMap.SetTile(1, 0, Tile::Grass);
-    tileMap.SetTile(0, 1, Tile::WallChest);
+    
+    // Quick test of procedural generation
+    wolf::RNG rng(4545);
+    for (int y = 0; y < 64; ++y)
+    {
+        for (int x = 0; x < 64; ++x)
+        {
+            // Place walls around the edge
+            if (x == 0 || x == 63 || y == 0 || y == 63)
+            {
+                // Except for the entrance
+                if (x == 1 && y == 0)
+                {
+                    tileMap.SetTile(x, y, Tile::FloorSpiralGold);
+                    continue;
+                }
+                tileMap.SetTile(x, y, Tile::WallMaze);
+            }
+            else
+            {
+                tileMap.SetTile(x, y, rng.FlipCoin() ? Tile::FloorSmallSquares : Tile::FloorSpiral);
+            }
+        }
+    }
 }
 
 Theseus::~Theseus()

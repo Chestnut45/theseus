@@ -82,7 +82,13 @@ void Scene::RemoveActiveCamera()
 
 void Scene::Update(float delta)
 {
-    // TODO: Sync all Camera2D components to their transforms (smooth following?)
+    // Make cameras that are attached to game objects with a transform follow the object
+    for (auto&&[_, camera, transform] : Each<Camera2D, Transform2D>())
+    {
+        const glm::vec2& camPos = camera.GetPosition();
+        glm::vec2 deltaPos = transform.GetGlobalPosition() - camPos;
+        camera.SetPosition(camPos + deltaPos * delta * camera.GetFollowSpeed());
+    }
 }
 
 void Scene::Render()
