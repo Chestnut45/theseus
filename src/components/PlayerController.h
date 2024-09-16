@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
 // Original Author: Youssef Ashraf
-// ver 1.3.
+// ver 1.7. Update constructor to remove need for dependency injection.
 //-----------------------------------------------------------------------------
 
 #include <wolf.h>
@@ -20,8 +20,10 @@ public:
         ROLLING
     };
 
-    PlayerController() = default;  // No arguments needed for constructor
+    // Create a player controller component
+    PlayerController();
 
+    // Updates the player controller, adjusting transform and velocity if they exist
     void Update(float delta);
 
 private:
@@ -36,6 +38,10 @@ private:
 
     // Get the direction for rolling
     glm::vec2 GetRollDirection() const;
+
+    //pointer to transform and velocity
+    wolf::Transform2D* m_pTransform = nullptr;
+    VelocityComponent* m_pVelocity = nullptr;
 
     // Player action
     PlayerAction m_action = PlayerAction::NONE;

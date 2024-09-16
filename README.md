@@ -309,6 +309,20 @@ if (pComponent)
 object.DeleteComponent<CustomComponent>();
 ```
 
+Pointers to components are not stable by default when you delete another component of the same type, because the underlying storage uses a "swap and pop" policy where when a component is deleted, it is first swapped with the last component of the same type in the internal storage so that deleting it does not cause any holes in the component storage.
+
+You can however make pointers to any component type stable by adding a single line to the component type declaration which will override that behaviour and use in-place deletion instead for all instances of the component type. This is recommended if you're going to store any pointers to those components for any extended period of time (such as over multiple frames).
+
+```C++
+struct MyStableComponent
+{
+    // Other data...
+
+    // This line ensures pointers to components remain stable
+    static constexpr auto in_place_delete = true;
+};
+```
+
 If you want your component to have direct access to the game object that it's attached to (for instance to traverse the game object hierarchy or access other components), there are 2 main options.
 
 By far the simplest option is just to include "W_GameObject.h" and make your component type inherit from wolf::BaseComponent. Doing this will give your component access to a pointer to its game object via the GetGameObject() method. The only restriction is that GetGameObject() will return nullptr inside any constructors for your component, so if your component requires access to the game object immediately during construction, you'll have to use some sort of Init() method after the component is created.

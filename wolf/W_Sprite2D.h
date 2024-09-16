@@ -16,11 +16,12 @@
 #include "W_Texture.h"
 #include "W_VertexBuffer.h"
 #include "W_VertexDeclaration.h"
+#include "W_GameObject.h"
 
 namespace wolf
 {
 
-class Sprite2D
+class Sprite2D : public wolf::BaseComponent
 {
 
 // Public implementation
@@ -68,9 +69,10 @@ public:
     void SetLayer(int layer) { m_layer = layer; }
     int GetLayer() const { return m_layer; }
 
-    // Draw the sprite at the given position in world space
+    // Draw the sprite at the given position, rotation, and scale in world space
+    // Multiplies final pixel color by provided tint color
     // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
-    void Draw(const glm::vec2& position, float rotationRadians = 0.0f, const glm::vec2& scale = glm::vec2(1.0f), const glm::vec3& color = glm::vec3(1.0f));
+    void Draw(const glm::vec2& position, float rotationRadians = 0.0f, const glm::vec2& scale = glm::vec2(1.0f), const glm::vec3& tint = glm::vec3(1.0f));
 
     // TODO: Draw the sprite at the given screen position (independent of camera's view, only projection)
 
@@ -100,7 +102,7 @@ private:
     static inline wolf::VertexDeclaration* s_pVAO = nullptr;
 
     // Reference counting for resource management
-    static inline size_t refCount = 0;
+    static inline size_t s_refCount = 0;
 };
 
 }

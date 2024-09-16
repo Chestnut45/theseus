@@ -1,18 +1,24 @@
 #pragma once
 
 //-----------------------------------------------------------------------------
-// File:			TileMap.h
+// File:			W_TileMap.h
 // Original Author:	D'Anyil Landry
 //
 // A renderable component representing a regular 2D grid of textured tiles.
 //-----------------------------------------------------------------------------
 
+#include <cstdint>
+#include <string>
 #include <vector>
+#include <unordered_map>
 
 #include <W_GameObject.h>
 #include <W_ProgramManager.h>
 #include <W_VertexBuffer.h>
 #include <W_VertexDeclaration.h>
+
+namespace wolf
+{
 
 class TileMap : public wolf::BaseComponent
 {
@@ -20,8 +26,11 @@ class TileMap : public wolf::BaseComponent
 // Interface
 public:
 
+    // Empty tile ID
+    static const inline int EMPTY_TILE = -1;
+
     // Create an empty tilemap from (0, 0) to (width, height).
-    TileMap(int width, int height);
+    TileMap(int mapWidth, int mapHeight);
     ~TileMap();
 
     // Delete copy constructor/assignment
@@ -39,18 +48,18 @@ public:
     // 
     // IDs will be assigned to the tiles in line order, starting from 0.
     // 
-    // NOTE: All tile textures must have the same dimensions.
+    // NOTE: All tile images in a tile set must have the same dimensions.
     // NOTE: The maximum number of tiles in a tile set is 2048.
     // NOTE: Returns false if any files fail to load or the above rules are broken.
     bool LoadTileSet(const std::string& filepath);
 
     // Gets the tile ID at the given location.
-    // NOTE: Returns -1 if position is empty or out of bounds.
+    // NOTE: Returns -1 if tile at position is empty or position is out of bounds.
     int GetTile(int x, int y) const;
 
     // Sets the tile at the given location to the given ID.
     // NOTE: Does nothing if position is out of bounds.
-    // NOTE: Does nothing if tileID is invalid.
+    // NOTE: Does not validate tileID
     void SetTile(int x, int y, int tileID);
 
     // Deletes all tiles in the map.
@@ -60,23 +69,65 @@ public:
     // NOTE: Resizing will clear the map too!
     void Resize(int width, int height);
 
-    // TODO: Rendering interface
+    // TODO: Set origin to center of tilemap (including tile texture size)
+
+    // Draw the tilemap at the given position, rotation, and scale in world space
+    // Multiplies final pixel color by provided tint color
+    // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
+    void Draw(const glm::vec2& position, float rotationRadians = 0.0f, const glm::vec2& scale = glm::vec2(1.0f), const glm::vec3& tint = glm::vec3(1.0f));
 
 // Implementation
 private:
 
-    // Dimensions
+    // Map dimensions
     int m_width;
     int m_height;
+
+    // Tile dimensions
+    int m_tileWidth = 0;
+    int m_tileHeight = 0;
 
     // Flattened tile array
     std::vector<int> m_tileData;
 
-    // Array texture object ID
-    GLuint m_ArrayTexture = 0;
+    // Number of tiles to draw
+    int m_tilesToDraw = 0;
+
+    // Tile set texture data
+    GLuint m_arrayTexture = 0;
+    std::string m_tileSetPath;
+
+    // Per-tilemap GPU resources
+    GLuint m_VBO = 0;
+    GLuint m_VAO = 0;
+
+    // Update flags
+    bool m_VBODirty = true;
+
+    // Helper methods
+    void _UpdateVBO();
+    void _GenerateVAO();
+
+    // Static resources
+
+    // Type defining an entry in the tile set ID map
+    struct TileSetEntry
+    {
+        GLuint m_texID = 0;
+        GLuint m_refCount = 1;
+        glm::ivec2 m_tileSize{0};
+    };
+
+    // Map from file path to refernece counted tile set array texture ID
+    static inline std::unordered_map<std::string, TileSetEntry> s_tileSetIDMap;
 
     // Static rendering resources
     static inline wolf::Program* s_pProgram = nullptr;
-    static inline wolf::VertexBuffer* s_pVertexBuffer = nullptr;
-    static inline wolf::VertexDeclaration* s_pVAO = nullptr;
+    static inline wolf::VertexBuffer* s_pQuadVertexBuffer = nullptr;
+    static inline wolf::IndexBuffer* s_pQuadIndexBuffer = nullptr;
+
+    // Reference counting for static resources
+    static inline size_t s_refCount = 0;
 };
+
+}

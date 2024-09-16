@@ -1,20 +1,31 @@
 #include "PlayerController.h"
 #include "VelocityComponent.h"
-#include "W_Transform2D.h"
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
 // Original Author: Youssef Ashraf
-// ver 1.7, updated to use GetGameObject() for dynamic component retrieval.
+// ver 1.7, updated to use member variables for components,
+// Player State Management, Velocity-Based Movement, Decoupled,
 //-----------------------------------------------------------------------------
 
+// Constructor
+PlayerController::PlayerController()
+{
+}
+
+// Update function called every frame
 void PlayerController::Update(float delta)
 {
-    // Dynamically get components on the same GameObject
-    auto* pTransform = GetGameObject()->GetComponent<wolf::Transform2D>();
-    auto* pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
+    // Grab current transform and velocity components from the game object
+    auto* pGameObject = GetGameObject();
+    if (pGameObject)
+    {
+        m_pTransform = pGameObject->GetComponent<wolf::Transform2D>();
+        m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
+    }
 
-    if (pTransform && pVelocity)
+    // Only update if both components exist
+    if (m_pTransform && m_pVelocity)
     {
         // Handle player states based on current action
         switch (m_action)
@@ -53,22 +64,13 @@ void PlayerController::HandleMovement(float delta)
     if (glm::length(direction) > 0.0f)
     {
         direction = glm::normalize(direction);
-        auto* pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
-        if (pVelocity)
-        {
-            pVelocity->SetVelocity(direction * m_moveSpeed); // Set velocity
-        }
-
+        m_pVelocity->SetVelocity(direction * m_moveSpeed); // Set velocity 
         m_lastDirection = direction;
         m_action = PlayerAction::WALKING;
     }
     else if (m_action == PlayerAction::WALKING)
     {
-        auto* pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
-        if (pVelocity)
-        {
-            pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop movement
-        }
+        m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop movement
         m_action = PlayerAction::NONE;
     }
 }
@@ -79,20 +81,13 @@ void PlayerController::HandleRolling(float delta)
     if (m_isRolling)
     {
         glm::vec2 rollDirection = m_lastDirection;
-        auto* pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
-        if (pVelocity)
-        {
-            pVelocity->SetVelocity(rollDirection * m_rollSpeed); // Continue rolling in last known direction
-        }
+        m_pVelocity->SetVelocity(rollDirection * m_rollSpeed); // Continue rolling in last known direction
 
         m_rollTimer -= delta;
         if (m_rollTimer <= 0)
         {
             m_isRolling = false;
-            if (pVelocity)
-            {
-                pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop rolling
-            }
+            m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop rolling
             m_action = PlayerAction::NONE;
         }
     }
@@ -111,11 +106,7 @@ void PlayerController::HandleJumping(float delta)
 
     if (m_isJumping)
     {
-        auto* pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
-        if (pVelocity)
-        {
-            pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed)); // Set upward velocity for jump
-        }
+        m_pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed)); // Set upward velocity for jump
 
         m_jumpTimer -= delta;
 
@@ -123,10 +114,7 @@ void PlayerController::HandleJumping(float delta)
         {
             m_isJumping = false;
             m_action = PlayerAction::NONE;
-            if (pVelocity)
-            {
-                pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop upward velocity
-            }
+            m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop upward velocity
         }
     }
     else if (wolf::Input::IsKeyJustDown(GLFW_KEY_J) && !m_isJumping)
