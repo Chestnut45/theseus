@@ -34,7 +34,7 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     // Add a test sprite to the player object and scale up
     auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
     sprite.SetOriginToCenterOfTexture();
-    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4));
+    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
 
     // Add Velocity and PlayerController components to the player object
     auto& pVelocity = m_pPlayerObject->AddComponent<VelocityComponent>();
@@ -47,11 +47,11 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     // Add a test tilemap
     auto& tileMapObject = m_scene.CreateObject2D();
     auto& tileMap = tileMapObject.AddComponent<wolf::TileMap>(64, 64);
-    tileMapObject.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4));
+    tileMapObject.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
     tileMap.LoadTileSet("data/labyrinth.tileset");
     tileMap.SetTile(0, 0, Tile::WallTop);
     tileMap.SetTile(1, 0, Tile::Grass);
-    tileMap.SetTile(0, 1, Tile::FloorSpiralGold);
+    tileMap.SetTile(0, 1, Tile::WallChest);
 }
 
 Theseus::~Theseus()
