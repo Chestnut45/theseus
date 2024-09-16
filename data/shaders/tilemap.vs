@@ -19,6 +19,11 @@ out vec3 texCoords;
 // Model matrix to transform the tilemap to world space
 uniform mat4 model;
 
+// Dimensions of tile textures
+// Should be a vec2 but W_Program uniforms are a pain.
+uniform int tileWidth;
+uniform int tileHeight;
+
 // Vertex shader entrypoint
 void main()
 {
@@ -26,5 +31,5 @@ void main()
     texCoords = vec3(quadVertexUV, tilePosLayer.z);
 
     // Output position
-    gl_Position = viewProj * model * vec4(quadVertexPos + tilePosLayer.xy, 0.0, 1.0);
+    gl_Position = viewProj * model * vec4((quadVertexPos + tilePosLayer.xy) * vec2(tileWidth, tileHeight), 0.0, 1.0);
 }

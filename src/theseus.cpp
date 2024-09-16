@@ -1,4 +1,5 @@
 #include "theseus.h"
+
 #include "PlayerController.h"
 #include "GameInc.h"
 #include "VelocityComponent.h"
@@ -20,22 +21,20 @@ int main(int, char**)
 
 Theseus::Theseus() : App("Theseus", 1280, 720)
 {
-    // Enable depth test
+    // Enable depth testing
     glEnable(GL_DEPTH_TEST);
 
-    // Create player object with a 2D transform component
+    // Initialize the game state manager and set the initial state to Main Menu
+    m_pStateManager = new GameStateManager();
+    m_pStateManager->SetState(new MainMenuState(m_pStateManager));
+
+    // Create player object
     m_pPlayerObject = &m_scene.CreateObject2D();
 
-    // Add a test sprite to the player object
+    // Add a test sprite to the player object and scale up
     auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
     sprite.SetOriginToCenterOfTexture();
-
-    // Scale up the player object's transform (affects the sprite size)
-    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4, 4));
-
-    // Add the main camera as a component of the player object
-    auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
-    m_scene.SetActiveCamera(camera);
+    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4));
 
     // Add Velocity and PlayerController components to the player object
     auto& pVelocity = m_pPlayerObject->AddComponent<VelocityComponent>();
@@ -44,14 +43,21 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
         &pVelocity
     );
 
-    // Initialize the game state manager and set the initial state to Main Menu
-    m_stateManager = new GameStateManager();
-    m_stateManager->SetState(new MainMenuState(m_stateManager));
+    // Add the main camera as a component of the player object
+    auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
+    m_scene.SetActiveCamera(camera);
+
+    // Add a test tilemap
+    auto& tileMap = m_pPlayerObject->AddComponent<wolf::TileMap>(64, 64);
+    tileMap.LoadTileSet("data/labyrinth.tileset");
+    tileMap.SetTile(0, 0, 0);
+    tileMap.SetTile(1, 0, 1);
+    tileMap.SetTile(0, 1, 2);
 }
 
 Theseus::~Theseus()
 {
-    delete m_stateManager; // Clean up state manager
+    delete m_pStateManager; // Clean up state manager
 }
 
 void Theseus::Update(float delta)
@@ -68,26 +74,22 @@ void Theseus::Update(float delta)
         m_windowResized = false;
     }
 
-    // Update all entities with both Transform2D and VelocityComponent
+    // Game systems
+
+    // Update the current game state (MainMenu, Play, etc.)
+    if (m_pStateManager) m_pStateManager->Update(delta);
+
+    // Update the player controller
+    auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
+    if (playerController) playerController->Update(delta);
+
+    // Apply velocity to all transform components
     for (auto&& [id, transform, velocity] : m_scene.Each<wolf::Transform2D, VelocityComponent>())
     {
         transform.Translate(velocity.GetVelocity() * delta);
     }
 
-    // Update the player controller
-    auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
-    if (playerController)
-    {
-        playerController->Update(delta);
-    }
-
-    // Update the current game state (MainMenu, Play, etc.)
-    if (m_stateManager)
-    {
-        m_stateManager->Update(delta);
-    }
-
-    // Update all other game objects and components
+    // Update all game objects and components the scene handles automatically
     m_scene.Update(delta);
 }
 

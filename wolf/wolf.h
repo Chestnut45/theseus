@@ -24,6 +24,7 @@
 #include "W_Sprite2D.h"
 #include "W_Texture.h"
 #include "W_TextureManager.h"
+#include "W_TileMap.h"
 #include "W_Timer.h"
 #include "W_Transform2D.h"
 #include "W_Types.h"

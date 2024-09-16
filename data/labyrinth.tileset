@@ -3,8 +3,8 @@ data/textures/tile_bricks.png
 data/textures/tile_floor_small_squares.png
 data/textures/tile_floor_spiral_gold.png
 data/textures/tile_floor_spiral.png
-data/textures/tile_square_gold.png
-data/textures/tile_square.png
+data/textures/tile_floor_square_gold.png
+data/textures/tile_floor_square.png
 data/textures/tile_grass.png
 data/textures/tile_wall_bottom_left.png
 data/textures/tile_wall_bottom_right.png

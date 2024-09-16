@@ -4,6 +4,7 @@
 
 #include "W_GameObject.h"
 #include "W_Sprite2D.h"
+#include "W_TileMap.h"
 #include "W_Transform2D.h"
 
 namespace wolf
@@ -95,6 +96,12 @@ void Scene::Render()
     for (auto&&[_, sprite, transform] : Each<Sprite2D, Transform2D>())
     {
         sprite.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
+    }
+
+    // Render all tilemaps with transform components
+    for (auto&&[_, tilemap, transform] : Each<TileMap, Transform2D>())
+    {
+        tilemap.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
     }
 }
 
