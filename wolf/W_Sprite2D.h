@@ -16,11 +16,12 @@
 #include "W_Texture.h"
 #include "W_VertexBuffer.h"
 #include "W_VertexDeclaration.h"
+#include "W_GameObject.h"
 
 namespace wolf
 {
 
-class Sprite2D
+class Sprite2D : public wolf::BaseComponent
 {
 
 // Public implementation
