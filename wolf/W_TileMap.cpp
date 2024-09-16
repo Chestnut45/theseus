@@ -319,8 +319,8 @@ void TileMap::_UpdateVBO()
 
             // NOTE: This could be optimized by caching a LUT containing
             // the positions for each tile index in the flattened array.
-            data.push_back(i / m_width); // X coordinate
-            data.push_back(i % m_width); // Y coordinate
+            data.push_back(i % m_width); // X coordinate
+            data.push_back(i / m_width); // Y coordinate
             data.push_back(tile); // Index into the tile set
 
             // Increase counter

@@ -46,7 +46,8 @@ public:
     // Component management
 
     // Adds a component to the game object by in-place construction.
-    // Pass your component's constructor arguments directly to this function!
+    // Returns a non-const reference to the newly-created component.
+    // NOTE: Pass your component's constructor arguments directly to this function!
     template <typename T, typename... Args>
     T& AddComponent(Args&&... args)
     {

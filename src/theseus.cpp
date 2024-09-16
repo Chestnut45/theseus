@@ -49,9 +49,9 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     auto& tileMap = tileMapObject.AddComponent<wolf::TileMap>(64, 64);
     tileMapObject.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4));
     tileMap.LoadTileSet("data/labyrinth.tileset");
-    tileMap.SetTile(0, 0, 5);
-    tileMap.SetTile(1, 0, 6);
-    tileMap.SetTile(0, 1, 2);
+    tileMap.SetTile(0, 0, Tile::WallTop);
+    tileMap.SetTile(1, 0, Tile::Grass);
+    tileMap.SetTile(0, 1, Tile::FloorSpiralGold);
 }
 
 Theseus::~Theseus()
