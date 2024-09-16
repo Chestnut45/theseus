@@ -48,7 +48,9 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     m_scene.SetActiveCamera(camera);
 
     // Add a test tilemap
-    auto& tileMap = m_pPlayerObject->AddComponent<wolf::TileMap>(64, 64);
+    auto& tileMapObject = m_scene.CreateObject2D();
+    auto& tileMap = tileMapObject.AddComponent<wolf::TileMap>(64, 64);
+    tileMapObject.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4));
     tileMap.LoadTileSet("data/labyrinth.tileset");
     tileMap.SetTile(0, 0, 0);
     tileMap.SetTile(1, 0, 1);

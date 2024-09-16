@@ -285,8 +285,13 @@ void TileMap::Draw(const glm::vec2& position, float rotationRadians, const glm::
     glBindVertexArray(m_VAO);
     glBindTextureUnit(1, m_arrayTexture);
 
-    // TODO: Calculate actual model matrix
+    // Calculate model matrix
     glm::mat4 model(1.0f);
+    model = glm::translate(model, glm::vec3(position, 0.0f));
+    model = glm::rotate(model, rotationRadians, glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::scale(model, glm::vec3(scale, 1.0f));
+
+    // Set program uniforms
     s_pProgram->SetUniform("model", model);
     s_pProgram->SetUniform("tileWidth", m_tileWidth);
     s_pProgram->SetUniform("tileHeight", m_tileHeight);
