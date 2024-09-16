@@ -68,10 +68,6 @@ void Sprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm:
     // Only render if texture was properly loaded
     if (!m_pTexture) return;
 
-    // Bind shader and texture
-    s_pProgram->Bind();
-    m_pTexture->Bind(0);
-
     // Grab the texture size
     const glm::vec2 texSize = glm::vec2(m_pTexture->GetWidth(), m_pTexture->GetHeight());
 
@@ -89,6 +85,10 @@ void Sprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm:
     // Set uniforms
     s_pProgram->SetUniform("model", model);
     s_pProgram->SetUniform("spriteTint", tint);
+
+    // Bind shader and texture
+    s_pProgram->Bind();
+    m_pTexture->Bind(0);
 
     // Issue draw call
     s_pVAO->Bind();
