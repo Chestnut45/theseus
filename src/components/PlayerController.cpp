@@ -4,19 +4,27 @@
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
 // Original Author: Youssef Ashraf
-// ver 1.6, updated to use member variables for components,
+// ver 1.7, updated to use member variables for components,
 // Player State Management, Velocity-Based Movement, Decoupled,
 //-----------------------------------------------------------------------------
 
 // Constructor
-PlayerController::PlayerController(wolf::Transform2D* pTransform, VelocityComponent* pVelocity)
-    : m_pTransform(pTransform), m_pVelocity(pVelocity)
+PlayerController::PlayerController()
 {
 }
 
 // Update function called every frame
 void PlayerController::Update(float delta)
 {
+    // Grab current transform and velocity components from the game object
+    auto* pGameObject = GetGameObject();
+    if (pGameObject)
+    {
+        m_pTransform = pGameObject->GetComponent<wolf::Transform2D>();
+        m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
+    }
+
+    // Only update if both components exist
     if (m_pTransform && m_pVelocity)
     {
         // Handle player states based on current action

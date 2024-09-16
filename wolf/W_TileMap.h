@@ -69,6 +69,8 @@ public:
     // NOTE: Resizing will clear the map too!
     void Resize(int width, int height);
 
+    // TODO: Set origin to center of tilemap (including tile texture size)
+
     // Draw the tilemap at the given position, rotation, and scale in world space
     // Multiplies final pixel color by provided tint color
     // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.

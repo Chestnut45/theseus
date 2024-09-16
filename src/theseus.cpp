@@ -38,10 +38,7 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
 
     // Add Velocity and PlayerController components to the player object
     auto& pVelocity = m_pPlayerObject->AddComponent<VelocityComponent>();
-    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>(
-        m_pPlayerObject->GetComponent<wolf::Transform2D>(), 
-        &pVelocity
-    );
+    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
 
     // Add the main camera as a component of the player object
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
@@ -52,8 +49,8 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     auto& tileMap = tileMapObject.AddComponent<wolf::TileMap>(64, 64);
     tileMapObject.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4));
     tileMap.LoadTileSet("data/labyrinth.tileset");
-    tileMap.SetTile(0, 0, 0);
-    tileMap.SetTile(1, 0, 1);
+    tileMap.SetTile(0, 0, 5);
+    tileMap.SetTile(1, 0, 6);
     tileMap.SetTile(0, 1, 2);
 }
 

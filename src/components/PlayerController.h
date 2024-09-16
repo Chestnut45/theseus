@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
 // Original Author: Youssef Ashraf
-// ver 1.2.
+// ver 1.7. Update constructor to remove need for dependency injection.
 //-----------------------------------------------------------------------------
 
 #include <wolf.h>
@@ -20,9 +20,10 @@ public:
         ROLLING
     };
 
-    PlayerController() = default;
-    PlayerController(wolf::Transform2D* pTransform, VelocityComponent* pVelocity);
+    // Create a player controller component
+    PlayerController();
 
+    // Updates the player controller, adjusting transform and velocity if they exist
     void Update(float delta);
 
 private:
