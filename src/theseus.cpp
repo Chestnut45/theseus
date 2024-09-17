@@ -1,11 +1,5 @@
 #include "theseus.h"
 
-#include "PlayerController.h"
-#include "GameInc.h"
-#include "VelocityComponent.h"
-#include "MainMenuState.h"
-#include "GameStateManager.h"
-
 // Application entrypoint
 int main(int, char**)
 {
@@ -85,7 +79,7 @@ void Theseus::Update(float delta)
 {
     // Hotkeys
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) Shutdown();
-    if (wolf::Input::IsKeyDown(GLFW_KEY_GRAVE_ACCENT)) ShowDebug();
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_GRAVE_ACCENT)) m_showDebug = !m_showDebug;
 
     // Handle window resizing
     if (m_windowResized)
@@ -104,14 +98,17 @@ void Theseus::Update(float delta)
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController) playerController->Update(delta);
 
-    // Apply velocity to all transform components
-    for (auto&& [id, transform, velocity] : m_scene.Each<wolf::Transform2D, VelocityComponent>())
+    // Apply velocity to transforms for all objects with both components
+    for (auto&& [_, transform, velocity] : m_scene.Each<wolf::Transform2D, VelocityComponent>())
     {
         transform.Translate(velocity.GetVelocity() * delta);
     }
 
     // Update all game objects and components the scene handles automatically
     m_scene.Update(delta);
+
+    // Show debug information window
+    if (m_showDebug) ShowDebug();
 }
 
 void Theseus::Render()

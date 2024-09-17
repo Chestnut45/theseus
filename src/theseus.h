@@ -1,7 +1,10 @@
 #pragma once
 
 #include <wolf.h>
-#include "GameStateManager.h"
+
+#include "GameInc.h"
+#include "PlayerController.h"
+#include "VelocityComponent.h"
 
 // Scoped tile enum (does not require casting)
 struct Tile
@@ -61,4 +64,7 @@ class Theseus : public wolf::App
 
         // Manager for handling game states
         GameStateManager* m_pStateManager = nullptr;
+
+        // Flags
+        bool m_showDebug = false;
 };
