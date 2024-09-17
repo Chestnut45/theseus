@@ -86,9 +86,6 @@ void Theseus::Update(float delta)
 
     // Show debug information window
     if (m_showDebug) ShowDebug();
-
-    this->m_pHitboxManager->CheckCollisions();
-    this->m_pHurtboxManager->CheckCollisions();
 }
 
 void Theseus::Render()
