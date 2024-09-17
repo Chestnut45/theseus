@@ -31,7 +31,7 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
 
     // Add Velocity and PlayerController components to the player object
-    auto& pVelocity = m_pPlayerObject->AddComponent<VelocityComponent>();
+    auto& velocity = m_pPlayerObject->AddComponent<VelocityComponent>();
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
 
     // Add the main camera as a component of the player object
@@ -39,35 +39,8 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     camera.SetFollowSpeed(2.0f);
     m_scene.SetActiveCamera(camera);
 
-    // Add a test tilemap
-    auto& tileMapObject = m_scene.CreateObject2D();
-    auto& tileMap = tileMapObject.AddComponent<wolf::TileMap>(64, 64);
-    tileMapObject.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
-    tileMap.LoadTileSet("data/labyrinth.tileset");
-    
-    // Quick test of procedural generation
-    wolf::RNG rng(4545);
-    for (int y = 0; y < 64; ++y)
-    {
-        for (int x = 0; x < 64; ++x)
-        {
-            // Place walls around the edge
-            if (x == 0 || x == 63 || y == 0 || y == 63)
-            {
-                // Except for the entrance
-                if (x == 1 && y == 0)
-                {
-                    tileMap.SetTile(x, y, Tile::FloorSpiralGold);
-                    continue;
-                }
-                tileMap.SetTile(x, y, Tile::WallMaze);
-            }
-            else
-            {
-                tileMap.SetTile(x, y, rng.FlipCoin() ? Tile::FloorSmallSquares : Tile::FloorSpiral);
-            }
-        }
-    }
+    // Add the labyrinth builder component to an empty object
+    m_pLabyrinthBuilder = &m_scene.CreateObject().AddComponent<LabyrinthBuilder>();
 }
 
 Theseus::~Theseus()
@@ -80,6 +53,7 @@ void Theseus::Update(float delta)
     // Hotkeys
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) Shutdown();
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_GRAVE_ACCENT)) m_showDebug = !m_showDebug;
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_L)) m_showLabyrinthBuilder = !m_showLabyrinthBuilder;
 
     // Handle window resizing
     if (m_windowResized)
@@ -93,6 +67,9 @@ void Theseus::Update(float delta)
 
     // Update the current game state (MainMenu, Play, etc.)
     if (m_pStateManager) m_pStateManager->Update(delta);
+
+    // Show the labyrinth builder GUI if toggled
+    if (m_showLabyrinthBuilder) m_pLabyrinthBuilder->ShowGUI();
 
     // Update the player controller
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();

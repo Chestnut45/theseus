@@ -7,7 +7,6 @@
 // A class representing a renderable 2D sprite component.
 // 
 // Sprites can have an origin point other than [0, 0] (The bottom-left corner)
-
 //-----------------------------------------------------------------------------
 
 #include <string>
@@ -72,7 +71,7 @@ public:
     // Draw the sprite at the given position, rotation, and scale in world space
     // Multiplies final pixel color by provided tint color
     // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
-    void Draw(const glm::vec2& position, float rotationRadians = 0.0f, const glm::vec2& scale = glm::vec2(1.0f), const glm::vec3& tint = glm::vec3(1.0f));
+    void Draw(const glm::vec2& position, float rotationRadians = 0.0f, const glm::vec2& scale = glm::vec2(1.0f), const glm::vec3& tint = glm::vec3(-1.0f));
 
     // TODO: Draw the sprite at the given screen position (independent of camera's view, only projection)
 

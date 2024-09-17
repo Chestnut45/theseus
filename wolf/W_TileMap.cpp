@@ -280,11 +280,6 @@ void TileMap::Draw(const glm::vec2& position, float rotationRadians, const glm::
     // Ensure VBO data is up-to-date
     if (m_VBODirty) _UpdateVBO();
 
-    // Bind resources
-    s_pProgram->Bind();
-    glBindVertexArray(m_VAO);
-    glBindTextureUnit(1, m_arrayTexture);
-
     // Calculate model matrix
     glm::mat4 model(1.0f);
     model = glm::translate(model, glm::vec3(position, 0.0f));
@@ -296,6 +291,11 @@ void TileMap::Draw(const glm::vec2& position, float rotationRadians, const glm::
     s_pProgram->SetUniform("tileWidth", m_tileWidth);
     s_pProgram->SetUniform("tileHeight", m_tileHeight);
     s_pProgram->SetUniform("mapTint", tint);
+
+    // Bind resources
+    s_pProgram->Bind();
+    glBindVertexArray(m_VAO);
+    glBindTextureUnit(1, m_arrayTexture);
 
     // Draw and unbind
     glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr, m_tilesToDraw);
