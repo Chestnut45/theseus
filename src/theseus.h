@@ -4,7 +4,12 @@
 
 #include "GameInc.h"
 #include "PlayerController.h"
+
+#include "HitboxComponent.h"
 #include "VelocityComponent.h"
+
+#include "HitboxManager.h"
+#include "HurtboxManager.h"
 
 // Scoped tile enum (does not require casting)
 struct Tile
@@ -64,6 +69,12 @@ class Theseus : public wolf::App
 
         // Manager for handling game states
         GameStateManager* m_pStateManager = nullptr;
+
+        // Manager for hitbox collisions
+        HitboxManager* m_pHitboxManager = nullptr;
+
+        // Manager for hurtbox collisions
+        HurtboxManager* m_pHurtboxManager = nullptr;
 
         // Flags
         bool m_showDebug = false;

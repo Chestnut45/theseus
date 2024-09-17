@@ -24,7 +24,7 @@ public:
 
     void Damage(int p_damage);
     void Heal(int p_heal);
-    void Supercharge(int p_health);
+    void Supercharge(int p_supercharge);
 
 private:
     int m_health = 100;

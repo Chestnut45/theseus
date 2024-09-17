@@ -57,7 +57,8 @@ void HealthComponent::Heal(int p_heal)
 }
 
 // Increase health (without cap)
-void HealthComponent::Supercharge(int p_health)
+void HealthComponent::Supercharge(int p_supercharge)
 {
-    this->m_health += p_health;
+    this->m_health = p_supercharge;
+    this->m_cap = p_supercharge;
 }

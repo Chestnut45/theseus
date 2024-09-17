@@ -1,9 +1,8 @@
 //-----------------------------------------------------------------------------
-// File: HitboxManager.h
+// File: HurtboxManager.h
 // Original Author: Nguyễn Minh Nhật
 // ver 1.1.
-// Manages Hitbox collision.
-// feat. D. Landry
+// Manages Hurttbox collision.
 //-----------------------------------------------------------------------------
 
 #pragma once
@@ -11,13 +10,14 @@
 #include <glm/glm.hpp>
 #include <wolf.h>
 
-#include "HitboxComponent.h"
+#include "components/HealthComponent.h"
+#include "components/HurtboxComponent.h"
 
-class HitboxManager
+class HurtboxManager
 {
 public:
-    HitboxManager();
-    virtual ~HitboxManager();
+    HurtboxManager();
+    virtual ~HurtboxManager();
 
     void Init(wolf::Scene* p_scene);
     void CheckCollisions();
@@ -25,6 +25,7 @@ public:
 private:
     wolf::Scene* m_scene = nullptr;
 
-    bool IsColliding(HitboxComponent* p_hitbox1, HitboxComponent* p_hitbox2);
+    bool IsColliding(HurtboxComponent* p_hurtbox1, HurtboxComponent* p_hurtbox2);
+    
+    int count = 0;
 };
-

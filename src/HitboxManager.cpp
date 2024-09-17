@@ -37,7 +37,8 @@ void HitboxManager::CheckCollisions()
             {
                 if(this->IsColliding(&hitbox1, &hitbox2))
                 {
-                    
+                    this->count++;
+                    std::cout << "HitBoxCollide" << this->count << std::endl;
                     //-------------------------------------------//
                     //                                           //
                     // DO THING - DO THING - DO THING - DO THING //
@@ -54,16 +55,16 @@ void HitboxManager::CheckCollisions()
 // Check collisions for 2 boxes
 bool HitboxManager::IsColliding(HitboxComponent* p_hitbox1, HitboxComponent* p_hitbox2)
 {
-    glm::vec2 dimension1 = p_hitbox1->GetHitboxDimensions();
-    glm::vec2 dimension2 = p_hitbox2->GetHitboxDimensions();
+    glm::vec2 dimension1 = p_hitbox1->GetDimensions();
+    glm::vec2 dimension2 = p_hitbox2->GetDimensions();
     glm::vec2 position1 = p_hitbox1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 position2 = p_hitbox2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
 
     if(
-        position1.x + dimension1.x * 0.5f > position2.x - dimension2.x * 0.5f && // Right1 > Left2
-        position1.x - dimension1.x * 0.5f < position2.x + dimension2.x * 0.5f && // Left1 < Right2
-        position1.y + dimension1.y * 0.5f > position2.y - dimension2.y * 0.5f && // Lower1 > Upper2
-        position1.y - dimension1.y * 0.5f < position2.y + dimension2.y * 0.5f    // Upper1 < Lower2
+        position1.x + dimension1.x > position2.x && // Right1 > Left2
+        position1.x < position2.x + dimension2.x && // Left1 < Right2
+        position1.y + dimension1.y > position2.y && // Lower1 > Upper2
+        position1.y < position2.y + dimension2.y    // Upper1 < Lower2
         )
     {
         return true;
