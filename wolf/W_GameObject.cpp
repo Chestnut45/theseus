@@ -42,4 +42,13 @@ void GameObject::RemoveChild(GameObject& object)
     }
 }
 
+void GameObject::DeleteAllChildren()
+{
+    // Iterate all children backwards
+    for (int i = m_children.size() - 1; i >= 0; --i)
+    {
+        m_children[i]->Delete();
+    }
+}
+
 };

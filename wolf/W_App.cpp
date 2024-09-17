@@ -82,7 +82,7 @@ App::App(const std::string& name, int width, int height)
     iconConfig.PixelSnapH = true;
     iconConfig.GlyphMinAdvanceX = iconFontSize;
     iconConfig.GlyphOffset.y = 1.5f;
-    io.Fonts->AddFontFromFileTTF("thirdparty/" FONT_ICON_FILE_NAME_FAR, iconFontSize, &iconConfig, iconRange);
+    io.Fonts->AddFontFromFileTTF("thirdparty/" FONT_ICON_FILE_NAME_FAS, iconFontSize, &iconConfig, iconRange);
 
     // Setup Dear ImGui Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(m_pWindow, true);

@@ -100,6 +100,9 @@ public:
     // updates the child object's parent pointer to be empty
     void RemoveChild(GameObject& object);
 
+    // Removes and deletes all child objects
+    void DeleteAllChildren();
+
     // Returns a pointer to the parent object, or nullptr if we have none
     inline GameObject* GetParent() const { return m_parent; }
 

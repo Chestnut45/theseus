@@ -3,42 +3,9 @@
 #include <wolf.h>
 
 #include "GameInc.h"
+#include "LabyrinthBuilder.h"
 #include "PlayerController.h"
 #include "VelocityComponent.h"
-
-// Scoped tile enum (does not require casting)
-struct Tile
-{
-    typedef int type;
-    enum : type
-    {
-        Empty = -1,
-        BorderedGrass = 0,
-        Bricks,
-        FloorSmallSquares,
-        FloorSpiralGold,
-        FloorSpiral,
-        FloorSquareGold,
-        FloorSquare,
-        Grass,
-        WallBottomLeft,
-        WallBottomRight,
-        WallBottom,
-        WallChest,
-        WallHelmet,
-        WallLeft,
-        WallMaze,
-        WallMinotaur,
-        WallPillars,
-        WallPot,
-        WallRight,
-        WallSpiral,
-        WallSquare,
-        WalTopLeft,
-        WallTopRight,
-        WallTop
-    };
-};
 
 class Theseus : public wolf::App
 {
@@ -65,6 +32,10 @@ class Theseus : public wolf::App
         // Manager for handling game states
         GameStateManager* m_pStateManager = nullptr;
 
+        // Labyrinth builder component pointer
+        LabyrinthBuilder* m_pLabyrinthBuilder = nullptr;
+
         // Flags
         bool m_showDebug = false;
+        bool m_showLabyrinthBuilder = false;
 };

@@ -153,6 +153,18 @@ void _SceneTests()
     object5.Delete();
     assert(object1.GetChildren().size() == 0 && "deleting a child should update the parent");
 
+    // Test DeleteAllChildren()
+    auto& o = scene.CreateObject();
+    auto& o1 = scene.CreateObject();
+    auto& o2 = scene.CreateObject();
+    auto& o3 = scene.CreateObject();
+    o.AddChild(o1);
+    o.AddChild(o2);
+    o.AddChild(o3);
+    o.DeleteAllChildren();
+    assert(!o.HasChildren() && "All child objects should be deleted");
+    o.Delete();
+
     // Testing iterating objects with multiple component types
 
     // Iterate all components of a single type
