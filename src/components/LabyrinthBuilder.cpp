@@ -31,6 +31,7 @@ void LabyrinthBuilder::GenerateLabyrinth()
     if (object)
     {
         // Set the rng seed
+        if (m_randomizeSeed) m_seed = m_RNG.NextInt(0, INT32_MAX);
         m_RNG.SetSeed(m_seed);
 
         // Grab a scene reference
@@ -129,8 +130,11 @@ void LabyrinthBuilder::ShowGUI()
     ImGui::SeparatorText("Labyrinth Properties");
 
     // Property editors
-    if (ImGui::Button("Randomize Seed")) m_seed = m_RNG.NextInt(0, INT32_MAX);
-    ImGui::InputInt("Seed", &m_seed);
+    ImGui::Checkbox("Randomize Seed", &m_randomizeSeed);
+    if (!m_randomizeSeed)
+    {
+        ImGui::InputInt("Seed", &m_seed);
+    }
     ImGui::InputInt("Width", &m_width);
     ImGui::InputInt("Height", &m_height);
 
