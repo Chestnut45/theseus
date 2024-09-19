@@ -7,6 +7,8 @@
 #include "W_TileMap.h"
 #include "W_Transform2D.h"
 
+#include "../src/components/HitboxComponent.h"
+
 namespace wolf
 {
 
@@ -109,6 +111,12 @@ void Scene::Render()
     {
         tilemap.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
     }
+
+    for (auto&&[_, object, hitbox] : Each<wolf::GameObject, HitboxComponent>())
+    {
+        hitbox.FillVertexArray();
+    }
+    HitboxComponent::DebugDrawAndFlush();
 }
 
 void _SceneTests()

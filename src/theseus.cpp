@@ -1,3 +1,4 @@
+
 #include "theseus.h"
 
 // Application entrypoint
@@ -41,6 +42,34 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
 
     // Add the labyrinth builder component to an empty object
     m_pLabyrinthBuilder = &m_scene.CreateObject().AddComponent<LabyrinthBuilder>();
+    
+    // Add a hitbox to the player
+    m_pPlayerObject->AddComponent<HitboxComponent>(glm::vec2(16.0f, 32.0f),0 , 0);
+
+    // Add a hurtbox to the player
+    m_pPlayerObject->AddComponent<HurtboxComponent>(glm::vec2(16.0f, 32.0f), 0, 0, 0, 0);
+
+    // Add a health component to the player
+    m_pPlayerObject->AddComponent<HealthComponent>(1000);
+
+    // Add armour to the player
+    m_pPlayerObject->AddComponent<ArmourComponent>(10);
+
+    // Hitbox & Hurtbox Test
+    auto obj = &this->m_scene.CreateObject2D();
+    auto& objSprite = obj->AddComponent<wolf::Sprite2D>("data/textures/tile_grass.png");
+    //auto& objVelocity = obj->AddComponent<VelocityComponent>();
+    auto& objHitbox = obj->AddComponent<HitboxComponent>(glm::vec2(64.0f), 1, 0);
+    auto& objHurtbox = obj->AddComponent<HurtboxComponent>(glm::vec2(64.0f), 1, 1, 1, 0);
+    
+    obj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(64.0f, 0.0f));
+    // objVelocity.SetVelocity(glm::vec2(-32.0f, 0.0f));
+
+    this->m_pHitboxManager = new HitboxManager();
+    this->m_pHitboxManager->Init(&this->m_scene);
+
+    this->m_pHurtboxManager = new HurtboxManager();
+    this->m_pHurtboxManager->Init(&this->m_scene);
 }
 
 Theseus::~Theseus()
@@ -87,8 +116,8 @@ void Theseus::Update(float delta)
     // Show debug information window
     if (m_showDebug) ShowDebug();
 
-    this->m_pHitboxManager->CheckCollisions();
-    this->m_pHurtboxManager->CheckCollisions();
+    this->m_pHitboxManager->Update();
+    this->m_pHurtboxManager->Update();
 }
 
 void Theseus::Render()

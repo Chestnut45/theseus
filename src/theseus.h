@@ -8,6 +8,14 @@
 #include "PlayerController.h"
 #include "VelocityComponent.h"
 
+#include "ArmourComponent.h"
+#include "HealthComponent.h"
+#include "HitboxComponent.h"
+#include "HurtboxComponent.h"
+
+#include "HitboxManager.h"
+#include "HurtboxManager.h"
+
 class Theseus : public wolf::App
 {
     // Interface
@@ -39,4 +47,8 @@ class Theseus : public wolf::App
         // Flags
         bool m_showDebug = false;
         bool m_showLabyrinthBuilder = false;
+
+        // Managers
+        HitboxManager* m_pHitboxManager = nullptr;
+        HurtboxManager *m_pHurtboxManager = nullptr;
 };

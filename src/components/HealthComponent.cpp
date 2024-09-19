@@ -1,7 +1,6 @@
 //-----------------------------------------------------------------------------
 // File: HealthComponent.cpp
 // Original Author: Nguyễn Minh Nhật
-// ver 1.1.
 // Health.
 //-----------------------------------------------------------------------------
 
@@ -24,30 +23,40 @@ void HealthComponent::Init()
 }
 
 // Get health
-int HealthComponent::GetHealth() const
+float HealthComponent::GetHealth() const
 {
     return this->m_health;
 }
 
 // Reduce health
-void HealthComponent::Damage(int p_damage)
+void HealthComponent::Damage(float p_damage)
 {
     ArmourComponent* armourComponent = this->GetGameObject()->GetComponent<ArmourComponent>();
-    if(p_damage > 0)
+    if(this->m_health > 0)
     {
         if(armourComponent != nullptr)
         {
-            this->m_health -= std::round(p_damage * (100 - armourComponent->GetMultiplier()) * 0.01f);
+            std::cout << "Damage: " << p_damage * ((100 - armourComponent->GetMultiplier()) * 0.01f) << std::endl;
+            this->m_health -= p_damage * ((100 - armourComponent->GetMultiplier()) * 0.01f);
         }
         else
         {
             this->m_health -= p_damage;
+        }
+
+        if(this->m_health <= 0)
+        {
+            //---------------------------------------//
+            //                                       //
+            // SEND EVENT TO INDICATE ENTITY IS DEAD //
+            //                                       //
+            //---------------------------------------//
         }  
     }
 }
 
 // Increase health (with cap)
-void HealthComponent::Heal(int p_heal)
+void HealthComponent::Heal(float p_heal)
 {
     this->m_health += p_heal;
     if(this->m_health > this->m_cap)
@@ -57,7 +66,7 @@ void HealthComponent::Heal(int p_heal)
 }
 
 // Increase health (without cap)
-void HealthComponent::Supercharge(int p_supercharge)
+void HealthComponent::Supercharge(float p_supercharge)
 {
     this->m_health = p_supercharge;
     this->m_cap = p_supercharge;

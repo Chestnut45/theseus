@@ -1,7 +1,6 @@
 //-----------------------------------------------------------------------------
 // File: HitboxManager.cpp
 // Original Author: Nguyễn Minh Nhật
-// ver 1.1.
 // Manages Hitbox collision.
 // feat. D. Landry
 //-----------------------------------------------------------------------------
@@ -26,26 +25,69 @@ void HitboxManager::Init(wolf::Scene* p_scene)
     this->m_scene = p_scene;
 }
 
+void HitboxManager::Update()
+{
+    this->RemoveFlagged();
+    this->CheckCollisions();
+}
+
+// Remove objects flagged for destruction
+void HitboxManager::RemoveFlagged()
+{
+    for (auto&&[id, object, hitbox] : this->m_scene->Each<wolf::GameObject, HitboxComponent>())
+    {
+        if(hitbox.IsToBeDestroyed())
+        {
+            this->m_scene->DeleteObject(id);
+        }
+    }
+}
+
 // Check all collisions
 void HitboxManager::CheckCollisions()
 {
+    int i = 0;
     for (auto&&[id1, object1, hitbox1] : this->m_scene->Each<wolf::GameObject, HitboxComponent>())
     {
-        for (auto&&[id2, object2, hitbox2] : this->m_scene->Each<wolf::GameObject, HitboxComponent>())
+        i++;
+        for (auto&&[id2, object2, hitbox2] : this->m_scene->Each<wolf::GameObject, HitboxComponent>() | std::views::drop(i))
         {
             if(id1 != id2)
             {
-                if(this->IsColliding(&hitbox1, &hitbox2))
+                // Check if any object is mobile
+                if(
+                    object1.HasAny<VelocityComponent>() ||
+                    object2.HasAny<VelocityComponent>()
+                )
                 {
-                    this->count++;
-                    std::cout << "HitBoxCollide" << this->count << std::endl;
-                    //-------------------------------------------//
-                    //                                           //
-                    // DO THING - DO THING - DO THING - DO THING //
-                    // DO THING - DO THING - DO THING - DO THING //
-                    // DO THING - DO THING - DO THING - DO THING //
-                    //                                           //
-                    //-------------------------------------------//
+                    if(this->IsColliding(&hitbox1, &hitbox2))
+                    {
+                        std::cout << "HitBoxCollide" << std::endl;
+
+                        if(!hitbox1.IsDestroyedOnCollision() && !hitbox2.IsDestroyedOnCollision())
+                        {
+                            //----------//
+                            //          //
+                            // DO THING //
+                            //          //
+                            //----------//
+                        }
+
+                        else
+                        {
+                            if(hitbox1.IsDestroyedOnCollision())
+                            {
+                                std::cout << "Delete hitbox id1:" << id1 << std::endl;
+                                hitbox1.RaiseDestroyFlag();
+                            }
+
+                            if(hitbox2.IsDestroyedOnCollision())
+                            {
+                                std::cout << "Delete hitbox id2:" << id2 << std::endl;
+                                hitbox2.RaiseDestroyFlag();
+                            }
+                        }
+                    }
                 }
             }
         }
