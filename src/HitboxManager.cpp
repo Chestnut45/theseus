@@ -34,7 +34,7 @@ void HitboxManager::Update()
 // Remove objects flagged for destruction
 void HitboxManager::RemoveFlagged()
 {
-    for (auto&&[id, object, hitbox] : this->m_scene->Each<wolf::GameObject, HitboxComponent>())
+    for (auto&&[id, hitbox] : this->m_scene->Each<HitboxComponent>())
     {
         if(hitbox.IsToBeDestroyed())
         {

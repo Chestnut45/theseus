@@ -115,7 +115,10 @@ void Scene::Render()
     for (auto&&[_, object, hitbox] : Each<wolf::GameObject, HitboxComponent>())
     {
         hitbox.FillVertexArray();
+        printf("Fill\n");
     }
+
+    
     HitboxComponent::DebugDrawAndFlush();
 }
 

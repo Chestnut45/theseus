@@ -23,7 +23,7 @@ public:
     HitboxComponent(glm::vec2 p_dimensions, bool p_doc, bool p_relativity);
     virtual ~HitboxComponent();
 
-    wolf::Rectangle* GetHitbox();
+    wolf::Rectangle GetHitbox();
     glm::vec2 GetDimensions() const;
     bool IsDestroyedOnCollision() const;
     bool IsRelative() const;
@@ -36,12 +36,12 @@ private:
     bool IsToBeDestroyed() const;
     void RaiseDestroyFlag();
 
-    wolf::Rectangle* m_pHitbox = nullptr;
+    wolf::Rectangle m_Hitbox;
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
     bool m_bDestroy = false; // Game object destruction flag
     bool m_bIsRelative = false;
     
-    static int s_iCounter;
+    static int s_iComponentCount;
 
     static wolf::VertexDeclaration *s_pDecl;
     static wolf::Program *s_pProgram;

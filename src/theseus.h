@@ -50,5 +50,5 @@ class Theseus : public wolf::App
 
         // Managers
         HitboxManager* m_pHitboxManager = nullptr;
-        HurtboxManager *m_pHurtboxManager = nullptr;
+        HurtboxManager* m_pHurtboxManager = nullptr;
 };

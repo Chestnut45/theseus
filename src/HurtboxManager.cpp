@@ -44,7 +44,7 @@ void HurtboxManager::CheckCollisions()
             
                 if(hurtbox1.GetType() == 0)
                 {
-                    healthComponent = hurtbox1.GetGameObject()->GetComponent<HealthComponent>();  
+                    healthComponent = object1.GetComponent<HealthComponent>();  
                     if(healthComponent!= nullptr)
                     {
                         healthComponent->Damage(hurtbox2.GetDamage());

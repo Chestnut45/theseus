@@ -21,7 +21,7 @@ const std::vector<Vertex2D> vertices =
     {0.0f, 0.0f}
 };
 
-int HitboxComponent::s_iCounter = 0;
+int HitboxComponent::s_iComponentCount = 0;
 
 std::vector<Vertex2D> HitboxComponent::s_vVerticesVector;
 
@@ -29,11 +29,12 @@ wolf::VertexDeclaration * HitboxComponent::s_pDecl = nullptr;
 wolf::Program *HitboxComponent::s_pProgram = nullptr;
 wolf::VertexBuffer *HitboxComponent::s_pVB = nullptr;
 
-HitboxComponent::HitboxComponent()
+HitboxComponent::HitboxComponent():
+m_Hitbox(glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 1.0f))
 {
-    this->m_pHitbox = new wolf::Rectangle(glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 1.0f));
 
-    s_iCounter++;
+
+    s_iComponentCount++;
     if (s_pProgram == nullptr)
     {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -50,13 +51,14 @@ HitboxComponent::HitboxComponent()
 }
 
 // Constructor for custom attributes
-HitboxComponent::HitboxComponent(glm::vec2 p_dimensions,bool p_doc, bool p_relativity)
+HitboxComponent::HitboxComponent(glm::vec2 p_dimensions,bool p_doc, bool p_relativity) :
+m_Hitbox(glm::vec2(0.0f, 0.0f), p_dimensions)
 {
-    this->m_pHitbox = new wolf::Rectangle(glm::vec2(0.0f, 0.0f), p_dimensions);
+    ;
     this->m_bIsDestroyedOnCollision = p_doc;
     this->m_bIsRelative = p_relativity;
     
-    s_iCounter++;
+    s_iComponentCount++;
     if (s_pProgram == nullptr)
     {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -75,9 +77,7 @@ HitboxComponent::HitboxComponent(glm::vec2 p_dimensions,bool p_doc, bool p_relat
 // Destructor
 HitboxComponent::~HitboxComponent()
 {
-    this->m_pHitbox = nullptr;
-
-    s_iCounter--;
+    s_iComponentCount--;
     // delete this->m_pDecl;
     // this->m_pDecl = nullptr;
     // wolf::ProgramManager::DestroyProgram(this->m_pProgram);
@@ -88,15 +88,15 @@ HitboxComponent::~HitboxComponent()
 
 // Get wolf::Rectangle hitbox
 
-wolf::Rectangle* HitboxComponent::GetHitbox()
+wolf::Rectangle HitboxComponent::GetHitbox()
 {
-    return this->m_pHitbox;
+    return this->m_Hitbox;
 }
 
 // Get dimensions
 glm::vec2 HitboxComponent::GetDimensions() const
 {
-    glm::vec2 dimensions =glm::vec2(this->m_pHitbox->GetWidth(), this->m_pHitbox->GetHeight());
+    glm::vec2 dimensions =glm::vec2(this->m_Hitbox.GetWidth(), this->m_Hitbox.GetHeight());
     if(this->m_bIsRelative)
     {
         glm::vec2 scale = GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
@@ -132,7 +132,17 @@ void HitboxComponent::RaiseDestroyFlag()
 // Render
 void HitboxComponent::FillVertexArray()
 {
-    s_vVerticesVector.insert(s_vVerticesVector.end(), vertices.begin(), vertices.end());
+    glm::vec2 translation = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    std::vector<Vertex2D> correctVertices;
+    for(Vertex2D vertex : vertices)
+    {
+        Vertex2D correctVertex;
+        correctVertex.x = vertex.x + translation.x;
+        correctVertex.y = vertex.y + translation.y;
+        correctVertices.push_back({correctVertex});
+        
+    }
+    s_vVerticesVector.insert(s_vVerticesVector.end(), correctVertices.begin(), correctVertices.end());
 }
 
 void HitboxComponent::DebugDrawAndFlush()
@@ -141,7 +151,14 @@ void HitboxComponent::DebugDrawAndFlush()
     s_pProgram->SetUniform("model", model);
     s_pProgram->Bind();
     s_pDecl->Bind();
-    glDrawArrays(GL_LINES, 0, 8);
+    s_pVB->Bind();
+    glDrawArrays(GL_LINES, 0, s_iComponentCount * 8);
 
+    std::cout << "Size: " << s_vVerticesVector.size() << std::endl;
+    std::cout << "Count: " << s_iComponentCount << std::endl;
+    for(Vertex2D vertex: s_vVerticesVector)
+    {
+        std::cout << "X: " << vertex.x << ", Y: " << vertex.y << std::endl;
+    }
     s_vVerticesVector.clear();
 }
