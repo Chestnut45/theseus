@@ -6,6 +6,29 @@
 
 #include "HurtboxComponent.h"
 
+const std::vector<Vertex2D> vertices = 
+{
+    {0.0f, 0.0f},
+    {0.0f, 1.0f},
+
+    {0.0f, 1.0f},
+    {1.0f, 1.0f},
+
+    {1.0f, 1.0f},
+    {1.0f, 0.0f},
+
+    {1.0f, 0.0f},
+    {0.0f, 0.0f}
+};
+
+int HurtboxComponent::s_iComponentCount = 0;
+
+std::vector<Vertex2D> HurtboxComponent::s_vVerticesVector;
+
+wolf::VertexDeclaration * HurtboxComponent::s_pDecl = nullptr;
+wolf::Program *HurtboxComponent::s_pProgram = nullptr;
+wolf::VertexBuffer *HurtboxComponent::s_pVB = nullptr;
+
 HurtboxComponent::HurtboxComponent()
 {
     this->m_pHurtbox = new wolf::Rectangle(glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 1.0f));

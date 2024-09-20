@@ -14,6 +14,8 @@
 #include "components/HealthComponent.h"
 #include "components/HurtboxComponent.h"
 
+class HurtboxComponent;
+
 class HurtboxManager
 {
 public:

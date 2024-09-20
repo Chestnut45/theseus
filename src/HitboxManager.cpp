@@ -38,6 +38,7 @@ void HitboxManager::RemoveFlagged()
     {
         if(hitbox.IsToBeDestroyed())
         {
+            std::cout << "Remove Hitbox Flagged: " << id << std::endl;
             this->m_scene->DeleteObject(id);
         }
     }
@@ -64,6 +65,7 @@ void HitboxManager::CheckCollisions()
                     {
                         std::cout << "HitBoxCollide" << std::endl;
 
+                        // Case: both indestructible on collision
                         if(!hitbox1.IsDestroyedOnCollision() && !hitbox2.IsDestroyedOnCollision())
                         {
                             //----------//
@@ -73,6 +75,7 @@ void HitboxManager::CheckCollisions()
                             //----------//
                         }
 
+                        // Case: one or both destructible on collision
                         else
                         {
                             if(hitbox1.IsDestroyedOnCollision())

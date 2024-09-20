@@ -34,7 +34,7 @@ m_Hitbox(glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 1.0f))
 {
 
 
-    s_iComponentCount++;
+    HitboxComponent::s_iComponentCount++;
     if (s_pProgram == nullptr)
     {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -58,7 +58,7 @@ m_Hitbox(glm::vec2(0.0f, 0.0f), p_dimensions)
     this->m_bIsDestroyedOnCollision = p_doc;
     this->m_bIsRelative = p_relativity;
     
-    s_iComponentCount++;
+    HitboxComponent::s_iComponentCount++;
     if (s_pProgram == nullptr)
     {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -77,7 +77,8 @@ m_Hitbox(glm::vec2(0.0f, 0.0f), p_dimensions)
 // Destructor
 HitboxComponent::~HitboxComponent()
 {
-    s_iComponentCount--;
+    HitboxComponent::s_iComponentCount--;
+    std::cout << "Delete: " << HitboxComponent::s_iComponentCount << std::endl;
     // delete this->m_pDecl;
     // this->m_pDecl = nullptr;
     // wolf::ProgramManager::DestroyProgram(this->m_pProgram);
@@ -152,14 +153,14 @@ void HitboxComponent::DebugDrawAndFlush()
     s_pProgram->Bind();
     s_pDecl->Bind();
     
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex2D) * s_iComponentCount * 8, s_pVB, GL_DYNAMIC_DRAW);
-    glDrawArrays(GL_LINES, 0, s_iComponentCount * 8);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex2D) * HitboxComponent::s_iComponentCount * 8, s_pVB, GL_DYNAMIC_DRAW);
+    glDrawArrays(GL_LINES, 0, HitboxComponent::s_iComponentCount * 8);
 
-    std::cout << "Size: " << s_vVerticesVector.size() << std::endl;
-    std::cout << "Count: " << s_iComponentCount << std::endl;
+    //std::cout << "Size: " << s_vVerticesVector.size() << std::endl;
+    std::cout << "Count: " << HitboxComponent::s_iComponentCount << std::endl;
     for(Vertex2D vertex: s_vVerticesVector)
     {
-        std::cout << "X: " << vertex.x << ", Y: " << vertex.y << std::endl;
+        //std::cout << "X: " << vertex.x << ", Y: " << vertex.y << std::endl;
     }
     s_vVerticesVector.clear();
 }

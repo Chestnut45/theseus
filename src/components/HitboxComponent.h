@@ -33,9 +33,6 @@ public:
     static void DebugDrawAndFlush();
 
 private:
-    bool IsToBeDestroyed() const;
-    void RaiseDestroyFlag();
-
     wolf::Rectangle m_Hitbox;
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
     bool m_bDestroy = false; // Game object destruction flag
@@ -47,5 +44,8 @@ private:
     static wolf::Program *s_pProgram;
     static wolf::VertexBuffer *s_pVB;
 
-    static std::vector<Vertex2D> s_vVerticesVector;   
+    static std::vector<Vertex2D> s_vVerticesVector; 
+
+    bool IsToBeDestroyed() const;
+    void RaiseDestroyFlag();  
 };

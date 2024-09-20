@@ -64,7 +64,7 @@ void HurtboxManager::CheckCollisions()
 
                     if(hurtbox1.IsDestroyedOnCollision())
                         {
-                            std::cout << "Delete hurtbox id1:" << id1 << std::endl;
+                            //std::cout << "Delete hurtbox id1:" << id1 << std::endl;
                             hurtbox1.RaiseDestroyFlag();
                             //this->m_scene->DeleteObject(id1);
                             //-------------------------------------//
@@ -76,7 +76,7 @@ void HurtboxManager::CheckCollisions()
 
                         if(hurtbox2.IsDestroyedOnCollision())
                         {
-                            std::cout << "Delete hurtbox id2:" << id2 << std::endl;
+                            //std::cout << "Delete hurtbox id2:" << id2 << std::endl;
                             hurtbox2.RaiseDestroyFlag();
                             //this->m_scene->DeleteObject(id2);
                             //-------------------------------------//
