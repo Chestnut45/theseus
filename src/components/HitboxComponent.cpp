@@ -151,7 +151,8 @@ void HitboxComponent::DebugDrawAndFlush()
     s_pProgram->SetUniform("model", model);
     s_pProgram->Bind();
     s_pDecl->Bind();
-    s_pVB->Bind();
+    
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex2D) * s_iComponentCount * 8, s_pVB, GL_DYNAMIC_DRAW);
     glDrawArrays(GL_LINES, 0, s_iComponentCount * 8);
 
     std::cout << "Size: " << s_vVerticesVector.size() << std::endl;
