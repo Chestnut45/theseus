@@ -1,42 +1,43 @@
-
 #pragma once
 
 #include <wolf.h>
-
 #include "GameInc.h"
 #include "LabyrinthBuilder.h"
 #include "PlayerController.h"
 #include "VelocityComponent.h"
+#include "GameStateManager.h"
+#include "MainMenuState.h"
 
 class Theseus : public wolf::App
 {
-    // Interface
-    public:
+public:
+    Theseus();
+    ~Theseus();
 
-        Theseus();
-        ~Theseus();
-
-        // Update the app, called every frame
-        void Update(float delta) override;
-        
-        // Rendering logic, called every frame
-        void Render() override;
+    // Update the app, called every frame
+    void Update(float delta) override;
     
-    private:
+    // Rendering logic, called every frame
+    void Render() override;
 
-        // The main game scene
-        wolf::Scene m_scene;
+    // Cleanly shut down the game
+    void Shutdown() { glfwSetWindowShouldClose(m_pWindow, true); }
+    wolf::Scene& GetScene() { return m_scene; }
 
-        // A pointer to the player game object
-        wolf::GameObject* m_pPlayerObject = nullptr;
+private:
+    // The main game scene
+    wolf::Scene m_scene;
 
-        // Manager for handling game states
-        GameStateManager* m_pStateManager = nullptr;
+    // A pointer to the player game object
+    wolf::GameObject* m_pPlayerObject = nullptr;
 
-        // Labyrinth builder component pointer
-        LabyrinthBuilder* m_pLabyrinthBuilder = nullptr;
+    // A pointer to the labyrinth builder component
+    LabyrinthBuilder* m_pLabyrinthBuilder = nullptr;
 
-        // Flags
-        bool m_showDebug = false;
-        bool m_showLabyrinthBuilder = false;
+    // Manager for handling game states
+    GameStateManager* m_pStateManager = nullptr;
+
+    // Flags
+    bool m_showDebug = false;
+    bool m_showLabyrinthBuilder = false;
 };

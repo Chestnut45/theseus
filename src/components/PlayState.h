@@ -4,25 +4,28 @@
 // ver 1.0
 // A class that's responsible for the Concrete Play State.
 //-----------------------------------------------------------------------------
-
 #pragma once
 #include "GameState.h"
-#include "GameStateManager.h" 
+#include "Theseus.h"  // Include the main game class
+
+
+class LabyrinthBuilder;
 
 class PlayState : public GameState
 {
 public:
-    PlayState(GameStateManager* manager) : GameState(manager) {}
+    PlayState(GameStateManager* manager, Theseus* gameInstance)
+        : GameState(manager, gameInstance) {}  // Correctly pass both arguments
 
-    void Update(float delta) override
-    {
-        // Implement PlayState-specific logic
-        // Example: Game logic update (player movement, enemies, etc.)
-    }
+    void Enter() override;
+    void Exit() override;
+    void Pause() override;
+    void Resume() override;
+    void Update(float delta) override;
+    void Render() override;
 
-    void Render() override
-    {
-        // Implement PlayState-specific rendering
-        // Example: Render game objects, HUD, etc.
-    }
+private:
+    bool m_isPaused = false;
+    wolf::GameObject* m_pPlayerObject = nullptr;  // Pointer to the player object
+    LabyrinthBuilder* m_pLabyrinthBuilder = nullptr; // Labyrinth builder
 };

@@ -1,43 +1,29 @@
-//-----------------------------------------------------------------------------
-// File:			GameStateManager.h
-// Original Author:	Youssef Ashraf
-// ver 1.0
-// A class that's responsible managing my game states.
-//-----------------------------------------------------------------------------
-
 #pragma once
-#include "GameState.h"
+#include <stack>
+
+class GameState;
 
 class GameStateManager
 {
 public:
-    GameStateManager() : m_currentState(nullptr) {}
+    GameStateManager() = default;
+    ~GameStateManager() { Clear(); }
 
-    void SetState(GameState* newState)
-    {
-        if (m_currentState)
-        {
-            delete m_currentState;
-        }
-        m_currentState = newState;
-    }
-
-    void Update(float delta)
-    {
-        if (m_currentState)
-        {
-            m_currentState->Update(delta);
-        }
-    }
-
-    void Render()
-    {
-        if (m_currentState)
-        {
-            m_currentState->Render();
-        }
-    }
+    // push a new state onto the stack
+    void PushState(GameState* state);
+    // pop the current state off the stack
+    void PopState();
+    // clear all states and push a new one
+    void ClearAndPushState(GameState* state);
+    // get the current active state
+    GameState* GetActiveState() const;
+    // update the active state
+    void Update(float delta);
+    // render the active state
+    void Render();
+    // clear the stack and remove all states
+    void Clear();
 
 private:
-    GameState* m_currentState;
+    std::stack<GameState*> m_stateStack;  // Stack 
 };
