@@ -21,6 +21,14 @@ const std::vector<Vertex2D> vertices =
     {0.0f, 0.0f}
 };
 
+const std::vector<Vertex2D> uniqueVertices = 
+{
+    {0.0f, 0.0f},
+    {0.0f, 1.0f},
+    {1.0f, 1.0f},
+    {1.0f, 0.0f}
+};
+
 int HitboxComponent::s_iComponentCount = 0;
 
 std::vector<Vertex2D> HitboxComponent::s_vVerticesVector;
@@ -134,16 +142,20 @@ void HitboxComponent::RaiseDestroyFlag()
 void HitboxComponent::FillVertexArray()
 {
     glm::vec2 translation = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 dimensions = this->GetDimensions();
     std::vector<Vertex2D> correctVertices;
     for(Vertex2D vertex : vertices)
     {
         Vertex2D correctVertex;
-        correctVertex.x = vertex.x * 100.0f;
-        correctVertex.y = vertex.y * 100.0f;
+        correctVertex.x = vertex.x * dimensions.x + translation.x;
+        correctVertex.y = vertex.y * dimensions.y + translation.y;
         correctVertices.push_back({correctVertex});
     }
-    // s_vVerticesVector.insert(s_vVerticesVector.end(), vertices.begin(), vertices.end());
-    s_vVerticesVector.insert(s_vVerticesVector.end(), correctVertices.begin(), correctVertices.end());
+    //s_vVerticesVector.insert(s_vVerticesVector.end(), vertices.begin(), vertices.end());
+    
+    // correctVertices.push_back({uniqueVertices.at(0).x, uniqueVertices.at(0).y});
+    
+     s_vVerticesVector.insert(s_vVerticesVector.end(), correctVertices.begin(), correctVertices.end());
 }
 
 void HitboxComponent::DebugDrawAndFlush()
