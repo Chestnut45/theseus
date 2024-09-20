@@ -7,6 +7,7 @@
 #include "LabyrinthBuilder.h"
 #include "PlayerController.h"
 #include "VelocityComponent.h"
+#include "AnimatedSprite2D.h"
 
 class Theseus : public wolf::App
 {

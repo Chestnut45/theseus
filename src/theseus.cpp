@@ -26,8 +26,11 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     m_pPlayerObject = &m_scene.CreateObject2D();
 
     // Add a test sprite to the player object and scale up
-    auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
-    sprite.SetOriginToCenterOfTexture();
+    //auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
+    //sprite.SetOriginToCenterOfTexture();
+    auto& animSprite = m_pPlayerObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 15.0f);
+    animSprite.AddAnimation("Walk", 1, 8, true);
+    animSprite.SetAnimation("Walk");
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
 
     // Add Velocity and PlayerController components to the player object
@@ -74,6 +77,9 @@ void Theseus::Update(float delta)
     // Update the player controller
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController) playerController->Update(delta);
+
+    auto* playerAnimSprite = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
+    if (playerAnimSprite) playerAnimSprite->Update(delta);
 
     // Apply velocity to transforms for all objects with both components
     for (auto&& [_, transform, velocity] : m_scene.Each<wolf::Transform2D, VelocityComponent>())
