@@ -134,15 +134,16 @@ void HitboxComponent::RaiseDestroyFlag()
 void HitboxComponent::FillVertexArray()
 {
     glm::vec2 translation = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    // std::vector<Vertex2D> correctVertices;
-    // for(Vertex2D vertex : vertices)
-    // {
-    //     Vertex2D correctVertex;
-    //     correctVertex.x = vertex.x + translation.x;
-    //     correctVertex.y = vertex.y + translation.y;
-    //     correctVertices.push_back({correctVertex});
-    // }
-    s_vVerticesVector.insert(s_vVerticesVector.end(), vertices.begin(), vertices.end());
+    std::vector<Vertex2D> correctVertices;
+    for(Vertex2D vertex : vertices)
+    {
+        Vertex2D correctVertex;
+        correctVertex.x = vertex.x * 100.0f;
+        correctVertex.y = vertex.y * 100.0f;
+        correctVertices.push_back({correctVertex});
+    }
+    // s_vVerticesVector.insert(s_vVerticesVector.end(), vertices.begin(), vertices.end());
+    s_vVerticesVector.insert(s_vVerticesVector.end(), correctVertices.begin(), correctVertices.end());
 }
 
 void HitboxComponent::DebugDrawAndFlush()
