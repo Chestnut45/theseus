@@ -64,7 +64,7 @@ m_Hitbox(glm::vec2(0.0f, 0.0f), p_dimensions)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
         s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/lines.vsh", "data/shaders/lines.fsh");
-        s_pVB = wolf::BufferManager::CreateVertexBuffer(vertices.data(), sizeof(Vertex2D) * 8);
+        s_pVB = wolf::BufferManager::CreateVertexBuffer(vertices.data(), sizeof(Vertex2D) * vertices.size());
 
         s_pDecl = new wolf::VertexDeclaration();
         s_pDecl->Begin();
@@ -76,9 +76,9 @@ m_Hitbox(glm::vec2(0.0f, 0.0f), p_dimensions)
 
 // Destructor
 HitboxComponent::~HitboxComponent()
-{
-    HitboxComponent::s_iComponentCount--;
-    std::cout << "Delete: " << HitboxComponent::s_iComponentCount << std::endl;
+{   
+    HitboxComponent::s_iComponentCount -= 1;
+    //std::cout << "Delete: " << HitboxComponent::s_iComponentCount << std::endl;
     // delete this->m_pDecl;
     // this->m_pDecl = nullptr;
     // wolf::ProgramManager::DestroyProgram(this->m_pProgram);
@@ -134,16 +134,15 @@ void HitboxComponent::RaiseDestroyFlag()
 void HitboxComponent::FillVertexArray()
 {
     glm::vec2 translation = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    std::vector<Vertex2D> correctVertices;
-    for(Vertex2D vertex : vertices)
-    {
-        Vertex2D correctVertex;
-        correctVertex.x = vertex.x + translation.x;
-        correctVertex.y = vertex.y + translation.y;
-        correctVertices.push_back({correctVertex});
-        
-    }
-    s_vVerticesVector.insert(s_vVerticesVector.end(), correctVertices.begin(), correctVertices.end());
+    // std::vector<Vertex2D> correctVertices;
+    // for(Vertex2D vertex : vertices)
+    // {
+    //     Vertex2D correctVertex;
+    //     correctVertex.x = vertex.x + translation.x;
+    //     correctVertex.y = vertex.y + translation.y;
+    //     correctVertices.push_back({correctVertex});
+    // }
+    s_vVerticesVector.insert(s_vVerticesVector.end(), vertices.begin(), vertices.end());
 }
 
 void HitboxComponent::DebugDrawAndFlush()
@@ -153,8 +152,9 @@ void HitboxComponent::DebugDrawAndFlush()
     s_pProgram->Bind();
     s_pDecl->Bind();
     
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex2D) * HitboxComponent::s_iComponentCount * 8, s_pVB, GL_DYNAMIC_DRAW);
-    glDrawArrays(GL_LINES, 0, HitboxComponent::s_iComponentCount * 8);
+    s_pVB->Bind();
+    s_pVB->Write(vertices.data(), sizeof(Vertex2D) * vertices.size());
+    glDrawArrays(GL_LINES, 0, HitboxComponent::s_iComponentCount * vertices.size());
 
     //std::cout << "Size: " << s_vVerticesVector.size() << std::endl;
     std::cout << "Count: " << HitboxComponent::s_iComponentCount << std::endl;

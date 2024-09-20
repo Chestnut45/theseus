@@ -98,6 +98,7 @@ void HurtboxManager::RemoveFlagged()
     {
         if(hurtbox.IsToBeDestroyed())
         {
+             std::cout << "Remove Hurtbox Flagged: " << id << std::endl;
             this->m_scene->DeleteObject(id);
         }
     }
