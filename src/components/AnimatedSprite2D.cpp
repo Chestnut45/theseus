@@ -111,6 +111,8 @@ bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const
     // Make a 'lil variable to keep track of what index we're on
     int iUVCoordIndex = 0;
 
+    // !-- COORDINATES ARE INCORRECTAMUNDO BUCKO --!
+
     // And start calculating them
     for (int i = 0; i <= iNumFramesY; i++) {
         // A V coordinate would be calculated as:
@@ -140,6 +142,11 @@ bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const
         frameCoords->m_v2TopRight = av2WorkingUVCoords[p + iNumFramesX + 1];
 
         // Then we insert the struct into a map with the frame number as its key
+        printf("Frame: %d\n", p);
+        printf("TopLeft: X: %.4f Y: %.4f\n", frameCoords->m_v2TopLeft.x, frameCoords->m_v2TopLeft.y);
+        printf("BotLeft: X: %.4f Y: %.4f\n", frameCoords->m_v2BotLeft.x, frameCoords->m_v2BotLeft.y);
+        printf("BotRight: X: %.4f Y: %.4f\n", frameCoords->m_v2BotRight.x, frameCoords->m_v2BotRight.y);
+        printf("TopRight: X: %.4f Y: %.4f\n\n", frameCoords->m_v2TopRight.x, frameCoords->m_v2TopRight.y);
         m_vpFrameUVCoords.push_back(frameCoords);
     }
 
