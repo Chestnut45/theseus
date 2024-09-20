@@ -153,7 +153,7 @@ void HitboxComponent::DebugDrawAndFlush()
     s_pDecl->Bind();
     
     s_pVB->Bind();
-    s_pVB->Write(vertices.data(), sizeof(Vertex2D) * s_vVerticesVector.size());
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex2D) * s_vVerticesVector.size(), s_vVerticesVector.data(), GL_STATIC_DRAW);
     glDrawArrays(GL_LINES, 0, s_vVerticesVector.size());
 
     //std::cout << "Count: " << HitboxComponent::s_iComponentCount << std::endl;
