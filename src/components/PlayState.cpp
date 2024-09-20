@@ -64,6 +64,20 @@ void PlayState::Update(float delta)
         return; // Stop further updates if paused
     }
 
+    // Toggle the Labyrinth Builder GUI when the 'L' key is pressed
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_L))
+    {
+        m_showLabyrinthBuilder = !m_showLabyrinthBuilder;
+        std::cout << "Labyrinth Builder GUI toggle: " << m_showLabyrinthBuilder << std::endl;
+    }
+
+    // Show the Labyrinth Builder GUI if toggled on
+    if (m_showLabyrinthBuilder && m_pLabyrinthBuilder)
+    {
+        m_pLabyrinthBuilder->ShowGUI();
+    }
+
+    // Update game logic only if not paused
     if (!m_isPaused)
     {
         // Update player controller

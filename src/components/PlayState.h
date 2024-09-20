@@ -15,7 +15,7 @@ class PlayState : public GameState
 {
 public:
     PlayState(GameStateManager* manager, Theseus* gameInstance)
-        : GameState(manager, gameInstance) {}  // Correctly pass both arguments
+        : GameState(manager, gameInstance) {}  
 
     void Enter() override;
     void Exit() override;
@@ -26,6 +26,7 @@ public:
 
 private:
     bool m_isPaused = false;
+    bool m_showLabyrinthBuilder = false;
     wolf::GameObject* m_pPlayerObject = nullptr;  // Pointer to the player object
     LabyrinthBuilder* m_pLabyrinthBuilder = nullptr; // Labyrinth builder
 };

@@ -34,7 +34,6 @@ void Theseus::Update(float delta)
 {
     // Handle any hotkeys (such as toggling debug mode or the labyrinth builder)
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_GRAVE_ACCENT)) m_showDebug = !m_showDebug;
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_L)) m_showLabyrinthBuilder = !m_showLabyrinthBuilder;
 
     // Handle window resizing
     if (m_windowResized)
@@ -49,22 +48,18 @@ void Theseus::Update(float delta)
     {
         m_pStateManager->Update(delta);
     }
-
-    // Show the labyrinth builder GUI if toggled
-    if (m_showLabyrinthBuilder && m_pLabyrinthBuilder)
-    {
-        m_pLabyrinthBuilder->ShowGUI();
-    }
-
+    
     // Show debug information window
     if (m_showDebug)
     {
         ShowDebug();
     }
+
 }
 
 void Theseus::Render()
 {
+    
     // Clear the framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -74,4 +69,5 @@ void Theseus::Render()
     {
         m_pStateManager->Render();
     }
+
 }
