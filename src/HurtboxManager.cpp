@@ -106,23 +106,30 @@ void HurtboxManager::RemoveFlagged()
 
 bool HurtboxManager::IsColliding(HurtboxComponent* p_hurtboxComponent1, HurtboxComponent* p_hurtboxComponent2)
 {
-    if(p_hurtboxComponent1->GetType() != p_hurtboxComponent2->GetType())
+    for(wolf::Rectangle hurtbox1 : p_hurtboxComponent1->GetHurtboxes())
     {
-        glm::vec2 dimension1 = p_hurtboxComponent1->GetDimensions();
-        glm::vec2 dimension2 = p_hurtboxComponent2->GetDimensions();
-        glm::vec2 position1 = p_hurtboxComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        glm::vec2 position2 = p_hurtboxComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-
-        if(
-            position1.x + dimension1.x > position2.x && // Right1 > Left2
-            position1.x < position2.x + dimension2.x && // Left1 < Right2
-            position1.y + dimension1.y > position2.y && // Lower1 > Upper2
-            position1.y < position2.y + dimension2.y    // Upper1 < Lower2
-            )
+        glm::vec2 dimensions1 = glm::vec2(hurtbox1.GetWidth(), hurtbox1.GetHeight());
+        for(wolf::Rectangle hurtbox2 : p_hurtboxComponent2->GetHurtboxes())
         {
-            return true;
+            glm::vec2 dimensions2 = glm::vec2(hurtbox2.GetWidth(), hurtbox2.GetHeight());
+
+            if(p_hurtboxComponent1->GetType() != p_hurtboxComponent2->GetType())
+            {
+
+                glm::vec2 position1 = p_hurtboxComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                glm::vec2 position2 = p_hurtboxComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+                if(
+                    position1.x + dimensions1.x > position2.x && // Right1 > Left2
+                    position1.x < position2.x + dimensions2.x && // Left1 < Right2
+                    position1.y + dimensions1.y > position2.y && // Lower1 > Upper2
+                    position1.y < position2.y + dimensions2.y    // Upper1 < Lower2
+                    )
+                {
+                    return true;
+                }
+            }
         }
     }
-    
     return false;
 }

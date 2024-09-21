@@ -23,8 +23,9 @@ public:
     
 
     wolf::Rectangle GetHurtbox();
+    std::vector<wolf::Rectangle> GetHurtboxes() const;
+
     float GetDamage() const;
-    glm::vec2 GetDimensions() const;
     bool GetType() const;
     bool IsDestroyedOnCollision() const;
     bool IsRelative() const;
@@ -41,6 +42,7 @@ private:
     bool m_bIsRelative = false;
 
     wolf::Rectangle m_Hurtbox;
+    std::vector<wolf::Rectangle> m_vHurtboxes;
 
     static int s_iComponentCount;
 

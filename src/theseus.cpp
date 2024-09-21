@@ -44,7 +44,8 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     m_pLabyrinthBuilder = &m_scene.CreateObject().AddComponent<LabyrinthBuilder>();
     
     // Add a hitbox to the player
-    m_pPlayerObject->AddComponent<HitboxComponent>(glm::vec2(32.0f, 32.0f),0 , 0);
+    auto& playerHitboxComponent = m_pPlayerObject->AddComponent<HitboxComponent>(0 , 0);
+    playerHitboxComponent.AddHitbox(glm::vec2(32.0f, 32.0f));
 
     // Add a hurtbox to the player
     m_pPlayerObject->AddComponent<HurtboxComponent>(glm::vec2(32.0f, 32.0f), 0, 0, 0, 0);
@@ -59,7 +60,8 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     auto obj = &this->m_scene.CreateObject2D();
     auto& objSprite = obj->AddComponent<wolf::Sprite2D>("data/textures/tile_grass.png");
     //auto& objVelocity = obj->AddComponent<VelocityComponent>();
-    auto& objHitbox = obj->AddComponent<HitboxComponent>(glm::vec2(32.0f), 1, 0);
+    auto& objHitbox = obj->AddComponent<HitboxComponent>(1, 0);
+    objHitbox.AddHitbox(glm::vec2(32.0f, 32.0f));
     auto& objHurtbox = obj->AddComponent<HurtboxComponent>(glm::vec2(32.0f), 1, 1, 1, 0);
     
     obj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(64.0f, 0.0f));

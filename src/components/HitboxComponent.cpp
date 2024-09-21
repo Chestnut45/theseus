@@ -59,10 +59,8 @@ wolf::VertexBuffer *HitboxComponent::s_pVB = nullptr;
 // }
 
 // Constructor for custom attributes
-HitboxComponent::HitboxComponent(glm::vec2 p_dimensions,bool p_doc, bool p_relativity) :
-m_Hitbox(glm::vec2(0.0f, 0.0f), p_dimensions)
+HitboxComponent::HitboxComponent(bool p_doc, bool p_relativity)
 {
-    ;
     this->m_bIsDestroyedOnCollision = p_doc;
     this->m_bIsRelative = p_relativity;
     
@@ -95,25 +93,17 @@ HitboxComponent::~HitboxComponent()
     // this->m_pVB = nullptr;
 }
 
-// Get wolf::Rectangle hitbox
-
-wolf::Rectangle HitboxComponent::GetHitbox()
+// Add hitbox to vector
+void HitboxComponent::AddHitbox(glm::vec2 p_dimensions)
 {
-    return this->m_Hitbox;
+    this->m_vHitboxes.push_back(wolf::Rectangle(glm::vec2(0.0f, 0.0f), p_dimensions));
 }
 
-// Get dimensions
-glm::vec2 HitboxComponent::GetDimensions() const
+// Get vector of hitboxes
+std::vector<wolf::Rectangle> HitboxComponent::GetHitboxes() const
 {
-    glm::vec2 dimensions =glm::vec2(this->m_Hitbox.GetWidth(), this->m_Hitbox.GetHeight());
-    if(this->m_bIsRelative)
-    {
-        glm::vec2 scale = GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
-        dimensions *= scale;
-    }
-    return dimensions;
+    return this->m_vHitboxes;
 }
-
 
 bool HitboxComponent::IsDestroyedOnCollision() const
 {
@@ -141,22 +131,20 @@ void HitboxComponent::RaiseDestroyFlag()
 // Render
 void HitboxComponent::FillVertexArray()
 {
-    
     glm::vec2 translation = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 dimensions = this->GetDimensions();
-    std::vector<Vertex2D> correctVertices;
-    for(Vertex2D vertex : vertices)
+    for(wolf::Rectangle hitbox : this->m_vHitboxes)
     {
-        Vertex2D correctVertex;
-        correctVertex.x = vertex.x * dimensions.x + translation.x;
-        correctVertex.y = vertex.y * dimensions.y + translation.y;
-        correctVertices.push_back({correctVertex});
+        glm::vec2 dimensions = glm::vec2(hitbox.GetWidth(), hitbox.GetHeight());
+        std::vector<Vertex2D> correctVertices;
+        for(Vertex2D vertex : vertices)
+        {
+            Vertex2D correctVertex;
+            correctVertex.x = vertex.x * dimensions.x + translation.x;
+            correctVertex.y = vertex.y * dimensions.y + translation.y;
+            correctVertices.push_back({correctVertex});
+        }
+        s_vVerticesVector.insert(s_vVerticesVector.end(), correctVertices.begin(), correctVertices.end());
     }
-    //s_vVerticesVector.insert(s_vVerticesVector.end(), vertices.begin(), vertices.end());
-    
-    // correctVertices.push_back({uniqueVertices.at(0).x, uniqueVertices.at(0).y});
-    
-     s_vVerticesVector.insert(s_vVerticesVector.end(), correctVertices.begin(), correctVertices.end());
 }
 
 void HitboxComponent::DebugDrawAndFlush()

@@ -20,7 +20,7 @@ class HitboxComponent : public wolf::BaseComponent
 
 public:
     // HitboxComponent();
-    HitboxComponent(glm::vec2 p_dimensions, bool p_doc, bool p_relativity);
+    HitboxComponent(bool p_doc, bool p_relativity);
     virtual ~HitboxComponent();
 
     // Delete copy constructor/assignment
@@ -31,8 +31,10 @@ public:
     HitboxComponent(HitboxComponent&& other) = delete;
     HitboxComponent& operator=(HitboxComponent&& other) = delete;
 
-    wolf::Rectangle GetHitbox();
-    glm::vec2 GetDimensions() const;
+    void AddHitbox(glm::vec2 p_dimensions);
+
+    std::vector<wolf::Rectangle> GetHitboxes() const;
+
     bool IsDestroyedOnCollision() const;
     bool IsRelative() const;
 
@@ -43,10 +45,10 @@ public:
 private:
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
     bool m_bDestroy = false; // Game object destruction flag
-    bool m_bIsRelative = false;
+    bool m_bIsRelative = false; // Hitboxes relative to scale of object
     
-    wolf::Rectangle m_Hitbox;
-
+    std::vector<wolf::Rectangle> m_vHitboxes;
+    
     static int s_iComponentCount;
 
     static wolf::VertexDeclaration *s_pDecl;

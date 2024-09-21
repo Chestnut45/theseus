@@ -85,6 +85,12 @@ wolf::Rectangle HurtboxComponent::GetHurtbox()
     return this->m_Hurtbox;
 }
 
+// Get vector of hurtboxes
+std::vector<wolf::Rectangle> HurtboxComponent::GetHurtboxes() const
+{
+    return this->m_vHurtboxes;
+}
+
 // Get damage
 float HurtboxComponent::GetDamage() const
 {
@@ -93,18 +99,6 @@ float HurtboxComponent::GetDamage() const
         return this->m_iDamage;
     }
     return 0;
-}
-
-// Get dimensions
-glm::vec2 HurtboxComponent::GetDimensions() const
-{
-    glm::vec2 dimensions = glm::vec2(this->m_Hurtbox.GetWidth(), this->m_Hurtbox.GetHeight());
-    if(this->m_bIsRelative)
-    {
-        glm::vec2 scale = GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
-        dimensions *= scale;
-    }
-    return dimensions;
 }
 
 // Get type
@@ -128,20 +122,20 @@ bool HurtboxComponent::IsRelative() const
 void HurtboxComponent::FillVertexArray()
 {
     glm::vec2 translation = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 dimensions = this->GetDimensions();
-    std::vector<Vertex2D> correctVertices;
-    for(Vertex2D vertex : vertices)
+
+    for(wolf::Rectangle hurtbox : this->m_vHurtboxes)
     {
-        Vertex2D correctVertex;
-        correctVertex.x = vertex.x * dimensions.x + translation.x;
-        correctVertex.y = vertex.y * dimensions.y + translation.y;
-        correctVertices.push_back({correctVertex});
-    }
-    //s_vVerticesVector.insert(s_vVerticesVector.end(), vertices.begin(), vertices.end());
-    
-    // correctVertices.push_back({uniqueVertices.at(0).x, uniqueVertices.at(0).y});
-    
-     s_vVerticesVector.insert(s_vVerticesVector.end(), correctVertices.begin(), correctVertices.end());
+        glm::vec2 dimensions = glm::vec2(hurtbox.GetWidth(), hurtbox.GetHeight());
+        std::vector<Vertex2D> correctVertices;
+        for(Vertex2D vertex : vertices)
+        {
+            Vertex2D correctVertex;
+            correctVertex.x = vertex.x * dimensions.x + translation.x;
+            correctVertex.y = vertex.y * dimensions.y + translation.y;
+            correctVertices.push_back({correctVertex});
+        }
+        s_vVerticesVector.insert(s_vVerticesVector.end(), correctVertices.begin(), correctVertices.end());
+    }     
 }
 
 void HurtboxComponent::DebugDrawAndFlush()
