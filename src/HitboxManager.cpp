@@ -39,6 +39,13 @@ void HitboxManager::RemoveFlagged()
         if(hitbox.IsToBeDestroyed())
         {
             std::cout << "Remove Hitbox Flagged: " << id << std::endl;
+
+            //-------------------------------//
+            //                               //
+            // CREATE TO-BE-DESTROYED VECTOR //
+            //                               //
+            //-------------------------------//
+
             this->m_scene->DeleteObject(id);
         }
     }

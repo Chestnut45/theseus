@@ -37,26 +37,26 @@ wolf::VertexDeclaration * HitboxComponent::s_pDecl = nullptr;
 wolf::Program *HitboxComponent::s_pProgram = nullptr;
 wolf::VertexBuffer *HitboxComponent::s_pVB = nullptr;
 
-HitboxComponent::HitboxComponent():
-m_Hitbox(glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 1.0f))
-{
+// HitboxComponent::HitboxComponent():
+// m_Hitbox(glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 1.0f))
+// {
 
 
-    HitboxComponent::s_iComponentCount++;
-    if (s_pProgram == nullptr)
-    {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+//     HitboxComponent::s_iComponentCount++;
+//     if (s_pProgram == nullptr)
+//     {
+//         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-        s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/lines.vsh", "data/shaders/lines.fsh");
-        s_pVB = wolf::BufferManager::CreateVertexBuffer(vertices.data(), sizeof(Vertex2D) * 8);
+//         s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/lines.vsh", "data/shaders/lines.fsh");
+//         s_pVB = wolf::BufferManager::CreateVertexBuffer(vertices.data(), sizeof(Vertex2D) * 8);
 
-        s_pDecl = new wolf::VertexDeclaration();
-        s_pDecl->Begin();
-        s_pDecl->AppendAttribute(wolf::AT_Position, 2, wolf::CT_Float);
-        s_pDecl->SetVertexBuffer(s_pVB);
-        s_pDecl->End();
-    }
-}
+//         s_pDecl = new wolf::VertexDeclaration();
+//         s_pDecl->Begin();
+//         s_pDecl->AppendAttribute(wolf::AT_Position, 2, wolf::CT_Float);
+//         s_pDecl->SetVertexBuffer(s_pVB);
+//         s_pDecl->End();
+//     }
+// }
 
 // Constructor for custom attributes
 HitboxComponent::HitboxComponent(glm::vec2 p_dimensions,bool p_doc, bool p_relativity) :
@@ -86,7 +86,7 @@ m_Hitbox(glm::vec2(0.0f, 0.0f), p_dimensions)
 HitboxComponent::~HitboxComponent()
 {   
     HitboxComponent::s_iComponentCount -= 1;
-    //std::cout << "Delete: " << HitboxComponent::s_iComponentCount << std::endl;
+    std::cout << "Delete: " << HitboxComponent::s_iComponentCount << GetGameObject()->GetID() << std::endl;
     // delete this->m_pDecl;
     // this->m_pDecl = nullptr;
     // wolf::ProgramManager::DestroyProgram(this->m_pProgram);

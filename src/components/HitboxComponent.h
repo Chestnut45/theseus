@@ -19,9 +19,17 @@ class HitboxComponent : public wolf::BaseComponent
     friend HitboxManager;
 
 public:
-    HitboxComponent();
+    // HitboxComponent();
     HitboxComponent(glm::vec2 p_dimensions, bool p_doc, bool p_relativity);
     virtual ~HitboxComponent();
+
+    // Delete copy constructor/assignment
+    HitboxComponent(const HitboxComponent&) = delete;
+    HitboxComponent& operator=(const HitboxComponent&) = delete;
+
+    // Delete move constructor/assignment
+    HitboxComponent(HitboxComponent&& other) = delete;
+    HitboxComponent& operator=(HitboxComponent&& other) = delete;
 
     wolf::Rectangle GetHitbox();
     glm::vec2 GetDimensions() const;
@@ -48,5 +56,7 @@ private:
     static std::vector<Vertex2D> s_vVerticesVector; 
 
     bool IsToBeDestroyed() const;
-    void RaiseDestroyFlag();  
+    void RaiseDestroyFlag();
+
+    static constexpr auto in_place_delete = true;
 };
