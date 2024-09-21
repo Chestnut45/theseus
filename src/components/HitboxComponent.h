@@ -41,6 +41,7 @@ public:
     void FillVertexArray();
     
     static void DebugDrawAndFlush();
+    static int GetComponentCount();
 
 private:
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision

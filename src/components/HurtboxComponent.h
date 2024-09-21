@@ -43,6 +43,7 @@ public:
     void FillVertexArray();
 
     static void DebugDrawAndFlush();
+    static int GetComponentCount();
     
 private:
     bool m_bType = 0; // Type - 0: Damage Receiver, 1: Damage Dealer

@@ -55,46 +55,49 @@ void HitboxManager::RemoveFlagged()
 void HitboxManager::CheckCollisions()
 {
     int i = 0;
-    for (auto&&[id1, object1, hitbox1] : this->m_scene->Each<wolf::GameObject, HitboxComponent>())
+    if(HitboxComponent::GetComponentCount() >=2)
     {
-        i++;
-        for (auto&&[id2, object2, hitbox2] : this->m_scene->Each<wolf::GameObject, HitboxComponent>() | std::views::drop(i))
+        for (auto&&[id1, object1, hitbox1] : this->m_scene->Each<wolf::GameObject, HitboxComponent>())
         {
-            if(id1 != id2)
+            i++;
+            for (auto&&[id2, object2, hitbox2] : this->m_scene->Each<wolf::GameObject, HitboxComponent>() | std::views::drop(i))
             {
-                // Check if any object is mobile
-                if(
-                    object1.HasAny<VelocityComponent>() ||
-                    object2.HasAny<VelocityComponent>()
-                )
+                if(id1 != id2)
                 {
-                    if(this->IsColliding(&hitbox1, &hitbox2))
+                    // Check if any object is mobile
+                    if(
+                        object1.HasAny<VelocityComponent>() ||
+                        object2.HasAny<VelocityComponent>()
+                    )
                     {
-                        std::cout << "HitBoxCollide" << std::endl;
-
-                        // Case: both indestructible on collision
-                        if(!hitbox1.IsDestroyedOnCollision() && !hitbox2.IsDestroyedOnCollision())
+                        if(this->IsColliding(&hitbox1, &hitbox2))
                         {
-                            //----------//
-                            //          //
-                            // DO THING //
-                            //          //
-                            //----------//
-                        }
+                            std::cout << "HitBoxCollide" << std::endl;
 
-                        // Case: one or both destructible on collision
-                        else
-                        {
-                            if(hitbox1.IsDestroyedOnCollision())
+                            // Case: both indestructible on collision
+                            if(!hitbox1.IsDestroyedOnCollision() && !hitbox2.IsDestroyedOnCollision())
                             {
-                                std::cout << "Delete hitbox id1:" << id1 << std::endl;
-                                hitbox1.RaiseDestroyFlag();
+                                //----------//
+                                //          //
+                                // DO THING //
+                                //          //
+                                //----------//
                             }
 
-                            if(hitbox2.IsDestroyedOnCollision())
+                            // Case: one or both destructible on collision
+                            else
                             {
-                                std::cout << "Delete hitbox id2:" << id2 << std::endl;
-                                hitbox2.RaiseDestroyFlag();
+                                if(hitbox1.IsDestroyedOnCollision())
+                                {
+                                    std::cout << "Delete hitbox id1:" << id1 << std::endl;
+                                    hitbox1.RaiseDestroyFlag();
+                                }
+
+                                if(hitbox2.IsDestroyedOnCollision())
+                                {
+                                    std::cout << "Delete hitbox id2:" << id2 << std::endl;
+                                    hitbox2.RaiseDestroyFlag();
+                                }
                             }
                         }
                     }

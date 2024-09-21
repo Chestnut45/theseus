@@ -29,6 +29,7 @@ void HurtboxManager::Update()
 void HurtboxManager::CheckCollisions()
 {
     int i = 0;
+
     for (auto&&[id1, object1, hurtbox1] : this->m_scene->Each<wolf::GameObject, HurtboxComponent>())
     {
         i++;
@@ -89,6 +90,7 @@ void HurtboxManager::CheckCollisions()
             }
         }
     }
+    
 }
 
 // Remove objects flagged for destruction

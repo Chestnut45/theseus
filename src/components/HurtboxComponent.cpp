@@ -64,6 +64,15 @@ HurtboxComponent::HurtboxComponent(bool p_type, float p_damage, bool p_doc, bool
 HurtboxComponent::~HurtboxComponent()
 {
     HurtboxComponent::s_iComponentCount -= 1;
+    if(HurtboxComponent::s_iComponentCount == 0)
+    {
+        delete HurtboxComponent::s_pDecl;
+        HurtboxComponent::s_pDecl = nullptr;
+        wolf::ProgramManager::DestroyProgram(HurtboxComponent::s_pProgram);
+        HurtboxComponent::s_pProgram = nullptr;
+        wolf::BufferManager::DestroyBuffer(HurtboxComponent::s_pVB);
+        HurtboxComponent::s_pVB = nullptr;
+    }
 }
 
 void HurtboxComponent::AddHurtbox(glm::vec2 p_dimensions)
@@ -153,4 +162,9 @@ bool HurtboxComponent::IsToBeDestroyed() const
 void HurtboxComponent::RaiseDestroyFlag()
 {
     this->m_bDestroy = true;
+}
+
+int HurtboxComponent::GetComponentCount()
+{
+    return HurtboxComponent::s_iComponentCount;
 }

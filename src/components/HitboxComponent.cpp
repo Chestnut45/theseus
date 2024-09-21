@@ -84,13 +84,15 @@ HitboxComponent::HitboxComponent(bool p_doc, bool p_relativity)
 HitboxComponent::~HitboxComponent()
 {   
     HitboxComponent::s_iComponentCount -= 1;
-    std::cout << "Delete: " << HitboxComponent::s_iComponentCount << GetGameObject()->GetID() << std::endl;
-    // delete this->m_pDecl;
-    // this->m_pDecl = nullptr;
-    // wolf::ProgramManager::DestroyProgram(this->m_pProgram);
-    // this->m_pProgram = nullptr;
-    // wolf::BufferManager::DestroyBuffer(this->m_pVB);
-    // this->m_pVB = nullptr;
+    if(HitboxComponent::s_iComponentCount == 0)
+    {
+        delete HitboxComponent::s_pDecl;
+        HitboxComponent::s_pDecl = nullptr;
+        wolf::ProgramManager::DestroyProgram(HitboxComponent::s_pProgram);
+        HitboxComponent::s_pProgram = nullptr;
+        wolf::BufferManager::DestroyBuffer(HitboxComponent::s_pVB);
+        HitboxComponent::s_pVB = nullptr;
+    }
 }
 
 // Add hitbox to vector
@@ -164,4 +166,9 @@ void HitboxComponent::DebugDrawAndFlush()
         //std::cout << "X: " << vertex.x << ", Y: " << vertex.y << std::endl;
     }
     s_vVerticesVector.clear();
+}
+
+int HitboxComponent::GetComponentCount()
+{
+    return HitboxComponent::s_iComponentCount;
 }
