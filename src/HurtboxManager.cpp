@@ -60,14 +60,14 @@ void HurtboxManager::CheckCollisions()
                         healthComponent->Damage(hurtbox1.GetDamage());
                     }
                 }
-                std::cout << "HurtBoxCollide - health:" << healthComponent->GetHealth() << std::endl;
+                //std::cout << "HurtBoxCollide - health:" << healthComponent->GetHealth() << std::endl;
 
 
                 if(hurtbox1.IsDestroyedOnCollision())
                     {
-                        //std::cout << "Delete hurtbox id1:" << id1 << std::endl;
+                        std::cout << "Delete hurtbox id1:" << id1 << std::endl;
                         hurtbox1.RaiseDestroyFlag();
-                        //this->m_scene->DeleteObject(id1);
+                        this->m_vToBeDestroyed.push_back(&hurtbox1);
                         //-------------------------------------//
                         //                                     //
                         // DESTROY GAME OBJECT - DELAY 1 FRAME //
@@ -77,9 +77,9 @@ void HurtboxManager::CheckCollisions()
 
                     if(hurtbox2.IsDestroyedOnCollision())
                     {
-                        //std::cout << "Delete hurtbox id2:" << id2 << std::endl;
+                        std::cout << "Delete hurtbox id2:" << id2 << std::endl;
                         hurtbox2.RaiseDestroyFlag();
-                        //this->m_scene->DeleteObject(id2);
+                        this->m_vToBeDestroyed.push_back(&hurtbox2);
                         //-------------------------------------//
                         //                                     //
                         // DESTROY GAME OBJECT - DELAY 1 FRAME //
@@ -96,14 +96,11 @@ void HurtboxManager::CheckCollisions()
 // Remove objects flagged for destruction
 void HurtboxManager::RemoveFlagged()
 {
-    for (auto&&[id, object, hurtbox] : this->m_scene->Each<wolf::GameObject, HurtboxComponent>())
+    for (int i = 0; i < this->m_vToBeDestroyed.size(); i++)
     {
-        if(hurtbox.IsToBeDestroyed())
-        {
-             std::cout << "Remove Hurtbox Flagged: " << id << std::endl;
-            this->m_scene->DeleteObject(id);
-        }
+        this->m_scene->DeleteObject(this->m_vToBeDestroyed.at(i)->GetGameObject()->GetID());
     }
+    this->m_vToBeDestroyed.clear();
 }
 
 bool HurtboxManager::IsColliding(HurtboxComponent* p_hurtboxComponent1, HurtboxComponent* p_hurtboxComponent2)

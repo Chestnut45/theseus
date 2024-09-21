@@ -31,4 +31,8 @@ private:
     bool IsColliding(HurtboxComponent* p_hurtboxComponent1, HurtboxComponent* p_hurtboxComponent2);
     void RemoveFlagged();
     void CheckCollisions();
+
+    int m_iComponentCount = 0;
+
+    std::vector<HurtboxComponent *> m_vToBeDestroyed;
 };

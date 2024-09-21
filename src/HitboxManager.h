@@ -30,5 +30,7 @@ private:
     bool IsColliding(HitboxComponent* p_hitbox1, HitboxComponent* p_hitbox2);
     void RemoveFlagged();
     void CheckCollisions();
+
+    std::vector<HitboxComponent *> m_vToBeDestroyed;
 };
 
