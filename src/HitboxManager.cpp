@@ -34,25 +34,12 @@ void HitboxManager::Update()
 // Remove objects flagged for destruction
 void HitboxManager::RemoveFlagged()
 {
-    // for (auto&&[id, hitbox] : this->m_scene->Each<HitboxComponent>())
-    // {
-    //     if(hitbox.IsToBeDestroyed())
-    //     {
-    //         std::cout << "Remove Hitbox Flagged: " << id << std::endl;
-
-    //         //-------------------------------//
-    //         //                               //
-    //         // CREATE TO-BE-DESTROYED VECTOR //
-    //         //                               //
-    //         //-------------------------------//
-
-    //         this->m_scene->DeleteObject(id);
-    //     }
-    // }
 
     for(int i = 0; i < this->m_vToBeDestroyed.size(); i++)
     {
+        std::cout << "HitboxManager - Remove id:" << this->m_vToBeDestroyed.at(i)->GetGameObject()->GetID() << std::endl;
         this->m_scene->DeleteObject(this->m_vToBeDestroyed.at(i)->GetGameObject()->GetID());
+        std::cout << "HitboxManager - NOC:" << HitboxComponent::GetComponentCount() << std::endl;
     }
     this->m_vToBeDestroyed.clear();
 }
@@ -93,14 +80,14 @@ void HitboxManager::CheckCollisions()
                         {
                             if(hitbox1.IsDestroyedOnCollision())
                             {
-                                std::cout << "Delete hitbox id1:" << id1 << std::endl;
+                                std::cout << "HitboxManager - Delete id1:" << id1 << std::endl;
                                 hitbox1.RaiseDestroyFlag();
                                 this->m_vToBeDestroyed.push_back(&hitbox1);
                             }
 
                             if(hitbox2.IsDestroyedOnCollision())
                             {
-                                std::cout << "Delete hitbox id2:" << id2 << std::endl;
+                                std::cout << "HitboxManager - Delete id2:" << id2 << std::endl;
                                 hitbox2.RaiseDestroyFlag();
                                 this->m_vToBeDestroyed.push_back(&hitbox2);
                             }

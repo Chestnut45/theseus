@@ -2,6 +2,9 @@
 // File: HurtboxComponent.h
 // Original Author: Nguyễn Minh Nhật
 // Hurtbox.
+// User Guide:
+//     + Create component
+//     + Add at least 1 hitbox for component to function
 //-----------------------------------------------------------------------------
 #pragma once
 

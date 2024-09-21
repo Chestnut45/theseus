@@ -2,6 +2,9 @@
 // File: HitboxComponent.h
 // Original Author: Nguyễn Minh Nhật
 // Hitbox.
+// User Guide:
+//     + Create component
+//     + Add at least 1 hitbox for component to function
 //-----------------------------------------------------------------------------
 
 #pragma once
