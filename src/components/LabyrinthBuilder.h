@@ -100,6 +100,9 @@ private:
     int m_width = 0;
     int m_height = 0;
 
+    // Flags
+    bool m_randomizeSeed = false;
+
     // TODO: Room data
 
     // TODO: Tweakable progression / difficulty parameters (connectivity, spawn rates, etc.)
