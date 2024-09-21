@@ -8,6 +8,7 @@
 #include "W_Transform2D.h"
 
 #include "../src/components/HitboxComponent.h"
+#include "../src/components/HurtboxComponent.h"
 
 namespace wolf
 {
@@ -117,8 +118,13 @@ void Scene::Render()
         hitbox.FillVertexArray();
     }
 
+    for (auto&&[_, object, hurtbox] : Each<wolf::GameObject, HurtboxComponent>())
+    {
+        hurtbox.FillVertexArray();
+    }
     
     HitboxComponent::DebugDrawAndFlush();
+    HurtboxComponent::DebugDrawAndFlush();
 }
 
 void _SceneTests()

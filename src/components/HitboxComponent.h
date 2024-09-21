@@ -33,11 +33,12 @@ public:
     static void DebugDrawAndFlush();
 
 private:
-    wolf::Rectangle m_Hitbox;
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
     bool m_bDestroy = false; // Game object destruction flag
     bool m_bIsRelative = false;
     
+    wolf::Rectangle m_Hitbox;
+
     static int s_iComponentCount;
 
     static wolf::VertexDeclaration *s_pDecl;

@@ -44,7 +44,7 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     m_pLabyrinthBuilder = &m_scene.CreateObject().AddComponent<LabyrinthBuilder>();
     
     // Add a hitbox to the player
-    m_pPlayerObject->AddComponent<HitboxComponent>(glm::vec2(32.0f, 32.0f),0 , 0);
+    //m_pPlayerObject->AddComponent<HitboxComponent>(glm::vec2(32.0f, 32.0f),0 , 0);
 
     // Add a hurtbox to the player
     m_pPlayerObject->AddComponent<HurtboxComponent>(glm::vec2(32.0f, 32.0f), 0, 0, 0, 0);

@@ -141,6 +141,7 @@ void HitboxComponent::RaiseDestroyFlag()
 // Render
 void HitboxComponent::FillVertexArray()
 {
+    
     glm::vec2 translation = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 dimensions = this->GetDimensions();
     std::vector<Vertex2D> correctVertices;
@@ -172,7 +173,7 @@ void HitboxComponent::DebugDrawAndFlush()
     //std::cout << "Count: " << HitboxComponent::s_iComponentCount << std::endl;
     for(Vertex2D vertex: s_vVerticesVector)
     {
-        std::cout << "X: " << vertex.x << ", Y: " << vertex.y << std::endl;
+        //std::cout << "X: " << vertex.x << ", Y: " << vertex.y << std::endl;
     }
     s_vVerticesVector.clear();
 }
