@@ -29,27 +29,8 @@ wolf::VertexDeclaration * HurtboxComponent::s_pDecl = nullptr;
 wolf::Program *HurtboxComponent::s_pProgram = nullptr;
 wolf::VertexBuffer *HurtboxComponent::s_pVB = nullptr;
 
-HurtboxComponent::HurtboxComponent():
-m_Hurtbox(glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 1.0f))
-{
-    if (s_pProgram == nullptr)
-    {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-        s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/lines.vsh", "data/shaders/lines.fsh");
-        s_pVB = wolf::BufferManager::CreateVertexBuffer(vertices.data(), sizeof(Vertex2D) * vertices.size());
-
-        s_pDecl = new wolf::VertexDeclaration();
-        s_pDecl->Begin();
-        s_pDecl->AppendAttribute(wolf::AT_Position, 2, wolf::CT_Float);
-        s_pDecl->SetVertexBuffer(s_pVB);
-        s_pDecl->End();
-    }
-}
-
 // Constructor for custom attributes
-HurtboxComponent::HurtboxComponent(glm::vec2 p_dimensions, bool p_type, float p_damage, bool p_doc, bool p_relativity):
-m_Hurtbox(glm::vec2(0.0f, 0.0f), p_dimensions)
+HurtboxComponent::HurtboxComponent(bool p_type, float p_damage, bool p_doc, bool p_relativity)
 {
     this->m_bType = p_type;
     if(p_type == 1)
@@ -64,6 +45,7 @@ m_Hurtbox(glm::vec2(0.0f, 0.0f), p_dimensions)
     this->m_bIsDestroyedOnCollision = p_doc;
     this->m_bIsRelative = p_relativity;
 
+    HurtboxComponent::s_iComponentCount++;
     if (s_pProgram == nullptr)
     {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -79,10 +61,14 @@ m_Hurtbox(glm::vec2(0.0f, 0.0f), p_dimensions)
     }
 }
 
-// Get wolf::Rectangle
-wolf::Rectangle HurtboxComponent::GetHurtbox()
+HurtboxComponent::~HurtboxComponent()
 {
-    return this->m_Hurtbox;
+    HurtboxComponent::s_iComponentCount -= 1;
+}
+
+void HurtboxComponent::AddHurtbox(glm::vec2 p_dimensions)
+{
+    this->m_vHurtboxes.push_back(wolf::Rectangle(glm::vec2(0.0f, 0.0f), p_dimensions));
 }
 
 // Get vector of hurtboxes

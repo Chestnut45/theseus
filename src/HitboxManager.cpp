@@ -124,8 +124,8 @@ bool HitboxManager::IsColliding(HitboxComponent* p_hitbox1, HitboxComponent* p_h
                 )
             {
                 return true;
-            }
-            return false;
-                }
-            }
+            }        
+        }
+    }
+    return false;
 }

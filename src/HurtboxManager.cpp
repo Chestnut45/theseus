@@ -62,31 +62,31 @@ void HurtboxManager::CheckCollisions()
                 std::cout << "HurtBoxCollide - health:" << healthComponent->GetHealth() << std::endl;
 
 
-                    if(hurtbox1.IsDestroyedOnCollision())
-                        {
-                            //std::cout << "Delete hurtbox id1:" << id1 << std::endl;
-                            hurtbox1.RaiseDestroyFlag();
-                            //this->m_scene->DeleteObject(id1);
-                            //-------------------------------------//
-                            //                                     //
-                            // DESTROY GAME OBJECT - DELAY 1 FRAME //
-                            //                                     //
-                            //-------------------------------------//
-                        }
-
-                        if(hurtbox2.IsDestroyedOnCollision())
-                        {
-                            //std::cout << "Delete hurtbox id2:" << id2 << std::endl;
-                            hurtbox2.RaiseDestroyFlag();
-                            //this->m_scene->DeleteObject(id2);
-                            //-------------------------------------//
-                            //                                     //
-                            // DESTROY GAME OBJECT - DELAY 1 FRAME //
-                            //                                     //
-                            //-------------------------------------//
-                        }                    
+                if(hurtbox1.IsDestroyedOnCollision())
+                    {
+                        //std::cout << "Delete hurtbox id1:" << id1 << std::endl;
+                        hurtbox1.RaiseDestroyFlag();
+                        //this->m_scene->DeleteObject(id1);
+                        //-------------------------------------//
+                        //                                     //
+                        // DESTROY GAME OBJECT - DELAY 1 FRAME //
+                        //                                     //
+                        //-------------------------------------//
                     }
+
+                    if(hurtbox2.IsDestroyedOnCollision())
+                    {
+                        //std::cout << "Delete hurtbox id2:" << id2 << std::endl;
+                        hurtbox2.RaiseDestroyFlag();
+                        //this->m_scene->DeleteObject(id2);
+                        //-------------------------------------//
+                        //                                     //
+                        // DESTROY GAME OBJECT - DELAY 1 FRAME //
+                        //                                     //
+                        //-------------------------------------//
+                    }                    
                 }
+            }
         }
     }
 }

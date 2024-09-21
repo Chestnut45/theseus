@@ -18,9 +18,19 @@ class HurtboxComponent : public wolf::BaseComponent
     friend HurtboxManager;
 
 public:  
-    HurtboxComponent();
-    HurtboxComponent(glm::vec2 p_dimensions, bool p_type, float p_damage, bool p_doc , bool p_relativity);
+    HurtboxComponent(bool p_type, float p_damage, bool p_doc , bool p_relativity);
     
+    virtual ~HurtboxComponent();
+
+    // Delete copy constructor/assignment
+    HurtboxComponent(const HurtboxComponent&) = delete;
+    HurtboxComponent& operator=(const HurtboxComponent&) = delete;
+
+    // Delete move constructor/assignment
+    HurtboxComponent(HurtboxComponent&& other) = delete;
+    HurtboxComponent& operator=(HurtboxComponent&& other) = delete;
+
+    void AddHurtbox(glm::vec2 p_dimensions);
 
     wolf::Rectangle GetHurtbox();
     std::vector<wolf::Rectangle> GetHurtboxes() const;
@@ -41,7 +51,6 @@ private:
     bool m_bDestroy = false; //Game object destruction flag
     bool m_bIsRelative = false;
 
-    wolf::Rectangle m_Hurtbox;
     std::vector<wolf::Rectangle> m_vHurtboxes;
 
     static int s_iComponentCount;

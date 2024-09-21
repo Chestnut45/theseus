@@ -48,8 +48,8 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     playerHitboxComponent.AddHitbox(glm::vec2(32.0f, 32.0f));
 
     // Add a hurtbox to the player
-    m_pPlayerObject->AddComponent<HurtboxComponent>(glm::vec2(32.0f, 32.0f), 0, 0, 0, 0);
-
+    auto& playerHurtboxComponent = m_pPlayerObject->AddComponent<HurtboxComponent>(0, 0, 0, 0);
+    playerHurtboxComponent.AddHurtbox(glm::vec2(32.0f, 32.0f));
     // Add a health component to the player
     m_pPlayerObject->AddComponent<HealthComponent>(1000);
 
@@ -62,7 +62,8 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     //auto& objVelocity = obj->AddComponent<VelocityComponent>();
     auto& objHitbox = obj->AddComponent<HitboxComponent>(1, 0);
     objHitbox.AddHitbox(glm::vec2(32.0f, 32.0f));
-    auto& objHurtbox = obj->AddComponent<HurtboxComponent>(glm::vec2(32.0f), 1, 1, 1, 0);
+    auto& objHurtbox = obj->AddComponent<HurtboxComponent>(1, 1, 1, 0);
+    objHurtbox.AddHurtbox(glm::vec2(32.0f, 32.0f));
     
     obj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(64.0f, 0.0f));
     // objVelocity.SetVelocity(glm::vec2(-32.0f, 0.0f));
