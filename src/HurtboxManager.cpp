@@ -2,9 +2,18 @@
 // File: HurtboxManager.cpp
 // Original Author: Nguyễn Minh Nhật
 // Manages Hurtbox collision.
+// User Guide:
+//     + Create new Manager object before any game object is added to scene
+//     + Init() to pass reference to scene
+//     + Call Update() every frame
+// Notes:
+//     + s_iComponentCount incremented/decremented in HurtboxComponent
 //-----------------------------------------------------------------------------
 
 #include "HurtboxManager.h"
+
+int HurtboxManager::s_iComponentCount = 0;
+
 
 HurtboxManager::HurtboxManager()
 {
@@ -30,67 +39,59 @@ void HurtboxManager::CheckCollisions()
 {
     int i = 0;
 
-    for (auto&&[id1, object1, hurtbox1] : this->m_scene->Each<wolf::GameObject, HurtboxComponent>())
+    if(HurtboxManager::s_iComponentCount >= 2)
     {
-        i++;
-        for (auto&&[id2, object2, hurtbox2] : this->m_scene->Each<wolf::GameObject, HurtboxComponent>() | std::views::drop(i))
+        for (auto&&[id1, object1, hurtbox1] : this->m_scene->Each<wolf::GameObject, HurtboxComponent>())
         {
-            if(id1 != id2)
+            i++;
+            for (auto&&[id2, object2, hurtbox2] : this->m_scene->Each<wolf::GameObject, HurtboxComponent>() | std::views::drop(i))
             {
-                if(this->IsColliding(&hurtbox1, &hurtbox2))
+                if(id1 != id2)
                 {
-                    //std::cout << "HurtBoxCollide" << this->count << std::endl;
-
-                HealthComponent* healthComponent = nullptr;
-            
-                if(hurtbox1.GetType() == 0)
-                {
-                    healthComponent = object1.GetComponent<HealthComponent>();  
-                    if(healthComponent!= nullptr)
+                    if(this->IsColliding(&hurtbox1, &hurtbox2))
                     {
-                        healthComponent->Damage(hurtbox2.GetDamage());
-                    }
-                }
+                        //std::cout << "HurtBoxCollide" << this->count << std::endl;
 
-                else if(hurtbox2.GetType() == 0)
-                {
-                    healthComponent = hurtbox2.GetGameObject()->GetComponent<HealthComponent>();
-                    if(healthComponent!= nullptr)
+                    HealthComponent* healthComponent = nullptr;
+                
+                    if(hurtbox1.GetType() == 0)
                     {
-                        healthComponent->Damage(hurtbox1.GetDamage());
-                    }
-                }
-                //std::cout << "HurtBoxCollide - health:" << healthComponent->GetHealth() << std::endl;
-
-
-                if(hurtbox1.IsDestroyedOnCollision())
-                    {
-                        std::cout << "HurtboxManager - Delete id1:" << id1 << std::endl;
-                        hurtbox1.RaiseDestroyFlag();
-                        this->m_vToBeDestroyed.push_back(&hurtbox1);
-                        //-------------------------------------//
-                        //                                     //
-                        // DESTROY GAME OBJECT - DELAY 1 FRAME //
-                        //                                     //
-                        //-------------------------------------//
+                        healthComponent = object1.GetComponent<HealthComponent>();  
+                        if(healthComponent!= nullptr)
+                        {
+                            healthComponent->Damage(hurtbox2.GetDamage());
+                        }
                     }
 
-                    if(hurtbox2.IsDestroyedOnCollision())
+                    else if(hurtbox2.GetType() == 0)
                     {
-                        std::cout << "HurtboxManager - Delete id2:" << id2 << std::endl;
-                        hurtbox2.RaiseDestroyFlag();
-                        this->m_vToBeDestroyed.push_back(&hurtbox2);
-                        //-------------------------------------//
-                        //                                     //
-                        // DESTROY GAME OBJECT - DELAY 1 FRAME //
-                        //                                     //
-                        //-------------------------------------//
-                    }                    
+                        healthComponent = hurtbox2.GetGameObject()->GetComponent<HealthComponent>();
+                        if(healthComponent!= nullptr)
+                        {
+                            healthComponent->Damage(hurtbox1.GetDamage());
+                        }
+                    }
+                    //std::cout << "HurtBoxCollide - health:" << healthComponent->GetHealth() << std::endl;
+
+
+                    if(hurtbox1.IsDestroyedOnCollision())
+                        {
+                            std::cout << "HurtboxManager - Delete id1:" << id1 << std::endl;
+                            hurtbox1.RaiseDestroyFlag();
+                            this->m_vToBeDestroyed.push_back(&hurtbox1);
+                        }
+
+                        if(hurtbox2.IsDestroyedOnCollision())
+                        {
+                            std::cout << "HurtboxManager - Delete id2:" << id2 << std::endl;
+                            hurtbox2.RaiseDestroyFlag();
+                            this->m_vToBeDestroyed.push_back(&hurtbox2);
+                        }                    
+                    }
                 }
             }
         }
-    }
-    
+    }  
 }
 
 // Remove objects flagged for destruction
@@ -100,7 +101,7 @@ void HurtboxManager::RemoveFlagged()
     {
         std::cout << "HurtboxManager - Remove id:" << this->m_vToBeDestroyed.at(i)->GetGameObject()->GetID() << std::endl;
         this->m_scene->DeleteObject(this->m_vToBeDestroyed.at(i)->GetGameObject()->GetID());
-        std::cout << "HurtboxManager - NOC:" << HurtboxComponent::GetComponentCount() << std::endl;
+        
     }
     this->m_vToBeDestroyed.clear();
 }

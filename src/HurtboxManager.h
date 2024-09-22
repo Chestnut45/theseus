@@ -1,7 +1,13 @@
 //-----------------------------------------------------------------------------
 // File: HurtboxManager.h
 // Original Author: Nguyễn Minh Nhật
-// Manages Hurttbox collision.
+// Manages Hurtbox collision.
+// User Guide:
+//     + Create new Manager object before any game object is added to scene
+//     + Init() to pass reference to scene
+//     + Call Update() every frame
+// Notes:
+//     + s_iComponentCount incremented/decremented in HurtboxComponent
 //-----------------------------------------------------------------------------
 
 #pragma once
@@ -18,6 +24,8 @@ class HurtboxComponent;
 
 class HurtboxManager
 {
+friend HurtboxComponent;
+
 public:
     HurtboxManager();
     virtual ~HurtboxManager();
@@ -32,7 +40,7 @@ private:
     void RemoveFlagged();
     void CheckCollisions();
 
-    int m_iComponentCount = 0;
+    static int s_iComponentCount;
 
     std::vector<HurtboxComponent *> m_vToBeDestroyed;
 };

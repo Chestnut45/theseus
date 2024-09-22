@@ -2,7 +2,12 @@
 // File: HitboxManager.h
 // Original Author: Nguyễn Minh Nhật
 // Manages Hitbox collision.
-// feat. D. Landry
+// User Guide:
+//     + Create new Manager object before any game object is added to scene
+//     + Init() to pass reference to scene
+//     + Call Update() every frame
+// Notes:
+//     + s_iComponentCount incremented/decremented in HitboxComponent
 //-----------------------------------------------------------------------------
 
 #pragma once
@@ -17,6 +22,8 @@
 class HitboxComponent;
 class HitboxManager
 {
+friend HitboxComponent;
+
 public:
     HitboxManager();
     virtual ~HitboxManager();
@@ -30,6 +37,8 @@ private:
     bool IsColliding(HitboxComponent* p_hitbox1, HitboxComponent* p_hitbox2);
     void RemoveFlagged();
     void CheckCollisions();
+
+    static int s_iComponentCount;
 
     std::vector<HitboxComponent *> m_vToBeDestroyed;
 };

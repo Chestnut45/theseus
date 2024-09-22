@@ -64,7 +64,6 @@ HitboxComponent::HitboxComponent(bool p_doc, bool p_relativity)
     this->m_bIsDestroyedOnCollision = p_doc;
     this->m_bIsRelative = p_relativity;
     
-    HitboxComponent::s_iComponentCount++;
     if (s_pProgram == nullptr)
     {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -78,12 +77,15 @@ HitboxComponent::HitboxComponent(bool p_doc, bool p_relativity)
         s_pDecl->SetVertexBuffer(s_pVB);
         s_pDecl->End();
     }
+    HitboxComponent::s_iComponentCount++;
+    HitboxManager::s_iComponentCount++;
 }
 
 // Destructor
 HitboxComponent::~HitboxComponent()
 {   
-    HitboxComponent::s_iComponentCount -= 1;
+    HitboxComponent::s_iComponentCount--;
+    HitboxManager::s_iComponentCount--;
     if(HitboxComponent::s_iComponentCount == 0)
     {
         delete HitboxComponent::s_pDecl;

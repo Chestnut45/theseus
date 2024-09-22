@@ -45,7 +45,6 @@ HurtboxComponent::HurtboxComponent(bool p_type, float p_damage, bool p_doc, bool
     this->m_bIsDestroyedOnCollision = p_doc;
     this->m_bIsRelative = p_relativity;
 
-    HurtboxComponent::s_iComponentCount++;
     if (s_pProgram == nullptr)
     {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -59,11 +58,14 @@ HurtboxComponent::HurtboxComponent(bool p_type, float p_damage, bool p_doc, bool
         s_pDecl->SetVertexBuffer(s_pVB);
         s_pDecl->End();
     }
+    HurtboxComponent::s_iComponentCount++;
+    HurtboxManager::s_iComponentCount++;
 }
 
 HurtboxComponent::~HurtboxComponent()
 {
-    HurtboxComponent::s_iComponentCount -= 1;
+    HurtboxComponent::s_iComponentCount--;
+    HurtboxManager::s_iComponentCount--;
     if(HurtboxComponent::s_iComponentCount == 0)
     {
         delete HurtboxComponent::s_pDecl;

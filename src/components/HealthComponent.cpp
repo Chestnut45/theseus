@@ -65,9 +65,9 @@ void HealthComponent::Heal(float p_heal)
     }
 }
 
-// Increase health (without cap)
+// Increase cap & refill health
 void HealthComponent::Supercharge(float p_supercharge)
 {
-    this->m_health = p_supercharge;
-    this->m_cap = p_supercharge;
+    this->m_cap += p_supercharge;
+    this->m_health = this->m_cap;
 }

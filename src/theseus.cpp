@@ -23,6 +23,14 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     m_pStateManager = new GameStateManager();
     m_pStateManager->SetState(new MainMenuState(m_pStateManager));
 
+    // Create manager objects
+    this->m_pHitboxManager = new HitboxManager();
+    this->m_pHurtboxManager = new HurtboxManager();
+
+    // Initialise managers
+    this->m_pHitboxManager->Init(&this->m_scene);
+    this->m_pHurtboxManager->Init(&this->m_scene);
+
     // Create player object
     m_pPlayerObject = &m_scene.CreateObject2D();
 
@@ -67,12 +75,6 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     
     obj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(64.0f, 0.0f));
     // objVelocity.SetVelocity(glm::vec2(-32.0f, 0.0f));
-
-    this->m_pHitboxManager = new HitboxManager();
-    this->m_pHitboxManager->Init(&this->m_scene);
-
-    this->m_pHurtboxManager = new HurtboxManager();
-    this->m_pHurtboxManager->Init(&this->m_scene);
 }
 
 Theseus::~Theseus()
