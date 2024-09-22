@@ -5,8 +5,6 @@
 #include "LabyrinthBuilder.h"
 #include "PlayerController.h"
 #include "VelocityComponent.h"
-#include "GameStateManager.h"
-#include "MainMenuState.h"
 
 class Theseus : public wolf::App
 {
