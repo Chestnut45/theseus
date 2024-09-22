@@ -59,9 +59,10 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         bool SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize);
         wolf::Texture* GetTexture() const {return m_pTexture;};
 
-        // You CANNOT change the frame size without changing the current texture as doing so
-        // would make a MESS of the UV coordinates
+        // You CANNOT change the frame size or texture path without using SetTexture as
+        // doing so would SERIOUSLY mess up the UV coordinates
         const glm::vec2& GetFrameSize() const {return m_v2FrameSize;};
+        const std::string& GetCurrentTexturePath() {return m_strCurrentTexturePath;};
 
         void Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale);
 
@@ -75,6 +76,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         SpriteAnimation2D* m_pCurrentAnim = nullptr; // The currently playing animation
         FrameUVCoordSet* m_pCurrentFrameUVs = nullptr; // The UV coordinates for the current animation frame
         wolf::Texture* m_pTexture = nullptr; // The texture we're currently using
+        std::string m_strCurrentTexturePath;
 
         float m_fPlaybackSpeed; // How fast is the animation playing?
         float m_fCurrentFrame; // Which animation frame are we currently on?

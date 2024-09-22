@@ -11,8 +11,12 @@ void PlayState::Enter()
     m_pPlayerObject = &scene.CreateObject2D();
 
     // Add a sprite to the player object and scale it up
-    auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
-    sprite.SetOriginToCenterOfTexture();
+    auto& animSprite = m_pPlayerObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
+    animSprite.AddAnimation("WalkSouth", 1, 8, true);
+    animSprite.AddAnimation("WalkEast", 9, 16, true);
+    animSprite.AddAnimation("WalkNorth", 17, 24, true);
+    animSprite.AddAnimation("WalkWest", 25, 32, true);
+    animSprite.SetAnimation("WalkSouth");
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
 
     // Add Velocity and PlayerController components to the player object
@@ -64,6 +68,10 @@ void PlayState::Update(float delta)
     // Update player controller
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController) playerController->Update(delta);
+
+    // Update player animations
+    auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
+    if (playerAnim) playerAnim->Update(delta);
 
     // Apply velocity to transforms for all objects with both components
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())  // Use GetScene()

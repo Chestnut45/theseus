@@ -12,3 +12,4 @@
 #include <components/LabyrinthManager.h>
 #include <components/PlayerController.h>
 #include <components/VelocityComponent.h>
+#include <components/AnimatedSprite2D.h>

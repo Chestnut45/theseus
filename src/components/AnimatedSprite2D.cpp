@@ -68,6 +68,12 @@ AnimatedSprite2D::AnimatedSprite2D(const std::string& p_strPathToAnimSheet, cons
 }
 
 bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize) {
+    // If we're given the path to the texture file that we're already using then we don't need
+    // to go through the process of setting it again, so we just return true
+    if (strcmp(p_strPathToAnimSheet.c_str(), m_strCurrentTexturePath.c_str()) == 0) {
+        return true;
+    }
+
     // Create a new texture
     wolf::Texture* pNewTexture = wolf::TextureManager::CreateTexture(p_strPathToAnimSheet);
 
@@ -142,7 +148,7 @@ bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const
         }
     }
 
-    // Now we check if there this AnimatedSprite2D instance already had a texture
+    // Now we check if this AnimatedSprite2D instance already had a texture
     if (m_pTexture) {
         wolf::TextureManager::DestroyTexture(m_pTexture);   // And if it did we destroy it
     }
@@ -153,6 +159,7 @@ bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const
     // And then let the AnimatedSprite2D instance know that its texture is good to go!
     m_pTexture = pNewTexture;
     m_v2FrameSize = p_v2FrameSize;
+    m_strCurrentTexturePath = p_strPathToAnimSheet;
     return true;
 }
 
@@ -200,9 +207,12 @@ bool AnimatedSprite2D::AddAnimation(const std::string& p_strName, int p_iStartFr
 }
 
 bool AnimatedSprite2D::RemoveAnimation(const std::string& p_strName) {
-    // Attempt to erase the map element with key p_strName
-    if (m_mAnimationMap.erase(p_strName) > 0) {
-        return true; // Return true if we found and erased it
+    // Attempt to erase (and destroy) the map element with key p_strName
+    auto animIt = m_mAnimationMap.find(p_strName);
+    if (animIt != m_mAnimationMap.end()) {
+        delete(animIt->second);
+        m_mAnimationMap.erase(p_strName);
+        return true;
     }
     return false; // And false if we couldn't
 }
