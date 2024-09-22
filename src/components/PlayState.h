@@ -6,7 +6,7 @@
 //-----------------------------------------------------------------------------
 #pragma once
 #include "GameState.h"
-#include "theseus.h"  // Include the main game class
+#include <theseus.h> // Include the main game class
 
 
 class LabyrinthBuilder;

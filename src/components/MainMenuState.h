@@ -1,6 +1,6 @@
 #pragma once
 #include "GameState.h"
-#include "theseus.h"  
+#include <theseus.h>
 
 class MainMenuState : public GameState
 {
