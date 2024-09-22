@@ -111,21 +111,24 @@ bool HurtboxManager::IsColliding(HurtboxComponent* p_hurtboxComponent1, HurtboxC
     for(wolf::Rectangle hurtbox1 : p_hurtboxComponent1->GetHurtboxes())
     {
         glm::vec2 dimensions1 = glm::vec2(hurtbox1.GetWidth(), hurtbox1.GetHeight());
+        glm::vec2 offset1 = hurtbox1.GetPosition();
+
         for(wolf::Rectangle hurtbox2 : p_hurtboxComponent2->GetHurtboxes())
         {
             glm::vec2 dimensions2 = glm::vec2(hurtbox2.GetWidth(), hurtbox2.GetHeight());
+            glm::vec2 offset2 = hurtbox2.GetPosition();
 
             if(p_hurtboxComponent1->GetType() != p_hurtboxComponent2->GetType())
             {
 
-                glm::vec2 position1 = p_hurtboxComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-                glm::vec2 position2 = p_hurtboxComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                glm::vec2 translation1 = p_hurtboxComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                glm::vec2 translation2 = p_hurtboxComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
 
                 if(
-                    position1.x + dimensions1.x > position2.x && // Right1 > Left2
-                    position1.x < position2.x + dimensions2.x && // Left1 < Right2
-                    position1.y + dimensions1.y > position2.y && // Lower1 > Upper2
-                    position1.y < position2.y + dimensions2.y    // Upper1 < Lower2
+                    translation1.x + dimensions1.x + offset1.x > translation2.x + offset2.x                    && // Right1 > Left2
+                    translation1.x + offset1.x                 < translation2.x + dimensions2.x + offset2.x    && // Left1 < Right2
+                    translation1.y + dimensions1.y + offset1.y > translation2.y + offset2.y                    && // Lower1 > Upper2
+                    translation1.y + offset1.y                 < translation2.y + dimensions2.y + offset2.y       // Upper1 < Lower2
                     )
                 {
                     return true;

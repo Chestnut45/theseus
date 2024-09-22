@@ -36,8 +36,10 @@ void HealthComponent::Damage(float p_damage)
     {
         if(armourComponent != nullptr)
         {
-            //std::cout << "Damage: " << p_damage * ((100 - armourComponent->GetMultiplier()) * 0.01f) << std::endl;
+            std::cout << "HealthComponent - Damage: " << p_damage * ((100 - armourComponent->GetMultiplier()) * 0.01f) << std::endl;
             this->m_health -= p_damage * ((100 - armourComponent->GetMultiplier()) * 0.01f);
+            std::cout << "HealthComponent - Health: " << this->m_health << std::endl;
+            
         }
         else
         {

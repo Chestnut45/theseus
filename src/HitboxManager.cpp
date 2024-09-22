@@ -117,14 +117,17 @@ bool HitboxManager::IsColliding(HitboxComponent* p_hitbox1, HitboxComponent* p_h
     for(wolf::Rectangle hitbox1 : p_hitbox1->GetHitboxes())
     {
         glm::vec2 dimensions1 = glm::vec2(hitbox1.GetWidth(), hitbox1.GetHeight());
+        glm::vec2 offset1 = hitbox1.GetPosition();
         for(wolf::Rectangle hitbox2 : p_hitbox2->GetHitboxes())
         {
             glm::vec2 dimensions2 = glm::vec2(hitbox2.GetWidth(), hitbox2.GetHeight());
+            glm::vec2 offset2 = hitbox2.GetPosition();
+            
             if(
-                position1.x + dimensions1.x > position2.x && // Right1 > Left2
-                position1.x < position2.x + dimensions2.x && // Left1 < Right2
-                position1.y + dimensions1.y > position2.y && // Lower1 > Upper2
-                position1.y < position2.y + dimensions2.y    // Upper1 < Lower2
+                position1.x + dimensions1.x + offset1.x > position2.x + offset2.x                   && // Right1 > Left2
+                position1.x + offset1.x                 < position2.x + dimensions2.x + offset2.x   && // Left1 < Right2
+                position1.y + dimensions1.y + offset1.y > position2.y + offset2.y                   && // Lower1 > Upper2
+                position1.y + offset1.y                 < position2.y + dimensions2.y + offset2.y      // Upper1 < Lower2
                 )
             {
                 return true;

@@ -1,5 +1,6 @@
-out vec4 pixelColor;
+uniform vec4 colour;
+out vec4 pixelColour;
 
 void main() {
-    pixelColor = vec4(0.0, 0.7, 0.4, 0.0);
+    pixelColour = colour;
 }

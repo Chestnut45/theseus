@@ -53,11 +53,11 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     
     // Add a hitbox to the player
     auto& playerHitboxComponent = m_pPlayerObject->AddComponent<HitboxComponent>(0 , 0);
-    playerHitboxComponent.AddHitbox(glm::vec2(32.0f, 32.0f));
+    playerHitboxComponent.AddHitbox(glm::vec2(32.0f, 78.0f), glm::vec2(30.0f, 8.0f));
 
     // Add a hurtbox to the player
     auto& playerHurtboxComponent = m_pPlayerObject->AddComponent<HurtboxComponent>(0, 0, 0, 0);
-    playerHurtboxComponent.AddHurtbox(glm::vec2(32.0f, 32.0f));
+    playerHurtboxComponent.AddHurtbox(glm::vec2(32.0f, 78.0f), glm::vec2(30.0f, 8.0f));
     // Add a health component to the player
     m_pPlayerObject->AddComponent<HealthComponent>(1000);
 

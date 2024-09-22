@@ -35,6 +35,8 @@ public:
     HitboxComponent& operator=(HitboxComponent&& other) = delete;
 
     void AddHitbox(glm::vec2 p_dimensions);
+    void AddHitbox(glm::vec2 p_dimensions, glm::vec2 p_offset);
+    void SetOffset(glm::vec2 p_offset);
 
     std::vector<wolf::Rectangle> GetHitboxes() const;
 
@@ -49,7 +51,7 @@ public:
 private:
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
     bool m_bDestroy = false; // Game object destruction flag
-    bool m_bIsRelative = false; // Hitboxes relative to scale of object
+    bool m_bIsRelative = false; // Hitbox scales relative to object
     
     std::vector<wolf::Rectangle> m_vHitboxes;
     

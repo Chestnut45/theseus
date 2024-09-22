@@ -34,6 +34,7 @@ public:
     HurtboxComponent& operator=(HurtboxComponent&& other) = delete;
 
     void AddHurtbox(glm::vec2 p_dimensions);
+    void AddHurtbox(glm::vec2 p_dimensions, glm::vec2 p_offset);
 
     wolf::Rectangle GetHurtbox();
     std::vector<wolf::Rectangle> GetHurtboxes() const;
@@ -53,7 +54,7 @@ private:
     float m_iDamage = 0.0f; // Amount of Damage to Deal (only for Damage Dealer hurtboxes) 
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
     bool m_bDestroy = false; //Game object destruction flag
-    bool m_bIsRelative = false;
+    bool m_bIsRelative = false; // Hitbox scales relative to object
 
     std::vector<wolf::Rectangle> m_vHurtboxes;
 
