@@ -1,6 +1,6 @@
 #include "MainMenuState.h"
 #include "PlayState.h"
-#include "ImGui/imgui.h"
+#include <imgui/imgui.h>
 
 void MainMenuState::Enter()
 {
@@ -20,12 +20,12 @@ void MainMenuState::Update(float delta)
 
     if (ImGui::Button("Play"))
     {
-        m_manager->PushState(new PlayState(m_manager, m_gameInstance));
+        m_pStateManager->PushState(new PlayState(m_pStateManager, m_pGameInstance));
     }
 
     if (ImGui::Button("Quit"))
     {
-        m_gameInstance->Shutdown();  // Properly shut down the game
+        m_pGameInstance->Shutdown();  // Properly shut down the game
     }
 
     ImGui::End();

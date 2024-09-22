@@ -32,42 +32,29 @@ Theseus::~Theseus()
 
 void Theseus::Update(float delta)
 {
-    // Handle any hotkeys (such as toggling debug mode or the labyrinth builder)
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_GRAVE_ACCENT)) m_showDebug = !m_showDebug;
 
     // Handle window resizing
     if (m_windowResized)
     {
+        // Update camera's size to match the window
         wolf::Camera2D* camera = m_scene.GetActiveCamera();
         if (camera) camera->SetViewSize(m_width, m_height);
         m_windowResized = false;
     }
 
     // Update the current game state (whether MainMenu, Play, etc.)
-    if (m_pStateManager)
-    {
-        m_pStateManager->Update(delta);
-    }
+    m_pStateManager->Update(delta);
     
-    // Show debug information window
-    if (m_showDebug)
-    {
-        ShowDebug();
-    }
-
+    if (m_showDebug) ShowDebug();
 }
 
 void Theseus::Render()
 {
-    
     // Clear the framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Render the current game state
-    if (m_pStateManager)
-    {
-        m_pStateManager->Render();
-    }
-
+    m_pStateManager->Render();
 }

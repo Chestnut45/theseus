@@ -14,7 +14,7 @@ class GameState
 {
 public:
     GameState(GameStateManager* manager, Theseus* gameInstance)
-        : m_manager(manager), m_gameInstance(gameInstance) {}
+        : m_pStateManager(manager), m_pGameInstance(gameInstance) {}
     virtual ~GameState() = default;
 
     // Lifecycle functions for states
@@ -28,6 +28,6 @@ public:
     virtual void Render() = 0;
 
 protected:
-    GameStateManager* m_manager;   // State manager
-    Theseus* m_gameInstance;       // Reference to the game instance
+    GameStateManager* m_pStateManager;   // State manager
+    Theseus* m_pGameInstance;       // Reference to the game instance
 };

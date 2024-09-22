@@ -1,11 +1,11 @@
 #include "PlayState.h"
 #include "PauseState.h"
-#include "ImGui/imgui.h"
+#include <imgui/imgui.h>
 
 void PlayState::Enter()
 {
     // Initialize the game world, player, and camera when PlayState is entered
-    auto& scene = m_gameInstance->GetScene();  // Access m_scene via GetScene()
+    auto& scene = m_pGameInstance->GetScene();  // Access m_scene via GetScene()
 
     // Create player object
     m_pPlayerObject = &scene.CreateObject2D();
@@ -33,14 +33,14 @@ void PlayState::Exit()
     // Clean up game resources when exiting PlayState
     if (m_pPlayerObject)
     {
-        m_gameInstance->GetScene().DeleteObject(m_pPlayerObject->GetID());  // Access m_scene via GetScene()
+        m_pGameInstance->GetScene().DeleteObject(m_pPlayerObject->GetID());  // Access m_scene via GetScene()
         m_pPlayerObject = nullptr;
     }
 
     if (m_pLabyrinthBuilder)
     {
         // Dereference the pointer to the GameObject returned by GetGameObject() to call GetID()
-        m_gameInstance->GetScene().DeleteObject(m_pLabyrinthBuilder->GetGameObject()->GetID());
+        m_pGameInstance->GetScene().DeleteObject(m_pLabyrinthBuilder->GetGameObject()->GetID());
         m_pLabyrinthBuilder = nullptr;
     }
 }
@@ -60,62 +60,31 @@ void PlayState::Update(float delta)
     // Handle pause input (press Escape to pause)
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
-        m_manager->PushState(new PauseState(m_manager, m_gameInstance));  // Use m_gameInstance
+        m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));  // Use m_pGameInstance
         return; // Stop further updates if paused
     }
 
-    // Toggle the Labyrinth Builder GUI when the 'L' key is pressed
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_L))
+    // Toggle labyrinth builder gui with 'L' key
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_L)) m_showLabyrinthBuilder = !m_showLabyrinthBuilder;
+
+    // Show the Labyrinth Builder debug GUI
+    if (m_showLabyrinthBuilder) m_pLabyrinthBuilder->ShowGUI();
+
+    // Update player controller
+    auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
+    if (playerController) playerController->Update(delta);
+
+    // Apply velocity to transforms for all objects with both components
+    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())  // Use GetScene()
     {
-        m_showLabyrinthBuilder = !m_showLabyrinthBuilder;
-        std::cout << "Labyrinth Builder GUI toggle: " << m_showLabyrinthBuilder << std::endl;
+        transform.Translate(velocity.GetVelocity() * delta);
     }
 
-    // Show the Labyrinth Builder GUI if toggled on
-    if (m_showLabyrinthBuilder && m_pLabyrinthBuilder)
-    {
-        m_pLabyrinthBuilder->ShowGUI();
-    }
-
-    // Update game logic only if not paused
-    if (!m_isPaused)
-    {
-        // Update player controller
-        auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
-        if (playerController) playerController->Update(delta);
-
-        // Apply velocity to transforms for all objects with both components
-        for (auto&& [_, transform, velocity] : m_gameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())  // Use GetScene()
-        {
-            transform.Translate(velocity.GetVelocity() * delta);
-        }
-
-        // Update all game objects and components in the scene
-        m_gameInstance->GetScene().Update(delta);  // Use GetScene()
-    }
+    // Update all game objects and components in the scene
+    m_pGameInstance->GetScene().Update(delta);  // Use GetScene()
 }
 
 void PlayState::Render()
 {
-    if (!m_isPaused)
-    {
-        // Render the game world and objects
-        m_gameInstance->GetScene().Render();  // Use GetScene()
-    }
-
-    // Render pause overlay if paused
-    if (m_isPaused)
-    {
-        ImGui::Begin("Paused");
-        ImGui::Text("Game is paused.");
-        if (ImGui::Button("Resume"))
-        {
-            m_manager->PopState();  // Resume by popping the PauseState
-        }
-        if (ImGui::Button("Back to Main Menu"))
-        {
-            m_manager->ClearAndPushState(new MainMenuState(m_manager, m_gameInstance));  // Use m_gameInstance
-        }
-        ImGui::End();
-    }
+    m_pGameInstance->GetScene().Render();
 }

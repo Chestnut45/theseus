@@ -13,7 +13,7 @@
 
 #pragma once
 #include "GameState.h"
-#include "Theseus.h"  // Include the main game class
+#include "theseus.h"  // Include the main game class
 
 class PauseState : public GameState
 {
@@ -28,7 +28,4 @@ public:
     void Resume() override {}
     void Update(float delta) override;
     void Render() override;
-
-private:
-    Theseus* m_gameInstance;  // Pointer to the main game instance
 };

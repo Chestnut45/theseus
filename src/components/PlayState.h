@@ -6,7 +6,7 @@
 //-----------------------------------------------------------------------------
 #pragma once
 #include "GameState.h"
-#include "Theseus.h"  // Include the main game class
+#include "theseus.h"  // Include the main game class
 
 
 class LabyrinthBuilder;
@@ -25,8 +25,12 @@ public:
     void Render() override;
 
 private:
+    
+    // Game objects / components that will exist for the duration of the play state
+    wolf::GameObject* m_pPlayerObject = nullptr;
+    LabyrinthBuilder* m_pLabyrinthBuilder = nullptr;
+
+    // Flags
     bool m_isPaused = false;
     bool m_showLabyrinthBuilder = false;
-    wolf::GameObject* m_pPlayerObject = nullptr;  // Pointer to the player object
-    LabyrinthBuilder* m_pLabyrinthBuilder = nullptr; // Labyrinth builder
 };
