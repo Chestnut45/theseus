@@ -24,8 +24,16 @@ public:
     virtual void Resume() = 0;
 
     // Game loop functions
+    // NOTE: Update and Render are only called when the
+    // state is currently at the top of the stack.
     virtual void Update(float delta) = 0;
     virtual void Render() = 0;
+
+    // Background game loop functions
+    // NOTE: BackgroundUpdate and BackgroundRender are only
+    // called when the state is not at the top of the stack.
+    virtual void BackgroundUpdate(float delta) = 0;
+    virtual void BackgroundRender() = 0;
 
 protected:
     GameStateManager* m_pStateManager;   // State manager

@@ -23,7 +23,13 @@ public:
     // make sure to cleanup your resources before shutting down.
     inline void Shutdown() { glfwSetWindowShouldClose(m_pWindow, true); }
 
-    // Access to the game's main scene
+    // Accessors
+
+    // Gets the dimensions of the game window
+    inline int GetWidth() const { return m_width; }
+    inline int GetHeight() const { return m_height; }
+
+    // Gets a reference to the main scene of the game
     inline wolf::Scene& GetScene() { return m_scene; }
 
 private:

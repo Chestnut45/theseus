@@ -47,21 +47,20 @@ void PlayState::Exit()
 
 void PlayState::Pause()
 {
-    m_isPaused = true;
 }
 
 void PlayState::Resume()
 {
-    m_isPaused = false;
 }
 
 void PlayState::Update(float delta)
 {
-    // Handle pause input (press Escape to pause)
+    // Input and debug hotkey handling
+
+    // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
-        m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));  // Use m_pGameInstance
-        return; // Stop further updates if paused
+        m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
     }
 
     // Toggle labyrinth builder gui with 'L' key
@@ -69,6 +68,8 @@ void PlayState::Update(float delta)
 
     // Show the Labyrinth Builder debug GUI
     if (m_showLabyrinthBuilder) m_pLabyrinthBuilder->ShowGUI();
+
+    // Main object / component updates
 
     // Update player controller
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
@@ -80,11 +81,32 @@ void PlayState::Update(float delta)
         transform.Translate(velocity.GetVelocity() * delta);
     }
 
-    // Update all game objects and components in the scene
-    m_pGameInstance->GetScene().Update(delta);  // Use GetScene()
+    // Base update for all game objects and components in the scene
+    m_pGameInstance->GetScene().Update(delta);
 }
 
 void PlayState::Render()
 {
+    // Render the game's scene
+    m_pGameInstance->GetScene().Render();
+}
+
+void PlayState::BackgroundUpdate(float delta)
+{
+    // Update logic for when state is inactive
+
+    // Show the Labyrinth Builder debug GUI
+    if (m_showLabyrinthBuilder) m_pLabyrinthBuilder->ShowGUI();
+
+    // TODO: A small amount of updates may need to happen here (when paused)
+    // NOTE: Depends on wolf::Scene::Update(...) which is changing soon
+    // ASSIGNEE: D'Anyil
+}
+
+void PlayState::BackgroundRender()
+{
+    // Render logic for when state is inactive
+    
+    // Render the game's scene
     m_pGameInstance->GetScene().Render();
 }

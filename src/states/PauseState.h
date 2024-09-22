@@ -22,4 +22,6 @@ public:
     void Resume() override {}
     void Update(float delta) override;
     void Render() override;
+    void BackgroundUpdate(float delta) override;
+    void BackgroundRender() override;
 };

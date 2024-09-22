@@ -6,7 +6,7 @@
 // forward declaration for the GameState.
 //-----------------------------------------------------------------------------
 #pragma once
-#include <stack>
+#include <vector>
 
 class GameState;
 
@@ -16,21 +16,31 @@ public:
     GameStateManager() = default;
     ~GameStateManager() { Clear(); }
 
-    // push a new state onto the stack
+    // Push a new state onto the stack
     void PushState(GameState* state);
-    // pop the current state off the stack
+
+    // Pop the current state off the stack
     void PopState();
-    // clear all states and push a new one
+
+    // Clear all states and push a new one
     void ClearAndPushState(GameState* state);
-    // get the current active state
+
+    // Get the current active state
     GameState* GetActiveState() const;
-    // update the active state
+
+    // Update the active state and background update the lower states
     void Update(float delta);
-    // render the active state
+
+    // Render the active state and background render the lower states
     void Render();
-    // clear the stack and remove all states
+
+    // Clear the stack and remove all states
     void Clear();
 
 private:
-    std::stack<GameState*> m_stateStack;  // Stack 
+    
+    // Stack of game states
+    // NOTE: Implemented as a vector, so we can background update
+    // and render all the states below the current top of the stack.
+    std::vector<GameState*> m_stateStack;
 };
