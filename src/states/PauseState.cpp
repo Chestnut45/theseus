@@ -45,7 +45,7 @@ void PauseState::Update(float delta)
     ImVec2 dimensions = ImGui::GetWindowSize();
     float textWidth = ImGui::CalcTextSize("Paused").x;
     ImGui::SetCursorPosX((dimensions.x - textWidth) * 0.5f);
-    ImGui::SetCursorPosY((dimensions.y - (buttonHeight * 3)) * 0.5f);
+    ImGui::SetCursorPosY((dimensions.y - (buttonHeight * 4)) * 0.5f);
     ImGui::TextColored(ImColor(128, 128, 128, 255), "Paused");
 
     // Spacing

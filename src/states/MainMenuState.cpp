@@ -48,12 +48,10 @@ void MainMenuState::Update(float delta)
     ImVec2 dimensions = ImGui::GetWindowSize();
     float textWidth = ImGui::CalcTextSize("Theseus").x;
     ImGui::SetCursorPosX((dimensions.x - textWidth) * 0.5f);
-    ImGui::SetCursorPosY((dimensions.y - (buttonHeight * 6)) * 0.5f);
+    ImGui::SetCursorPosY((dimensions.y - (buttonHeight * 5)) * 0.5f);
     ImGui::TextColored(ImColor(255, 215, 0, 255), "Theseus");
 
     // Spacing
-    ImGui::NewLine();
-    ImGui::NewLine();
     ImGui::NewLine();
 
     // Centered buttons
