@@ -1,14 +1,14 @@
 #pragma once
 
 //-----------------------------------------------------------------------------
-// File:			LabyrinthBuilder.h
+// File:			LabyrinthManager.h
 // Original Author:	D'Anyil Landry
 //
-// A class representing a game component used to build the labyrinth.
+// A class representing a game component used to generate and update the labyrinth.
 // 
 // When attached to a game object, calling Generate() will create all the
 // necessary objects and components to represent the labyrinth and add them
-// all as child objects of the builder.
+// all as child objects of the object the manager is attached to.
 // 
 // For now, it will only generate a test tilemap, but later it will manage the
 // chunk loading system as well as enemy spawns, items, etc.
@@ -53,23 +53,23 @@ struct Tile
     };
 };
 
-class LabyrinthBuilder : public wolf::BaseComponent
+class LabyrinthManager : public wolf::BaseComponent
 {
 
 // Public interface
 public:
 
-    // Create an empty labyrinth builder with default settings
-    LabyrinthBuilder();
-    ~LabyrinthBuilder();
+    // Create an empty labyrinth manager component with default settings
+    LabyrinthManager();
+    ~LabyrinthManager();
 
     // Delete copy constructor/assignment
-    LabyrinthBuilder(const LabyrinthBuilder&) = delete;
-    LabyrinthBuilder& operator=(const LabyrinthBuilder&) = delete;
+    LabyrinthManager(const LabyrinthManager&) = delete;
+    LabyrinthManager& operator=(const LabyrinthManager&) = delete;
 
     // Delete move constructor/assignment
-    LabyrinthBuilder(LabyrinthBuilder&& other) = delete;
-    LabyrinthBuilder& operator=(LabyrinthBuilder&& other) = delete;
+    LabyrinthManager(LabyrinthManager&& other) = delete;
+    LabyrinthManager& operator=(LabyrinthManager&& other) = delete;
 
     // TODO: Accessors and mutators for procedural generation config properties
 

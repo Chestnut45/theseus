@@ -1,43 +1,42 @@
-
 #pragma once
 
 #include <wolf.h>
-
 #include "GameInc.h"
-#include "LabyrinthBuilder.h"
-#include "PlayerController.h"
-#include "VelocityComponent.h"
-#include "AnimatedSprite2D.h"
 
 class Theseus : public wolf::App
 {
-    // Interface
-    public:
+public:
+    Theseus();
+    ~Theseus();
 
-        Theseus();
-        ~Theseus();
-
-        // Update the app, called every frame
-        void Update(float delta) override;
-        
-        // Rendering logic, called every frame
-        void Render() override;
+    // Update the app, called every frame
+    void Update(float delta) override;
     
-    private:
+    // Rendering logic, called every frame
+    void Render() override;
 
-        // The main game scene
-        wolf::Scene m_scene;
+    // Cleanly shut down the game
+    // NOTE: This will trigger the App's destructor, so
+    // make sure to cleanup your resources before shutting down.
+    inline void Shutdown() { glfwSetWindowShouldClose(m_pWindow, true); }
 
-        // A pointer to the player game object
-        wolf::GameObject* m_pPlayerObject = nullptr;
+    // Accessors
 
-        // Manager for handling game states
-        GameStateManager* m_pStateManager = nullptr;
+    // Gets the dimensions of the game window
+    inline int GetWidth() const { return m_width; }
+    inline int GetHeight() const { return m_height; }
 
-        // Labyrinth builder component pointer
-        LabyrinthBuilder* m_pLabyrinthBuilder = nullptr;
+    // Gets a reference to the main scene of the game
+    inline wolf::Scene& GetScene() { return m_scene; }
 
-        // Flags
-        bool m_showDebug = false;
-        bool m_showLabyrinthBuilder = false;
+private:
+
+    // Main game scene
+    wolf::Scene m_scene;
+
+    // Manager for handling game states
+    GameStateManager* m_pStateManager = nullptr;
+
+    // Flags
+    bool m_showDebug = false;
 };
