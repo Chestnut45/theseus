@@ -10,7 +10,7 @@
 #include <theseus.h> // Include the main game class
 
 
-class LabyrinthBuilder;
+class LabyrinthManager;
 
 class PlayState : public GameState
 {
@@ -31,8 +31,8 @@ private:
     
     // Game objects / components that will exist for the duration of the play state
     wolf::GameObject* m_pPlayerObject = nullptr;
-    LabyrinthBuilder* m_pLabyrinthBuilder = nullptr;
+    LabyrinthManager* m_pLabyrinthManager = nullptr;
 
     // Flags
-    bool m_showLabyrinthBuilder = false;
+    bool m_showLabyrinthManager = false;
 };

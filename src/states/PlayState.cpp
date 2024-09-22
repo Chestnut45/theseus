@@ -24,25 +24,15 @@ void PlayState::Enter()
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
 
-    // Add the labyrinth builder component to an empty object
-    m_pLabyrinthBuilder = &scene.CreateObject().AddComponent<LabyrinthBuilder>();
+    // Add the labyrinth manager component to an empty object
+    m_pLabyrinthManager = &scene.CreateObject().AddComponent<LabyrinthManager>();
 }
 
 void PlayState::Exit()
 {
-    // Clean up game resources when exiting PlayState
-    if (m_pPlayerObject)
-    {
-        m_pGameInstance->GetScene().DeleteObject(m_pPlayerObject->GetID());  // Access m_scene via GetScene()
-        m_pPlayerObject = nullptr;
-    }
-
-    if (m_pLabyrinthBuilder)
-    {
-        // Dereference the pointer to the GameObject returned by GetGameObject() to call GetID()
-        m_pGameInstance->GetScene().DeleteObject(m_pLabyrinthBuilder->GetGameObject()->GetID());
-        m_pLabyrinthBuilder = nullptr;
-    }
+    // Delete the game resources from the scene on exit
+    m_pPlayerObject->Delete();
+    m_pLabyrinthManager->GetGameObject()->Delete();
 }
 
 void PlayState::Pause()
@@ -63,11 +53,11 @@ void PlayState::Update(float delta)
         m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
     }
 
-    // Toggle labyrinth builder gui with 'L' key
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_L)) m_showLabyrinthBuilder = !m_showLabyrinthBuilder;
+    // Toggle Labyrinth Manager GUI with 'L' key
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_L)) m_showLabyrinthManager = !m_showLabyrinthManager;
 
-    // Show the Labyrinth Builder debug GUI
-    if (m_showLabyrinthBuilder) m_pLabyrinthBuilder->ShowGUI();
+    // Show the Labyrinth Manager debug GUI
+    if (m_showLabyrinthManager) m_pLabyrinthManager->ShowGUI();
 
     // Main object / component updates
 
@@ -95,8 +85,8 @@ void PlayState::BackgroundUpdate(float delta)
 {
     // Update logic for when state is inactive
 
-    // Show the Labyrinth Builder debug GUI
-    if (m_showLabyrinthBuilder) m_pLabyrinthBuilder->ShowGUI();
+    // Show the Labyrinth Manager debug GUI
+    if (m_showLabyrinthManager) m_pLabyrinthManager->ShowGUI();
 
     // TODO: A small amount of updates may need to happen here (when paused)
     // NOTE: Depends on wolf::Scene::Update(...) which is changing soon
