@@ -1,13 +1,7 @@
 //-----------------------------------------------------------------------------
 // File:			PauseState.h
 // Original Author:	Youssef Ashraf
-// ver 1.0
-// A class that's responsible for the Concrete Pause State.
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-// File:			PauseState.h
-// Original Author:	Youssef Ashraf
-// ver 1.0
+// ver 1.1
 // A class responsible for the Concrete Pause State.
 //-----------------------------------------------------------------------------
 

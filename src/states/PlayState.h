@@ -1,7 +1,8 @@
 //-----------------------------------------------------------------------------
 // File:			PlayState.h
 // Original Author:	Youssef Ashraf
-// ver 1.0
+// Modifications : D'Anyil Landry
+// ver 1.1
 // A class that's responsible for the Concrete Play State.
 //-----------------------------------------------------------------------------
 #pragma once

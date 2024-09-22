@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:			GameStateManager.h
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// A class that's responsible for the State Manager
+// forward declaration for the GameState.
+//-----------------------------------------------------------------------------
 #pragma once
 #include <stack>
 
