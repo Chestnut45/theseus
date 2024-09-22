@@ -37,7 +37,7 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     // Add a test sprite to the player object and scale up
     auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
     // sprite.SetOriginToCenterOfTexture();
-    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
+    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
 
     // Add Velocity and PlayerController components to the player object
     auto& velocity = m_pPlayerObject->AddComponent<VelocityComponent>();
@@ -52,12 +52,12 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     m_pLabyrinthBuilder = &m_scene.CreateObject().AddComponent<LabyrinthBuilder>();
     
     // Add a hitbox to the player
-    auto& playerHitboxComponent = m_pPlayerObject->AddComponent<HitboxComponent>(0 , 0);
-    playerHitboxComponent.AddHitbox(glm::vec2(32.0f, 78.0f), glm::vec2(30.0f, 8.0f));
+    auto& playerHitboxComponent = m_pPlayerObject->AddComponent<HitboxComponent>(0 , 1);
+    playerHitboxComponent.AddHitbox(glm::vec2(13.0f, 26.0f), glm::vec2(9.0f, 2.0f));
 
     // Add a hurtbox to the player
-    auto& playerHurtboxComponent = m_pPlayerObject->AddComponent<HurtboxComponent>(0, 0, 0, 0);
-    playerHurtboxComponent.AddHurtbox(glm::vec2(32.0f, 78.0f), glm::vec2(30.0f, 8.0f));
+    auto& playerHurtboxComponent = m_pPlayerObject->AddComponent<HurtboxComponent>(0, 0, 0, 1);
+    playerHurtboxComponent.AddHurtbox(glm::vec2(13.0f, 26.0f), glm::vec2(9.0f, 2.0f));
     // Add a health component to the player
     m_pPlayerObject->AddComponent<HealthComponent>(1000);
 
@@ -73,7 +73,7 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     auto& objHurtbox = obj->AddComponent<HurtboxComponent>(1, 1, 1, 0);
     objHurtbox.AddHurtbox(glm::vec2(32.0f, 32.0f));
     
-    obj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(64.0f, 0.0f));
+    obj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(128.0f, 0.0f));
     // objVelocity.SetVelocity(glm::vec2(-32.0f, 0.0f));
 }
 

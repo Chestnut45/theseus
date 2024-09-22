@@ -36,7 +36,6 @@ public:
 
     void AddHitbox(glm::vec2 p_dimensions);
     void AddHitbox(glm::vec2 p_dimensions, glm::vec2 p_offset);
-    void SetOffset(glm::vec2 p_offset);
 
     std::vector<wolf::Rectangle> GetHitboxes() const;
 

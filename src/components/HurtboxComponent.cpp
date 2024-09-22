@@ -134,8 +134,17 @@ void HurtboxComponent::FillVertexArray()
         for(Vertex2D vertex : vertices)
         {
             Vertex2D correctVertex;
-            correctVertex.x = vertex.x * dimensions.x + translation.x + offset.x;
-            correctVertex.y = vertex.y * dimensions.y + translation.y + offset.y;
+            if(this->m_bIsRelative)
+            {
+                glm::vec2 scale = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+                correctVertex.x = vertex.x * dimensions.x * scale.x + translation.x + offset.x * scale.x;
+                correctVertex.y = vertex.y * dimensions.y * scale.y + translation.y + offset.y * scale.y;
+            }
+            else{
+                correctVertex.x = vertex.x * dimensions.x + translation.x + offset.x;
+                correctVertex.y = vertex.y * dimensions.y + translation.y + offset.y;
+            }  
+            
             correctVertices.push_back({correctVertex});
         }
         s_vVerticesVector.insert(s_vVerticesVector.end(), correctVertices.begin(), correctVertices.end());

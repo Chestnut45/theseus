@@ -108,11 +108,6 @@ void HitboxComponent::AddHitbox(glm::vec2 p_dimensions, glm::vec2 p_offset)
     this->m_vHitboxes.push_back(wolf::Rectangle(p_offset, p_dimensions));
 }
 
-void HitboxComponent::SetOffset(glm::vec2 p_offset)
-{
-
-}
-
 // Get vector of hitboxes
 std::vector<wolf::Rectangle> HitboxComponent::GetHitboxes() const
 {
@@ -150,13 +145,21 @@ void HitboxComponent::FillVertexArray()
     {
         glm::vec2 dimensions = glm::vec2(hitbox.GetWidth(), hitbox.GetHeight());
         glm::vec2 offset = hitbox.GetPosition();
-
+        
         std::vector<Vertex2D> correctVertices;
         for(Vertex2D vertex : vertices)
         {
             Vertex2D correctVertex;
-            correctVertex.x = vertex.x * dimensions.x + translation.x + offset.x;
-            correctVertex.y = vertex.y * dimensions.y + translation.y + offset.y;
+            if(this->m_bIsRelative)
+            {
+                glm::vec2 scale = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+                correctVertex.x = vertex.x * dimensions.x * scale.x + translation.x + offset.x * scale.x;
+                correctVertex.y = vertex.y * dimensions.y * scale.y + translation.y + offset.y * scale.y;
+            }
+            else{
+                correctVertex.x = vertex.x * dimensions.x + translation.x + offset.x;
+                correctVertex.y = vertex.y * dimensions.y + translation.y + offset.y;
+            }  
             correctVertices.push_back({correctVertex});
         }
         s_vVerticesVector.insert(s_vVerticesVector.end(), correctVertices.begin(), correctVertices.end());
@@ -170,7 +173,6 @@ void HitboxComponent::DebugDrawAndFlush()
     s_pProgram->SetUniform("colour", glm::vec4(0.0f, 0.7f, 0.4f, 0.0f));
     s_pProgram->Bind();
     s_pDecl->Bind();
-    
     s_pVB->Bind();
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex2D) * s_vVerticesVector.size(), s_vVerticesVector.data(), GL_STATIC_DRAW);
     glDrawArrays(GL_LINES, 0, s_vVerticesVector.size());

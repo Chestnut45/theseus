@@ -109,19 +109,38 @@ void HitboxManager::CheckCollisions()
 }
 
 // Check collisions for 2 boxes
-bool HitboxManager::IsColliding(HitboxComponent* p_hitbox1, HitboxComponent* p_hitbox2)
+bool HitboxManager::IsColliding(HitboxComponent* p_hitboxComponent1, HitboxComponent* p_hitboxComponent2)
 {
-    glm::vec2 position1 = p_hitbox1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 position2 = p_hitbox2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 position1 = p_hitboxComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 position2 = p_hitboxComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
 
-    for(wolf::Rectangle hitbox1 : p_hitbox1->GetHitboxes())
+    for(wolf::Rectangle hitbox1 : p_hitboxComponent1->GetHitboxes())
     {
         glm::vec2 dimensions1 = glm::vec2(hitbox1.GetWidth(), hitbox1.GetHeight());
         glm::vec2 offset1 = hitbox1.GetPosition();
-        for(wolf::Rectangle hitbox2 : p_hitbox2->GetHitboxes())
+
+        if(p_hitboxComponent1->IsRelative())
+        {
+            glm::vec2 scale1 = p_hitboxComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+            dimensions1.x *= scale1.x;
+            dimensions1.y *= scale1.y;
+            offset1.x *= scale1.x;
+            offset1.y *= scale1.y;
+        }
+
+        for(wolf::Rectangle hitbox2 : p_hitboxComponent2->GetHitboxes())
         {
             glm::vec2 dimensions2 = glm::vec2(hitbox2.GetWidth(), hitbox2.GetHeight());
             glm::vec2 offset2 = hitbox2.GetPosition();
+            
+            if(p_hitboxComponent2->IsRelative())
+            {
+                glm::vec2 scale2 = p_hitboxComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+                dimensions2.x *= scale2.x;
+                dimensions2.y *= scale2.y;
+                offset2.x *= scale2.x;
+                offset2.y *= scale2.y;
+            }
             
             if(
                 position1.x + dimensions1.x + offset1.x > position2.x + offset2.x                   && // Right1 > Left2

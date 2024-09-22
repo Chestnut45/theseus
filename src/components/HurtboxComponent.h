@@ -38,11 +38,12 @@ public:
 
     wolf::Rectangle GetHurtbox();
     std::vector<wolf::Rectangle> GetHurtboxes() const;
-
+    
     float GetDamage() const;
     bool GetType() const;
     bool IsDestroyedOnCollision() const;
     bool IsRelative() const;
+
 
     void FillVertexArray();
 

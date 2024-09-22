@@ -113,10 +113,28 @@ bool HurtboxManager::IsColliding(HurtboxComponent* p_hurtboxComponent1, HurtboxC
         glm::vec2 dimensions1 = glm::vec2(hurtbox1.GetWidth(), hurtbox1.GetHeight());
         glm::vec2 offset1 = hurtbox1.GetPosition();
 
+        if(p_hurtboxComponent1->IsRelative())
+        {
+            glm::vec2 scale1 = p_hurtboxComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+            dimensions1.x *= scale1.x;
+            dimensions1.y *= scale1.y;
+            offset1.x *= scale1.x;
+            offset1.y *= scale1.y;
+        }
+
         for(wolf::Rectangle hurtbox2 : p_hurtboxComponent2->GetHurtboxes())
         {
             glm::vec2 dimensions2 = glm::vec2(hurtbox2.GetWidth(), hurtbox2.GetHeight());
             glm::vec2 offset2 = hurtbox2.GetPosition();
+
+            if(p_hurtboxComponent2->IsRelative())
+            {
+                glm::vec2 scale2 = p_hurtboxComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+                dimensions2.x *= scale2.x;
+                dimensions2.y *= scale2.y;
+                offset2.x *= scale2.x;
+                offset2.y *= scale2.y;
+            }
 
             if(p_hurtboxComponent1->GetType() != p_hurtboxComponent2->GetType())
             {

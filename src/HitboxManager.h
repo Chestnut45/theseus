@@ -34,7 +34,7 @@ public:
 private:
     wolf::Scene* m_scene = nullptr;
 
-    bool IsColliding(HitboxComponent* p_hitbox1, HitboxComponent* p_hitbox2);
+    bool IsColliding(HitboxComponent* p_hitboxComponent1, HitboxComponent* p_hitboxComponent2);
     void RemoveFlagged();
     void CheckCollisions();
 
