@@ -28,9 +28,12 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     // Add a test sprite to the player object and scale up
     //auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
     //sprite.SetOriginToCenterOfTexture();
-    auto& animSprite = m_pPlayerObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 15.0f);
-    animSprite.AddAnimation("Walk", 1, 8, true);
-    animSprite.SetAnimation("Walk");
+    auto& animSprite = m_pPlayerObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
+    animSprite.AddAnimation("WalkSouth", 1, 8, true);
+    animSprite.AddAnimation("WalkEast", 9, 16, true);
+    animSprite.AddAnimation("WalkNorth", 17, 24, true);
+    animSprite.AddAnimation("WalkWest", 25, 32, true);
+    animSprite.SetAnimation("WalkSouth");
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
 
     // Add Velocity and PlayerController components to the player object
@@ -79,7 +82,22 @@ void Theseus::Update(float delta)
     if (playerController) playerController->Update(delta);
 
     auto* playerAnimSprite = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
-    if (playerAnimSprite) playerAnimSprite->Update(delta);
+    if (playerAnimSprite) {
+        playerAnimSprite->Update(delta);
+
+        // *** TEST CODE FOR ANIMATION TEXTURE SWAPPING ***
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+            playerAnimSprite->SetTexture("data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f));
+            playerAnimSprite->AddAnimation("Stand", 1, 1, false);
+            playerAnimSprite->SetAnimation("Stand");
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
+            playerAnimSprite->SetTexture("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f));
+            playerAnimSprite->SetAnimation("WalkSouth");
+        }
+        // *** END TEST CODE ***
+    }
 
     // Apply velocity to transforms for all objects with both components
     for (auto&& [_, transform, velocity] : m_scene.Each<wolf::Transform2D, VelocityComponent>())

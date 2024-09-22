@@ -10,13 +10,6 @@
 
 #include "W_Logging.h"
 
-// TODO:
-//  > Finish Draw Method
-//  > Add support for setting the origin of sprite
-//  > Delete all "new" memory allocations
-//  > Test like a MF
-//  > Clean Up (as needed)
-
 // Initialize the counter
 int AnimatedSprite2D::s_iAnimSprite2DCount = 0;
 
@@ -98,20 +91,19 @@ bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const
     int iNumFramesX = pNewTexture->GetWidth() / p_v2FrameSize.x;
     int iNumFramesY = pNewTexture->GetHeight() / p_v2FrameSize.y;
 
+    int iWidth = iNumFramesX + 1;
+    int iHeight = iNumFramesY + 1;
+
+
     // We can use those values to create UV coordinates by treating them
     // as points between 0 and 1 on the X and Y axes
 
     // So we make a place to store them
-    glm::vec2 av2WorkingUVCoords[(iNumFramesX + 1) * (iNumFramesY + 1)];
+    glm::vec2 av2WorkingUVCoords[iWidth * iHeight];
 
     // Figure out how much we'll be incrementing each X and Y by
     float fIncX = 1.0f / iNumFramesX;
     float fIncY = 1.0f / iNumFramesY;
-
-    // Make a 'lil variable to keep track of what index we're on
-    int iUVCoordIndex = 0;
-
-    // !-- COORDINATES ARE INCORRECTAMUNDO BUCKO --!
 
     // And start calculating them
     for (int i = 0; i <= iNumFramesY; i++) {
@@ -123,31 +115,31 @@ bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const
             float fUCord = j * fIncX;
 
             // Once we have a UV coordinate set we store it for later
-            av2WorkingUVCoords[iUVCoordIndex] = glm::vec2(fUCord, fVCord);
+            av2WorkingUVCoords[(i * iWidth) + j] = glm::vec2(fUCord, fVCord);
 
-            // And increment the index counter
-            iUVCoordIndex++;
         }
     }
 
-    // Now that we have all our UV coordinates, we're going to assign them to frames
-    int iTotalNumFrames = iNumFramesX * iNumFramesY;
-    for (int p = 1; p <= iTotalNumFrames; p++) {
-        // First we find the four UV coordinates that will be used to render this frame
-        // and store them in a struct that holds four glm::vec2s
-        FrameUVCoordSet* frameCoords = new FrameUVCoordSet();
-        frameCoords->m_v2TopLeft = av2WorkingUVCoords[p - 1];
-        frameCoords->m_v2BotLeft = av2WorkingUVCoords[p];
-        frameCoords->m_v2BotRight = av2WorkingUVCoords[p + iNumFramesX];
-        frameCoords->m_v2TopRight = av2WorkingUVCoords[p + iNumFramesX + 1];
+    // Because frames are numbered 1-n but vectors are index 0-n, we need an offset
+    // frame coordinate set that occupies the first index.
+    FrameUVCoordSet* pOffsetCoord = new FrameUVCoordSet();
+    m_vpFrameUVCoords.push_back(pOffsetCoord);
 
-        // Then we insert the struct into a map with the frame number as its key
-        printf("Frame: %d\n", p);
-        printf("TopLeft: X: %.4f Y: %.4f\n", frameCoords->m_v2TopLeft.x, frameCoords->m_v2TopLeft.y);
-        printf("BotLeft: X: %.4f Y: %.4f\n", frameCoords->m_v2BotLeft.x, frameCoords->m_v2BotLeft.y);
-        printf("BotRight: X: %.4f Y: %.4f\n", frameCoords->m_v2BotRight.x, frameCoords->m_v2BotRight.y);
-        printf("TopRight: X: %.4f Y: %.4f\n\n", frameCoords->m_v2TopRight.x, frameCoords->m_v2TopRight.y);
-        m_vpFrameUVCoords.push_back(frameCoords);
+    // Now that we have all our UV coordinates, we're going to assign them to frames
+    for (int p = 0; p <= iNumFramesY - 1; p++) {
+        for (int q = 0; q <= iNumFramesX - 1; q++) {
+            int iOriginPoint = (p * iWidth) + q;
+            // First we find the four UV coordinates that will be used to render this frame
+            // and store them in a struct that holds four glm::vec2s
+            FrameUVCoordSet* frameCoords = new FrameUVCoordSet();
+            frameCoords->m_v2TopRight = av2WorkingUVCoords[iOriginPoint];
+            frameCoords->m_v2BotRight = av2WorkingUVCoords[iOriginPoint + 1];
+            frameCoords->m_v2TopLeft = av2WorkingUVCoords[iOriginPoint + iWidth];
+            frameCoords->m_v2BotLeft = av2WorkingUVCoords[iOriginPoint + iWidth + 1];
+
+            // Then we insert the struct into a map with the frame number as its key
+            m_vpFrameUVCoords.push_back(frameCoords);
+        }
     }
 
     // Now we check if there this AnimatedSprite2D instance already had a texture
@@ -173,12 +165,15 @@ AnimatedSprite2D::~AnimatedSprite2D() {
     // means that we no longer need access to its texture, so it can be deleted
     wolf::TextureManager::DestroyTexture(m_pTexture);
 
-    // !-- NEED TO DELETE new MEMORY ALLOCATED --!
+    // Iterate through the animation map and delete all of the SpriteAnimation2Ds within it
     for (std::map<std::string, SpriteAnimation2D*>::iterator it = m_mAnimationMap.begin(); it != m_mAnimationMap.end(); ++it) {
         delete(it->second);
     }
+
+    // Then clear the map
     m_mAnimationMap.clear();
 
+    // Delete all of the FrameUVCoords in the vector
     m_vpFrameUVCoords.clear();
 
     // If this was the last AnimatedSprite2D instance then we no longer need our shader resources
@@ -191,15 +186,17 @@ AnimatedSprite2D::~AnimatedSprite2D() {
     }
 }
 
-void AnimatedSprite2D::AddAnimation(const std::string& p_strName, int p_iStartFrame, int p_iEndFrame, bool p_bLoop) {
+bool AnimatedSprite2D::AddAnimation(const std::string& p_strName, int p_iStartFrame, int p_iEndFrame, bool p_bLoop) {
     // Check that the start and end frames are valid
-    if (p_iStartFrame > p_iEndFrame || p_iStartFrame < 0 || p_iEndFrame < 0 || p_iStartFrame >= m_vpFrameUVCoords.size() || p_iEndFrame >= m_vpFrameUVCoords.size()) {
+    if (p_iStartFrame > p_iEndFrame || p_iStartFrame < 0 || p_iEndFrame < 0 || p_iStartFrame > m_vpFrameUVCoords.size() || p_iEndFrame > m_vpFrameUVCoords.size()) {
         wolf::Error("Attempted to add animation to AnimatedSprite2D with invalid start and end frames.");
-        return; // Need this?
+        return false;
     }
+
     // Creates a new SpriteAnimation2D out of the parameters and stores it in the map with p_strName as its key
     SpriteAnimation2D* p_anim = new SpriteAnimation2D(p_strName, p_iStartFrame, p_iEndFrame, p_bLoop);
     m_mAnimationMap.insert(std::pair<std::string, SpriteAnimation2D*>(p_strName, p_anim));
+    return true;
 }
 
 bool AnimatedSprite2D::RemoveAnimation(const std::string& p_strName) {
@@ -245,12 +242,12 @@ void AnimatedSprite2D::Update(float p_fDelta) {
         // Advance the current frame
         m_fCurrentFrame += p_fDelta * m_fPlaybackSpeed;
 
-        // If that advancement causes us to reach the last frame of this animation
-        if (m_fCurrentFrame >= m_pCurrentAnim->m_iEndFrame) {
+        // If that advancement causes us to reach the end of the last frame of this animation
+        if (m_fCurrentFrame >= m_pCurrentAnim->m_iEndFrame + 1) {
             // Check if this is a looping animation
             if (m_pCurrentAnim->m_bLoop) {
                 // And if it is, restart the animation
-                m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
+                m_fCurrentFrame = (float)m_pCurrentAnim->m_iStartFrame;
             }
             else {
                 m_fCurrentFrame = (float)m_pCurrentAnim->m_iEndFrame;
@@ -329,7 +326,7 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(position, 0.0f));
     model = glm::rotate(model, rotationRadians, glm::vec3(0.0f, 0.0f, 1.0f));
-    model = glm::scale(model, glm::vec3(scale * texSize, 1.0f));
+    model = glm::scale(model, glm::vec3(scale * m_v2FrameSize, 1.0f));
 
     // Set model uniform
     s_pProgram->SetUniform("model", model);
