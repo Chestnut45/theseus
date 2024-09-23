@@ -36,11 +36,18 @@ private:
     LabyrinthManager* m_pLabyrinthManager = nullptr;
 
     // Manager for hitboxes
-    HitboxManager * m_pHitboxManager = nullptr;
+    HitboxManager* m_pHitboxManager = nullptr;
 
     // Manager for hurtboxes
-    HurtboxManager * m_pHurtboxManager = nullptr;
+    HurtboxManager* m_pHurtboxManager = nullptr;
 
     // Flags
     bool m_showLabyrinthManager = false;
+
+    // Private helper methods
+
+    // Creates the player object and all of its components
+    // PRE: The player must not have been created yet
+    // POST: m_pPlayerObject will be set to a pointer to the newly created player object
+    void CreatePlayer();
 };
