@@ -57,14 +57,12 @@ HitboxComponent::HitboxComponent(bool p_doc, bool p_relativity)
         s_pDecl->End();
     }
     HitboxComponent::s_iComponentCount++;
-    HitboxManager::s_iComponentCount++;
 }
 
 // Destructor
 HitboxComponent::~HitboxComponent()
 {   
     HitboxComponent::s_iComponentCount--;
-    HitboxManager::s_iComponentCount--;
     if(HitboxComponent::s_iComponentCount == 0)
     {
         delete HitboxComponent::s_pDecl;

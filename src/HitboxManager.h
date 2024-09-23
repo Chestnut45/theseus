@@ -37,8 +37,6 @@ private:
     void RemoveFlagged();
     void CheckCollisions();
 
-    static int s_iComponentCount;
-
     std::vector<HitboxComponent *> m_vToBeDestroyed;
 };
 

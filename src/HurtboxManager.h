@@ -6,8 +6,6 @@
 //     + Create new Manager object before any game object is added to scene
 //     + Init() to pass reference to scene
 //     + Call Update() every frame
-// Notes:
-//     + s_iComponentCount incremented/decremented in HurtboxComponent
 //-----------------------------------------------------------------------------
 
 #pragma once
@@ -38,8 +36,6 @@ private:
     bool IsColliding(HurtboxComponent* p_hurtboxComponent1, HurtboxComponent* p_hurtboxComponent2);
     void RemoveFlagged();
     void CheckCollisions();
-
-    static int s_iComponentCount;
 
     std::vector<HurtboxComponent *> m_vToBeDestroyed;
 };

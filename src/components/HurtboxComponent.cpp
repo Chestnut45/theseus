@@ -59,13 +59,11 @@ HurtboxComponent::HurtboxComponent(bool p_type, float p_damage, bool p_doc, bool
         s_pDecl->End();
     }
     HurtboxComponent::s_iComponentCount++;
-    HurtboxManager::s_iComponentCount++;
 }
 
 HurtboxComponent::~HurtboxComponent()
 {
     HurtboxComponent::s_iComponentCount--;
-    HurtboxManager::s_iComponentCount--;
     if(HurtboxComponent::s_iComponentCount == 0)
     {
         delete HurtboxComponent::s_pDecl;

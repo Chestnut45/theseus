@@ -12,8 +12,6 @@
 
 #include "HitboxManager.h"
 
-int HitboxManager::s_iComponentCount = 0;
-
 // Constructor
 HitboxManager::HitboxManager(wolf::Scene* p_scene)
 {
@@ -48,7 +46,7 @@ void HitboxManager::CheckCollisions()
 {
     int i = 0;
 
-    if(HitboxManager::s_iComponentCount >= 2)
+    if(HitboxComponent::s_iComponentCount >= 2)
     {
         for (auto&&[id1, object1, hitbox1] : this->m_scene->Each<wolf::GameObject, HitboxComponent>())
         {

@@ -6,14 +6,9 @@
 //     + Create new Manager object before any game object is added to scene
 //     + Init() to pass reference to scene
 //     + Call Update() every frame
-// Notes:
-//     + s_iComponentCount incremented/decremented in HurtboxComponent
 //-----------------------------------------------------------------------------
 
 #include "HurtboxManager.h"
-
-int HurtboxManager::s_iComponentCount = 0;
-
 
 HurtboxManager::HurtboxManager(wolf::Scene* p_scene)
 {
@@ -35,7 +30,7 @@ void HurtboxManager::CheckCollisions()
 {
     int i = 0;
 
-    if(HurtboxManager::s_iComponentCount >= 2)
+    if(HurtboxComponent::s_iComponentCount >= 2)
     {
         for (auto&&[id1, object1, hurtbox1] : this->m_scene->Each<wolf::GameObject, HurtboxComponent>())
         {
