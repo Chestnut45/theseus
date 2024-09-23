@@ -4,6 +4,7 @@
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
 // Original Author: Youssef Ashraf
+// Modifications: D'Anyil Landry, Aurora, Nguyễn Minh Nhật, Aurora Ryder
 // ver 1.8, updated to use member variables for components,
 // Player State Management, Velocity-Based Movement, Decoupled, Enum Direction, Direction Vector, Stamina
 //-----------------------------------------------------------------------------
