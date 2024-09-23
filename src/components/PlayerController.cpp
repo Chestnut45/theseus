@@ -33,11 +33,17 @@ void PlayerController::Update(float delta)
         {
             case PlayerAction::ROLLING:
                 HandleRolling(delta);
+                if (m_pAnim) {
+                    // Animations by direction go here!
+                }
                 break;
 
             case PlayerAction::JUMPING:
                 HandleJumping(delta);
                 HandleMovement(delta);  // Allow movement while jumping
+                if (m_pAnim) {
+                    // Animations by direction go here!
+                }
                 break;
 
             case PlayerAction::WALKING:
