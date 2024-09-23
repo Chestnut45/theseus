@@ -2,27 +2,23 @@
 #include "PauseState.h"
 #include <imgui/imgui.h>
 
+#include "../components/ArmourComponent.h"
+#include "../components/HealthComponent.h"
+#include "../components/HitboxComponent.h"
+#include "../components/HurtboxComponent.h"
+#include "../components/VelocityComponent.h"
+
 void PlayState::Enter()
 {
-    // Initialize the game world, player, and camera when PlayState is entered
-    auto& scene = m_pGameInstance->GetScene();  // Access m_scene via GetScene()
+    // Grab a reference to the main scene
+    auto& scene = m_pGameInstance->GetScene();
 
-    // Create player object
-    m_pPlayerObject = &scene.CreateObject2D();
+    // Initialise hitbox / hurtbox managers
+    this->m_pHitboxManager = new HitboxManager(&scene);
+    this->m_pHurtboxManager = new HurtboxManager(&scene);
 
-    // Add a sprite to the player object and scale it up
-    auto& animSprite = m_pPlayerObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-    animSprite.AddAnimation("WalkSouth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 8, true);
-    animSprite.AddAnimation("WalkEast", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 9, 16, true);
-    animSprite.AddAnimation("WalkNorth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 17, 24, true);
-    animSprite.AddAnimation("WalkWest", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 25, 32, true);
-    animSprite.AddAnimation("StandSouth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
-    animSprite.SetAnimation("WalkSouth");
-    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
-
-    // Add Velocity and PlayerController components to the player object
-    auto& velocity = m_pPlayerObject->AddComponent<VelocityComponent>();
-    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
+    // Initialize player object
+    CreatePlayer();
 
     // Add the main camera as a component of the player object
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
@@ -31,13 +27,32 @@ void PlayState::Enter()
 
     // Add the labyrinth manager component to an empty object
     m_pLabyrinthManager = &scene.CreateObject().AddComponent<LabyrinthManager>();
+
+    // TESTING BELOW
+
+    // Create test projectile object
+    auto& testObj = scene.CreateObject2D();
+    testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
+    testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
+    auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    auto& testHitbox = testObj.AddComponent<HitboxComponent>(1, 1);
+    testHitbox.AddHitbox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
+    auto& testHurtbox = testObj.AddComponent<HurtboxComponent>(1, 1, 1, 1);
+    testHurtbox.AddHurtbox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
+    auto& testVelocity = testObj.AddComponent<VelocityComponent>();
+    testVelocity.SetVelocity(glm::vec2(-32.0f, 0.0f));
 }
 
 void PlayState::Exit()
 {
-    // Delete the game resources from the scene on exit
-    m_pPlayerObject->Delete();
-    m_pLabyrinthManager->GetGameObject()->Delete();
+    // Delete objects / components from the scene
+    m_pGameInstance->GetScene().Clear();
+
+    // Delete managers
+    delete this->m_pHitboxManager;
+    this->m_pHitboxManager = nullptr;
+    delete this->m_pHurtboxManager;
+    this->m_pHurtboxManager = nullptr;
 }
 
 void PlayState::Pause()
@@ -90,6 +105,10 @@ void PlayState::Update(float delta)
 
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
+
+    // Update managers
+    this->m_pHitboxManager->Update();
+    this->m_pHurtboxManager->Update();
 }
 
 void PlayState::Render()
@@ -104,10 +123,6 @@ void PlayState::BackgroundUpdate(float delta)
 
     // Show the Labyrinth Manager debug GUI
     if (m_showLabyrinthManager) m_pLabyrinthManager->ShowGUI();
-
-    // TODO: A small amount of updates may need to happen here (when paused)
-    // NOTE: Depends on wolf::Scene::Update(...) which is changing soon
-    // ASSIGNEE: D'Anyil
 }
 
 void PlayState::BackgroundRender()
@@ -116,4 +131,34 @@ void PlayState::BackgroundRender()
     
     // Render the game's scene
     m_pGameInstance->GetScene().Render();
+}
+
+void PlayState::CreatePlayer()
+{
+    // Create player object with transform
+    m_pPlayerObject = &m_pGameInstance->GetScene().CreateObject2D();
+
+    // Add player controller
+    m_pPlayerObject->AddComponent<PlayerController>();
+
+    // Scale player
+    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
+
+    // Add sprite
+    m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png").SetOriginToCenterOfTexture();
+
+    // Add velocity
+    m_pPlayerObject->AddComponent<VelocityComponent>();
+
+    // Add hitbox
+    auto& hitbox = m_pPlayerObject->AddComponent<HitboxComponent>(0, 1);
+    hitbox.AddHitbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
+
+    // Add hurtbox
+    auto& hurtbox = m_pPlayerObject->AddComponent<HurtboxComponent>(0, 0, 0, 1);
+    hurtbox.AddHurtbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
+
+    // Add health / armor
+    m_pPlayerObject->AddComponent<HealthComponent>();
+    m_pPlayerObject->AddComponent<ArmourComponent>(50);
 }

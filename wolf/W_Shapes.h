@@ -53,6 +53,9 @@ struct Rectangle
     // Returns the height of this rectangle
     inline float GetHeight() const { return m_top - m_bottom; };
 
+    // Returns the height of this rectangle
+    inline glm::vec2 GetPosition() const { return glm::vec2(m_left, m_top); };
+
     // Data
     float m_left;
     float m_top;
