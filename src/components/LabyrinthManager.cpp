@@ -1,4 +1,4 @@
-#include "LabyrinthBuilder.h"
+#include "LabyrinthManager.h"
 
 // ImGui for GUI windows
 #include <imgui/imgui.h>
@@ -10,15 +10,15 @@
 #include <W_TileMap.h>
 #include <W_Transform2D.h>
 
-LabyrinthBuilder::LabyrinthBuilder()
+LabyrinthManager::LabyrinthManager()
 {
 }
 
-LabyrinthBuilder::~LabyrinthBuilder()
+LabyrinthManager::~LabyrinthManager()
 {
 }
 
-void LabyrinthBuilder::GenerateLabyrinth()
+void LabyrinthManager::GenerateLabyrinth()
 {
     // Only bother if valid generation parameters
     if (m_width <= 0 || m_height <= 0)
@@ -71,7 +71,7 @@ void LabyrinthBuilder::GenerateLabyrinth()
     }
 }
 
-void LabyrinthBuilder::DestroyLabyrinth()
+void LabyrinthManager::DestroyLabyrinth()
 {
     auto* object = GetGameObject();
     if (object)
@@ -80,13 +80,13 @@ void LabyrinthBuilder::DestroyLabyrinth()
     }
 }
 
-void LabyrinthBuilder::Regenerate()
+void LabyrinthManager::Regenerate()
 {
     DestroyLabyrinth();
     GenerateLabyrinth();
 }
 
-void LabyrinthBuilder::ShowGUI()
+void LabyrinthManager::ShowGUI()
 {
     // Setup window flags
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_MenuBar;
