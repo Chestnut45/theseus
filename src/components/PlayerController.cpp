@@ -50,12 +50,10 @@ void PlayerController::Update(float delta)
     }
     if (m_stamina < m_maxStamina)
     {
-        if (m_staminaRegenTimer > 0.0f)
+        // Check if 2 seconds have passed since the last stamina use
+        if (m_staminaRegenTimer.Elapsed() >= 2.0)
         {
-            m_staminaRegenTimer -= delta;
-        }
-        else
-        {
+            // Regenerate stamina
             m_stamina += m_staminaRegenRate * delta;
             if (m_stamina > m_maxStamina)
                 m_stamina = m_maxStamina;
@@ -117,8 +115,8 @@ void PlayerController::HandleRolling(float delta)
             if (m_stamina < 0.0f)
                 m_stamina = 0.0f;
 
-            // Start stamina regeneration delay
-            m_staminaRegenTimer = m_staminaRegenDelay;
+            // Start/reset the stamina regeneration timer
+            m_staminaRegenTimer.Restart();
         }
     }
 }
