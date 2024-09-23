@@ -22,6 +22,7 @@ void PlayerController::Update(float delta)
     {
         m_pTransform = pGameObject->GetComponent<wolf::Transform2D>();
         m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
+        m_pAnim = pGameObject->GetComponent<AnimatedSprite2D>();
     }
 
     // Only update if both components exist
@@ -45,6 +46,9 @@ void PlayerController::Update(float delta)
                 HandleMovement(delta);
                 HandleRolling(delta);   // Rolling can interrupt walking
                 HandleJumping(delta);   // Allow jumping while walking
+                if (m_pAnim) {
+                    // Animations by direction go here!
+                }
                 break;
         }
     }

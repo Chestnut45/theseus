@@ -12,10 +12,11 @@ void PlayState::Enter()
 
     // Add a sprite to the player object and scale it up
     auto& animSprite = m_pPlayerObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-    animSprite.AddAnimation("WalkSouth", 1, 8, true);
-    animSprite.AddAnimation("WalkEast", 9, 16, true);
-    animSprite.AddAnimation("WalkNorth", 17, 24, true);
-    animSprite.AddAnimation("WalkWest", 25, 32, true);
+    animSprite.AddAnimation("WalkSouth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 8, true);
+    animSprite.AddAnimation("WalkEast", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 9, 16, true);
+    animSprite.AddAnimation("WalkNorth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 17, 24, true);
+    animSprite.AddAnimation("WalkWest", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 25, 32, true);
+    animSprite.AddAnimation("StandSouth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
     animSprite.SetAnimation("WalkSouth");
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
 
@@ -71,7 +72,15 @@ void PlayState::Update(float delta)
 
     // Update player animations
     auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
-    if (playerAnim) playerAnim->Update(delta);
+    if (playerAnim) {
+        playerAnim->Update(delta);
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+            playerAnim->SetAnimation("StandSouth");
+        }
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
+            playerAnim->SetAnimation("WalkSouth");
+        }
+    }
 
     // Apply velocity to transforms for all objects with both components
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())  // Use GetScene()

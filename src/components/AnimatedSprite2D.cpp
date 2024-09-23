@@ -143,7 +143,7 @@ bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const
             frameCoords->m_v2TopLeft = av2WorkingUVCoords[iOriginPoint + iWidth];
             frameCoords->m_v2BotLeft = av2WorkingUVCoords[iOriginPoint + iWidth + 1];
 
-            // Then we insert the struct into a map with the frame number as its key
+            // Then we store 'em
             m_vpFrameUVCoords.push_back(frameCoords);
         }
     }
@@ -193,7 +193,7 @@ AnimatedSprite2D::~AnimatedSprite2D() {
     }
 }
 
-bool AnimatedSprite2D::AddAnimation(const std::string& p_strName, int p_iStartFrame, int p_iEndFrame, bool p_bLoop) {
+bool AnimatedSprite2D::AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_vec2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop) {
     // Check that the start and end frames are valid
     if (p_iStartFrame > p_iEndFrame || p_iStartFrame < 0 || p_iEndFrame < 0 || p_iStartFrame > m_vpFrameUVCoords.size() || p_iEndFrame > m_vpFrameUVCoords.size()) {
         wolf::Error("Attempted to add animation to AnimatedSprite2D with invalid start and end frames.");
@@ -201,7 +201,7 @@ bool AnimatedSprite2D::AddAnimation(const std::string& p_strName, int p_iStartFr
     }
 
     // Creates a new SpriteAnimation2D out of the parameters and stores it in the map with p_strName as its key
-    SpriteAnimation2D* p_anim = new SpriteAnimation2D(p_strName, p_iStartFrame, p_iEndFrame, p_bLoop);
+    SpriteAnimation2D* p_anim = new SpriteAnimation2D(p_strName, p_strTexturePath, p_vec2FrameSize, p_iStartFrame, p_iEndFrame, p_bLoop);
     m_mAnimationMap.insert(std::pair<std::string, SpriteAnimation2D*>(p_strName, p_anim));
     return true;
 }
@@ -220,10 +220,11 @@ bool AnimatedSprite2D::RemoveAnimation(const std::string& p_strName) {
 void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
     auto animIt = m_mAnimationMap.find(p_strName);
     if (animIt != m_mAnimationMap.end()) {
-        m_bFrameChanged = true;
         m_pCurrentAnim = animIt->second;
+        this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[m_pCurrentAnim->m_iStartFrame];
+        m_bFrameChanged = true;
     }
 }
 
@@ -237,10 +238,11 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
             return;
         }
 
-        m_bFrameChanged = true;
         m_pCurrentAnim = animIt->second;
+        this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame + p_iTargetAnimFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[iTargetFrame];
+        m_bFrameChanged = true;
     }
 }
 

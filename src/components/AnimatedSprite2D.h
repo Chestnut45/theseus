@@ -12,16 +12,18 @@
 // 
 //-----------------------------------------------------------------------------
 
-
 // The thought with this is that you have one file (and by extension one texture) that contains all of the
 // animation frames for a particular object or character. You then use the SpriteAnimation2D struct to 'break'
 // that file into unique animations so that you don't have to swap textures when you switch between animations
 
 struct SpriteAnimation2D {
-    SpriteAnimation2D(const std::string& p_strName, int p_iStartFrame, int p_iEndFrame, bool p_bLoop) :
-    m_strName(p_strName), m_iStartFrame(p_iStartFrame), m_iEndFrame(p_iEndFrame), m_bLoop(p_bLoop){};
+    SpriteAnimation2D(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop) :
+    m_strName(p_strName), m_strTexturePath(p_strTexturePath), m_v2FrameSize(p_v2FrameSize), m_iStartFrame(p_iStartFrame), m_iEndFrame(p_iEndFrame), m_bLoop(p_bLoop){};
     
     std::string m_strName;  // What is this an animation of?
+    std::string m_strTexturePath; // What is the texture this animation draws from?
+
+    glm::vec2 m_v2FrameSize;
 
     int m_iStartFrame;      // Which frame does this animation start on?
     int m_iEndFrame;        // Which frame does this animation end on?
@@ -46,7 +48,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         void Update(float p_fDelta);
 
-        bool AddAnimation(const std::string& p_strName, int p_iStartFrame, int p_iEndFrame, bool p_bLoop);
+        bool AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop);
         bool RemoveAnimation(const std::string& p_strName);
 
         void SetAnimation(const std::string& p_strName);
@@ -62,7 +64,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         // You CANNOT change the frame size or texture path without using SetTexture as
         // doing so would SERIOUSLY mess up the UV coordinates
         const glm::vec2& GetFrameSize() const {return m_v2FrameSize;};
-        const std::string& GetCurrentTexturePath() {return m_strCurrentTexturePath;};
+        const std::string& GetCurrentTexturePath() const {return m_strCurrentTexturePath;};
 
         void Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale);
 
