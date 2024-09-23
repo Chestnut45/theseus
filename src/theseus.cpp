@@ -48,9 +48,6 @@ void Theseus::Update(float delta)
     m_pStateManager->Update(delta);
     
     if (m_showDebug) ShowDebug();
-
-    this->m_pHitboxManager->Update();
-    this->m_pHurtboxManager->Update();
 }
 
 void Theseus::Render()

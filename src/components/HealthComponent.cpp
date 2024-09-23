@@ -31,20 +31,21 @@ float HealthComponent::GetHealth() const
 // Reduce health
 void HealthComponent::Damage(float p_damage)
 {
-    ArmourComponent* armourComponent = this->GetGameObject()->GetComponent<ArmourComponent>();
     if(this->m_health > 0)
     {
+        ArmourComponent* armourComponent = this->GetGameObject()->GetComponent<ArmourComponent>();
         if(armourComponent != nullptr)
         {
             std::cout << "HealthComponent - Damage: " << p_damage * ((100 - armourComponent->GetMultiplier()) * 0.01f) << std::endl;
-            this->m_health -= p_damage * ((100 - armourComponent->GetMultiplier()) * 0.01f);
-            std::cout << "HealthComponent - Health: " << this->m_health << std::endl;
-            
+            this->m_health -= p_damage * ((100 - armourComponent->GetMultiplier()) * 0.01f);           
         }
         else
         {
+            std::cout << "HealthComponent - Damage: " << p_damage << std::endl;
             this->m_health -= p_damage;
         }
+
+        std::cout << "HealthComponent - Health: " << this->m_health << std::endl;
 
         if(this->m_health <= 0)
         {

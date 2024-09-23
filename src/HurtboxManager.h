@@ -27,10 +27,9 @@ class HurtboxManager
 friend HurtboxComponent;
 
 public:
-    HurtboxManager();
+    HurtboxManager(wolf::Scene* p_scene);
     virtual ~HurtboxManager();
 
-    void Init(wolf::Scene* p_scene);
     void Update();
 
 private:

@@ -15,18 +15,14 @@
 int HurtboxManager::s_iComponentCount = 0;
 
 
-HurtboxManager::HurtboxManager()
+HurtboxManager::HurtboxManager(wolf::Scene* p_scene)
 {
+    this->m_scene = p_scene;
 }
 
 HurtboxManager::~HurtboxManager()
 {
     this->m_scene = nullptr;
-}
-
-void HurtboxManager::Init(wolf::Scene* p_scene)
-{
-    this->m_scene = p_scene;
 }
 
 void HurtboxManager::Update()
@@ -50,40 +46,36 @@ void HurtboxManager::CheckCollisions()
                 {
                     if(this->IsColliding(&hurtbox1, &hurtbox2))
                     {
-                        //std::cout << "HurtBoxCollide" << this->count << std::endl;
-
-                    HealthComponent* healthComponent = nullptr;
-                
-                    if(hurtbox1.GetType() == 0)
-                    {
-                        healthComponent = object1.GetComponent<HealthComponent>();  
-                        if(healthComponent!= nullptr)
+                        HealthComponent* healthComponent = nullptr;
+                    
+                        if(hurtbox1.GetType() == 0)
                         {
-                            healthComponent->Damage(hurtbox2.GetDamage());
+                            healthComponent = object1.GetComponent<HealthComponent>();  
+                            if(healthComponent!= nullptr)
+                            {
+                                healthComponent->Damage(hurtbox2.GetDamage());
+                            }
                         }
-                    }
 
-                    else if(hurtbox2.GetType() == 0)
-                    {
-                        healthComponent = hurtbox2.GetGameObject()->GetComponent<HealthComponent>();
-                        if(healthComponent!= nullptr)
+                        else if(hurtbox2.GetType() == 0)
                         {
-                            healthComponent->Damage(hurtbox1.GetDamage());
+                            healthComponent = hurtbox2.GetGameObject()->GetComponent<HealthComponent>();
+                            if(healthComponent!= nullptr)
+                            {
+                                healthComponent->Damage(hurtbox1.GetDamage());
+                            }
                         }
-                    }
-                    //std::cout << "HurtBoxCollide - health:" << healthComponent->GetHealth() << std::endl;
 
-
-                    if(hurtbox1.IsDestroyedOnCollision())
+                        if(hurtbox1.IsDestroyedOnCollision())
                         {
-                            std::cout << "HurtboxManager - Delete id1:" << id1 << std::endl;
+                            // std::cout << "HurtboxManager - Delete id1:" << id1 << std::endl;
                             hurtbox1.RaiseDestroyFlag();
                             this->m_vToBeDestroyed.push_back(&hurtbox1);
                         }
 
                         if(hurtbox2.IsDestroyedOnCollision())
                         {
-                            std::cout << "HurtboxManager - Delete id2:" << id2 << std::endl;
+                            // std::cout << "HurtboxManager - Delete id2:" << id2 << std::endl;
                             hurtbox2.RaiseDestroyFlag();
                             this->m_vToBeDestroyed.push_back(&hurtbox2);
                         }                    
@@ -108,6 +100,8 @@ void HurtboxManager::RemoveFlagged()
 
 bool HurtboxManager::IsColliding(HurtboxComponent* p_hurtboxComponent1, HurtboxComponent* p_hurtboxComponent2)
 {
+    
+
     for(wolf::Rectangle hurtbox1 : p_hurtboxComponent1->GetHurtboxes())
     {
         glm::vec2 dimensions1 = glm::vec2(hurtbox1.GetWidth(), hurtbox1.GetHeight());

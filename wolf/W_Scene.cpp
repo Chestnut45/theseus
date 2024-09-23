@@ -122,7 +122,6 @@ void Scene::Render()
     {
         hurtbox.FillVertexArray();
     }
-    
     HitboxComponent::DebugDrawAndFlush();
     HurtboxComponent::DebugDrawAndFlush();
 }

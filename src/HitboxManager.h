@@ -25,10 +25,9 @@ class HitboxManager
 friend HitboxComponent;
 
 public:
-    HitboxManager();
+    HitboxManager(wolf::Scene* p_scene);
     virtual ~HitboxManager();
 
-    void Init(wolf::Scene* p_scene);  
     void Update();
 
 private:

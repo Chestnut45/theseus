@@ -153,6 +153,8 @@ void HurtboxComponent::FillVertexArray()
 
 void HurtboxComponent::DebugDrawAndFlush()
 {
+    if (!s_pProgram) return;
+    
     glm::mat4 model = glm::mat4(1.0f);
     s_pProgram->SetUniform("model", model);
     s_pProgram->SetUniform("colour", glm::vec4(0.0f, 0.7f, 0.4f, 0.0f));
