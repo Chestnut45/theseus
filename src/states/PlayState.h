@@ -9,6 +9,8 @@
 #include "GameState.h"
 #include <theseus.h> // Include the main game class
 
+#include "../HitboxManager.h"
+#include "../HurtboxManager.h"
 
 class LabyrinthManager;
 
@@ -33,6 +35,19 @@ private:
     wolf::GameObject* m_pPlayerObject = nullptr;
     LabyrinthManager* m_pLabyrinthManager = nullptr;
 
+    // Manager for hitboxes
+    HitboxManager* m_pHitboxManager = nullptr;
+
+    // Manager for hurtboxes
+    HurtboxManager* m_pHurtboxManager = nullptr;
+
     // Flags
     bool m_showLabyrinthManager = false;
+
+    // Private helper methods
+
+    // Creates the player object and all of its components
+    // PRE: The player must not have been created yet
+    // POST: m_pPlayerObject will be set to a pointer to the newly created player object
+    void CreatePlayer();
 };

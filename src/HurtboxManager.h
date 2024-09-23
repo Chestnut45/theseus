@@ -1,31 +1,41 @@
 //-----------------------------------------------------------------------------
 // File: HurtboxManager.h
 // Original Author: Nguyễn Minh Nhật
-// ver 1.1.
-// Manages Hurttbox collision.
+// Manages Hurtbox collision.
+// User Guide:
+//     + Create new Manager object before any game object is added to scene
+//     + Init() to pass reference to scene
+//     + Call Update() every frame
 //-----------------------------------------------------------------------------
 
 #pragma once
 
 #include <glm/glm.hpp>
+#include <ranges>
+#include <vector>
 #include <wolf.h>
 
 #include "components/HealthComponent.h"
 #include "components/HurtboxComponent.h"
 
+class HurtboxComponent;
+
 class HurtboxManager
 {
+friend HurtboxComponent;
+
 public:
-    HurtboxManager();
+    HurtboxManager(wolf::Scene* p_scene);
     virtual ~HurtboxManager();
 
-    void Init(wolf::Scene* p_scene);
-    void CheckCollisions();
+    void Update();
 
 private:
     wolf::Scene* m_scene = nullptr;
 
-    bool IsColliding(HurtboxComponent* p_hurtbox1, HurtboxComponent* p_hurtbox2);
-    
-    int count = 0;
+    bool IsColliding(HurtboxComponent* p_hurtboxComponent1, HurtboxComponent* p_hurtboxComponent2);
+    void RemoveFlagged();
+    void CheckCollisions();
+
+    std::vector<HurtboxComponent *> m_vToBeDestroyed;
 };

@@ -1,7 +1,6 @@
 //-----------------------------------------------------------------------------
 // File: ArmourComponent.h
 // Original Author: Nguyễn Minh Nhật
-// ver 1.1.
 // Armour.
 //-----------------------------------------------------------------------------
 
@@ -14,7 +13,7 @@ class ArmourComponent: public wolf::BaseComponent
 {
 public:
     ArmourComponent() = default;
-
+    ArmourComponent(int p_multiplier);
     int GetMultiplier() const;
     void SetMultiplier(int p_multiplier);
 

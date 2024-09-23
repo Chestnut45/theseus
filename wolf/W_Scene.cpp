@@ -7,6 +7,9 @@
 #include "W_TileMap.h"
 #include "W_Transform2D.h"
 
+#include "../src/components/HitboxComponent.h"
+#include "../src/components/HurtboxComponent.h"
+
 namespace wolf
 {
 
@@ -109,6 +112,26 @@ void Scene::Render()
     {
         tilemap.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
     }
+
+    // Queue all hitboxes for debug rendering
+    // TODO: Toggle?
+    for (auto&&[_, hitbox] : Each<HitboxComponent>())
+    {
+        hitbox.FillVertexArray();
+    }
+
+    // Queue all hurtboxes for debug rendering
+    // TODO: Toggle?
+    for (auto&&[_, hurtbox] : Each<HurtboxComponent>())
+    {
+        hurtbox.FillVertexArray();
+    }
+
+    // Flush debug drawing (disable depth testing so it always renders on top)
+    glDisable(GL_DEPTH_TEST);
+    HitboxComponent::DebugDrawAndFlush();
+    HurtboxComponent::DebugDrawAndFlush();
+    glEnable(GL_DEPTH_TEST);
 }
 
 void _SceneTests()
