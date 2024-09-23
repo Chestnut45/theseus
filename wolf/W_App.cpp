@@ -10,6 +10,9 @@
 #include <windows.h>
 #endif
 
+// Needed for ImGui window bring to front
+#include <imgui/imgui_internal.h>
+
 namespace wolf
 {
 
@@ -82,7 +85,7 @@ App::App(const std::string& name, int width, int height)
     iconConfig.PixelSnapH = true;
     iconConfig.GlyphMinAdvanceX = iconFontSize;
     iconConfig.GlyphOffset.y = 1.5f;
-    io.Fonts->AddFontFromFileTTF("thirdparty/" FONT_ICON_FILE_NAME_FAR, iconFontSize, &iconConfig, iconRange);
+    io.Fonts->AddFontFromFileTTF("thirdparty/" FONT_ICON_FILE_NAME_FAS, iconFontSize, &iconConfig, iconRange);
 
     // Setup Dear ImGui Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(m_pWindow, true);
@@ -214,6 +217,7 @@ void App::ShowDebug()
     ImGui::SetNextWindowPos(ImVec2((float)(m_width - 256), 0));
     ImGui::SetNextWindowSize(ImVec2(256, 254));
     ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+    ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
     
     // Performance monitoring
     ImGui::SeparatorText("Performance:");

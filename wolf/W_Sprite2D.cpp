@@ -4,6 +4,8 @@
 #include "W_ProgramManager.h"
 #include "W_TextureManager.h"
 
+#include "W_Logging.h"
+
 namespace wolf
 {
 
@@ -28,8 +30,8 @@ Sprite2D::~Sprite2D()
     // Update manager's reference count for the loaded texture
     wolf::TextureManager::DestroyTexture(m_pTexture);
 
-    refCount--;
-    if (refCount == 0)
+    s_refCount--;
+    if (s_refCount == 0)
     {
         // Cleanup static shared resources
         wolf::ProgramManager::DestroyProgram(s_pProgram);
@@ -58,19 +60,22 @@ void Sprite2D::SetOrigin(const glm::vec2& origin)
 
 void Sprite2D::SetOriginToCenterOfTexture()
 {
-    const glm::vec2 texSize = glm::vec2(m_pTexture->GetWidth(), m_pTexture->GetHeight());
-    m_origin.x = texSize.x * 0.5f;
-    m_origin.y = texSize.y * 0.5f;
+    if (m_pTexture)
+    {
+        const glm::vec2 texSize = glm::vec2(m_pTexture->GetWidth(), m_pTexture->GetHeight());
+        m_origin.x = texSize.x * 0.5f;
+        m_origin.y = texSize.y * 0.5f;
+    }
+    else
+    {
+        wolf::Error("Sprite2D texture not loaded, can't center origin");
+    }
 }
 
-void Sprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& color)
+void Sprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint)
 {
     // Only render if texture was properly loaded
     if (!m_pTexture) return;
-
-    // Bind shader and texture
-    s_pProgram->Bind();
-    m_pTexture->Bind(0);
 
     // Grab the texture size
     const glm::vec2 texSize = glm::vec2(m_pTexture->GetWidth(), m_pTexture->GetHeight());
@@ -84,11 +89,15 @@ void Sprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm:
     model = glm::scale(model, glm::vec3(scale * texSize, 1.0f));
 
     // Determine tint to use
-    const glm::vec3& tint = color == glm::vec3(1.0f) ? m_tint : color;
+    const glm::vec3& chosenTint = tint == glm::vec3(-1.0f) ? m_tint : tint;
 
     // Set uniforms
     s_pProgram->SetUniform("model", model);
-    s_pProgram->SetUniform("spriteTint", tint);
+    s_pProgram->SetUniform("spriteTint", chosenTint);
+
+    // Bind shader and texture
+    s_pProgram->Bind();
+    m_pTexture->Bind(0);
 
     // Issue draw call
     s_pVAO->Bind();
@@ -99,7 +108,7 @@ void Sprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm:
 void Sprite2D::_IncreaseRefCount()
 {
     // Update reference count and initialize static shared resources
-    if (refCount == 0)
+    if (s_refCount == 0)
     {
         // Load shader program
         s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/sprite2d.vs", "data/shaders/sprite2d.fs");
@@ -135,7 +144,7 @@ void Sprite2D::_IncreaseRefCount()
         s_pVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
         s_pVAO->End();
     }
-    refCount++;
+    s_refCount++;
 }
 
 }

@@ -4,9 +4,9 @@
 int main(int, char**)
 {
     // Unit tests
-    // wolf::_SceneTests();
-    // wolf::_ShapeTests();
-    // wolf::_EventManagerTests();
+    wolf::_SceneTests();
+    wolf::_ShapeTests();
+    wolf::_EventManagerTests();
     
     Theseus app;
     app.Run();
@@ -15,76 +15,46 @@ int main(int, char**)
 
 Theseus::Theseus() : App("Theseus", 1280, 720)
 {
-    // TODO: Initialization logic
-
-    // Enable depth test
+    // Enable depth testing
     glEnable(GL_DEPTH_TEST);
 
-    // Create player object with a 2D transform component
-    m_pPlayerObject = &m_scene.CreateObject2D();
-
-    // Add a test sprite to the player object
-    auto& sprite = m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png");
-    sprite.SetOriginToCenterOfTexture();
-
-    // Scale up the player object's transform (affects the sprite size)
-    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4, 4));
-
-    // Add the main camera as a component of the player object
-    // NOTE: This should make the camera follow the player game object eventually
-    auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
-    m_scene.SetActiveCamera(camera);
+    // Initialize the game state manager
+    m_pStateManager = new GameStateManager();
+    
+    // Start with the Main Menu State
+    m_pStateManager->PushState(new MainMenuState(m_pStateManager, this));
 }
 
 Theseus::~Theseus()
 {
-    // TODO: Shutdown logic
+    delete m_pStateManager;  // Clean up the game state manager
 }
 
 void Theseus::Update(float delta)
 {
-    // Hotkeys
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) Shutdown();
-    if (wolf::Input::IsKeyDown(GLFW_KEY_GRAVE_ACCENT)) ShowDebug();
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE)) wolf::Audio::Play("data/sounds/omg.mp3");
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_GRAVE_ACCENT)) m_showDebug = !m_showDebug;
 
-    // Handle the window resized flag
+    // Handle window resizing
     if (m_windowResized)
     {
-        // Update the active camera's view size
+        // Update camera's size to match the window
         wolf::Camera2D* camera = m_scene.GetActiveCamera();
         if (camera) camera->SetViewSize(m_width, m_height);
-
-        // Reset the flag
         m_windowResized = false;
     }
 
-    // Test transform hierarchy
-    wolf::Transform2D* t = m_pPlayerObject->GetComponent<wolf::Transform2D>();
-    if (t)
-    {
-        // Rotate the player's transform
-        t->RotateDegrees(-180 * delta);
-
-        // Debug player movement
-        float moveSpeed = 256;
-        if (wolf::Input::IsKeyDown(GLFW_KEY_W)) t->Translate(glm::vec2(0, delta * moveSpeed));
-        if (wolf::Input::IsKeyDown(GLFW_KEY_A)) t->Translate(glm::vec2(-delta * moveSpeed, 0));
-        if (wolf::Input::IsKeyDown(GLFW_KEY_S)) t->Translate(glm::vec2(0, -delta * moveSpeed));
-        if (wolf::Input::IsKeyDown(GLFW_KEY_D)) t->Translate(glm::vec2(delta * moveSpeed, 0));
-    }
+    // Update the current game state (whether MainMenu, Play, etc.)
+    m_pStateManager->Update(delta);
     
-    // TODO: Update logic
+    if (m_showDebug) ShowDebug();
 }
 
 void Theseus::Render()
 {
-    // Clear the default framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // Clear the framebuffer
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Render the scene
-    m_scene.Render();
-
-    // TODO: Rendering logic
+    // Render the current game state
+    m_pStateManager->Render();
 }

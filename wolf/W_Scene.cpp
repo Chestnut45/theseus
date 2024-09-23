@@ -4,6 +4,7 @@
 
 #include "W_GameObject.h"
 #include "W_Sprite2D.h"
+#include "W_TileMap.h"
 #include "W_Transform2D.h"
 
 namespace wolf
@@ -81,7 +82,13 @@ void Scene::RemoveActiveCamera()
 
 void Scene::Update(float delta)
 {
-    // TODO: Sync all Camera2D components to their transforms (smooth following?)
+    // Make cameras that are attached to game objects with a transform follow the object
+    for (auto&&[_, camera, transform] : Each<Camera2D, Transform2D>())
+    {
+        const glm::vec2& camPos = camera.GetPosition();
+        glm::vec2 deltaPos = transform.GetGlobalPosition() - camPos;
+        camera.SetPosition(camPos + deltaPos * delta * camera.GetFollowSpeed());
+    }
 }
 
 void Scene::Render()
@@ -95,6 +102,12 @@ void Scene::Render()
     for (auto&&[_, sprite, transform] : Each<Sprite2D, Transform2D>())
     {
         sprite.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
+    }
+
+    // Render all tilemaps with transform components
+    for (auto&&[_, tilemap, transform] : Each<TileMap, Transform2D>())
+    {
+        tilemap.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
     }
 }
 
@@ -139,6 +152,18 @@ void _SceneTests()
     object4.Delete();
     object5.Delete();
     assert(object1.GetChildren().size() == 0 && "deleting a child should update the parent");
+
+    // Test DeleteAllChildren()
+    auto& o = scene.CreateObject();
+    auto& o1 = scene.CreateObject();
+    auto& o2 = scene.CreateObject();
+    auto& o3 = scene.CreateObject();
+    o.AddChild(o1);
+    o.AddChild(o2);
+    o.AddChild(o3);
+    o.DeleteAllChildren();
+    assert(!o.HasChildren() && "All child objects should be deleted");
+    o.Delete();
 
     // Testing iterating objects with multiple component types
 

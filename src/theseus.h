@@ -1,27 +1,42 @@
 #pragma once
 
 #include <wolf.h>
+#include "GameInc.h"
 
 class Theseus : public wolf::App
 {
-    // Interface
-    public:
+public:
+    Theseus();
+    ~Theseus();
 
-        Theseus();
-        ~Theseus();
-
-        // Update the app, called every frame
-        void Update(float delta) override;
-        
-        // Rendering logic, called every frame
-        void Render() override;
+    // Update the app, called every frame
+    void Update(float delta) override;
     
-    // Data / implementation
-    private:
+    // Rendering logic, called every frame
+    void Render() override;
 
-        // The main game scene
-        wolf::Scene m_scene;
+    // Cleanly shut down the game
+    // NOTE: This will trigger the App's destructor, so
+    // make sure to cleanup your resources before shutting down.
+    inline void Shutdown() { glfwSetWindowShouldClose(m_pWindow, true); }
 
-        // A pointer to the player game object
-        wolf::GameObject* m_pPlayerObject = nullptr;
+    // Accessors
+
+    // Gets the dimensions of the game window
+    inline int GetWidth() const { return m_width; }
+    inline int GetHeight() const { return m_height; }
+
+    // Gets a reference to the main scene of the game
+    inline wolf::Scene& GetScene() { return m_scene; }
+
+private:
+
+    // Main game scene
+    wolf::Scene m_scene;
+
+    // Manager for handling game states
+    GameStateManager* m_pStateManager = nullptr;
+
+    // Flags
+    bool m_showDebug = false;
 };

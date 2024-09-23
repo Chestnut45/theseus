@@ -28,6 +28,7 @@ class Program
 		//-------------------------------------------------------------------------
 		void Bind(std::size_t variantKey = 0, const std::set<std::string>& keywords = std::set<std::string>());
 
+		// NOTE: Uniforms set will not be uploaded to the program until the next call to Bind()!
         void SetUniform(const std::string& name, const glm::mat4& m);
         void SetUniform(const std::string& name, const glm::mat3& m);
         void SetUniform(const std::string& name, const glm::vec3& v);

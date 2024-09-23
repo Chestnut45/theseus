@@ -46,7 +46,8 @@ public:
     // Component management
 
     // Adds a component to the game object by in-place construction.
-    // Pass your component's constructor arguments directly to this function!
+    // Returns a non-const reference to the newly-created component.
+    // NOTE: Pass your component's constructor arguments directly to this function!
     template <typename T, typename... Args>
     T& AddComponent(Args&&... args)
     {
@@ -98,6 +99,9 @@ public:
     // Removes the given child object from our list of children, and
     // updates the child object's parent pointer to be empty
     void RemoveChild(GameObject& object);
+
+    // Removes and deletes all child objects
+    void DeleteAllChildren();
 
     // Returns a pointer to the parent object, or nullptr if we have none
     inline GameObject* GetParent() const { return m_parent; }
