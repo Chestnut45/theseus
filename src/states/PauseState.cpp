@@ -15,8 +15,11 @@ void PauseState::Exit()
 
 void PauseState::Update(float delta)
 {
-    // Unpause with escape key
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) m_pStateManager->PopState();
+    // Resume flag (deferred until end of function for safety)
+    bool resume = false;
+
+    // Escape key triggers resume next frame
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) resume = true;
 
     // Get the dimensions of the game window
     const int w = m_pGameInstance->GetWidth();
@@ -56,11 +59,11 @@ void PauseState::Update(float delta)
     ImGui::SetCursorPosX((dimensions.x - buttonWidth) * 0.5f);
     if (ImGui::Button("Resume", {buttonWidth, buttonHeight}))
     {
-        m_pStateManager->PopState();
+        resume = true;
     }
 
     ImGui::SetCursorPosX((dimensions.x - buttonWidth) * 0.5f);
-    if (ImGui::Button("Main Manu", {buttonWidth, buttonHeight}))
+    if (ImGui::Button("Main Menu", {buttonWidth, buttonHeight}))
     {
         m_pStateManager->ClearAndPushState(new MainMenuState(m_pStateManager, m_pGameInstance));
     }
@@ -68,6 +71,9 @@ void PauseState::Update(float delta)
     // Close window and pop vars
     ImGui::End();
     ImGui::PopStyleColor();
+
+    // Resume if flag is set
+    if (resume) m_pStateManager->PopState();
 }
 
 void PauseState::Render()
