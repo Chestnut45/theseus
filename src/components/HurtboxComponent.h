@@ -54,7 +54,6 @@ private:
     bool m_bType = 0; // Type - 0: Damage Receiver, 1: Damage Dealer
     float m_iDamage = 0.0f; // Amount of Damage to Deal (only for Damage Dealer hurtboxes) 
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
-    bool m_bDestroy = false; //Game object destruction flag
     bool m_bIsRelative = false; // Hitbox scales relative to object
 
     std::vector<wolf::Rectangle> m_vHurtboxes;
@@ -66,7 +65,4 @@ private:
     static wolf::VertexBuffer *s_pVB;
 
     static std::vector<Vertex2D> s_vVerticesVector;
-
-    bool IsToBeDestroyed() const;
-    void RaiseDestroyFlag();
 };

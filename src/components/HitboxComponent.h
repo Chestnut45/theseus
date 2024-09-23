@@ -22,7 +22,6 @@ class HitboxComponent : public wolf::BaseComponent
     friend HitboxManager;
 
 public:
-    // HitboxComponent();
     HitboxComponent(bool p_doc, bool p_relativity);
     virtual ~HitboxComponent();
 
@@ -61,9 +60,6 @@ private:
     static wolf::VertexBuffer *s_pVB;
 
     static std::vector<Vertex2D> s_vVerticesVector; 
-
-    bool IsToBeDestroyed() const;
-    void RaiseDestroyFlag();
 
     static constexpr auto in_place_delete = true;
 };

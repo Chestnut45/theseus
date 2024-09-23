@@ -120,7 +120,7 @@ bool HurtboxComponent::IsRelative() const
     return this->m_bIsRelative;
 }
 
-// Add vertices into static vertex array
+// Fill vertex array with vertices of instance
 void HurtboxComponent::FillVertexArray()
 {
     glm::vec2 translation = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -151,6 +151,7 @@ void HurtboxComponent::FillVertexArray()
     }     
 }
 
+// Draw boundaries & flush vertex vector
 void HurtboxComponent::DebugDrawAndFlush()
 {
     if (!s_pProgram) return;
@@ -165,24 +166,7 @@ void HurtboxComponent::DebugDrawAndFlush()
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex2D) * s_vVerticesVector.size(), s_vVerticesVector.data(), GL_STATIC_DRAW);
     glDrawArrays(GL_LINES, 0, s_vVerticesVector.size());
 
-    //std::cout << "Count: " << HitboxComponent::s_iComponentCount << std::endl;
-    for(Vertex2D vertex: s_vVerticesVector)
-    {
-        //std::cout << "X: " << vertex.x << ", Y: " << vertex.y << std::endl;
-    }
     s_vVerticesVector.clear();
-}
-
-// Return destroy flag
-bool HurtboxComponent::IsToBeDestroyed() const
-{
-    return this->m_bDestroy;
-}
-
-// Set destroy flag to true
-void HurtboxComponent::RaiseDestroyFlag()
-{
-    this->m_bDestroy = true;
 }
 
 int HurtboxComponent::GetComponentCount()

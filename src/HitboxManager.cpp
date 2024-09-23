@@ -83,14 +83,12 @@ void HitboxManager::CheckCollisions()
                                 if(hitbox1.IsDestroyedOnCollision())
                                 {
                                     // std::cout << "HitboxManager - Delete id1:" << id1 << std::endl;
-                                    hitbox1.RaiseDestroyFlag();
                                     this->m_vToBeDestroyed.push_back(&hitbox1);
                                 }
 
                                 if(hitbox2.IsDestroyedOnCollision())
                                 {
                                     // std::cout << "HitboxManager - Delete id2:" << id2 << std::endl;
-                                    hitbox2.RaiseDestroyFlag();
                                     this->m_vToBeDestroyed.push_back(&hitbox2);
                                 }
                             }

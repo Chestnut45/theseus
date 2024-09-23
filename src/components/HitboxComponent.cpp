@@ -37,27 +37,6 @@ wolf::VertexDeclaration * HitboxComponent::s_pDecl = nullptr;
 wolf::Program *HitboxComponent::s_pProgram = nullptr;
 wolf::VertexBuffer *HitboxComponent::s_pVB = nullptr;
 
-// HitboxComponent::HitboxComponent():
-// m_Hitbox(glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 1.0f))
-// {
-
-
-//     HitboxComponent::s_iComponentCount++;
-//     if (s_pProgram == nullptr)
-//     {
-//         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-//         s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/lines.vsh", "data/shaders/lines.fsh");
-//         s_pVB = wolf::BufferManager::CreateVertexBuffer(vertices.data(), sizeof(Vertex2D) * 8);
-
-//         s_pDecl = new wolf::VertexDeclaration();
-//         s_pDecl->Begin();
-//         s_pDecl->AppendAttribute(wolf::AT_Position, 2, wolf::CT_Float);
-//         s_pDecl->SetVertexBuffer(s_pVB);
-//         s_pDecl->End();
-//     }
-// }
-
 // Constructor for custom attributes
 HitboxComponent::HitboxComponent(bool p_doc, bool p_relativity)
 {
@@ -125,19 +104,7 @@ bool HitboxComponent::IsRelative() const
     return this->m_bIsRelative;
 }
 
-// Get destroy flag
- bool HitboxComponent::IsToBeDestroyed() const
- {
-    return this->m_bDestroy;
- }
-
-// Set destroy flag to true
-void HitboxComponent::RaiseDestroyFlag()
-{
-    this->m_bDestroy = true;
-}
-
-// Render
+// Fill vertex array with vertices of instance
 void HitboxComponent::FillVertexArray()
 {
     glm::vec2 translation = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -166,6 +133,7 @@ void HitboxComponent::FillVertexArray()
     }
 }
 
+// Draw boundaries & flush vertex vector
 void HitboxComponent::DebugDrawAndFlush()
 {
     if (!s_pProgram) return;
