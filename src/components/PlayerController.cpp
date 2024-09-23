@@ -48,6 +48,19 @@ void PlayerController::Update(float delta)
                 break;
         }
     }
+    if (m_stamina < m_maxStamina)
+    {
+        if (m_staminaRegenTimer > 0.0f)
+        {
+            m_staminaRegenTimer -= delta;
+        }
+        else
+        {
+            m_stamina += m_staminaRegenRate * delta;
+            if (m_stamina > m_maxStamina)
+                m_stamina = m_maxStamina;
+        }
+    }
 }
 
 // Handle movement input (WASD)
@@ -93,9 +106,20 @@ void PlayerController::HandleRolling(float delta)
     }
     else if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && !m_isRolling)
     {
-        m_isRolling = true;
-        m_rollTimer = m_rollDuration;
-        m_action = PlayerAction::ROLLING;
+        if (m_stamina >= 15.0f)
+        {
+            m_isRolling = true;
+            m_rollTimer = m_rollDuration;
+            m_action = PlayerAction::ROLLING;
+
+            // Consume stamina
+            m_stamina -= 25.0f;
+            if (m_stamina < 0.0f)
+                m_stamina = 0.0f;
+
+            // Start stamina regeneration delay
+            m_staminaRegenTimer = m_staminaRegenDelay;
+        }
     }
 }
 
@@ -136,4 +160,49 @@ glm::vec2 PlayerController::GetRollDirection() const
 
     // Return normalized direction or zero if no input
     return glm::length(direction) > 0.0f ? glm::normalize(direction) : glm::vec2(0.0f);
+}
+void PlayerController::Render()
+{
+    if (!m_pTransform) return;
+
+    // Get the player's position
+    glm::vec2 worldPos = m_pTransform->GetGlobalPosition();
+
+    // Get the active camera
+    wolf::Camera2D* camera = GetGameObject()->GetScene().GetActiveCamera();
+    if (!camera) return;
+
+    // Get the combined view-projection matrix
+    glm::mat4 viewProj = camera->GetMatrix();
+
+    // Convert world position to clip space
+    glm::vec4 worldPos4(worldPos.x, worldPos.y, 0.0f, 1.0f);
+    glm::vec4 clipSpacePos = viewProj * worldPos4;
+
+    // Normalize device coordinates
+    glm::vec3 ndcSpacePos = clipSpacePos / clipSpacePos.w;
+
+    // Convert to screen space
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    glm::vec2 screenPos = glm::vec2(
+        (ndcSpacePos.x * 0.5f + 0.5f) * displaySize.x,
+        (1.0f - (ndcSpacePos.y * 0.5f + 0.5f)) * displaySize.y
+    );
+
+    // Adjust position to be above the player
+    screenPos.y -= 60.0f;
+
+    // Draw the stamina bar
+    ImGui::SetNextWindowPos(ImVec2(screenPos.x - 25.0f, screenPos.y)); // Center the bar above the player
+    ImGui::SetNextWindowSize(ImVec2(50.0f, 10.0f)); // Set window size
+
+    ImGui::Begin("##StaminaBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+
+    // Calculate stamina percentage
+    float staminaPercent = m_stamina / m_maxStamina;
+
+    // Draw the stamina bar
+    ImGui::ProgressBar(staminaPercent, ImVec2(-1, 0)); // Full width, default height
+
+    ImGui::End();
 }

@@ -25,8 +25,10 @@ public:
 
     // Updates the player controller, adjusting transform and velocity if they exist
     void Update(float delta);
+    void Render();
 
 private:
+    
     // Handle movement input (WASD)
     void HandleMovement(float delta);
 
@@ -54,6 +56,13 @@ private:
     float m_rollSpeed = 400.0f;
     float m_rollTimer = 0.0f;
     float m_rollDuration = 0.5f; // Duration of the roll
+
+    //stamina variables
+    float m_stamina = 100.0f;             
+    const float m_maxStamina = 100.0f;    
+    const float m_staminaRegenRate = 20.0f;  
+    const float m_staminaRegenDelay = 2.0f;  
+    float m_staminaRegenTimer = 0.0f;     
 
     // Jumping variables
     bool m_isJumping = false;
