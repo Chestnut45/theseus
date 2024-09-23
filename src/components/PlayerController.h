@@ -20,13 +20,29 @@ public:
         ROLLING
     };
 
+    // Enum for player direction
+    enum class PlayerDirection
+    {
+        NONE,
+        NORTH,
+        NORTH_EAST,
+        EAST,
+        SOUTH_EAST,
+        SOUTH,
+        SOUTH_WEST, 
+        WEST,
+        NORTH_WEST
+    };
+
     // Create a player controller component
     PlayerController();
 
     // Updates the player controller, adjusting transform and velocity if they exist
     void Update(float delta);
+    void Render();
 
 private:
+    
     // Handle movement input (WASD)
     void HandleMovement(float delta);
 
@@ -36,10 +52,13 @@ private:
     // Handle jumping input (J key)
     void HandleJumping(float delta);
 
-    // Get the direction for rolling
-    glm::vec2 GetRollDirection() const;
+    
+    PlayerDirection GetRollDirection() const;
 
-    //pointer to transform and velocity
+    // Convert PlayerDirection to a glm::vec2 
+    glm::vec2 GetDirectionVector(PlayerDirection direction) const;
+
+    // Pointer to transform and velocity
     wolf::Transform2D* m_pTransform = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
 
@@ -55,11 +74,20 @@ private:
     float m_rollTimer = 0.0f;
     float m_rollDuration = 0.5f; // Duration of the roll
 
+    // Stamina variables
+    float m_stamina = 100.0f;             
+    const float m_maxStamina = 100.0f;    
+    const float m_staminaRegenRate = 20.0f;  
+    const float m_staminaRegenDelay = 1.0f;  
+    wolf::Timer m_staminaRegenTimer;
+
     // Jumping variables
     bool m_isJumping = false;
     float m_jumpHeight = 10.0f;
     float m_jumpSpeed = 300.0f;
     float m_jumpTimer = 0.0f;
 
+    
     glm::vec2 m_lastDirection = glm::vec2(0.0f);
+    PlayerDirection m_lastDirectionEnum = PlayerDirection::NONE;
 };
