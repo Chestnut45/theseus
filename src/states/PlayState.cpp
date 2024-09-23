@@ -46,8 +46,7 @@ void PlayState::Enter()
 void PlayState::Exit()
 {
     // Delete objects / components from the scene
-    m_pPlayerObject->Delete();
-    m_pLabyrinthManager->GetGameObject()->Delete();
+    m_pGameInstance->GetScene().Clear();
 
     // Delete managers
     delete this->m_pHitboxManager;
