@@ -144,8 +144,17 @@ void PlayState::CreatePlayer()
     // Scale player
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
 
-    // Add sprite
-    m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png").SetOriginToCenterOfTexture();
+    // Add animated sprite
+    auto& animSprite = m_pPlayerObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
+    animSprite.AddAnimation("WalkSouth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 8, true);
+    animSprite.AddAnimation("WalkEast", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 9, 16, true);
+    animSprite.AddAnimation("WalkNorth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 17, 24, true);
+    animSprite.AddAnimation("WalkWest", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 25, 32, true);
+    animSprite.AddAnimation("StandSouth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
+    animSprite.AddAnimation("StandEast", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 2, 2, false);
+    animSprite.AddAnimation("StandNorth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 3, 3, false);
+    animSprite.AddAnimation("StandWest", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 4, 4, false);
+    animSprite.SetAnimation("StandSouth");
 
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
