@@ -220,6 +220,11 @@ bool AnimatedSprite2D::RemoveAnimation(const std::string& p_strName) {
 void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
     auto animIt = m_mAnimationMap.find(p_strName);
     if (animIt != m_mAnimationMap.end()) {
+        if (m_pCurrentAnim == animIt->second) {
+            // If we're already playing this animation then we shouldn't restart it
+            return;
+        }
+        printf("Setting animation to: %s\n", p_strName.c_str());
         m_pCurrentAnim = animIt->second;
         this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
@@ -232,6 +237,10 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
 void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetAnimFrame) {
     auto animIt = m_mAnimationMap.find(p_strName);
     if (animIt != m_mAnimationMap.end()) {
+        if (m_pCurrentAnim == animIt->second) {
+            // If we're already playing this animation then we shouldn't restart it
+            return;
+        }
         // Quick check to make sure that changing to the given frame won't send us out of bounds
         int iTargetFrame = m_pCurrentAnim->m_iStartFrame + p_iTargetAnimFrame;
         if (iTargetFrame >= m_vpFrameUVCoords.size() || iTargetFrame < 0) {

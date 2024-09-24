@@ -89,12 +89,6 @@ void PlayState::Update(float delta)
     auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
     if (playerAnim) {
         playerAnim->Update(delta);
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
-            playerAnim->SetAnimation("StandSouth");
-        }
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
-            playerAnim->SetAnimation("WalkSouth");
-        }
     }
 
     // Apply velocity to transforms for all objects with both components
