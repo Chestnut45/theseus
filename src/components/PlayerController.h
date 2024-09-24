@@ -7,7 +7,8 @@
 //-----------------------------------------------------------------------------
 
 #include <wolf.h>
-#include <VelocityComponent.h>
+#include <components/VelocityComponent.h>
+#include <components/AnimatedSprite2D.h>
 
 class PlayerController : public wolf::BaseComponent
 {
@@ -61,6 +62,7 @@ private:
     // Pointer to transform and velocity
     wolf::Transform2D* m_pTransform = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
+    AnimatedSprite2D* m_pAnim = nullptr;
 
     // Player action
     PlayerAction m_action = PlayerAction::NONE;

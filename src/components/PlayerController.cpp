@@ -22,6 +22,7 @@ void PlayerController::Update(float delta)
     {
         m_pTransform = pGameObject->GetComponent<wolf::Transform2D>();
         m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
+        m_pAnim = pGameObject->GetComponent<AnimatedSprite2D>();
     }
 
     // Only update if both components exist
@@ -40,6 +41,10 @@ void PlayerController::Update(float delta)
                 break;
 
             case PlayerAction::WALKING:
+                HandleMovement(delta);
+                HandleRolling(delta);   // Rolling can interrupt walking
+                HandleJumping(delta);   // Allow jumping while walking
+                break;
             case PlayerAction::NONE:
             default:
                 HandleMovement(delta);
@@ -73,11 +78,69 @@ void PlayerController::HandleMovement(float delta)
         m_pVelocity->SetVelocity(direction * m_moveSpeed); // Set velocity 
         m_lastDirectionEnum = newDirection;
         m_action = PlayerAction::WALKING;
+        switch (newDirection) {
+            case PlayerDirection::SOUTH:
+                m_pAnim->SetAnimation("WalkSouth");
+                break;
+            case PlayerDirection::SOUTH_EAST:
+                m_pAnim->SetAnimation("WalkEast");
+                break;
+            case PlayerDirection::EAST:
+                m_pAnim->SetAnimation("WalkEast");
+                break;
+            case PlayerDirection::NORTH_EAST:
+                m_pAnim->SetAnimation("WalkEast");
+                break;
+            case PlayerDirection::NORTH:
+                m_pAnim->SetAnimation("WalkNorth");
+            break;
+            case PlayerDirection::NORTH_WEST:
+                m_pAnim->SetAnimation("WalkWest");
+                break;
+            case PlayerDirection::WEST:
+                m_pAnim->SetAnimation("WalkWest");
+                break;
+            case PlayerDirection::SOUTH_WEST:
+                m_pAnim->SetAnimation("WalkWest");
+                break;
+            default:
+                m_pAnim->SetAnimation("WalkSouth");
+                break;
+        }
     }
     else if (m_action == PlayerAction::WALKING)
     {
         m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop movement
         m_action = PlayerAction::NONE;
+        switch (m_lastDirectionEnum) {
+            case PlayerDirection::SOUTH:
+                m_pAnim->SetAnimation("StandSouth");
+                break;
+            case PlayerDirection::SOUTH_EAST:
+                m_pAnim->SetAnimation("StandEast");
+                break;
+            case PlayerDirection::EAST:
+                m_pAnim->SetAnimation("StandEast");
+                break;
+            case PlayerDirection::NORTH_EAST:
+                m_pAnim->SetAnimation("StandEast");
+                break;
+            case PlayerDirection::NORTH:
+                m_pAnim->SetAnimation("StandNorth");
+            break;
+            case PlayerDirection::NORTH_WEST:
+                m_pAnim->SetAnimation("StandWest");
+                break;
+            case PlayerDirection::WEST:
+                m_pAnim->SetAnimation("StandWest");
+                break;
+            case PlayerDirection::SOUTH_WEST:
+                m_pAnim->SetAnimation("StandWest");
+                break;
+            default:
+                m_pAnim->SetAnimation("StandSouth");
+                break;
+        }
     }
 }
 
