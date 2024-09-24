@@ -90,7 +90,7 @@ void PlayerController::HandleMovement(float delta)
         m_pVelocity->SetVelocity(direction * m_moveSpeed); // Set velocity 
         m_lastDirectionEnum = newDirection;
         m_action = PlayerAction::WALKING;
-        switch (GetRollDirection()) {
+        switch (newDirection) {
             case PlayerDirection::SOUTH:
             // printf("Walk is calling WalkSouth\n");
                 m_pAnim->SetAnimation("WalkSouth");
@@ -113,7 +113,7 @@ void PlayerController::HandleMovement(float delta)
     {
         m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop movement
         m_action = PlayerAction::NONE;
-        switch (newDirection) {
+        switch (m_lastDirectionEnum) {
             case PlayerDirection::SOUTH:
                 printf("None is calling StandSouth\n");
                 m_pAnim->SetAnimation("StandSouth");
