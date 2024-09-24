@@ -4,8 +4,9 @@
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
 // Original Author: Youssef Ashraf
-// ver 1.7, updated to use member variables for components,
-// Player State Management, Velocity-Based Movement, Decoupled, test.
+// Modifications: D'Anyil Landry, Aurora, Nguyễn Minh Nhật, Aurora Ryder
+// ver 1.8, updated to use member variables for components,
+// Player State Management, Velocity-Based Movement, Decoupled, Enum Direction, Direction Vector, Stamina
 //-----------------------------------------------------------------------------
 
 // Constructor
@@ -13,7 +14,6 @@ PlayerController::PlayerController()
 {
 }
 
-// Update function called every frame
 void PlayerController::Update(float delta)
 {
     // Grab current transform and velocity components from the game object
@@ -58,6 +58,16 @@ void PlayerController::Update(float delta)
                 break;
         }
     }
+    if (m_stamina < m_maxStamina)
+    {
+        if (m_staminaRegenTimer.Elapsed() >= 2.0)
+        {
+            // Regenerate stamina
+            m_stamina += m_staminaRegenRate * delta;
+            if (m_stamina > m_maxStamina)
+                m_stamina = m_maxStamina;
+        }
+    }
 }
 
 // Handle movement input (WASD)
@@ -65,17 +75,13 @@ void PlayerController::HandleMovement(float delta)
 {
     if (m_action == PlayerAction::ROLLING) return; // Disable movement during roll
 
-    glm::vec2 direction(0.0f);
-    if (wolf::Input::IsKeyDown(GLFW_KEY_W)) direction.y += 1.0f;
-    if (wolf::Input::IsKeyDown(GLFW_KEY_S)) direction.y -= 1.0f;
-    if (wolf::Input::IsKeyDown(GLFW_KEY_A)) direction.x -= 1.0f;
-    if (wolf::Input::IsKeyDown(GLFW_KEY_D)) direction.x += 1.0f;
+    PlayerDirection newDirection = GetRollDirection();
+    glm::vec2 direction = GetDirectionVector(newDirection);
 
-    if (glm::length(direction) > 0.0f)
+    if (direction != glm::vec2(0.0f))
     {
-        direction = glm::normalize(direction);
         m_pVelocity->SetVelocity(direction * m_moveSpeed); // Set velocity 
-        m_lastDirection = direction;
+        m_lastDirectionEnum = newDirection;
         m_action = PlayerAction::WALKING;
     }
     else if (m_action == PlayerAction::WALKING)
@@ -90,7 +96,7 @@ void PlayerController::HandleRolling(float delta)
 {
     if (m_isRolling)
     {
-        glm::vec2 rollDirection = m_lastDirection;
+        glm::vec2 rollDirection = GetDirectionVector(m_lastDirectionEnum);
         m_pVelocity->SetVelocity(rollDirection * m_rollSpeed); // Continue rolling in last known direction
 
         m_rollTimer -= delta;
@@ -103,9 +109,23 @@ void PlayerController::HandleRolling(float delta)
     }
     else if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && !m_isRolling)
     {
-        m_isRolling = true;
-        m_rollTimer = m_rollDuration;
-        m_action = PlayerAction::ROLLING;
+        if (m_stamina >= 15.0f)
+        {
+            m_isRolling = true;
+            m_rollTimer = m_rollDuration;
+            m_action = PlayerAction::ROLLING;
+
+            // Use the last direction for the roll
+            glm::vec2 rollDirection = GetDirectionVector(m_lastDirectionEnum);
+
+            // Consume stamina
+            m_stamina -= 25.0f;
+            if (m_stamina < 0.0f)
+                m_stamina = 0.0f;
+
+            // Start/reset the stamina regeneration timer
+            m_staminaRegenTimer.Restart();
+        }
     }
 }
 
@@ -135,8 +155,8 @@ void PlayerController::HandleJumping(float delta)
     }
 }
 
-// Get current roll direction (based on movement input)
-glm::vec2 PlayerController::GetRollDirection() const
+// Get the direction enum based on movement input
+PlayerController::PlayerDirection PlayerController::GetRollDirection() const
 {
     glm::vec2 direction(0.0f, 0.0f);
     if (wolf::Input::IsKeyDown(GLFW_KEY_W)) direction.y += 1.0f;
@@ -144,6 +164,82 @@ glm::vec2 PlayerController::GetRollDirection() const
     if (wolf::Input::IsKeyDown(GLFW_KEY_A)) direction.x -= 1.0f;
     if (wolf::Input::IsKeyDown(GLFW_KEY_D)) direction.x += 1.0f;
 
-    // Return normalized direction or zero if no input
-    return glm::length(direction) > 0.0f ? glm::normalize(direction) : glm::vec2(0.0f);
+    // Normalize the direction if there's movement
+    if (direction != glm::vec2(0.0f, 0.0f))
+        direction = glm::normalize(direction);
+
+    // Determine and return the correct enum based on direction
+    if (direction.x == 0.0f && direction.y > 0.0f) return PlayerDirection::NORTH;
+    if (direction.x > 0.0f && direction.y > 0.0f) return PlayerDirection::NORTH_EAST;
+    if (direction.x > 0.0f && direction.y == 0.0f) return PlayerDirection::EAST;
+    if (direction.x > 0.0f && direction.y < 0.0f) return PlayerDirection::SOUTH_EAST;
+    if (direction.x == 0.0f && direction.y < 0.0f) return PlayerDirection::SOUTH;
+    if (direction.x < 0.0f && direction.y < 0.0f) return PlayerDirection::SOUTH_WEST;
+    if (direction.x < 0.0f && direction.y == 0.0f) return PlayerDirection::WEST;
+    if (direction.x < 0.0f && direction.y > 0.0f) return PlayerDirection::NORTH_WEST;
+    
+    return PlayerDirection::NONE; // Default case
+}
+
+
+// Convert direction enum to glm::vec2 for movement
+glm::vec2 PlayerController::GetDirectionVector(PlayerDirection direction) const
+{
+    switch (direction)
+    {
+        case PlayerDirection::NORTH:       return glm::vec2(0.0f, 1.0f);
+        case PlayerDirection::NORTH_EAST:  return glm::vec2(1.0f, 1.0f);
+        case PlayerDirection::EAST:        return glm::vec2(1.0f, 0.0f);
+        case PlayerDirection::SOUTH_EAST:  return glm::vec2(1.0f, -1.0f);
+        case PlayerDirection::SOUTH:       return glm::vec2(0.0f, -1.0f);
+        case PlayerDirection::SOUTH_WEST:  return glm::vec2(-1.0f, -1.0f);
+        case PlayerDirection::WEST:        return glm::vec2(-1.0f, 0.0f);
+        case PlayerDirection::NORTH_WEST:  return glm::vec2(-1.0f, 1.0f);
+        default:                           return glm::vec2(0.0f, 0.0f); 
+    }
+}
+void PlayerController::Render()
+{
+    if (!m_pTransform) return;
+
+    // Get the player's position
+    glm::vec2 worldPos = m_pTransform->GetGlobalPosition();
+
+    // Get the active camera
+    wolf::Camera2D* camera = GetGameObject()->GetScene().GetActiveCamera();
+    if (!camera) return;
+
+    // Get the combined view-projection matrix
+    glm::mat4 viewProj = camera->GetMatrix();
+
+    // Convert world position to clip space
+    glm::vec4 worldPos4(worldPos.x, worldPos.y, 0.0f, 1.0f);
+    glm::vec4 clipSpacePos = viewProj * worldPos4;
+
+    // Normalize device coordinates
+    glm::vec3 ndcSpacePos = clipSpacePos / clipSpacePos.w;
+
+    // Convert to screen space
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    glm::vec2 screenPos = glm::vec2(
+        (ndcSpacePos.x * 0.5f + 0.5f) * displaySize.x,
+        (1.0f - (ndcSpacePos.y * 0.5f + 0.5f)) * displaySize.y
+    );
+
+    // Adjust position to be above the player
+    screenPos.y -= 60.0f;
+
+    // Draw the stamina bar
+    ImGui::SetNextWindowPos(ImVec2(screenPos.x - 25.0f, screenPos.y)); // Center the bar above the player
+    ImGui::SetNextWindowSize(ImVec2(50.0f, 10.0f)); // Set window size
+
+    ImGui::Begin("##StaminaBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+
+    // Calculate stamina percentage
+    float staminaPercent = m_stamina / m_maxStamina;
+
+    // Draw the stamina bar
+    ImGui::ProgressBar(staminaPercent, ImVec2(-1, 0)); // Full width, default height
+
+    ImGui::End();
 }

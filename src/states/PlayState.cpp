@@ -115,6 +115,9 @@ void PlayState::Render()
 {
     // Render the game's scene
     m_pGameInstance->GetScene().Render();
+    auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
+    if (playerController)
+        playerController->Render();
 }
 
 void PlayState::BackgroundUpdate(float delta)
