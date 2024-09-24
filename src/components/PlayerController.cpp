@@ -33,35 +33,23 @@ void PlayerController::Update(float delta)
         {
             case PlayerAction::ROLLING:
                 HandleRolling(delta);
-                if (m_pAnim) {
-                    // Animations by direction go here!
-                }
                 break;
 
             case PlayerAction::JUMPING:
                 HandleJumping(delta);
                 HandleMovement(delta);  // Allow movement while jumping
-                if (m_pAnim) {
-                    // Animations by direction go here!
-                }
                 break;
 
             case PlayerAction::WALKING:
                 HandleMovement(delta);
                 HandleRolling(delta);   // Rolling can interrupt walking
                 HandleJumping(delta);   // Allow jumping while walking
-                if (m_pAnim) {
-                    
-                }
                 break;
             case PlayerAction::NONE:
             default:
                 HandleMovement(delta);
                 HandleRolling(delta);   // Rolling can interrupt walking
                 HandleJumping(delta);   // Allow jumping while walking
-                if (m_pAnim) {
-                    
-                }
                 break;
         }
     }
@@ -92,20 +80,31 @@ void PlayerController::HandleMovement(float delta)
         m_action = PlayerAction::WALKING;
         switch (newDirection) {
             case PlayerDirection::SOUTH:
-            // printf("Walk is calling WalkSouth\n");
                 m_pAnim->SetAnimation("WalkSouth");
                 break;
+            case PlayerDirection::SOUTH_EAST:
+                m_pAnim->SetAnimation("WalkEast");
+                break;
             case PlayerDirection::EAST:
-                // printf("Walk is calling WalkSouth\n");
+                m_pAnim->SetAnimation("WalkEast");
+                break;
+            case PlayerDirection::NORTH_EAST:
                 m_pAnim->SetAnimation("WalkEast");
                 break;
             case PlayerDirection::NORTH:
-                //printf("Walk is calling WalkSouth\n");
                 m_pAnim->SetAnimation("WalkNorth");
             break;
-            case PlayerDirection::WEST:
-                // printf("Walk is calling WalkWest\n");
+            case PlayerDirection::NORTH_WEST:
                 m_pAnim->SetAnimation("WalkWest");
+                break;
+            case PlayerDirection::WEST:
+                m_pAnim->SetAnimation("WalkWest");
+                break;
+            case PlayerDirection::SOUTH_WEST:
+                m_pAnim->SetAnimation("WalkWest");
+                break;
+            default:
+                m_pAnim->SetAnimation("WalkSouth");
                 break;
         }
     }
@@ -115,24 +114,31 @@ void PlayerController::HandleMovement(float delta)
         m_action = PlayerAction::NONE;
         switch (m_lastDirectionEnum) {
             case PlayerDirection::SOUTH:
-                printf("None is calling StandSouth\n");
                 m_pAnim->SetAnimation("StandSouth");
                 break;
+            case PlayerDirection::SOUTH_EAST:
+                m_pAnim->SetAnimation("StandEast");
+                break;
             case PlayerDirection::EAST:
-                printf("None is calling StandEast\n");
+                m_pAnim->SetAnimation("StandEast");
+                break;
+            case PlayerDirection::NORTH_EAST:
                 m_pAnim->SetAnimation("StandEast");
                 break;
             case PlayerDirection::NORTH:
-                printf("None is calling StandNorth\n");
                 m_pAnim->SetAnimation("StandNorth");
+            break;
+            case PlayerDirection::NORTH_WEST:
+                m_pAnim->SetAnimation("StandWest");
                 break;
             case PlayerDirection::WEST:
-                printf("None is calling StandWest\n");
+                m_pAnim->SetAnimation("StandWest");
+                break;
+            case PlayerDirection::SOUTH_WEST:
                 m_pAnim->SetAnimation("StandWest");
                 break;
             default:
-                printf("ShIT\n");
-                printf("A NMBER: %d\n", GetRollDirection());
+                m_pAnim->SetAnimation("StandSouth");
                 break;
         }
     }

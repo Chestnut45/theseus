@@ -224,7 +224,6 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
             // If we're already playing this animation then we shouldn't restart it
             return;
         }
-        printf("Setting animation to: %s\n", p_strName.c_str());
         m_pCurrentAnim = animIt->second;
         this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
