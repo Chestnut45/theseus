@@ -108,7 +108,7 @@ void PlayerController::HandleMovement(float delta)
                 break;
         }
     }
-    else if (m_action == PlayerAction::WALKING)
+    else if (m_action == PlayerAction::WALKING || m_action == PlayerAction::NONE)
     {
         m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop movement
         m_action = PlayerAction::NONE;
