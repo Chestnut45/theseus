@@ -152,6 +152,7 @@ void PlayState::CreatePlayer()
     animSprite.AddAnimation("StandNorth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 3, 3, false);
     animSprite.AddAnimation("StandWest", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 4, 4, false);
     animSprite.SetAnimation("StandSouth");
+    animSprite.SetOriginToCenterOfFrame();
 
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();

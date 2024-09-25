@@ -84,7 +84,7 @@ private:
     // Pointer to the sprite's texture
     wolf::Texture* m_pTexture = nullptr;
 
-    // Origin to draw the sprite at, pixel coordinates from bottom left
+    // Origin to draw the sprite at, in pixel coordinates from bottom left
     glm::vec2 m_origin{0.0f};
 
     // Tint color of the sprite
