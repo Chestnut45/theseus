@@ -7,7 +7,7 @@
 #include "W_TileMap.h"
 #include "W_Transform2D.h"
 
-#include "../src/components/HurtboxComponent.h"
+#include "../src/components/ColliderComponent.h"
 
 namespace wolf
 {
@@ -112,16 +112,16 @@ void Scene::Render()
         tilemap.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
     }
 
-    // Queue all hurtboxes for debug rendering
+    // Queue all colliders for debug rendering
     // TODO: Toggle?
-    for (auto&&[_, hurtbox] : Each<HurtboxComponent>())
+    for (auto&&[_, collider] : Each<ColliderComponent>())
     {
-        hurtbox.FillVertexArray();
+        collider.FillVertexArray();
     }
 
     // Flush debug drawing (disable depth testing so it always renders on top)
     glDisable(GL_DEPTH_TEST);
-    HurtboxComponent::DebugDrawAndFlush();
+    ColliderComponent::DebugDrawAndFlush();
     glEnable(GL_DEPTH_TEST);
 }
 

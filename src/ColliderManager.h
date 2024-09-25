@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
-// File: HurtboxManager.h
+// File: ColliderManager.h
 // Original Author: Nguyễn Minh Nhật
-// Manages Hurtbox collision.
+// Manages collider collisions.
 // User Guide:
 //     + Create new Manager object before any game object is added to scene
 //     + Init() to pass reference to scene
@@ -16,27 +16,27 @@
 #include <wolf.h>
 
 #include "components/HealthComponent.h"
-#include "components/HurtboxComponent.h"
+#include "components/ColliderComponent.h"
 
-class HurtboxComponent;
+class ColliderComponent;
 
-class HurtboxManager
+class ColliderManager
 {
-friend HurtboxComponent;
+friend ColliderComponent;
 
 public:
-    HurtboxManager(wolf::Scene* p_scene);
-    virtual ~HurtboxManager();
+    ColliderManager(wolf::Scene* p_scene);
+    virtual ~ColliderManager();
 
     void Update();
 
 private:
     wolf::Scene* m_scene = nullptr;
 
-    bool IsColliding(HurtboxComponent* p_hurtboxComponent1, HurtboxComponent* p_hurtboxComponent2);
-    bool IsValidForCollisionCheck(HurtboxComponent* p_hurtboxComponent1, HurtboxComponent* p_hurtboxComponent2);
+    bool IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2);
+    bool IsValidForCollisionCheck(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2);
     void RemoveFlagged();
     void CheckCollisions();
 
-    std::vector<HurtboxComponent *> m_vToBeDestroyed;
+    std::vector<ColliderComponent *> m_vToBeDestroyed;
 };

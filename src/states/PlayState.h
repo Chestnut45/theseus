@@ -9,7 +9,7 @@
 #include "GameState.h"
 #include <theseus.h> // Include the main game class
 
-#include "../HurtboxManager.h"
+#include "../ColliderManager.h"
 
 class LabyrinthManager;
 
@@ -34,8 +34,8 @@ private:
     wolf::GameObject* m_pPlayerObject = nullptr;
     LabyrinthManager* m_pLabyrinthManager = nullptr;
 
-    // Manager for hurtboxes
-    HurtboxManager* m_pHurtboxManager = nullptr;
+    // Manager for colliders
+    ColliderManager* m_pColliderManager = nullptr;
 
     // Flags
     bool m_showLabyrinthManager = false;

@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
-// File: HurtboxComponent.h
+// File: ColliderComponent.h
 // Original Author: Nguyễn Minh Nhật
-// Hurtbox.
+// Collider.
 // User Guide:
 //     + Create component
 //     + Add at least 1 hitbox for component to function
@@ -11,14 +11,14 @@
 #include <glm/glm.hpp>
 #include <wolf.h>
 
-#include "../HurtboxManager.h"
+#include "../ColliderManager.h"
 #include "../VertexDeclarations.h"
 
-class HurtboxManager;
+class ColliderManager;
 
-class HurtboxComponent : public wolf::BaseComponent
+class ColliderComponent : public wolf::BaseComponent
 {
-    friend HurtboxManager;
+    friend ColliderManager;
 
 public:
 
@@ -32,24 +32,23 @@ public:
         NONE
     };
 
-    HurtboxComponent(ColliderType p_collider_type, bool p_doc , bool p_relativity);
+    ColliderComponent(ColliderType p_collider_type, bool p_doc , bool p_relativity);
     
-    virtual ~HurtboxComponent();
+    virtual ~ColliderComponent();
 
     // Delete copy constructor/assignment
-    HurtboxComponent(const HurtboxComponent&) = delete;
-    HurtboxComponent& operator=(const HurtboxComponent&) = delete;
+    ColliderComponent(const ColliderComponent&) = delete;
+    ColliderComponent& operator=(const ColliderComponent&) = delete;
 
     // Delete move constructor/assignment
-    HurtboxComponent(HurtboxComponent&& other) = delete;
-    HurtboxComponent& operator=(HurtboxComponent&& other) = delete;
+    ColliderComponent(ColliderComponent&& other) = delete;
+    ColliderComponent& operator=(ColliderComponent&& other) = delete;
 
 
-    void AddHurtbox(glm::vec2 p_dimensions);
-    void AddHurtbox(glm::vec2 p_dimensions, glm::vec2 p_offset);
+    void AddColliderBox(glm::vec2 p_dimensions);
+    void AddColliderBox(glm::vec2 p_dimensions, glm::vec2 p_offset);
 
-    wolf::Rectangle GetHurtbox();
-    std::vector<wolf::Rectangle> GetHurtboxes() const;
+    std::vector<wolf::Rectangle> GetColliderBoxes() const;
 
     bool IsHitbox() const;
     bool IsHurtbox() const;
@@ -74,7 +73,7 @@ private:
 
     ColliderType m_ColliderType = ColliderType::NONE;
 
-    std::vector<wolf::Rectangle> m_vHurtboxes;
+    std::vector<wolf::Rectangle> m_vColliderBoxes;
 
     static int s_iComponentCount;
 

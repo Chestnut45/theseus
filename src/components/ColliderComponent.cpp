@@ -1,10 +1,10 @@
 //-----------------------------------------------------------------------------
-// File: HurtboxComponent.cpp
+// File: ColliderComponent.cpp
 // Original Author: Nguyễn Minh Nhật
-// Hurtbox.
+// Collider.
 //-----------------------------------------------------------------------------
 
-#include "HurtboxComponent.h"
+#include "ColliderComponent.h"
 
 const std::vector<Vertex2D> vertices = 
 {
@@ -21,16 +21,16 @@ const std::vector<Vertex2D> vertices =
     {0.0f, 0.0f}
 };
 
-int HurtboxComponent::s_iComponentCount = 0;
+int ColliderComponent::s_iComponentCount = 0;
 
-std::vector<Vertex2D> HurtboxComponent::s_vVerticesVector;
+std::vector<Vertex2D> ColliderComponent::s_vVerticesVector;
 
-wolf::VertexDeclaration * HurtboxComponent::s_pDecl = nullptr;
-wolf::Program *HurtboxComponent::s_pProgram = nullptr;
-wolf::VertexBuffer *HurtboxComponent::s_pVB = nullptr;
+wolf::VertexDeclaration * ColliderComponent::s_pDecl = nullptr;
+wolf::Program *ColliderComponent::s_pProgram = nullptr;
+wolf::VertexBuffer *ColliderComponent::s_pVB = nullptr;
 
 // Constructor for custom attributes
-HurtboxComponent::HurtboxComponent(ColliderType p_collider_type, bool p_doc, bool p_relativity)
+ColliderComponent::ColliderComponent(ColliderType p_collider_type, bool p_doc, bool p_relativity)
 {
     this->m_ColliderType = p_collider_type;
     this->m_bIsDestroyedOnCollision = p_doc;
@@ -49,40 +49,40 @@ HurtboxComponent::HurtboxComponent(ColliderType p_collider_type, bool p_doc, boo
         s_pDecl->SetVertexBuffer(s_pVB);
         s_pDecl->End();
     }
-    HurtboxComponent::s_iComponentCount++;
+    ColliderComponent::s_iComponentCount++;
 }
 
-HurtboxComponent::~HurtboxComponent()
+ColliderComponent::~ColliderComponent()
 {
-    HurtboxComponent::s_iComponentCount--;
-    if(HurtboxComponent::s_iComponentCount == 0)
+    ColliderComponent::s_iComponentCount--;
+    if(ColliderComponent::s_iComponentCount == 0)
     {
-        delete HurtboxComponent::s_pDecl;
-        HurtboxComponent::s_pDecl = nullptr;
-        wolf::ProgramManager::DestroyProgram(HurtboxComponent::s_pProgram);
-        HurtboxComponent::s_pProgram = nullptr;
-        wolf::BufferManager::DestroyBuffer(HurtboxComponent::s_pVB);
-        HurtboxComponent::s_pVB = nullptr;
+        delete ColliderComponent::s_pDecl;
+        ColliderComponent::s_pDecl = nullptr;
+        wolf::ProgramManager::DestroyProgram(ColliderComponent::s_pProgram);
+        ColliderComponent::s_pProgram = nullptr;
+        wolf::BufferManager::DestroyBuffer(ColliderComponent::s_pVB);
+        ColliderComponent::s_pVB = nullptr;
     }
 }
 
-void HurtboxComponent::AddHurtbox(glm::vec2 p_dimensions)
+void ColliderComponent::AddColliderBox(glm::vec2 p_dimensions)
 {
-    this->m_vHurtboxes.push_back(wolf::Rectangle(glm::vec2(0.0f, 0.0f), p_dimensions));
+    this->m_vColliderBoxes.push_back(wolf::Rectangle(glm::vec2(0.0f, 0.0f), p_dimensions));
 }
 
-void HurtboxComponent::AddHurtbox(glm::vec2 p_dimensions, glm::vec2 p_offset)
+void ColliderComponent::AddColliderBox(glm::vec2 p_dimensions, glm::vec2 p_offset)
 {
-    this->m_vHurtboxes.push_back(wolf::Rectangle(p_offset, p_dimensions));
+    this->m_vColliderBoxes.push_back(wolf::Rectangle(p_offset, p_dimensions));
 }
 
-// Get vector of hurtboxes
-std::vector<wolf::Rectangle> HurtboxComponent::GetHurtboxes() const
+// Get vector of collider boxes
+std::vector<wolf::Rectangle> ColliderComponent::GetColliderBoxes() const
 {
-    return this->m_vHurtboxes;
+    return this->m_vColliderBoxes;
 }
 
-bool HurtboxComponent::IsHitbox() const
+bool ColliderComponent::IsHitbox() const
 {
     if(this->m_ColliderType == ColliderType::HITBOX || this->m_ColliderType == ColliderType::HITHURTDD, this->m_ColliderType == ColliderType::HITHURTDR)
     {
@@ -91,7 +91,7 @@ bool HurtboxComponent::IsHitbox() const
     return false;
 }
 
-bool HurtboxComponent::IsHurtbox() const
+bool ColliderComponent::IsHurtbox() const
 {
     if(this->m_ColliderType == ColliderType::HURTBOXDD || this->m_ColliderType == ColliderType::HURTBOXDR || this->m_ColliderType == ColliderType::HITHURTDD, this->m_ColliderType == ColliderType::HITHURTDR)
     {
@@ -100,7 +100,7 @@ bool HurtboxComponent::IsHurtbox() const
     return false;
 }
 
-bool HurtboxComponent::IsHurtboxDamageDealer() const
+bool ColliderComponent::IsHurtboxDamageDealer() const
 {
     if(this->m_ColliderType == ColliderType::HURTBOXDD || this->m_ColliderType == ColliderType::HITHURTDD)
     {
@@ -109,7 +109,7 @@ bool HurtboxComponent::IsHurtboxDamageDealer() const
     return false;
 }
 
-bool HurtboxComponent::IsHurtboxDamageReceiver() const
+bool ColliderComponent::IsHurtboxDamageReceiver() const
 {
     if(this->m_ColliderType == ColliderType::HURTBOXDR || this->m_ColliderType == ColliderType::HITHURTDR)
     {
@@ -118,19 +118,19 @@ bool HurtboxComponent::IsHurtboxDamageReceiver() const
     return false;
 }
 
-bool HurtboxComponent::IsDestroyedOnCollision() const
+bool ColliderComponent::IsDestroyedOnCollision() const
 {
     return this->m_bIsDestroyedOnCollision;
 }
 
 // Get relativity
-bool HurtboxComponent::IsRelative() const
+bool ColliderComponent::IsRelative() const
 {
     return this->m_bIsRelative;
 }
 
 // get damage
-float HurtboxComponent::GetDamage() const
+float ColliderComponent::GetDamage() const
 {
     if(this->IsHurtboxDamageDealer())
     {
@@ -140,20 +140,20 @@ float HurtboxComponent::GetDamage() const
 }
 
 // Get collider type
-HurtboxComponent::ColliderType HurtboxComponent::GetColliderType() const
+ColliderComponent::ColliderType ColliderComponent::GetColliderType() const
 {
     return this->m_ColliderType;
 }
 
 // Fill vertex array with vertices of instance
-void HurtboxComponent::FillVertexArray()
+void ColliderComponent::FillVertexArray()
 {
     glm::vec2 translation = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
 
-    for(wolf::Rectangle hurtbox : this->m_vHurtboxes)
+    for(wolf::Rectangle colliderBox : this->m_vColliderBoxes)
     {
-        glm::vec2 dimensions = glm::vec2(hurtbox.GetWidth(), hurtbox.GetHeight());
-        glm::vec2 offset = hurtbox.GetPosition();
+        glm::vec2 dimensions = glm::vec2(colliderBox.GetWidth(), colliderBox.GetHeight());
+        glm::vec2 offset = colliderBox.GetPosition();
 
         std::vector<Vertex2D> correctVertices;
         for(Vertex2D vertex : vertices)
@@ -177,7 +177,7 @@ void HurtboxComponent::FillVertexArray()
 }
 
 // Draw boundaries & flush vertex vector
-void HurtboxComponent::DebugDrawAndFlush()
+void ColliderComponent::DebugDrawAndFlush()
 {
     if (!s_pProgram) return;
     
@@ -194,7 +194,7 @@ void HurtboxComponent::DebugDrawAndFlush()
     s_vVerticesVector.clear();
 }
 
-int HurtboxComponent::GetComponentCount()
+int ColliderComponent::GetComponentCount()
 {
-    return HurtboxComponent::s_iComponentCount;
+    return ColliderComponent::s_iComponentCount;
 }
