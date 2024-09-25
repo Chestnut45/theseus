@@ -84,7 +84,7 @@ std::vector<wolf::Rectangle> ColliderComponent::GetColliderBoxes() const
 
 bool ColliderComponent::IsHitbox() const
 {
-    if(this->m_ColliderType == ColliderType::HITBOX || this->m_ColliderType == ColliderType::HITHURTDD, this->m_ColliderType == ColliderType::HITHURTDR)
+    if(this->m_ColliderType == ColliderType::HITBOX || this->m_ColliderType == ColliderType::HITHURTBOXDD || this->m_ColliderType == ColliderType::HITHURTBOXDR)
     {
         return true;
     }
@@ -93,7 +93,7 @@ bool ColliderComponent::IsHitbox() const
 
 bool ColliderComponent::IsHurtbox() const
 {
-    if(this->m_ColliderType == ColliderType::HURTBOXDD || this->m_ColliderType == ColliderType::HURTBOXDR || this->m_ColliderType == ColliderType::HITHURTDD, this->m_ColliderType == ColliderType::HITHURTDR)
+    if(this->m_ColliderType == ColliderType::HURTBOXDD || this->m_ColliderType == ColliderType::HURTBOXDR || this->m_ColliderType == ColliderType::HITHURTBOXDD, this->m_ColliderType == ColliderType::HITHURTBOXDR)
     {
         return true;
     }
@@ -102,7 +102,7 @@ bool ColliderComponent::IsHurtbox() const
 
 bool ColliderComponent::IsHurtboxDamageDealer() const
 {
-    if(this->m_ColliderType == ColliderType::HURTBOXDD || this->m_ColliderType == ColliderType::HITHURTDD)
+    if(this->m_ColliderType == ColliderType::HURTBOXDD || this->m_ColliderType == ColliderType::HITHURTBOXDD)
     {
         return true;
     }
@@ -111,7 +111,7 @@ bool ColliderComponent::IsHurtboxDamageDealer() const
 
 bool ColliderComponent::IsHurtboxDamageReceiver() const
 {
-    if(this->m_ColliderType == ColliderType::HURTBOXDR || this->m_ColliderType == ColliderType::HITHURTDR)
+    if(this->m_ColliderType == ColliderType::HURTBOXDR || this->m_ColliderType == ColliderType::HITHURTBOXDR)
     {
         return true;
     }

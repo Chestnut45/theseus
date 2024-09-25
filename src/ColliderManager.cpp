@@ -42,10 +42,12 @@ void ColliderManager::CheckCollisions()
                 {
                     if(collider1.IsHitbox() && collider2.IsHitbox())
                     {
+                        std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
                     }
 
                     if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
                     {
+                        std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
                         HealthComponent* healthComponent = object2.GetComponent<HealthComponent>();
                         if(healthComponent != nullptr)
                         {
@@ -56,9 +58,9 @@ void ColliderManager::CheckCollisions()
                             printf("ColliderManager - Error: HealthComponent not found.\n");
                         }
                     }
-
-                    if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
+                    else if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
                     {
+                        std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
                         HealthComponent* healthComponent = object1.GetComponent<HealthComponent>();
                         if(healthComponent != nullptr)
                         {

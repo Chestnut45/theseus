@@ -27,8 +27,8 @@ public:
         HITBOX,
         HURTBOXDD,
         HURTBOXDR,
-        HITHURTDD,
-        HITHURTDR,
+        HITHURTBOXDD,
+        HITHURTBOXDR,
         NONE
     };
 
