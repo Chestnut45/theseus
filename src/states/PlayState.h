@@ -9,7 +9,6 @@
 #include "GameState.h"
 #include <theseus.h> // Include the main game class
 
-#include "../HitboxManager.h"
 #include "../HurtboxManager.h"
 
 class LabyrinthManager;
@@ -34,9 +33,6 @@ private:
     // Game objects / components that will exist for the duration of the play state
     wolf::GameObject* m_pPlayerObject = nullptr;
     LabyrinthManager* m_pLabyrinthManager = nullptr;
-
-    // Manager for hitboxes
-    HitboxManager* m_pHitboxManager = nullptr;
 
     // Manager for hurtboxes
     HurtboxManager* m_pHurtboxManager = nullptr;

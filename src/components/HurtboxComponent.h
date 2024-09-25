@@ -20,8 +20,19 @@ class HurtboxComponent : public wolf::BaseComponent
 {
     friend HurtboxManager;
 
-public:  
-    HurtboxComponent(bool p_type, float p_damage, bool p_doc , bool p_relativity);
+public:
+
+    enum ColliderType
+    {
+        HITBOX,
+        HURTBOXDD,
+        HURTBOXDR,
+        HITHURTDD,
+        HITHURTDR,
+        NONE
+    };
+
+    HurtboxComponent(ColliderType p_collider_type, bool p_doc , bool p_relativity);
     
     virtual ~HurtboxComponent();
 
@@ -33,16 +44,22 @@ public:
     HurtboxComponent(HurtboxComponent&& other) = delete;
     HurtboxComponent& operator=(HurtboxComponent&& other) = delete;
 
+
     void AddHurtbox(glm::vec2 p_dimensions);
     void AddHurtbox(glm::vec2 p_dimensions, glm::vec2 p_offset);
 
     wolf::Rectangle GetHurtbox();
     std::vector<wolf::Rectangle> GetHurtboxes() const;
-    
-    float GetDamage() const;
-    bool GetType() const;
+
+    bool IsHitbox() const;
+    bool IsHurtbox() const;
+    bool IsHurtboxDamageDealer() const;
+    bool IsHurtboxDamageReceiver() const;
     bool IsDestroyedOnCollision() const;
     bool IsRelative() const;
+
+    float GetDamage() const;
+    ColliderType GetColliderType() const;
 
 
     void FillVertexArray();
@@ -51,10 +68,11 @@ public:
     static int GetComponentCount();
     
 private:
-    bool m_bType = 0; // Type - 0: Damage Receiver, 1: Damage Dealer
-    float m_iDamage = 0.0f; // Amount of Damage to Deal (only for Damage Dealer hurtboxes) 
+    float m_fDamage = 1.0f; // Amount of Damage to Deal (only for Damage Dealer hurtboxes) 
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
     bool m_bIsRelative = false; // Hitbox scales relative to object
+
+    ColliderType m_ColliderType = ColliderType::NONE;
 
     std::vector<wolf::Rectangle> m_vHurtboxes;
 

@@ -30,18 +30,9 @@ wolf::Program *HurtboxComponent::s_pProgram = nullptr;
 wolf::VertexBuffer *HurtboxComponent::s_pVB = nullptr;
 
 // Constructor for custom attributes
-HurtboxComponent::HurtboxComponent(bool p_type, float p_damage, bool p_doc, bool p_relativity)
+HurtboxComponent::HurtboxComponent(ColliderType p_collider_type, bool p_doc, bool p_relativity)
 {
-    this->m_bType = p_type;
-    if(p_type == 1)
-    {
-        this->m_iDamage = p_damage;
-    }
-    else
-    {
-        this->m_iDamage = 0;
-    }
-
+    this->m_ColliderType = p_collider_type;
     this->m_bIsDestroyedOnCollision = p_doc;
     this->m_bIsRelative = p_relativity;
 
@@ -91,20 +82,40 @@ std::vector<wolf::Rectangle> HurtboxComponent::GetHurtboxes() const
     return this->m_vHurtboxes;
 }
 
-// Get damage
-float HurtboxComponent::GetDamage() const
+bool HurtboxComponent::IsHitbox() const
 {
-    if(this->m_bType == 1)
+    if(this->m_ColliderType == ColliderType::HITBOX || this->m_ColliderType == ColliderType::HITHURTDD, this->m_ColliderType == ColliderType::HITHURTDR)
     {
-        return this->m_iDamage;
+        return true;
     }
-    return 0;
+    return false;
 }
 
-// Get type
-bool HurtboxComponent::GetType() const
+bool HurtboxComponent::IsHurtbox() const
 {
-    return this->m_bType;
+    if(this->m_ColliderType == ColliderType::HURTBOXDD || this->m_ColliderType == ColliderType::HURTBOXDR || this->m_ColliderType == ColliderType::HITHURTDD, this->m_ColliderType == ColliderType::HITHURTDR)
+    {
+        return true;
+    }
+    return false;
+}
+
+bool HurtboxComponent::IsHurtboxDamageDealer() const
+{
+    if(this->m_ColliderType == ColliderType::HURTBOXDD || this->m_ColliderType == ColliderType::HITHURTDD)
+    {
+        return true;
+    }
+    return false;
+}
+
+bool HurtboxComponent::IsHurtboxDamageReceiver() const
+{
+    if(this->m_ColliderType == ColliderType::HURTBOXDR || this->m_ColliderType == ColliderType::HITHURTDR)
+    {
+        return true;
+    }
+    return false;
 }
 
 bool HurtboxComponent::IsDestroyedOnCollision() const
@@ -116,6 +127,22 @@ bool HurtboxComponent::IsDestroyedOnCollision() const
 bool HurtboxComponent::IsRelative() const
 {
     return this->m_bIsRelative;
+}
+
+// get damage
+float HurtboxComponent::GetDamage() const
+{
+    if(this->IsHurtboxDamageDealer())
+    {
+        return this->m_fDamage;
+    }
+    return 0.0f;
+}
+
+// Get collider type
+HurtboxComponent::ColliderType HurtboxComponent::GetColliderType() const
+{
+    return this->m_ColliderType;
 }
 
 // Fill vertex array with vertices of instance

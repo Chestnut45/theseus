@@ -4,7 +4,6 @@
 
 #include "../components/ArmourComponent.h"
 #include "../components/HealthComponent.h"
-#include "../components/HitboxComponent.h"
 #include "../components/HurtboxComponent.h"
 #include "../components/VelocityComponent.h"
 
@@ -13,8 +12,7 @@ void PlayState::Enter()
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
 
-    // Initialise hitbox / hurtbox managers
-    this->m_pHitboxManager = new HitboxManager(&scene);
+    // Initialise managers
     this->m_pHurtboxManager = new HurtboxManager(&scene);
 
     // Initialize player object
@@ -35,9 +33,7 @@ void PlayState::Enter()
     testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
     testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
     auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    auto& testHitbox = testObj.AddComponent<HitboxComponent>(1, 1);
-    testHitbox.AddHitbox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    auto& testHurtbox = testObj.AddComponent<HurtboxComponent>(1, 1, 1, 1);
+    auto& testHurtbox = testObj.AddComponent<HurtboxComponent>(HurtboxComponent::ColliderType::HURTBOXDD, 1, 1);
     testHurtbox.AddHurtbox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
     auto& testVelocity = testObj.AddComponent<VelocityComponent>();
     testVelocity.SetVelocity(glm::vec2(-32.0f, 0.0f));
@@ -50,8 +46,6 @@ void PlayState::Exit()
     m_pLabyrinthManager->GetGameObject()->Delete();
 
     // Delete managers
-    delete this->m_pHitboxManager;
-    this->m_pHitboxManager = nullptr;
     delete this->m_pHurtboxManager;
     this->m_pHurtboxManager = nullptr;
 }
@@ -96,7 +90,6 @@ void PlayState::Update(float delta)
     m_pGameInstance->GetScene().Update(delta);
 
     // Update managers
-    this->m_pHitboxManager->Update();
     this->m_pHurtboxManager->Update();
 }
 
@@ -139,12 +132,8 @@ void PlayState::CreatePlayer()
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
-    // Add hitbox
-    auto& hitbox = m_pPlayerObject->AddComponent<HitboxComponent>(0, 1);
-    hitbox.AddHitbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
-
     // Add hurtbox
-    auto& hurtbox = m_pPlayerObject->AddComponent<HurtboxComponent>(0, 0, 0, 1);
+    auto& hurtbox = m_pPlayerObject->AddComponent<HurtboxComponent>(HurtboxComponent::ColliderType::HURTBOXDR, 0, 1);
     hurtbox.AddHurtbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
 
     // Add health / armor
