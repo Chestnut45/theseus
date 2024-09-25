@@ -73,6 +73,7 @@ void PlayerController::HandleMovement(float delta)
     PlayerDirection newDirection = GetRollDirection();
     glm::vec2 direction = GetDirectionVector(newDirection);
 
+    // If the player is moving
     if (direction != glm::vec2(0.0f))
     {
         m_pVelocity->SetVelocity(direction * m_moveSpeed); // Set velocity 
@@ -108,8 +109,9 @@ void PlayerController::HandleMovement(float delta)
                 break;
         }
     }
-    else if (m_action == PlayerAction::WALKING)
+    else
     {
+        // If the player is not moving
         m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop movement
         m_action = PlayerAction::NONE;
         switch (m_lastDirectionEnum) {

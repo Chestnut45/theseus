@@ -61,12 +61,28 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         bool SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize);
         wolf::Texture* GetTexture() const {return m_pTexture;};
 
+        // Set or get the origin to render the animated sprite from
+        // Measured in pixel coordinates from the bottom-left of the frame
+        inline void SetOrigin(const glm::vec2& p_v2Origin) { m_origin = p_v2Origin; };
+        inline const glm::vec2& GetOrigin() const { return m_origin; }
+
+        // Helper to center an animated sprite with respect to
+        // the current animation's frame size.
+        void SetOriginToCenterOfFrame();
+
+        // Set the tint of the animated sprite with a floating point [0, 1] RGB color
+        void SetTint(const glm::vec3& tint) { m_tint = tint; }
+        const glm::vec3& GetTint() const { return m_tint; }
+
         // You CANNOT change the frame size or texture path without using SetTexture as
         // doing so would SERIOUSLY mess up the UV coordinates
         const glm::vec2& GetFrameSize() const {return m_v2FrameSize;};
         const std::string& GetCurrentTexturePath() const {return m_strCurrentTexturePath;};
 
-        void Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale);
+        // Draw the sprite at the given position, rotation, and scale in world space
+        // Multiplies final pixel color by provided tint color
+        // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
+        void Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint = glm::vec3(-1.0f));
 
     private:
         // Map of animations
@@ -79,6 +95,13 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         FrameUVCoordSet* m_pCurrentFrameUVs = nullptr; // The UV coordinates for the current animation frame
         wolf::Texture* m_pTexture = nullptr; // The texture we're currently using
         std::string m_strCurrentTexturePath;
+
+        // Origin to draw the animated sprite at, in pixel coordinates
+        // measured from the bottom-left of the frame
+        glm::vec2 m_origin{0.0f};
+
+        // Tint color of the animated sprite
+        glm::vec3 m_tint{1.0f};
 
         float m_fPlaybackSpeed; // How fast is the animation playing?
         float m_fCurrentFrame; // Which animation frame are we currently on?
