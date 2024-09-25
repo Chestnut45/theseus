@@ -42,8 +42,7 @@ void PlayState::Enter()
 void PlayState::Exit()
 {
     // Delete objects / components from the scene
-    m_pPlayerObject->Delete();
-    m_pLabyrinthManager->GetGameObject()->Delete();
+    m_pGameInstance->GetScene().Clear();
 
     // Delete managers
     delete this->m_pColliderManager;
@@ -80,6 +79,12 @@ void PlayState::Update(float delta)
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController) playerController->Update(delta);
 
+    // Update player animations
+    auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
+    if (playerAnim) {
+        playerAnim->Update(delta);
+    }
+
     // Apply velocity to transforms for all objects with both components
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())  // Use GetScene()
     {
@@ -97,6 +102,9 @@ void PlayState::Render()
 {
     // Render the game's scene
     m_pGameInstance->GetScene().Render();
+    auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
+    if (playerController)
+        playerController->Render();
 }
 
 void PlayState::BackgroundUpdate(float delta)
@@ -126,8 +134,17 @@ void PlayState::CreatePlayer()
     // Scale player
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
 
-    // Add sprite
-    m_pPlayerObject->AddComponent<wolf::Sprite2D>("data/textures/sPlayerTest.png").SetOriginToCenterOfTexture();
+    // Add animated sprite
+    auto& animSprite = m_pPlayerObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
+    animSprite.AddAnimation("WalkSouth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 8, true);
+    animSprite.AddAnimation("WalkEast", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 9, 16, true);
+    animSprite.AddAnimation("WalkNorth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 17, 24, true);
+    animSprite.AddAnimation("WalkWest", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 25, 32, true);
+    animSprite.AddAnimation("StandSouth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
+    animSprite.AddAnimation("StandEast", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 2, 2, false);
+    animSprite.AddAnimation("StandNorth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 3, 3, false);
+    animSprite.AddAnimation("StandWest", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 4, 4, false);
+    animSprite.SetAnimation("StandSouth");
 
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
