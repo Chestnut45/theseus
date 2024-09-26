@@ -34,15 +34,17 @@ public:
     virtual ~StatusComponent();
 
     void AddStatusEffect(StatusEffectType p_se_type, float p_lifespan);
+    bool IsStatusEffectTypePresent(StatusEffectType p_se_type) const;
 
 private:
     struct StatusEffect
     {
     public:
-        StatusEffect(StatusEffectType p_se_type, float p_lifespan)
+        StatusEffect(StatusEffectType p_se_type, float p_lifespan, StatusComponent* p_owner_component)
         {
             m_StatusEffectType = p_se_type;
             this->m_fLifespan = p_lifespan;
+            this->m_OwnerComponent = p_owner_component;
             this->m_pTimer = new wolf::Timer();
             this->m_pTimer->Start();
         }
@@ -68,15 +70,35 @@ private:
             return this->m_pTimer;
         }
 
+        StatusComponent* GetOwnerComponent() const
+        {
+            return this->m_OwnerComponent;
+        }
+
         void ApplyStatusEffect()
         {
-            std::cout << "StatusComponent - Apply status effect: " << this->m_StatusEffectType << std::endl;
+            switch (this->m_StatusEffectType)
+            {
+                case StatusEffectType::BURNING:
+                    this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>()->Damage(0.1f);
+                    break;
+
+                case StatusEffectType::PETRIFIED:
+                    this->m_OwnerComponent->GetGameObject();
+                    break;
+                
+                case StatusEffectType::POISONED:
+                    this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>()->Damage(0.2f);
+                    break;
+
+            }
         }    
 
     private:
         float m_fLifespan = 0.0f;
         StatusEffectType m_StatusEffectType;
         wolf::Timer * m_pTimer = nullptr;
+        StatusComponent* m_OwnerComponent;
     };
 
     StatusEffect* m_aStatusEffects [StatusEffectType::NONE];

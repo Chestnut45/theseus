@@ -10,7 +10,7 @@
 
 StatusComponent::StatusComponent()
 {
-    for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
+    for(int i = 0; i < StatusEffectType::NONE; i++)
     {
         this->m_aStatusEffects[i] = nullptr;
         this->m_aStatusEffectsPresenceFlags[i] = 0;
@@ -21,7 +21,7 @@ StatusComponent::~StatusComponent()
 {
 }
 
-void StatusComponent::AddStatusEffect(StatusComponent::StatusEffectType p_se_type, float p_lifespan)
+void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifespan)
 {
 
     if(this->m_aStatusEffectsPresenceFlags[p_se_type])
@@ -31,13 +31,18 @@ void StatusComponent::AddStatusEffect(StatusComponent::StatusEffectType p_se_typ
     else
     {
         this->m_aStatusEffectsPresenceFlags[p_se_type] = 1;
-        StatusComponent::StatusEffect * statusEffect = new StatusComponent::StatusEffect(p_se_type, p_lifespan);
+        StatusEffect * statusEffect = new StatusEffect(p_se_type, p_lifespan, this);
         this->m_aStatusEffects[p_se_type] = statusEffect;
     }
     
 }
 
-void StatusComponent::RemoveStatusEffect(StatusComponent::StatusEffectType p_se_type)
+bool StatusComponent::IsStatusEffectTypePresent(StatusEffectType p_se_type) const
+{
+    return this->m_aStatusEffectsPresenceFlags[p_se_type];
+}
+
+void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 {
     delete this->m_aStatusEffects[p_se_type];
     this->m_aStatusEffects[p_se_type] = nullptr;

@@ -168,6 +168,6 @@ void PlayState::CreatePlayer()
     collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
 
     // Add health / armor
-    m_pPlayerObject->AddComponent<HealthComponent>();
+    m_pPlayerObject->AddComponent<HealthComponent>(1000);
     m_pPlayerObject->AddComponent<ArmourComponent>(50);
 }
