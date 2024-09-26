@@ -33,7 +33,7 @@ void PlayState::Enter()
     // Create test projectile object
     auto& testObj = scene.CreateObject2D();
     testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
+    testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
     auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
     auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
     testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
@@ -161,9 +161,9 @@ void PlayState::CreatePlayer()
 
     // Add status
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
-    status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 3);
-    status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 3);
-    status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 3);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 3);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3);
 
     collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
 

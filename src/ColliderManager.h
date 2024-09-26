@@ -17,6 +17,7 @@
 
 #include "components/HealthComponent.h"
 #include "components/ColliderComponent.h"
+#include "components/VelocityComponent.h"
 
 class ColliderComponent;
 
@@ -34,6 +35,7 @@ private:
     wolf::Scene* m_scene = nullptr;
 
     bool IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2);
+    bool IsSweptAABBColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2);
     bool IsValidForCollisionCheck(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2);
     void RemoveFlagged();
     void CheckCollisions();

@@ -38,14 +38,41 @@ void ColliderManager::CheckCollisions()
             for (auto&&[id2, object2, collider2] : this->m_scene->Each<wolf::GameObject, ColliderComponent>() | std::views::drop(i))
             {
 
-                if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
+                if(collider1.IsHitbox() && collider2.IsHitbox())
                 {
-                    if(collider1.IsHitbox() && collider2.IsHitbox())
+                    std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
+
+                    bool isObject1Mobile = object1.HasAny<VelocityComponent>();
+                    bool isObject2Mobile = object2.HasAny<VelocityComponent>();
+
+                    if(isObject1Mobile && isObject2Mobile)
                     {
-                        std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
+                        
+                    }
+                    
+                    else if(!isObject1Mobile && isObject2Mobile)
+                    {
+                        if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
+                        {
+                        }   
                     }
 
-                    if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
+                    else if(isObject1Mobile && !isObject2Mobile)
+                    {
+                        if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
+                        {
+                        }   
+                    }
+
+                    else
+                    {
+
+                    }
+                }
+
+                if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
+                {
+                    if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
                     {
                         std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
                         HealthComponent* healthComponent = object2.GetComponent<HealthComponent>();
@@ -57,8 +84,13 @@ void ColliderManager::CheckCollisions()
                         {
                             printf("ColliderManager - Error: HealthComponent not found.\n");
                         }
-                    }
-                    else if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
+                    } 
+                    
+                }
+
+                else if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
+                {
+                    if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
                     {
                         std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
                         HealthComponent* healthComponent = object1.GetComponent<HealthComponent>();
@@ -70,19 +102,8 @@ void ColliderManager::CheckCollisions()
                         {
                             printf("ColliderManager - Error: HealthComponent not found.\n");
                         }
-                    }
-
-                    if(collider1.IsDestroyedOnCollision())
-                    {
-                        this->m_vToBeDestroyed.push_back(&collider1);
-                    }
-
-                    if(collider2.IsDestroyedOnCollision())
-                    {
-                        this->m_vToBeDestroyed.push_back(&collider2);
-                    }                    
-                }
-                
+                    }    
+                }                             
             }
         }
     }  
@@ -103,53 +124,66 @@ void ColliderManager::RemoveFlagged()
 // Check collision for two collider components
 bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2)
 {
-    if(this->IsValidForCollisionCheck(p_colliderComponent1, p_colliderComponent2))
+    for(wolf::Rectangle collider1 : p_colliderComponent1->GetColliderBoxes())
     {
-        for(wolf::Rectangle collider1 : p_colliderComponent1->GetColliderBoxes())
+        glm::vec2 dimensions1 = glm::vec2(collider1.GetWidth(), collider1.GetHeight());
+        glm::vec2 offset1 = collider1.GetPosition();
+
+        if(p_colliderComponent1->IsRelative())
         {
-            glm::vec2 dimensions1 = glm::vec2(collider1.GetWidth(), collider1.GetHeight());
-            glm::vec2 offset1 = collider1.GetPosition();
+            glm::vec2 scale1 = p_colliderComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+            dimensions1.x *= scale1.x;
+            dimensions1.y *= scale1.y;
+            offset1.x *= scale1.x;
+            offset1.y *= scale1.y;
+        }
 
-            if(p_colliderComponent1->IsRelative())
+        for(wolf::Rectangle collider2 : p_colliderComponent2->GetColliderBoxes())
+        {
+            glm::vec2 dimensions2 = glm::vec2(collider2.GetWidth(), collider2.GetHeight());
+            glm::vec2 offset2 = collider2.GetPosition();
+
+            if(p_colliderComponent2->IsRelative())
             {
-                glm::vec2 scale1 = p_colliderComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
-                dimensions1.x *= scale1.x;
-                dimensions1.y *= scale1.y;
-                offset1.x *= scale1.x;
-                offset1.y *= scale1.y;
+                glm::vec2 scale2 = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+                dimensions2.x *= scale2.x;
+                dimensions2.y *= scale2.y;
+                offset2.x *= scale2.x;
+                offset2.y *= scale2.y;
             }
 
-            for(wolf::Rectangle collider2 : p_colliderComponent2->GetColliderBoxes())
+
+            glm::vec2 translation1 = p_colliderComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            glm::vec2 translation2 = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+            if(
+                translation1.x + dimensions1.x + offset1.x > translation2.x + offset2.x                    && // Right1 > Left2
+                translation1.x + offset1.x                 < translation2.x + dimensions2.x + offset2.x    && // Left1 < Right2
+                translation1.y + dimensions1.y + offset1.y > translation2.y + offset2.y                    && // Lower1 > Upper2
+                translation1.y + offset1.y                 < translation2.y + dimensions2.y + offset2.y       // Upper1 < Lower2
+                )
             {
-                glm::vec2 dimensions2 = glm::vec2(collider2.GetWidth(), collider2.GetHeight());
-                glm::vec2 offset2 = collider2.GetPosition();
 
-                if(p_colliderComponent2->IsRelative())
+                if(p_colliderComponent1->IsDestroyedOnCollision())
                 {
-                    glm::vec2 scale2 = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
-                    dimensions2.x *= scale2.x;
-                    dimensions2.y *= scale2.y;
-                    offset2.x *= scale2.x;
-                    offset2.y *= scale2.y;
+                    this->m_vToBeDestroyed.push_back(p_colliderComponent1);
                 }
 
-
-                glm::vec2 translation1 = p_colliderComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-                glm::vec2 translation2 = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-
-                if(
-                    translation1.x + dimensions1.x + offset1.x > translation2.x + offset2.x                    && // Right1 > Left2
-                    translation1.x + offset1.x                 < translation2.x + dimensions2.x + offset2.x    && // Left1 < Right2
-                    translation1.y + dimensions1.y + offset1.y > translation2.y + offset2.y                    && // Lower1 > Upper2
-                    translation1.y + offset1.y                 < translation2.y + dimensions2.y + offset2.y       // Upper1 < Lower2
-                    )
+                if(p_colliderComponent2->IsDestroyedOnCollision())
                 {
-                    return true;
-                }
-
+                    this->m_vToBeDestroyed.push_back(p_colliderComponent2);
+                }   
+                return true;
             }
+
         }
     }
+    return false;
+}
+
+bool ColliderManager::IsSweptAABBColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2)
+{
+
     return false;
 }
 
