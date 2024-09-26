@@ -35,15 +35,15 @@ void ColliderManager::CheckCollisions()
         for (auto&&[id1, object1, collider1] : this->m_scene->Each<wolf::GameObject, ColliderComponent>())
         {
             i++;
+            bool isObject1Mobile = object1.HasAny<VelocityComponent>();
+            
             for (auto&&[id2, object2, collider2] : this->m_scene->Each<wolf::GameObject, ColliderComponent>() | std::views::drop(i))
             {
+                bool isObject2Mobile = object2.HasAny<VelocityComponent>();
                 if(id1 != id2)
                 {
                     if(collider1.IsHitbox() && collider2.IsHitbox())
                     {
-                        bool isObject1Mobile = object1.HasAny<VelocityComponent>();
-                        bool isObject2Mobile = object2.HasAny<VelocityComponent>();
-
                         if(isObject1Mobile && isObject2Mobile)
                         {
                             if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
