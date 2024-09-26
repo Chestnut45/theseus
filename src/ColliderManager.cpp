@@ -175,7 +175,6 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
 
                 return true;
             }
-
         }
     }
     return false;
@@ -213,19 +212,57 @@ bool ColliderManager::IsSweptAABBColliding(ColliderComponent* p_mobile_collider,
             
             glm::vec2 staticGlobalTranslation = staticTranslation + staticOffset;
 
-            float dxEntry, dyEntry, dxExit, dyExit;
+            float xEntryDist, yEntryDist, xExitDist, yExitDist,
+                  xEntryTime, yEntryTime, xExitTime, yExitTime;
             
             // Swept AABB checking here
+
+            // Distance calculations
             if(p_mobile_collider_velocity.x > 0)
             {
-                dxEntry = staticGlobalTranslation.x - (mobileGlobalTranslation.x + mobileDimensions.x);
-                dxExit = (staticGlobalTranslation.x + staticDimensions.x) - mobileGlobalTranslation.x;
+                xEntryDist = staticGlobalTranslation.x - (mobileGlobalTranslation.x + mobileDimensions.x);
+                xExitDist = (staticGlobalTranslation.x + staticDimensions.x) - mobileGlobalTranslation.x;
             }
             else
             {
-                dxEntry = (staticGlobalTranslation.x + staticDimensions.x) - mobileGlobalTranslation.x;
-                dxExit = staticGlobalTranslation.x - (mobileGlobalTranslation.x + mobileDimensions.x);
+                xEntryDist = (staticGlobalTranslation.x + staticDimensions.x) - mobileGlobalTranslation.x;
+                xExitDist = staticGlobalTranslation.x - (mobileGlobalTranslation.x + mobileDimensions.x);
             }
+
+            if (p_mobile_collider_velocity.y > 0)
+            {
+                yEntryDist = staticGlobalTranslation.y - (mobileGlobalTranslation.y + mobileDimensions.y);
+                yExitDist = (staticGlobalTranslation.y + staticDimensions.y) - mobileGlobalTranslation.y;
+            }
+            else
+            {
+                yEntryDist = (staticGlobalTranslation.y + staticDimensions.y) - mobileGlobalTranslation.y;
+                yExitDist = staticGlobalTranslation.y - (mobileGlobalTranslation.y + mobileDimensions.y);
+            }
+
+            // Time calculations
+            if(p_mobile_collider_velocity.x == 0.0f)
+            {
+                xEntryTime = -std::numeric_limits<float>::infinity();
+                xExitTime = std::numeric_limits<float>::infinity();
+            }
+            else
+            {
+                xEntryTime = xEntryDist / p_mobile_collider_velocity.x;
+                xExitTime = xExitDist / p_mobile_collider_velocity.x;
+            }
+
+            if(p_mobile_collider_velocity.y == 0.0f)
+            {
+                yEntryTime = -std::numeric_limits<float>::infinity();
+                yExitTime = std::numeric_limits<float>::infinity();
+            }
+            else
+            {
+                yEntryTime = yEntryDist / p_mobile_collider_velocity.y;
+                yExitTime = yExitDist / p_mobile_collider_velocity.y;
+            }
+
         }
     }
 
