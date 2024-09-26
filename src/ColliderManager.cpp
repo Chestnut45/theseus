@@ -54,7 +54,7 @@ void ColliderManager::CheckCollisions()
                         
                         else if(!isObject1Mobile && isObject2Mobile)
                         {
-                            if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
+                            if(this->IsSweptAABBColliding(&collider1, &collider2, collider1.GetGameObject()->GetComponent<VelocityComponent>()->GetVelocity())) // If colliders colliding
                             {
                                 std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
                             }   
@@ -62,7 +62,7 @@ void ColliderManager::CheckCollisions()
 
                         else if(isObject1Mobile && !isObject2Mobile)
                         {
-                            if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
+                            if(this->IsSweptAABBColliding(&collider2, &collider1, collider2.GetGameObject()->GetComponent<VelocityComponent>()->GetVelocity())) // If colliders colliding
                             {
                                 std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
                             }   
