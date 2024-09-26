@@ -163,6 +163,20 @@ bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const
     return true;
 }
 
+void AnimatedSprite2D::SetOriginToCenterOfFrame()
+{
+    // Don't bother if we don't have an animation loaded
+    if (!m_pCurrentAnim)
+    {
+        wolf::Error("No animation loaded, can't center origin of AnimatedSprite2D");
+        return;
+    }
+
+    const glm::vec2& frameSize = m_pCurrentAnim->m_v2FrameSize;
+    m_origin.x = frameSize.x * 0.5f;
+    m_origin.y = frameSize.y * 0.5f;
+}
+
 AnimatedSprite2D::~AnimatedSprite2D() {
     // Update the number of AnimatedSprite2D instances that currently exist
     s_iAnimSprite2DCount -= 1;
@@ -287,7 +301,7 @@ void AnimatedSprite2D::Update(float p_fDelta) {
     }
 }
 
-void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale) {
+void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint) {
     // If we don't have a texture (or the coordinates that go with one) then we shouldn't be trying to draw anything
     if (!m_pTexture || m_vpFrameUVCoords.empty()) {
         return;
@@ -342,14 +356,18 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
     // Grab the texture size
     const glm::vec2 texSize = glm::vec2(m_pTexture->GetWidth(), m_pTexture->GetHeight());
 
+    // Determine tint to use
+    const glm::vec3& chosenTint = tint == glm::vec3(-1.0f) ? m_tint : tint;
+
     // Build model matrix
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(position, 0.0f));
+    model = glm::translate(model, glm::vec3(position - m_origin * scale, 0.0f));
     model = glm::rotate(model, rotationRadians, glm::vec3(0.0f, 0.0f, 1.0f));
     model = glm::scale(model, glm::vec3(scale * m_v2FrameSize, 1.0f));
 
     // Set model uniform
     s_pProgram->SetUniform("model", model);
+    s_pProgram->SetUniform("tint", chosenTint);
 
     // Bind shader and texture
     s_pProgram->Bind();
