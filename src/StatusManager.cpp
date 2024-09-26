@@ -18,7 +18,7 @@ StatusManager::~StatusManager()
 
 void StatusManager::Update()
 {
-    for (auto&&[_, status] : this->m_scene->Each<StatusComponent>())
+    for (auto&&[_,status] : this->m_scene->Each<StatusComponent>())
     {
         for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
         {
@@ -30,7 +30,7 @@ void StatusManager::Update()
                 {
                     std::cout << "StatusManager - Delete status effect: " << statusEffect->GetStatusEffectType() << std::endl;
                     
-                    statusEffect->GetOwnerComponent()->RemoveStatusEffect(statusEffect->GetStatusEffectType());
+                    status.RemoveStatusEffect(statusEffect->GetStatusEffectType());
                 }
                 else
                 {

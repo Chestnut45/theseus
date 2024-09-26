@@ -39,11 +39,10 @@ private:
     struct StatusEffect
     {
     public:
-        StatusEffect(StatusEffectType p_se_type, float p_lifespan, StatusComponent* p_owner_component)
+        StatusEffect(StatusEffectType p_se_type, float p_lifespan)
         {
             m_StatusEffectType = p_se_type;
             this->m_fLifespan = p_lifespan;
-            this->m_OwnerComponent = p_owner_component;
             this->m_pTimer = new wolf::Timer();
             this->m_pTimer->Start();
         }
@@ -69,11 +68,6 @@ private:
             return this->m_pTimer;
         }
 
-        StatusComponent* GetOwnerComponent() const
-        {
-            return this->m_OwnerComponent;
-        }
-
         void ApplyStatusEffect()
         {
             std::cout << "StatusComponent - Apply status effect: " << this->m_StatusEffectType << std::endl;
@@ -83,7 +77,6 @@ private:
         float m_fLifespan = 0.0f;
         StatusEffectType m_StatusEffectType;
         wolf::Timer * m_pTimer = nullptr;
-        StatusComponent* m_OwnerComponent;
     };
 
     StatusEffect* m_aStatusEffects [StatusEffectType::NONE];

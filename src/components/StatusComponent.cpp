@@ -31,7 +31,7 @@ void StatusComponent::AddStatusEffect(StatusComponent::StatusEffectType p_se_typ
     else
     {
         this->m_aStatusEffectsPresenceFlags[p_se_type] = 1;
-        StatusComponent::StatusEffect * statusEffect = new StatusComponent::StatusEffect(p_se_type, p_lifespan, this);
+        StatusComponent::StatusEffect * statusEffect = new StatusComponent::StatusEffect(p_se_type, p_lifespan);
         this->m_aStatusEffects[p_se_type] = statusEffect;
     }
     
