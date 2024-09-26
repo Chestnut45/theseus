@@ -6,12 +6,13 @@
 
 #include "ArmourComponent.h"
 
-ArmourComponent::ArmourComponent(int p_multiplier)
+ArmourComponent::ArmourComponent()
 {
-    this->m_iMultiplier = p_multiplier;
-    for(int i = 0; i < ArmourSpecialProperty::NONE; i++)
+    this->m_iMultiplier = 0;
+    for(int i = 0; i < SpecialProperty::NONE; i++)
     {
         m_aSpecialProperties[i] = 0;
+        m_aSpecialPropertiesValues[i] = 0;
     }
 }
 
@@ -20,26 +21,36 @@ ArmourComponent::~ArmourComponent()
 
 }
 
-void ArmourComponent::CollectArmour(int p_multiplier, std::vector<ArmourSpecialProperty> p_special_properties)
+void ArmourComponent::CollectArmour(int p_multiplier, std::initializer_list<std::pair<SpecialProperty, float>> p_special_properties_info)
 {
     this->m_iMultiplier = p_multiplier;
     
     // Set all special property flags to 0
-    for(int i = 0; i < ArmourSpecialProperty::NONE; i++)
+    for(int i = 0; i <SpecialProperty::NONE; i++)
     {
         m_aSpecialProperties[i] = 0;
+        m_aSpecialPropertiesValues[i] = 0;
     }
 
     // Set provided special property flags to 1
-    for(ArmourSpecialProperty specialProperty: p_special_properties)
+    for(std::pair<SpecialProperty, float> info: p_special_properties_info)
     {
+        SpecialProperty specialProperty = info.first;
+        float specialPropertyValue = info.second;
+
         this->m_aSpecialProperties[specialProperty] = 1;
+        this->m_aSpecialPropertiesValues[specialProperty] = specialPropertyValue;
     }
 }
 
-bool ArmourComponent::IsSpecialPropertyPresent(ArmourSpecialProperty p_special_property) const
+bool ArmourComponent::IsSpecialPropertyPresent(SpecialProperty p_special_property) const
 {
     return this->m_aSpecialProperties[p_special_property];
+}
+
+float ArmourComponent::GetSpecialPropertiesValues(SpecialProperty p_special_property) const
+{
+    return this->m_aSpecialPropertiesValues[p_special_property];
 }
 
 int ArmourComponent::GetMultiplier() const

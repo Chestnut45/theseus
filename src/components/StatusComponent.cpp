@@ -29,7 +29,7 @@ void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifesp
     }
     else
     {
-        StatusEffect * statusEffect = new StatusEffect(p_se_type, p_lifespan, this);
+        StatusEffect* statusEffect = new StatusEffect(p_se_type, p_lifespan, this);
         this->m_aStatusEffects[p_se_type] = statusEffect;
     }
     

@@ -81,16 +81,35 @@ private:
             switch (this->m_StatusEffectType)
             {
                 case StatusEffectType::BURNING:
-                    this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>()->Damage(0.1f);
+                {
+                    float damage = 0.1f;
+                    HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
+                    if(health != nullptr)
+                    {
+                        ArmourComponent* armour = this->m_OwnerComponent->GetGameObject()->GetComponent<ArmourComponent>();
+                        if(armour != nullptr && armour->IsSpecialPropertyPresent(ArmourComponent::SpecialProperty::FIRERESISTANCE));
+                        {
+                            damage *= (100 - armour->GetSpecialPropertiesValues(ArmourComponent::SpecialProperty::FIRERESISTANCE)) * 0.01f;
+                        }
+                        health->Damage(damage);
+                    }
+                    else
+                    {
+                        std::cout << "StatusComponent - ERROR: HealthComponent not found." << std::endl;
+                    }
                     break;
+                }
 
                 case StatusEffectType::PETRIFIED:
+                {
                     break;
+                }      
                 
                 case StatusEffectType::POISONED:
+                {
                     this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>()->Damage(0.2f);
                     break;
-
+                }
             }
         }    
 
