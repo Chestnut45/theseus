@@ -3,8 +3,9 @@
 #include <imgui/imgui.h>
 
 #include "../components/ArmourComponent.h"
-#include "../components/HealthComponent.h"
 #include "../components/ColliderComponent.h"
+#include "../components/HealthComponent.h"
+#include "../components/StatusComponent.h"
 #include "../components/VelocityComponent.h"
 
 void PlayState::Enter()
@@ -14,6 +15,7 @@ void PlayState::Enter()
 
     // Initialise managers
     this->m_pColliderManager = new ColliderManager(&scene);
+    this->m_pStatusManager = new StatusManager(&scene);
 
     // Initialize player object
     CreatePlayer();
@@ -47,6 +49,9 @@ void PlayState::Exit()
     // Delete managers
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
+
+    delete this->m_pStatusManager;
+    this->m_pStatusManager = nullptr;
 }
 
 void PlayState::Pause()
@@ -96,6 +101,7 @@ void PlayState::Update(float delta)
 
     // Update managers
     this->m_pColliderManager->Update();
+    this->m_pStatusManager->Update();
 }
 
 void PlayState::Render()
@@ -152,6 +158,13 @@ void PlayState::CreatePlayer()
 
     // Add collider
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDR, 0, 1);
+
+    // Add status
+    auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
+    status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 3);
+    status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 3);
+    status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3);
+
     collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
 
     // Add health / armor

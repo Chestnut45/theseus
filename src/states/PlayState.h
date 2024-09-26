@@ -10,6 +10,7 @@
 #include <theseus.h> // Include the main game class
 
 #include "../ColliderManager.h"
+#include "../StatusManager.h"
 
 class LabyrinthManager;
 
@@ -36,6 +37,9 @@ private:
 
     // Manager for colliders
     ColliderManager* m_pColliderManager = nullptr;
+
+    // Manager for statuses
+    StatusManager* m_pStatusManager = nullptr;
 
     // Flags
     bool m_showLabyrinthManager = false;

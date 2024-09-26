@@ -100,6 +100,7 @@ void ColliderManager::RemoveFlagged()
     this->m_vToBeDestroyed.clear();
 }
 
+// Check collision for two collider components
 bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2)
 {
     if(this->IsValidForCollisionCheck(p_colliderComponent1, p_colliderComponent2))
