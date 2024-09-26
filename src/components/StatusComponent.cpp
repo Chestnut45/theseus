@@ -13,7 +13,6 @@ StatusComponent::StatusComponent()
     for(int i = 0; i < StatusEffectType::NONE; i++)
     {
         this->m_aStatusEffects[i] = nullptr;
-        this->m_aStatusEffectsPresenceFlags[i] = 0;
     }
 }
 
@@ -24,13 +23,12 @@ StatusComponent::~StatusComponent()
 void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifespan)
 {
 
-    if(this->m_aStatusEffectsPresenceFlags[p_se_type])
+    if(this->m_aStatusEffects[p_se_type] != nullptr)
     {
         this->m_aStatusEffects[p_se_type]->GetTimer()->Reset();
     }
     else
     {
-        this->m_aStatusEffectsPresenceFlags[p_se_type] = 1;
         StatusEffect * statusEffect = new StatusEffect(p_se_type, p_lifespan, this);
         this->m_aStatusEffects[p_se_type] = statusEffect;
     }
@@ -39,7 +37,7 @@ void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifesp
 
 bool StatusComponent::IsStatusEffectTypePresent(StatusEffectType p_se_type) const
 {
-    return this->m_aStatusEffectsPresenceFlags[p_se_type];
+    return this->m_aStatusEffects[p_se_type] == nullptr;
 }
 
 void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)

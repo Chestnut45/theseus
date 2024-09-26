@@ -12,6 +12,7 @@
 
 #include "ArmourComponent.h"
 #include "HealthComponent.h"
+#include "VelocityComponent.h"
 
 #include "../ColliderManager.h"
 
@@ -84,7 +85,6 @@ private:
                     break;
 
                 case StatusEffectType::PETRIFIED:
-                    this->m_OwnerComponent->GetGameObject();
                     break;
                 
                 case StatusEffectType::POISONED:
@@ -102,7 +102,6 @@ private:
     };
 
     StatusEffect* m_aStatusEffects [StatusEffectType::NONE];
-    bool m_aStatusEffectsPresenceFlags[StatusEffectType::NONE];
 
     void RemoveStatusEffect(StatusEffectType p_se_type);
 };
