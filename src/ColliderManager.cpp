@@ -37,76 +37,78 @@ void ColliderManager::CheckCollisions()
             i++;
             for (auto&&[id2, object2, collider2] : this->m_scene->Each<wolf::GameObject, ColliderComponent>() | std::views::drop(i))
             {
-
-                if(collider1.IsHitbox() && collider2.IsHitbox())
+                if(id1 != id2)
                 {
-                    bool isObject1Mobile = object1.HasAny<VelocityComponent>();
-                    bool isObject2Mobile = object2.HasAny<VelocityComponent>();
+                    if(collider1.IsHitbox() && collider2.IsHitbox())
+                    {
+                        bool isObject1Mobile = object1.HasAny<VelocityComponent>();
+                        bool isObject2Mobile = object2.HasAny<VelocityComponent>();
 
-                    if(isObject1Mobile && isObject2Mobile)
+                        if(isObject1Mobile && isObject2Mobile)
+                        {
+                            if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
+                            {
+                                std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
+                            } 
+                        }
+                        
+                        else if(!isObject1Mobile && isObject2Mobile)
+                        {
+                            if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
+                            {
+                                std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
+                            }   
+                        }
+
+                        else if(isObject1Mobile && !isObject2Mobile)
+                        {
+                            if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
+                            {
+                                std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
+                            }   
+                        }
+
+                        else
+                        {
+
+                        }
+                    }
+
+                    if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
                     {
                         if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
                         {
-                            std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
+                            std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
+                            HealthComponent* healthComponent = object2.GetComponent<HealthComponent>();
+                            if(healthComponent != nullptr)
+                            {
+                                healthComponent->Damage(collider1.GetDamage());
+                            }
+                            else
+                            {
+                                printf("ColliderManager - Error: HealthComponent not found.\n");
+                            }
                         } 
+                        
                     }
-                    
-                    else if(!isObject1Mobile && isObject2Mobile)
+
+                    else if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
                     {
                         if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
                         {
-                            std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
-                        }   
+                            std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
+                            HealthComponent* healthComponent = object1.GetComponent<HealthComponent>();
+                            if(healthComponent != nullptr)
+                            {
+                                healthComponent->Damage(collider2.GetDamage());
+                            }
+                            else
+                            {
+                                printf("ColliderManager - Error: HealthComponent not found.\n");
+                            }
+                        }    
                     }
-
-                    else if(isObject1Mobile && !isObject2Mobile)
-                    {
-                        if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
-                        {
-                            std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
-                        }   
-                    }
-
-                    else
-                    {
-
-                    }
-                }
-
-                if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
-                {
-                    if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
-                    {
-                        std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
-                        HealthComponent* healthComponent = object2.GetComponent<HealthComponent>();
-                        if(healthComponent != nullptr)
-                        {
-                            healthComponent->Damage(collider1.GetDamage());
-                        }
-                        else
-                        {
-                            printf("ColliderManager - Error: HealthComponent not found.\n");
-                        }
-                    } 
-                    
-                }
-
-                else if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
-                {
-                    if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
-                    {
-                        std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
-                        HealthComponent* healthComponent = object1.GetComponent<HealthComponent>();
-                        if(healthComponent != nullptr)
-                        {
-                            healthComponent->Damage(collider2.GetDamage());
-                        }
-                        else
-                        {
-                            printf("ColliderManager - Error: HealthComponent not found.\n");
-                        }
-                    }    
-                }                             
+                }                                   
             }
         }
     }  
@@ -179,7 +181,7 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
     return false;
 }
 
-bool ColliderManager::IsSweptAABBColliding(ColliderComponent* p_mobile_collider, ColliderComponent* p_static_collider)
+bool ColliderManager::IsSweptAABBColliding(ColliderComponent* p_mobile_collider, ColliderComponent* p_static_collider, glm::vec2 p_mobile_collider_velocity)
 {
     for(wolf::Rectangle mobileCollider : p_mobile_collider->GetColliderBoxes())
     {
@@ -194,6 +196,8 @@ bool ColliderManager::IsSweptAABBColliding(ColliderComponent* p_mobile_collider,
             mobileOffset *= mobileScale;        
         }
 
+        glm::vec2 mobileGlobalTranslation = mobileTranslation + mobileOffset;
+
         for(wolf::Rectangle staticCollider : p_static_collider->GetColliderBoxes())
         {
             glm::vec2 staticDimensions = glm::vec2(staticCollider.GetWidth(), staticCollider.GetHeight());
@@ -206,26 +210,24 @@ bool ColliderManager::IsSweptAABBColliding(ColliderComponent* p_mobile_collider,
                 staticDimensions *= staticScale;
                 staticOffset *= staticScale;
             }
+            
+            glm::vec2 staticGlobalTranslation = staticTranslation + staticOffset;
+
+            float dxEntry, dyEntry, dxExit, dyExit;
+            
+            // Swept AABB checking here
+            if(p_mobile_collider_velocity.x > 0)
+            {
+                dxEntry = staticGlobalTranslation.x - (mobileGlobalTranslation.x + mobileDimensions.x);
+                dxExit = (staticGlobalTranslation.x + staticDimensions.x) - mobileGlobalTranslation.x;
+            }
+            else
+            {
+                dxEntry = (staticGlobalTranslation.x + staticDimensions.x) - mobileGlobalTranslation.x;
+                dxExit = staticGlobalTranslation.x - (mobileGlobalTranslation.x + mobileDimensions.x);
+            }
         }
     }
 
-    return false;
-}
-
-bool ColliderManager::IsValidForCollisionCheck(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2)
-{
-    if(p_colliderComponent1->GetGameObject()->GetID() != p_colliderComponent2->GetGameObject()->GetID())              // If not from same object
-    {
-        if
-        (
-            (p_colliderComponent1->IsHitbox() && p_colliderComponent2->IsHitbox()) ||                                 // If are both hitboxes
-            (p_colliderComponent1->IsHurtboxDamageDealer() && p_colliderComponent2->IsHurtboxDamageReceiver()) ||     // If are both damage dealer hurtboxes
-            (p_colliderComponent1->IsHurtboxDamageReceiver() && p_colliderComponent2->IsHurtboxDamageDealer())        // If are both damage receiver hurtboxes
-        )
-        {
-            return true;
-        }
-    }
-    
     return false;
 }
