@@ -1,12 +1,20 @@
 //-----------------------------------------------------------------------------
-// File: StatusEffectComponent.cpp
+// File: StatusComponent.cpp
 // Original Author: Nguyễn Minh Nhật
-// Base for status effects.
+// Status.
 //-----------------------------------------------------------------------------
 
-#include "StatusEffectComponent.h"
+#include "StatusComponent.h"
 
-void StatusEffectComponent::ApplyStatusEffect()
+StatusComponent::StatusComponent()
+{
+}
+
+StatusComponent::~StatusComponent()
+{
+}
+
+void StatusComponent::ApplyStatusEffect()
 {
 
 }

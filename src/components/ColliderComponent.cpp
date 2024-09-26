@@ -54,6 +54,7 @@ ColliderComponent::ColliderComponent(ColliderType p_collider_type, bool p_doc, b
 
 ColliderComponent::~ColliderComponent()
 {
+    std::cout << "ColliderComponent - Delete id: " << this->GetGameObject()->GetID() << std::endl;
     ColliderComponent::s_iComponentCount--;
     if(ColliderComponent::s_iComponentCount == 0)
     {
@@ -183,7 +184,7 @@ void ColliderComponent::DebugDrawAndFlush()
     
     glm::mat4 model = glm::mat4(1.0f);
     s_pProgram->SetUniform("model", model);
-    s_pProgram->SetUniform("colour", glm::vec4(0.0f, 0.7f, 0.4f, 0.0f));
+    s_pProgram->SetUniform("colour", glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
     s_pProgram->Bind();
     s_pDecl->Bind();
     
