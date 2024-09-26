@@ -213,7 +213,8 @@ bool ColliderManager::IsSweptAABBColliding(ColliderComponent* p_mobile_collider,
             glm::vec2 staticGlobalTranslation = staticTranslation + staticOffset;
 
             float xEntryDist, yEntryDist, xExitDist, yExitDist,
-                  xEntryTime, yEntryTime, xExitTime, yExitTime;
+                  xEntryTime, yEntryTime, xExitTime, yExitTime,
+                  entryTime, exitTime;
             
             // Swept AABB checking here
 
@@ -261,6 +262,20 @@ bool ColliderManager::IsSweptAABBColliding(ColliderComponent* p_mobile_collider,
             {
                 yEntryTime = yEntryDist / p_mobile_collider_velocity.y;
                 yExitTime = yExitDist / p_mobile_collider_velocity.y;
+            }
+            entryTime = std::max(xEntryTime, yEntryTime);
+            exitTime = std::min(xExitTime, yExitTime);
+
+            // Non-collision check
+            if
+            (
+                (entryTime > exitTime) ||
+                (xEntryTime < 0.0f && yEntryTime < 0.0f) ||
+                (xEntryTime > 1.0f) ||
+                (yEntryTime > 1.0f)
+            )
+            {
+
             }
 
         }
