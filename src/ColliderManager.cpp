@@ -275,7 +275,11 @@ bool ColliderManager::IsSweptAABBColliding(ColliderComponent* p_mobile_collider,
                 (yEntryTime > 1.0f)
             )
             {
-
+                return false;
+            }
+            else
+            {
+                return true;
             }
 
         }
