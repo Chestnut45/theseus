@@ -30,9 +30,9 @@ void LabyrinthManager::GenerateLabyrinth()
     auto* object = GetGameObject();
     if (object)
     {
-        // Set the rng seed
-        if (m_randomizeSeed) m_seed = m_RNG.NextInt(0, INT32_MAX);
-        m_RNG.SetSeed(m_seed);
+        // Reseed the rng before generating
+        if (m_randomizeSeed) m_RNG.SetSeed(m_RNG.NextInt(0, INT32_MAX));
+        else m_RNG.Reseed();
 
         // Grab a scene reference
         auto& scene = object->GetScene();
@@ -93,7 +93,7 @@ void LabyrinthManager::ShowGUI()
 
     // Set window position and size
     ImGui::SetNextWindowPos({0, 0});
-    ImGui::SetNextWindowSize({256, 256});
+    ImGui::SetNextWindowSize({256, 512});
     ImGui::Begin("Daedalus' Terminal v0.1", nullptr, flags);
 
     // Menu bar for saving / loading labyrinth configs
@@ -133,10 +133,46 @@ void LabyrinthManager::ShowGUI()
     ImGui::Checkbox("Randomize Seed", &m_randomizeSeed);
     if (!m_randomizeSeed)
     {
-        ImGui::InputInt("Seed", &m_seed);
+        int seed = (int)m_RNG.GetSeed();
+        int prevSeed = seed;
+        ImGui::InputInt("Seed", &seed);
+        if (prevSeed != seed) m_RNG.SetSeed(seed);
     }
     ImGui::InputInt("Width", &m_width);
     ImGui::InputInt("Height", &m_height);
+
+    ImGui::SeparatorText("Rooms");
+
+    // Adds a new room to the labyrinth
+    if (ImGui::Button("Add Room")) m_rooms.push_back(Room());
+
+    // Displays an editor for all rooms
+    for (int i = 0; i < m_rooms.size(); ++i)
+    {
+        // Grab a reference to the current room
+        Room& room = m_rooms[i];
+
+        // Create dropdown header for each room
+        bool keepRoom = true;
+
+        ImGui::PushID(&room);
+        if (ImGui::CollapsingHeader(("Room " + std::to_string(i) + "###").c_str(), &keepRoom, ImGuiTreeNodeFlags_None))
+        {
+            // Edit origin and size
+            ImGui::DragInt2("Origin", &room.m_bounds.m_origin.x, 1.0f, 1, glm::max(m_width, m_height));
+            ImGui::DragInt("Width", &room.m_bounds.m_size.x, 1.0f, 1, Room::MAX_SIZE);
+            ImGui::DragInt("Height", &room.m_bounds.m_size.y, 1.0f, 1, Room::MAX_SIZE);
+        }
+        ImGui::PopID();
+
+        // Delete room if requested
+        if (!keepRoom)
+        {
+            m_rooms.erase(m_rooms.begin() + i);
+            i--;
+            keepRoom = true;
+        }
+    }
 
     ImGui::SeparatorText("Controls");
 

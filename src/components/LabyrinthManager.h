@@ -18,6 +18,7 @@
 
 #include <W_GameObject.h>
 #include <W_RNG.h>
+#include <W_Shapes.h>
 
 // Labyrinth tile IDs (scoped enum)
 struct Tile
@@ -90,9 +91,6 @@ public:
 // Implementation
 private:
 
-    // Seed used for the rng during generation
-    int m_seed = 0;
-
     // Pseudo random number generator
     wolf::RNG m_RNG;
 
@@ -103,7 +101,23 @@ private:
     // Flags
     bool m_randomizeSeed = false;
 
-    // TODO: Room data
+    // Definition of a room to be generated into the labyrinth
+    struct Room
+    {
+        static const int MAX_SIZE = 2048;
+
+        // Default constructor
+        Room() {}
+        
+        // Constructor taking the bounding rectangle
+        Room(const wolf::IRectangle& bounds) : m_bounds(bounds) {}
+
+        // Bounds of the room in labyrinth space (origin at bottom left corner)
+        wolf::IRectangle m_bounds;
+    };
+
+    // List of all rooms in the labyrinth
+    std::vector<Room> m_rooms;
 
     // TODO: Tweakable progression / difficulty parameters (connectivity, spawn rates, etc.)
 };
