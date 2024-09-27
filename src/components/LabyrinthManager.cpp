@@ -28,44 +28,55 @@ void LabyrinthManager::GenerateLabyrinth()
     }
 
     auto* object = GetGameObject();
-    if (object)
+    if (!object)
     {
-        // Reseed the rng before generating
-        if (m_randomizeSeed) m_RNG.SetSeed(m_RNG.NextInt(0, INT32_MAX));
-        else m_RNG.Reseed();
+        wolf::Error("Labyrinth generator not attached to a GameObject");
+        return;
+    }
 
-        // Grab a scene reference
-        auto& scene = object->GetScene();
+    // Grab a scene reference
+    auto& scene = object->GetScene();
 
-        // Add a test tilemap as a child object
-        auto& tileMapObject = scene.CreateObject2D();
-        object->AddChild(tileMapObject);
+    // Reseed the rng before generating
+    if (m_randomizeSeed) m_RNG.SetSeed(m_RNG.NextInt(0, INT32_MAX));
+    else m_RNG.Reseed();
 
-        // Add the tilemap component
-        auto& tileMap = tileMapObject.AddComponent<wolf::TileMap>(m_width, m_height);
-        tileMapObject.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
-        tileMap.LoadTileSet("data/labyrinth.tileset");
-        
-        // Quick test of procedural generation
-        for (int y = 0; y < m_height; ++y)
+    // TODO: Generate entire labyrinth data
+
+    // TODO: Determine chunks to generate
+
+    // TODO: Generate chunk data for all chunks
+
+    // TODO: Deactivate chunks outside of the camera's view
+
+    // Add a test tilemap as a child object
+    auto& tileMapObject = scene.CreateObject2D();
+    object->AddChild(tileMapObject);
+
+    // Add the tilemap component
+    auto& tileMap = tileMapObject.AddComponent<wolf::TileMap>(m_width, m_height);
+    tileMapObject.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
+    tileMap.LoadTileSet("data/labyrinth.tileset");
+    
+    // Quick test of procedural generation
+    for (int y = 0; y < m_height; ++y)
+    {
+        for (int x = 0; x < m_width; ++x)
         {
-            for (int x = 0; x < m_width; ++x)
+            // Place walls around the edge
+            if (x == 0 || x == m_width - 1 || y == 0 || y == m_height - 1)
             {
-                // Place walls around the edge
-                if (x == 0 || x == m_width - 1 || y == 0 || y == m_height - 1)
+                // Except for the entrance
+                if (x == 1 && y == 0)
                 {
-                    // Except for the entrance
-                    if (x == 1 && y == 0)
-                    {
-                        tileMap.SetTile(x, y, Tile::FloorSpiralGold);
-                        continue;
-                    }
-                    tileMap.SetTile(x, y, Tile::WallMaze);
+                    tileMap.SetTile(x, y, Tile::FloorSpiralGold);
+                    continue;
                 }
-                else
-                {
-                    tileMap.SetTile(x, y, m_RNG.FlipCoin() ? Tile::FloorSmallSquares : Tile::FloorSpiral);
-                }
+                tileMap.SetTile(x, y, Tile::WallMaze);
+            }
+            else
+            {
+                tileMap.SetTile(x, y, m_RNG.FlipCoin() ? Tile::FloorSmallSquares : Tile::FloorSpiral);
             }
         }
     }
