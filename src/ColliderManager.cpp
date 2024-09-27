@@ -42,9 +42,11 @@ void ColliderManager::CheckCollisions()
                 bool isObject2Mobile = object2.HasAny<VelocityComponent>();
 
                 bool isColliding = false;
+                float sweptAABBCollisionTime = 1.0f;
 
                 if(id1 != id2)
                 {
+                    // Checking for collision
                     if(collider1.IsHitbox() && collider2.IsHitbox())
                     {
                         if(isObject1Mobile && isObject2Mobile)
@@ -57,7 +59,8 @@ void ColliderManager::CheckCollisions()
                         
                         else if(!isObject1Mobile && isObject2Mobile)
                         {
-                            if(this->IsSweptAABBColliding(&collider1, &collider2, collider1.GetGameObject()->GetComponent<VelocityComponent>()->GetVelocity())) // If colliders colliding
+                            sweptAABBCollisionTime = this->SweptAABB(&collider1, &collider2, collider1.GetGameObject()->GetComponent<VelocityComponent>()->GetVelocity());
+                            if(sweptAABBCollisionTime != 1.0f)
                             {
                                 isColliding = true;
                             }   
@@ -65,10 +68,11 @@ void ColliderManager::CheckCollisions()
 
                         else if(isObject1Mobile && !isObject2Mobile)
                         {
-                            if(this->IsSweptAABBColliding(&collider2, &collider1, collider2.GetGameObject()->GetComponent<VelocityComponent>()->GetVelocity())) // If colliders colliding
+                            sweptAABBCollisionTime = this->SweptAABB(&collider2, &collider1, collider2.GetGameObject()->GetComponent<VelocityComponent>()->GetVelocity()) == 1.0f;
+                            if(sweptAABBCollisionTime != 1.0f)
                             {
                                 isColliding = true;
-                            }   
+                            }    
                         }
 
                         else
@@ -94,7 +98,7 @@ void ColliderManager::CheckCollisions()
                         }    
                     }
 
-
+                    // Perform actions if colliding
                     if(isColliding)
                     {
                         if(collider1.IsHitbox() && collider2.IsHitbox())
@@ -202,7 +206,7 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
     return false;
 }
 
-bool ColliderManager::IsSweptAABBColliding(ColliderComponent* p_mobile_collider, ColliderComponent* p_static_collider, glm::vec2 p_mobile_collider_velocity)
+float ColliderManager::SweptAABB(ColliderComponent* p_mobile_collider, ColliderComponent* p_static_collider, glm::vec2 p_mobile_collider_velocity)
 {
     for(wolf::Rectangle mobileCollider : p_mobile_collider->GetColliderBoxes())
     {
@@ -297,15 +301,14 @@ bool ColliderManager::IsSweptAABBColliding(ColliderComponent* p_mobile_collider,
                 (yEntryTime > 1.0f)
             )
             {
-                return false;
+                return 1.0f;
             }
             else
             {
-                return true;
+                return entryTime;
             }
-
         }
     }
 
-    return false;
+    return 1.0f;
 }

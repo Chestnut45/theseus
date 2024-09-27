@@ -35,7 +35,7 @@ private:
     wolf::Scene* m_scene = nullptr;
 
     bool IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2);
-    bool IsSweptAABBColliding(ColliderComponent* p_mobile_collider, ColliderComponent* p_static_collider, glm::vec2 p_mobile_collider_velocity);
+    float SweptAABB(ColliderComponent* p_mobile_collider, ColliderComponent* p_static_collider, glm::vec2 p_mobile_collider_velocity);
     void RemoveFlagged();
     void CheckCollisions();
 
