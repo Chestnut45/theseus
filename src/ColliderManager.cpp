@@ -40,15 +40,18 @@ void ColliderManager::CheckCollisions()
             for (auto&&[id2, object2, collider2] : this->m_scene->Each<wolf::GameObject, ColliderComponent>() | std::views::drop(i))
             {
                 bool isObject2Mobile = object2.HasAny<VelocityComponent>();
+
+                bool isColliding = false;
+
                 if(id1 != id2)
                 {
                     if(collider1.IsHitbox() && collider2.IsHitbox())
                     {
                         if(isObject1Mobile && isObject2Mobile)
                         {
-                            if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
+                            if(this->IsColliding(&collider1, &collider2))
                             {
-                                std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
+                                isColliding = true;
                             } 
                         }
                         
@@ -56,7 +59,7 @@ void ColliderManager::CheckCollisions()
                         {
                             if(this->IsSweptAABBColliding(&collider1, &collider2, collider1.GetGameObject()->GetComponent<VelocityComponent>()->GetVelocity())) // If colliders colliding
                             {
-                                std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
+                                isColliding = true;
                             }   
                         }
 
@@ -64,7 +67,7 @@ void ColliderManager::CheckCollisions()
                         {
                             if(this->IsSweptAABBColliding(&collider2, &collider1, collider2.GetGameObject()->GetComponent<VelocityComponent>()->GetVelocity())) // If colliders colliding
                             {
-                                std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
+                                isColliding = true;
                             }   
                         }
 
@@ -74,9 +77,32 @@ void ColliderManager::CheckCollisions()
                         }
                     }
 
-                    if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
+                    else if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
                     {
-                        if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
+                        if(this->IsColliding(&collider1, &collider2))
+                        {
+                            isColliding = true;
+                        } 
+                        
+                    }
+
+                    else if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
+                    {
+                        if(this->IsColliding(&collider1, &collider2))
+                        {
+                            isColliding = true;
+                        }    
+                    }
+
+
+                    if(isColliding)
+                    {
+                        if(collider1.IsHitbox() && collider2.IsHitbox())
+                        {
+                            std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
+                        }
+
+                        if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
                         {
                             std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
                             HealthComponent* healthComponent = object2.GetComponent<HealthComponent>();
@@ -88,13 +114,9 @@ void ColliderManager::CheckCollisions()
                             {
                                 printf("ColliderManager - Error: HealthComponent not found.\n");
                             }
-                        } 
-                        
-                    }
+                        }
 
-                    else if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
-                    {
-                        if(this->IsColliding(&collider1, &collider2)) // If colliders colliding
+                        else if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
                         {
                             std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
                             HealthComponent* healthComponent = object1.GetComponent<HealthComponent>();
@@ -106,7 +128,7 @@ void ColliderManager::CheckCollisions()
                             {
                                 printf("ColliderManager - Error: HealthComponent not found.\n");
                             }
-                        }    
+                        }
                     }
                 }                                   
             }
