@@ -29,15 +29,17 @@ public:
     ColliderManager(wolf::Scene* p_scene);
     virtual ~ColliderManager();
 
-    void Update();
+    void Update(float p_delta);
 
 private:
     wolf::Scene* m_scene = nullptr;
 
     bool IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2);
-    float SweptAABB(ColliderComponent* p_mobile_collider, ColliderComponent* p_static_collider, glm::vec2 p_mobile_collider_velocity);
+    bool StandardAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2);
+    bool StandardAABBBroadphase(glm::vec2 p_mobile_translation, glm::vec2 p_static_translation, glm::vec2 p_mobile_dimensions, glm::vec2 p_static_dimensions, glm::vec2 p_mobile_velocity, float p_delta);
+    float SweptAABB(glm::vec2 p_mobile_translation, glm::vec2 p_static_translation, glm::vec2 p_mobile_dimensions, glm::vec2 p_static_dimensions, glm::vec2 p_mobile_velocity, float p_delta);
     void RemoveFlagged();
-    void CheckCollisions();
+    void CheckCollisions(float p_delta);
 
     std::vector<ColliderComponent *> m_vToBeDestroyed;
 };

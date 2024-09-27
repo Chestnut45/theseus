@@ -100,7 +100,7 @@ void PlayState::Update(float delta)
     m_pGameInstance->GetScene().Update(delta);
 
     // Update managers
-    this->m_pColliderManager->Update();
+    this->m_pColliderManager->Update(delta);
     this->m_pStatusManager->Update();
 }
 
