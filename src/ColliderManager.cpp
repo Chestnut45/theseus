@@ -50,39 +50,18 @@ void ColliderManager::CheckCollisions(float p_delta)
                     // Checking for collision
                     if(collider1.IsHitbox() && collider2.IsHitbox())
                     {
-                        if(isObject1Mobile && isObject2Mobile)
+                        if(isObject1Mobile || isObject2Mobile)
                         {
-                            if(this->IsColliding(&collider1, &collider2))
-                            {
-                                isColliding = true;
-                            }
-                        }
-                        
-                        else if(isObject1Mobile && !isObject2Mobile)
+                            if(this->IsColliding(&collider1, &collider2, p_delta))
                         {
-                            if(this->IsColliding(&collider1, &collider2))
-                            {
-                                isColliding = true;
-                            }   
-                        }
-
-                        else if(!isObject1Mobile && isObject2Mobile)
-                        {
-                            if(this->IsColliding(&collider1, &collider2))
-                            {
-                                isColliding = true;
-                            }    
-                        }
-
-                        else
-                        {
-
-                        }
+                            isColliding = true;
+                        } 
+                        }   
                     }
 
                     else if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
                     {
-                        if(this->IsColliding(&collider1, &collider2))
+                        if(this->IsColliding(&collider1, &collider2, p_delta))
                         {
                             isColliding = true;
                         } 
@@ -91,7 +70,7 @@ void ColliderManager::CheckCollisions(float p_delta)
 
                     else if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
                     {
-                        if(this->IsColliding(&collider1, &collider2))
+                        if(this->IsColliding(&collider1, &collider2, p_delta))
                         {
                             isColliding = true;
                         }    
@@ -154,8 +133,10 @@ void ColliderManager::RemoveFlagged()
 }
 
 // Check collision for two collider components
-bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2)
+bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta)
 {
+    
+
     for(wolf::Rectangle collider1 : p_colliderComponent1->GetColliderBoxes())
     {
         glm::vec2 dimensions1 = glm::vec2(collider1.GetWidth(), collider1.GetHeight());
@@ -169,11 +150,23 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
         }
 
         glm::vec2 translation1 = p_colliderComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset1;
+        VelocityComponent* velocity1 = p_colliderComponent1->GetGameObject()->GetComponent<VelocityComponent>();
 
         for(wolf::Rectangle collider2 : p_colliderComponent2->GetColliderBoxes())
         {
             glm::vec2 dimensions2 = glm::vec2(collider2.GetWidth(), collider2.GetHeight());
             glm::vec2 offset2 = collider2.GetPosition();
+            VelocityComponent* velocity2 = p_colliderComponent2->GetGameObject()->GetComponent<VelocityComponent>();
+
+            glm::vec2 combinedVelocity = glm::vec2(0.0f, 0.0f);
+            if(velocity1 != nullptr)
+            {
+                combinedVelocity += velocity1->GetVelocity();
+            }
+            if(velocity2 != nullptr)
+            {
+                combinedVelocity -= velocity2->GetVelocity();
+            }
             
             if(p_colliderComponent2->IsRelative())
             {
@@ -183,52 +176,79 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
             }
             glm::vec2 translation2 = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset2;
 
-            if(this->StandardAABB(translation1, translation2, dimensions1, dimensions2))
+            if(combinedVelocity == glm::vec2(0.0f, 0.0f))
             {
-                if(p_colliderComponent1->IsDestroyedOnCollision())
+                
+                if(this->StandardAABB(translation1, translation2, dimensions1, dimensions2))
                 {
-                    this->m_vToBeDestroyed.push_back(p_colliderComponent1);
-                }
+                    printf("ColliderManager - IsColliding C1\n");
+                    if(p_colliderComponent1->IsDestroyedOnCollision())
+                    {
+                        this->m_vToBeDestroyed.push_back(p_colliderComponent1);
+                    }
 
-                if(p_colliderComponent2->IsDestroyedOnCollision())
+                    if(p_colliderComponent2->IsDestroyedOnCollision())
+                    {
+                        this->m_vToBeDestroyed.push_back(p_colliderComponent2);
+                    }
+
+                    return true;
+                }
+            }
+            else
+            {
+                if(this->StandardAABBBroadphase(translation1, translation2, dimensions1, dimensions2, combinedVelocity * p_delta))
                 {
-                    this->m_vToBeDestroyed.push_back(p_colliderComponent2);
-                }
+                    printf("ColliderManager - IsColliding C2\n");
+                    float collisionTime = this->SweptAABB(translation1, translation2, dimensions1, dimensions2, combinedVelocity * p_delta);
+                    if(collisionTime < 1.0f)
+                    {
+                        if(p_colliderComponent1->IsDestroyedOnCollision())
+                        {
+                            this->m_vToBeDestroyed.push_back(p_colliderComponent1);
+                        }
 
-                return true;
+                        if(p_colliderComponent2->IsDestroyedOnCollision())
+                        {
+                            this->m_vToBeDestroyed.push_back(p_colliderComponent2);
+                        }
+
+                        return true;
+                    }
+                }
             }
         }
     }
     return false;
 }
 
-bool ColliderManager::StandardAABBBroadphase(glm::vec2 p_mobile_translation, glm::vec2 p_static_translation, glm::vec2 p_mobile_dimensions, glm::vec2 p_static_dimensions, glm::vec2 p_mobile_velocity, float p_delta)
+bool ColliderManager::StandardAABBBroadphase(glm::vec2 p_mobile_translation, glm::vec2 p_static_translation, glm::vec2 p_mobile_dimensions, glm::vec2 p_static_dimensions, glm::vec2 p_mobile_velocity)
 {
     glm::vec2 mobileBroadphaseTranslation, mobileBroadphaseDimensions;
-    mobileBroadphaseTranslation.x = p_mobile_velocity.x > 0.0f ? p_mobile_translation.x : p_mobile_translation.x + (p_mobile_velocity.x * p_delta);
-    mobileBroadphaseTranslation.y = p_mobile_velocity.y > 0.0f ? p_mobile_translation.y : p_mobile_translation.y + (p_mobile_velocity.y * p_delta);
-    mobileBroadphaseDimensions.x = p_mobile_velocity.x > 0.0f ? p_mobile_dimensions.x + (p_mobile_velocity.x * p_delta) : p_mobile_dimensions.x - (p_mobile_velocity.x * p_delta);
-    mobileBroadphaseDimensions.y = p_mobile_velocity.y > 0.0f ? p_mobile_dimensions.y + (p_mobile_velocity.y * p_delta) : p_mobile_dimensions.y - (p_mobile_velocity.y * p_delta);
+    mobileBroadphaseTranslation.x = p_mobile_velocity.x > 0.0f ? p_mobile_translation.x : p_mobile_translation.x + (p_mobile_velocity.x);
+    mobileBroadphaseTranslation.y = p_mobile_velocity.y > 0.0f ? p_mobile_translation.y : p_mobile_translation.y + (p_mobile_velocity.y);
+    mobileBroadphaseDimensions.x = p_mobile_velocity.x > 0.0f ? p_mobile_dimensions.x + (p_mobile_velocity.x) : p_mobile_dimensions.x - (p_mobile_velocity.x);
+    mobileBroadphaseDimensions.y = p_mobile_velocity.y > 0.0f ? p_mobile_dimensions.y + (p_mobile_velocity.y) : p_mobile_dimensions.y - (p_mobile_velocity.y);
 
     return(
-        mobileBroadphaseTranslation.x + mobileBroadphaseDimensions.x    >   p_static_translation.x                              && // Right1 > Left2
-        mobileBroadphaseTranslation.x                                   <   p_static_translation.x + p_static_dimensions.x      && // Left1 < Right2
-        mobileBroadphaseTranslation.y + mobileBroadphaseDimensions.y    >   p_static_translation.y                              && // Lower1 > Upper2
-        mobileBroadphaseTranslation.y                                   <   p_static_translation.y + p_static_dimensions.y
+        mobileBroadphaseTranslation.x + mobileBroadphaseDimensions.x    >   p_static_translation.x                              &&  // Right1 > Left2
+        mobileBroadphaseTranslation.x                                   <   p_static_translation.x + p_static_dimensions.x      &&  // Left1 < Right2
+        mobileBroadphaseTranslation.y + mobileBroadphaseDimensions.y    >   p_static_translation.y                              &&  // Lower1 > Upper2
+        mobileBroadphaseTranslation.y                                   <   p_static_translation.y + p_static_dimensions.y          // Upper1 < Lower2
     );
 }
 
 bool ColliderManager::StandardAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2)
 {
     return(
-        p_translation_1.x + p_dimensions_1.x > p_translation_2.x                    && // Right1 > Left2
-        p_translation_1.x                    < p_translation_2.x + p_dimensions_2.x    && // Left1 < Right2
-        p_translation_1.y + p_dimensions_1.y > p_translation_2.y                    && // Lower1 > Upper2
-        p_translation_1.y                    < p_translation_2.y + p_dimensions_2.y
+        p_translation_1.x + p_dimensions_1.x > p_translation_2.x                        &&  // Right1 > Left2
+        p_translation_1.x                    < p_translation_2.x + p_dimensions_2.x     &&  // Left1 < Right2
+        p_translation_1.y + p_dimensions_1.y > p_translation_2.y                        &&  // Lower1 > Upper2
+        p_translation_1.y                    < p_translation_2.y + p_dimensions_2.y         // Upper1 < Lower2
     );
 }
 
-float ColliderManager::SweptAABB(glm::vec2 p_mobile_translation, glm::vec2 p_static_translation, glm::vec2 p_mobile_dimensions, glm::vec2 p_static_dimensions, glm::vec2 p_mobile_velocity, float p_delta)
+float ColliderManager::SweptAABB(glm::vec2 p_mobile_translation, glm::vec2 p_static_translation, glm::vec2 p_mobile_dimensions, glm::vec2 p_static_dimensions, glm::vec2 p_mobile_velocity)
 {
     float   xEntryDist, yEntryDist, xExitDist, yExitDist,
             xEntryTime, yEntryTime, xExitTime, yExitTime,
@@ -298,11 +318,11 @@ float ColliderManager::SweptAABB(glm::vec2 p_mobile_translation, glm::vec2 p_sta
     (
         (entryTime > exitTime) ||
         (xEntryTime < 0.0f && yEntryTime < 0.0f) ||
-        (xEntryTime > p_delta) ||
-        (yEntryTime > p_delta)
+        (xEntryTime > 1.0f) ||
+        (yEntryTime > 1.0f)
     )
     {
-        return p_delta;
+        return 1.0f;
     }
     else
     {   

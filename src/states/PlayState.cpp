@@ -38,7 +38,7 @@ void PlayState::Enter()
     auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDD, 1, 1);
     testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
     auto& testVelocity = testObj.AddComponent<VelocityComponent>();
-    testVelocity.SetVelocity(glm::vec2(-64.0f, 0.0f));
+    testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
 }
 
 void PlayState::Exit()
