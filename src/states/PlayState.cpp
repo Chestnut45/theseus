@@ -30,15 +30,16 @@ void PlayState::Enter()
 
     // TESTING BELOW
 
-    // Create test projectile object
+    // Create test object
     auto& testObj = scene.CreateObject2D();
     testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
     testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
     auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDD, 1, 1);
+    auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
     testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
     auto& testVelocity = testObj.AddComponent<VelocityComponent>();
-    testVelocity.SetVelocity(glm::vec2(-64.0f, 0.0f));
+    // testVelocity.SetVelocity(glm::vec2(-1000000000000.0f, 0.0f));
+    //testVelocity.SetVelocity(glm::vec2(-64.0f, 0.0f));
 }
 
 void PlayState::Exit()
@@ -80,13 +81,13 @@ void PlayState::Update(float delta)
 
     // Main object / component updates
 
-    // Update managers
-    this->m_pColliderManager->Update(delta);
-    this->m_pStatusManager->Update();
-
     // Update player controller
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController) playerController->Update(delta);
+
+    // Update managers
+    this->m_pColliderManager->Update(delta);
+    this->m_pStatusManager->Update();
 
     // Update player animations
     auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();

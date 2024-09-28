@@ -26,6 +26,19 @@ void ColliderManager::Update(float p_delta)
     this->CheckCollisions(p_delta);
 }
 
+// Remove objects flagged for destruction
+void ColliderManager::RemoveFlagged()
+{
+    for (int i = 0; i < this->m_vToBeDestroyed.size(); i++)
+    {
+        std::cout << "ColliderManager - Remove id:" << this->m_vToBeDestroyed.at(i)->GetGameObject()->GetID() << std::endl;
+        this->m_scene->DeleteObject(this->m_vToBeDestroyed.at(i)->GetGameObject()->GetID());
+        
+    }
+    this->m_vToBeDestroyed.clear();
+}
+
+// Iterate through collider components to check for collisions
 void ColliderManager::CheckCollisions(float p_delta)
 {
     int i = 0;
@@ -53,9 +66,9 @@ void ColliderManager::CheckCollisions(float p_delta)
                         if(isObject1Mobile || isObject2Mobile)
                         {
                             if(this->IsColliding(&collider1, &collider2, p_delta))
-                        {
-                            isColliding = true;
-                        } 
+                            {
+                                isColliding = true;
+                            } 
                         }   
                     }
 
@@ -82,8 +95,15 @@ void ColliderManager::CheckCollisions(float p_delta)
                         if(collider1.IsHitbox() && collider2.IsHitbox())
                         {
                             std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
-                            //sweptAABBRemainingTime = 1.0f - sweptAABBCollisionTime;
-
+                            sweptAABBRemainingTime = 1.0f - sweptAABBCollisionTime;
+                            if(isObject1Mobile)
+                            {
+                                object1.GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
+                            }
+                            if(isObject2Mobile)
+                            {
+                                object2.GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
+                            }
                         }
 
                         if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
@@ -120,19 +140,7 @@ void ColliderManager::CheckCollisions(float p_delta)
     }  
 }
 
-// Remove objects flagged for destruction
-void ColliderManager::RemoveFlagged()
-{
-    for (int i = 0; i < this->m_vToBeDestroyed.size(); i++)
-    {
-        std::cout << "ColliderManager - Remove id:" << this->m_vToBeDestroyed.at(i)->GetGameObject()->GetID() << std::endl;
-        this->m_scene->DeleteObject(this->m_vToBeDestroyed.at(i)->GetGameObject()->GetID());
-        
-    }
-    this->m_vToBeDestroyed.clear();
-}
-
-// Check collision for two collider components
+// Iterate through collider boxes of collider components to check for collision
 bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta)
 {
     
@@ -222,6 +230,16 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
     return false;
 }
 
+bool ColliderManager::StandardAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2)
+{
+    return(
+        p_translation_1.x + p_dimensions_1.x > p_translation_2.x                        &&  // Right1 > Left2
+        p_translation_1.x                    < p_translation_2.x + p_dimensions_2.x     &&  // Left1 < Right2
+        p_translation_1.y + p_dimensions_1.y > p_translation_2.y                        &&  // Lower1 > Upper2
+        p_translation_1.y                    < p_translation_2.y + p_dimensions_2.y         // Upper1 < Lower2
+    );
+}
+
 bool ColliderManager::StandardAABBBroadphase(glm::vec2 p_mobile_translation, glm::vec2 p_static_translation, glm::vec2 p_mobile_dimensions, glm::vec2 p_static_dimensions, glm::vec2 p_mobile_velocity)
 {
     glm::vec2 mobileBroadphaseTranslation, mobileBroadphaseDimensions;
@@ -235,16 +253,6 @@ bool ColliderManager::StandardAABBBroadphase(glm::vec2 p_mobile_translation, glm
         mobileBroadphaseTranslation.x                                   <   p_static_translation.x + p_static_dimensions.x      &&  // Left1 < Right2
         mobileBroadphaseTranslation.y + mobileBroadphaseDimensions.y    >   p_static_translation.y                              &&  // Lower1 > Upper2
         mobileBroadphaseTranslation.y                                   <   p_static_translation.y + p_static_dimensions.y          // Upper1 < Lower2
-    );
-}
-
-bool ColliderManager::StandardAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2)
-{
-    return(
-        p_translation_1.x + p_dimensions_1.x > p_translation_2.x                        &&  // Right1 > Left2
-        p_translation_1.x                    < p_translation_2.x + p_dimensions_2.x     &&  // Left1 < Right2
-        p_translation_1.y + p_dimensions_1.y > p_translation_2.y                        &&  // Lower1 > Upper2
-        p_translation_1.y                    < p_translation_2.y + p_dimensions_2.y         // Upper1 < Lower2
     );
 }
 
