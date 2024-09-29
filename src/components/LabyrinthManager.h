@@ -72,6 +72,9 @@ public:
     LabyrinthManager(LabyrinthManager&& other) = delete;
     LabyrinthManager& operator=(LabyrinthManager&& other) = delete;
 
+    // Updates the labyrinth and manages loaded chunks based on the currently active camera
+    void Update(float delta);
+
     // TODO: Accessors and mutators for procedural generation config properties
 
     // Generates the labyrinth and all of its game objects with the current config

@@ -18,6 +18,11 @@ LabyrinthManager::~LabyrinthManager()
 {
 }
 
+void LabyrinthManager::Update(float delta)
+{
+    // TODO: Update active chunks based on active camera
+}
+
 void LabyrinthManager::GenerateLabyrinth()
 {
     // Only bother if valid generation parameters
@@ -41,13 +46,13 @@ void LabyrinthManager::GenerateLabyrinth()
     if (m_randomizeSeed) m_RNG.SetSeed(m_RNG.NextInt(0, INT32_MAX));
     else m_RNG.Reseed();
 
-    // TODO: Generate entire labyrinth data
+    // TODO: Place all rooms into the labyrinth data structure
+
+    // TODO: Generate maze paths between all rooms
 
     // TODO: Determine chunks to generate
 
-    // TODO: Generate chunk data for all chunks
-
-    // TODO: Deactivate chunks outside of the camera's view
+    // TODO: Generate chunks one-by-one (tilemap, entity spawns, etc.)
 
     // Add a test tilemap as a child object
     auto& tileMapObject = scene.CreateObject2D();
