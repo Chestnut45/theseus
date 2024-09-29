@@ -17,8 +17,16 @@ void PlayState::Enter()
     this->m_pHitboxManager = new HitboxManager(&scene);
     this->m_pHurtboxManager = new HurtboxManager(&scene);
 
-    // Initialize player object
+    // Initialize player object first
     CreatePlayer();
+
+    // Check if the player has been correctly initialized
+    if (!m_pPlayerObject->GetComponent<PlayerController>())
+    {
+        std::cout << "Error: PlayerController not found in player object!" << std::endl;
+    }
+
+    // Initialize Minitaur object second
     CreateMinitaurEnemy();
 
     // Add the main camera as a component of the player object
@@ -90,6 +98,18 @@ void PlayState::Update(float delta)
     auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
     if (playerAnim) {
         playerAnim->Update(delta);
+    }
+
+    auto* enemyController = m_pMinitaurObject->GetComponent<EnemyController>();
+    if (enemyController)
+    {
+        enemyController->Update(delta);
+        auto* velocityComponent = m_pMinitaurObject->GetComponent<VelocityComponent>();
+        if (velocityComponent)
+        {
+            glm::vec2 velocity = velocityComponent->GetVelocity();
+            std::cout << "Minitaur Velocity: (" << velocity.x << ", " << velocity.y << ")" << std::endl;
+        }
     }
 
     // Apply velocity to transforms for all objects with both components
@@ -177,16 +197,23 @@ void PlayState::CreateMinitaurEnemy()
     m_pMinitaurObject = &m_pGameInstance->GetScene().CreateObject2D();
 
     // Add EnemyController to the Minitaur object
-    m_pMinitaurObject->AddComponent<EnemyController>(150.0f); // Initialize with chase speed
+    auto& enemyController = m_pMinitaurObject->AddComponent<EnemyController>(150.0f); // Initialize with chase speed
 
     // Scale and position the Minitaur
     auto* transform = m_pMinitaurObject->GetComponent<wolf::Transform2D>();
     transform->SetScale(glm::vec2(3));                         // Scale the Minitaur
-    transform->SetPosition(glm::vec2(500.0f, 500.0f));         // Set the initial position
+    transform->SetPosition(glm::vec2(500.0f, 500.0f));         // Set the initial position, ensure this is valid
 
     // Add a sprite component for the Minitaur
     auto& sprite = m_pMinitaurObject->AddComponent<wolf::Sprite2D>("data/textures/minitaur.png");
     sprite.SetOriginToCenterOfTexture(); // Optional: center the sprite to the transform origin
+
+    // Check sprite and transform validity
+    if (!sprite.GetTexture()) 
+    {
+        std::cerr << "Error: Minitaur sprite texture not loaded correctly!" << std::endl;
+    }
+    std::cout << "Minitaur Initial Position: " << transform->GetGlobalPosition().x << ", " << transform->GetGlobalPosition().y << std::endl;
 
     // Add velocity component for movement
     m_pMinitaurObject->AddComponent<VelocityComponent>();
@@ -202,4 +229,9 @@ void PlayState::CreateMinitaurEnemy()
     // Add health and armor components
     m_pMinitaurObject->AddComponent<HealthComponent>(100);
     m_pMinitaurObject->AddComponent<ArmourComponent>(50);
+
+    // Now, explicitly call the Init() method on the EnemyController
+    enemyController.Init();
+
+    std::cout << "Minitaur successfully created and initialized!" << std::endl;
 }
