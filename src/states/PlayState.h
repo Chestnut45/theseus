@@ -8,9 +8,11 @@
 #pragma once
 #include "GameState.h"
 #include <theseus.h> // Include the main game class
+#include "W_Sprite2d.h"
 
 #include "../HitboxManager.h"
 #include "../HurtboxManager.h"
+#include "EnemyController.h"
 
 class LabyrinthManager;
 
@@ -34,6 +36,8 @@ private:
     // Game objects / components that will exist for the duration of the play state
     wolf::GameObject* m_pPlayerObject = nullptr;
     LabyrinthManager* m_pLabyrinthManager = nullptr;
+    wolf::GameObject* m_pMinitaurObject = nullptr;
+
 
     // Manager for hitboxes
     HitboxManager* m_pHitboxManager = nullptr;
@@ -50,4 +54,5 @@ private:
     // PRE: The player must not have been created yet
     // POST: m_pPlayerObject will be set to a pointer to the newly created player object
     void CreatePlayer();
+    void CreateMinitaurEnemy();
 };

@@ -19,6 +19,7 @@ void PlayState::Enter()
 
     // Initialize player object
     CreatePlayer();
+    CreateMinitaurEnemy();
 
     // Add the main camera as a component of the player object
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
@@ -168,4 +169,37 @@ void PlayState::CreatePlayer()
     // Add health / armor
     m_pPlayerObject->AddComponent<HealthComponent>();
     m_pPlayerObject->AddComponent<ArmourComponent>(50);
+}
+
+void PlayState::CreateMinitaurEnemy()
+{
+    // Create Minitaur object with transform
+    m_pMinitaurObject = &m_pGameInstance->GetScene().CreateObject2D();
+
+    // Add EnemyController to the Minitaur object
+    m_pMinitaurObject->AddComponent<EnemyController>(150.0f); // Initialize with chase speed
+
+    // Scale and position the Minitaur
+    auto* transform = m_pMinitaurObject->GetComponent<wolf::Transform2D>();
+    transform->SetScale(glm::vec2(3));                         // Scale the Minitaur
+    transform->SetPosition(glm::vec2(500.0f, 500.0f));         // Set the initial position
+
+    // Add a sprite component for the Minitaur
+    auto& sprite = m_pMinitaurObject->AddComponent<wolf::Sprite2D>("data/textures/minitaur.png");
+    sprite.SetOriginToCenterOfTexture(); // Optional: center the sprite to the transform origin
+
+    // Add velocity component for movement
+    m_pMinitaurObject->AddComponent<VelocityComponent>();
+
+    // Add hitbox component
+    auto& hitbox = m_pMinitaurObject->AddComponent<HitboxComponent>(0, 1);
+    hitbox.AddHitbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
+
+    // Add hurtbox component
+    auto& hurtbox = m_pMinitaurObject->AddComponent<HurtboxComponent>(0, 0, 0, 1);
+    hurtbox.AddHurtbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
+
+    // Add health and armor components
+    m_pMinitaurObject->AddComponent<HealthComponent>(100);
+    m_pMinitaurObject->AddComponent<ArmourComponent>(50);
 }
