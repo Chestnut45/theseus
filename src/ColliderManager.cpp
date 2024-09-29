@@ -114,13 +114,13 @@ void ColliderManager::CheckCollisions(float p_delta)
                             {
                                 VelocityComponent* velocityComponent = object1.GetComponent<VelocityComponent>();
                                 normal1 = velocityComponent->GetNormalisedVelocity();
-                                //velocityComponent->SetVelocity(glm::vec2(0.0f, 0.0f));
+                                velocityComponent->SetVelocity(glm::vec2(0.0f, 0.0f));
                             }
                             if(isObject2Mobile)
                             {
                                 VelocityComponent* velocityComponent = object2.GetComponent<VelocityComponent>();
                                 normal2 = velocityComponent->GetNormalisedVelocity();
-                                //velocityComponent->SetVelocity(glm::vec2(0.0f, 0.0f));
+                                velocityComponent->SetVelocity(glm::vec2(0.0f, 0.0f));
                             }
                         }
 
@@ -361,10 +361,9 @@ float ColliderManager::SweptAABB(glm::vec2 p_mobile_translation, glm::vec2 p_sta
 
 float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, glm::vec2 p_velocity_1, glm::vec2 p_velocity_2)
 {
-    return 1.0f;
-    // float   xEntryDist, yEntryDist, xExitDist, yExitDist,
-    //         xEntryTime, yEntryTime, xExitTime, yExitTime,
-    //         entryTime, exitTime;
+    float   xEntryDist, yEntryDist, xExitDist, yExitDist,
+            xEntryTime, yEntryTime, xExitTime, yExitTime,
+            entryTime, exitTime;
 
     // glm::vec2 broadphaseTranslation1, broadphaseDimensions1;
     // broadphaseTranslation1.x = p_velocity_1.x > 0.0f ? p_translation_1.x : p_translation_1.x + p_velocity_1.x;
@@ -440,4 +439,6 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
     // {   
     //     return entryTime;
     // }
+    return 1.0f;
+
 }
