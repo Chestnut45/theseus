@@ -94,7 +94,7 @@ bool ColliderComponent::IsHitbox() const
 
 bool ColliderComponent::IsHurtbox() const
 {
-    if(this->m_ColliderType == ColliderType::HURTBOXDD || this->m_ColliderType == ColliderType::HURTBOXDR || this->m_ColliderType == ColliderType::HITHURTBOXDD, this->m_ColliderType == ColliderType::HITHURTBOXDR)
+    if(this->m_ColliderType == ColliderType::HURTBOXDD || this->m_ColliderType == ColliderType::HURTBOXDR || this->m_ColliderType == ColliderType::HITHURTBOXDD || this->m_ColliderType == ColliderType::HITHURTBOXDR)
     {
         return true;
     }

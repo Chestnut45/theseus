@@ -72,7 +72,19 @@ void ColliderManager::CheckCollisions(float p_delta)
                         }   
                     }
 
-                    else if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
+                    // else if(
+                    //         (collider1.IsHitbox() && collider2.IsHurtbox()) ||
+                    //         (collider1.IsHurtbox() && collider2.IsHitbox())
+                    // )
+                    // {
+                    //     if(this->IsColliding(&collider1, &collider2, p_delta))
+                    //     {
+                    //         isColliding = true;
+                    //     }
+                    // }
+
+                    else if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver() ||
+                            collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
                     {
                         if(this->IsColliding(&collider1, &collider2, p_delta))
                         {
@@ -81,30 +93,44 @@ void ColliderManager::CheckCollisions(float p_delta)
                         
                     }
 
-                    else if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
-                    {
-                        if(this->IsColliding(&collider1, &collider2, p_delta))
-                        {
-                            isColliding = true;
-                        }    
-                    }
+                    // else if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
+                    // {
+                    //     if(this->IsColliding(&collider1, &collider2, p_delta))
+                    //     {
+                    //         isColliding = true;
+                    //     }    
+                    // }
 
                     // Perform actions if colliding
                     if(isColliding)
                     {
                         if(collider1.IsHitbox() && collider2.IsHitbox())
                         {
-                            std::cout << "ColliderManager - Hitboxes Colliding" << std::endl;
+                            std::cout << "ColliderManager - Hitboxes Colliding " << object1.GetID() << " - " << object2.GetID() << std::endl;
                             sweptAABBRemainingTime = 1.0f - sweptAABBCollisionTime;
+                            glm::vec2 normal1, normal2 = glm::vec2(0.0f, 0.0f);
+
                             if(isObject1Mobile)
                             {
-                                object1.GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
+                                VelocityComponent* velocityComponent = object1.GetComponent<VelocityComponent>();
+                                normal1 = velocityComponent->GetNormalisedVelocity();
+                                //velocityComponent->SetVelocity(glm::vec2(0.0f, 0.0f));
                             }
                             if(isObject2Mobile)
                             {
-                                object2.GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
+                                VelocityComponent* velocityComponent = object2.GetComponent<VelocityComponent>();
+                                normal2 = velocityComponent->GetNormalisedVelocity();
+                                //velocityComponent->SetVelocity(glm::vec2(0.0f, 0.0f));
                             }
                         }
+
+                        // if(
+                        //     (collider1.IsHitbox() && collider2.IsHurtbox()) ||
+                        //     (collider1.IsHurtbox() && collider2.IsHitbox())
+                        // )
+                        // {
+                        //     std::cout << "ColliderManager - Hitbox-Hurtbox Colliding" << std::endl;
+                        // }
 
                         if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
                         {
@@ -113,10 +139,6 @@ void ColliderManager::CheckCollisions(float p_delta)
                             if(healthComponent != nullptr)
                             {
                                 healthComponent->Damage(collider1.GetDamage());
-                            }
-                            else
-                            {
-                                printf("ColliderManager - Error: HealthComponent not found.\n");
                             }
                         }
 
@@ -127,10 +149,6 @@ void ColliderManager::CheckCollisions(float p_delta)
                             if(healthComponent != nullptr)
                             {
                                 healthComponent->Damage(collider2.GetDamage());
-                            }
-                            else
-                            {
-                                printf("ColliderManager - Error: HealthComponent not found.\n");
                             }
                         }
                     }
@@ -143,8 +161,6 @@ void ColliderManager::CheckCollisions(float p_delta)
 // Iterate through collider boxes of collider components to check for collision
 bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta)
 {
-    
-
     for(wolf::Rectangle collider1 : p_colliderComponent1->GetColliderBoxes())
     {
         glm::vec2 dimensions1 = glm::vec2(collider1.GetWidth(), collider1.GetHeight());
@@ -189,13 +205,19 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
                 
                 if(this->StandardAABB(translation1, translation2, dimensions1, dimensions2))
                 {
-                    printf("ColliderManager - IsColliding C1\n");
-                    if(p_colliderComponent1->IsDestroyedOnCollision())
+                    if(
+                        p_colliderComponent1->IsDestroyedOnCollision() &&
+                        std::find(this->m_vToBeDestroyed.begin(), this->m_vToBeDestroyed.end(), p_colliderComponent1) == this->m_vToBeDestroyed.end()
+                        )
                     {
+
                         this->m_vToBeDestroyed.push_back(p_colliderComponent1);
                     }
 
-                    if(p_colliderComponent2->IsDestroyedOnCollision())
+                    if(
+                        p_colliderComponent2->IsDestroyedOnCollision() &&
+                        std::find(this->m_vToBeDestroyed.begin(), this->m_vToBeDestroyed.end(), p_colliderComponent2) == this->m_vToBeDestroyed.end()
+                        )
                     {
                         this->m_vToBeDestroyed.push_back(p_colliderComponent2);
                     }
@@ -207,7 +229,6 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
             {
                 if(this->StandardAABBBroadphase(translation1, translation2, dimensions1, dimensions2, combinedVelocity * p_delta))
                 {
-                    printf("ColliderManager - IsColliding C2\n");
                     float collisionTime = this->SweptAABB(translation1, translation2, dimensions1, dimensions2, combinedVelocity * p_delta);
                     if(collisionTime < 1.0f)
                     {
@@ -336,4 +357,87 @@ float ColliderManager::SweptAABB(glm::vec2 p_mobile_translation, glm::vec2 p_sta
     {   
         return entryTime;
     }
+}
+
+float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, glm::vec2 p_velocity_1, glm::vec2 p_velocity_2)
+{
+    return 1.0f;
+    // float   xEntryDist, yEntryDist, xExitDist, yExitDist,
+    //         xEntryTime, yEntryTime, xExitTime, yExitTime,
+    //         entryTime, exitTime;
+
+    // glm::vec2 broadphaseTranslation1, broadphaseDimensions1;
+    // broadphaseTranslation1.x = p_velocity_1.x > 0.0f ? p_translation_1.x : p_translation_1.x + p_velocity_1.x;
+    // broadphaseTranslation1.y = p_velocity_1.y > 0.0f ? p_translation_1.y : p_translation_1.y + p_velocity_1.y;
+    // broadphaseDimensions1.x = p_velocity_1.x > 0.0f ? p_dimensions_1.x + p_velocity_1.x : p_dimensions_1.x - p_velocity_1.x;
+    // broadphaseDimensions1.y = p_velocity_1.y > 0.0f ? p_dimensions_1.y + p_velocity_1.y : p_dimensions_1.y - p_velocity_1.y;
+
+    // // Distance calculations
+    // int colCaseX, colCaseY = 0;
+    // if(p_mobile_velocity.x > 0.0f)
+    // {
+    //     xEntryDist = p_translation_2.x - (p_translation_1.x + p_dimensions_1.x);
+    //     xExitDist = (p_translation_2.x + p_dimensions_2.x) - p_translation_1.x;
+    //     colCaseX = 1;
+    // }
+    // else
+    // {
+    //     xEntryDist = (p_translation_2.x + p_dimensions_2.x) - p_translation_1.x;
+    //     xExitDist = p_translation_2.x - (p_translation_1.x + p_dimensions_1.x);
+    //     colCaseX = 2;
+    // }
+
+    // if (p_mobile_velocity.y > 0)
+    // {
+    //     yEntryDist = p_translation_2.y - (p_translation_1.y + p_dimensions_1.y);
+    //     yExitDist = (p_translation_2.y + p_dimensions_2.y) - p_translation_1.y;
+    //     colCaseY = 1;
+    // }
+    // else
+    // {
+    //     yEntryDist = (p_translation_2.y + p_dimensions_2.y) - p_translation_1.y;
+    //     yExitDist = p_translation_2.y - (p_translation_1.y + p_dimensions_1.y);
+    //     colCaseY = 2;
+    // }
+
+    // // Time calculations
+    // if(p_mobile_velocity.x == 0.0f)
+    // {
+    //     xEntryTime = -std::numeric_limits<float>::infinity();
+    //     xExitTime = std::numeric_limits<float>::infinity();
+    // }
+    // else
+    // {
+    //     xEntryTime = xEntryDist / p_mobile_velocity.x;
+    //     xExitTime = xExitDist / p_mobile_velocity.x;
+    // }
+
+    // if(p_mobile_velocity.y == 0.0f)
+    // {
+    //     yEntryTime = -std::numeric_limits<float>::infinity();
+    //     yExitTime = std::numeric_limits<float>::infinity();
+    // }
+    // else
+    // {
+    //     yEntryTime = yEntryDist / p_mobile_velocity.y;
+    //     yExitTime = yExitDist / p_mobile_velocity.y;
+    // }
+    // entryTime = std::max(xEntryTime, yEntryTime);
+    // exitTime = std::min(xExitTime, yExitTime);
+
+    // // Non-collision check
+    // if
+    // (
+    //     (entryTime > exitTime) ||
+    //     (xEntryTime < 0.0f && yEntryTime < 0.0f) ||
+    //     (xEntryTime > 1.0f) ||
+    //     (yEntryTime > 1.0f)
+    // )
+    // {
+    //     return 1.0f;
+    // }
+    // else
+    // {   
+    //     return entryTime;
+    // }
 }

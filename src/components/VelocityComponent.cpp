@@ -23,3 +23,8 @@ const glm::vec2& VelocityComponent::GetVelocity() const
 {
     return m_velocity;
 }
+
+const glm::vec2 VelocityComponent::GetNormalisedVelocity() const
+{
+    return glm::normalize(m_velocity);
+}
