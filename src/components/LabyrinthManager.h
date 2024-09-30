@@ -107,10 +107,10 @@ private:
     // List of all rooms in the labyrinth
     std::vector<Room> m_rooms;
 
+    // TODO: Separation of procedural rooms / custom rooms
+
     // Chunk management
 
     // Map of chunk IDs to chunk game object pointers
     std::unordered_map<glm::ivec2, wolf::GameObject*> m_chunkMap;
-
-    // Updates the 
 };
