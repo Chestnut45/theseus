@@ -43,8 +43,35 @@ void LabyrinthManager::GenerateLabyrinth()
     auto& scene = object->GetScene();
 
     // Reseed the rng before generating
-    if (m_randomizeSeed) m_RNG.SetSeed(m_RNG.NextInt(0, INT32_MAX));
-    else m_RNG.Reseed();
+    if (m_randomizeSeed) m_rng.SetSeed(m_rng.NextInt(0, INT32_MAX));
+    else m_rng.Reseed();
+
+    // Logical tile types (not including visual variations)
+    enum class LogicalTile
+    {
+        None,
+        Door,
+        Floor,
+        Grass,
+        Wall,
+    };
+
+    // Initialize global grid of logical tile data for entire labyrinth
+    wolf::Grid2D<LogicalTile> labGrid(m_width, m_height, LogicalTile::Floor);
+
+    // TESTING: Place logical tiles
+    for (int y = 0; y < m_height; ++y)
+    {
+        for (int x = 0; x < m_width; ++x)
+        {
+            // Set borders as walls
+            if (x == 0 || x == m_width - 1 || y == 0 || y == m_height - 1)
+            {
+                labGrid.Set(x, y, LogicalTile::Wall);
+                continue;
+            }
+        }
+    }
 
     // TODO: Place all rooms into the labyrinth data structure
 
@@ -54,7 +81,7 @@ void LabyrinthManager::GenerateLabyrinth()
 
     // TODO: Generate chunks one-by-one (tilemap, entity spawns, etc.)
 
-    // Add a test tilemap as a child object
+    // TESTING: Add a tilemap as a child object
     auto& tileMapObject = scene.CreateObject2D();
     object->AddChild(tileMapObject);
 
@@ -63,26 +90,25 @@ void LabyrinthManager::GenerateLabyrinth()
     tileMapObject.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
     tileMap.LoadTileSet("data/labyrinth.tileset");
     
-    // Quick test of procedural generation
+    // Convert logical tiles into tilemap IDs
     for (int y = 0; y < m_height; ++y)
     {
         for (int x = 0; x < m_width; ++x)
         {
-            // Place walls around the edge
-            if (x == 0 || x == m_width - 1 || y == 0 || y == m_height - 1)
+            LogicalTile logicalTile = labGrid.Get(x, y);
+
+            // Convert from logical tile to specific tile ID
+            int tile;
+            switch (logicalTile)
             {
-                // Except for the entrance
-                if (x == 1 && y == 0)
-                {
-                    tileMap.SetTile(x, y, Tile::FloorSpiralGold);
-                    continue;
-                }
-                tileMap.SetTile(x, y, Tile::WallMaze);
+                case LogicalTile::Door: tile = Tile::FloorSquareGold; break;
+                case LogicalTile::Floor: tile = m_rng.NextInt(Tile::FloorSmallSquares, Tile::FloorSquare); break;
+                case LogicalTile::Grass: tile = Tile::Grass; break;
+                case LogicalTile::Wall: tile = m_rng.NextInt(Tile::WallBottomLeft, Tile::WallTop); break;
+                default: tile = Tile::Empty; break;
             }
-            else
-            {
-                tileMap.SetTile(x, y, m_RNG.FlipCoin() ? Tile::FloorSmallSquares : Tile::FloorSpiral);
-            }
+
+            tileMap.SetTile(x, y, tile);
         }
     }
 }
@@ -149,10 +175,10 @@ void LabyrinthManager::ShowGUI()
     ImGui::Checkbox("Randomize Seed", &m_randomizeSeed);
     if (!m_randomizeSeed)
     {
-        int seed = (int)m_RNG.GetSeed();
+        int seed = (int)m_rng.GetSeed();
         int prevSeed = seed;
         ImGui::InputInt("Seed", &seed);
-        if (prevSeed != seed) m_RNG.SetSeed(seed);
+        if (prevSeed != seed) m_rng.SetSeed(seed);
     }
     ImGui::InputInt("Width", &m_width);
     ImGui::InputInt("Height", &m_height);

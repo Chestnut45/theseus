@@ -20,39 +20,7 @@
 #include <W_RNG.h>
 #include <W_Shapes.h>
 
-// Labyrinth tile IDs (scoped enum)
-struct Tile
-{
-    typedef int type;
-    enum : type
-    {
-        Empty = -1,
-        BorderedGrass = 0,
-        Bricks,
-        FloorSmallSquares,
-        FloorSpiralGold,
-        FloorSpiral,
-        FloorSquareGold,
-        FloorSquare,
-        Grass,
-        WallBottomLeft,
-        WallBottomRight,
-        WallBottom,
-        WallChest,
-        WallHelmet,
-        WallLeft,
-        WallMaze,
-        WallMinotaur,
-        WallPillars,
-        WallPot,
-        WallRight,
-        WallSpiral,
-        WallSquare,
-        WalTopLeft,
-        WallTopRight,
-        WallTop
-    };
-};
+#include "../LabyrinthTiles.h"
 
 class LabyrinthManager : public wolf::BaseComponent
 {
@@ -95,7 +63,7 @@ public:
 private:
 
     // Pseudo random number generator
-    wolf::RNG m_RNG;
+    wolf::RNG m_rng;
 
     // Labyrinth dimensions (in tiles)
     int m_width = 0;
