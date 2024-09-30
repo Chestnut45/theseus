@@ -26,7 +26,7 @@ void PlayState::Enter()
     scene.SetActiveCamera(camera);
 
     // Add the labyrinth manager component to an empty object
-    m_pLabyrinthManager = &scene.CreateObject().AddComponent<LabyrinthManager>();
+    m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
 
     // TESTING BELOW
 

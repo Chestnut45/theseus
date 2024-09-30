@@ -15,6 +15,13 @@
 //-----------------------------------------------------------------------------
 
 #include <cstdint>
+#include <unordered_map>
+
+// Needed for std::hash implementation for glm vector types
+#ifndef GLM_ENABLE_EXPERIMENTAL
+    #define GLM_ENABLE_EXPERIMENTAL
+#endif
+#include <glm/gtx/hash.hpp>
 
 #include <W_GameObject.h>
 #include <W_RNG.h>
@@ -59,6 +66,12 @@ public:
     // Display the GUI for editing labyrinth configs and regenerating
     void ShowGUI();
 
+    // Constants
+    static const inline int MIN_LABYRINTH_DIM = 4;
+    static const inline int MAX_LABYRINTH_DIM = 16'384;
+    static const inline int LABYRINTH_TILE_SIZE = 32;
+    static const inline int CHUNK_SIZE = 64;
+
 // Implementation
 private:
 
@@ -66,11 +79,15 @@ private:
     wolf::RNG m_rng;
 
     // Labyrinth dimensions (in tiles)
-    int m_width = 0;
-    int m_height = 0;
+    int m_width = 256;
+    int m_height = 256;
+
+    // TODO: Tweakable progression / difficulty parameters (connectivity, spawn rates, etc.)
 
     // Flags
     bool m_randomizeSeed = false;
+
+    // Room data
 
     // Definition of a room to be generated into the labyrinth
     struct Room
@@ -84,11 +101,16 @@ private:
         Room(const wolf::IRectangle& bounds) : m_bounds(bounds) {}
 
         // Bounds of the room in labyrinth space (origin at bottom left corner)
-        wolf::IRectangle m_bounds;
+        wolf::IRectangle m_bounds{2, 6, 6, 2};
     };
 
     // List of all rooms in the labyrinth
     std::vector<Room> m_rooms;
 
-    // TODO: Tweakable progression / difficulty parameters (connectivity, spawn rates, etc.)
+    // Chunk management
+
+    // Map of chunk IDs to chunk game object pointers
+    std::unordered_map<glm::ivec2, wolf::GameObject*> m_chunkMap;
+
+    // Updates the 
 };

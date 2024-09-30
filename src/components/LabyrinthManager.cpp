@@ -39,6 +39,11 @@ void LabyrinthManager::GenerateLabyrinth()
         return;
     }
 
+    // Initialize scale of all labyrinth objects
+    auto* pTransform = object->GetComponent<wolf::Transform2D>();
+    if (!pTransform) pTransform = &object->AddComponent<wolf::Transform2D>();
+    pTransform->SetScale(glm::vec2(3));
+
     // Grab a scene reference
     auto& scene = object->GetScene();
 
@@ -49,7 +54,7 @@ void LabyrinthManager::GenerateLabyrinth()
     // Logical tile types (not including visual variations)
     enum class LogicalTile
     {
-        None,
+        Unvisited,
         Door,
         Floor,
         Grass,
@@ -57,69 +62,150 @@ void LabyrinthManager::GenerateLabyrinth()
     };
 
     // Initialize global grid of logical tile data for entire labyrinth
-    wolf::Grid2D<LogicalTile> labGrid(m_width, m_height, LogicalTile::Floor);
+    wolf::Grid2D<LogicalTile> labyrinthGrid(m_width, m_height, LogicalTile::Unvisited);
 
-    // TESTING: Place logical tiles
-    for (int y = 0; y < m_height; ++y)
+    // Place top/bottom outer walls
+    for (int i = 0; i < m_width; ++i)
     {
-        for (int x = 0; x < m_width; ++x)
+        labyrinthGrid.Set(i, 0, LogicalTile::Wall);
+        labyrinthGrid.Set(i, m_height - 1, LogicalTile::Wall);
+    }
+
+    // Place left/right outer walls
+    for (int i = 0; i < m_height; ++i)
+    {
+        labyrinthGrid.Set(0, i, LogicalTile::Wall);
+        labyrinthGrid.Set(m_width - 1, i, LogicalTile::Wall);
+    }
+
+    // Place all rooms into the labyrinth
+    for (int i = 0; i < m_rooms.size(); ++i)
+    {
+        // Grab references
+        const auto& room = m_rooms[i];
+        const auto& rect = room.m_bounds;
+
+        for (int y = 0; y < rect.m_size.y; ++y)
         {
-            // Set borders as walls
-            if (x == 0 || x == m_width - 1 || y == 0 || y == m_height - 1)
+            for (int x = 0; x < rect.m_size.x; ++x)
             {
-                labGrid.Set(x, y, LogicalTile::Wall);
-                continue;
+                glm::ivec2 worldPos = {x + rect.m_origin.x, y + rect.m_origin.y};
+
+                // Debug bounds checking
+                if (worldPos.x >= m_width || worldPos.y >= m_height)
+                {
+                    wolf::Warning("Room #", i, ", Tile (", worldPos.x, ", ", worldPos.y, ") out of bounds!");
+                    continue;
+                }
+
+                // Set border tiles of each room as walls
+                if (x == 0 || x == rect.m_size.x - 1 || y == 0 || y == rect.m_size.y - 1)
+                {
+                    labyrinthGrid.Set(worldPos.x, worldPos.y, LogicalTile::Wall);
+                    continue;
+                }
+
+                // TODO: Place room-specific tiles / entities
             }
         }
     }
 
-    // TODO: Place all rooms into the labyrinth data structure
-
     // TODO: Generate maze paths between all rooms
 
-    // TODO: Determine chunks to generate
-
-    // TODO: Generate chunks one-by-one (tilemap, entity spawns, etc.)
-
-    // TESTING: Add a tilemap as a child object
-    auto& tileMapObject = scene.CreateObject2D();
-    object->AddChild(tileMapObject);
-
-    // Add the tilemap component
-    auto& tileMap = tileMapObject.AddComponent<wolf::TileMap>(m_width, m_height);
-    tileMapObject.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
-    tileMap.LoadTileSet("data/labyrinth.tileset");
-    
-    // Convert logical tiles into tilemap IDs
-    for (int y = 0; y < m_height; ++y)
+    // Calculate number of chunks per axis
+    const int numChunksX = m_width / CHUNK_SIZE + 1;
+    const int numChunksY = m_height / CHUNK_SIZE + 1;
+    for (int cy = 0; cy < numChunksY; ++cy)
     {
-        for (int x = 0; x < m_width; ++x)
+        for (int cx = 0; cx < numChunksX; ++cx)
         {
-            LogicalTile logicalTile = labGrid.Get(x, y);
+            // Grab chunk ID
+            glm::ivec2 chunkID = {cx, cy};
 
-            // Convert from logical tile to specific tile ID
-            int tile;
-            switch (logicalTile)
+            // Create the chunk object as a child object
+            auto& chunkObj = scene.CreateObject2D();
+            object->AddChild(chunkObj);
+
+            // Add the chunk object to the map
+            m_chunkMap[chunkID] = &chunkObj;
+
+            // Set transform offset
+            int xoffset = cx * CHUNK_SIZE;
+            int yoffset = cy *  CHUNK_SIZE;
+            auto* pTransform = chunkObj.GetComponent<wolf::Transform2D>();
+            pTransform->SetPosition(glm::vec2(xoffset * LABYRINTH_TILE_SIZE, yoffset * LABYRINTH_TILE_SIZE));
+
+            // Create tilemap
+            auto& tilemap = chunkObj.AddComponent<wolf::TileMap>(CHUNK_SIZE, CHUNK_SIZE);
+            tilemap.LoadTileSet("data/labyrinth.tileset");
+
+            // Iterate chunk's tilemap
+            for (int y = 0; y < CHUNK_SIZE; ++y)
             {
-                case LogicalTile::Door: tile = Tile::FloorSquareGold; break;
-                case LogicalTile::Floor: tile = m_rng.NextInt(Tile::FloorSmallSquares, Tile::FloorSquare); break;
-                case LogicalTile::Grass: tile = Tile::Grass; break;
-                case LogicalTile::Wall: tile = m_rng.NextInt(Tile::WallBottomLeft, Tile::WallTop); break;
-                default: tile = Tile::Empty; break;
-            }
+                for (int x = 0; x < CHUNK_SIZE; ++x)
+                {
+                    // Calculate world position
+                    glm::ivec2 worldPos = {x + xoffset, y + yoffset};
 
-            tileMap.SetTile(x, y, tile);
+                    // Don't bother trying to place tiles that don't exist
+                    if (worldPos.x >= m_width || worldPos.y >= m_height) continue;
+
+                    // Get the logical tile at the current position
+                    const LogicalTile& logicalTile = labyrinthGrid.Get(worldPos.x, worldPos.y);
+
+                    // Convert from logical tile to specific tile ID
+                    int tile = wolf::TileMap::EMPTY_TILE;
+                    switch (logicalTile)
+                    {
+                        case LogicalTile::Unvisited:
+
+                            // TESTING: For now display unvisited as floors
+                            tile = Tile::FloorSmallSquares;
+                            break;
+                        
+                        case LogicalTile::Door:
+                            
+                            // TODO: Choose which floor tile represents a door
+                            tile = Tile::FloorSquareGold;
+                            break;
+                        
+                        case LogicalTile::Floor:
+                            
+                            // TODO: Choose a random non-gold floor tile
+                            tile = m_rng.NextInt(Tile::FloorSmallSquares, Tile::FloorSquare);
+                            break;
+                        
+                        case LogicalTile::Grass:
+                            tile = Tile::Grass;
+                            break;
+                        
+                        case LogicalTile::Wall:
+
+                            // TODO: Determine correct wall type based on surrounding tiles
+                            tile = m_rng.NextInt(Tile::WallBottomLeft, Tile::WallTop);
+
+                            // TODO: Add wall tile to wall collider for this chunk?
+                            break;
+                    }
+
+                    tilemap.SetTile(x, y, tile);
+                }
+            }
         }
     }
 }
 
 void LabyrinthManager::DestroyLabyrinth()
 {
+    // Delete all child objects ob the labyrinth manager
     auto* object = GetGameObject();
     if (object)
     {
         object->DeleteAllChildren();
     }
+
+    // Clear the chunk map
+    m_chunkMap.clear();
 }
 
 void LabyrinthManager::Regenerate()
@@ -180,8 +266,8 @@ void LabyrinthManager::ShowGUI()
         ImGui::InputInt("Seed", &seed);
         if (prevSeed != seed) m_rng.SetSeed(seed);
     }
-    ImGui::InputInt("Width", &m_width);
-    ImGui::InputInt("Height", &m_height);
+    ImGui::DragInt("Width", &m_width, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
+    ImGui::DragInt("Height", &m_height, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
 
     ImGui::SeparatorText("Rooms");
 

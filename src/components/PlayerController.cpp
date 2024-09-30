@@ -34,11 +34,10 @@ void PlayerController::Update(float delta)
     auto* pCamera = pGameObject->GetScene().GetActiveCamera();
     if (pCamera)
     {
-        // Double or half the zoom based on mouse scroll direction
-        const glm::vec2& scroll = wolf::Input::GetMouseScroll();
+        // Double zoom with plus key, half zoom with minus key
         float prevZoom = pCamera->GetZoom();
-        float nextZoom = scroll.y > 0.0f ? prevZoom * 2.0f : scroll.y < 0.0f ? prevZoom * 0.5f : prevZoom;
-        if (prevZoom != nextZoom) pCamera->SetZoom(nextZoom);
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_EQUAL)) pCamera->SetZoom(prevZoom * 2);
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_MINUS)) pCamera->SetZoom(prevZoom * 0.5f);
     }
 
     // Only update if both components exist
