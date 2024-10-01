@@ -15,43 +15,19 @@
 //-----------------------------------------------------------------------------
 
 #include <cstdint>
+#include <unordered_map>
+
+// Needed for std::hash implementation for glm vector types
+#ifndef GLM_ENABLE_EXPERIMENTAL
+    #define GLM_ENABLE_EXPERIMENTAL
+#endif
+#include <glm/gtx/hash.hpp>
 
 #include <W_GameObject.h>
 #include <W_RNG.h>
+#include <W_Shapes.h>
 
-// Labyrinth tile IDs (scoped enum)
-struct Tile
-{
-    typedef int type;
-    enum : type
-    {
-        Empty = -1,
-        BorderedGrass = 0,
-        Bricks,
-        FloorSmallSquares,
-        FloorSpiralGold,
-        FloorSpiral,
-        FloorSquareGold,
-        FloorSquare,
-        Grass,
-        WallBottomLeft,
-        WallBottomRight,
-        WallBottom,
-        WallChest,
-        WallHelmet,
-        WallLeft,
-        WallMaze,
-        WallMinotaur,
-        WallPillars,
-        WallPot,
-        WallRight,
-        WallSpiral,
-        WallSquare,
-        WalTopLeft,
-        WallTopRight,
-        WallTop
-    };
-};
+#include "../LabyrinthTiles.h"
 
 class LabyrinthManager : public wolf::BaseComponent
 {
@@ -71,6 +47,9 @@ public:
     LabyrinthManager(LabyrinthManager&& other) = delete;
     LabyrinthManager& operator=(LabyrinthManager&& other) = delete;
 
+    // Updates the labyrinth and manages loaded chunks based on the currently active camera
+    void Update(float delta);
+
     // TODO: Accessors and mutators for procedural generation config properties
 
     // Generates the labyrinth and all of its game objects with the current config
@@ -87,23 +66,90 @@ public:
     // Display the GUI for editing labyrinth configs and regenerating
     void ShowGUI();
 
+    // Constants
+    static const inline int MIN_LABYRINTH_DIM = 5;
+    static const inline int MAX_LABYRINTH_DIM = 16'383;
+    static const inline int LABYRINTH_TILE_SIZE = 32;
+    static const inline int CHUNK_SIZE = 64;
+
 // Implementation
 private:
 
-    // Seed used for the rng during generation
-    int m_seed = 0;
-
     // Pseudo random number generator
-    wolf::RNG m_RNG;
+    wolf::RNG m_rng;
 
     // Labyrinth dimensions (in tiles)
-    int m_width = 0;
-    int m_height = 0;
+    int m_width = 125;
+    int m_height = 125;
+
+    // TODO: Tweakable progression / difficulty parameters (connectivity, spawn rates, etc.)
 
     // Flags
     bool m_randomizeSeed = false;
 
-    // TODO: Room data
+    // Room data
 
-    // TODO: Tweakable progression / difficulty parameters (connectivity, spawn rates, etc.)
+    // Definition of a room to be generated into the labyrinth
+    struct Room
+    {
+        // Identifier (non-unique)
+        std::string m_name{"New Room"};
+
+        // Bounds of the room in labyrinth space (measured in tiles)
+        wolf::IRectangle m_bounds{1, 2, 2, 1};
+
+        // The number of instances of this room to generate
+        // NOTE: Instances are generated with different rng
+        // values so that they won't be identical copies.
+        int m_instances = 1;
+
+        // Whether to force the room's placement or not
+        // NOTE: Each instance will get MAX_PLACEMENT_ATTEMPTS
+        // attempts before giving up and failing placement. If
+        // placement fails and m_force is true, the room will be placed
+        // anyway (possibly overlapping with another generated room)
+        bool m_force = false;
+
+        // Number of attempts each room gets to be placed
+        static const inline int MAX_PLACEMENT_ATTEMPTS = 128;
+
+        // Position types
+        enum class PositionType
+        {
+            Manual,
+            Random,
+            RandomRadius,
+        };
+        static const inline char* s_positionTypeNames[] = {"Manual", "Random", "Random Radius"};
+
+        // Position data
+        // Measured as the bottom-left floor tile of the room
+        PositionType m_positionType = PositionType::Random;
+        glm::ivec2 m_randomRadiusPosition{1, 1};
+        int m_randomRadius = 16;
+
+        // Size types
+        enum class SizeType
+        {
+            Manual,
+            RandomMinMax,
+        };
+        static const inline char* s_sizeTypeNames[] = {"Manual", "Random Min Max"};
+
+        // Size data
+        // Measured in usable floor tiles
+        SizeType m_sizeType = SizeType::RandomMinMax;
+        glm::ivec2 m_minSize{3, 3};
+        glm::ivec2 m_maxSize{9, 9};
+
+        // TODO: Custom entity spawns (enemies, items, etc.)
+    };
+
+    // List of all rooms to be generated in the labyrinth
+    std::vector<Room> m_rooms;
+
+    // Chunk management
+
+    // Map of chunk IDs to chunk game object pointers
+    std::unordered_map<glm::ivec2, wolf::GameObject*> m_chunkMap;
 };

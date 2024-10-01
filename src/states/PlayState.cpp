@@ -26,7 +26,7 @@ void PlayState::Enter()
     scene.SetActiveCamera(camera);
 
     // Add the labyrinth manager component to an empty object
-    m_pLabyrinthManager = &scene.CreateObject().AddComponent<LabyrinthManager>();
+    m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
 
     // TESTING BELOW
 
@@ -73,8 +73,8 @@ void PlayState::Update(float delta)
         m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
     }
 
-    // Toggle Labyrinth Manager GUI with 'L' key
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_L)) m_showLabyrinthManager = !m_showLabyrinthManager;
+    // Toggle Labyrinth Manager GUI with the semicolon key
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) m_showLabyrinthManager = !m_showLabyrinthManager;
 
     // Show the Labyrinth Manager debug GUI
     if (m_showLabyrinthManager) m_pLabyrinthManager->ShowGUI();
