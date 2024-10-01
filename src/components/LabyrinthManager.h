@@ -67,8 +67,8 @@ public:
     void ShowGUI();
 
     // Constants
-    static const inline int MIN_LABYRINTH_DIM = 4;
-    static const inline int MAX_LABYRINTH_DIM = 16'384;
+    static const inline int MIN_LABYRINTH_DIM = 5;
+    static const inline int MAX_LABYRINTH_DIM = 16'383;
     static const inline int LABYRINTH_TILE_SIZE = 32;
     static const inline int CHUNK_SIZE = 64;
 
@@ -79,8 +79,8 @@ private:
     wolf::RNG m_rng;
 
     // Labyrinth dimensions (in tiles)
-    int m_width = 256;
-    int m_height = 256;
+    int m_width = 125;
+    int m_height = 125;
 
     // TODO: Tweakable progression / difficulty parameters (connectivity, spawn rates, etc.)
 
@@ -96,7 +96,7 @@ private:
         std::string m_name{"New Room"};
 
         // Bounds of the room in labyrinth space (measured in tiles)
-        wolf::IRectangle m_bounds;
+        wolf::IRectangle m_bounds{1, 2, 2, 1};
 
         // The number of instances of this room to generate
         // NOTE: Instances are generated with different rng
@@ -123,8 +123,9 @@ private:
         static const inline char* s_positionTypeNames[] = {"Manual", "Random", "Random Radius"};
 
         // Position data
+        // Measured as the bottom-left floor tile of the room
         PositionType m_positionType = PositionType::Random;
-        glm::ivec2 m_randomRadiusPosition{0, 0};
+        glm::ivec2 m_randomRadiusPosition{1, 1};
         int m_randomRadius = 16;
 
         // Size types
@@ -136,14 +137,15 @@ private:
         static const inline char* s_sizeTypeNames[] = {"Manual", "Random Min Max"};
 
         // Size data
+        // Measured in usable floor tiles
         SizeType m_sizeType = SizeType::RandomMinMax;
-        glm::ivec2 m_minSize{4, 4};
-        glm::ivec2 m_maxSize{16, 16};
+        glm::ivec2 m_minSize{3, 3};
+        glm::ivec2 m_maxSize{9, 9};
 
         // TODO: Custom entity spawns (enemies, items, etc.)
     };
 
-    // List of all rooms in the labyrinth
+    // List of all rooms to be generated in the labyrinth
     std::vector<Room> m_rooms;
 
     // Chunk management

@@ -39,6 +39,10 @@ void LabyrinthManager::GenerateLabyrinth()
         return;
     }
 
+    // Ensure width and height are odd
+    m_width = m_width % 2 == 0 ? m_width - 1 : m_width;
+    m_height = m_height % 2 == 0 ? m_height - 1 : m_height;
+
     // Initialize scale of all labyrinth objects
     auto* pTransform = object->GetComponent<wolf::Transform2D>();
     if (!pTransform) pTransform = &object->AddComponent<wolf::Transform2D>();
@@ -79,14 +83,15 @@ void LabyrinthManager::GenerateLabyrinth()
     }
 
     // Place all rooms into the labyrinth
+    std::vector<wolf::IRectangle> placedRoomRects;
     for (int i = 0; i < m_rooms.size(); ++i)
     {
-        // Grab references
+        // Grab references to the current room
         auto& room = m_rooms[i];
         auto& rect = room.m_bounds;
 
-        // For each "instance" of the room
-        for (int i = 0; i < room.m_instances; ++i)
+        // Try to place all instances of the room
+        for (int instance = 0; instance < room.m_instances; ++instance)
         {
             // Generate final room properties
 
@@ -105,37 +110,124 @@ void LabyrinthManager::GenerateLabyrinth()
                     break;
             }
 
+            // Round down size if even (align with walls)
+            rect.m_size.x = rect.m_size.x % 2 == 0 ? rect.m_size.x - 1 : rect.m_size.x;
+            rect.m_size.y = rect.m_size.y % 2 == 0 ? rect.m_size.y - 1 : rect.m_size.y;
+
+            // Flag to know if we found a valid position
+            bool overlapping = false;
+
             // Room position (origin at bottom-left tile)
             switch (room.m_positionType)
             {
                 case Room::PositionType::Manual:
+
                     // Use bounds rectangle
+                    // Round down position if odd (align with walls)
+                    rect.m_origin.x = rect.m_origin.x % 2 == 0 ? rect.m_origin.x - 1 : rect.m_origin.x;
+                    rect.m_origin.y = rect.m_origin.y % 2 == 0 ? rect.m_origin.y - 1 : rect.m_origin.y;
                     break;
                 
                 case Room::PositionType::Random:
 
-                    // Generate random position so that it is guaranteed in-bounds
-                    rect.m_origin.x = m_rng.NextInt(2, m_width - rect.m_size.x - 1);
-                    rect.m_origin.y = m_rng.NextInt(2, m_height - rect.m_size.y - 1);
+                    // Attempt to generate a valid position
+                    for (int attempt = 0; attempt < Room::MAX_PLACEMENT_ATTEMPTS; ++attempt)
+                    {
+                        // Generate random position so that it is guaranteed in-bounds
+                        rect.m_origin.x = m_rng.NextInt(1, m_width - rect.m_size.x - 1);
+                        rect.m_origin.y = m_rng.NextInt(1, m_height - rect.m_size.y - 1);
 
-                    // TODO: Ensure not overlapping with existing rooms
+                        // Round down position if odd (align with walls)
+                        rect.m_origin.x = rect.m_origin.x % 2 == 0 ? rect.m_origin.x - 1 : rect.m_origin.x;
+                        rect.m_origin.y = rect.m_origin.y % 2 == 0 ? rect.m_origin.y - 1 : rect.m_origin.y;
+
+                        // Reset flag
+                        overlapping = false;
+
+                        // Don't bother trying to fix overlap on the final attempt if force is checked
+                        if (attempt == Room::MAX_PLACEMENT_ATTEMPTS - 1 && room.m_force) break;
+
+                        // Validate that the room wouldn't overlap anything
+                        for (const auto& placedRect : placedRoomRects)
+                        {
+                            if (rect.Intersects(placedRect))
+                            {
+                                overlapping = true;
+                                break;
+                            }
+                        }
+
+                        // Exit if we found a valid spot
+                        if (!overlapping) break;
+                    }
                     break;
                 
                 case Room::PositionType::RandomRadius:
 
-                    // Generate random position in a square "radius" around a position
-                    const auto& pos = room.m_randomRadiusPosition;
-                    const auto& r = room.m_randomRadius;
-                    rect.m_origin.x = m_rng.NextInt(pos.x - r, pos.x + r);
-                    rect.m_origin.y = m_rng.NextInt(pos.y - r, pos.y + r);
+                    // Attempt to generate a valid position
+                    for (int attempt = 0; attempt < Room::MAX_PLACEMENT_ATTEMPTS; ++attempt)
+                    {
+                        // Generate random position in a square "radius" around a position
+                        const auto& pos = room.m_randomRadiusPosition;
+                        const auto& r = room.m_randomRadius;
+                        rect.m_origin.x = m_rng.NextInt(pos.x - r, pos.x + r);
+                        rect.m_origin.y = m_rng.NextInt(pos.y - r, pos.y + r);
 
-                    // TODO: Ensure not overlapping (and in bounds!)
+                        // Round down position if odd (align with walls)
+                        rect.m_origin.x = rect.m_origin.x % 2 == 0 ? rect.m_origin.x - 1 : rect.m_origin.x;
+                        rect.m_origin.y = rect.m_origin.y % 2 == 0 ? rect.m_origin.y - 1 : rect.m_origin.y;
+
+                        // Ensure valid position
+                        if (rect.m_origin.x > 0 && rect.m_origin.x < m_width - rect.m_size.x &&
+                            rect.m_origin.y > 0 && rect.m_origin.y < m_height - rect.m_size.y)
+                        {
+                            // Reset flag
+                            overlapping = false;
+
+                            // Don't bother trying to fix overlap on the final attempt if force is checked
+                            if (attempt == Room::MAX_PLACEMENT_ATTEMPTS - 1 && room.m_force) break;
+
+                            // Check if overlapping
+                            for (const auto& placedRect : placedRoomRects)
+                            {
+                                if (rect.Intersects(placedRect))
+                                {
+                                    overlapping = true;
+                                    break;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Out of bounds, continue
+
+                            // If last attempt, make sure to guarantee an in-bounds origin
+                            if (attempt == Room::MAX_PLACEMENT_ATTEMPTS - 1 && room.m_force)
+                            {
+                                overlapping = false;
+                                rect.m_origin.x = 1;
+                                rect.m_origin.y = 1;
+                            }
+
+                            continue;
+                        }
+
+                        // Exit if we found a valid spot
+                        if (!overlapping) break;
+                    }
                     break;
             }
 
-            for (int y = 0; y < rect.m_size.y; ++y)
+            // If we haven't found a valid position, don't place the room / instance
+            if (overlapping)
             {
-                for (int x = 0; x < rect.m_size.x; ++x)
+                wolf::Warning("Couldn't place room '", room.m_name.c_str(), "'");
+                continue;
+            }
+
+            for (int y = -1; y <= rect.m_size.y; ++y)
+            {
+                for (int x = -1; x <= rect.m_size.x; ++x)
                 {
                     glm::ivec2 worldPos = {x + rect.m_origin.x, y + rect.m_origin.y};
 
@@ -147,7 +239,7 @@ void LabyrinthManager::GenerateLabyrinth()
                     }
 
                     // Set border tiles of each room as walls
-                    if (x == 0 || x == rect.m_size.x - 1 || y == 0 || y == rect.m_size.y - 1)
+                    if (x == -1 || x == rect.m_size.x || y == -1 || y == rect.m_size.y)
                     {
                         labyrinthGrid.Set(worldPos.x, worldPos.y, LogicalTile::Wall);
                         continue;
@@ -156,6 +248,9 @@ void LabyrinthManager::GenerateLabyrinth()
                     // TODO: Place room-specific tiles / entities
                 }
             }
+
+            // Add the specific room that was generated to the list
+            placedRoomRects.push_back(rect);
         }
     }
 
@@ -378,7 +473,7 @@ void LabyrinthManager::ShowGUI()
                 case Room::PositionType::RandomRadius:
 
                     // Edit origin and radius for random position
-                    ImGui::DragInt2("Position", &room.m_randomRadiusPosition.x, 1.0f, 0, glm::max(m_width, m_height));
+                    ImGui::DragInt2("Position", &room.m_randomRadiusPosition.x, 1.0f, 1, glm::max(m_width, m_height));
                     ImGui::DragInt("Radius", &room.m_randomRadius, 1.0f, 1, INT32_MAX);
                     break;
             }
@@ -416,6 +511,14 @@ void LabyrinthManager::ShowGUI()
                     ImGui::DragInt2("Min", &room.m_minSize.x, 1.0f, 1, glm::max(m_width, m_height));
                     ImGui::DragInt2("Max", &room.m_maxSize.x, 1.0f, 1, glm::max(m_width, m_height));
                     break;
+            }
+
+            ImGui::Separator();
+            ImGui::Text("Entities");
+
+            if (ImGui::Button("Add Entity"))
+            {
+                // TODO: Add entity types dropdown
             }
         }
         ImGui::PopID();
