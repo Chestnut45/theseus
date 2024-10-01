@@ -103,20 +103,25 @@ private:
         {
             Manual,
             Random,
+            RandomRadius,
         };
+        static const inline char* s_positionTypeNames[] = {"Manual", "Random", "Random Radius"};
 
         // Position data
         PositionType m_positionType = PositionType::Random;
+        glm::ivec2 m_randomRadiusPosition{0, 0};
+        int m_randomRadius = 16;
 
         // Size types
         enum class SizeType
         {
             Manual,
-            Random,
+            RandomMinMax,
         };
+        static const inline char* s_sizeTypeNames[] = {"Manual", "Random Min Max"};
 
         // Size data
-        SizeType m_sizeType = SizeType::Random;
+        SizeType m_sizeType = SizeType::RandomMinMax;
         glm::ivec2 m_minSize{4, 4};
         glm::ivec2 m_maxSize{16, 16};
 

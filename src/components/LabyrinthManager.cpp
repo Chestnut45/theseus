@@ -288,13 +288,83 @@ void LabyrinthManager::ShowGUI()
         ImGui::PushID(&room);
         if (ImGui::CollapsingHeader((room.m_name + "###").c_str(), &keepRoom, ImGuiTreeNodeFlags_None))
         {
-            // Edit name
             ImGui::InputText("Name", &room.m_name);
+            ImGui::DragInt("Instances", &room.m_instances, 1.0f, 1, 1024);
 
-            // Edit origin and size
-            ImGui::DragInt2("Origin", &room.m_bounds.m_origin.x, 1.0f, 1, glm::max(m_width, m_height));
-            ImGui::DragInt("Width", &room.m_bounds.m_size.x, 1.0f, 1, m_width);
-            ImGui::DragInt("Height", &room.m_bounds.m_size.y, 1.0f, 1, m_height);
+            ImGui::Separator();
+            ImGui::Text("Position");
+
+            // Edit position type
+            const char* selectedPositionType = Room::s_positionTypeNames[(int)room.m_positionType];
+            if (ImGui::BeginCombo("Type##position", selectedPositionType))
+            {
+                for (int n = 0; n < IM_ARRAYSIZE(Room::s_positionTypeNames); n++)
+                {
+                    bool is_selected = (selectedPositionType == Room::s_positionTypeNames[n]);
+                    if (ImGui::Selectable(Room::s_positionTypeNames[n], is_selected))
+                    {
+                        room.m_positionType = (Room::PositionType)n;
+                    }
+                    if (is_selected) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+
+            switch (room.m_positionType)
+            {
+                case Room::PositionType::Manual:
+
+                    // Manually edit origin of room
+                    ImGui::DragInt2("Origin", &room.m_bounds.m_origin.x, 1.0f, 1, glm::max(m_width, m_height));
+                    break;
+                
+                case Room::PositionType::Random:
+
+                    // Truly random, no need for action
+                    break;
+                
+                case Room::PositionType::RandomRadius:
+
+                    // Edit origin and radius for random position
+                    ImGui::DragInt2("Position", &room.m_randomRadiusPosition.x, 1.0f, 0, glm::max(m_width, m_height));
+                    ImGui::DragInt("Radius", &room.m_randomRadius, 1.0f, 1, INT32_MAX);
+                    break;
+            }
+
+            ImGui::Separator();
+            ImGui::Text("Size");
+
+            // Edit size type
+            const char* selectedSizeType = Room::s_sizeTypeNames[(int)room.m_sizeType];
+            if (ImGui::BeginCombo("Type##size", selectedSizeType))
+            {
+                for (int n = 0; n < IM_ARRAYSIZE(Room::s_sizeTypeNames); n++)
+                {
+                    bool is_selected = (selectedSizeType == Room::s_sizeTypeNames[n]);
+                    if (ImGui::Selectable(Room::s_sizeTypeNames[n], is_selected))
+                    {
+                        room.m_sizeType = (Room::SizeType)n;
+                    }
+                    if (is_selected) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+
+            switch (room.m_sizeType)
+            {
+                case Room::SizeType::Manual:
+
+                    // Manually edit the width and height of the room
+                    ImGui::DragInt2("Size", &room.m_bounds.m_size.x, 1.0f, 1, glm::max(m_width, m_height));
+                    break;
+                
+                case Room::SizeType::RandomMinMax:
+
+                    // Edit the minimum and maximum size of the room
+                    ImGui::DragInt2("Min", &room.m_minSize.x, 1.0f, 1, glm::max(m_width, m_height));
+                    ImGui::DragInt2("Max", &room.m_maxSize.x, 1.0f, 1, glm::max(m_width, m_height));
+                    break;
+            }
         }
         ImGui::PopID();
 
