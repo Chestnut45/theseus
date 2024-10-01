@@ -92,22 +92,20 @@ private:
     // Definition of a room to be generated into the labyrinth
     struct Room
     {
-        static const int MAX_SIZE = 2048;
+        // Identifier (non-unique)
+        std::string m_name{"New Room"};
 
-        // Default constructor
-        Room() {}
-        
-        // Constructor taking the bounding rectangle
-        Room(const wolf::IRectangle& bounds) : m_bounds(bounds) {}
-
-        // Bounds of the room in labyrinth space (origin at bottom left corner)
+        // Bounds of the room in labyrinth space (measured in tiles)
         wolf::IRectangle m_bounds{2, 6, 6, 2};
+
+        // TODO: Custom entity spawns
     };
 
     // List of all rooms in the labyrinth
     std::vector<Room> m_rooms;
 
-    // TODO: Separation of procedural rooms / custom rooms
+    // TODO: Functions to generate rooms of specific types
+    // Example: Room GenerateRoom(Room::Type, ...)
 
     // Chunk management
 

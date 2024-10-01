@@ -271,6 +271,8 @@ void LabyrinthManager::ShowGUI()
 
     ImGui::SeparatorText("Rooms");
 
+    // TODO: Separate procedural room parameters and custom rooms
+
     // Adds a new room to the labyrinth
     if (ImGui::Button("Add Room")) m_rooms.push_back(Room());
 
@@ -284,12 +286,15 @@ void LabyrinthManager::ShowGUI()
         bool keepRoom = true;
 
         ImGui::PushID(&room);
-        if (ImGui::CollapsingHeader(("Room " + std::to_string(i) + "###").c_str(), &keepRoom, ImGuiTreeNodeFlags_None))
+        if (ImGui::CollapsingHeader((room.m_name + "###").c_str(), &keepRoom, ImGuiTreeNodeFlags_None))
         {
+            // Edit name
+            ImGui::InputText("Name", &room.m_name);
+
             // Edit origin and size
             ImGui::DragInt2("Origin", &room.m_bounds.m_origin.x, 1.0f, 1, glm::max(m_width, m_height));
-            ImGui::DragInt("Width", &room.m_bounds.m_size.x, 1.0f, 1, Room::MAX_SIZE);
-            ImGui::DragInt("Height", &room.m_bounds.m_size.y, 1.0f, 1, Room::MAX_SIZE);
+            ImGui::DragInt("Width", &room.m_bounds.m_size.x, 1.0f, 1, m_width);
+            ImGui::DragInt("Height", &room.m_bounds.m_size.y, 1.0f, 1, m_height);
         }
         ImGui::PopID();
 
