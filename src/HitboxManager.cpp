@@ -40,7 +40,56 @@ void HitboxManager::RemoveFlagged()
     }
     this->m_vToBeDestroyed.clear();
 }
+bool HitboxManager::IsColliding(HitboxComponent* p_hitboxComponent, HurtboxComponent* p_hurtboxComponent)
+{
+    if (!p_hitboxComponent || !p_hurtboxComponent)
+        return false;
 
+    glm::vec2 hitboxPosition = p_hitboxComponent->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 hurtboxPosition = p_hurtboxComponent->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    for (wolf::Rectangle hitbox : p_hitboxComponent->GetHitboxes())
+    {
+        glm::vec2 dimensions1 = glm::vec2(hitbox.GetWidth(), hitbox.GetHeight());
+        glm::vec2 offset1 = hitbox.GetPosition();
+
+        if (p_hitboxComponent->IsRelative())
+        {
+            glm::vec2 scale1 = p_hitboxComponent->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+            dimensions1.x *= scale1.x;
+            dimensions1.y *= scale1.y;
+            offset1.x *= scale1.x;
+            offset1.y *= scale1.y;
+        }
+
+        for (wolf::Rectangle hurtbox : p_hurtboxComponent->GetHurtboxes())
+        {
+            glm::vec2 dimensions2 = glm::vec2(hurtbox.GetWidth(), hurtbox.GetHeight());
+            glm::vec2 offset2 = hurtbox.GetPosition();
+
+            if (p_hurtboxComponent->IsRelative())
+            {
+                glm::vec2 scale2 = p_hurtboxComponent->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+                dimensions2.x *= scale2.x;
+                dimensions2.y *= scale2.y;
+                offset2.x *= scale2.x;
+                offset2.y *= scale2.y;
+            }
+
+            // Check for collision between hitbox and hurtbox
+            if (
+                hitboxPosition.x + dimensions1.x + offset1.x > hurtboxPosition.x + offset2.x                   && // Right1 > Left2
+                hitboxPosition.x + offset1.x                 < hurtboxPosition.x + dimensions2.x + offset2.x   && // Left1 < Right2
+                hitboxPosition.y + dimensions1.y + offset1.y > hurtboxPosition.y + offset2.y                   && // Lower1 > Upper2
+                hitboxPosition.y + offset1.y                 < hurtboxPosition.y + dimensions2.y + offset2.y      // Upper1 < Lower2
+                )
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 // Check all collisions
 void HitboxManager::CheckCollisions()
 {

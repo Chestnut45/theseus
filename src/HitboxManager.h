@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <ranges>
 #include <wolf.h>
-
+#include "components/HurtboxComponent.h"
 #include "components/HitboxComponent.h"
 #include "components/VelocityComponent.h"
 
@@ -29,14 +29,15 @@ public:
     virtual ~HitboxManager();
 
     void Update();
+    bool IsColliding(HitboxComponent* p_hitboxComponent1, HitboxComponent* p_hitboxComponent2);
+    
+    // New function to check collisions between HitboxComponent and HurtboxComponent
+    bool IsColliding(HitboxComponent* p_hitboxComponent, HurtboxComponent* p_hurtboxComponent);
 
 private:
     wolf::Scene* m_scene = nullptr;
-
-    bool IsColliding(HitboxComponent* p_hitboxComponent1, HitboxComponent* p_hitboxComponent2);
     void RemoveFlagged();
     void CheckCollisions();
 
     std::vector<HitboxComponent *> m_vToBeDestroyed;
 };
-

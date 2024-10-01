@@ -302,6 +302,8 @@ void AnimatedSprite2D::Update(float p_fDelta) {
 }
 
 void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint) {
+    // if (!m_visible)
+    //     return;
     // If we don't have a texture (or the coordinates that go with one) then we shouldn't be trying to draw anything
     if (!m_pTexture || m_vpFrameUVCoords.empty()) {
         return;

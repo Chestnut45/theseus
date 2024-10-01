@@ -83,7 +83,8 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         // Multiplies final pixel color by provided tint color
         // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
         void Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint = glm::vec3(-1.0f));
-
+        // void SetVisible(bool visible) { m_visible = visible; }
+        // bool IsVisible() const { return m_visible; }
     private:
         // Map of animations
         std::map<std::string, SpriteAnimation2D*> m_mAnimationMap; // Name = Key, Animation Details = Value
@@ -110,6 +111,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         // We want to limit the amount of changes we make to the Vertex Buffer contents so we use
         // a dirty flag to keep track of when the UV coordinates have changed
         bool m_bFrameChanged = true;
+        bool m_visible = true;
 
         glm::vec2 m_v2FrameSize; // This vector represents the size of a single animation frame in a spritesheet
 

@@ -29,11 +29,13 @@ public:
     virtual ~HurtboxManager();
 
     void Update();
+    bool IsColliding(HurtboxComponent* p_hurtboxComponent1, HurtboxComponent* p_hurtboxComponent2);
+    
+
 
 private:
     wolf::Scene* m_scene = nullptr;
 
-    bool IsColliding(HurtboxComponent* p_hurtboxComponent1, HurtboxComponent* p_hurtboxComponent2);
     void RemoveFlagged();
     void CheckCollisions();
 

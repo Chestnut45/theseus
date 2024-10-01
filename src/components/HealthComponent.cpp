@@ -74,3 +74,8 @@ void HealthComponent::Supercharge(float p_supercharge)
     this->m_cap += p_supercharge;
     this->m_health = this->m_cap;
 }
+
+float HealthComponent::GetMaxHealth() const
+{
+    return m_cap;  
+}

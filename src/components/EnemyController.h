@@ -13,6 +13,7 @@ public:
     {
         IDLE,
         CHASING,
+        ATTACKING,
         DEATH
     };
 
@@ -26,29 +27,32 @@ public:
     void Update(float delta) ;
 
 private:
-    // Handle different states
+    // Handle states
     void HandleIdleState(float delta);
     void HandleChasingState(float delta);
+    void HandleAttackingState(float delta);  // NEW
     void HandleDeathState();
 
-    // Helper to move towards the target
+    // Attack functions
+    void ApplyDamageToPlayer();  // NEW
+
+    // Utility
     void MoveTowardsTarget(float delta);
+    bool IsPlayerInRange() const;
 
     // Components
     wolf::Transform2D* m_pTransform = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
     HealthComponent* m_pHealth = nullptr;
-    AnimatedSprite2D* m_pAnim = nullptr;
-
-    // Current state
-    EnemyState m_state = EnemyState::IDLE;
-
-    // Target (e.g., player object)
     wolf::GameObject* m_pTarget = nullptr;
 
-    // Movement speed when chasing
-    float m_chaseSpeed;
+    // State and properties
+    EnemyState m_state = EnemyState::IDLE;
+    float m_chaseSpeed = 100.0f;
 
-    // Helper to check if the enemy is in range to chase the player
-    bool IsPlayerInRange() const;
+    // Attack properties
+    float m_meleeRange = 50.0f;         // Melee attack range
+    float m_attackCooldown = 1.0f;      // Time between attacks
+    float m_attackTimer = 0.0f;         // Tracks time until next attack
+    float m_baseDamage = 10.0f;         // Base damage dealt by melee attacks
 };

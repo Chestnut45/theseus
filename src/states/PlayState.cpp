@@ -7,6 +7,7 @@
 #include "../components/HitboxComponent.h"
 #include "../components/HurtboxComponent.h"
 #include "../components/VelocityComponent.h"
+#include "../components/PlayerBuilder.h"
 
 void PlayState::Enter()
 {
@@ -108,7 +109,7 @@ void PlayState::Update(float delta)
         if (velocityComponent)
         {
             glm::vec2 velocity = velocityComponent->GetVelocity();
-            std::cout << "Minitaur Velocity: (" << velocity.x << ", " << velocity.y << ")" << std::endl;
+            // std::cout << "Minitaur Velocity: (" << velocity.x << ", " << velocity.y << ")" << std::endl;
         }
     }
 
@@ -153,42 +154,20 @@ void PlayState::BackgroundRender()
 
 void PlayState::CreatePlayer()
 {
-    // Create player object with transform
-    m_pPlayerObject = &m_pGameInstance->GetScene().CreateObject2D();
+    // Create a PlayerBuilder and build the player GameObject
+    PlayerBuilder playerBuilder(m_pGameInstance->GetScene());
+    m_pPlayerObject = &playerBuilder.BuildPlayer();
 
-    // Add player controller
-    m_pPlayerObject->AddComponent<PlayerController>();
-
-    // Scale player
-    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
-
-    // Add animated sprite
-    auto& animSprite = m_pPlayerObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-    animSprite.AddAnimation("WalkSouth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 8, true);
-    animSprite.AddAnimation("WalkEast", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 9, 16, true);
-    animSprite.AddAnimation("WalkNorth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 17, 24, true);
-    animSprite.AddAnimation("WalkWest", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 25, 32, true);
-    animSprite.AddAnimation("StandSouth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
-    animSprite.AddAnimation("StandEast", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 2, 2, false);
-    animSprite.AddAnimation("StandNorth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 3, 3, false);
-    animSprite.AddAnimation("StandWest", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 4, 4, false);
-    animSprite.SetAnimation("StandSouth");
-    animSprite.SetOriginToCenterOfFrame();
-
-    // Add velocity
-    m_pPlayerObject->AddComponent<VelocityComponent>();
-
-    // Add hitbox
-    auto& hitbox = m_pPlayerObject->AddComponent<HitboxComponent>(0, 1);
-    hitbox.AddHitbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
-
-    // Add hurtbox
-    auto& hurtbox = m_pPlayerObject->AddComponent<HurtboxComponent>(0, 0, 0, 1);
-    hurtbox.AddHurtbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
-
-    // Add health / armor
-    m_pPlayerObject->AddComponent<HealthComponent>();
-    m_pPlayerObject->AddComponent<ArmourComponent>(50);
+    // Set the Hitbox and Hurtbox managers in the PlayerController
+    auto* playerController = playerBuilder.GetPlayerController();
+    if (playerController)
+    {
+        playerController->SetManagers(m_pHitboxManager, m_pHurtboxManager);
+    }
+    else
+    {
+        std::cerr << "Error: Failed to create and initialize player controller!" << std::endl;
+    }
 }
 
 void PlayState::CreateMinitaurEnemy()

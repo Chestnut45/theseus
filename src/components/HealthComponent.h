@@ -18,6 +18,7 @@ public:
     ~HealthComponent();
     
     void Init();
+    float GetMaxHealth() const;
 
     float GetHealth() const;
 

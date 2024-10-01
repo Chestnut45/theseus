@@ -13,6 +13,7 @@
 #include "../HitboxManager.h"
 #include "../HurtboxManager.h"
 #include "EnemyController.h"
+#include "PlayerBuilder.h"
 
 class LabyrinthManager;
 
