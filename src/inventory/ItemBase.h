@@ -17,8 +17,8 @@ enum ItemID {
 
 class ItemBase {
     public:
-        ItemBase(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, const std::string& p_strImgPath) : 
-        m_enID(p_enID), m_strName(p_strName), m_strDesc(p_strDesc), m_iValue(p_iValue), m_strImgPath(p_strImgPath) {};
+        ItemBase(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, const std::string& p_strImgPath)
+            : m_enID(p_enID), m_strName(p_strName), m_strDesc(p_strDesc), m_iValue(p_iValue), m_strImgPath(p_strImgPath) {};
 
         ~ItemBase() {};
 
@@ -46,4 +46,6 @@ class ItemBase {
         std::string m_strImgPath;
 
         // Resources for rendering?
+    
+    friend class ConsumableItem;
 };
