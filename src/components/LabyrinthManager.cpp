@@ -82,35 +82,86 @@ void LabyrinthManager::GenerateLabyrinth()
     for (int i = 0; i < m_rooms.size(); ++i)
     {
         // Grab references
-        const auto& room = m_rooms[i];
-        const auto& rect = room.m_bounds;
+        auto& room = m_rooms[i];
+        auto& rect = room.m_bounds;
 
-        for (int y = 0; y < rect.m_size.y; ++y)
+        // For each "instance" of the room
+        for (int i = 0; i < room.m_instances; ++i)
         {
-            for (int x = 0; x < rect.m_size.x; ++x)
+            // Generate final room properties
+
+            // Room size
+            switch (room.m_sizeType)
             {
-                glm::ivec2 worldPos = {x + rect.m_origin.x, y + rect.m_origin.y};
+                case Room::SizeType::Manual:
+                    // Use bounds rectangle
+                    break;
+                
+                case Room::SizeType::RandomMinMax:
+                    
+                    // Generate a random size between the min and max
+                    rect.m_size.x = m_rng.NextInt(room.m_minSize.x, room.m_maxSize.x);
+                    rect.m_size.y = m_rng.NextInt(room.m_minSize.y, room.m_maxSize.y);
+                    break;
+            }
 
-                // Debug bounds checking
-                if (worldPos.x >= m_width || worldPos.y >= m_height)
+            // Room position (origin at bottom-left tile)
+            switch (room.m_positionType)
+            {
+                case Room::PositionType::Manual:
+                    // Use bounds rectangle
+                    break;
+                
+                case Room::PositionType::Random:
+
+                    // Generate random position so that it is guaranteed in-bounds
+                    rect.m_origin.x = m_rng.NextInt(2, m_width - rect.m_size.x - 1);
+                    rect.m_origin.y = m_rng.NextInt(2, m_height - rect.m_size.y - 1);
+
+                    // TODO: Ensure not overlapping with existing rooms
+                    break;
+                
+                case Room::PositionType::RandomRadius:
+
+                    // Generate random position in a square "radius" around a position
+                    const auto& pos = room.m_randomRadiusPosition;
+                    const auto& r = room.m_randomRadius;
+                    rect.m_origin.x = m_rng.NextInt(pos.x - r, pos.x + r);
+                    rect.m_origin.y = m_rng.NextInt(pos.y - r, pos.y + r);
+
+                    // TODO: Ensure not overlapping (and in bounds!)
+                    break;
+            }
+
+            for (int y = 0; y < rect.m_size.y; ++y)
+            {
+                for (int x = 0; x < rect.m_size.x; ++x)
                 {
-                    wolf::Warning("Room #", i, ", Tile (", worldPos.x, ", ", worldPos.y, ") out of bounds!");
-                    continue;
-                }
+                    glm::ivec2 worldPos = {x + rect.m_origin.x, y + rect.m_origin.y};
 
-                // Set border tiles of each room as walls
-                if (x == 0 || x == rect.m_size.x - 1 || y == 0 || y == rect.m_size.y - 1)
-                {
-                    labyrinthGrid.Set(worldPos.x, worldPos.y, LogicalTile::Wall);
-                    continue;
-                }
+                    // Debug bounds checking
+                    if (worldPos.x >= m_width || worldPos.y >= m_height || worldPos.x < 0 || worldPos.y < 0)
+                    {
+                        wolf::Warning("Room #", i, ", Tile (", worldPos.x, ", ", worldPos.y, ") out of bounds!");
+                        continue;
+                    }
 
-                // TODO: Place room-specific tiles / entities
+                    // Set border tiles of each room as walls
+                    if (x == 0 || x == rect.m_size.x - 1 || y == 0 || y == rect.m_size.y - 1)
+                    {
+                        labyrinthGrid.Set(worldPos.x, worldPos.y, LogicalTile::Wall);
+                        continue;
+                    }
+
+                    // TODO: Place room-specific tiles / entities
+                }
             }
         }
     }
 
     // TODO: Generate maze paths between all rooms
+
+    // Generate all chunks
 
     // Calculate number of chunks per axis
     const int numChunksX = m_width / CHUNK_SIZE + 1;
@@ -290,6 +341,7 @@ void LabyrinthManager::ShowGUI()
         {
             ImGui::InputText("Name", &room.m_name);
             ImGui::DragInt("Instances", &room.m_instances, 1.0f, 1, 1024);
+            ImGui::Checkbox("Force Generation", &room.m_force);
 
             ImGui::Separator();
             ImGui::Text("Position");

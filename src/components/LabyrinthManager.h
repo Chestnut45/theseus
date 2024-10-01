@@ -98,6 +98,21 @@ private:
         // Bounds of the room in labyrinth space (measured in tiles)
         wolf::IRectangle m_bounds;
 
+        // The number of instances of this room to generate
+        // NOTE: Instances are generated with different rng
+        // values so that they won't be identical copies.
+        int m_instances = 1;
+
+        // Whether to force the room's placement or not
+        // NOTE: Each instance will get MAX_PLACEMENT_ATTEMPTS
+        // attempts before giving up and failing placement. If
+        // placement fails and m_force is true, the room will be placed
+        // anyway (possibly overlapping with another generated room)
+        bool m_force = false;
+
+        // Number of attempts each room gets to be placed
+        static const inline int MAX_PLACEMENT_ATTEMPTS = 128;
+
         // Position types
         enum class PositionType
         {
@@ -125,19 +140,11 @@ private:
         glm::ivec2 m_minSize{4, 4};
         glm::ivec2 m_maxSize{16, 16};
 
-        // The number of instances of this room to generate
-        // NOTE: Instances are generated with different rng
-        // values so that they won't be identical copies.
-        int m_instances = 1;
-
-        // TODO: Custom entity spawns
+        // TODO: Custom entity spawns (enemies, items, etc.)
     };
 
     // List of all rooms in the labyrinth
     std::vector<Room> m_rooms;
-
-    // TODO: Functions to generate rooms of specific types
-    // Example: Room GenerateRoom(Room::Type, ...)
 
     // Chunk management
 
