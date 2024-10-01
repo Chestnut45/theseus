@@ -137,8 +137,9 @@ void ColliderManager::CheckCollisions(float p_delta)
                             std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
                             HealthComponent* healthComponent = object2.GetComponent<HealthComponent>();
                             if(healthComponent != nullptr)
-                            {
-                                healthComponent->Damage(collider1.GetDamage());
+                            {   
+                                float damage = collider1.GetDamage();
+                                healthComponent->Damage(damage);
                             }
                         }
 
@@ -148,7 +149,8 @@ void ColliderManager::CheckCollisions(float p_delta)
                             HealthComponent* healthComponent = object1.GetComponent<HealthComponent>();
                             if(healthComponent != nullptr)
                             {
-                                healthComponent->Damage(collider2.GetDamage());
+                                float damage = collider2.GetDamage();
+                                healthComponent->Damage(damage);
                             }
                         }
                     }
@@ -283,11 +285,11 @@ float ColliderManager::SweptAABB(glm::vec2 p_mobile_translation, glm::vec2 p_sta
             xEntryTime, yEntryTime, xExitTime, yExitTime,
             entryTime, exitTime;
 
-    glm::vec2 mobileBroadphaseTranslation, mobileBroadphaseDimensions;
-    mobileBroadphaseTranslation.x = p_mobile_velocity.x > 0.0f ? p_mobile_translation.x : p_mobile_translation.x + p_mobile_velocity.x;
-    mobileBroadphaseTranslation.y = p_mobile_velocity.y > 0.0f ? p_mobile_translation.y : p_mobile_translation.y + p_mobile_velocity.y;
-    mobileBroadphaseDimensions.x = p_mobile_velocity.x > 0.0f ? p_mobile_dimensions.x + p_mobile_velocity.x : p_mobile_dimensions.x - p_mobile_velocity.x;
-    mobileBroadphaseDimensions.y = p_mobile_velocity.y > 0.0f ? p_mobile_dimensions.y + p_mobile_velocity.y : p_mobile_dimensions.y - p_mobile_velocity.y;
+    // glm::vec2 mobileBroadphaseTranslation, mobileBroadphaseDimensions;
+    // mobileBroadphaseTranslation.x = p_mobile_velocity.x > 0.0f ? p_mobile_translation.x : p_mobile_translation.x + p_mobile_velocity.x;
+    // mobileBroadphaseTranslation.y = p_mobile_velocity.y > 0.0f ? p_mobile_translation.y : p_mobile_translation.y + p_mobile_velocity.y;
+    // mobileBroadphaseDimensions.x = p_mobile_velocity.x > 0.0f ? p_mobile_dimensions.x + p_mobile_velocity.x : p_mobile_dimensions.x - p_mobile_velocity.x;
+    // mobileBroadphaseDimensions.y = p_mobile_velocity.y > 0.0f ? p_mobile_dimensions.y + p_mobile_velocity.y : p_mobile_dimensions.y - p_mobile_velocity.y;
 
     // Distance calculations
     int colCaseX, colCaseY = 0;
@@ -359,7 +361,7 @@ float ColliderManager::SweptAABB(glm::vec2 p_mobile_translation, glm::vec2 p_sta
     }
 }
 
-float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, glm::vec2 p_velocity_1, glm::vec2 p_velocity_2)
+float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, glm::vec2& p_velocity_1, glm::vec2& p_velocity_2)
 {
     float   xEntryDist, yEntryDist, xExitDist, yExitDist,
             xEntryTime, yEntryTime, xExitTime, yExitTime,
@@ -370,11 +372,27 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
     // broadphaseTranslation1.y = p_velocity_1.y > 0.0f ? p_translation_1.y : p_translation_1.y + p_velocity_1.y;
     // broadphaseDimensions1.x = p_velocity_1.x > 0.0f ? p_dimensions_1.x + p_velocity_1.x : p_dimensions_1.x - p_velocity_1.x;
     // broadphaseDimensions1.y = p_velocity_1.y > 0.0f ? p_dimensions_1.y + p_velocity_1.y : p_dimensions_1.y - p_velocity_1.y;
+    
+    glm::vec2 minkowskiDimensions = p_dimensions_1 + p_dimensions_2;
+    glm::vec2 minkowskiTranslation = p_translation_1 - (p_translation_2 + p_dimensions_2);
 
-    // // Distance calculations
-    // int colCaseX, colCaseY = 0;
-    // if(p_mobile_velocity.x > 0.0f)
-    // {
+    // Distance calculations
+    int colCaseX, colCaseY = 0;
+
+    glm::vec2 relativeVelocity = glm::vec2(0.0f, 0.0f);
+
+    if(p_velocity_1 != glm::vec2(0.0f, 0.0f))
+    {
+        relativeVelocity += p_velocity_1;
+    }
+
+    if(p_velocity_2 != glm::vec2(0.0f, 0.0f))
+    {
+        relativeVelocity -= p_velocity_2;
+    }
+
+    if(relativeVelocity.x > 0.0f)
+    {
     //     xEntryDist = p_translation_2.x - (p_translation_1.x + p_dimensions_1.x);
     //     xExitDist = (p_translation_2.x + p_dimensions_2.x) - p_translation_1.x;
     //     colCaseX = 1;
@@ -438,7 +456,7 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
     // else
     // {   
     //     return entryTime;
-    // }
+    }
     return 1.0f;
 
 }
