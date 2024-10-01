@@ -96,7 +96,34 @@ private:
         std::string m_name{"New Room"};
 
         // Bounds of the room in labyrinth space (measured in tiles)
-        wolf::IRectangle m_bounds{2, 6, 6, 2};
+        wolf::IRectangle m_bounds;
+
+        // Position types
+        enum class PositionType
+        {
+            Manual,
+            Random,
+        };
+
+        // Position data
+        PositionType m_positionType = PositionType::Random;
+
+        // Size types
+        enum class SizeType
+        {
+            Manual,
+            Random,
+        };
+
+        // Size data
+        SizeType m_sizeType = SizeType::Random;
+        glm::ivec2 m_minSize{4, 4};
+        glm::ivec2 m_maxSize{16, 16};
+
+        // The number of instances of this room to generate
+        // NOTE: Instances are generated with different rng
+        // values so that they won't be identical copies.
+        int m_instances = 1;
 
         // TODO: Custom entity spawns
     };
