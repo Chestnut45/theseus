@@ -50,6 +50,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         bool AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop);
         bool RemoveAnimation(const std::string& p_strName);
+        bool IsAnimationComplete() const;
 
         void SetAnimation(const std::string& p_strName);
         void SetAnimation(const std::string& p_strName, int p_iTargetAnimFrame);

@@ -268,6 +268,29 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
     }
 }
 
+bool AnimatedSprite2D::IsAnimationComplete() const
+{
+    if (!m_pCurrentAnim) 
+    {
+        std::cout << "IsAnimationComplete: No current animation set!" << std::endl;
+        return true;
+    }
+
+    std::cout << "IsAnimationComplete: Current Animation: " << m_pCurrentAnim->m_strName 
+              << ", Current Frame: " << m_fCurrentFrame 
+              << ", Start Frame: " << m_pCurrentAnim->m_iStartFrame 
+              << ", End Frame: " << m_pCurrentAnim->m_iEndFrame << std::endl;
+
+    // Check if the current frame is the last frame in the animation
+    if (m_fCurrentFrame >= m_pCurrentAnim->m_iEndFrame)
+    {
+        std::cout << "Animation has completed!" << std::endl;
+        return true;
+    }
+    
+    return false;
+}
+
 // *** This method was heavily informed by Jason Gregory's "Game Engine Architecture" 3rd Ed.
 // and Carol Boers' UPEI CS-4650 Animation Controller Component ***
 void AnimatedSprite2D::Update(float p_fDelta) {

@@ -8,12 +8,12 @@
 #pragma once
 #include "GameState.h"
 #include <theseus.h> // Include the main game class
-#include "W_Sprite2d.h"
+#include <W_Sprite2D.h>
 
 #include "../HitboxManager.h"
 #include "../HurtboxManager.h"
-#include "EnemyController.h"
-#include "PlayerBuilder.h"
+#include <EnemyController.h>
+#include <PlayerBuilder.h>
 
 class LabyrinthManager;
 
