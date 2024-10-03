@@ -6,6 +6,8 @@
 #include <iostream>
 #include <W_Input.h>
 
+#include <W_Logging.h>
+
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
 // Original Author: Youssef Ashraf
@@ -68,8 +70,10 @@ void PlayerController::InitializeAnimations()
 void PlayerController::Update(float delta)
 {
     auto* pGameObject = GetGameObject();
-    if (pGameObject)
+    if (!pGameObject)
     {
+        wolf::Error("PlayerController not attached to GameObject!");
+        return;
         // Lazy initialization of components if not set yet
         m_pTransform = m_pTransform ? m_pTransform : pGameObject->GetComponent<wolf::Transform2D>();
         m_pVelocity = m_pVelocity ? m_pVelocity : pGameObject->GetComponent<VelocityComponent>();
@@ -78,10 +82,19 @@ void PlayerController::Update(float delta)
         {
             LateInitialize();
         }
+        auto* pCamera = pGameObject->GetScene().GetActiveCamera();
+        if (pCamera)
+        {
+            // Double zoom with plus key, half zoom with minus key
+            float prevZoom = pCamera->GetZoom();
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_EQUAL)) pCamera->SetZoom(prevZoom * 2);
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_MINUS)) pCamera->SetZoom(prevZoom * 0.5f);
+        }
     }
+    
 
-    // Ensure essential components are initialized before updating
-    if (!m_pTransform || !m_pVelocity || !m_pAnimComponent)
+    // Only update if both components exist
+    if (m_pTransform && m_pVelocity)
     {
         std::cerr << "Error: Missing essential components in PlayerController!" << std::endl;
         return;

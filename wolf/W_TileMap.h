@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include <W_GameObject.h>
+#include <W_Grid2D.h>
 #include <W_ProgramManager.h>
 #include <W_VertexBuffer.h>
 #include <W_VertexDeclaration.h>
@@ -29,8 +30,8 @@ public:
     // Empty tile ID
     static const inline int EMPTY_TILE = -1;
 
-    // Create an empty tilemap from (0, 0) to (width, height).
-    TileMap(int mapWidth, int mapHeight);
+    // Create an empty tilemap from (0, 0) to (width - 1, height - 1).
+    TileMap(int width, int height);
     ~TileMap();
 
     // Delete copy constructor/assignment
@@ -79,16 +80,12 @@ public:
 // Implementation
 private:
 
-    // Map dimensions
-    int m_width;
-    int m_height;
+    // Grid of tile data
+    wolf::Grid2D<int> m_tileGrid;
 
-    // Tile dimensions
+    // Tile dimensions in pixels
     int m_tileWidth = 0;
     int m_tileHeight = 0;
-
-    // Flattened tile array
-    std::vector<int> m_tileData;
 
     // Number of tiles to draw
     int m_tilesToDraw = 0;

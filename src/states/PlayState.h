@@ -47,7 +47,7 @@ private:
     HurtboxManager* m_pHurtboxManager = nullptr;
 
     // Flags
-    bool m_showLabyrinthManager = false;
+    bool m_showLabyrinthManager = true;
 
     // Private helper methods
 
