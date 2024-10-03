@@ -290,10 +290,10 @@ bool AnimatedSprite2D::IsAnimationComplete() const
         return true;
     }
 
-    std::cout << "IsAnimationComplete: Current Animation: " << m_pCurrentAnim->m_strName 
-              << ", Current Frame: " << m_fCurrentFrame 
-              << ", Start Frame: " << m_pCurrentAnim->m_iStartFrame 
-              << ", End Frame: " << m_pCurrentAnim->m_iEndFrame << std::endl;
+    // std::cout << "IsAnimationComplete: Current Animation: " << m_pCurrentAnim->m_strName 
+    //           << ", Current Frame: " << m_fCurrentFrame 
+    //           << ", Start Frame: " << m_pCurrentAnim->m_iStartFrame 
+    //           << ", End Frame: " << m_pCurrentAnim->m_iEndFrame << std::endl;
 
     // Check if the current frame is the last frame in the animation
     if (m_fCurrentFrame >= m_pCurrentAnim->m_iEndFrame)
