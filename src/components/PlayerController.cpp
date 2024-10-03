@@ -176,10 +176,10 @@ void PlayerController::HandleMovement(float delta)
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_A)) AddHeldKey(GLFW_KEY_A);
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_D)) AddHeldKey(GLFW_KEY_D);
 
-    if (wolf::Input::IsKeyJustUp(GLFW_KEY_W)) RemoveHeldKey(GLFW_KEY_W);
-    if (wolf::Input::IsKeyJustUp(GLFW_KEY_S)) RemoveHeldKey(GLFW_KEY_S);
-    if (wolf::Input::IsKeyJustUp(GLFW_KEY_A)) RemoveHeldKey(GLFW_KEY_A);
-    if (wolf::Input::IsKeyJustUp(GLFW_KEY_D)) RemoveHeldKey(GLFW_KEY_D);
+    if (wolf::Input::IsKeyReleased(GLFW_KEY_W)) RemoveHeldKey(GLFW_KEY_W);
+    if (wolf::Input::IsKeyReleased(GLFW_KEY_S)) RemoveHeldKey(GLFW_KEY_S);
+    if (wolf::Input::IsKeyReleased(GLFW_KEY_A)) RemoveHeldKey(GLFW_KEY_A);
+    if (wolf::Input::IsKeyReleased(GLFW_KEY_D)) RemoveHeldKey(GLFW_KEY_D);
 
     // Determine movement direction based on currently held keys
     if (wolf::Input::IsKeyDown(GLFW_KEY_W)) direction.y += 1.0f;
