@@ -247,7 +247,7 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
     }
 
     if (m_pCurrentAnim == animIt->second) {
-        std::cout << "Animation '" << p_strName << "' is already playing. No need to switch." << std::endl;
+        // std::cout << "Animation '" << p_strName << "' is already playing. No need to switch." << std::endl;
         return;
     }
 
@@ -257,7 +257,7 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
     m_pCurrentFrameUVs = m_vpFrameUVCoords[m_pCurrentAnim->m_iStartFrame];
     m_bFrameChanged = true;
 
-    std::cout << "Successfully switched to animation: " << p_strName << std::endl;
+    // std::cout << "Successfully switched to animation: " << p_strName << std::endl;
 }
 
 // This override lets you change to a specific frame of the animation you are setting

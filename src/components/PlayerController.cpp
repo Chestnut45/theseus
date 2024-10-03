@@ -116,7 +116,7 @@ void PlayerController::RemoveHeldKey(int key)
 }
 PlayerController::PlayerDirection PlayerController::GetDirectionFromHeldKeys() const
 {
-    // Track the held keys and determine the direction using the full namespace and class path
+    // Track the held keys and determine the direction
     bool wHeld = wolf::Input::IsKeyHeld(GLFW_KEY_W);
     bool sHeld = wolf::Input::IsKeyHeld(GLFW_KEY_S);
     bool aHeld = wolf::Input::IsKeyHeld(GLFW_KEY_A);
@@ -231,10 +231,10 @@ void PlayerController::SetAnimationBasedOnState()
     }
 
     // Set the animation and log the change
-    std::cout << "Set animation to: " << animationName << " based on state: " << static_cast<int>(m_action) 
-              << " and direction: " << m_lastDirectionEnum << std::endl;
+    // std::cout << "Set animation to: " << animationName << " based on state: " << static_cast<int>(m_action) 
+    //           << " and direction: " << m_lastDirectionEnum << std::endl;
     m_pAnimComponent->SetAnimation(animationName);
-    std::cout << "Successfully switched to animation: " << animationName << std::endl;
+    // std::cout << "Successfully switched to animation: " << animationName << std::endl;
 
     // Center the origin for consistent rendering
     m_pAnimComponent->SetOriginToCenterOfFrame();
