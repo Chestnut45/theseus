@@ -41,6 +41,8 @@ namespace wolf
             // True if the key was down last frame but up this frame
             static bool IsKeyReleased(int key);
 
+            static bool IsKeyJustUp(int key);
+
             // Mouse inputs
             // Same convention as above for Down, JustDown, Held, and Released
             static bool IsLMBDown();
@@ -56,6 +58,7 @@ namespace wolf
             static bool IsRMBReleased();
             static bool IsMMBReleased();
             static bool IsMouseCaptured() { return s_mouseCaptured; };
+            
 
             // Get the mouse position in pixel coordinates,
             // relative to the top-left corner of the window.

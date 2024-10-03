@@ -86,6 +86,14 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         void Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint = glm::vec3(-1.0f));
         // void SetVisible(bool visible) { m_visible = visible; }
         // bool IsVisible() const { return m_visible; }
+        int GetCurrentFrame() const;
+        int GetTotalFrames() const {
+        if (m_pCurrentAnim)
+        {
+            return (m_pCurrentAnim->m_iEndFrame - m_pCurrentAnim->m_iStartFrame) + 1;
+        }
+        return 0;
+    }
     private:
         // Map of animations
         std::map<std::string, SpriteAnimation2D*> m_mAnimationMap; // Name = Key, Animation Details = Value

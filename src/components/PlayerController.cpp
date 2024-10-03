@@ -3,18 +3,20 @@
 #include "HealthComponent.h"
 #include "HurtboxComponent.h"
 #include "HitboxComponent.h"
+#include <iostream>
+#include <W_Input.h>
+
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
 // Original Author: Youssef Ashraf
-// Modifications: D'Anyil Landry, Aurora, Nguyễn Minh Nhật, Aurora Ryder
-// ver 1.8, updated to use member variables for components,
-// Player State Management, Velocity-Based Movement, Decoupled, Enum Direction, Direction Vector, Stamina
+// Modifications: Aurora Ryder, etc.
+// ver 1.9. 
 //-----------------------------------------------------------------------------
 
 // Constructor
 PlayerController::PlayerController()
 {
-    
+    // Initialization of default variables can go here if needed
 }
 
 void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
@@ -29,48 +31,46 @@ void PlayerController::LateInitialize()
 
     if (!m_pAnimComponent)
     {
-        // Use the same component for all animations
         m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
     }
 
     InitializeAnimations();
 }
 
+
 void PlayerController::InitializeAnimations()
 {
     if (!m_pAnimComponent) return;
 
-    // Walk Animations
+    // Add all animations for the player character
     m_pAnimComponent->AddAnimation("WalkSouth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 8, true);
     m_pAnimComponent->AddAnimation("WalkEast", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 9, 16, true);
     m_pAnimComponent->AddAnimation("WalkNorth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 17, 24, true);
     m_pAnimComponent->AddAnimation("WalkWest", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 25, 32, true);
-     m_pAnimComponent->SetOriginToCenterOfFrame();
 
-    // Idle Animations
     m_pAnimComponent->AddAnimation("StandSouth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
     m_pAnimComponent->AddAnimation("StandEast", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 9, 9, false);
     m_pAnimComponent->AddAnimation("StandNorth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 17, 17, false);
     m_pAnimComponent->AddAnimation("StandWest", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 25, 25, false);
-     m_pAnimComponent->SetOriginToCenterOfFrame();
 
-    // Attack Animations
     m_pAnimComponent->AddAnimation("AttackSouth", "data/textures/TheseusSword-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 8, false);
     m_pAnimComponent->AddAnimation("AttackEast", "data/textures/TheseusSword-Sheet.png", glm::vec2(32.0f, 32.0f), 9, 16, false);
     m_pAnimComponent->AddAnimation("AttackNorth", "data/textures/TheseusSword-Sheet.png", glm::vec2(32.0f, 32.0f), 17, 24, false);
     m_pAnimComponent->AddAnimation("AttackWest", "data/textures/TheseusSword-Sheet.png", glm::vec2(32.0f, 32.0f), 25, 32, false);
-     m_pAnimComponent->SetOriginToCenterOfFrame();
 
+    // Set the origin to the center of the frame for proper rendering alignment
+    m_pAnimComponent->SetOriginToCenterOfFrame();
+
+    // Set the default animation to idle south
     m_pAnimComponent->SetAnimation("StandSouth");
 }
-
-
 
 void PlayerController::Update(float delta)
 {
     auto* pGameObject = GetGameObject();
     if (pGameObject)
     {
+        // Lazy initialization of components if not set yet
         m_pTransform = m_pTransform ? m_pTransform : pGameObject->GetComponent<wolf::Transform2D>();
         m_pVelocity = m_pVelocity ? m_pVelocity : pGameObject->GetComponent<VelocityComponent>();
 
@@ -80,169 +80,217 @@ void PlayerController::Update(float delta)
         }
     }
 
+    // Ensure essential components are initialized before updating
     if (!m_pTransform || !m_pVelocity || !m_pAnimComponent)
     {
         std::cerr << "Error: Missing essential components in PlayerController!" << std::endl;
         return;
     }
 
+    // Update the player state and animations based on input and conditions
     HandleMovement(delta);
     HandleRolling(delta);
     HandleJumping(delta);
     HandleAttacking(delta);
 
-    if (!m_isRolling && !m_isAttacking) // Only regenerate stamina if not rolling or attacking
+    // Regenerate stamina if not performing specific actions
+    if (!m_isRolling && !m_isAttacking)
     {
-        if (m_stamina < m_maxStamina)
-        {
-            if (m_staminaRegenTimer.Elapsed() >= m_staminaRegenDelay)
-            {
-                m_stamina += m_staminaRegenRate * delta;
-                if (m_stamina > m_maxStamina)
-                    m_stamina = m_maxStamina;
-            }
-        }
+        RegenerateStamina(delta);
+    }
+
+    // Set the correct animation based on player state
+    SetAnimationBasedOnState();
+}
+void PlayerController::AddHeldKey(int key)
+{
+    // If the key is not already in the list, add it
+    if (std::find(m_heldKeys.begin(), m_heldKeys.end(), key) == m_heldKeys.end())
+    {
+        m_heldKeys.push_back(key);
     }
 }
-
-void PlayerController::SetManagers(HitboxManager* pHitboxManager, HurtboxManager* pHurtboxManager)
+void PlayerController::RemoveHeldKey(int key)
 {
-    m_pHitboxManager = pHitboxManager;
-    m_pHurtboxManager = pHurtboxManager;
+    m_heldKeys.erase(std::remove(m_heldKeys.begin(), m_heldKeys.end(), key), m_heldKeys.end());
+}
+PlayerController::PlayerDirection PlayerController::GetDirectionFromHeldKeys() const
+{
+    // Track the held keys and determine the direction using the full namespace and class path
+    bool wHeld = wolf::Input::IsKeyHeld(GLFW_KEY_W);
+    bool sHeld = wolf::Input::IsKeyHeld(GLFW_KEY_S);
+    bool aHeld = wolf::Input::IsKeyHeld(GLFW_KEY_A);
+    bool dHeld = wolf::Input::IsKeyHeld(GLFW_KEY_D);
+
+    if (wHeld && aHeld) return PlayerDirection::NORTH_WEST;
+    if (wHeld && dHeld) return PlayerDirection::NORTH_EAST;
+    if (sHeld && aHeld) return PlayerDirection::SOUTH_WEST;
+    if (sHeld && dHeld) return PlayerDirection::SOUTH_EAST;
+    if (wHeld) return PlayerDirection::NORTH;
+    if (sHeld) return PlayerDirection::SOUTH;
+    if (aHeld) return PlayerDirection::WEST;
+    if (dHeld) return PlayerDirection::EAST;
+
+    return PlayerDirection::NONE;  // Default case
+}
+void PlayerController::HandleMovement(float delta)
+{
+    // Vector to store movement direction
+    glm::vec2 direction = glm::vec2(0.0f);
+
+    // Track which keys are being pressed and released
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_W)) AddHeldKey(GLFW_KEY_W);
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_S)) AddHeldKey(GLFW_KEY_S);
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_A)) AddHeldKey(GLFW_KEY_A);
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_D)) AddHeldKey(GLFW_KEY_D);
+
+    if (wolf::Input::IsKeyJustUp(GLFW_KEY_W)) RemoveHeldKey(GLFW_KEY_W);
+    if (wolf::Input::IsKeyJustUp(GLFW_KEY_S)) RemoveHeldKey(GLFW_KEY_S);
+    if (wolf::Input::IsKeyJustUp(GLFW_KEY_A)) RemoveHeldKey(GLFW_KEY_A);
+    if (wolf::Input::IsKeyJustUp(GLFW_KEY_D)) RemoveHeldKey(GLFW_KEY_D);
+
+    // Determine movement direction based on currently held keys
+    if (wolf::Input::IsKeyDown(GLFW_KEY_W)) direction.y += 1.0f;
+    if (wolf::Input::IsKeyDown(GLFW_KEY_S)) direction.y -= 1.0f;
+    if (wolf::Input::IsKeyDown(GLFW_KEY_A)) direction.x -= 1.0f;
+    if (wolf::Input::IsKeyDown(GLFW_KEY_D)) direction.x += 1.0f;
+
+    // If no movement input is detected, reset velocity and set to idle state
+    if (direction == glm::vec2(0.0f))
+    {
+        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        if (!m_isAttacking && !m_isRolling)
+        {
+            m_action = PlayerAction::NONE;
+            SetAnimationBasedOnState();  // Set idle animation
+        }
+        return;  // Skip further processing if no movement input
+    }
+
+    // Normalize and set velocity based on direction and speed
+    direction = glm::normalize(direction);
+
+    // Determine the facing direction based on the last pressed keys
+    m_lastDirectionEnum = GetDirectionFromHeldKeys();
+
+    // Set the player's velocity based on the direction and movement speed
+    m_pVelocity->SetVelocity(direction * m_moveSpeed);
+
+    // Update state to walking if not rolling or jumping
+    if (!m_isRolling && !m_isJumping)
+    {
+        m_action = PlayerAction::WALKING;
+    }
+
+    // Set animation based on state and last known direction
+    SetAnimationBasedOnState();
 }
 
 
-// Handle attacking input (Mouse1)
+void PlayerController::SetAnimationBasedOnState()
+{
+    if (m_isAttacking || m_isRolling || m_isJumping) return;  // Skip if performing an action like attacking, rolling, or jumping
+
+    // Determine the animation based on the current state and last direction
+    std::string animationName;
+
+    switch (m_action)
+    {
+        case PlayerAction::WALKING:
+            switch (m_lastDirectionEnum)
+            {
+                case PlayerDirection::SOUTH: animationName = "WalkSouth"; break;
+                case PlayerDirection::EAST: animationName = "WalkEast"; break;
+                case PlayerDirection::NORTH: animationName = "WalkNorth"; break;
+                case PlayerDirection::WEST: animationName = "WalkWest"; break;
+                case PlayerDirection::NORTH_EAST: animationName = "WalkNorth"; break;
+                case PlayerDirection::NORTH_WEST: animationName = "WalkNorth"; break;
+                case PlayerDirection::SOUTH_EAST: animationName = "WalkSouth"; break;
+                case PlayerDirection::SOUTH_WEST: animationName = "WalkSouth"; break;
+                default: animationName = "WalkSouth"; break;
+            }
+            break;
+
+        case PlayerAction::NONE:  // Idle state
+            switch (m_lastDirectionEnum)
+            {
+                case PlayerDirection::SOUTH: animationName = "StandSouth"; break;
+                case PlayerDirection::EAST: animationName = "StandEast"; break;
+                case PlayerDirection::NORTH: animationName = "StandNorth"; break;
+                case PlayerDirection::WEST: animationName = "StandWest"; break;
+                case PlayerDirection::NORTH_EAST: animationName = "StandEast"; break;
+                case PlayerDirection::NORTH_WEST: animationName = "StandWest"; break;
+                case PlayerDirection::SOUTH_EAST: animationName = "StandEast"; break;
+                case PlayerDirection::SOUTH_WEST: animationName = "StandWest"; break;
+                default: animationName = "StandSouth"; break;
+            }
+            break;
+
+        default:
+            return;  // No need to change animation for other states
+    }
+
+    // Set the animation and log the change
+    std::cout << "Set animation to: " << animationName << " based on state: " << static_cast<int>(m_action) 
+              << " and direction: " << m_lastDirectionEnum << std::endl;
+    m_pAnimComponent->SetAnimation(animationName);
+    std::cout << "Successfully switched to animation: " << animationName << std::endl;
+
+    // Center the origin for consistent rendering
+    m_pAnimComponent->SetOriginToCenterOfFrame();
+}
+
+std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection direction) const
+{
+    switch (direction)
+    {
+    case PlayerDirection::SOUTH:        return "AttackSouth";
+    case PlayerDirection::EAST:         return "AttackEast";
+    case PlayerDirection::NORTH:        return "AttackNorth";
+    case PlayerDirection::WEST:         return "AttackWest";
+    case PlayerDirection::NORTH_EAST:   return "AttackEast";
+    case PlayerDirection::NORTH_WEST:   return "AttackWest";
+    case PlayerDirection::SOUTH_EAST:   return "AttackEast";
+    case PlayerDirection::SOUTH_WEST:   return "AttackWest";
+    default:                            return "AttackSouth"; // Default to South attack if no valid direction
+    }
+}
+PlayerController::PlayerDirection PlayerController::GetDirectionFromVector(const glm::vec2& direction) const
+{
+    if (direction == glm::vec2(0.0f, 0.0f))
+        return PlayerDirection::NONE;
+
+    // Normalize the direction for consistent comparison
+    glm::vec2 normalizedDir = glm::normalize(direction);
+
+    // Determine and return the correct enum based on normalized direction vector
+    if (normalizedDir.x > 0.0f && normalizedDir.y > 0.0f) return PlayerDirection::NORTH_EAST;
+    if (normalizedDir.x > 0.0f && normalizedDir.y < 0.0f) return PlayerDirection::SOUTH_EAST;
+    if (normalizedDir.x < 0.0f && normalizedDir.y > 0.0f) return PlayerDirection::NORTH_WEST;
+    if (normalizedDir.x < 0.0f && normalizedDir.y < 0.0f) return PlayerDirection::SOUTH_WEST;
+    if (normalizedDir.x > 0.0f) return PlayerDirection::EAST;
+    if (normalizedDir.x < 0.0f) return PlayerDirection::WEST;
+    if (normalizedDir.y > 0.0f) return PlayerDirection::NORTH;
+    if (normalizedDir.y < 0.0f) return PlayerDirection::SOUTH;
+
+    return PlayerDirection::NONE;
+}
+
+
 void PlayerController::HandleAttacking(float delta)
 {
-    // If the player just clicked the left mouse button (LMB) and is not already attacking
     if (wolf::Input::IsLMBJustDown() && !m_isAttacking)
     {
-        std::cout << "Mouse1 clicked. Initiating attack in direction: " << static_cast<int>(m_lastDirectionEnum) << std::endl;
-        
-        m_isAttacking = true;
-        m_action = PlayerAction::ATTACKING;  // Set state to attacking
-        m_attackTimer.Restart();  // Restart attack animation timer
-
-        // Log animation details and current direction
-        std::cout << "Setting attack animation for direction: " << static_cast<int>(m_lastDirectionEnum) << std::endl;
-        
-        // Set the attack animation based on direction and reset it from the first frame
-        m_pAnimComponent->SetTexture("data/textures/TheseusSword-Sheet.png", glm::vec2(32.0f, 32.0f));
-        switch (m_lastDirectionEnum)
-        {
-            case PlayerDirection::SOUTH:
-                std::cout << "Playing AttackSouth animation." << std::endl;
-                m_pAnimComponent->SetAnimation("AttackSouth", 0);  // Start animation from frame 0
-                break;
-            case PlayerDirection::EAST:
-                std::cout << "Playing AttackEast animation." << std::endl;
-                m_pAnimComponent->SetAnimation("AttackEast", 0);  // Start animation from frame 0
-                break;
-            case PlayerDirection::NORTH:
-                std::cout << "Playing AttackNorth animation." << std::endl;
-                m_pAnimComponent->SetAnimation("AttackNorth", 0);  // Start animation from frame 0
-                break;
-            case PlayerDirection::WEST:
-                std::cout << "Playing AttackWest animation." << std::endl;
-                m_pAnimComponent->SetAnimation("AttackWest", 0);  // Start animation from frame 0
-                break;
-            default:
-                std::cout << "Error: Undefined direction. Defaulting to AttackSouth animation." << std::endl;
-                m_pAnimComponent->SetAnimation("AttackSouth", 0);  // Start animation from frame 0
-                break;
-        }
-
-        m_pAnimComponent->SetOriginToCenterOfFrame();
-        
-        ApplyDamageToEnemy();  // Deal damage once when attack is initiated
+        StartAttack();  // Start the attack
+        return;
     }
 
-    // Ensure that we allow the attack animation to play fully
-    if (m_action == PlayerAction::ATTACKING)
+    // Check if the attack animation is complete and transition to another state if it is
+    if (m_isAttacking)
     {
-        std::cout << "Checking animation completion for direction: " << static_cast<int>(m_lastDirectionEnum) << std::endl;
-
-        if (!m_pAnimComponent->IsAnimationComplete())
-        {
-            std::cout << "Animation not complete yet." << std::endl;
-            return;  // If not complete, stay in ATTACKING state and do not change animation
-        }
-
-        // Animation is complete, transition back to appropriate state
-        std::cout << "Attack animation completed. Switching back to walk/idle animation." << std::endl;
-        m_isAttacking = false;  // Reset attacking flag
-
-    // Allow attack animation to play fully before transitioning back to other states
-    if (m_action == PlayerAction::ATTACKING)
-    {
-        // Check if the animation is still playing
-        if (!m_pAnimComponent->IsAnimationComplete()) 
-        {
-            return;  // If not complete, stay in ATTACKING state and do not change animation
-        }
-
-        // Animation is complete, transition back to appropriate state
-        std::cout << "Attack animation completed. Switching back to walk/idle animation." << std::endl;
-        m_isAttacking = false;  // Reset attacking flag
-
-        // Restore to walk or idle animation based on the current velocity
-        m_pAnimComponent->SetTexture("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f));
-
-        if (glm::length(m_pVelocity->GetVelocity()) < 0.01f)  // If standing still
-        {
-            m_action = PlayerAction::NONE;  // Set state to idle
-
-            // Set idle animation based on last known direction
-            switch (m_lastDirectionEnum)
-            {
-                case PlayerDirection::SOUTH:
-                    m_pAnimComponent->SetAnimation("StandSouth", 0);  // Start animation from frame 0
-                    break;
-                case PlayerDirection::EAST:
-                    m_pAnimComponent->SetAnimation("StandEast", 0);  // Start animation from frame 0
-                    break;
-                case PlayerDirection::NORTH:
-                    m_pAnimComponent->SetAnimation("StandNorth", 0);  // Start animation from frame 0
-                    break;
-                case PlayerDirection::WEST:
-                    m_pAnimComponent->SetAnimation("StandWest", 0);  // Start animation from frame 0
-                    break;
-                default:
-                    m_pAnimComponent->SetAnimation("StandSouth", 0);  // Start animation from frame 0
-                    break;
-            }
-        }
-        else  // If moving
-        {
-            m_action = PlayerAction::WALKING;  // Set state to walking
-
-            // Set walking animation based on last direction
-            switch (m_lastDirectionEnum)
-            {
-                case PlayerDirection::SOUTH:
-                    m_pAnimComponent->SetAnimation("WalkSouth", 0);  // Start animation from frame 0
-                    break;
-                case PlayerDirection::EAST:
-                    m_pAnimComponent->SetAnimation("WalkEast", 0);  // Start animation from frame 0
-                    break;
-                case PlayerDirection::NORTH:
-                    m_pAnimComponent->SetAnimation("WalkNorth", 0);  // Start animation from frame 0
-                    break;
-                case PlayerDirection::WEST:
-                    m_pAnimComponent->SetAnimation("WalkWest", 0);  // Start animation from frame 0
-                    break;
-                default:
-                    m_pAnimComponent->SetAnimation("WalkSouth", 0);  // Start animation from frame 0
-                    break;
-            }
-        }
-
-        m_pAnimComponent->SetOriginToCenterOfFrame();  
+        UpdateAttackState(delta);
     }
 }
-}
-// Apply damage to the enemy if in range
 void PlayerController::ApplyDamageToEnemy()
 {
     auto* pGameObject = GetGameObject();
@@ -267,104 +315,58 @@ void PlayerController::ApplyDamageToEnemy()
         }
     }
 }
-
-// Handle movement input (WASD)
-void PlayerController::HandleMovement(float delta)
+void PlayerController::SetManagers(HitboxManager* pHitboxManager, HurtboxManager* pHurtboxManager)
 {
-    // Skip movement handling during rolling or if attacking is blocking
-    if (m_action == PlayerAction::ROLLING) return;
+    m_pHitboxManager = pHitboxManager;
+    m_pHurtboxManager = pHurtboxManager;
+}
+void PlayerController::StartAttack()
+{
+    m_isAttacking = true;
+    m_action = PlayerAction::ATTACKING;
+    m_attackTimer.Restart();  // Restart the attack timer
+    m_animationFinished = false;
 
-    glm::vec2 direction = glm::vec2(0.0f);
+    // Set animation based on current direction
+    std::string attackAnimation = GetAttackAnimationForDirection(m_lastDirectionEnum);
+    m_pAnimComponent->SetTexture("data/textures/TheseusSword-Sheet.png", glm::vec2(32.0f, 32.0f));
+    m_pAnimComponent->SetAnimation(attackAnimation, 0);  // Start from frame 0
 
-    // Check movement input and set direction vector accordingly
-    if (wolf::Input::IsKeyDown(GLFW_KEY_W)) direction.y += 1.0f;
-    if (wolf::Input::IsKeyDown(GLFW_KEY_S)) direction.y -= 1.0f;
-    if (wolf::Input::IsKeyDown(GLFW_KEY_A)) direction.x -= 1.0f;
-    if (wolf::Input::IsKeyDown(GLFW_KEY_D)) direction.x += 1.0f;
+    std::cout << "Attack initiated in direction: " << m_lastDirectionEnum << " with animation: " << attackAnimation << std::endl;
 
-    // Normalize the direction vector to ensure consistent speed
-    if (direction != glm::vec2(0.0f))
+    m_pAnimComponent->SetOriginToCenterOfFrame();  // Center the origin
+}
+void PlayerController::UpdateAttackState(float delta)
+{
+    // Check if the animation is near completion or fully complete
+    if (m_pAnimComponent->IsAnimationComplete())
     {
-        direction = glm::normalize(direction);
-        m_lastDirectionEnum = GetDirectionFromVector(direction);  // Update last direction enum
-
-        // Update the player's velocity based on the direction and speed
-        m_pVelocity->SetVelocity(direction * m_moveSpeed);
-
-        // Only set walking animation if not attacking
-        if (!m_isAttacking)
-        {
-            m_action = PlayerAction::WALKING;
-
-            // Update walking animation based on direction
-            switch (m_lastDirectionEnum)
-            {
-                case PlayerDirection::SOUTH:
-                    m_pAnimComponent->SetAnimation("WalkSouth");
-                    break;
-                case PlayerDirection::EAST:
-                    m_pAnimComponent->SetAnimation("WalkEast");
-                    break;
-                case PlayerDirection::NORTH:
-                    m_pAnimComponent->SetAnimation("WalkNorth");
-                    break;
-                case PlayerDirection::WEST:
-                    m_pAnimComponent->SetAnimation("WalkWest");
-                    break;
-                default:
-                    m_pAnimComponent->SetAnimation("WalkSouth");
-                    break;
-            }
-
-            m_pAnimComponent->SetOriginToCenterOfFrame();
-            // m_pAnimComponent->SetVisible(true);
-        }
+        std::cout << "Attack animation completed in direction: " << m_lastDirectionEnum << std::endl;
+        m_animationFinished = true;
     }
-    else
+
+    if (m_animationFinished)
     {
-        // If there's no movement, set velocity to zero
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        // Reset attacking state and switch to appropriate idle/walk state
+        m_isAttacking = false;
+        m_action = glm::length(m_pVelocity->GetVelocity()) < 0.01f ? PlayerAction::NONE : PlayerAction::WALKING;
 
-        if (!m_isAttacking)
-        {
-            // Set state to NONE (idle) if not attacking
-            m_action = PlayerAction::NONE;
-
-            // Set standing animation based on the last known direction
-            switch (m_lastDirectionEnum)
-            {
-                case PlayerDirection::SOUTH:
-                    m_pAnimComponent->SetAnimation("StandSouth");
-                    break;
-                case PlayerDirection::EAST:
-                    m_pAnimComponent->SetAnimation("StandEast");
-                    break;
-                case PlayerDirection::NORTH:
-                    m_pAnimComponent->SetAnimation("StandNorth");
-                    break;
-                case PlayerDirection::WEST:
-                    m_pAnimComponent->SetAnimation("StandWest");
-                    break;
-                default:
-                    m_pAnimComponent->SetAnimation("StandSouth");
-                    break;
-            }
-
-            m_pAnimComponent->SetOriginToCenterOfFrame();
-            // m_pAnimComponent->SetVisible(true);
-        }
+        // Restore the texture and set the appropriate animation based on the state
+        m_pAnimComponent->SetTexture("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f));
+        SetAnimationBasedOnState();  // Set animation based on state and direction
     }
 }
+// Handle movement input (WASD)
 
-// Handle rolling input (Spacebar)
+
 void PlayerController::HandleRolling(float delta)
 {
     if (m_isRolling)
     {
         glm::vec2 rollDirection = GetDirectionVector(m_lastDirectionEnum);
-        m_pVelocity->SetVelocity(rollDirection * m_rollSpeed); // Continue rolling in last known direction
-
+        m_pVelocity->SetVelocity(rollDirection * m_rollSpeed);
         m_rollTimer -= delta;
+
         if (m_rollTimer <= 0)
         {
             m_isRolling = false;
@@ -372,44 +374,30 @@ void PlayerController::HandleRolling(float delta)
             m_action = PlayerAction::NONE;
         }
     }
-    else if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && !m_isRolling)
+    else if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && !m_isRolling && m_stamina >= 15.0f)
     {
-        if (m_stamina >= 15.0f)
-        {
-            m_isRolling = true;
-            m_rollTimer = m_rollDuration;
-            m_action = PlayerAction::ROLLING;
-
-            // Use the last direction for the roll
-            glm::vec2 rollDirection = GetDirectionVector(m_lastDirectionEnum);
-
-            // Consume stamina
-            m_stamina -= 25.0f;
-            if (m_stamina < 0.0f)
-                m_stamina = 0.0f;
-
-            // Start/reset the stamina regeneration timer
-            m_staminaRegenTimer.Restart();
-        }
+        m_isRolling = true;
+        m_rollTimer = m_rollDuration;
+        m_action = PlayerAction::ROLLING;
+        m_stamina -= 25.0f;
+        m_staminaRegenTimer.Restart();
     }
 }
 
-// Handle jumping input (J key)
 void PlayerController::HandleJumping(float delta)
 {
-    if (m_action == PlayerAction::ROLLING) return; // Disable jumping during roll
+    if (m_action == PlayerAction::ROLLING || m_isAttacking) return; // Skip jumping during roll or attack
 
     if (m_isJumping)
     {
-        m_pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed)); // Set upward velocity for jump
-
+        m_pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed)); 
         m_jumpTimer -= delta;
 
         if (m_jumpTimer <= 0)
         {
             m_isJumping = false;
             m_action = PlayerAction::NONE;
-            m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop upward velocity
+            m_pVelocity->SetVelocity(glm::vec2(0.0f));
         }
     }
     else if (wolf::Input::IsKeyJustDown(GLFW_KEY_J) && !m_isJumping)
@@ -419,50 +407,17 @@ void PlayerController::HandleJumping(float delta)
         m_action = PlayerAction::JUMPING;
     }
 }
+void PlayerController::RegenerateStamina(float delta)
+{
+    if (m_stamina < m_maxStamina && m_staminaRegenTimer.Elapsed() >= m_staminaRegenDelay)
+    {
+        m_stamina += m_staminaRegenRate * delta;
+        m_stamina = std::min(m_stamina, m_maxStamina);
+    }
+}
 
 // Get the direction enum based on movement input
-PlayerController::PlayerDirection PlayerController::GetRollDirection() const
-{
-    glm::vec2 direction(0.0f, 0.0f);
-    if (wolf::Input::IsKeyDown(GLFW_KEY_W)) direction.y += 1.0f;
-    if (wolf::Input::IsKeyDown(GLFW_KEY_S)) direction.y -= 1.0f;
-    if (wolf::Input::IsKeyDown(GLFW_KEY_A)) direction.x -= 1.0f;
-    if (wolf::Input::IsKeyDown(GLFW_KEY_D)) direction.x += 1.0f;
 
-    // Normalize the direction if there's movement
-    if (direction != glm::vec2(0.0f, 0.0f))
-        direction = glm::normalize(direction);
-
-    // Determine and return the correct enum based on direction
-    if (direction.x == 0.0f && direction.y > 0.0f) return PlayerDirection::NORTH;
-    if (direction.x > 0.0f && direction.y > 0.0f) return PlayerDirection::NORTH_EAST;
-    if (direction.x > 0.0f && direction.y == 0.0f) return PlayerDirection::EAST;
-    if (direction.x > 0.0f && direction.y < 0.0f) return PlayerDirection::SOUTH_EAST;
-    if (direction.x == 0.0f && direction.y < 0.0f) return PlayerDirection::SOUTH;
-    if (direction.x < 0.0f && direction.y < 0.0f) return PlayerDirection::SOUTH_WEST;
-    if (direction.x < 0.0f && direction.y == 0.0f) return PlayerDirection::WEST;
-    if (direction.x < 0.0f && direction.y > 0.0f) return PlayerDirection::NORTH_WEST;
-    
-    return PlayerDirection::NONE; // Default case
-}
-
-PlayerController::PlayerDirection PlayerController::GetDirectionFromVector(const glm::vec2& direction) const
-{
-    // Normalize direction to ensure consistent comparison
-    glm::vec2 normalizedDir = direction != glm::vec2(0.0f, 0.0f) ? glm::normalize(direction) : glm::vec2(0.0f);
-
-    // Determine and return the correct enum based on direction vector
-    if (normalizedDir.x == 0.0f && normalizedDir.y > 0.0f) return PlayerDirection::NORTH;
-    if (normalizedDir.x > 0.0f && normalizedDir.y > 0.0f) return PlayerDirection::NORTH_EAST;
-    if (normalizedDir.x > 0.0f && normalizedDir.y == 0.0f) return PlayerDirection::EAST;
-    if (normalizedDir.x > 0.0f && normalizedDir.y < 0.0f) return PlayerDirection::SOUTH_EAST;
-    if (normalizedDir.x == 0.0f && normalizedDir.y < 0.0f) return PlayerDirection::SOUTH;
-    if (normalizedDir.x < 0.0f && normalizedDir.y < 0.0f) return PlayerDirection::SOUTH_WEST;
-    if (normalizedDir.x < 0.0f && normalizedDir.y == 0.0f) return PlayerDirection::WEST;
-    if (normalizedDir.x < 0.0f && normalizedDir.y > 0.0f) return PlayerDirection::NORTH_WEST;
-
-    return PlayerDirection::NONE;  // Default case if no valid direction
-}
 // Convert direction enum to glm::vec2 for movement
 glm::vec2 PlayerController::GetDirectionVector(PlayerDirection direction) const
 {
@@ -546,4 +501,20 @@ void PlayerController::Render()
 
         ImGui::End();
     }
+}
+
+std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction) {
+    switch (direction) {
+        case PlayerController::PlayerDirection::NONE:        os << "NONE"; break;
+        case PlayerController::PlayerDirection::NORTH:       os << "NORTH"; break;
+        case PlayerController::PlayerDirection::NORTH_EAST:  os << "NORTH_EAST"; break;
+        case PlayerController::PlayerDirection::EAST:        os << "EAST"; break;
+        case PlayerController::PlayerDirection::SOUTH_EAST:  os << "SOUTH_EAST"; break;
+        case PlayerController::PlayerDirection::SOUTH:       os << "SOUTH"; break;
+        case PlayerController::PlayerDirection::SOUTH_WEST:  os << "SOUTH_WEST"; break;
+        case PlayerController::PlayerDirection::WEST:        os << "WEST"; break;
+        case PlayerController::PlayerDirection::NORTH_WEST:  os << "NORTH_WEST"; break;
+        default:                                             os << "UNKNOWN"; break;
+    }
+    return os;
 }

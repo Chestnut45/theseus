@@ -1,4 +1,5 @@
 #include "W_Input.h"
+#include <iostream>
 
 namespace wolf
 {
@@ -76,8 +77,15 @@ void Input::DisableRawMouseMotion()
 
 void Input::_KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+    // Ensure the key is within a valid range
+    if (key < GLFW_KEY_SPACE || key >= GLFW_KEY_LAST) return;
+
     s_keys[key - GLFW_KEY_SPACE] = action != GLFW_RELEASE;
+
+    // Debugging output to confirm the key states are being set correctly
+    // std::cout << "Key: " << key << ", Action: " << action << ", State: " << (s_keys[key - GLFW_KEY_SPACE] ? "DOWN" : "UP") << std::endl;
 }
+
 
 void Input::_MousePosCallback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -95,9 +103,9 @@ void Input::_Poll()
     for (int i = 0; i < NUM_KEYS; i++)
     {
         s_prevKeys[i] = s_keys[i];
-        
-        // Alternate method for polling keys without callbacks
-        // s_keys[i] = glfwGetKey(s_pWindow, i + GLFW_KEY_SPACE) != GLFW_RELEASE;
+
+        // Explicitly poll key state to ensure we capture every key's state
+        s_keys[i] = glfwGetKey(s_pWindow, i + GLFW_KEY_SPACE) != GLFW_RELEASE;
     }
 
     // Update mouse buttons
@@ -127,5 +135,12 @@ void Input::_Setup(GLFWwindow* window)
     glfwSetScrollCallback(window, Input::_MouseScrollCallback);
     s_pWindow = window;
 }
+bool wolf::Input::IsKeyJustUp(int key)
+{
+    // Ensure the key is within a valid range
+    if (key < GLFW_KEY_SPACE || key >= GLFW_KEY_LAST) return false;
 
+    // Return true if the key was down last frame and is up in this frame
+    return s_prevKeys[key - GLFW_KEY_SPACE] && !s_keys[key - GLFW_KEY_SPACE];
+}
 }

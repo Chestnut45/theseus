@@ -176,7 +176,10 @@ void AnimatedSprite2D::SetOriginToCenterOfFrame()
     m_origin.x = frameSize.x * 0.5f;
     m_origin.y = frameSize.y * 0.5f;
 }
-
+int AnimatedSprite2D::GetCurrentFrame() const
+{
+    return static_cast<int>(m_fCurrentFrame);
+}
 AnimatedSprite2D::~AnimatedSprite2D() {
     // Update the number of AnimatedSprite2D instances that currently exist
     s_iAnimSprite2DCount -= 1;
@@ -209,14 +212,19 @@ AnimatedSprite2D::~AnimatedSprite2D() {
 
 bool AnimatedSprite2D::AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_vec2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop) {
     // Check that the start and end frames are valid
-    if (p_iStartFrame > p_iEndFrame || p_iStartFrame < 0 || p_iEndFrame < 0 || p_iStartFrame > m_vpFrameUVCoords.size() || p_iEndFrame > m_vpFrameUVCoords.size()) {
-        wolf::Error("Attempted to add animation to AnimatedSprite2D with invalid start and end frames.");
+    if (p_iStartFrame < 0 || p_iEndFrame < p_iStartFrame || p_iEndFrame >= m_vpFrameUVCoords.size()) {
+        std::cerr << "ERROR: Invalid start and end frames for animation '" << p_strName << "' in AnimatedSprite2D." << std::endl;
+        std::cerr << "Start Frame: " << p_iStartFrame << ", End Frame: " << p_iEndFrame << std::endl;
         return false;
     }
 
-    // Creates a new SpriteAnimation2D out of the parameters and stores it in the map with p_strName as its key
+    // Create a new SpriteAnimation2D and store it in the map
     SpriteAnimation2D* p_anim = new SpriteAnimation2D(p_strName, p_strTexturePath, p_vec2FrameSize, p_iStartFrame, p_iEndFrame, p_bLoop);
-    m_mAnimationMap.insert(std::pair<std::string, SpriteAnimation2D*>(p_strName, p_anim));
+    m_mAnimationMap[p_strName] = p_anim;
+
+    std::cout << "Successfully added animation '" << p_strName << "' with Start Frame: " << p_iStartFrame 
+              << " and End Frame: " << p_iEndFrame << " to AnimatedSprite2D." << std::endl;
+
     return true;
 }
 
@@ -233,17 +241,23 @@ bool AnimatedSprite2D::RemoveAnimation(const std::string& p_strName) {
 
 void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
     auto animIt = m_mAnimationMap.find(p_strName);
-    if (animIt != m_mAnimationMap.end()) {
-        if (m_pCurrentAnim == animIt->second) {
-            // If we're already playing this animation then we shouldn't restart it
-            return;
-        }
-        m_pCurrentAnim = animIt->second;
-        this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
-        m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
-        m_pCurrentFrameUVs = m_vpFrameUVCoords[m_pCurrentAnim->m_iStartFrame];
-        m_bFrameChanged = true;
+    if (animIt == m_mAnimationMap.end()) {
+        std::cerr << "ERROR: Animation '" << p_strName << "' not found in AnimatedSprite2D!" << std::endl;
+        return;
     }
+
+    if (m_pCurrentAnim == animIt->second) {
+        std::cout << "Animation '" << p_strName << "' is already playing. No need to switch." << std::endl;
+        return;
+    }
+
+    m_pCurrentAnim = animIt->second;
+    this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
+    m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
+    m_pCurrentFrameUVs = m_vpFrameUVCoords[m_pCurrentAnim->m_iStartFrame];
+    m_bFrameChanged = true;
+
+    std::cout << "Successfully switched to animation: " << p_strName << std::endl;
 }
 
 // This override lets you change to a specific frame of the animation you are setting
