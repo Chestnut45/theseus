@@ -29,11 +29,25 @@ void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
 void PlayerController::LateInitialize()
 {
     auto* pGameObject = GetGameObject();
-    if (!pGameObject) return;
+    if (!pGameObject)
+    {
+        std::cerr << "LateInitialize failed: PlayerController not attached to GameObject!" << std::endl;
+        return;
+    }
 
     if (!m_pAnimComponent)
     {
+        std::cout << "Initializing Animation Component in PlayerController..." << std::endl;
         m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
+    }
+
+    if (!m_pAnimComponent)
+    {
+        std::cerr << "Failed to initialize Animation Component in LateInitialize!" << std::endl;
+    }
+    else
+    {
+        std::cout << "Successfully initialized Animation Component!" << std::endl;
     }
 
     InitializeAnimations();
@@ -74,27 +88,32 @@ void PlayerController::Update(float delta)
     {
         wolf::Error("PlayerController not attached to GameObject!");
         return;
-        // Lazy initialization of components if not set yet
-        m_pTransform = m_pTransform ? m_pTransform : pGameObject->GetComponent<wolf::Transform2D>();
-        m_pVelocity = m_pVelocity ? m_pVelocity : pGameObject->GetComponent<VelocityComponent>();
-
-        if (!m_pAnimComponent)
-        {
-            LateInitialize();
-        }
-        auto* pCamera = pGameObject->GetScene().GetActiveCamera();
-        if (pCamera)
-        {
-            // Double zoom with plus key, half zoom with minus key
-            float prevZoom = pCamera->GetZoom();
-            if (wolf::Input::IsKeyJustDown(GLFW_KEY_EQUAL)) pCamera->SetZoom(prevZoom * 2);
-            if (wolf::Input::IsKeyJustDown(GLFW_KEY_MINUS)) pCamera->SetZoom(prevZoom * 0.5f);
-        }
     }
-    
 
-    // Only update if both components exist
-    if (m_pTransform && m_pVelocity)
+    // Lazy initialization of components if not set yet
+    if (!m_pTransform)
+        m_pTransform = pGameObject->GetComponent<wolf::Transform2D>();
+
+    if (!m_pVelocity)
+        m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
+
+    // Lazy initialization of animation component if not set
+    if (!m_pAnimComponent)
+    {
+        LateInitialize();
+    }
+
+    // Camera zoom handling
+    auto* pCamera = pGameObject->GetScene().GetActiveCamera();
+    if (pCamera)
+    {
+        float prevZoom = pCamera->GetZoom();
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_EQUAL)) pCamera->SetZoom(prevZoom * 2);
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_MINUS)) pCamera->SetZoom(prevZoom * 0.5f);
+    }
+
+    // Ensure essential components are initialized before updating
+    if (!m_pTransform || !m_pVelocity || !m_pAnimComponent)
     {
         std::cerr << "Error: Missing essential components in PlayerController!" << std::endl;
         return;
@@ -168,10 +187,14 @@ void PlayerController::HandleMovement(float delta)
     if (wolf::Input::IsKeyDown(GLFW_KEY_A)) direction.x -= 1.0f;
     if (wolf::Input::IsKeyDown(GLFW_KEY_D)) direction.x += 1.0f;
 
-    // If no movement input is detected, reset velocity and set to idle state
+     // If no movement input is detected, reset velocity and set to idle state
     if (direction == glm::vec2(0.0f))
     {
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        if (m_pVelocity) // Add null check
+            m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        else
+            std::cerr << "Error: m_pVelocity is not initialized!" << std::endl;
+
         if (!m_isAttacking && !m_isRolling)
         {
             m_action = PlayerAction::NONE;
@@ -187,7 +210,10 @@ void PlayerController::HandleMovement(float delta)
     m_lastDirectionEnum = GetDirectionFromHeldKeys();
 
     // Set the player's velocity based on the direction and movement speed
-    m_pVelocity->SetVelocity(direction * m_moveSpeed);
+    if (m_pVelocity) // Add null check
+        m_pVelocity->SetVelocity(direction * m_moveSpeed);
+    else
+        std::cerr << "Error: m_pVelocity is not initialized!" << std::endl;
 
     // Update state to walking if not rolling or jumping
     if (!m_isRolling && !m_isJumping)
