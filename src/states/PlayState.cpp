@@ -91,6 +91,53 @@ void PlayState::Update(float delta)
         playerAnim->Update(delta);
     }
 
+    // INVENTORY TESTING
+    auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
+    if (playerInventory) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
+            playerInventory->DEBUGPrintInventory();
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
+            ItemBase* pAddItem = new EquipmentItem(NONE, "EquipmentItem", "This is a test item", 0, false, "data/textures/sPlayerTest.png", HEAD);
+            if (playerInventory->AddItem(pAddItem)) {
+                printf("Sucessfully added item!\n");
+            }
+            else {
+                printf("Did not add item...\n");
+            }
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
+            ItemBase* pAddItem = new ConsumableItem(NONE, "ConsumableItem", "This is a test item", 0, false, "data/textures/sPlayerTest.png", 2);
+            if (playerInventory->AddItem(pAddItem)) {
+                printf("Sucessfully added item!\n");
+            }
+            else {
+                printf("Did not add item...\n");
+            }
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
+            ItemBase* pItem = playerInventory->GetItem("ConsumableItem");
+            if (pItem) {
+                printf("Retrieved this item: %s\n", pItem->GetName().c_str());
+            }
+            else {
+                printf("Couldn't find Consumable item\n");
+            }
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
+            if (playerInventory->RemoveItem("ConsumableItem")) {
+                printf("Successfully removed Consumable item!\n");
+            }
+            else {
+                printf("Did not remove Consumable item...\n");
+            }
+        }
+    }
+
     // Apply velocity to transforms for all objects with both components
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())  // Use GetScene()
     {
@@ -156,6 +203,9 @@ void PlayState::CreatePlayer()
 
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
+
+    // INVENTORY TESTING
+    auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16);
 
     // Add hitbox
     auto& hitbox = m_pPlayerObject->AddComponent<HitboxComponent>(0, 1);
