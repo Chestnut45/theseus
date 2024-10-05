@@ -10,6 +10,9 @@
 #include <windows.h>
 #endif
 
+// Needed for ImGui window bring to front
+#include <imgui/imgui_internal.h>
+
 namespace wolf
 {
 
@@ -95,13 +98,14 @@ App::App(const std::string& name, int width, int height)
     Log("OpenGL Context: ", glGetString(GL_VERSION));
 
     // Initialize audio system
-    Audio::_Setup();
+    // NOTE: Commented out until we find a fix for soloud crashing
+    // Audio::_Setup();
 }
 
 App::~App()
 {
     // Shutdown audio system
-    Audio::_Shutdown();
+    // Audio::_Shutdown();
     
     // Shutdown ImGui
     ImGui_ImplOpenGL3_Shutdown();
@@ -214,6 +218,7 @@ void App::ShowDebug()
     ImGui::SetNextWindowPos(ImVec2((float)(m_width - 256), 0));
     ImGui::SetNextWindowSize(ImVec2(256, 254));
     ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+    ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
     
     // Performance monitoring
     ImGui::SeparatorText("Performance:");

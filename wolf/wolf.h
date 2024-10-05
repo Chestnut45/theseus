@@ -9,6 +9,7 @@
 #include "W_Common.h"
 #include "W_EventManager.h"
 #include "W_GameObject.h"
+#include "W_Grid2D.h"
 #include "W_IndexBuffer.h"
 #include "W_Input.h"
 #include "W_Logging.h"
