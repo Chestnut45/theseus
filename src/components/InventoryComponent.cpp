@@ -1,6 +1,7 @@
 #include "InventoryComponent.h"
+#include <imgui/imgui.h>
 
-InventoryComponent::InventoryComponent(int p_iSize) : m_iSize(p_iSize) {
+InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow) {
     // Reserve the amount of space we've been asked for
     m_vvpContents.reserve(p_iSize);
 
@@ -17,10 +18,6 @@ InventoryComponent::~InventoryComponent() {
 
     // Then delete the contents vector itself
     m_vvpContents.clear();
-}
-
-void InventoryComponent::Update(float p_fDelta) {
-    // Do cool and epic things B]
 }
 
 ItemBase* InventoryComponent::GetItem(const std::string& p_strItemName) {
@@ -242,4 +239,35 @@ void InventoryComponent::DEBUGPrintInventory() {
         printf("[Name: %s Quanity: %d] ", pItem->GetName().c_str(), m_vvpContents[q].size());
     }
     printf("\n");
+}
+
+void InventoryComponent::ShowInventoryGUI() {
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+
+    ImGui::SetNextWindowPos({500, 200});
+    ImGui::SetNextWindowSize({500, 500});
+    ImGui::Begin("~ Inventory ~", nullptr, flags);
+
+    int counter = 0;
+    for (int k = 0; k < m_iSize; k++) {
+        if (!m_vvpContents[k].empty()) {
+            if (ImGui::Button(m_vvpContents[k].top()->GetName().c_str(), ImVec2(50, 50))) {
+                
+            }
+        }
+        else {
+            if(ImGui::Button("##", ImVec2(50, 50))) {
+
+            }
+        }
+        if (counter == m_iMaxPerRow - 1) {
+            counter = 0;
+        }
+        else {
+            ImGui::SameLine();
+            counter++;
+        }
+    }
+    // End of window
+    ImGui::End();
 }

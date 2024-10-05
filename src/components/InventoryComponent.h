@@ -15,10 +15,8 @@
 
 class InventoryComponent : public wolf::BaseComponent {
     public:
-        InventoryComponent(int p_iSize);
+        InventoryComponent(int p_iSize, int p_iSlotsPerRow);
         ~InventoryComponent();
-
-        void Update(float p_fDelta);
 
         ItemBase* GetItem(const std::string& p_strItemName);
         ItemBase* GetItem(ItemID p_enItemID);
@@ -36,13 +34,13 @@ class InventoryComponent : public wolf::BaseComponent {
 
         void EmptyInventory();
 
-        void OpenInventory();
-        void CloseInventory();
+        void ShowInventoryGUI();
 
         void DEBUGPrintInventory();
 
     private:
         const int m_iSize;
+        const int m_iMaxPerRow;
         int m_iSlotsInUse = 0;
 
         std::vector<std::stack<ItemBase*>> m_vvpContents;

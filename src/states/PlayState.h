@@ -47,6 +47,7 @@ private:
 
     // Flags
     bool m_showLabyrinthManager = true;
+    bool m_showInventoryGUI = false;
 
     // Private helper methods
 

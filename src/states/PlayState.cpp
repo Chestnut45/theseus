@@ -94,6 +94,9 @@ void PlayState::Update(float delta)
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
     if (playerInventory) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) m_showInventoryGUI = !m_showInventoryGUI;
+        if (m_showInventoryGUI) playerInventory->ShowInventoryGUI();
+
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
             playerInventory->DEBUGPrintInventory();
         }
@@ -205,7 +208,7 @@ void PlayState::CreatePlayer()
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
     // INVENTORY TESTING
-    auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16);
+    auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16, 4);
 
     // Add hitbox
     auto& hitbox = m_pPlayerObject->AddComponent<HitboxComponent>(0, 1);
