@@ -11,14 +11,18 @@
 
 #include "../HitboxManager.h"
 #include "../HurtboxManager.h"
+#include "../Events/DialogueTriggerEvent.h"
+#include "DialogueManager.h"
+
 
 class LabyrinthManager;
 
 class PlayState : public GameState
 {
 public:
-    PlayState(GameStateManager* manager, Theseus* gameInstance)
-        : GameState(manager, gameInstance) {}  
+    PlayState(GameStateManager* manager, Theseus* gameInstance, DialogueManager* dialogueManager)
+        : GameState(manager, gameInstance), m_pDialogueManager(dialogueManager) {}
+
 
     void Enter() override;
     void Exit() override;
@@ -28,12 +32,14 @@ public:
     void Render() override;
     void BackgroundUpdate(float delta) override;
     void BackgroundRender() override;
+    void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
 
 private:
     
     // Game objects / components that will exist for the duration of the play state
     wolf::GameObject* m_pPlayerObject = nullptr;
     LabyrinthManager* m_pLabyrinthManager = nullptr;
+    DialogueManager* m_pDialogueManager = nullptr;
 
     // Manager for hitboxes
     HitboxManager* m_pHitboxManager = nullptr;
@@ -45,6 +51,7 @@ private:
     bool m_showLabyrinthManager = true;
 
     // Private helper methods
+    void StartDialogue(const std::string& dialogueID);
 
     // Creates the player object and all of its components
     // PRE: The player must not have been created yet

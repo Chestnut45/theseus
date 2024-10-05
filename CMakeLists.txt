@@ -63,6 +63,7 @@ add_subdirectory(thirdparty/glfw)
 add_subdirectory(thirdparty/glm)
 add_subdirectory(thirdparty/assimp)
 add_subdirectory(thirdparty/glew/build/cmake)
+add_subdirectory(thirdparty/yaml-cpp)
 
 include_directories(
     src/
@@ -75,6 +76,7 @@ include_directories(
     thirdparty/glfw/include
     thirdparty/glew/include
     thirdparty/assimp/include
+    thirdparty/yaml-cpp/include
     ${OPENGL_INCLUDE_DIRS})
 
 # Wolf
@@ -115,8 +117,7 @@ add_executable(theseus
     ${HEADER_FILES}
     )
 
-target_link_libraries(theseus assimp glfw glew ${OPENGL_LIBRARIES} ${GLFW_LIBRARIES})
-
+target_link_libraries(theseus assimp glfw glew yaml-cpp ${OPENGL_LIBRARIES} ${GLFW_LIBRARIES})
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
