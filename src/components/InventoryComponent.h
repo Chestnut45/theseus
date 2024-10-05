@@ -39,6 +39,8 @@ class InventoryComponent : public wolf::BaseComponent {
         void OpenInventory();
         void CloseInventory();
 
+        void DEBUGPrintInventory();
+
     private:
         const int m_iSize;
         int m_iSlotsInUse = 0;

@@ -34,6 +34,9 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     auto& velocity = m_pPlayerObject->AddComponent<VelocityComponent>();
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
 
+    // INVENTORY TESTING
+    auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16);
+
     // Add the main camera as a component of the player object
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
     camera.SetFollowSpeed(2.0f);
@@ -54,6 +57,50 @@ void Theseus::Update(float delta)
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) Shutdown();
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_GRAVE_ACCENT)) m_showDebug = !m_showDebug;
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_L)) m_showLabyrinthBuilder = !m_showLabyrinthBuilder;
+
+    // INVENTORY TESTING
+    auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
+    if (playerInventory) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
+            playerInventory->DEBUGPrintInventory();
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
+            ItemBase* pAddItem = new EquipmentItem(NONE, "EquipmentItem", "This is a test item", 0, false, "data/textures/sPlayerTest.png", HEAD);
+            if (playerInventory->AddItem(pAddItem)) {
+                printf("Sucessfully added item!\n");
+            }
+            else {
+                printf("Did not add item...\n");
+            }
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
+            ItemBase* pAddItem = new ConsumableItem(NONE, "ConsumableItem", "This is a test item", 0, false, "data/textures/sPlayerTest.png", 2);
+            if (playerInventory->AddItem(pAddItem)) {
+                printf("Sucessfully added item!\n");
+            }
+            else {
+                printf("Did not add item...\n");
+            }
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
+            ItemBase* pItem = playerInventory->GetItem("ConsumableItem");
+            if (pItem) {
+                printf("Retrieved this item: %s\n", pItem->GetName().c_str());
+            }
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
+            if (playerInventory->RemoveItem("ConsumableItem")) {
+                printf("Successfully removed Consumable item!\n");
+            }
+            else {
+                printf("Did not remove Consumable item...\n");
+            }
+        }
+    }
 
     // Handle window resizing
     if (m_windowResized)

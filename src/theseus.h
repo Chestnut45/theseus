@@ -7,6 +7,11 @@
 #include "LabyrinthBuilder.h"
 #include "PlayerController.h"
 #include "VelocityComponent.h"
+#include "InventoryComponent.h"
+#include "inventory/ConsumableItem.h"
+#include "inventory/FlatAmtItem.h"
+#include "inventory/PercentItem.h"
+#include "inventory/EquipmentItem.h"
 
 class Theseus : public wolf::App
 {

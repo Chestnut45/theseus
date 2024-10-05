@@ -1,13 +1,18 @@
 #pragma once
 
 //-----------------------------------------------------------------------------
-// File:            ItemBase.h
+// File:            ConsumableItem.h
 // Original Author: Aurora Ryder
 //
 // A class representing a consumable item
 //-----------------------------------------------------------------------------
 
 #include "ItemBase.h"
+
+enum Attribute {
+    HEALTH = 1,
+    STAMINA = 2
+};
 
 class ConsumableItem : public ItemBase {
     public:

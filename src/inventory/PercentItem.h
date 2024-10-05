@@ -11,11 +11,6 @@
 #include "ConsumableItem.h"
 #include "W_EventManager.h"
 
-enum Attribute {
-    HEALTH = 1,
-    STAMINA = 2
-};
-
 struct PercentHealItemEvent {
     float fHealAmt;
 };
