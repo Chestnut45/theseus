@@ -26,6 +26,11 @@ public:
     void StartDialogue(const std::string& dialogueID);
 
 private:
+    std::string GetCurrentCharacterName() const;
+    void OnContinueButtonPressed();
+    void OnSkipButtonPressed();
+    void EndDialogue();
+    
     // Helper function to progress to the next line in the dialogue
     void AdvanceDialogue();
 
@@ -46,4 +51,7 @@ private:
     bool m_showFullText = false;               // Whether the full line text is displayed
     float m_timeSinceLastKeyframe = 0.0f;      // Time elapsed since the last keyframe
     const float m_autoPlayDelay = 2.0f;        // Delay between autoplay transitions
+
+    // Replace 'Dialogue' with 'DialogueData'
+    std::unordered_map<std::string, DialogueData> m_dialogueData;
 };
