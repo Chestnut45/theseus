@@ -37,7 +37,7 @@ public:
         EAST,
         SOUTH_EAST,
         SOUTH,
-        SOUTH_WEST, 
+        SOUTH_WEST,
         WEST,
         NORTH_WEST
     };
@@ -57,36 +57,50 @@ private:
     // Initialization and animation management
     void InitializeAnimations();
     void SetAnimationBasedOnState();
-    void HandleMovement(float delta);
-    void HandleRolling(float delta);
-    void HandleJumping(float delta);
-    void HandleAttacking(float delta);
+
+    void HandlePlayerInput(float delta); // Declaration for the missing function
+    void HandleMovement(float delta);    // Declaration for HandleMovement
+    void HandleRolling(float delta);     // Declaration for HandleRolling
+    void HandleJumping(float delta);     // Declaration for HandleJumping
+    void HandleAttacking(float delta);   // Declaration for HandleAttacking
+
+
+    // Manage and transition different player states
     void StartAttack();
     void UpdateAttackState(float delta);
-    void ApplyDamageToEnemy();
-    void RegenerateStamina(float delta);
-    std::string GetAttackAnimationForDirection(PlayerDirection direction) const;
-    std::vector<int> m_heldKeys;
-    void AddHeldKey(int key);
-    void RemoveHeldKey(int key);
-    PlayerDirection GetDirectionFromHeldKeys() const;
+    void StartRoll();       // Starts a rolling action
+    void EndRoll();         // Ends a rolling action
+    void StartJump();       // Starts a jumping action
+    void EndJump();         // Ends a jumping action
 
-    // Utility methods for direction management
+    // Utility functions
+    void ApplyDamageToEnemy(); // Applies damage to enemies in range
+    void RegenerateStamina(float delta); // Regenerates stamina over time
+
+    // Animation utility functions
+    std::string GetAttackAnimationForDirection(PlayerDirection direction) const;
+    std::string GetWalkAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
+    std::string GetIdleAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
+    PlayerDirection GetDirectionFromHeldKeys() const;
     PlayerDirection GetDirectionFromVector(const glm::vec2& direction) const;
     glm::vec2 GetDirectionVector(PlayerDirection direction) const;
-    int m_lastKeyPressed = -1;
 
-    // Components and state variables
+    // Input tracking
+    void AddHeldKey(int key);
+    void RemoveHeldKey(int key);
+
+    // Data members for components and state management
     wolf::Transform2D* m_pTransform = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
     AnimatedSprite2D* m_pAnimComponent = nullptr;
 
-    // Animation and movement management
+    // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
     PlayerDirection m_lastDirectionEnum = PlayerDirection::NONE;
+    std::vector<int> m_heldKeys;  // List of currently held keys
     float m_moveSpeed = 200.0f;
 
-    // Stamina and rolling management
+    // Stamina management
     bool m_isRolling = false;
     float m_rollSpeed = 400.0f;
     float m_rollTimer = 0.0f;
@@ -110,11 +124,11 @@ private:
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
 
-    // Collision components
+    // Collision and hitbox management
     HitboxManager* m_pHitboxManager = nullptr;
     HurtboxManager* m_pHurtboxManager = nullptr;
 
-    // State management flags
+    // Animation and state tracking flags
     bool m_animationFinished = false;
+    std::string m_currentAnimation;
 };
-

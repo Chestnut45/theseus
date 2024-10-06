@@ -14,6 +14,7 @@
 #include "../HurtboxManager.h"
 #include <EnemyController.h>
 #include <PlayerBuilder.h>
+#include <EnemyBuilder.h>
 
 class LabyrinthManager;
 

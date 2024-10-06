@@ -7,50 +7,77 @@
 #include "../components/HitboxComponent.h"
 #include "../components/HurtboxComponent.h"
 #include "../components/VelocityComponent.h"
-#include "../components/PlayerBuilder.h"
+#include <PlayerBuilder.h>
+#include <EnemyBuilder.h>
 
 void PlayState::Enter()
 {
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
+    std::cout << "Entering PlayState: Scene reference obtained successfully." << std::endl;
 
-    // Initialise hitbox / hurtbox managers
+    // Initialise hitbox and hurtbox managers
     this->m_pHitboxManager = new HitboxManager(&scene);
     this->m_pHurtboxManager = new HurtboxManager(&scene);
+    
+    // Verify if managers were created successfully
+    if (!m_pHitboxManager || !m_pHurtboxManager)
+    {
+        std::cerr << "Error: Failed to initialize HitboxManager or HurtboxManager!" << std::endl;
+        return;
+    }
+    std::cout << "Hitbox and Hurtbox managers initialized successfully." << std::endl;
 
-    // Initialize player object first
+    // Initialize the player object first
+    std::cout << "Creating Player object..." << std::endl;
     CreatePlayer();
 
     // Check if the player has been correctly initialized
+    if (!m_pPlayerObject)
+    {
+        std::cerr << "Error: Failed to create Player object!" << std::endl;
+        return;
+    }
+    std::cout << "Player object created successfully." << std::endl;
+
     if (!m_pPlayerObject->GetComponent<PlayerController>())
     {
-        std::cout << "Error: PlayerController not found in player object!" << std::endl;
+        std::cerr << "Error: PlayerController not found in player object!" << std::endl;
+        return;
     }
+    std::cout << "PlayerController component found in Player object." << std::endl;
 
-    // Initialize Minitaur object second
+    // Initialize the Minitaur object second
+    std::cout << "Creating Minitaur enemy object..." << std::endl;
     CreateMinitaurEnemy();
 
+    // Check if Minitaur has been created successfully
+    if (!m_pMinitaurObject)
+    {
+        std::cerr << "Error: Failed to create Minitaur object!" << std::endl;
+        return;
+    }
+    std::cout << "Minitaur enemy object created successfully." << std::endl;
+
     // Add the main camera as a component of the player object
+    std::cout << "Adding Camera2D to Player object..." << std::endl;
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
+    std::cout << "Camera2D added and set as active camera." << std::endl;
 
     // Add the labyrinth manager component to an empty object
+    std::cout << "Creating and adding LabyrinthManager component..." << std::endl;
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
 
-    // TESTING BELOW
+    if (!m_pLabyrinthManager)
+    {
+        std::cerr << "Error: Failed to create LabyrinthManager component!" << std::endl;
+        return;
+    }
+    std::cout << "LabyrinthManager component created successfully." << std::endl;
 
-    // Create test projectile object
-    auto& testObj = scene.CreateObject2D();
-    testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
-    testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
-    auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    auto& testHitbox = testObj.AddComponent<HitboxComponent>(1, 1);
-    testHitbox.AddHitbox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    auto& testHurtbox = testObj.AddComponent<HurtboxComponent>(1, 1, 1, 1);
-    testHurtbox.AddHurtbox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    auto& testVelocity = testObj.AddComponent<VelocityComponent>();
-    testVelocity.SetVelocity(glm::vec2(-32.0f, 0.0f));
+    std::cout << "PlayState entry complete." << std::endl;
 }
 
 void PlayState::Exit()
@@ -172,45 +199,18 @@ void PlayState::CreatePlayer()
 
 void PlayState::CreateMinitaurEnemy()
 {
-    // Create Minitaur object with transform
-    m_pMinitaurObject = &m_pGameInstance->GetScene().CreateObject2D();
+    std::cout << "Starting Minitaur creation..." << std::endl;
 
-    // Add EnemyController to the Minitaur object
-    auto& enemyController = m_pMinitaurObject->AddComponent<EnemyController>(150.0f); // Initialize with chase speed
+    // Use EnemyBuilder to construct the Minitaur enemy
+    EnemyBuilder enemyBuilder(m_pGameInstance->GetScene());
+    m_pMinitaurObject = &enemyBuilder.BuildEnemy();
 
-    // Scale and position the Minitaur
-    auto* transform = m_pMinitaurObject->GetComponent<wolf::Transform2D>();
-    transform->SetScale(glm::vec2(3));                         // Scale the Minitaur
-    transform->SetPosition(glm::vec2(500.0f, 500.0f));         // Set the initial position, ensure this is valid
-
-    // Add a sprite component for the Minitaur
-    auto& sprite = m_pMinitaurObject->AddComponent<wolf::Sprite2D>("data/textures/minitaur.png");
-    sprite.SetOriginToCenterOfTexture(); // Optional: center the sprite to the transform origin
-
-    // Check sprite and transform validity
-    if (!sprite.GetTexture()) 
+    // Set the Minitaur's EnemyController if needed for additional configuration
+    auto* enemyController = enemyBuilder.GetEnemyController();
+    if (!enemyController)
     {
-        std::cerr << "Error: Minitaur sprite texture not loaded correctly!" << std::endl;
+        std::cerr << "Error: Failed to create and initialize Minitaur enemy!" << std::endl;
     }
-    std::cout << "Minitaur Initial Position: " << transform->GetGlobalPosition().x << ", " << transform->GetGlobalPosition().y << std::endl;
 
-    // Add velocity component for movement
-    m_pMinitaurObject->AddComponent<VelocityComponent>();
-
-    // Add hitbox component
-    auto& hitbox = m_pMinitaurObject->AddComponent<HitboxComponent>(0, 1);
-    hitbox.AddHitbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
-
-    // Add hurtbox component
-    auto& hurtbox = m_pMinitaurObject->AddComponent<HurtboxComponent>(0, 0, 0, 1);
-    hurtbox.AddHurtbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
-
-    // Add health and armor components
-    m_pMinitaurObject->AddComponent<HealthComponent>(100);
-    m_pMinitaurObject->AddComponent<ArmourComponent>(50);
-
-    // Now, explicitly call the Init() method on the EnemyController
-    enemyController.Init();
-
-    std::cout << "Minitaur successfully created and initialized!" << std::endl;
+    std::cout << "Minitaur created and initialized successfully!" << std::endl;
 }
