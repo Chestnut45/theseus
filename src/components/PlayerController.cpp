@@ -388,39 +388,48 @@ void PlayerController::Render()
 {
     if (!m_pTransform) return;
 
-    glm::vec2 worldPos = m_pTransform->GetGlobalPosition();
+    float barWidth = 180.0f;
+    float barHeight = 18.0f;
+    float verticalOffset = 10.0f;  // Offset between health and stamina bars
 
-    // Get the active camera and convert world position to screen position
-    wolf::Camera2D* camera = GetGameObject()->GetScene().GetActiveCamera();
-    if (!camera) return;
-    glm::vec4 worldPos4(worldPos.x, worldPos.y, 0.0f, 1.0f);
-    glm::vec4 clipSpacePos = camera->GetMatrix() * worldPos4;
-    glm::vec3 ndcSpacePos = clipSpacePos / clipSpacePos.w;
+    // Position both bars at the top-center of the screen
     ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-    glm::vec2 screenPos = glm::vec2(
-        (ndcSpacePos.x * 0.5f + 0.5f) * displaySize.x,
-        (1.0f - (ndcSpacePos.y * 0.5f + 0.5f)) * displaySize.y
-    );
-    screenPos.y -= 60.0f;
+    ImVec2 basePos = ImVec2(displaySize.x / 2.0f - barWidth / 2.0f, 20.0f);
 
-    // Draw stamina bar
-    ImGui::SetNextWindowPos(ImVec2(screenPos.x - 25.0f, screenPos.y));
-    ImGui::SetNextWindowSize(ImVec2(50.0f, 10.0f));
-    ImGui::Begin("##StaminaBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-    ImGui::ProgressBar(m_stamina / m_maxStamina, ImVec2(-1, 0)); // Full width, default height
-    ImGui::End();
+    // Push ImGui style variables for a more polished and "arty" look
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);          // Rounded corners
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);           // Rounded frame corners
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 2.0f)); // Inner padding
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.8f)); // Semi-transparent background
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));   // Border color
+    ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0.1f, 0.1f, 0.1f, 0.5f)); // Shadow effect
 
-    // Draw health bar below the stamina bar
+    // Render the health bar at the top-center of the screen
     auto* healthComponent = GetGameObject()->GetComponent<HealthComponent>();
     if (healthComponent)
     {
-        screenPos.y += 15.0f;  // Position health bar below stamina bar
-        ImGui::SetNextWindowPos(ImVec2(screenPos.x - 25.0f, screenPos.y));
-        ImGui::SetNextWindowSize(ImVec2(50.0f, 10.0f));
+        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for health bar
+        ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
         ImGui::Begin("##HealthBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red color for health bar
-        ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1, 0));
-        ImGui::PopStyleColor();
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1.0f, 0.0f, 0.0f, 1.0f)); // Deep red health color
+        ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1, barHeight));
+        ImGui::PopStyleColor(); // Pop color for health bar
         ImGui::End();
     }
+
+    // Move the position down for the stamina bar
+    basePos.y += (barHeight + verticalOffset);
+
+    // Render the stamina bar below the health bar
+    ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for stamina bar
+    ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
+    ImGui::Begin("##StaminaBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.0f, 1.0f, 0.0f, 1.0f)); // Green stamina color
+    ImGui::ProgressBar(m_stamina / m_maxStamina, ImVec2(-1, barHeight)); // Full width, defined height
+    ImGui::PopStyleColor(); // Pop color for stamina bar
+    ImGui::End();
+
+    // Pop ImGui style variables and colors
+    ImGui::PopStyleVar(3); // Pop style variables (WindowRounding, FrameRounding, and FramePadding)
+    ImGui::PopStyleColor(3); // Pop style colors (WindowBg, Border, and BorderShadow)
 }
