@@ -79,6 +79,18 @@ void PlayerController::InitializeAnimations()
 // Main update loop for the player controller
 void PlayerController::Update(float delta)
 {
+    auto* pGameObject = GetGameObject();
+    if (!pGameObject) return;
+
+    // Retrieve the active camera through the game's scene using the game object
+    auto* pCamera = pGameObject->GetScene().GetActiveCamera();
+    if (pCamera)
+    {
+        float prevZoom = pCamera->GetZoom();
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_EQUAL)) pCamera->SetZoom(prevZoom * 2);
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_MINUS)) pCamera->SetZoom(prevZoom * 0.5f);
+    }
+
     if (!m_pTransform) m_pTransform = GetGameObject()->GetComponent<wolf::Transform2D>();
     if (!m_pVelocity) m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
     if (!m_pAnimComponent) LateInitialize();
