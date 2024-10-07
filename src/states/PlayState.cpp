@@ -102,17 +102,7 @@ void PlayState::Update(float delta)
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
-            ItemBase* pAddItem = new EquipmentItem(NONE, "EquipmentItem", "This is a test item", 0, false, "data/textures/sPlayerTest.png", HEAD);
-            if (playerInventory->AddItem(pAddItem)) {
-                printf("Sucessfully added item!\n");
-            }
-            else {
-                printf("Did not add item...\n");
-            }
-        }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            ItemBase* pAddItem = new ConsumableItem(NONE, "ConsumableItem", "This is a test item", 0, false, "data/textures/sPlayerTest.png", 2);
+            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "EquipmentItem1", "This is a test equipment item", 0, false, "data/textures/sPlayerTest.png", HEAD);
             if (playerInventory->AddItem(pAddItem)) {
                 printf("Sucessfully added item!\n");
             }
@@ -122,21 +112,32 @@ void PlayState::Update(float delta)
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-            ItemBase* pItem = playerInventory->GetItem("ConsumableItem");
-            if (pItem) {
-                printf("Retrieved this item: %s\n", pItem->GetName().c_str());
+            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "EquipmentItem2", "This is a different test equipment item", 0, false, "data/textures/sPlayerTest.png", WEAPON);
+            if (playerInventory->AddItem(pAddItem)) {
+                printf("Sucessfully added item!\n");
             }
             else {
-                printf("Couldn't find Consumable item\n");
+                printf("Did not add item...\n");
             }
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            if (playerInventory->RemoveItem("ConsumableItem")) {
-                printf("Successfully removed Consumable item!\n");
+            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "ConsumableItem1", "This is a test consumable item", 0, true, "data/textures/sPlayerTest.png", 2);
+            if (playerInventory->AddItem(pAddItem)) {
+                printf("Sucessfully added item!\n");
             }
             else {
-                printf("Did not remove Consumable item...\n");
+                printf("Did not add item...\n");
+            }
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
+            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "ConsumableItem2", "This is a different test consumable item", 0, false, "data/textures/sPlayerTest.png", 1);
+            if (playerInventory->AddItem(pAddItem)) {
+                printf("Sucessfully added item!\n");
+            }
+            else {
+                printf("Did not add item...\n");
             }
         }
     }

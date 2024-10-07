@@ -12,7 +12,9 @@
 #include <string>
 
 enum ItemID {
-    NONE
+    NONE,
+    CONSUMABLE,
+    EQUIPMENT,
 };
 
 class ItemBase {

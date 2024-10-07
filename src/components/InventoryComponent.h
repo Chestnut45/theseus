@@ -12,6 +12,8 @@
 #include <vector>
 #include <stack>
 #include "inventory/ItemBase.h"
+#include "inventory/ConsumableItem.h"
+#include "inventory/EquipmentItem.h"
 
 class InventoryComponent : public wolf::BaseComponent {
     public:
@@ -39,6 +41,10 @@ class InventoryComponent : public wolf::BaseComponent {
         void DEBUGPrintInventory();
 
     private:
+        void UseItem(ItemBase* p_pItem, int p_iItemIndex);
+        void EquipItem(ItemBase* p_pItem, int p_iItemIndex);
+        void UnequipItem(ItemBase* p_pItem, int p_iItemIndex);
+
         const int m_iSize;
         const int m_iMaxPerRow;
         int m_iSlotsInUse = 0;
