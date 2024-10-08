@@ -68,7 +68,7 @@ add_subdirectory(thirdparty/yaml-cpp)
 include_directories(
     src/
     src/components/
-    src/Events
+    src/events
     wolf/
     thirdparty/
     thirdparty/entt
