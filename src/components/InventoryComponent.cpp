@@ -289,7 +289,7 @@ void InventoryComponent::EmptyInventory() {
         // And empty each of the item stacks within
         while (!it->empty()) {
             ItemBase* pNextItem = it->top();
-            pNextItem->~ItemBase();
+            delete pNextItem;
             it->pop();
         }
     }
@@ -324,7 +324,7 @@ void InventoryComponent::ShowInventoryGUI() {
             // If this is a consumable item
             if (pItem->GetID() == CONSUMABLE) {
                 // Try to cast it
-                ConsumableItem* pConsumable = static_cast<ConsumableItem*>(pItem);
+                ConsumableItem* pConsumable = dynamic_cast<ConsumableItem*>(pItem);
                 if (!pConsumable) {
                     // And throw an error if we couldn't
                     wolf::Error("Failed to cast ItemBase to ConsumableItem!\n");
@@ -337,7 +337,7 @@ void InventoryComponent::ShowInventoryGUI() {
             }
             else if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
                 // Try to cast it
-                EquipmentItem* pEquipment = static_cast<EquipmentItem*>(pItem);
+                EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(pItem);
                 if (!pEquipment) {
                     // And throw an error if we couldn't
                     wolf::Error("Failed to cast ItemBase to EquipmentItem!\n");
@@ -371,7 +371,7 @@ void InventoryComponent::ShowInventoryGUI() {
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                 // We display the details string that we constructed earlier
                 ImGui::BeginTooltip();
-                ImGui::Text(strTooltipText.c_str());
+                ImGui::Text("%s", strTooltipText.c_str());
                 ImGui::EndTooltip();
             }
 
@@ -442,7 +442,7 @@ void InventoryComponent::ShowInventoryGUI() {
 }
 
 void InventoryComponent::UseItem(ItemBase* p_pItem, int p_iItemIndex) {
-    ConsumableItem* pConsumable = static_cast<ConsumableItem*>(p_pItem);
+    ConsumableItem* pConsumable = dynamic_cast<ConsumableItem*>(p_pItem);
     if (pConsumable) {
         // If this is the last use the item has left
         if (pConsumable->GetNumUses() == 1) {
@@ -456,7 +456,7 @@ void InventoryComponent::UseItem(ItemBase* p_pItem, int p_iItemIndex) {
 }
 
 void InventoryComponent::EquipItem(ItemBase* p_pItem, int p_iItemIndex) {
-    EquipmentItem* pEquipment = static_cast<EquipmentItem*>(p_pItem);
+    EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(p_pItem);
     if (pEquipment) {
         // If we're trying to equip something that we're already wearing
         if (pEquipment->IsEquipped()) {
@@ -482,7 +482,7 @@ void InventoryComponent::EquipItem(ItemBase* p_pItem, int p_iItemIndex) {
 }
 
 void InventoryComponent::UnequipItem(ItemBase* p_pItem) {
-    EquipmentItem* pEquipment = static_cast<EquipmentItem*>(p_pItem);
+    EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(p_pItem);
     if (pEquipment) {
         // If for some reason we're trying to unequip something we don't have equipped
         if (!pEquipment->IsEquipped()) {
@@ -517,5 +517,5 @@ void InventoryComponent::DiscardItem(int p_iItemIndex) {
     this->RemoveItem(p_iItemIndex);
 
     // And delete it!
-    pItem->~ItemBase();
+    delete pItem;
 }

@@ -22,7 +22,7 @@ class ItemBase {
         ItemBase(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable)
             : m_enID(p_enID), m_strName(p_strName), m_strDesc(p_strDesc), m_iValue(p_iValue), m_bStackable(p_bStackable) {};
 
-        ~ItemBase() {};
+        virtual ~ItemBase() {};
 
         // Once an ID is set you can't change it
         ItemID GetID() const {return m_enID;};

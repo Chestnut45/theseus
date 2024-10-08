@@ -16,6 +16,6 @@ void PercentItem::Use() {
     m_iNumUses--;
     if (m_iNumUses <= 0) {
         // And if it was, delete the item
-        this->~PercentItem();
+        delete this;
     }
 }
