@@ -394,7 +394,7 @@ void InventoryComponent::ShowInventoryGUI() {
                     if (!bIsEquipped) { // We need to know if it is equipped
                         // If it isn't, we need to be able to put it on
                         if (ImGui::Button("Equip")) {
-                            this->EquipItem(pItem);
+                            this->EquipItem(pItem, k);
                             ImGui::CloseCurrentPopup();
                         }
                     }
@@ -455,7 +455,7 @@ void InventoryComponent::UseItem(ItemBase* p_pItem, int p_iItemIndex) {
     }
 }
 
-void InventoryComponent::EquipItem(ItemBase* p_pItem) {
+void InventoryComponent::EquipItem(ItemBase* p_pItem, int p_iItemIndex) {
     EquipmentItem* pEquipment = static_cast<EquipmentItem*>(p_pItem);
     if (pEquipment) {
         // If we're trying to equip something that we're already wearing
@@ -463,34 +463,20 @@ void InventoryComponent::EquipItem(ItemBase* p_pItem) {
             return; // Just return
         }
 
-        // Figure out which slot this item equips into
-        // Then, if there is something in that slot already, unequip it and equip this one
-        switch (pEquipment->GetEquipmentSlot()) {
-            case WEAPON:
-            break;
+        // First we need to figure out if there is already something equipped in the slot
+        // that the item we're trying to equip corresponds to
+        int iPrevItemIndex = m_iEquipmentSlots[pEquipment->GetEquipmentSlot()];
 
-            case HEAD:
-            break;
-
-            case BODY:
-            break;
-
-            case ARMS:
-            break;
-
-            case LEGS:
-            break;
-
-            case FEET:
-            break;
-
-            case GLOVES:
-            break;
-
-            case ACCESSORY:
-            break;
+        // If there is, the index will be a positive integer (or zero)
+        if (iPrevItemIndex >= 0) {
+            // So we need to retrieve and then unequip the item at that index
+            this->UnequipItem(this->GetItem(iPrevItemIndex));
         }
 
+        // Then we can store the index of the newly equipped item
+        m_iEquipmentSlots[pEquipment->GetEquipmentSlot()] = p_iItemIndex;
+
+        // And let the item know it has been equipped
         pEquipment->SetEquipped(true);
     }
 }
@@ -503,37 +489,18 @@ void InventoryComponent::UnequipItem(ItemBase* p_pItem) {
             return; // Just return
         }
 
-        // Figure out which slot this item equips into so that we can keep track
-        // of what slot we're unequipping from
-        switch (pEquipment->GetEquipmentSlot()) {
-            case WEAPON:
-            break;
+        // Figure out which slot this item equips into and "empty" that slot by setting it to an invalid index
+        m_iEquipmentSlots[pEquipment->GetEquipmentSlot()] = -1;
 
-            case HEAD:
-            break;
-
-            case BODY:
-            break;
-
-            case ARMS:
-            break;
-
-            case LEGS:
-            break;
-
-            case FEET:
-            break;
-
-            case GLOVES:
-            break;
-
-            case ACCESSORY:
-            break;
-        }
-
-        // Then unequip the item
+        // Then let the item know it's been unequipped
         pEquipment->SetEquipped(false);
     }
+}
+
+// This is a wrapper for GetItem that retrieves whichever item in the inventory is equipped
+// in a given equipment slot, or nullptr if there is no item currently equipped in that slot
+ItemBase* InventoryComponent::GetEquippedItem(EquipmentSlot p_enSlot) {
+    return GetItem(m_iEquipmentSlots[p_enSlot]);
 }
 
 void InventoryComponent::DiscardItem(int p_iItemIndex) {

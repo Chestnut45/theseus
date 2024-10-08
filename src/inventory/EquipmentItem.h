@@ -17,14 +17,18 @@ enum EquipmentSlot {
     LEGS,
     FEET,
     GLOVES,
-    ACCESSORY
+    ACCESSORY,
+    END_OF_EQUIPMENT,
 };
 
 class EquipmentItem : public ItemBase {
     public:
-        EquipmentItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, EquipmentSlot p_enEquipmentSlot)
-            : ItemBase(p_enID, p_strName, p_strDesc, p_iValue, p_bStackable), m_enSlot(p_enEquipmentSlot)
+        // Note that EquipmentItems CANNOT be stacked
+        EquipmentItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, EquipmentSlot p_enEquipmentSlot)
+            : ItemBase(p_enID, p_strName, p_strDesc, p_iValue, false), m_enSlot(p_enEquipmentSlot)
         {
+            // It is useful to have a string representation of the EquipmentSlot enum,
+            // so this switch case sets that up automatically when an item is created
             switch (m_enSlot) {
                 case WEAPON:
                     m_strSlot = "WEAPON";
@@ -72,6 +76,8 @@ class EquipmentItem : public ItemBase {
         // Once you set the equipment slot you can't change it later
         EquipmentSlot GetEquipmentSlot() {return m_enSlot;};
 
+        // This method should ONLY be used when you want to print or otherwise display the equipment slot
+        // for all other uses such as comparison/iteration/etc. use GetEquipmentSlot() and the enum itself.
         const std::string& GetEquipmentSlotString() {return m_strSlot;};
 
     private:

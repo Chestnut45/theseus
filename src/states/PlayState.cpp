@@ -98,42 +98,36 @@ void PlayState::Update(float delta)
         if (m_showInventoryGUI) playerInventory->ShowInventoryGUI();
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Sword", "This is a test equipment item", 0, false, HEAD);
-            if (playerInventory->AddItem(pAddItem)) {
-                printf("Sucessfully added item!\n");
-            }
-            else {
-                printf("Did not add item...\n");
-            }
+            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Helmet", "This is a test equipment item", 5, HEAD);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
-            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Blade", "This is a different test equipment item", 0, false, WEAPON);
-            if (playerInventory->AddItem(pAddItem)) {
-                printf("Sucessfully added item!\n");
-            }
-            else {
-                printf("Did not add item...\n");
-            }
+            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Sword", "This is a different test equipment item", 10, WEAPON);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Stacking Heart", "This is a test consumable item that stacks", 0, true, 1);
-            if (playerInventory->AddItem(pAddItem)) {
-                printf("Sucessfully added item!\n");
-            }
-            else {
-                printf("Did not add item...\n");
-            }
+            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Stacking Heart", "This is a test consumable item that stacks", 10, true, 1);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Multi-Use Heart", "This is a test consumable item with multiple uses", 0, false, 3);
-            if (playerInventory->AddItem(pAddItem)) {
-                printf("Sucessfully added item!\n");
+            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Multi-Use Heart", "This is a test consumable item with multiple uses", 25, false, 3);
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
+            ItemBase* pHeadItem = playerInventory->GetEquippedItem(HEAD);
+            ItemBase* pWeaponItem = playerInventory->GetEquippedItem(WEAPON);
+            if (pHeadItem) {
+                printf("%s is equipped in the HEAD slot!\n", pHeadItem->GetName().c_str());
             }
             else {
-                printf("Did not add item...\n");
+                printf("Nothing is equipped in the HEAD slot!\n");
+            }
+
+            if (pWeaponItem) {
+                printf("%s is equipped in the WEAPON slot!\n", pWeaponItem->GetName().c_str());
+            }
+            else {
+                printf("Nothing is equipped in the WEAPON slot!\n");
             }
         }
     }

@@ -13,8 +13,8 @@
 
 enum ItemID {
     NONE = 1,
-    CONSUMABLE = 2,
-    EQUIPMENT = 3
+    CONSUMABLE,
+    EQUIPMENT,
 };
 
 class ItemBase {
@@ -30,8 +30,8 @@ class ItemBase {
         int GetValue() const {return m_iValue;};
         void SetValue(int p_iValue) {m_iValue = p_iValue;};
 
+        // Once you've set an item's stackability you can't change it
         bool IsStackable() const {return m_bStackable;};
-        void SetStackable(bool p_bStackable) {m_bStackable = p_bStackable;};
 
         const std::string& GetName() const {return m_strName;};
         void SetName(const std::string& p_strName) {m_strName = p_strName;};

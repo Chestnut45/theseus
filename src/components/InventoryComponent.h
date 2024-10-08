@@ -17,6 +17,7 @@
 #include "inventory/ConsumableItem.h"
 #include "inventory/EquipmentItem.h"
 
+// Note that this struct is NOT a part of the ImGui library it just uses ImVec2s
 struct ImGuiUVSet {
     ImGuiUVSet(ImVec2 p_v2TopLeft, ImVec2 p_v2BotRight) : m_v2TopLeft(p_v2TopLeft), m_v2BotRight(p_v2BotRight) {};
     ImVec2 m_v2TopLeft;
@@ -32,15 +33,13 @@ class InventoryComponent : public wolf::BaseComponent {
         ItemBase* GetItem(ItemID p_enItemID);
         ItemBase* GetItem(int p_iItemIndex);
 
+        ItemBase* GetEquippedItem(EquipmentSlot p_enSlot);
+
         bool AddItem(ItemBase* p_pItem);
 
         bool RemoveItem(const std::string& p_strItemName);
         bool RemoveItem(ItemID p_enItemID);
         bool RemoveItem(int p_iItemIndex);
-
-        void SortByName();
-        void SortByValue();
-        void SortByType();
 
         void EmptyInventory();
 
@@ -48,13 +47,15 @@ class InventoryComponent : public wolf::BaseComponent {
 
     private:
         void UseItem(ItemBase* p_pItem, int p_iItemIndex);
-        void EquipItem(ItemBase* p_pItem);
+        void EquipItem(ItemBase* p_pItem, int p_iItemIndex);
         void UnequipItem(ItemBase* p_pItem);
         void DiscardItem(int p_iItemIndex);
 
         const int m_iSize;
         const int m_iMaxPerRow;
         int m_iSlotsInUse = 0;
+
+        int m_iEquipmentSlots[END_OF_EQUIPMENT - 1] = {-1};
 
         std::vector<std::stack<ItemBase*>> m_vvpContents;
         std::vector<ImGuiUVSet*> m_vv2TextureCoords;
