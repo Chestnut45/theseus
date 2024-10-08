@@ -261,7 +261,6 @@ void LabyrinthManager::GenerateLabyrinth()
 
     // Backtracking maze generation
 
-    // Direction enum
     enum class Dir
     {
         N,
@@ -270,69 +269,72 @@ void LabyrinthManager::GenerateLabyrinth()
         W,
     };
 
-    std::vector<Dir> directions =
-    {
-        Dir::N,
-        Dir::E,
-        Dir::S,
-        Dir::W,
-    };
+    int deltaDirX[] = { 0, 1, 0, -1 };
+    int deltaDirY[] = { 1, 0, -1, 0 };
 
-    int dx[] =
-    {
-        0, 1, 0, -1
-    };
-
-    int dy[] =
-    {
-        1, 0, -1, 0
-    };
-
-    // Recursive lambda
-    std::function<void(int, int)> CarvePassages = [&, this](int x, int y) -> void
+    // Recursive lambda to carve the maze into the labyrinth
+    // TODO: Refactor to iterative version to increase labyrinth size limitation
+    std::function<void(int, int)> CarveMaze = [&, this](int x, int y) -> void
     {
         // Shuffle the 4 directions
-        auto dirs = directions;
+        std::vector<Dir> dirs =
+        {
+            Dir::N,
+            Dir::E,
+            Dir::S,
+            Dir::W,
+        };
         std::shuffle(dirs.begin(), dirs.end(), this->m_rng.GetEngine());
 
-        // Place floor
+        // Place floor so we know this tile has been visited
         labyrinthGrid.Set(x, y, LogicalTile::Floor);
 
         for (Dir d : dirs)
         {
+            // Grab deltas
+            int dx = deltaDirX[(int)d];
+            int dy = deltaDirY[(int)d];
+
             // Calculate new coordinates
-            int newX = dx[(int)d] * 2 + x;
-            int newY = dy[(int)d] * 2 + y;
+            int newX = dx * 2 + x;
+            int newY = dy * 2 + y;
 
             // Bounds checking
             if (newX > 0 && newX < this->m_width - 1 && newY > 0 && newY < this->m_height - 1)
             {
                 if (labyrinthGrid.Get(newX, newY) == LogicalTile::Unvisited)
                 {
-                    // Place floors
-                    labyrinthGrid.Set(x + dx[(int)d], y + dy[(int)d], LogicalTile::Floor);
+                    // Place intermediate floor
+                    labyrinthGrid.Set(x + dx, y + dy, LogicalTile::Floor);
 
                     // Place walls
-                    int wx = x + dx[((int)d + 1) % 4];
-                    int wy = y + dy[((int)d + 1) % 4];
+                    int wx = x + deltaDirX[((int)d + 1) % 4];
+                    int wy = y + deltaDirY[((int)d + 1) % 4];
                     if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
-                    wx += dx[(int)d];
-                    wy += dy[(int)d];
+                    wx += dx;
+                    wy += dy;
                     if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
-                    wx = x + dx[((int)d + 3) % 4];
-                    wy = y + dy[((int)d + 3) % 4];
+                    wx = x + deltaDirX[((int)d + 3) % 4];
+                    wy = y + deltaDirY[((int)d + 3) % 4];
                     if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
-                    wx += dx[(int)d];
-                    wy += dy[(int)d];
+                    wx += dx;
+                    wy += dy;
                     if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
 
-                    CarvePassages(newX, newY);
+                    CarveMaze(newX, newY);
                 }
             }
         }
     };
 
-    CarvePassages(1, 1);
+    // Carve mazes into every unvisited tile in the labyrinth
+    for (int y = 1; y < m_height - 1; ++y)
+    {
+        for (int x = 1; x < m_width - 1; ++x)
+        {
+            if (labyrinthGrid.Get(x, y) == LogicalTile::Unvisited) CarveMaze(x, y);
+        }
+    }
 
     // Generate all chunks
 
