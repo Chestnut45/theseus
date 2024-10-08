@@ -1,0 +1,37 @@
+random_seed: false
+seed: 1234
+width: 125
+height: 125
+
+rooms: [
+  {
+    name: Minotaur's Chamber,
+    instances: 1,
+    force: false,
+    position: {type: manual, origin: {x: 51, y: 51}},
+    size: {type: manual, value: {x: 23, y: 23}},
+    entities: [
+      {type: minitaur, amount: 5}
+    ]
+  },
+  {
+    name: Test Rooms,
+    instances: 64,
+    force: false,
+    position: {type: random},
+    size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+    entities: [
+
+    ]
+  },
+  {
+    name: Clustered Rooms,
+    instances: 32,
+    force: false,
+    position: {type: random_radius, position: {x: 65, y: 65}, radius: 18},
+    size: {type: random_min_max, min: {x: 1, y: 1}, max: {x: 3, y: 3}},
+    entities: [
+
+    ]
+  }
+]
