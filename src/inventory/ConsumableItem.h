@@ -16,8 +16,8 @@ enum Attribute {
 
 class ConsumableItem : public ItemBase {
     public:
-        ConsumableItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, const std::string& p_strImgPath, int p_iNumUses)
-            : ItemBase(p_enID, p_strName, p_strDesc, p_iValue, p_bStackable, p_strImgPath), m_iNumUses(p_iNumUses){};
+        ConsumableItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, int p_iNumUses)
+            : ItemBase(p_enID, p_strName, p_strDesc, p_iValue, p_bStackable), m_iNumUses(p_iNumUses){};
         
         ~ConsumableItem() {};
 

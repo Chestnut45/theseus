@@ -1,8 +1,7 @@
 #include "InventoryComponent.h"
 #include "W_Logging.h"
-#include <imgui/imgui.h>
 
-InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow) {
+InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow) {
     // Reserve the amount of space we've been asked for
     m_vvpContents.reserve(p_iSize);
 
@@ -10,6 +9,69 @@ InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow) : m_iSiz
     for (int i = 0; i < p_iSize; i++) {
         std::stack<ItemBase*> stack;
         m_vvpContents.push_back(stack);
+    }
+
+    wolf::Texture* pNewTexture = wolf::TextureManager::CreateTexture(p_strTexture);
+    if (pNewTexture) {
+        if ((pNewTexture->GetWidth() * pNewTexture->GetHeight()) % (int)(p_v2TexFrameSize.x * p_v2TexFrameSize.y) != 0) {
+            // If the new texture doesn't match the frame size then we delete it and leave the current texture unchanged
+            wolf::TextureManager::DestroyTexture(pNewTexture);
+            wolf::Error("Incorrectly sized texture file \"", p_strTexture, "\" passed to InventoryComponent.");
+        }
+        // Then we need to know how many frames are in the texture
+        int iNumFramesX = pNewTexture->GetWidth() / p_v2TexFrameSize.x;
+        int iNumFramesY = pNewTexture->GetHeight() / p_v2TexFrameSize.y;
+
+        int iWidth = iNumFramesX + 1;
+        int iHeight = iNumFramesY + 1;
+
+        // We can use those values to create UV coordinates by treating them
+        // as points between 0 and 1 on the X and Y axes
+
+        // So we make a place to store them
+        ImVec2 av2WorkingUVCoords[iWidth * iHeight];
+
+        // Figure out how much we'll be incrementing each X and Y by
+        float fIncX = 1.0f / iNumFramesX;
+        float fIncY = 1.0f / iNumFramesY;
+
+        // And start calculating them
+        for (int i = 0; i <= iNumFramesY; i++) {
+            // A V coordinate would be calculated as:
+            float fVCord = i * fIncY;
+
+            for (int j = 0; j <= iNumFramesX; j++) {
+                // And a U coordinate would be calculated the same way, but with x
+                float fUCord = j * fIncX;
+
+                // Once we have a UV coordinate set we store it for later
+                av2WorkingUVCoords[(i * iWidth) + j] = ImVec2(fUCord, fVCord);
+
+            }
+        }
+
+        // Because frames are numbered 1-n but vectors are index 0-n, we need an offset
+        // frame coordinate set that occupies the first index.
+        ImGuiUVSet* pOffsetCoord = new ImGuiUVSet(ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+        m_vv2TextureCoords.push_back(pOffsetCoord);
+
+        // Now that we have all our UV coordinates, we're going to assign them to frames
+        for (int p = 0; p <= iNumFramesY - 1; p++) {
+            for (int q = 0; q <= iNumFramesX - 1; q++) {
+                int iOriginPoint = (p * iWidth) + q;
+
+                // First we find the four UV coordinates that will be used to render this frame
+                // and store them in a struct that holds four glm::vec2s
+                ImGuiUVSet* pTexFrameCords = new ImGuiUVSet(av2WorkingUVCoords[iOriginPoint], av2WorkingUVCoords[iOriginPoint + iWidth + 1]);
+
+                // Then we store 'em
+                m_vv2TextureCoords.push_back(pTexFrameCords);
+            }
+        }
+
+        pNewTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+        m_pTexture = pNewTexture;
+        m_v2TexFrameSize = ImVec2(p_v2TexFrameSize.x, p_v2TexFrameSize.y);
     }
 }
 
@@ -227,29 +289,19 @@ void InventoryComponent::EmptyInventory() {
         // And empty each of the item stacks within
         while (!it->empty()) {
             ItemBase* pNextItem = it->top();
+            pNextItem->~ItemBase();
             it->pop();
-            delete(pNextItem);
         }
     }
 }
 
-// !-- THIS METHOD SHOULD BE REMOVED LATER --!
-void InventoryComponent::DEBUGPrintInventory() {
-    printf("Inventory Contents:\n");
-    for (int q = 0; q < m_iSlotsInUse; q++) {
-        ItemBase* pItem = m_vvpContents[q].top();
-        printf("[Name: %s Quanity: %d] ", pItem->GetName().c_str(), m_vvpContents[q].size());
-    }
-    printf("\n");
-}
-
 void InventoryComponent::ShowInventoryGUI() {
     // You can't resize the inventory but you can move it around!
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize;
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
     // By default, the inventory appears close to the middle of the screen
     ImGui::SetNextWindowPos({500, 200});
-    ImGui::SetNextWindowSize({250, 250});
+    ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + 20) * m_iMaxPerRow, (m_v2TexFrameSize.y + 20) * m_iMaxPerRow});
     ImGui::Begin("~ Inventory ~", nullptr, flags);
 
     // This counter lets us control how many items are drawn in a row
@@ -281,6 +333,7 @@ void InventoryComponent::ShowInventoryGUI() {
                 // Then construct the string that will be used to display all of the item's details
                 strTooltipText = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + pConsumable->GetDescription() 
                     + "\n\nValue: " + std::to_string(pConsumable->GetValue()) + "\nUses: " + std::to_string(pConsumable->GetNumUses());
+
             }
             else if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
                 // Try to cast it
@@ -311,7 +364,7 @@ void InventoryComponent::ShowInventoryGUI() {
             std::string strIndex = std::to_string(k);
 
             // Now we can start making the actual buttons
-            if (ImGui::Button("Item", ImVec2(50, 50))) {
+            if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetID()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetID()]->m_v2BotRight)) {
             }
             
             // When we hover over an inventory slot
@@ -341,14 +394,14 @@ void InventoryComponent::ShowInventoryGUI() {
                     if (!bIsEquipped) { // We need to know if it is equipped
                         // If it isn't, we need to be able to put it on
                         if (ImGui::Button("Equip")) {
-                            this->EquipItem(pItem, k);
+                            this->EquipItem(pItem);
                             ImGui::CloseCurrentPopup();
                         }
                     }
                     else {
                         // And if it IS equipped, we need to be able to take it off
                         if (ImGui::Button("Unequip")) {
-                            this->UnequipItem(pItem, k);
+                            this->UnequipItem(pItem);
                             ImGui::CloseCurrentPopup();
                         }
                     }
@@ -356,15 +409,7 @@ void InventoryComponent::ShowInventoryGUI() {
 
                 // We can discard any item we like
                 if (ImGui::Button("Discard")) {
-                    // If we're discarding an equipment item
-                    if (pItem->GetID() == EQUIPMENT) {
-                        // We need to make sure it's unequipped first
-                        this->UnequipItem(pItem, k);
-                    }
-                    
-                    this->RemoveItem(k);
-                    // If we're discarding something, then it's *probably* safe to delete it, too
-                    delete(pItem);
+                    this->DiscardItem(k);
                     ImGui::CloseCurrentPopup();
                 }
 
@@ -376,9 +421,9 @@ void InventoryComponent::ShowInventoryGUI() {
             }
         }
         else { // Otherwise, this is an empty inventory slot
-            if(ImGui::Button("##", ImVec2(50, 50))) {
-                // So nothing needs to happen!
-            }
+           if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[NONE]->m_v2TopLeft, m_vv2TextureCoords[NONE]->m_v2BotRight)) {
+
+           }
         }
 
         // If we've drawn the maximum number of slots per row
@@ -410,7 +455,7 @@ void InventoryComponent::UseItem(ItemBase* p_pItem, int p_iItemIndex) {
     }
 }
 
-void InventoryComponent::EquipItem(ItemBase* p_pItem, int p_iItemIndex) {
+void InventoryComponent::EquipItem(ItemBase* p_pItem) {
     EquipmentItem* pEquipment = static_cast<EquipmentItem*>(p_pItem);
     if (pEquipment) {
         // If we're trying to equip something that we're already wearing
@@ -450,7 +495,7 @@ void InventoryComponent::EquipItem(ItemBase* p_pItem, int p_iItemIndex) {
     }
 }
 
-void InventoryComponent::UnequipItem(ItemBase* p_pItem, int p_iItemIndex) {
+void InventoryComponent::UnequipItem(ItemBase* p_pItem) {
     EquipmentItem* pEquipment = static_cast<EquipmentItem*>(p_pItem);
     if (pEquipment) {
         // If for some reason we're trying to unequip something we don't have equipped
@@ -489,4 +534,21 @@ void InventoryComponent::UnequipItem(ItemBase* p_pItem, int p_iItemIndex) {
         // Then unequip the item
         pEquipment->SetEquipped(false);
     }
+}
+
+void InventoryComponent::DiscardItem(int p_iItemIndex) {
+    // First find the item we want to discard
+    ItemBase* pItem = m_vvpContents[p_iItemIndex].top();
+
+    // If it is an equipment item
+    if (pItem->GetID() == EQUIPMENT) {
+        // We need to make sure it is unequipped
+        this->UnequipItem(pItem);
+    }
+
+    // Then we can remove it from the inventory
+    this->RemoveItem(p_iItemIndex);
+
+    // And delete it!
+    pItem->~ItemBase();
 }

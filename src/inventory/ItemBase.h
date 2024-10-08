@@ -12,15 +12,15 @@
 #include <string>
 
 enum ItemID {
-    NONE,
-    CONSUMABLE,
-    EQUIPMENT,
+    NONE = 1,
+    CONSUMABLE = 2,
+    EQUIPMENT = 3
 };
 
 class ItemBase {
     public:
-        ItemBase(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, const std::string& p_strImgPath)
-            : m_enID(p_enID), m_strName(p_strName), m_strDesc(p_strDesc), m_iValue(p_iValue), m_bStackable(p_bStackable), m_strImgPath(p_strImgPath) {};
+        ItemBase(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable)
+            : m_enID(p_enID), m_strName(p_strName), m_strDesc(p_strDesc), m_iValue(p_iValue), m_bStackable(p_bStackable) {};
 
         ~ItemBase() {};
 
@@ -39,9 +39,6 @@ class ItemBase {
         const std::string& GetDescription() const {return m_strDesc;};
         void SetDescription(const std::string& p_strDesc) {m_strDesc = p_strDesc;};
 
-        const std::string& GetImagePath() {return m_strImgPath;};
-        void SetImgPath(const std::string& p_strImgPath) {m_strImgPath = p_strImgPath;};
-
     private:
         int m_iValue;
         bool m_bStackable;
@@ -49,9 +46,6 @@ class ItemBase {
 
         std::string m_strName;
         std::string m_strDesc;
-        std::string m_strImgPath;
-
-        // Resources for rendering?
     
     friend class ConsumableItem;
 };

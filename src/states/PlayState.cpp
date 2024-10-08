@@ -98,11 +98,17 @@ void PlayState::Update(float delta)
         if (m_showInventoryGUI) playerInventory->ShowInventoryGUI();
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-            playerInventory->DEBUGPrintInventory();
+            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Sword", "This is a test equipment item", 0, false, HEAD);
+            if (playerInventory->AddItem(pAddItem)) {
+                printf("Sucessfully added item!\n");
+            }
+            else {
+                printf("Did not add item...\n");
+            }
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
-            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "EquipmentItem1", "This is a test equipment item", 0, false, "data/textures/sPlayerTest.png", HEAD);
+            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Blade", "This is a different test equipment item", 0, false, WEAPON);
             if (playerInventory->AddItem(pAddItem)) {
                 printf("Sucessfully added item!\n");
             }
@@ -112,7 +118,7 @@ void PlayState::Update(float delta)
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "EquipmentItem2", "This is a different test equipment item", 0, false, "data/textures/sPlayerTest.png", WEAPON);
+            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Stacking Heart", "This is a test consumable item that stacks", 0, true, 1);
             if (playerInventory->AddItem(pAddItem)) {
                 printf("Sucessfully added item!\n");
             }
@@ -122,17 +128,7 @@ void PlayState::Update(float delta)
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "ConsumableItem1", "This is a test consumable item", 0, true, "data/textures/sPlayerTest.png", 2);
-            if (playerInventory->AddItem(pAddItem)) {
-                printf("Sucessfully added item!\n");
-            }
-            else {
-                printf("Did not add item...\n");
-            }
-        }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "ConsumableItem2", "This is a different test consumable item", 0, false, "data/textures/sPlayerTest.png", 1);
+            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Multi-Use Heart", "This is a test consumable item with multiple uses", 0, false, 3);
             if (playerInventory->AddItem(pAddItem)) {
                 printf("Sucessfully added item!\n");
             }
@@ -209,7 +205,7 @@ void PlayState::CreatePlayer()
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
     // INVENTORY TESTING
-    auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16, 4);
+    auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 
     // Add hitbox
     auto& hitbox = m_pPlayerObject->AddComponent<HitboxComponent>(0, 1);

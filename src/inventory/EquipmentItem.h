@@ -22,8 +22,8 @@ enum EquipmentSlot {
 
 class EquipmentItem : public ItemBase {
     public:
-        EquipmentItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, const std::string& p_strImgPath, EquipmentSlot p_enEquipmentSlot)
-            : ItemBase(p_enID, p_strName, p_strDesc, p_iValue, p_bStackable, p_strImgPath), m_enSlot(p_enEquipmentSlot)
+        EquipmentItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, EquipmentSlot p_enEquipmentSlot)
+            : ItemBase(p_enID, p_strName, p_strDesc, p_iValue, p_bStackable), m_enSlot(p_enEquipmentSlot)
         {
             switch (m_enSlot) {
                 case WEAPON:

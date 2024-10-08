@@ -11,13 +11,21 @@
 #include <wolf.h>
 #include <vector>
 #include <stack>
+#include <imgui/imgui.h>
+
 #include "inventory/ItemBase.h"
 #include "inventory/ConsumableItem.h"
 #include "inventory/EquipmentItem.h"
 
+struct ImGuiUVSet {
+    ImGuiUVSet(ImVec2 p_v2TopLeft, ImVec2 p_v2BotRight) : m_v2TopLeft(p_v2TopLeft), m_v2BotRight(p_v2BotRight) {};
+    ImVec2 m_v2TopLeft;
+    ImVec2 m_v2BotRight;
+};
+
 class InventoryComponent : public wolf::BaseComponent {
     public:
-        InventoryComponent(int p_iSize, int p_iSlotsPerRow);
+        InventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize);
         ~InventoryComponent();
 
         ItemBase* GetItem(const std::string& p_strItemName);
@@ -38,16 +46,19 @@ class InventoryComponent : public wolf::BaseComponent {
 
         void ShowInventoryGUI();
 
-        void DEBUGPrintInventory();
-
     private:
         void UseItem(ItemBase* p_pItem, int p_iItemIndex);
-        void EquipItem(ItemBase* p_pItem, int p_iItemIndex);
-        void UnequipItem(ItemBase* p_pItem, int p_iItemIndex);
+        void EquipItem(ItemBase* p_pItem);
+        void UnequipItem(ItemBase* p_pItem);
+        void DiscardItem(int p_iItemIndex);
 
         const int m_iSize;
         const int m_iMaxPerRow;
         int m_iSlotsInUse = 0;
 
         std::vector<std::stack<ItemBase*>> m_vvpContents;
+        std::vector<ImGuiUVSet*> m_vv2TextureCoords;
+
+        wolf::Texture* m_pTexture;
+        ImVec2 m_v2TexFrameSize;
 };
