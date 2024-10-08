@@ -145,8 +145,25 @@ void PlayerController::HandleMovement(float delta)
 // Manage attack state and animation transitions
 void PlayerController::HandleAttacking(float delta)
 {
-    if (wolf::Input::IsLMBJustDown() && !m_isAttacking) StartAttack();
-    if (m_isAttacking) UpdateAttackState(delta);
+    if (wolf::Input::IsLMBJustDown() && !m_isAttacking) 
+    {
+        StartAttack();
+    }
+
+    // Check if the timer has elapsed the attack cooldown duration
+    if (m_attackTimer.Elapsed() >= m_attackCooldown && m_isAttacking)
+    {
+        // Apply damage immediately if there is a collision
+        ApplyDamageToEnemy();
+
+        // Restart the timer to start counting again from 0
+        m_attackTimer.Restart();  
+    }
+
+    if (m_isAttacking) 
+    {
+        UpdateAttackState(delta);
+    }
 }
 
 // Handle rolling logic based on player input and stamina
@@ -300,6 +317,9 @@ void PlayerController::StartAttack()
     m_attackTimer.Restart();
     m_animationFinished = false;
 
+    // Reset the damage flag
+    m_hasAppliedDamage = false;
+
     std::string attackAnimation = GetAttackAnimationForDirection(m_lastDirectionEnum);
 
     m_pAnimComponent->SetTexture("data/textures/TheseusSword-Sheet.png", glm::vec2(32.0f, 32.0f));
@@ -310,12 +330,18 @@ void PlayerController::StartAttack()
 
 void PlayerController::UpdateAttackState(float delta)
 {
-    if (m_pAnimComponent->IsAnimationComplete()) m_animationFinished = true;
+    if (m_pAnimComponent->IsAnimationComplete()) 
+    {
+        m_animationFinished = true;
+    }
 
     if (m_animationFinished)
     {
         m_isAttacking = false;
         m_action = glm::length(m_pVelocity->GetVelocity()) < 0.01f ? PlayerAction::NONE : PlayerAction::WALKING;
+
+        // Reset the damage flag when the attack animation ends
+        m_hasAppliedDamage = false;
 
         m_pAnimComponent->SetTexture("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f));
         m_currentAnimation = "";
@@ -336,17 +362,23 @@ void PlayerController::ApplyDamageToEnemy()
         auto* enemyHurtbox = enemyController.GetGameObject()->GetComponent<HurtboxComponent>();
         if (!enemyHurtbox) continue;
 
+        // Apply damage immediately if there's a collision between player's hitbox and enemy's hurtbox
         if (m_pHitboxManager->IsColliding(pPlayerHitbox, enemyHurtbox))
         {
             auto* enemyHealth = enemyController.GetGameObject()->GetComponent<HealthComponent>();
             if (enemyHealth)
             {
+                // Apply damage to the enemy's health
                 enemyHealth->Damage(m_attackDamage);
+
+                // Debug: Print information about the attack and enemy health
+                std::cout << "Player attacked enemy!" << std::endl;
+                std::cout << "Enemy HealthComponent - Damage: " << m_attackDamage << std::endl;
+                std::cout << "Enemy HealthComponent - Health: " << enemyHealth->GetHealth() << std::endl;
             }
         }
     }
 }
-
 void PlayerController::StartRoll()
 {
     m_isRolling = true;

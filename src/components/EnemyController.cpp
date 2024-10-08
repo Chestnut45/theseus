@@ -1,5 +1,5 @@
 #include "EnemyController.h"
-#include <iostream>
+#include <cassert>
 
 EnemyController::EnemyController(float chaseSpeed)
     : m_chaseSpeed(chaseSpeed), m_state(EnemyState::IDLE)
@@ -16,35 +16,36 @@ void EnemyController::Init()
         m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
         m_pHealth = pGameObject->GetComponent<HealthComponent>();
 
+        // Add and set up the AnimatedSprite2D component and animations
+        m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 4.0f);
+        SetUpAnimations();
+
         // Check if the essential components are initialized properly
-        if (!m_pTransform || !m_pVelocity || !m_pHealth)
-        {
-            std::cerr << "Error: Components not properly initialized in EnemyController!" << std::endl;
-            return;
-        }
+        assert(m_pTransform != nullptr && m_pVelocity != nullptr && m_pHealth != nullptr && "Components not properly initialized in EnemyController!");
 
         // Search for the player object in the scene and set it as the target
         for (auto&& [entity, playerController] : pGameObject->GetScene().Each<PlayerController>())
         {
             m_pTarget = playerController.GetGameObject();
-            std::cout << "Player found and set as target!" << std::endl;
             break; // Assume there's only one player in the scene
         }
 
-        if (!m_pTarget)
-        {
-            std::cerr << "Error: No player found in the scene!" << std::endl;
-        }
+        assert(m_pTarget != nullptr && "No player found in the scene!");
     }
 }
 
 void EnemyController::Update(float delta)
 {
-    // Ensure components and target are initialized
-    if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget) {
-        std::cout << "Components or target not initialized." << std::endl;
-        return;
+    if (m_pHealth->GetHealth() <= 0)
+    {
+        m_state = EnemyState::DEATH;
     }
+
+    // Ensure components and target are initialized
+    if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget) return;
+
+    // Update the animation based on the movement direction and state
+    UpdateAnimationBasedOnStateAndDirection();
 
     // State handling
     switch (m_state)
@@ -82,10 +83,16 @@ void EnemyController::HandleChasingState(float delta)
     // Check if the player is within melee range to start attacking
     if (distance <= m_meleeRange) 
     {
-        m_state = EnemyState::ATTACKING;
+        // Wait a short moment before attacking to make the transition smoother
+        if (m_transitionTimer.Elapsed() >= m_transitionDelay)
+        {
+            m_state = EnemyState::ATTACKING;
+            m_transitionTimer.Reset();
+        }
         return;
     }
 
+    // Smooth movement towards the player
     MoveTowardsTarget(delta);
 
     // Transition back to idle if player is out of detection range
@@ -99,17 +106,31 @@ void EnemyController::HandleAttackingState(float delta)
 {
     if (!m_pTarget || m_state == EnemyState::DEATH) return;
 
-    // Calculate distance to player
+    // Calculate distance to the player
     float distance = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
 
-    // If the player moves out of melee range, go back to chasing
-    if (distance > m_meleeRange)
+    // Debug: Print attacking state information
+    std::cout << "Enemy is ATTACKING the player. Distance: " << distance << std::endl;
+
+    // If the player moves out of melee range by a small tolerance, go back to chasing
+    if (distance > m_meleeRange + 20.0f)  // Add a small tolerance to avoid jittering
     {
+        std::cout << "Player moved out of range, switching to CHASING state!" << std::endl;
         m_state = EnemyState::CHASING;
         return;
     }
 
-    // Attack cooldown timer
+    // Stop or slow down the enemy's movement when attacking
+    m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Keep the enemy still during attack
+
+    // Optional: Apply a slight "lunge" toward the player if out of direct melee range
+    if (distance > m_meleeRange)
+    {
+        glm::vec2 lungeDirection = glm::normalize(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
+        m_pTransform->Translate(lungeDirection * m_chaseSpeed * 0.5f * delta); // Lunge towards the player
+    }
+
+    // Attack cooldown timer to control attack frequency
     m_attackTimer -= delta;
     if (m_attackTimer <= 0.0f)
     {
@@ -137,12 +158,27 @@ void EnemyController::MoveTowardsTarget(float delta)
     if (std::isnan(currentPosition.x) || std::isnan(currentPosition.y) || 
         std::isnan(targetPosition.x) || std::isnan(targetPosition.y))
     {
-        std::cerr << "Error: NaN values detected in position!" << std::endl;
         return;
     }
 
-    glm::vec2 direction = glm::normalize(targetPosition - currentPosition);
-    m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+    // Calculate the desired direction to the target
+    glm::vec2 desiredDirection = glm::normalize(targetPosition - currentPosition);
+
+    // Perform linear interpolation manually
+    glm::vec2 newDirection = m_currentDirection + 0.1f * (desiredDirection - m_currentDirection);
+
+    // Store the current direction for future reference
+    m_currentDirection = newDirection;
+
+    // Set the velocity based on the interpolated direction (do not multiply by delta)
+    glm::vec2 velocity = m_currentDirection * m_chaseSpeed;
+
+    // Debug: Print the current position and velocity
+    std::cout << "Enemy Position: (" << currentPosition.x << ", " << currentPosition.y << ")" << std::endl;
+    std::cout << "Enemy Velocity: (" << velocity.x << ", " << velocity.y << ")" << std::endl;
+
+    // Set the velocity to move the enemy
+    m_pVelocity->SetVelocity(velocity);
 }
 
 bool EnemyController::IsPlayerInRange() const
@@ -171,7 +207,72 @@ void EnemyController::ApplyDamageToPlayer()
         {
             // Apply damage to the player's health
             playerHealth->Damage(m_baseDamage);
-            std::cout << "Applied " << m_baseDamage << " damage to the player!" << std::endl;
+            std::cout << "Enemy attacked player!" << std::endl;
+            std::cout << "Player HealthComponent - Damage: " << m_baseDamage << std::endl;
+            std::cout << "Player HealthComponent - Health: " << playerHealth->GetHealth() << std::endl;
         }
+    }
+}
+
+void EnemyController::SetUpAnimations()
+{
+    if (!m_pAnimComponent) return;
+
+
+    m_pAnimComponent->AddAnimation("WalkWest", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 0, 0, false);
+    m_pAnimComponent->AddAnimation("WalkSouth", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
+    m_pAnimComponent->AddAnimation("WalkEast", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 2, 2, false);
+    m_pAnimComponent->AddAnimation("WalkNorth", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 3, 3, false);
+
+    // Set the default animation to face South
+    m_pAnimComponent->SetAnimation("WalkSouth");
+    m_pAnimComponent->SetOriginToCenterOfFrame();
+}
+
+void EnemyController::UpdateAnimationBasedOnStateAndDirection()
+{
+    if (!m_pAnimComponent || !m_pVelocity) return;
+
+    std::string animationName;
+
+    // Determine the animation based on movement and state
+    switch (m_state)
+    {
+        case EnemyState::IDLE:
+            animationName = "WalkSouth"; // Default idle animation
+            break;
+
+        case EnemyState::CHASING:
+        {
+            // Determine direction based on velocity
+            glm::vec2 velocity = m_pVelocity->GetVelocity();
+            if (glm::length(velocity) > 0.01f)  // Check if the enemy is moving
+            {
+                if (fabs(velocity.x) > fabs(velocity.y))
+                {
+                    animationName = (velocity.x > 0.0f) ? "WalkEast" : "WalkWest";
+                }
+                else
+                {
+                    animationName = (velocity.y > 0.0f) ? "WalkNorth" : "WalkSouth";
+                }
+            }
+            break;
+        }
+
+        case EnemyState::ATTACKING:
+            animationName = "WalkSouth";  // Modify as needed if attack animations are added later
+            break;
+
+        case EnemyState::DEATH:
+            animationName = "WalkSouth";  // Default death animation (can be replaced with a death frame)
+            break;
+    }
+
+    // Check if the animation needs to be changed
+    SpriteAnimation2D* currentAnim = m_pAnimComponent->GetCurrentAnimation();
+    if (!currentAnim || currentAnim->m_strName != animationName)
+    {
+        m_pAnimComponent->SetAnimation(animationName);
     }
 }
