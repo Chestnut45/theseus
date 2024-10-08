@@ -15,6 +15,7 @@
 
 // For portable file paths
 #include <filesystem>
+#include <fstream>
 
 // Platform native file dialog helper
 #include <portable-file-dialogs.h>
@@ -467,7 +468,7 @@ void LabyrinthManager::ShowGUI()
                 Reset();
             }
 
-            if (ImGui::MenuItem(ICON_FA_FILE " Load"))
+            if (ImGui::MenuItem(ICON_FA_FILE " Load..."))
             {
                 auto file = pfd::open_file("Load Labyrinth Config", std::filesystem::current_path() / "data", {"YAML configs (.yaml)", "*.yaml"}, pfd::opt::none);
                 if (file.result().size() > 0)
@@ -478,14 +479,14 @@ void LabyrinthManager::ShowGUI()
                 }
             }
 
-            if (ImGui::MenuItem(ICON_FA_FLOPPY_DISK " Save"))
+            if (ImGui::MenuItem(ICON_FA_FLOPPY_DISK " Save..."))
             {
-                // TODO: Save labyrinth config file to disk
-            }
-
-            if (ImGui::MenuItem(ICON_FA_FLOPPY_DISK " Save As..."))
-            {
-                // TODO: Save labyrinth config file to disk
+                auto file = pfd::save_file("Save Labyrinth Config", std::filesystem::current_path() / "data", {"YAML configs (.yaml)", "*.yaml"}, pfd::opt::none);
+                if (file.result().size() > 0)
+                {
+                    auto path = std::filesystem::path(file.result()).generic_string();
+                    SaveConfig(path);
+                }
             }
 
             ImGui::EndMenu();
@@ -778,6 +779,127 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
     {
         wolf::Error("Error parsing file '", filepath.c_str(), "': ", e.what());
     }
+}
+
+void LabyrinthManager::SaveConfig(const std::string& filepath)
+{
+    std::ofstream file(filepath, std::ios::binary);
+
+    file << "random_seed: ";
+    if (m_randomizeSeed) file << "true\n";
+    else file << "false\n";
+
+    file << "seed: ";
+    file << std::to_string(m_rng.GetSeed()).c_str();
+    file << "\n";
+
+    file << "width: " << std::to_string(m_width).c_str();
+    file << "\n";
+
+    file << "height: " << std::to_string(m_height).c_str();
+    file << "\n\n";
+
+    file << "rooms: [\n";
+
+    for (int i = 0; i < m_rooms.size(); ++i)
+    {
+        const auto& room = m_rooms[i];
+        file << "\t{\n";
+
+        file << "\t\tname: ";
+        file << room.m_name.c_str();
+        file << ",\n";
+
+        file << "\t\tinstances: ";
+        file << std::to_string(room.m_instances).c_str();
+        file << ",\n";
+
+        file << "\t\tforce: ";
+        if (room.m_force) file << "true,\n";
+        else file << "false,\n";
+
+        // Output position data
+        file << "\t\tposition: {";
+        file << "type: ";
+        switch (room.m_positionType)
+        {
+            case Room::PositionType::Manual:
+                file << "manual, origin: {x: ";
+                file << std::to_string(room.m_bounds.m_origin.x).c_str();
+                file << ", y: ";
+                file << std::to_string(room.m_bounds.m_origin.y).c_str();
+                file << "}";
+                break;
+            
+            case Room::PositionType::Random:
+                file << "random";
+                break;
+            
+            case Room::PositionType::RandomRadius:
+                file << "random_radius, position: {x: ";
+                file << std::to_string(room.m_randomRadiusPosition.x).c_str();
+                file << ", y: ";
+                file << std::to_string(room.m_randomRadiusPosition.y).c_str();
+                file << "}, radius: ";
+                file << std::to_string(room.m_randomRadius).c_str();
+                break;
+        }
+        file << "},\n";
+
+        // Output size data
+        file << "\t\tsize: {";
+        file << "type: ";
+        switch (room.m_sizeType)
+        {
+            case Room::SizeType::Manual:
+                file << "manual, value: {x: ";
+                file << std::to_string(room.m_bounds.m_size.x).c_str();
+                file << ", y: ";
+                file << std::to_string(room.m_bounds.m_size.y).c_str();
+                file << "}";
+                break;
+            
+            case Room::SizeType::RandomMinMax:
+                file << "random_min_max, min: {x: ";
+                file << std::to_string(room.m_minSize.x).c_str();
+                file << ", y: ";
+                file << std::to_string(room.m_minSize.y).c_str();
+                file << "}, max: {x: ";
+                file << std::to_string(room.m_maxSize.x).c_str();
+                file << ", y: ";
+                file << std::to_string(room.m_maxSize.y).c_str();
+                file << "}";
+                break;
+        }
+        file << "},\n";
+        
+        // Output entity data
+        file << "\t\tentities: [\n";
+        for (int e = 0; e < room.m_entitySpawns.size(); ++e)
+        {
+            const auto& data = room.m_entitySpawns[e];
+            file << "\t\t\t{type: ";
+            switch (data.m_type)
+            {
+                case Room::EntityType::Minitaur:
+                    file << "minitaur, amount: ";
+                    break;
+            }
+            file << std::to_string(data.m_amount).c_str();
+            file << "}\n";
+        }
+        file << "\t\t]\n";
+
+        file << "\t}";
+
+        // Add a comma to every room except the last one
+        if (i != m_rooms.size() - 1)
+            file << ",";
+        
+        file << "\n";
+    }
+
+    file << "]";
 }
 
 void LabyrinthManager::Reset()
