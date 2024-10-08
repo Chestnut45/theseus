@@ -81,14 +81,8 @@ private:
     std::string GetAttackAnimationForDirection(PlayerDirection direction) const;
     std::string GetWalkAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
     std::string GetIdleAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
-    PlayerDirection GetDirectionFromHeldKeys() const;
     PlayerDirection GetDirectionFromVector(const glm::vec2& direction) const;
-    glm::vec2 GetDirectionVector(PlayerDirection direction) const;
-
     // Input tracking
-    void AddHeldKey(int key);
-    void RemoveHeldKey(int key);
-
     // Data members for components and state management
     wolf::Transform2D* m_pTransform = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
@@ -118,9 +112,10 @@ private:
     float m_jumpTimer = 0.0f;
 
     // Attacking management
+    bool m_hasAppliedDamage = false;
     bool m_isAttacking = false;
     float m_attackCooldown = 0.5f;
-    float m_attackDamage = 25.0f;
+    float m_attackDamage = 50.0f;
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
 
