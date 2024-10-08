@@ -46,22 +46,19 @@ void DialogueState::Update(float delta)
     const std::string& currentLine = GetCurrentDialogueLine();
     m_isLineFinished = m_timeSinceLastKeyframe >= currentLine.length() * 0.05f || m_showFullText;
 
-    // Check if any interactive element like buttons is hovered/clicked
-    bool isAnyButtonHovered = ImGui::IsAnyItemHovered();  // This checks if the mouse is over a UI element like buttons
-    bool isDialogueWindowHovered = ImGui::IsWindowHovered();  // This checks if the mouse is over the dialogue window itself
-
     // Handle user input or autoplay for dialogue progression
     bool isInputPressed = wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE);
 
-    // Skip text or advance dialogue only if the click is not on the `Autoplay` button or any other UI element
-    if (isInputPressed && !isAnyButtonHovered && !isDialogueWindowHovered)
+    // Check if any UI elements like buttons are hovered/clicked
+    bool isAnyButtonHovered = ImGui::IsAnyItemHovered();
+    if (isInputPressed && !isAnyButtonHovered)
     {
         if (!m_showFullText && !m_isLineFinished)
         {
             // Show the full text if not already fully displayed
             m_showFullText = true;
         }
-        else
+        else if (m_isLineFinished && m_currentLineIndex < m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID).size() - 1)
         {
             // If line is fully displayed, advance to the next line or handle end of dialogue
             AdvanceDialogue();
@@ -72,7 +69,7 @@ void DialogueState::Update(float delta)
     }
 
     // Handle autoplay progression based on a timer, but stop at the last line
-    if (m_autoplay && m_timeSinceLastKeyframe > m_autoPlayDelay)
+    if (m_autoplay && m_timeSinceLastKeyframe > m_autoPlayDelay && m_isLineFinished)
     {
         const auto& dialogueLines = m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID);
         if (m_currentLineIndex < dialogueLines.size() - 1)
@@ -84,6 +81,7 @@ void DialogueState::Update(float delta)
         }
     }
 }
+
 
 void DialogueState::Render()
 {
@@ -141,9 +139,9 @@ void DialogueState::Render()
         m_autoplay = !m_autoplay;
     }
 
-    // If on the last dialogue line, show the Continue button to exit the dialogue
+    // If on the last dialogue line and fully displayed, show the Continue button to exit the dialogue
     const auto& lines = m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID);
-    if (m_currentLineIndex >= lines.size() - 1)
+    if (m_currentLineIndex >= lines.size() - 1 && m_isLineFinished)
     {
         ImGui::SetCursorPosX((ImGui::GetWindowWidth() - 150) / 2);
         if (ImGui::Button("Continue", ImVec2(150, 30)))
