@@ -470,7 +470,7 @@ void LabyrinthManager::ShowGUI()
 
             if (ImGui::MenuItem(ICON_FA_FILE " Load..."))
             {
-                auto file = pfd::open_file("Load Labyrinth Config", std::filesystem::current_path() / "data", {"YAML configs (.yaml)", "*.yaml"}, pfd::opt::none);
+                auto file = pfd::open_file("Load Labyrinth Config", (std::filesystem::current_path() / "data").generic_string(), {"YAML configs (.yaml)", "*.yaml"}, pfd::opt::none);
                 if (file.result().size() > 0)
                 {
                     // Grab the generic portable version of the path
@@ -481,7 +481,7 @@ void LabyrinthManager::ShowGUI()
 
             if (ImGui::MenuItem(ICON_FA_FLOPPY_DISK " Save..."))
             {
-                auto file = pfd::save_file("Save Labyrinth Config", std::filesystem::current_path() / "data", {"YAML configs (.yaml)", "*.yaml"}, pfd::opt::none);
+                auto file = pfd::save_file("Save Labyrinth Config", (std::filesystem::current_path() / "data").generic_string(), {"YAML configs (.yaml)", "*.yaml"}, pfd::opt::none);
                 if (file.result().size() > 0)
                 {
                     auto path = std::filesystem::path(file.result()).generic_string();
