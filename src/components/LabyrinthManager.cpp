@@ -597,7 +597,52 @@ void LabyrinthManager::ShowGUI()
 
             if (ImGui::Button("Add Entity"))
             {
-                // TODO: Add entity types dropdown
+                room.m_entitySpawns.push_back(Room::EntitySpawnData());
+            }
+
+            // Iterate all entity spawn data
+            for (int e = 0; e < room.m_entitySpawns.size(); ++e)
+            {
+                bool keep = true;
+
+                // Grab entity spawn data
+                auto& entityData = room.m_entitySpawns[e];
+
+                // Push the address as an identifier
+                ImGui::PushID(&entityData);
+
+                // Insert a separator between each entity spawn
+                ImGui::Separator();
+
+                // Remove the entity spawn if requested
+                if (ImGui::Button("Remove")) keep = false;
+
+                // Edit entity spawn type
+                const char* selectedEntityType = Room::s_entityTypeNames[(int)entityData.m_type];
+                if (ImGui::BeginCombo("Type##entity", selectedEntityType))
+                {
+                    for (int n = 0; n < IM_ARRAYSIZE(Room::s_entityTypeNames); n++)
+                    {
+                        bool is_selected = (selectedEntityType == Room::s_entityTypeNames[n]);
+                        if (ImGui::Selectable(Room::s_entityTypeNames[n], is_selected))
+                        {
+                            entityData.m_type = (Room::EntityType)n;
+                        }
+                        if (is_selected) ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+
+                // Edit amount of spawns
+                ImGui::DragInt("Amount", &entityData.m_amount, 1.0f, 1, 64);
+
+                ImGui::PopID();
+
+                if (!keep)
+                {
+                    room.m_entitySpawns.erase(room.m_entitySpawns.begin() + e);
+                    e--;
+                }
             }
         }
         ImGui::PopID();

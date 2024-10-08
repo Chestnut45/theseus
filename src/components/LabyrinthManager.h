@@ -142,7 +142,23 @@ private:
         glm::ivec2 m_minSize{3, 3};
         glm::ivec2 m_maxSize{9, 9};
 
-        // TODO: Custom entity spawns (enemies, items, etc.)
+        // Entity types
+        enum class EntityType
+        {
+            Minitaur,
+            // ...
+        };
+        static const inline char* s_entityTypeNames[] = {"Minitaur"};
+
+        // Entity spawn data structure
+        struct EntitySpawnData
+        {
+            EntityType m_type = EntityType::Minitaur;
+            int m_amount = 1;
+        };
+
+        // Entity spawn data
+        std::vector<EntitySpawnData> m_entitySpawns;
     };
 
     // List of all rooms to be generated in the labyrinth
