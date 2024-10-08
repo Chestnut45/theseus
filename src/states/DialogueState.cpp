@@ -41,32 +41,49 @@ void DialogueState::Update(float delta)
 
     if (!m_isDialogueActive) return;  // No update if dialogue is not active
 
-    // Update keyframe timing
+    // Update keyframe timing and determine if the current line is completely shown
     m_timeSinceLastKeyframe += delta;
+    const std::string& currentLine = GetCurrentDialogueLine();
+    m_isLineFinished = m_timeSinceLastKeyframe >= currentLine.length() * 0.05f || m_showFullText;
+
+    // Check if any interactive element like buttons is hovered/clicked
+    bool isAnyButtonHovered = ImGui::IsAnyItemHovered();  // This checks if the mouse is over a UI element like buttons
+    bool isDialogueWindowHovered = ImGui::IsWindowHovered();  // This checks if the mouse is over the dialogue window itself
 
     // Handle user input or autoplay for dialogue progression
-    if (wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE))
+    bool isInputPressed = wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE);
+
+    // Skip text or advance dialogue only if the click is not on the `Autoplay` button or any other UI element
+    if (isInputPressed && !isAnyButtonHovered && !isDialogueWindowHovered)
     {
-        // Skip keyframe animation and show the full text, or move to the next line
-        if (m_showFullText)
+        if (!m_showFullText && !m_isLineFinished)
         {
-            AdvanceDialogue();
+            // Show the full text if not already fully displayed
+            m_showFullText = true;
         }
         else
         {
-            m_showFullText = true;
+            // If line is fully displayed, advance to the next line or handle end of dialogue
+            AdvanceDialogue();
+            m_timeSinceLastKeyframe = 0.0f;
+            m_showFullText = false;  // Reset the flag for the next line
+            m_isLineFinished = false;
         }
-        m_timeSinceLastKeyframe = 0.0f;
     }
 
-    // Handle autoplay progression based on a timer
+    // Handle autoplay progression based on a timer, but stop at the last line
     if (m_autoplay && m_timeSinceLastKeyframe > m_autoPlayDelay)
     {
-        AdvanceDialogue();
-        m_timeSinceLastKeyframe = 0.0f;
+        const auto& dialogueLines = m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID);
+        if (m_currentLineIndex < dialogueLines.size() - 1)
+        {
+            AdvanceDialogue();
+            m_timeSinceLastKeyframe = 0.0f;
+            m_showFullText = false;  // Reset the flag for the next line
+            m_isLineFinished = false;
+        }
     }
 }
-
 
 void DialogueState::Render()
 {
@@ -194,11 +211,12 @@ void DialogueState::AdvanceDialogue()
 
     // Get the list of dialogue lines from the manager
     const auto& dialogueLines = m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID);
-    
+
     if (m_currentLineIndex < dialogueLines.size() - 1)
     {
         // Move to the next line in the dialogue
         m_currentLineIndex++;
+        std::cout << "Advancing to next line. Current line index: " << m_currentLineIndex << std::endl;
         m_showFullText = false;  // Reset the display for the next line
     }
     else

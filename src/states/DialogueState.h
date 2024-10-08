@@ -46,6 +46,7 @@ private:
     bool m_isDialogueActive = false;           // Whether a dialogue is currently active
     bool m_autoplay = false;                   // Whether autoplay mode is enabled
     bool m_shouldExit = false;
+    bool m_isLineFinished = false;
 
     // Keyframe and animation variables
     bool m_showFullText = false;               // Whether the full line text is displayed
