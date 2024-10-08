@@ -11,7 +11,7 @@
 
 #include "../HitboxManager.h"
 #include "../HurtboxManager.h"
-#include "../Events/DialogueTriggerEvent.h"
+#include "../events/DialogueTriggerEvent.h"
 #include "DialogueManager.h"
 
 

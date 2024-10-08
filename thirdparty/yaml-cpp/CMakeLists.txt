@@ -21,7 +21,6 @@ include(GNUInstallDirs)
 include(CTest)
 
 option(YAML_CPP_BUILD_CONTRIB "Enable yaml-cpp contrib in library" ON)
-option(YAML_CPP_BUILD_TOOLS "Enable parse tools" ON)
 option(YAML_BUILD_SHARED_LIBS "Build yaml-cpp shared library" ${BUILD_SHARED_LIBS})
 option(YAML_CPP_INSTALL "Enable generation of yaml-cpp install targets" ${YAML_CPP_MAIN_PROJECT})
 option(YAML_CPP_FORMAT_SOURCE "Format source" ON)
@@ -181,10 +180,6 @@ unset(CONFIG_EXPORT_DIR)
 
 if(YAML_CPP_BUILD_TESTS)
   add_subdirectory(test)
-endif()
-
-if(YAML_CPP_BUILD_TOOLS)
-  add_subdirectory(util)
 endif()
 
 if (YAML_CPP_FORMAT_SOURCE AND YAML_CPP_CLANG_FORMAT_EXE)
