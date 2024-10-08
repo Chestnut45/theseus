@@ -11,14 +11,6 @@
 #include "ConsumableItem.h"
 #include "W_EventManager.h"
 
-struct PercentHealItemEvent {
-    float fHealAmt;
-};
-
-struct PercentStaminaItemEvent {
-    float fStaminaAmt;
-};
-
 class PercentItem : public ConsumableItem {
     public:
         PercentItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, int p_iNumUses, Attribute p_enAttrib, float p_fAmt)

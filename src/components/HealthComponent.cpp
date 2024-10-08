@@ -11,11 +11,18 @@ HealthComponent::HealthComponent(int p_health)
 {
     this->m_health = p_health;
     this->m_cap = p_health;
+
+    // Add Listeners for the healing events related to items
+    wolf::EventManager::AddListener<PercentHealItemEvent, HealthComponent, &HealthComponent::HandlePercentHealItemEvent>(*this);
+    wolf::EventManager::AddListener<FlatHealItemEvent, HealthComponent, &HealthComponent::HandleFlatHealItemEvent>(*this);
 }
 
 // Destructor
 HealthComponent::~HealthComponent()
 {
+    // Remove the healing item event Listeners
+    wolf::EventManager::RemoveListener<PercentHealItemEvent, HealthComponent, &HealthComponent::HandlePercentHealItemEvent>(*this);
+    wolf::EventManager::RemoveListener<FlatHealItemEvent, HealthComponent, &HealthComponent::HandleFlatHealItemEvent>(*this);
 }
 
 void HealthComponent::Init()
@@ -73,4 +80,13 @@ void HealthComponent::Supercharge(float p_supercharge)
 {
     this->m_cap += p_supercharge;
     this->m_health = this->m_cap;
+}
+
+// !-- Aurora added these events --!
+void HealthComponent::HandlePercentHealItemEvent(const PercentHealItemEvent& p_event) {
+    this->Heal(p_event.fHealAmt * m_cap);
+}
+
+void HealthComponent::HandleFlatHealItemEvent(const FlatHealItemEvent& p_event) {
+    this->Heal(p_event.fHealAmt);
 }

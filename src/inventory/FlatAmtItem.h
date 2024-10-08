@@ -11,14 +11,6 @@
 #include "ConsumableItem.h"
 #include "W_EventManager.h"
 
-struct FlatHealItemEvent {
-    float fHealAmt;
-};
-
-struct FlatStaminaItemEvent {
-    float fStaminaAmt;
-};
-
 class FlatAmtItem : public ConsumableItem {
     public:
         FlatAmtItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, int p_iNumUses, Attribute p_enAttrib, float p_fAmt)

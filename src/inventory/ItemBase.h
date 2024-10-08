@@ -10,6 +10,7 @@
 //-----------------------------------------------------------------------------
 
 #include <string>
+#include "InventoryEvents.h"
 
 enum ItemID {
     NONE = 1,
