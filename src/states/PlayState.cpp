@@ -104,7 +104,7 @@ void PlayState::Update(float delta)
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
     if (playerInventory) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) m_showInventoryGUI = !m_showInventoryGUI;
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) m_showInventoryGUI = !m_showInventoryGUI;
         if (m_showInventoryGUI) playerInventory->ShowInventoryGUI();
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
@@ -152,7 +152,7 @@ void PlayState::Update(float delta)
         transform.Translate(velocity.GetVelocity() * delta);
     }
 
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
