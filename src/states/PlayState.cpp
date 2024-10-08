@@ -2,7 +2,6 @@
 #include "PauseState.h"
 #include "DialogueState.h"
 #include <imgui/imgui.h>
-#include <iostream>
 
 #include "../components/ArmourComponent.h"
 #include "../components/HealthComponent.h"
@@ -12,94 +11,44 @@
 
 void PlayState::Enter()
 {
-    std::cout << "Entering PlayState..." << std::endl;
-
-    // Grab a reference to the main scene and verify it's valid
+    // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
-    std::cout << "Scene reference obtained successfully." << std::endl;
 
     // Initialize hitbox / hurtbox managers
     this->m_pHitboxManager = new HitboxManager(&scene);
-    if (this->m_pHitboxManager)
-    {
-        std::cout << "HitboxManager initialized successfully." << std::endl;
-    }
-    else
-    {
-        std::cerr << "Error: Failed to initialize HitboxManager!" << std::endl;
-    }
-
     this->m_pHurtboxManager = new HurtboxManager(&scene);
-    if (this->m_pHurtboxManager)
-    {
-        std::cout << "HurtboxManager initialized successfully." << std::endl;
-    }
-    else
-    {
-        std::cerr << "Error: Failed to initialize HurtboxManager!" << std::endl;
-    }
 
-    // Initialize the listener and check if successful
-    std::cout << "Initializing DialogueTriggerEvent listener..." << std::endl;
+    // Initialize the listener
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
-    std::cout << "DialogueTriggerEvent listener initialized successfully." << std::endl;
 
-    // Initialize player object and check if successful
-    std::cout << "Creating player object..." << std::endl;
+    // Initialize player object
     CreatePlayer();
-    if (m_pPlayerObject)
-    {
-        std::cout << "Player object created successfully." << std::endl;
-    }
-    else
-    {
-        std::cerr << "Error: Failed to create player object!" << std::endl;
-        return;  // Exit if player object creation failed
-    }
 
     // Add the main camera as a component of the player object
-    std::cout << "Adding camera component to player object..." << std::endl;
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
-    std::cout << "Camera component added and set as active camera." << std::endl;
 
-    // Add the labyrinth manager component to an empty object and check if successful
-    std::cout << "Creating and adding LabyrinthManager component..." << std::endl;
+    // Add the labyrinth manager component to an empty object and load default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
-    if (m_pLabyrinthManager)
-    {
-        std::cout << "LabyrinthManager component added successfully." << std::endl;
-    }
-    else
-    {
-        std::cerr << "Error: Failed to add LabyrinthManager component!" << std::endl;
-        return;  // Exit if labyrinth manager creation failed
-    }
+    m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
 
     // Testing: Create a test projectile object
-    std::cout << "Creating test projectile object..." << std::endl;
     auto& testObj = scene.CreateObject2D();
     testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
     testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
     auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    std::cout << "Test sprite component added to test object." << std::endl;
 
     // Initialize test hitbox and hurtbox components
     auto& testHitbox = testObj.AddComponent<HitboxComponent>(1, 1);
     testHitbox.AddHitbox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    std::cout << "Test hitbox component added to test object." << std::endl;
 
     auto& testHurtbox = testObj.AddComponent<HurtboxComponent>(1, 1, 1, 1);
     testHurtbox.AddHurtbox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    std::cout << "Test hurtbox component added to test object." << std::endl;
 
     // Set velocity component
     auto& testVelocity = testObj.AddComponent<VelocityComponent>();
     testVelocity.SetVelocity(glm::vec2(-32.0f, 0.0f));
-    std::cout << "Test velocity component set successfully." << std::endl;
-
-    std::cout << "PlayState::Enter() completed successfully." << std::endl;
 }
 
 void PlayState::Exit()
@@ -288,22 +237,15 @@ void PlayState::CreatePlayer()
 
 void PlayState::StartDialogue(const std::string& dialogueID)
 {
-    std::cout << "StartDialogue called with ID: " << dialogueID << std::endl;
-
     // Create a new DialogueState and push it onto the state stack
     DialogueState* dialogueState = new DialogueState(m_pStateManager, m_pGameInstance, m_pDialogueManager);
-    std::cout << "DialogueState created successfully." << std::endl;
-
     m_pStateManager->PushState(dialogueState);
-    std::cout << "DialogueState pushed onto state stack." << std::endl;
 
     // Start the dialogue with the given ID
     dialogueState->StartDialogue(dialogueID);
-    std::cout << "Dialogue started successfully." << std::endl;
 }
 
 void PlayState::OnDialogueTriggerEvent(const DialogueTriggerEvent& event)
 {
-    std::cout << "Triggering dialogue with ID: " << event.dialogueID << std::endl;
     StartDialogue(event.dialogueID);
 }

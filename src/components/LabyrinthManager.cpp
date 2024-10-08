@@ -13,6 +13,15 @@
 // For std::shuffle
 #include <algorithm>
 
+// For portable file paths
+#include <filesystem>
+
+// Platform native file dialog helper
+#include <portable-file-dialogs.h>
+
+// For parsing the labyrinth config file
+#include <yaml-cpp/yaml.h>
+
 LabyrinthManager::LabyrinthManager()
 {
 }
@@ -70,7 +79,6 @@ void LabyrinthManager::GenerateLabyrinth()
 
     // Initialize global grid of logical tile data for entire labyrinth
     wolf::Grid2D<LogicalTile> labyrinthGrid(m_width, m_height, LogicalTile::Unvisited);
-    // wolf::Grid2D<unsigned int> dirGrid(m_width / 2, m_height / 2, 0);
 
     // Place top/bottom outer walls
     for (int i = 0; i < m_width; ++i)
@@ -456,12 +464,18 @@ void LabyrinthManager::ShowGUI()
         {
             if (ImGui::MenuItem(ICON_FA_FILE_CIRCLE_PLUS " New"))
             {
-                // TODO: Reset to default parameters
+                Reset();
             }
 
             if (ImGui::MenuItem(ICON_FA_FILE " Load"))
             {
-                // TODO: Load labyrinth config file from disk
+                auto file = pfd::open_file("Load Labyrinth Config", std::filesystem::current_path() / "data", {"YAML configs (.yaml)", "*.yaml"}, pfd::opt::none);
+                if (file.result().size() > 0)
+                {
+                    // Grab the generic portable version of the path
+                    auto path = std::filesystem::path(file.result()[0]).generic_string();
+                    LoadConfig(path);
+                }
             }
 
             if (ImGui::MenuItem(ICON_FA_FLOPPY_DISK " Save"))
@@ -665,4 +679,113 @@ void LabyrinthManager::ShowGUI()
 
     // End of window
     ImGui::End();
+}
+
+void LabyrinthManager::LoadConfig(const std::string& filepath)
+{
+    Reset();
+    try
+    {
+        // Load the YAML file as a node
+        YAML::Node node = YAML::LoadFile(filepath);
+
+        // Load labyrinth properties
+        m_randomizeSeed = node["random_seed"] ? node["random_seed"].as<bool>() : m_randomizeSeed;
+        if (node["seed"]) m_rng.SetSeed(node["seed"].as<int>());
+        m_width = node["width"] ? node["width"].as<int>() : m_width;
+        m_height = node["height"] ? node["height"].as<int>() : m_height;
+
+        // Load room data
+        YAML::Node rooms = node["rooms"];
+        for (int i = 0; i < rooms.size(); ++i)
+        {
+            // Grab the specific room node
+            YAML::Node r = rooms[i];
+
+            // Start loading room properties
+            Room room;
+            room.m_name = r["name"] ? r["name"].as<std::string>() : room.m_name;
+            room.m_instances = r["instances"] ? r["instances"].as<int>() : room.m_instances;
+            room.m_force = r["force"] ? r["force"].as<bool>() : room.m_force;
+            
+            // Parse position data
+            YAML::Node pos = r["position"];
+            std::string posType = pos["type"].as<std::string>();
+            if (posType == "manual")
+            {
+                room.m_positionType = Room::PositionType::Manual;
+                room.m_bounds.m_origin.x = pos["origin"]["x"].as<int>();
+                room.m_bounds.m_origin.y = pos["origin"]["y"].as<int>();
+            }
+            else if (posType == "random")
+            {
+                room.m_positionType = Room::PositionType::Random;
+            }
+            else if (posType == "random_radius")
+            {
+                room.m_positionType = Room::PositionType::RandomRadius;
+                room.m_randomRadiusPosition.x = pos["position"]["x"].as<int>();
+                room.m_randomRadiusPosition.y = pos["position"]["y"].as<int>();
+                room.m_randomRadius = pos["radius"].as<int>();
+            }
+
+            // Parse size data
+            YAML::Node size = r["size"];
+            std::string sizeType = size["type"].as<std::string>();
+            if (sizeType == "manual")
+            {
+                room.m_sizeType = Room::SizeType::Manual;
+                room.m_bounds.m_size.x = size["value"]["x"].as<int>();
+                room.m_bounds.m_size.y = size["value"]["y"].as<int>();
+            }
+            else if (sizeType == "random_min_max")
+            {
+                room.m_sizeType = Room::SizeType::RandomMinMax;
+                room.m_minSize.x = size["min"]["x"].as<int>();
+                room.m_minSize.y = size["min"]["y"].as<int>();
+                room.m_maxSize.x = size["max"]["x"].as<int>();
+                room.m_maxSize.y = size["max"]["y"].as<int>();
+            }
+
+            // Parse entity data
+            // TODO: Add more entity types
+            YAML::Node entities = r["entities"];
+            for (int e = 0; e < entities.size(); ++e)
+            {
+                Room::EntitySpawnData data;
+
+                // Grab the entity node
+                YAML::Node entity = entities[e];
+                std::string eType = entity["type"].as<std::string>();
+
+                // Parse data
+                if (eType == "minitaur")
+                {
+                    data.m_type = Room::EntityType::Minitaur;
+                }
+                
+                data.m_amount = entity["amount"].as<int>();
+
+                // Add the spawn data to the current room
+                room.m_entitySpawns.push_back(data);
+            }
+
+            // Add the room to the list of rooms
+            m_rooms.push_back(room);
+        }
+    }
+    catch (YAML::Exception& e)
+    {
+        wolf::Error("Error parsing file '", filepath.c_str(), "': ", e.what());
+    }
+}
+
+void LabyrinthManager::Reset()
+{
+    // Reset to default values
+    m_randomizeSeed = false;
+    m_rng.SetSeed(0);
+    m_width = 125;
+    m_height = 125;
+    m_rooms.clear();
 }

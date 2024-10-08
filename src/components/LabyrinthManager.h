@@ -66,6 +66,12 @@ public:
     // Display the GUI for editing labyrinth configs and regenerating
     void ShowGUI();
 
+    // Loads a labyrinth config from a YAML file
+    void LoadConfig(const std::string& filepath);
+
+    // Resets all properties to their defaults
+    void Reset();
+
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 16'383;
