@@ -10,6 +10,9 @@
 #include <W_TileMap.h>
 #include <W_Transform2D.h>
 
+// For std::shuffle
+#include <algorithm>
+
 LabyrinthManager::LabyrinthManager()
 {
 }
@@ -67,6 +70,7 @@ void LabyrinthManager::GenerateLabyrinth()
 
     // Initialize global grid of logical tile data for entire labyrinth
     wolf::Grid2D<LogicalTile> labyrinthGrid(m_width, m_height, LogicalTile::Unvisited);
+    // wolf::Grid2D<unsigned int> dirGrid(m_width / 2, m_height / 2, 0);
 
     // Place top/bottom outer walls
     for (int i = 0; i < m_width; ++i)
@@ -225,6 +229,7 @@ void LabyrinthManager::GenerateLabyrinth()
                 continue;
             }
 
+            // If we reach here, must be non-overlapping, place the room!
             for (int y = -1; y <= rect.m_size.y; ++y)
             {
                 for (int x = -1; x <= rect.m_size.x; ++x)
@@ -245,7 +250,7 @@ void LabyrinthManager::GenerateLabyrinth()
                         continue;
                     }
 
-                    // TODO: Place room-specific tiles / entities
+                    labyrinthGrid.Set(worldPos.x, worldPos.y, LogicalTile::Floor);
                 }
             }
 
@@ -254,7 +259,80 @@ void LabyrinthManager::GenerateLabyrinth()
         }
     }
 
-    // TODO: Generate maze paths between all rooms
+    // Backtracking maze generation
+
+    // Direction enum
+    enum class Dir
+    {
+        N,
+        E,
+        S,
+        W,
+    };
+
+    std::vector<Dir> directions =
+    {
+        Dir::N,
+        Dir::E,
+        Dir::S,
+        Dir::W,
+    };
+
+    int dx[] =
+    {
+        0, 1, 0, -1
+    };
+
+    int dy[] =
+    {
+        1, 0, -1, 0
+    };
+
+    // Recursive lambda
+    std::function<void(int, int)> CarvePassages = [&, this](int x, int y) -> void
+    {
+        // Shuffle the 4 directions
+        auto dirs = directions;
+        std::shuffle(dirs.begin(), dirs.end(), this->m_rng.GetEngine());
+
+        // Place floor
+        labyrinthGrid.Set(x, y, LogicalTile::Floor);
+
+        for (Dir d : dirs)
+        {
+            // Calculate new coordinates
+            int newX = dx[(int)d] * 2 + x;
+            int newY = dy[(int)d] * 2 + y;
+
+            // Bounds checking
+            if (newX > 0 && newX < this->m_width - 1 && newY > 0 && newY < this->m_height - 1)
+            {
+                if (labyrinthGrid.Get(newX, newY) == LogicalTile::Unvisited)
+                {
+                    // Place floors
+                    labyrinthGrid.Set(x + dx[(int)d], y + dy[(int)d], LogicalTile::Floor);
+
+                    // Place walls
+                    int wx = x + dx[((int)d + 1) % 4];
+                    int wy = y + dy[((int)d + 1) % 4];
+                    if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
+                    wx += dx[(int)d];
+                    wy += dy[(int)d];
+                    if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
+                    wx = x + dx[((int)d + 3) % 4];
+                    wy = y + dy[((int)d + 3) % 4];
+                    if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
+                    wx += dx[(int)d];
+                    wy += dy[(int)d];
+                    if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
+
+                    CarvePassages(newX, newY);
+                }
+            }
+        }
+    };
+
+    CarvePassages(1, 1);
 
     // Generate all chunks
 
@@ -304,9 +382,8 @@ void LabyrinthManager::GenerateLabyrinth()
                     switch (logicalTile)
                     {
                         case LogicalTile::Unvisited:
-
-                            // TESTING: For now display unvisited as floors
-                            tile = Tile::FloorSmallSquares;
+                            
+                            // Do nothing
                             break;
                         
                         case LogicalTile::Door:
