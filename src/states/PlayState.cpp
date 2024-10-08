@@ -99,18 +99,22 @@ void PlayState::Update(float delta)
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
             ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Helmet", "This is a test equipment item", 5, HEAD);
+            playerInventory->AddItem(pAddItem);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
             ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Sword", "This is a different test equipment item", 10, WEAPON);
+            playerInventory->AddItem(pAddItem);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
             ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Stacking Heart", "This is a test consumable item that stacks", 10, true, 1);
+            playerInventory->AddItem(pAddItem);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
             ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Multi-Use Heart", "This is a test consumable item with multiple uses", 25, false, 3);
+            playerInventory->AddItem(pAddItem);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
