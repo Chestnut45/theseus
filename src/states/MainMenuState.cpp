@@ -59,7 +59,7 @@ void MainMenuState::Update(float delta)
     ImGui::SetCursorPosX((dimensions.x - buttonWidth) * 0.5f);
     if (ImGui::Button("Play", {buttonWidth, buttonHeight}))
     {
-        m_pStateManager->PushState(new PlayState(m_pStateManager, m_pGameInstance));
+        m_pStateManager->PushState(new PlayState(m_pStateManager, m_pGameInstance, &m_pGameInstance->GetDialogueManager()));
     }
 
     ImGui::SetCursorPosX((dimensions.x - buttonWidth) * 0.5f);
