@@ -1,0 +1,35 @@
+random_seed: true
+seed: 1969954047
+width: 125
+height: 125
+
+rooms: [
+	{
+		name: Minotaur's Chamber,
+		instances: 1,
+		force: false,
+		position: {type: manual, origin: {x: 51, y: 51}},
+		size: {type: manual, value: {x: 23, y: 23}},
+		entities: [
+			{type: minitaur, amount: 5}
+		]
+	},
+	{
+		name: Clustered Rooms,
+		instances: 64,
+		force: false,
+		position: {type: random_radius, position: {x: 63, y: 63}, radius: 24},
+		size: {type: manual, value: {x: 3, y: 3}},
+		entities: [
+		]
+	},
+	{
+		name: Large Rooms,
+		instances: 32,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		entities: [
+		]
+	}
+]

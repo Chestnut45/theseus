@@ -10,6 +10,19 @@
 #include <W_TileMap.h>
 #include <W_Transform2D.h>
 
+// For std::shuffle
+#include <algorithm>
+
+// For portable file paths
+#include <filesystem>
+#include <fstream>
+
+// Platform native file dialog helper
+#include <portable-file-dialogs.h>
+
+// For parsing the labyrinth config file
+#include <yaml-cpp/yaml.h>
+
 LabyrinthManager::LabyrinthManager()
 {
 }
@@ -225,6 +238,7 @@ void LabyrinthManager::GenerateLabyrinth()
                 continue;
             }
 
+            // If we reach here, must be non-overlapping, place the room!
             for (int y = -1; y <= rect.m_size.y; ++y)
             {
                 for (int x = -1; x <= rect.m_size.x; ++x)
@@ -245,7 +259,7 @@ void LabyrinthManager::GenerateLabyrinth()
                         continue;
                     }
 
-                    // TODO: Place room-specific tiles / entities
+                    labyrinthGrid.Set(worldPos.x, worldPos.y, LogicalTile::Floor);
                 }
             }
 
@@ -254,7 +268,82 @@ void LabyrinthManager::GenerateLabyrinth()
         }
     }
 
-    // TODO: Generate maze paths between all rooms
+    // Backtracking maze generation
+
+    enum class Dir
+    {
+        N,
+        E,
+        S,
+        W,
+    };
+
+    int deltaDirX[] = { 0, 1, 0, -1 };
+    int deltaDirY[] = { 1, 0, -1, 0 };
+
+    // Recursive lambda to carve the maze into the labyrinth
+    // TODO: Refactor to iterative version to increase labyrinth size limitation
+    std::function<void(int, int)> CarveMaze = [&, this](int x, int y) -> void
+    {
+        // Shuffle the 4 directions
+        std::vector<Dir> dirs =
+        {
+            Dir::N,
+            Dir::E,
+            Dir::S,
+            Dir::W,
+        };
+        std::shuffle(dirs.begin(), dirs.end(), this->m_rng.GetEngine());
+
+        // Place floor so we know this tile has been visited
+        labyrinthGrid.Set(x, y, LogicalTile::Floor);
+
+        for (Dir d : dirs)
+        {
+            // Grab deltas
+            int dx = deltaDirX[(int)d];
+            int dy = deltaDirY[(int)d];
+
+            // Calculate new coordinates
+            int newX = dx * 2 + x;
+            int newY = dy * 2 + y;
+
+            // Bounds checking
+            if (newX > 0 && newX < this->m_width - 1 && newY > 0 && newY < this->m_height - 1)
+            {
+                if (labyrinthGrid.Get(newX, newY) == LogicalTile::Unvisited)
+                {
+                    // Place intermediate floor
+                    labyrinthGrid.Set(x + dx, y + dy, LogicalTile::Floor);
+
+                    // Place walls
+                    int wx = x + deltaDirX[((int)d + 1) % 4];
+                    int wy = y + deltaDirY[((int)d + 1) % 4];
+                    if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
+                    wx += dx;
+                    wy += dy;
+                    if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
+                    wx = x + deltaDirX[((int)d + 3) % 4];
+                    wy = y + deltaDirY[((int)d + 3) % 4];
+                    if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
+                    wx += dx;
+                    wy += dy;
+                    if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
+
+                    CarveMaze(newX, newY);
+                }
+            }
+        }
+    };
+
+    // Carve mazes into every unvisited tile in the labyrinth
+    for (int y = 1; y < m_height - 1; ++y)
+    {
+        for (int x = 1; x < m_width - 1; ++x)
+        {
+            if (labyrinthGrid.Get(x, y) == LogicalTile::Unvisited) CarveMaze(x, y);
+        }
+    }
 
     // Generate all chunks
 
@@ -304,9 +393,8 @@ void LabyrinthManager::GenerateLabyrinth()
                     switch (logicalTile)
                     {
                         case LogicalTile::Unvisited:
-
-                            // TESTING: For now display unvisited as floors
-                            tile = Tile::FloorSmallSquares;
+                            
+                            // Do nothing
                             break;
                         
                         case LogicalTile::Door:
@@ -377,22 +465,28 @@ void LabyrinthManager::ShowGUI()
         {
             if (ImGui::MenuItem(ICON_FA_FILE_CIRCLE_PLUS " New"))
             {
-                // TODO: Reset to default parameters
+                Reset();
             }
 
-            if (ImGui::MenuItem(ICON_FA_FILE " Load"))
+            if (ImGui::MenuItem(ICON_FA_FILE " Load..."))
             {
-                // TODO: Load labyrinth config file from disk
+                auto file = pfd::open_file("Load Labyrinth Config", std::filesystem::current_path() / "data", {"YAML configs (.yaml)", "*.yaml"}, pfd::opt::none);
+                if (file.result().size() > 0)
+                {
+                    // Grab the generic portable version of the path
+                    auto path = std::filesystem::path(file.result()[0]).generic_string();
+                    LoadConfig(path);
+                }
             }
 
-            if (ImGui::MenuItem(ICON_FA_FLOPPY_DISK " Save"))
+            if (ImGui::MenuItem(ICON_FA_FLOPPY_DISK " Save..."))
             {
-                // TODO: Save labyrinth config file to disk
-            }
-
-            if (ImGui::MenuItem(ICON_FA_FLOPPY_DISK " Save As..."))
-            {
-                // TODO: Save labyrinth config file to disk
+                auto file = pfd::save_file("Save Labyrinth Config", std::filesystem::current_path() / "data", {"YAML configs (.yaml)", "*.yaml"}, pfd::opt::none);
+                if (file.result().size() > 0)
+                {
+                    auto path = std::filesystem::path(file.result()).generic_string();
+                    SaveConfig(path);
+                }
             }
 
             ImGui::EndMenu();
@@ -518,7 +612,52 @@ void LabyrinthManager::ShowGUI()
 
             if (ImGui::Button("Add Entity"))
             {
-                // TODO: Add entity types dropdown
+                room.m_entitySpawns.push_back(Room::EntitySpawnData());
+            }
+
+            // Iterate all entity spawn data
+            for (int e = 0; e < room.m_entitySpawns.size(); ++e)
+            {
+                bool keep = true;
+
+                // Grab entity spawn data
+                auto& entityData = room.m_entitySpawns[e];
+
+                // Push the address as an identifier
+                ImGui::PushID(&entityData);
+
+                // Insert a separator between each entity spawn
+                ImGui::Separator();
+
+                // Remove the entity spawn if requested
+                if (ImGui::Button("Remove")) keep = false;
+
+                // Edit entity spawn type
+                const char* selectedEntityType = Room::s_entityTypeNames[(int)entityData.m_type];
+                if (ImGui::BeginCombo("Type##entity", selectedEntityType))
+                {
+                    for (int n = 0; n < IM_ARRAYSIZE(Room::s_entityTypeNames); n++)
+                    {
+                        bool is_selected = (selectedEntityType == Room::s_entityTypeNames[n]);
+                        if (ImGui::Selectable(Room::s_entityTypeNames[n], is_selected))
+                        {
+                            entityData.m_type = (Room::EntityType)n;
+                        }
+                        if (is_selected) ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+
+                // Edit amount of spawns
+                ImGui::DragInt("Amount", &entityData.m_amount, 1.0f, 1, 64);
+
+                ImGui::PopID();
+
+                if (!keep)
+                {
+                    room.m_entitySpawns.erase(room.m_entitySpawns.begin() + e);
+                    e--;
+                }
             }
         }
         ImGui::PopID();
@@ -541,4 +680,234 @@ void LabyrinthManager::ShowGUI()
 
     // End of window
     ImGui::End();
+}
+
+void LabyrinthManager::LoadConfig(const std::string& filepath)
+{
+    Reset();
+    try
+    {
+        // Load the YAML file as a node
+        YAML::Node node = YAML::LoadFile(filepath);
+
+        // Load labyrinth properties
+        m_randomizeSeed = node["random_seed"] ? node["random_seed"].as<bool>() : m_randomizeSeed;
+        if (node["seed"]) m_rng.SetSeed(node["seed"].as<int>());
+        m_width = node["width"] ? node["width"].as<int>() : m_width;
+        m_height = node["height"] ? node["height"].as<int>() : m_height;
+
+        // Load room data
+        YAML::Node rooms = node["rooms"];
+        for (int i = 0; i < rooms.size(); ++i)
+        {
+            // Grab the specific room node
+            YAML::Node r = rooms[i];
+
+            // Start loading room properties
+            Room room;
+            room.m_name = r["name"] ? r["name"].as<std::string>() : room.m_name;
+            room.m_instances = r["instances"] ? r["instances"].as<int>() : room.m_instances;
+            room.m_force = r["force"] ? r["force"].as<bool>() : room.m_force;
+            
+            // Parse position data
+            YAML::Node pos = r["position"];
+            std::string posType = pos["type"].as<std::string>();
+            if (posType == "manual")
+            {
+                room.m_positionType = Room::PositionType::Manual;
+                room.m_bounds.m_origin.x = pos["origin"]["x"].as<int>();
+                room.m_bounds.m_origin.y = pos["origin"]["y"].as<int>();
+            }
+            else if (posType == "random")
+            {
+                room.m_positionType = Room::PositionType::Random;
+            }
+            else if (posType == "random_radius")
+            {
+                room.m_positionType = Room::PositionType::RandomRadius;
+                room.m_randomRadiusPosition.x = pos["position"]["x"].as<int>();
+                room.m_randomRadiusPosition.y = pos["position"]["y"].as<int>();
+                room.m_randomRadius = pos["radius"].as<int>();
+            }
+
+            // Parse size data
+            YAML::Node size = r["size"];
+            std::string sizeType = size["type"].as<std::string>();
+            if (sizeType == "manual")
+            {
+                room.m_sizeType = Room::SizeType::Manual;
+                room.m_bounds.m_size.x = size["value"]["x"].as<int>();
+                room.m_bounds.m_size.y = size["value"]["y"].as<int>();
+            }
+            else if (sizeType == "random_min_max")
+            {
+                room.m_sizeType = Room::SizeType::RandomMinMax;
+                room.m_minSize.x = size["min"]["x"].as<int>();
+                room.m_minSize.y = size["min"]["y"].as<int>();
+                room.m_maxSize.x = size["max"]["x"].as<int>();
+                room.m_maxSize.y = size["max"]["y"].as<int>();
+            }
+
+            // Parse entity data
+            // TODO: Add more entity types
+            YAML::Node entities = r["entities"];
+            for (int e = 0; e < entities.size(); ++e)
+            {
+                Room::EntitySpawnData data;
+
+                // Grab the entity node
+                YAML::Node entity = entities[e];
+                std::string eType = entity["type"].as<std::string>();
+
+                // Parse data
+                if (eType == "minitaur")
+                {
+                    data.m_type = Room::EntityType::Minitaur;
+                }
+                
+                data.m_amount = entity["amount"].as<int>();
+
+                // Add the spawn data to the current room
+                room.m_entitySpawns.push_back(data);
+            }
+
+            // Add the room to the list of rooms
+            m_rooms.push_back(room);
+        }
+    }
+    catch (YAML::Exception& e)
+    {
+        wolf::Error("Error parsing file '", filepath.c_str(), "': ", e.what());
+    }
+}
+
+void LabyrinthManager::SaveConfig(const std::string& filepath)
+{
+    std::ofstream file(filepath, std::ios::binary);
+
+    file << "random_seed: ";
+    if (m_randomizeSeed) file << "true\n";
+    else file << "false\n";
+
+    file << "seed: ";
+    file << std::to_string(m_rng.GetSeed()).c_str();
+    file << "\n";
+
+    file << "width: " << std::to_string(m_width).c_str();
+    file << "\n";
+
+    file << "height: " << std::to_string(m_height).c_str();
+    file << "\n\n";
+
+    file << "rooms: [\n";
+
+    for (int i = 0; i < m_rooms.size(); ++i)
+    {
+        const auto& room = m_rooms[i];
+        file << "\t{\n";
+
+        file << "\t\tname: ";
+        file << room.m_name.c_str();
+        file << ",\n";
+
+        file << "\t\tinstances: ";
+        file << std::to_string(room.m_instances).c_str();
+        file << ",\n";
+
+        file << "\t\tforce: ";
+        if (room.m_force) file << "true,\n";
+        else file << "false,\n";
+
+        // Output position data
+        file << "\t\tposition: {";
+        file << "type: ";
+        switch (room.m_positionType)
+        {
+            case Room::PositionType::Manual:
+                file << "manual, origin: {x: ";
+                file << std::to_string(room.m_bounds.m_origin.x).c_str();
+                file << ", y: ";
+                file << std::to_string(room.m_bounds.m_origin.y).c_str();
+                file << "}";
+                break;
+            
+            case Room::PositionType::Random:
+                file << "random";
+                break;
+            
+            case Room::PositionType::RandomRadius:
+                file << "random_radius, position: {x: ";
+                file << std::to_string(room.m_randomRadiusPosition.x).c_str();
+                file << ", y: ";
+                file << std::to_string(room.m_randomRadiusPosition.y).c_str();
+                file << "}, radius: ";
+                file << std::to_string(room.m_randomRadius).c_str();
+                break;
+        }
+        file << "},\n";
+
+        // Output size data
+        file << "\t\tsize: {";
+        file << "type: ";
+        switch (room.m_sizeType)
+        {
+            case Room::SizeType::Manual:
+                file << "manual, value: {x: ";
+                file << std::to_string(room.m_bounds.m_size.x).c_str();
+                file << ", y: ";
+                file << std::to_string(room.m_bounds.m_size.y).c_str();
+                file << "}";
+                break;
+            
+            case Room::SizeType::RandomMinMax:
+                file << "random_min_max, min: {x: ";
+                file << std::to_string(room.m_minSize.x).c_str();
+                file << ", y: ";
+                file << std::to_string(room.m_minSize.y).c_str();
+                file << "}, max: {x: ";
+                file << std::to_string(room.m_maxSize.x).c_str();
+                file << ", y: ";
+                file << std::to_string(room.m_maxSize.y).c_str();
+                file << "}";
+                break;
+        }
+        file << "},\n";
+        
+        // Output entity data
+        file << "\t\tentities: [\n";
+        for (int e = 0; e < room.m_entitySpawns.size(); ++e)
+        {
+            const auto& data = room.m_entitySpawns[e];
+            file << "\t\t\t{type: ";
+            switch (data.m_type)
+            {
+                case Room::EntityType::Minitaur:
+                    file << "minitaur, amount: ";
+                    break;
+            }
+            file << std::to_string(data.m_amount).c_str();
+            file << "}\n";
+        }
+        file << "\t\t]\n";
+
+        file << "\t}";
+
+        // Add a comma to every room except the last one
+        if (i != m_rooms.size() - 1)
+            file << ",";
+        
+        file << "\n";
+    }
+
+    file << "]";
+}
+
+void LabyrinthManager::Reset()
+{
+    // Reset to default values
+    m_randomizeSeed = false;
+    m_rng.SetSeed(0);
+    m_width = 125;
+    m_height = 125;
+    m_rooms.clear();
 }
