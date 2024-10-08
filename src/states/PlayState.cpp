@@ -91,6 +91,51 @@ void PlayState::Update(float delta)
         playerAnim->Update(delta);
     }
 
+    // INVENTORY TESTING
+    auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
+    if (playerInventory) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) m_showInventoryGUI = !m_showInventoryGUI;
+        if (m_showInventoryGUI) playerInventory->ShowInventoryGUI();
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
+            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Helmet", "This is a test equipment item", 5, HEAD);
+            playerInventory->AddItem(pAddItem);
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
+            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Sword", "This is a different test equipment item", 10, WEAPON);
+            playerInventory->AddItem(pAddItem);
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
+            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Stacking Heart", "This is a test consumable item that stacks", 10, true, 1);
+            playerInventory->AddItem(pAddItem);
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
+            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Multi-Use Heart", "This is a test consumable item with multiple uses", 25, false, 3);
+            playerInventory->AddItem(pAddItem);
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
+            ItemBase* pHeadItem = playerInventory->GetEquippedItem(HEAD);
+            ItemBase* pWeaponItem = playerInventory->GetEquippedItem(WEAPON);
+            if (pHeadItem) {
+                printf("%s is equipped in the HEAD slot!\n", pHeadItem->GetName().c_str());
+            }
+            else {
+                printf("Nothing is equipped in the HEAD slot!\n");
+            }
+
+            if (pWeaponItem) {
+                printf("%s is equipped in the WEAPON slot!\n", pWeaponItem->GetName().c_str());
+            }
+            else {
+                printf("Nothing is equipped in the WEAPON slot!\n");
+            }
+        }
+    }
+
     // Apply velocity to transforms for all objects with both components
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())  // Use GetScene()
     {
@@ -156,6 +201,9 @@ void PlayState::CreatePlayer()
 
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
+
+    // INVENTORY TESTING
+    auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 
     // Add hitbox
     auto& hitbox = m_pPlayerObject->AddComponent<HitboxComponent>(0, 1);

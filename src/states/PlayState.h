@@ -11,6 +11,10 @@
 
 #include "../HitboxManager.h"
 #include "../HurtboxManager.h"
+#include "../components/InventoryComponent.h"
+#include "../inventory/EquipmentItem.h"
+#include "../inventory/FlatAmtItem.h"
+#include "../inventory/PercentItem.h"
 
 class LabyrinthManager;
 
@@ -43,6 +47,7 @@ private:
 
     // Flags
     bool m_showLabyrinthManager = true;
+    bool m_showInventoryGUI = false;
 
     // Private helper methods
 
