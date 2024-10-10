@@ -63,7 +63,7 @@ void PlayerController::InitializeAnimations()
         {"AttackSouth", "data/textures/TheseusSword-Sheet.png", 1, 7},
         {"AttackEast", "data/textures/TheseusSword-Sheet.png", 8, 14},
         {"AttackNorth", "data/textures/TheseusSword-Sheet.png", 15, 21},
-        {"AttackWest", "data/textures/TheseusSword-Sheet.png", 22, 29}
+        {"AttackWest", "data/textures/TheseusSword-Sheet.png", 22, 28}
     };
 
     // Add animations to the component with correct frame ranges
@@ -202,9 +202,8 @@ void PlayerController::SetAnimationBasedOnState()
     if (m_isAttacking || m_isRolling || m_isJumping) return;
 
     std::string animationName;
-    std::string texturePath = "data/textures/TheseusWalk-Sheet.png";  // Default to walking texture.
 
-    // Determine the correct animation and texture based on state and direction.
+    // Determine the correct animation based on state and direction.
     switch (m_action)
     {
         case PlayerAction::WALKING:
@@ -213,7 +212,6 @@ void PlayerController::SetAnimationBasedOnState()
 
         case PlayerAction::NONE:  // Idle state.
             animationName = GetIdleAnimationForDirection(m_lastDirectionEnum);
-            texturePath = "data/textures/TheseusStand-Sheet.png";  // Use the standing texture for idle state.
             break;
 
         default:
@@ -223,10 +221,7 @@ void PlayerController::SetAnimationBasedOnState()
     // Check if the desired animation is different from the currently playing one.
     if (!animationName.empty() && animationName != m_currentAnimation)
     {
-        // Set the correct texture for the animation.
-        m_pAnimComponent->SetTexture(texturePath, glm::vec2(32.0f, 32.0f));
-
-        // Set the animation after switching the texture.
+        // Set the new animation.
         m_pAnimComponent->SetAnimation(animationName);
 
         // Update the current animation name.
@@ -326,8 +321,7 @@ void PlayerController::StartAttack()
         // Choose the correct animation based on the player's direction.
         std::string attackAnimation = GetAttackAnimationForDirection(m_lastDirectionEnum);
 
-        // Set the attacking animation and texture.
-        m_pAnimComponent->SetTexture("data/textures/TheseusSword-Sheet.png", glm::vec2(32.0f, 32.0f));
+        // Set the attacking animation.
         m_pAnimComponent->SetAnimation(attackAnimation);
 
         // Store the current animation to handle transitions later.
@@ -336,8 +330,8 @@ void PlayerController::StartAttack()
 }
 void PlayerController::UpdateAttackState(float delta)
 {
-    // Check if the attack animation is complete using the IsAnimationComplete() method.
-    if (m_pAnimComponent->IsAnimationComplete())
+    // Check if the attack animation is complete using the IsAnimationFinished() method.
+    if (m_pAnimComponent->IsAnimationFinished())
     {
         // Mark the attack animation as finished once the animation is complete.
         m_animationFinished = true;
@@ -353,9 +347,6 @@ void PlayerController::UpdateAttackState(float delta)
 
         // Change the player action based on whether the player is moving or not.
         m_action = glm::length(m_pVelocity->GetVelocity()) < 0.01f ? PlayerAction::NONE : PlayerAction::WALKING;
-
-        // Set the texture back to the walking or standing texture.
-        m_pAnimComponent->SetTexture("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f));
 
         // Reset the current animation.
         m_currentAnimation = "";
