@@ -348,14 +348,12 @@ void PlayerController::UpdateAttackState(float delta)
     // Check if the animation has finished playing all its frames
     if (m_pAnimComponent->IsAnimationFinished())
     {
-        std::cout << "Attack animation finished!" << std::endl; // Debug output
         m_animationFinished = true;
     }
 
     // If the animation has finished, transition out of the attacking state
     if (m_animationFinished)
     {
-        std::cout << "Transitioning out of attacking state." << std::endl; // Debug output
 
         // Reset all attack-related flags
         m_isAttacking = false;
@@ -365,12 +363,10 @@ void PlayerController::UpdateAttackState(float delta)
         // Determine the next action based on the player's velocity
         if (glm::length(m_pVelocity->GetVelocity()) < 0.01f)
         {
-            std::cout << "Player is idle after attack." << std::endl; // Debug output
             m_action = PlayerAction::NONE; // Set to idle state
         }
         else
         {
-            std::cout << "Player is walking after attack." << std::endl; // Debug output
             m_action = PlayerAction::WALKING; // Set to walking state
         }
 
