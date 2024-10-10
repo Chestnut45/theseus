@@ -51,25 +51,30 @@ void PlayerController::InitializeAnimations()
     if (!m_pAnimComponent) return;
 
     // Define all player animations with their corresponding texture paths and frame indices.
-    std::vector<std::tuple<std::string, std::string, int, int>> animations = {
-        {"WalkSouth", "data/textures/TheseusWalk-Sheet.png", 1, 8},
-        {"WalkEast", "data/textures/TheseusWalk-Sheet.png", 9, 16},
-        {"WalkNorth", "data/textures/TheseusWalk-Sheet.png", 17, 24},
-        {"WalkWest", "data/textures/TheseusWalk-Sheet.png", 25, 32},
-        {"StandSouth", "data/textures/TheseusStand-Sheet.png", 1, 1},
-        {"StandEast", "data/textures/TheseusStand-Sheet.png", 2, 2},
-        {"StandNorth", "data/textures/TheseusStand-Sheet.png", 3, 3},
-        {"StandWest", "data/textures/TheseusStand-Sheet.png", 4, 4},
-        {"AttackSouth", "data/textures/TheseusSword-Sheet.png", 1, 7},
-        {"AttackEast", "data/textures/TheseusSword-Sheet.png", 8, 14},
-        {"AttackNorth", "data/textures/TheseusSword-Sheet.png", 15, 21},
-        {"AttackWest", "data/textures/TheseusSword-Sheet.png", 22, 28}
+    std::vector<std::tuple<std::string, std::string, int, int, bool>> animations = {
+        // Movement animations (looping)
+        {"WalkSouth", "data/textures/TheseusWalk-Sheet.png", 1, 8, true},
+        {"WalkEast", "data/textures/TheseusWalk-Sheet.png", 9, 16, true},
+        {"WalkNorth", "data/textures/TheseusWalk-Sheet.png", 17, 24, true},
+        {"WalkWest", "data/textures/TheseusWalk-Sheet.png", 25, 32, true},
+
+        // Idle animations (not looping)
+        {"StandSouth", "data/textures/TheseusStand-Sheet.png", 1, 1, false},
+        {"StandEast", "data/textures/TheseusStand-Sheet.png", 2, 2, false},
+        {"StandNorth", "data/textures/TheseusStand-Sheet.png", 3, 3, false},
+        {"StandWest", "data/textures/TheseusStand-Sheet.png", 4, 4, false},
+
+        // Attack animations (not looping)
+        {"AttackSouth", "data/textures/TheseusSword-Sheet.png", 1, 7, false},
+        {"AttackEast", "data/textures/TheseusSword-Sheet.png", 8, 14, false},
+        {"AttackNorth", "data/textures/TheseusSword-Sheet.png", 15, 21, false},
+        {"AttackWest", "data/textures/TheseusSword-Sheet.png", 22, 28, false}
     };
 
-    // Add animations to the component with correct frame ranges
-    for (const auto& [name, path, startFrame, endFrame] : animations)
+    // Add animations to the component with correct frame ranges and loop settings
+    for (const auto& [name, path, startFrame, endFrame, isLooping] : animations)
     {
-        m_pAnimComponent->AddAnimation(name, path, glm::vec2(32.0f, 32.0f), startFrame, endFrame, true);
+        m_pAnimComponent->AddAnimation(name, path, glm::vec2(32.0f, 32.0f), startFrame, endFrame, isLooping);
     }
 
     m_pAnimComponent->SetAnimation("StandSouth"); // Default animation set to "StandSouth"
@@ -103,8 +108,16 @@ void PlayerController::Update(float delta)
 
     HandlePlayerInput(delta);
     RegenerateStamina(delta);
-    SetAnimationBasedOnState();
+
+    // Call SetAnimationBasedOnState() only if the action or direction has changed
+    if (m_action != m_previousAction || m_lastDirectionEnum != m_previousDirection)
+    {
+        SetAnimationBasedOnState();
+        m_previousAction = m_action;
+        m_previousDirection = m_lastDirectionEnum;
+    }
 }
+
 
 // Handle all player inputs and manage states accordingly
 void PlayerController::HandlePlayerInput(float delta)
@@ -196,6 +209,7 @@ void PlayerController::HandleJumping(float delta)
 }
 
 // Set appropriate animation based on player state and direction
+
 void PlayerController::SetAnimationBasedOnState()
 {
     // Skip if the player is performing an action that overrides animations like attacking, rolling, or jumping.
@@ -328,30 +342,40 @@ void PlayerController::StartAttack()
         m_currentAnimation = attackAnimation;
     }
 }
+
 void PlayerController::UpdateAttackState(float delta)
 {
-    // Check if the attack animation is complete using the IsAnimationFinished() method.
+    // Check if the animation has finished playing all its frames
     if (m_pAnimComponent->IsAnimationFinished())
     {
-        // Mark the attack animation as finished once the animation is complete.
+        std::cout << "Attack animation finished!" << std::endl; // Debug output
         m_animationFinished = true;
     }
 
-    // If the animation has finished, transition the state back to idle or walking.
+    // If the animation has finished, transition out of the attacking state
     if (m_animationFinished)
     {
-        // Reset attacking state and flags.
+        std::cout << "Transitioning out of attacking state." << std::endl; // Debug output
+
+        // Reset all attack-related flags
         m_isAttacking = false;
         m_animationFinished = false;
         m_hasAppliedDamage = false;
 
-        // Change the player action based on whether the player is moving or not.
-        m_action = glm::length(m_pVelocity->GetVelocity()) < 0.01f ? PlayerAction::NONE : PlayerAction::WALKING;
+        // Determine the next action based on the player's velocity
+        if (glm::length(m_pVelocity->GetVelocity()) < 0.01f)
+        {
+            std::cout << "Player is idle after attack." << std::endl; // Debug output
+            m_action = PlayerAction::NONE; // Set to idle state
+        }
+        else
+        {
+            std::cout << "Player is walking after attack." << std::endl; // Debug output
+            m_action = PlayerAction::WALKING; // Set to walking state
+        }
 
-        // Reset the current animation.
+        // Clear the current animation and set a new one based on the updated state
         m_currentAnimation = "";
-        
-        // Call SetAnimationBasedOnState to ensure the correct idle or walking animation is applied.
         SetAnimationBasedOnState();
     }
 }

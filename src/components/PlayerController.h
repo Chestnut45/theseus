@@ -126,4 +126,6 @@ private:
     // Animation and state tracking flags
     bool m_animationFinished = false;
     std::string m_currentAnimation;
+    PlayerAction m_previousAction = PlayerAction::NONE;
+    PlayerDirection m_previousDirection = PlayerDirection::NONE;
 };
