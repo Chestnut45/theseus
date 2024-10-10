@@ -60,10 +60,10 @@ void PlayerController::InitializeAnimations()
         {"StandEast", "data/textures/TheseusStand-Sheet.png", 2, 2},
         {"StandNorth", "data/textures/TheseusStand-Sheet.png", 3, 3},
         {"StandWest", "data/textures/TheseusStand-Sheet.png", 4, 4},
-        {"AttackSouth", "data/textures/TheseusSword-Sheet.png", 1, 8},
-        {"AttackEast", "data/textures/TheseusSword-Sheet.png", 9, 16},
-        {"AttackNorth", "data/textures/TheseusSword-Sheet.png", 17, 24},
-        {"AttackWest", "data/textures/TheseusSword-Sheet.png", 25, 32}
+        {"AttackSouth", "data/textures/TheseusSword-Sheet.png", 1, 7},
+        {"AttackEast", "data/textures/TheseusSword-Sheet.png", 8, 14},
+        {"AttackNorth", "data/textures/TheseusSword-Sheet.png", 15, 21},
+        {"AttackWest", "data/textures/TheseusSword-Sheet.png", 22, 29}
     };
 
     // Add animations to the component with correct frame ranges
@@ -145,22 +145,21 @@ void PlayerController::HandleMovement(float delta)
 // Manage attack state and animation transitions
 void PlayerController::HandleAttacking(float delta)
 {
-    if (wolf::Input::IsLMBJustDown() && !m_isAttacking) 
+    // Start the attack if the left mouse button is pressed and the player is not currently attacking.
+    if (wolf::Input::IsLMBJustDown() && !m_isAttacking)
     {
         StartAttack();
     }
 
-    // Check if the timer has elapsed the attack cooldown duration
+    // Check if enough time has elapsed since the last attack to allow for damage application.
     if (m_attackTimer.Elapsed() >= m_attackCooldown && m_isAttacking)
     {
-        // Apply damage immediately if there is a collision
-        ApplyDamageToEnemy();
-
-        // Restart the timer to start counting again from 0
-        m_attackTimer.Restart();  
+        ApplyDamageToEnemy(); // Apply damage if there's a collision with an enemy.
+        m_attackTimer.Restart(); // Restart the timer for future attacks.
     }
 
-    if (m_isAttacking) 
+    // Update the attack state and manage transitions.
+    if (m_isAttacking)
     {
         UpdateAttackState(delta);
     }
@@ -199,37 +198,38 @@ void PlayerController::HandleJumping(float delta)
 // Set appropriate animation based on player state and direction
 void PlayerController::SetAnimationBasedOnState()
 {
-    if (m_isAttacking || m_isRolling || m_isJumping) return;  // Skip if performing an action like attacking, rolling, or jumping
+    // Skip if the player is performing an action that overrides animations like attacking, rolling, or jumping.
+    if (m_isAttacking || m_isRolling || m_isJumping) return;
 
     std::string animationName;
-    std::string texturePath = "data/textures/TheseusWalk-Sheet.png"; // Default to walking texture
+    std::string texturePath = "data/textures/TheseusWalk-Sheet.png";  // Default to walking texture.
 
-    // Determine the correct animation and texture based on state and direction
+    // Determine the correct animation and texture based on state and direction.
     switch (m_action)
     {
         case PlayerAction::WALKING:
             animationName = GetWalkAnimationForDirection(m_lastDirectionEnum);
             break;
 
-        case PlayerAction::NONE:  // Idle state
+        case PlayerAction::NONE:  // Idle state.
             animationName = GetIdleAnimationForDirection(m_lastDirectionEnum);
-            texturePath = "data/textures/TheseusStand-Sheet.png"; // Use the standing texture for idle state
+            texturePath = "data/textures/TheseusStand-Sheet.png";  // Use the standing texture for idle state.
             break;
 
         default:
-            return;  // No need to change animation for other states
+            return;  // No need to change animation for other states.
     }
 
-    // Check if the desired animation is different from the currently playing one
+    // Check if the desired animation is different from the currently playing one.
     if (!animationName.empty() && animationName != m_currentAnimation)
     {
-        // Set the correct texture for the animation
+        // Set the correct texture for the animation.
         m_pAnimComponent->SetTexture(texturePath, glm::vec2(32.0f, 32.0f));
-        
-        // Set the animation after switching the texture
+
+        // Set the animation after switching the texture.
         m_pAnimComponent->SetAnimation(animationName);
-        
-        // Update the current animation name
+
+        // Update the current animation name.
         m_currentAnimation = animationName;
     }
 }
@@ -312,39 +312,55 @@ void PlayerController::RegenerateStamina(float delta)
 
 void PlayerController::StartAttack()
 {
-    m_isAttacking = true;
-    m_action = PlayerAction::ATTACKING;
-    m_attackTimer.Restart();
-    m_animationFinished = false;
+    // Check if the player is not already attacking to prevent re-triggering attacks mid-animation.
+    if (!m_isAttacking)
+    {
+        m_isAttacking = true;
+        m_animationFinished = false;
+        m_hasAppliedDamage = false;
 
-    // Reset the damage flag
-    m_hasAppliedDamage = false;
+        // Set the player action to attacking and reset attack-related timers.
+        m_action = PlayerAction::ATTACKING;
+        m_attackTimer.Restart();
 
-    std::string attackAnimation = GetAttackAnimationForDirection(m_lastDirectionEnum);
+        // Choose the correct animation based on the player's direction.
+        std::string attackAnimation = GetAttackAnimationForDirection(m_lastDirectionEnum);
 
-    m_pAnimComponent->SetTexture("data/textures/TheseusSword-Sheet.png", glm::vec2(32.0f, 32.0f));
-    m_pAnimComponent->SetAnimation(attackAnimation);
+        // Set the attacking animation and texture.
+        m_pAnimComponent->SetTexture("data/textures/TheseusSword-Sheet.png", glm::vec2(32.0f, 32.0f));
+        m_pAnimComponent->SetAnimation(attackAnimation);
 
-    m_currentAnimation = attackAnimation;
+        // Store the current animation to handle transitions later.
+        m_currentAnimation = attackAnimation;
+    }
 }
-
 void PlayerController::UpdateAttackState(float delta)
 {
-    if (m_pAnimComponent->IsAnimationComplete()) 
+    // Check if the attack animation is complete using the IsAnimationComplete() method.
+    if (m_pAnimComponent->IsAnimationComplete())
     {
+        // Mark the attack animation as finished once the animation is complete.
         m_animationFinished = true;
     }
 
+    // If the animation has finished, transition the state back to idle or walking.
     if (m_animationFinished)
     {
+        // Reset attacking state and flags.
         m_isAttacking = false;
-        m_action = glm::length(m_pVelocity->GetVelocity()) < 0.01f ? PlayerAction::NONE : PlayerAction::WALKING;
-
-        // Reset the damage flag when the attack animation ends
+        m_animationFinished = false;
         m_hasAppliedDamage = false;
 
+        // Change the player action based on whether the player is moving or not.
+        m_action = glm::length(m_pVelocity->GetVelocity()) < 0.01f ? PlayerAction::NONE : PlayerAction::WALKING;
+
+        // Set the texture back to the walking or standing texture.
         m_pAnimComponent->SetTexture("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f));
+
+        // Reset the current animation.
         m_currentAnimation = "";
+        
+        // Call SetAnimationBasedOnState to ensure the correct idle or walking animation is applied.
         SetAnimationBasedOnState();
     }
 }
