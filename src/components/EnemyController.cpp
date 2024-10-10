@@ -16,8 +16,11 @@ void EnemyController::Init()
         m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
         m_pHealth = pGameObject->GetComponent<HealthComponent>();
 
-        // Add and set up the AnimatedSprite2D component and animations
-        m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 4.0f);
+        // Initialize the AnimatedSprite2D component
+        if (!m_pAnimComponent)
+        {
+            m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 4.0f);
+        }
         SetUpAnimations();
 
         // Check if the essential components are initialized properly
@@ -36,13 +39,9 @@ void EnemyController::Init()
 
 void EnemyController::Update(float delta)
 {
-    if (m_pHealth->GetHealth() <= 0)
-    {
-        m_state = EnemyState::DEATH;
-    }
-
-    // Ensure components and target are initialized
-    if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget) return;
+    // Ensure components and target are initialized before performing any updates
+    if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
+        return;
 
     // Update the animation based on the movement direction and state
     UpdateAnimationBasedOnStateAndDirection();
@@ -59,9 +58,6 @@ void EnemyController::Update(float delta)
         case EnemyState::ATTACKING:
             HandleAttackingState(delta);
             break;
-        case EnemyState::DEATH:
-            HandleDeathState();
-            break;
     }
 }
 
@@ -75,7 +71,7 @@ void EnemyController::HandleIdleState()
 
 void EnemyController::HandleChasingState(float delta)
 {
-    if (!m_pTarget || m_state == EnemyState::DEATH) return;
+    if (!m_pTarget) return;
 
     // Calculate distance to player
     float distance = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
@@ -104,7 +100,7 @@ void EnemyController::HandleChasingState(float delta)
 
 void EnemyController::HandleAttackingState(float delta)
 {
-    if (!m_pTarget || m_state == EnemyState::DEATH) return;
+    if (!m_pTarget) return;
 
     // Calculate distance to the player
     float distance = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
@@ -139,13 +135,16 @@ void EnemyController::HandleAttackingState(float delta)
     }
 }
 
-void EnemyController::HandleDeathState()
+EnemyController::~EnemyController()
 {
-    // Handle enemy death state, remove the enemy from the scene
-    if (GetGameObject())
-    {
-        GetGameObject()->Delete(); // This should safely remove the enemy from the scene
-    }
+    // Just reset the pointers, don't call any deletion methods.
+    m_pAnimComponent = nullptr;
+    m_pHealth = nullptr;
+    m_pVelocity = nullptr;
+    m_pTransform = nullptr;
+    m_pTarget = nullptr;
+
+    std::cout << "EnemyController destructor called." << std::endl;
 }
 
 void EnemyController::MoveTowardsTarget(float delta)
@@ -172,10 +171,6 @@ void EnemyController::MoveTowardsTarget(float delta)
 
     // Set the velocity based on the interpolated direction (do not multiply by delta)
     glm::vec2 velocity = m_currentDirection * m_chaseSpeed;
-
-    // Debug: Print the current position and velocity
-    std::cout << "Enemy Position: (" << currentPosition.x << ", " << currentPosition.y << ")" << std::endl;
-    std::cout << "Enemy Velocity: (" << velocity.x << ", " << velocity.y << ")" << std::endl;
 
     // Set the velocity to move the enemy
     m_pVelocity->SetVelocity(velocity);
@@ -218,14 +213,13 @@ void EnemyController::SetUpAnimations()
 {
     if (!m_pAnimComponent) return;
 
-
-    m_pAnimComponent->AddAnimation("WalkWest", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 0, 0, false);
-    m_pAnimComponent->AddAnimation("WalkSouth", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
-    m_pAnimComponent->AddAnimation("WalkEast", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 2, 2, false);
-    m_pAnimComponent->AddAnimation("WalkNorth", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 3, 3, false);
+    m_pAnimComponent->AddAnimation("StandWest", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
+    m_pAnimComponent->AddAnimation("StandSouth", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 2, 2, false);
+    m_pAnimComponent->AddAnimation("StandEast", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 3, 3, false);
+    m_pAnimComponent->AddAnimation("StandNorth", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 4, 4, false);
 
     // Set the default animation to face South
-    m_pAnimComponent->SetAnimation("WalkSouth");
+    m_pAnimComponent->SetAnimation("StandSouth");
     m_pAnimComponent->SetOriginToCenterOfFrame();
 }
 
@@ -250,11 +244,11 @@ void EnemyController::UpdateAnimationBasedOnStateAndDirection()
             {
                 if (fabs(velocity.x) > fabs(velocity.y))
                 {
-                    animationName = (velocity.x > 0.0f) ? "WalkEast" : "WalkWest";
+                    animationName = (velocity.x > 0.0f) ? "StandEast" : "StandWest";
                 }
                 else
                 {
-                    animationName = (velocity.y > 0.0f) ? "WalkNorth" : "WalkSouth";
+                    animationName = (velocity.y > 0.0f) ? "StandNorth" : "StandSouth";
                 }
             }
             break;
@@ -264,9 +258,6 @@ void EnemyController::UpdateAnimationBasedOnStateAndDirection()
             animationName = "WalkSouth";  // Modify as needed if attack animations are added later
             break;
 
-        case EnemyState::DEATH:
-            animationName = "WalkSouth";  // Default death animation (can be replaced with a death frame)
-            break;
     }
 
     // Check if the animation needs to be changed

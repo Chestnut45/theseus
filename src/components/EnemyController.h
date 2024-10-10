@@ -18,6 +18,7 @@ public:
     };
 
     EnemyController(float chaseSpeed = 150.0f);
+    ~EnemyController();
 
     void Init();
     void Update(float delta);
