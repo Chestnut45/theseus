@@ -66,6 +66,15 @@ public:
     // Display the GUI for editing labyrinth configs and regenerating
     void ShowGUI();
 
+    // Loads a labyrinth config from a YAML file
+    void LoadConfig(const std::string& filepath);
+
+    // Saves the current config to a YAML file
+    void SaveConfig(const std::string& filepath);
+
+    // Resets all properties to their defaults
+    void Reset();
+
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 16'383;
@@ -142,7 +151,23 @@ private:
         glm::ivec2 m_minSize{3, 3};
         glm::ivec2 m_maxSize{9, 9};
 
-        // TODO: Custom entity spawns (enemies, items, etc.)
+        // Entity types
+        enum class EntityType
+        {
+            Minitaur,
+            // ...
+        };
+        static const inline char* s_entityTypeNames[] = {"Minitaur"};
+
+        // Entity spawn data structure
+        struct EntitySpawnData
+        {
+            EntityType m_type = EntityType::Minitaur;
+            int m_amount = 1;
+        };
+
+        // Entity spawn data
+        std::vector<EntitySpawnData> m_entitySpawns;
     };
 
     // List of all rooms to be generated in the labyrinth

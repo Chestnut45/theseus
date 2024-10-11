@@ -76,6 +76,10 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "stack": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "codecvt": "cpp",
+        "csignal": "cpp",
+        "future": "cpp",
+        "valarray": "cpp"
     }
 }

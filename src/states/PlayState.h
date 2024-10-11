@@ -12,6 +12,13 @@
 
 #include "../HitboxManager.h"
 #include "../HurtboxManager.h"
+#include "../components/InventoryComponent.h"
+#include "../inventory/EquipmentItem.h"
+#include "../inventory/FlatAmtItem.h"
+#include "../inventory/PercentItem.h"
+#include "../events/DialogueTriggerEvent.h"
+#include "DialogueManager.h"
+
 #include <EnemyController.h>
 #include <PlayerBuilder.h>
 #include <EnemyBuilder.h>
@@ -21,8 +28,9 @@ class LabyrinthManager;
 class PlayState : public GameState
 {
 public:
-    PlayState(GameStateManager* manager, Theseus* gameInstance)
-        : GameState(manager, gameInstance) {}  
+    PlayState(GameStateManager* manager, Theseus* gameInstance, DialogueManager* dialogueManager)
+        : GameState(manager, gameInstance), m_pDialogueManager(dialogueManager) {}
+
 
     void Enter() override;
     void Exit() override;
@@ -32,12 +40,14 @@ public:
     void Render() override;
     void BackgroundUpdate(float delta) override;
     void BackgroundRender() override;
+    void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
 
 private:
     
     // Game objects / components that will exist for the duration of the play state
     wolf::GameObject* m_pPlayerObject = nullptr;
     LabyrinthManager* m_pLabyrinthManager = nullptr;
+    DialogueManager* m_pDialogueManager = nullptr;
     wolf::GameObject* m_pMinitaurObject = nullptr;
 
 
@@ -49,8 +59,10 @@ private:
 
     // Flags
     bool m_showLabyrinthManager = true;
+    bool m_showInventoryGUI = false;
 
     // Private helper methods
+    void StartDialogue(const std::string& dialogueID);
 
     // Creates the player object and all of its components
     // PRE: The player must not have been created yet
