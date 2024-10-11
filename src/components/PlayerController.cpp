@@ -35,14 +35,21 @@ void PlayerController::LateInitialize()
         return;
     }
 
-    if (!m_pAnimComponent)
+    // Check if the AnimatedSprite2D component exists
+    if (pGameObject->HasAll<AnimatedSprite2D>())
     {
-        m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-        if (m_pAnimComponent) InitializeAnimations();
-
-        // Set the default animation to an idle animation
-        m_pAnimComponent->SetAnimation("StandSouth");
+        pGameObject->DeleteComponent<AnimatedSprite2D>();  // Use DeleteComponent to remove the existing component
+        wolf::Warning("Removed existing anim component from player...");
     }
+
+    // Initialize the AnimatedSprite2D component
+    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
+    
+    // Initialize animations
+    InitializeAnimations();
+
+    // Check if essential components are initialized properly
+    assert(m_pAnimComponent && "Failed to initialize AnimatedSprite2D component!");
 }
 
 // Add and initialize animations for the player character
