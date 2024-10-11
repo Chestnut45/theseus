@@ -8,7 +8,6 @@
 #include "../components/HitboxComponent.h"
 #include "../components/HurtboxComponent.h"
 #include "../components/VelocityComponent.h"
-#include <PlayerBuilder.h>
 #include <EnemyBuilder.h>
 
 void PlayState::Enter()
@@ -164,51 +163,6 @@ void PlayState::Update(float delta)
         }
     }
 
-    // INVENTORY TESTING
-    auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
-    if (playerInventory) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) m_showInventoryGUI = !m_showInventoryGUI;
-        if (m_showInventoryGUI) playerInventory->ShowInventoryGUI();
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Helmet", "This is a test equipment item", 5, HEAD);
-            playerInventory->AddItem(pAddItem);
-        }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
-            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Sword", "This is a different test equipment item", 10, WEAPON);
-            playerInventory->AddItem(pAddItem);
-        }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Stacking Heart", "This is a test consumable item that stacks", 10, true, 1);
-            playerInventory->AddItem(pAddItem);
-        }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Multi-Use Heart", "This is a test consumable item with multiple uses", 25, false, 3);
-            playerInventory->AddItem(pAddItem);
-        }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            ItemBase* pHeadItem = playerInventory->GetEquippedItem(HEAD);
-            ItemBase* pWeaponItem = playerInventory->GetEquippedItem(WEAPON);
-            if (pHeadItem) {
-                printf("%s is equipped in the HEAD slot!\n", pHeadItem->GetName().c_str());
-            }
-            else {
-                printf("Nothing is equipped in the HEAD slot!\n");
-            }
-
-            if (pWeaponItem) {
-                printf("%s is equipped in the WEAPON slot!\n", pWeaponItem->GetName().c_str());
-            }
-            else {
-                printf("Nothing is equipped in the WEAPON slot!\n");
-            }
-        }
-    }
-
     // Apply velocity to transforms for all objects with both components
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
     {
@@ -255,29 +209,18 @@ void PlayState::CreatePlayer()
     // Create player object with transform
     m_pPlayerObject = &m_pGameInstance->GetScene().CreateObject2D();
 
-    // Add player controller
-    m_pPlayerObject->AddComponent<PlayerController>();
+    // Add player controller and initialize
+    // NOTE: This manages all player animations and the animated sprite component for the player
+    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
+    playerController.LateInitialize();
 
     // Scale player
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
 
-    // Add animated sprite
-    auto& animSprite = m_pPlayerObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-    animSprite.AddAnimation("WalkSouth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 8, true);
-    animSprite.AddAnimation("WalkEast", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 9, 16, true);
-    animSprite.AddAnimation("WalkNorth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 17, 24, true);
-    animSprite.AddAnimation("WalkWest", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 25, 32, true);
-    animSprite.AddAnimation("StandSouth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
-    animSprite.AddAnimation("StandEast", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 2, 2, false);
-    animSprite.AddAnimation("StandNorth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 3, 3, false);
-    animSprite.AddAnimation("StandWest", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 4, 4, false);
-    animSprite.SetAnimation("StandSouth");
-    animSprite.SetOriginToCenterOfFrame();
-
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
-    // INVENTORY TESTING
+    // Add inventory
     auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 
     // Add hitbox
@@ -291,6 +234,18 @@ void PlayState::CreatePlayer()
     // Add health / armor
     m_pPlayerObject->AddComponent<HealthComponent>();
     m_pPlayerObject->AddComponent<ArmourComponent>(50);
+}
+
+void PlayState::CreateMinitaurEnemy()
+{
+    EnemyBuilder enemyBuilder(m_pGameInstance->GetScene());
+    m_pMinitaurObject = &enemyBuilder.BuildEnemy();
+
+    auto* enemyController = enemyBuilder.GetEnemyController();
+    if (!enemyController)
+    {
+        return;
+    }
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)

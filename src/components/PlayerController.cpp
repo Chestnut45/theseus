@@ -410,6 +410,12 @@ void PlayerController::StartRoll()
 {
     m_isRolling = true;
     m_rollTimer = m_rollDuration;
+    glm::vec2 rollDirection = m_pVelocity->GetVelocity(); // Get current movement direction
+    if (glm::length(rollDirection) > 0.0f)
+    {
+        rollDirection = glm::normalize(rollDirection) * m_rollSpeed; // Set velocity based on roll speed
+        m_pVelocity->SetVelocity(rollDirection);
+    }
     m_action = PlayerAction::ROLLING;
     m_stamina -= 25.0f;
     m_staminaRegenTimer.Restart();

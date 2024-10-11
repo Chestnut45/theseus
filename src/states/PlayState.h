@@ -20,7 +20,6 @@
 #include "DialogueManager.h"
 
 #include <EnemyController.h>
-#include <PlayerBuilder.h>
 #include <EnemyBuilder.h>
 
 class LabyrinthManager;
