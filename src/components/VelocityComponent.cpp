@@ -28,3 +28,9 @@ const glm::vec2 VelocityComponent::GetNormalisedVelocity() const
 {
     return glm::normalize(m_velocity);
 }
+
+void VelocityComponent::Knockback(float p_knockback_force, glm::vec2 p_knockback_direction)
+{
+    this->m_fKnockbackForce = p_knockback_force;
+    this->m_fKnockbackDirection = p_knockback_direction;
+}
