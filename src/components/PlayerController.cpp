@@ -1,6 +1,8 @@
 #include "PlayerController.h"
 #include "VelocityComponent.h"
 
+#include <W_Logging.h>
+
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
 // Original Author: Youssef Ashraf
@@ -18,11 +20,24 @@ void PlayerController::Update(float delta)
 {
     // Grab current transform and velocity components from the game object
     auto* pGameObject = GetGameObject();
-    if (pGameObject)
+    if (!pGameObject)
     {
-        m_pTransform = pGameObject->GetComponent<wolf::Transform2D>();
-        m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
-        m_pAnim = pGameObject->GetComponent<AnimatedSprite2D>();
+        wolf::Error("PlayerController not attached to GameObject!");
+        return;
+    }
+
+    m_pTransform = pGameObject->GetComponent<wolf::Transform2D>();
+    m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
+    m_pAnim = pGameObject->GetComponent<AnimatedSprite2D>();
+
+    // Camera zoom control
+    auto* pCamera = pGameObject->GetScene().GetActiveCamera();
+    if (pCamera)
+    {
+        // Double zoom with plus key, half zoom with minus key
+        float prevZoom = pCamera->GetZoom();
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_EQUAL)) pCamera->SetZoom(prevZoom * 2);
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_MINUS)) pCamera->SetZoom(prevZoom * 0.5f);
     }
 
     // Only update if both components exist

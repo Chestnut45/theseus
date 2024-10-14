@@ -46,7 +46,7 @@ void Camera2D::SetPosition(const glm::vec2& position)
 
 void Camera2D::SetZoom(float zoom)
 {
-    m_zoom = zoom;
+    m_zoom = glm::clamp(zoom, MIN_ZOOM, MAX_ZOOM);
     m_needsMatrixUpdate = true;
 }
 

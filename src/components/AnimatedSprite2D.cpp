@@ -243,6 +243,8 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[m_pCurrentAnim->m_iStartFrame];
         m_bFrameChanged = true;
+        m_bIsAnimFinished = false;
+        m_iAnimLoopCount = 0;
     }
 }
 
@@ -265,6 +267,8 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame + p_iTargetAnimFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[iTargetFrame];
         m_bFrameChanged = true;
+        m_bIsAnimFinished = false;
+        m_iAnimLoopCount = 0;
     }
 }
 
@@ -282,8 +286,10 @@ void AnimatedSprite2D::Update(float p_fDelta) {
             if (m_pCurrentAnim->m_bLoop) {
                 // And if it is, restart the animation
                 m_fCurrentFrame = (float)m_pCurrentAnim->m_iStartFrame;
+                m_iAnimLoopCount++;
             }
             else {
+                m_bIsAnimFinished = true;
                 m_fCurrentFrame = (float)m_pCurrentAnim->m_iEndFrame;
             }
         }

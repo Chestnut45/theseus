@@ -40,6 +40,9 @@ public:
     // Resets to the initial value for the current seed
     inline void Reseed() { m_engine.seed(m_seed); }
 
+    // Gets the internal random engine
+    inline std::default_random_engine& GetEngine() { return m_engine; }
+
     // Basic RNG
     
     // Generates a uniformly distributed boolean
