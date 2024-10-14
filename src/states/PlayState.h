@@ -9,14 +9,12 @@
 #include "GameState.h"
 #include <theseus.h> // Include the main game class
 
-#include "../HitboxManager.h"
-#include "../HurtboxManager.h"
-#include "../components/InventoryComponent.h"
 #include "../inventory/EquipmentItem.h"
 #include "../inventory/FlatAmtItem.h"
 #include "../inventory/PercentItem.h"
 #include "../events/DialogueTriggerEvent.h"
-#include "DialogueManager.h"
+#include "../ColliderManager.h"
+#include "../DialogueManager.h"
 
 
 class LabyrinthManager;
@@ -47,9 +45,6 @@ private:
 
     // Manager for colliders
     ColliderManager* m_pColliderManager = nullptr;
-
-    // Manager for statuses
-    StatusManager* m_pStatusManager = nullptr;
 
     // Flags
     bool m_showLabyrinthManager = true;

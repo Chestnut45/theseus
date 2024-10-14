@@ -6,6 +6,7 @@
 #include "../components/ArmourComponent.h"
 #include "../components/ColliderComponent.h"
 #include "../components/HealthComponent.h"
+#include "../components/InventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/VelocityComponent.h"
 
@@ -13,10 +14,6 @@ void PlayState::Enter()
 {
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
-
-    // Initialize hitbox / hurtbox managers
-    this->m_pHitboxManager = new HitboxManager(&scene);
-    this->m_pHurtboxManager = new HurtboxManager(&scene);
 
     // Initialize the listener
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
@@ -29,6 +26,9 @@ void PlayState::Enter()
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
 
+    // Initialise collider manager
+    this->m_pColliderManager = new ColliderManager(&scene);
+
     // Add the labyrinth manager component to an empty object and load default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
@@ -38,27 +38,20 @@ void PlayState::Enter()
     testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
     testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
     auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-
-    // Initialize test hitbox and hurtbox components
-    auto& testHitbox = testObj.AddComponent<HitboxComponent>(1, 1);
-    testHitbox.AddHitbox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-
-    auto& testHurtbox = testObj.AddComponent<HurtboxComponent>(1, 1, 1, 1);
-    testHurtbox.AddHurtbox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-
-    // Set velocity component
+    auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
+    testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
     auto& testVelocity = testObj.AddComponent<VelocityComponent>();
-    testVelocity.SetVelocity(glm::vec2(-64.0f, 0.0f));
+    //testVelocity.SetVelocity(glm::vec2(-64.0f, 0.0f));
 
 
-    auto& testObj2 = scene.CreateObject2D();
-    testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
-    auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDD, 0, 1);
-    testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
-    testVelocity2.SetVelocity(glm::vec2(64.0f, 0.0f));
+    // auto& testObj2 = scene.CreateObject2D();
+    // testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+    // testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
+    // auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDD, 1, 1);
+    // testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
+    // auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
+    // testVelocity2.SetVelocity(glm::vec2(64.0f, 0.0f));
 
 }
 
@@ -72,9 +65,6 @@ void PlayState::Exit()
     // Delete managers
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
-
-    delete this->m_pStatusManager;
-    this->m_pStatusManager = nullptr;
 }
 
 void PlayState::Pause()
@@ -109,7 +99,6 @@ void PlayState::Update(float delta)
 
     // Update managers
     this->m_pColliderManager->Update(delta);
-    this->m_pStatusManager->Update();
 
     // Update player animations
     auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
@@ -178,8 +167,6 @@ void PlayState::Update(float delta)
     m_pGameInstance->GetScene().Update(delta);
 
     // Update managers
-    this->m_pHitboxManager->Update();
-    this->m_pHurtboxManager->Update();
     wolf::EventManager::Dispatch<DialogueTriggerEvent>();
 }
 
@@ -238,33 +225,13 @@ void PlayState::CreatePlayer()
     // INVENTORY TESTING
     auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 
-    // Add hitbox
-    auto& hitbox = m_pPlayerObject->AddComponent<HitboxComponent>(0, 1);
-    hitbox.AddHitbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
-
-    // Add hurtbox
-    auto& hurtbox = m_pPlayerObject->AddComponent<HurtboxComponent>(0, 0, 0, 1);
-    hurtbox.AddHurtbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
+    auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
+    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
 
     // Add health / armor
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
     auto& armour = m_pPlayerObject->AddComponent<ArmourComponent>();
     armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
-}
-
-void PlayState::StartDialogue(const std::string& dialogueID)
-{
-    // Create a new DialogueState and push it onto the state stack
-    DialogueState* dialogueState = new DialogueState(m_pStateManager, m_pGameInstance, m_pDialogueManager);
-    m_pStateManager->PushState(dialogueState);
-
-    // Start the dialogue with the given ID
-    dialogueState->StartDialogue(dialogueID);
-}
-
-void PlayState::OnDialogueTriggerEvent(const DialogueTriggerEvent& event)
-{
-    StartDialogue(event.dialogueID);
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)
