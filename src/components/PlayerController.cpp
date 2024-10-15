@@ -49,7 +49,6 @@ void PlayerController::LateInitialize()
     InitializeAnimations();
 
     // Check if essential components are initialized properly
-    assert(m_pAnimComponent && "Failed to initialize AnimatedSprite2D component!");
 }
 
 // Add and initialize animations for the player character

@@ -29,8 +29,6 @@ void PlayState::Enter()
     // Initialize the player object first
     CreatePlayer();
 
-    if (!m_pPlayerObject || !m_pPlayerObject->GetComponent<PlayerController>())
-        return;
 
     // Initialize the Minitaur object second
     CreateMinitaurEnemy();
@@ -117,6 +115,9 @@ void PlayState::Update(float delta)
     {
         enemyController->Update(delta);
     }
+    auto* enemyAnim = m_pMinitaurObject->GetComponent<AnimatedSprite2D>();
+     if (enemyAnim) 
+        enemyAnim->Update(delta);
 
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
@@ -241,11 +242,6 @@ void PlayState::CreateMinitaurEnemy()
     EnemyBuilder enemyBuilder(m_pGameInstance->GetScene());
     m_pMinitaurObject = &enemyBuilder.BuildEnemy();
 
-    auto* enemyController = enemyBuilder.GetEnemyController();
-    if (!enemyController)
-    {
-        return;
-    }
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)

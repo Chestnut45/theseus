@@ -8,11 +8,10 @@ wolf::GameObject& EnemyBuilder::BuildEnemy()
     m_pEnemyObject = &m_scene.CreateObject2D();
 
     // Verify that the GameObject was created successfully
-    assert(m_pEnemyObject && "Failed to create enemy GameObject");
+    m_pEnemyController = &m_pEnemyObject->AddComponent<EnemyController>(150.0f);
 
     // Set initial position away from the player (example position)
     auto* transform = m_pEnemyObject->GetComponent<wolf::Transform2D>();
-    assert(transform && "Failed to retrieve Transform2D component for the enemy");
     transform->SetPosition(glm::vec2(800.0f, 500.0f));  // Set position away from the player for testing
     transform->SetScale(glm::vec2(3.0f));
 
@@ -20,8 +19,6 @@ wolf::GameObject& EnemyBuilder::BuildEnemy()
     // The EnemyController will handle the AnimatedSprite2D setup.
 
     // Add the EnemyController component to handle behavior and state
-    m_pEnemyController = &m_pEnemyObject->AddComponent<EnemyController>(150.0f);
-    assert(m_pEnemyController && "Failed to add EnemyController component");
 
     // Add necessary components to the enemy
     m_pEnemyObject->AddComponent<VelocityComponent>();

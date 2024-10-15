@@ -20,7 +20,6 @@ public:
     wolf::GameObject& BuildEnemy();
 
     // Function to get the EnemyController pointer
-    EnemyController* GetEnemyController() const { return m_pEnemyController; }
 
 private:
     wolf::Scene& m_scene;                   // Reference to the scene
