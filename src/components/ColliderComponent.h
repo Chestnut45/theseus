@@ -32,8 +32,7 @@ public:
         NONE
     };
 
-    ColliderComponent(ColliderType p_collider_type, bool p_doc , bool p_relativity);
-    
+    ColliderComponent(ColliderType p_collider_type, bool p_doc , bool p_relativity);   
     virtual ~ColliderComponent();
 
     // Delete copy constructor/assignment
@@ -58,6 +57,7 @@ public:
     bool IsRelative() const;
 
     float GetDamage() const;
+    void SetDamage(float p_damage);
     ColliderType GetColliderType() const;
 
 

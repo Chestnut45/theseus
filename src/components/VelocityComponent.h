@@ -12,19 +12,37 @@
 #include <glm/glm.hpp>
 #include <wolf.h>
 
+#include "../VelocityManager.h"
+
+class VelocityManager;
+
 class VelocityComponent : public wolf::BaseComponent
 {
+    friend VelocityManager;
+
 public:
-    VelocityComponent() = default;  // No arguments needed
+    VelocityComponent();  // No arguments needed
+    virtual ~VelocityComponent();
+
+    // Delete copy constructor/assignment
+    VelocityComponent(const VelocityComponent&) = delete;
+    VelocityComponent& operator=(const VelocityComponent&) = delete;
+
+    // Delete move constructor/assignment
+    VelocityComponent(VelocityComponent&& other) = delete;
+    VelocityComponent& operator=(VelocityComponent&& other) = delete;
 
     void SetVelocity(const glm::vec2& velocity);  // Setter for velocity
-    const glm::vec2& GetVelocity() const;  // Getter for velocity
-    const glm::vec2 GetNormalisedVelocity() const; // Getter for normalised velocity
+    glm::vec2 GetVelocity() const;  // Getter for velocity
+    glm::vec2 GetNormalisedVelocity() const; // Getter for normalised velocity
 
     void Knockback(float p_knockback_force, glm::vec2 p_knockback_direction);
 
 private:
+    static int s_iComponentCount;
+
     float m_fKnockbackForce = 0.0f;
-    glm::vec2 m_fKnockbackDirection = glm::vec2(1.0f);
+    glm::vec2 m_fKnockbackDirection = glm::vec2(0.0f);
     glm::vec2 m_velocity = glm::vec2(0.0f, 0.0f);  // Store velocity
+
 };

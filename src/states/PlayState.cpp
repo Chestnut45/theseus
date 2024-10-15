@@ -26,8 +26,9 @@ void PlayState::Enter()
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
 
-    // Initialise collider manager
+    // Initialise managers
     this->m_pColliderManager = new ColliderManager(&scene);
+    this->m_pVelocityManager = new VelocityManager(&scene);
 
     // Add the labyrinth manager component to an empty object and load default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
@@ -39,6 +40,7 @@ void PlayState::Enter()
     testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
     auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
     auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
+    testCollider.SetDamage(10.0f);
     testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
     auto& testVelocity = testObj.AddComponent<VelocityComponent>();
     //testVelocity.SetVelocity(glm::vec2(-64.0f, 0.0f));
@@ -63,6 +65,8 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
 
     // Delete managers
+    delete this->m_pVelocityManager;
+    this->m_pVelocityManager = nullptr;
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
 }
@@ -99,6 +103,7 @@ void PlayState::Update(float delta)
 
     // Update managers
     this->m_pColliderManager->Update(delta);
+    this->m_pVelocityManager->Update(delta);
 
     // Update player animations
     auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
