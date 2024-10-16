@@ -400,6 +400,15 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
             collisionNormal = glm::normalize(glm::vec2(0.0f, -1.0f));
             printf("ColliderManager - C4\n");
         }
+        if(p_velocity_1!= nullptr)
+        {
+            p_velocity_1->SetVelocity(glm::vec2(0.0f, 0.0f));
+        }
+
+       if(p_velocity_2!= nullptr)
+        {
+            p_velocity_2->SetVelocity(glm::vec2(0.0f, 0.0f));
+        }
 
         return entryTime;
     }
