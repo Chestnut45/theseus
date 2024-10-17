@@ -21,16 +21,27 @@ void PlayState::Enter()
 
     // Initialize the listener
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
+    this->m_pColliderManager = new ColliderManager(&scene);
 
     // Initialize the player object first
-    CreatePlayer();
+     CreatePlayer();
+    auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
+    if (playerController)
+    {
+        // Set ColliderManager for the player controller
+        playerController->SetColliderManager(m_pColliderManager);
+    }
 
-
-    // Initialize the Minitaur object second
+    // Initialize the Minitaur enemy object second
     CreateMinitaurEnemy();
+    auto* enemyController = m_pMinitaurObject->GetComponent<EnemyController>();
+    if (enemyController)
+    {
+        // Set ColliderManager for the enemy controller
+        enemyController->SetColliderManager(m_pColliderManager);
+        
+    }
 
-    if (!m_pMinitaurObject)
-        return;
 
     // Add the main camera as a component of the player object
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
@@ -38,7 +49,7 @@ void PlayState::Enter()
     scene.SetActiveCamera(camera);
 
     // Initialise managers
-    this->m_pColliderManager = new ColliderManager(&scene);
+    
 
     // Add the labyrinth manager component to an empty object and load default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
@@ -217,7 +228,6 @@ void PlayState::CreatePlayer()
     // Add player controller and initialize
     // NOTE: This manages all player animations and the animated sprite component for the player
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
-    playerController.SetColliderManager(this->m_pColliderManager);
     playerController.LateInitialize();
 
     // Scale player

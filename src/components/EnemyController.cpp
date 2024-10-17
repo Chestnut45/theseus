@@ -11,6 +11,11 @@ void EnemyController::SetColliderManager(ColliderManager* pColliderManager)
     m_pColliderManager = pColliderManager;
 }
 
+ColliderManager* EnemyController::GetColliderManager() const
+{
+    return m_pColliderManager;
+}
+
 void EnemyController::Init()
 {
     auto* pGameObject = GetGameObject();
@@ -42,16 +47,17 @@ void EnemyController::Init()
         assert(m_pTarget != nullptr && "No player found in the scene!");
     }
 }
-
 void EnemyController::Update(float delta)
 {
     // Ensure components and target are initialized before performing any updates
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
 
+    // Print the current state of the enemy once per frame
+    // std::cout << "Enemy State: " << GetStateAsString(m_state) << std::endl;
+
     // Update the animation based on the movement direction and state
     UpdateAnimationBasedOnStateAndDirection();
-    auto* enemyCollider = GetGameObject()->GetComponent<ColliderComponent>();
 
     // State handling
     switch (m_state)
@@ -68,10 +74,13 @@ void EnemyController::Update(float delta)
     }
 }
 
+
 void EnemyController::HandleIdleState()
 {
+    // Transition to chasing if the player is within range
     if (IsPlayerInRange())
     {
+        std::cout << "Enemy State transitioning to: CHASING" << std::endl;
         m_state = EnemyState::CHASING;
     }
 }
@@ -104,6 +113,7 @@ void EnemyController::HandleChasingState(float delta)
         m_state = EnemyState::IDLE;
     }
 }
+
 void EnemyController::HandleAttackingState(float delta)
 {
     if (!m_pTarget) return;
@@ -210,29 +220,28 @@ bool EnemyController::IsPlayerInRange() const
 
 void EnemyController::ApplyDamageToPlayer()
 {
-    if (!m_pColliderManager || !m_pCollider || !m_pTarget) return;
+    if (!m_pTarget || !m_pColliderManager || !m_pCollider) return;
 
     // Get the player's ColliderComponent
     auto* playerCollider = m_pTarget->GetComponent<ColliderComponent>();
     if (!playerCollider) return;
 
-    // Check for collision between the enemy's hitbox and the player's hurtbox
-    if (m_pCollider->IsHitbox() && playerCollider->IsHurtbox())
+    // Check if the enemy is colliding with the player's hurtbox
+    if (m_pCollider->IsHitbox() && playerCollider->IsHurtbox() && m_state == EnemyState::ATTACKING)
     {
-        // Use m_pColliderManager to check if the colliders are colliding
-        if (m_pColliderManager->IsColliding(m_pCollider, playerCollider, 0.0f))
+        if (m_pColliderManager->IsColliding(m_pCollider, playerCollider, 0.0f)) 
         {
             auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
-            if (playerHealth)
+            if (playerHealth) 
             {
                 playerHealth->Damage(m_baseDamage);
-                std::cout << "Enemy attacked player!" << std::endl;
-                std::cout << "Player HealthComponent - Damage: " << m_baseDamage << std::endl;
-                std::cout << "Player HealthComponent - Health: " << playerHealth->GetHealth() << std::endl;
+                std::cout << "Enemy attacked player! Damage: " << m_baseDamage << std::endl;
+                std::cout << "Player Health: " << playerHealth->GetHealth() << std::endl;
             }
         }
     }
 }
+
 
 void EnemyController::SetUpAnimations()
 {
@@ -290,5 +299,16 @@ void EnemyController::UpdateAnimationBasedOnStateAndDirection()
     if (!currentAnim || currentAnim->m_strName != animationName)
     {
         m_pAnimComponent->SetAnimation(animationName);
+    }
+}
+
+std::string EnemyController::GetStateAsString(EnemyState state)
+{
+    switch (state)
+    {
+        case EnemyState::IDLE: return "IDLE";
+        case EnemyState::CHASING: return "CHASING";
+        case EnemyState::ATTACKING: return "ATTACKING";
+        default: return "UNKNOWN";
     }
 }

@@ -23,6 +23,10 @@ void PlayerController::SetColliderManager(ColliderManager* pColliderManager)
     m_pColliderManager = pColliderManager;
 }
 
+ColliderManager* PlayerController::GetColliderManager() const
+{
+    return m_pColliderManager;
+}
 // Initialize components related to the player
 void PlayerController::LateInitialize()
 {

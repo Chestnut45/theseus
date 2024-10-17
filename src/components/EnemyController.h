@@ -24,9 +24,11 @@ public:
     void Init();
     void Update(float delta);
     void SetColliderManager(ColliderManager* pColliderManager);
+    ColliderManager* GetColliderManager() const;
 
 
 private:
+    std::string GetStateAsString(EnemyState state);
     void HandleIdleState();
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
@@ -40,6 +42,7 @@ private:
     void SetUpAnimations();  
     // Method to update animations based on the direction and state
     void UpdateAnimationBasedOnStateAndDirection();
+    
 
     wolf::Transform2D* m_pTransform = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
@@ -67,5 +70,5 @@ private:
     float m_attackRecoveryDuration = 0.3f;  // Duration of recovery phase after an attack
     ColliderComponent* m_pCollider = nullptr;
     ColliderManager* m_pColliderManager = nullptr;
-     
+    
 };

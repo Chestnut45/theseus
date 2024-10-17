@@ -51,7 +51,7 @@ public:
     // Overloaded << operator for printing directions
     friend std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction);
     void SetColliderManager(ColliderManager* pColliderManager);
-
+    ColliderManager* GetColliderManager() const;
 private:
     // Initialization and animation management
     void InitializeAnimations();

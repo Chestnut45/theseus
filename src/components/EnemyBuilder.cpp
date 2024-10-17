@@ -10,8 +10,6 @@ wolf::GameObject& EnemyBuilder::BuildEnemy(ColliderManager* pColliderManager)  /
     // Add the EnemyController component to handle behavior and state
     m_pEnemyController = &m_pEnemyObject->AddComponent<EnemyController>(150.0f);
 
-    // Set ColliderManager for EnemyController
-    m_pEnemyController->SetColliderManager(pColliderManager);  // Pass it here
 
     // Set initial position
     auto* transform = m_pEnemyObject->GetComponent<wolf::Transform2D>();
