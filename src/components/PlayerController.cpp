@@ -313,3 +313,8 @@ void PlayerController::Render()
 
     ImGui::End();
 }
+
+glm::vec2 PlayerController::GetCurrentDirectionVector() const
+{
+    return this->GetDirectionVector(this->m_lastDirectionEnum);
+}

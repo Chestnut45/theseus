@@ -42,6 +42,8 @@ public:
     void Update(float delta);
     void Render();
 
+    glm::vec2 GetCurrentDirectionVector() const;
+
 private:
     
     // Handle movement input (WASD)
