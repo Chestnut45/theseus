@@ -6,6 +6,11 @@ EnemyController::EnemyController(float chaseSpeed)
 {
 }
 
+void EnemyController::SetColliderManager(ColliderManager* pColliderManager)
+{
+    m_pColliderManager = pColliderManager;
+}
+
 void EnemyController::Init()
 {
     auto* pGameObject = GetGameObject();
@@ -15,6 +20,7 @@ void EnemyController::Init()
         m_pTransform = pGameObject->GetComponent<wolf::Transform2D>();
         m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
         m_pHealth = pGameObject->GetComponent<HealthComponent>();
+        m_pCollider = pGameObject->GetComponent<ColliderComponent>();  // Get the ColliderComponent
 
         // Initialize the AnimatedSprite2D component
         if (!m_pAnimComponent)
@@ -24,7 +30,7 @@ void EnemyController::Init()
         SetUpAnimations();
 
         // Check if the essential components are initialized properly
-        assert(m_pTransform != nullptr && m_pVelocity != nullptr && m_pHealth != nullptr && "Components not properly initialized in EnemyController!");
+        assert(m_pTransform != nullptr && m_pVelocity != nullptr && m_pHealth != nullptr && m_pCollider != nullptr && "Components not properly initialized in EnemyController!");
 
         // Search for the player object in the scene and set it as the target
         for (auto&& [entity, playerController] : pGameObject->GetScene().Each<PlayerController>())
@@ -45,6 +51,7 @@ void EnemyController::Update(float delta)
 
     // Update the animation based on the movement direction and state
     UpdateAnimationBasedOnStateAndDirection();
+    auto* enemyCollider = GetGameObject()->GetComponent<ColliderComponent>();
 
     // State handling
     switch (m_state)
@@ -97,16 +104,12 @@ void EnemyController::HandleChasingState(float delta)
         m_state = EnemyState::IDLE;
     }
 }
-
 void EnemyController::HandleAttackingState(float delta)
 {
     if (!m_pTarget) return;
 
     // Calculate distance to the player
     float distance = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
-
-    // Debug: Print attacking state information
-    std::cout << "Enemy is ATTACKING the player. Distance: " << distance << std::endl;
 
     // If the player moves out of melee range by a small tolerance, go back to chasing
     if (distance > m_meleeRange + 20.0f)  // Add a small tolerance to avoid jittering
@@ -128,10 +131,23 @@ void EnemyController::HandleAttackingState(float delta)
 
     // Attack cooldown timer to control attack frequency
     m_attackTimer -= delta;
-    if (m_attackTimer <= 0.0f)
+
+    // Ensure continuous collision check and apply damage if the enemy and player are colliding
+    if (m_pColliderManager && m_pCollider && m_pTarget)
     {
-        ApplyDamageToPlayer(); // Deal damage to the player
-        m_attackTimer = m_attackCooldown; // Reset the timer
+        auto* playerCollider = m_pTarget->GetComponent<ColliderComponent>();
+        if (playerCollider && m_pCollider->IsHitbox() && playerCollider->IsHurtbox())
+        {
+            if (m_pColliderManager->IsColliding(m_pCollider, playerCollider, 0.0f))
+            {
+                // Apply damage if cooldown has elapsed
+                if (m_attackTimer <= 0.0f)
+                {
+                    ApplyDamageToPlayer();
+                    m_attackTimer = m_attackCooldown;  // Reset the timer
+                }
+            }
+        }
     }
 }
 
@@ -194,17 +210,26 @@ bool EnemyController::IsPlayerInRange() const
 
 void EnemyController::ApplyDamageToPlayer()
 {
-    // Ensure the target player exists and has a health component
-    if (m_pTarget)
+    if (!m_pColliderManager || !m_pCollider || !m_pTarget) return;
+
+    // Get the player's ColliderComponent
+    auto* playerCollider = m_pTarget->GetComponent<ColliderComponent>();
+    if (!playerCollider) return;
+
+    // Check for collision between the enemy's hitbox and the player's hurtbox
+    if (m_pCollider->IsHitbox() && playerCollider->IsHurtbox())
     {
-        auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
-        if (playerHealth)
+        // Use m_pColliderManager to check if the colliders are colliding
+        if (m_pColliderManager->IsColliding(m_pCollider, playerCollider, 0.0f))
         {
-            // Apply damage to the player's health
-            playerHealth->Damage(m_baseDamage);
-            std::cout << "Enemy attacked player!" << std::endl;
-            std::cout << "Player HealthComponent - Damage: " << m_baseDamage << std::endl;
-            std::cout << "Player HealthComponent - Health: " << playerHealth->GetHealth() << std::endl;
+            auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
+            if (playerHealth)
+            {
+                playerHealth->Damage(m_baseDamage);
+                std::cout << "Enemy attacked player!" << std::endl;
+                std::cout << "Player HealthComponent - Damage: " << m_baseDamage << std::endl;
+                std::cout << "Player HealthComponent - Health: " << playerHealth->GetHealth() << std::endl;
+            }
         }
     }
 }

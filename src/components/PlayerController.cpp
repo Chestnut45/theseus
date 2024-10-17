@@ -1,8 +1,7 @@
 #include "PlayerController.h"
 #include "VelocityComponent.h"
 #include "HealthComponent.h"
-#include "HurtboxComponent.h"
-#include "HitboxComponent.h"
+#include "ColliderComponent.h"
 #include <W_Input.h>
 #include <W_Logging.h>
 
@@ -19,10 +18,9 @@ void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
     m_pAnimComponent = animComponent;
 }
 
-void PlayerController::SetManagers(HitboxManager* pHitboxManager, HurtboxManager* pHurtboxManager)
+void PlayerController::SetColliderManager(ColliderManager* pColliderManager)
 {
-    m_pHitboxManager = pHitboxManager;
-    m_pHurtboxManager = pHurtboxManager;
+    m_pColliderManager = pColliderManager;
 }
 
 // Initialize components related to the player
@@ -44,7 +42,6 @@ void PlayerController::LateInitialize()
 
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-    
     // Initialize animations
     InitializeAnimations();
 
@@ -111,6 +108,7 @@ void PlayerController::Update(float delta)
         wolf::Error("PlayerController missing essential components!");
         return;
     }
+    
 
     HandlePlayerInput(delta);
     RegenerateStamina(delta);
@@ -384,27 +382,25 @@ void PlayerController::UpdateAttackState(float delta)
 
 void PlayerController::ApplyDamageToEnemy()
 {
+    if (!m_pColliderManager) return;  // Ensure ColliderManager is set
     auto* pGameObject = GetGameObject();
-    if (!pGameObject || !m_pTransform || !m_pHitboxManager || !m_pHurtboxManager) return;
+    if (!pGameObject || !m_pTransform) return;
 
-    auto* pPlayerHitbox = pGameObject->GetComponent<HitboxComponent>();
-    if (!pPlayerHitbox) return;
+    auto* pPlayerCollider = pGameObject->GetComponent<ColliderComponent>();
+    if (!pPlayerCollider || !pPlayerCollider->IsHitbox()) return;
 
     for (auto&& [entity, enemyController] : GetGameObject()->GetScene().Each<EnemyController>())
     {
-        auto* enemyHurtbox = enemyController.GetGameObject()->GetComponent<HurtboxComponent>();
-        if (!enemyHurtbox) continue;
+        auto* enemyCollider = enemyController.GetGameObject()->GetComponent<ColliderComponent>();
+        if (!enemyCollider || !enemyCollider->IsHurtbox()) continue;
 
-        // Apply damage immediately if there's a collision between player's hitbox and enemy's hurtbox
-        if (m_pHitboxManager->IsColliding(pPlayerHitbox, enemyHurtbox))
+        // Use m_pColliderManager to check for collisions
+        if (m_pColliderManager->IsColliding(pPlayerCollider, enemyCollider, 0.0f))
         {
             auto* enemyHealth = enemyController.GetGameObject()->GetComponent<HealthComponent>();
             if (enemyHealth)
             {
-                // Apply damage to the enemy's health
                 enemyHealth->Damage(m_attackDamage);
-
-                // Debug: Print information about the attack and enemy health
                 std::cout << "Player attacked enemy!" << std::endl;
                 std::cout << "Enemy HealthComponent - Damage: " << m_attackDamage << std::endl;
                 std::cout << "Enemy HealthComponent - Health: " << enemyHealth->GetHealth() << std::endl;

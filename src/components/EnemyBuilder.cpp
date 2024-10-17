@@ -7,7 +7,7 @@ wolf::GameObject& EnemyBuilder::BuildEnemy()
     // Create the enemy GameObject
     m_pEnemyObject = &m_scene.CreateObject2D();
 
-    // Verify that the GameObject was created successfully
+    // Add the EnemyController component to handle behavior and state
     m_pEnemyController = &m_pEnemyObject->AddComponent<EnemyController>(150.0f);
 
     // Set initial position away from the player (example position)
@@ -15,22 +15,23 @@ wolf::GameObject& EnemyBuilder::BuildEnemy()
     transform->SetPosition(glm::vec2(800.0f, 500.0f));  // Set position away from the player for testing
     transform->SetScale(glm::vec2(3.0f));
 
-    // Remove the AnimatedSprite2D initialization from here.
-    // The EnemyController will handle the AnimatedSprite2D setup.
-
-    // Add the EnemyController component to handle behavior and state
-
-    // Add necessary components to the enemy
+    // Add the VelocityComponent to handle enemy movement
     m_pEnemyObject->AddComponent<VelocityComponent>();
 
-    auto& hitbox = m_pEnemyObject->AddComponent<HitboxComponent>(0, 1);
-    hitbox.AddHitbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
+    // Add the ColliderComponent and configure it
+    auto& collider = m_pEnemyObject->AddComponent<ColliderComponent>(ColliderComponent::HITHURTBOXDD, false, true);
+    
+    // Configure the collider box (this replaces the hitbox and hurtbox)
+    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));  // Example dimensions and offset
 
-    auto& hurtbox = m_pEnemyObject->AddComponent<HurtboxComponent>(0, 0, 0, 1);
-    hurtbox.AddHurtbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
+    // Add the HealthComponent
+    m_pEnemyObject->AddComponent<HealthComponent>(100);   // Health component with 100 HP
 
-    m_pEnemyObject->AddComponent<HealthComponent>(100);
-    m_pEnemyObject->AddComponent<ArmourComponent>(50);
+    // Add the ArmourComponent using the default constructor and then configure it
+    auto& armourComponent = m_pEnemyObject->AddComponent<ArmourComponent>();
+    
+    // Set armour multiplier and any special properties using the CollectArmour method
+    armourComponent.CollectArmour(2);  // Set multiplier to 50, adjust if needed
 
     // Initialize the EnemyController after all components are added
     m_pEnemyController->Init();

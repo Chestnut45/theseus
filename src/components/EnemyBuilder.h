@@ -4,8 +4,7 @@
 #include "EnemyController.h"
 #include "VelocityComponent.h"
 #include "HealthComponent.h"
-#include "HitboxComponent.h"
-#include "HurtboxComponent.h"
+#include "ColliderComponent.h"
 #include "ArmourComponent.h"
 
 // EnemyBuilder class to encapsulate the creation and initialization of an enemy object

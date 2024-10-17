@@ -5,14 +5,13 @@
 #include <components/AnimatedSprite2D.h>
 #include <components/HealthComponent.h>
 #include <components/EnemyController.h>
-#include <components/HurtboxComponent.h>
-#include <components/HitboxComponent.h>
+#include <components/ColliderComponent.h>
 #include <iostream>
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
 // Original Author: Youssef Ashraf
-// ver 1.9. Restructured header for improved readability and state management.
+// ver 2.0. Updated to remove deprecated hitbox and hurtbox components.
 //-----------------------------------------------------------------------------
 
 class PlayerController : public wolf::BaseComponent
@@ -48,10 +47,10 @@ public:
     void Update(float delta);
     void Render();
     void SetAnimationComponent(AnimatedSprite2D* animComponent);
-    void SetManagers(HitboxManager* pHitboxManager, HurtboxManager* pHurtboxManager);
 
     // Overloaded << operator for printing directions
     friend std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction);
+    void SetColliderManager(ColliderManager* pColliderManager);
 
 private:
     // Initialization and animation management
@@ -63,7 +62,6 @@ private:
     void HandleRolling(float delta);     // Declaration for HandleRolling
     void HandleJumping(float delta);     // Declaration for HandleJumping
     void HandleAttacking(float delta);   // Declaration for HandleAttacking
-
 
     // Manage and transition different player states
     void StartAttack();
@@ -82,6 +80,7 @@ private:
     std::string GetWalkAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
     std::string GetIdleAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
     PlayerDirection GetDirectionFromVector(const glm::vec2& direction) const;
+
     // Input tracking
     // Data members for components and state management
     wolf::Transform2D* m_pTransform = nullptr;
@@ -119,13 +118,11 @@ private:
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
 
-    // Collision and hitbox management
-    HitboxManager* m_pHitboxManager = nullptr;
-    HurtboxManager* m_pHurtboxManager = nullptr;
-
     // Animation and state tracking flags
     bool m_animationFinished = false;
     std::string m_currentAnimation;
     PlayerAction m_previousAction = PlayerAction::NONE;
     PlayerDirection m_previousDirection = PlayerDirection::NONE;
+
+    ColliderManager* m_pColliderManager = nullptr;
 };

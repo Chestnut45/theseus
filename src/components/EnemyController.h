@@ -5,6 +5,7 @@
 #include <components/HealthComponent.h>
 #include <components/AnimatedSprite2D.h>
 #include <components/PlayerController.h>
+#include <components/ColliderComponent.h>
 
 class EnemyController : public wolf::BaseComponent
 {
@@ -22,6 +23,8 @@ public:
 
     void Init();
     void Update(float delta);
+    void SetColliderManager(ColliderManager* pColliderManager);
+
 
 private:
     void HandleIdleState();
@@ -62,7 +65,7 @@ private:
 
     wolf::Timer m_attackRecoveryTimer;      // Timer for recovery phase after attacking
     float m_attackRecoveryDuration = 0.3f;  // Duration of recovery phase after an attack
+    ColliderComponent* m_pCollider = nullptr;
+    ColliderManager* m_pColliderManager = nullptr;
      
-
-   
 };
