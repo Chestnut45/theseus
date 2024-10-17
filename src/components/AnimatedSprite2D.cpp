@@ -351,10 +351,10 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
         m_arTempVertexData[15] = m_pCurrentFrameUVs->m_v2BotRight.y; // V
         
         // Once we've got our temporary array set up, we can copy the data to the buffer using glBufferSubData
-        glBufferSubData(GL_ARRAY_BUFFER, 0, 16 * sizeof(GLfloat), this->m_arTempVertexData);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(m_arTempVertexData), m_arTempVertexData);
 
         // Then we reset the flag
-        m_bFrameChanged = false;
+        
     }
 
     // And perform the rest of the draw call
