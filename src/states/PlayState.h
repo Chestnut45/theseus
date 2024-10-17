@@ -18,7 +18,7 @@
 #include "../DialogueManager.h"
 
 #include <EnemyController.h>
-#include <EnemyBuilder.h>
+#include <MinitaurBuilder.h>
 
 class LabyrinthManager;
 

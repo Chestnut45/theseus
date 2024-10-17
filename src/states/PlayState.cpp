@@ -9,7 +9,7 @@
 #include "../components/InventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/VelocityComponent.h"
-#include <EnemyBuilder.h>
+
 
 void PlayState::Enter()
 {
@@ -25,22 +25,11 @@ void PlayState::Enter()
 
     // Initialize the player object first
      CreatePlayer();
-    auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
-    if (playerController)
-    {
-        // Set ColliderManager for the player controller
-        playerController->SetColliderManager(m_pColliderManager);
-    }
+
 
     // Initialize the Minitaur enemy object second
-    CreateMinitaurEnemy();
-    auto* enemyController = m_pMinitaurObject->GetComponent<EnemyController>();
-    if (enemyController)
-    {
-        // Set ColliderManager for the enemy controller
-        enemyController->SetColliderManager(m_pColliderManager);
-        
-    }
+     CreateMinitaurEnemy();
+
 
 
     // Add the main camera as a component of the player object
@@ -127,15 +116,15 @@ void PlayState::Update(float delta)
     if (playerAnim) 
         playerAnim->Update(delta);
 
-    auto* enemyController = m_pMinitaurObject->GetComponent<EnemyController>();
-    if (enemyController)
+    auto* minitaurController = m_pMinitaurObject->GetComponent<MinitaurController>();
+    if (minitaurController)
     {
-        enemyController->Update(delta);
+        minitaurController->Update(delta);
     }
     auto* enemyAnim = m_pMinitaurObject->GetComponent<AnimatedSprite2D>();
      if (enemyAnim) 
         enemyAnim->Update(delta);
-
+    
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
     if (playerInventory) {
@@ -250,8 +239,11 @@ void PlayState::CreatePlayer()
 
 void PlayState::CreateMinitaurEnemy()
 {
-    EnemyBuilder enemyBuilder(m_pGameInstance->GetScene());
-    m_pMinitaurObject = &enemyBuilder.BuildEnemy(m_pColliderManager); 
+    // Instantiate the MinitaurBuilder with the current scene
+    MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
+
+    // Build the Minitaur and assign it to m_pMinitaurObject
+    m_pMinitaurObject = &minitaurBuilder.BuildMinitaur(m_pColliderManager); 
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)
