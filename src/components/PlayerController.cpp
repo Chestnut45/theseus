@@ -2,6 +2,7 @@
 #include "VelocityComponent.h"
 #include "HealthComponent.h"
 #include "ColliderComponent.h"
+#include "MinitaurController.h"
 #include <W_Input.h>
 #include <W_Logging.h>
 
@@ -164,7 +165,7 @@ void PlayerController::HandleMovement(float delta)
 }
 
 // Manage attack state and animation transitions
-void PlayerController::HandleAttacking(float delta)
+void PlayerController:: HandleAttacking(float delta)
 {
     // Start the attack if the left mouse button is pressed and the player is not currently attacking.
     if (wolf::Input::IsLMBJustDown() && !m_isAttacking)
@@ -386,29 +387,35 @@ void PlayerController::UpdateAttackState(float delta)
 
 void PlayerController::ApplyDamageToEnemy()
 {
-    if (!m_pColliderManager) return;  // Ensure ColliderManager is set
     auto* pGameObject = GetGameObject();
     if (!pGameObject || !m_pTransform) return;
 
-    auto* pPlayerCollider = pGameObject->GetComponent<ColliderComponent>();
-    if (!pPlayerCollider || !pPlayerCollider->IsHitbox()) return;
-
-    for (auto&& [entity, enemyController] : GetGameObject()->GetScene().Each<EnemyController>())
+    // Iterate through all Minitaurs in the scene (MinitaurController)
+    for (auto&& [entity, minitaurController] : GetGameObject()->GetScene().Each<MinitaurController>())
     {
-        auto* enemyCollider = enemyController.GetGameObject()->GetComponent<ColliderComponent>();
-        if (!enemyCollider || !enemyCollider->IsHurtbox()) continue;
+        // Get the transform of the Minitaur
+        auto* minitaurTransform = minitaurController.GetGameObject()->GetComponent<wolf::Transform2D>();
+        auto* minitaurHealth = minitaurController.GetGameObject()->GetComponent<HealthComponent>();
 
-        // Use m_pColliderManager to check for collisions
-        if (m_pColliderManager->IsColliding(pPlayerCollider, enemyCollider, 0.0f))
+        // Ensure the Minitaur has a HealthComponent and a Transform
+        if (!minitaurTransform || !minitaurHealth) continue;
+
+        // Calculate the distance between the player and the Minitaur
+        const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
+        const glm::vec2 minitaurPosition = minitaurTransform->GetGlobalPosition();
+        const float distanceToMinitaur = glm::length(playerPosition - minitaurPosition);
+
+
+        // Check if the Minitaur is within attack range
+        if (distanceToMinitaur <= m_attackRange)
         {
-            auto* enemyHealth = enemyController.GetGameObject()->GetComponent<HealthComponent>();
-            if (enemyHealth)
-            {
-                enemyHealth->Damage(m_attackDamage);
-                std::cout << "Player attacked enemy!" << std::endl;
-                std::cout << "Enemy HealthComponent - Damage: " << m_attackDamage << std::endl;
-                std::cout << "Enemy HealthComponent - Health: " << enemyHealth->GetHealth() << std::endl;
-            }
+            // Apply damage to the Minitaur
+            minitaurHealth->Damage(m_attackDamage);
+            std::cout << "Player attacked Minitaur! Damage: " << m_attackDamage << std::endl;
+            std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
+
+            // Optionally, break here if you're only targeting one Minitaur at a time
+            break;
         }
     }
 }

@@ -115,6 +115,7 @@ private:
     bool m_isAttacking = false;
     float m_attackCooldown = 0.5f;
     float m_attackDamage = 50.0f;
+    float m_attackRange = 50.0f;
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
 

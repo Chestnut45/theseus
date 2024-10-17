@@ -32,28 +32,36 @@ void MinitaurController::Update(float delta)
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
 
-    // Debug print for current state
+    // We can still track health, but we won't transition to the DEATH state for now
+    if (m_pHealth->GetHealth() <= 0.0f)
+    {
+        std::cout << "Minitaur health is zero, but death handling is disabled for now.\n";
+        // Don't transition to DEATH state yet
+        // ChangeState(EnemyState::DEATH);
+        return;
+    }
 
     // Update based on the current state
     switch (m_state)
     {
         case EnemyState::IDLE:
-            HandleIdleState();    // This should handle transitions out of the idle state
+            HandleIdleState();
             break;
         case EnemyState::CHASING:
-            HandleChasingState(delta);    // Handle movement towards the player
+            HandleChasingState(delta);
             break;
         case EnemyState::ATTACKING:
-            HandleAttackingState(delta);    // Handle attack behavior
+            HandleAttackingState(delta);
             break;
-        case EnemyState::DEATH:
-            HandleDeathState();
-            break;
+        // case EnemyState::DEATH:
+        //     HandleDeathState();  // Temporarily disable death handling
+        //     break;
     }
 
     // Update animations based on direction after handling movement
     UpdateAnimationBasedOnDirection();
 }
+
 void MinitaurController::SetUpAnimations()
 {
     if (!m_pAnimComponent) return;
@@ -130,27 +138,42 @@ void MinitaurController::HandleChasingState(float delta)
 
 void MinitaurController::HandleAttackingState(float delta)
 {
-    // Simulate attacking behavior
-    if (m_attackTimer <= 0.0f)
-    {
-        std::cout << "Minitaur attacks the player!" << std::endl;
-        m_attackTimer = m_attackCooldown;  // Reset the attack timer
-    }
+    if (!m_pTarget) return;
 
-    // Reset the attack timer over time
-    m_attackTimer -= delta;
+    // Stop Minitaur's movement during attack
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
-    // Check if the player has moved out of melee range and transition back to chasing
+    // Check distance to player
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
+    // Apply damage if player is within melee range and attack cooldown is over
+    if (distanceToPlayer <= m_meleeRange && m_attackTimer <= 0.0f)
+    {
+        
+        // Simulate applying damage to the player
+        auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
+        if (playerHealth)
+        {
+            playerHealth->Damage(m_baseDamage);  // Apply damage to the player
+            std::cout << "Player Health: " << playerHealth->GetHealth() << "\n";
+
+            // Reset attack cooldown timer
+            m_attackTimer = m_attackCooldown;
+        }
+    }
+
+    // Cooldown timer for next attack
+    m_attackTimer -= delta;
+
+    // Return to chasing if player moves out of range
     if (distanceToPlayer > m_meleeRange)
     {
-        std::cout << "Player moved out of range, transitioning back to CHASING state\n";
         ChangeState(EnemyState::CHASING);
     }
 }
+
 
 void MinitaurController::UpdateAnimationBasedOnDirection()
 {
@@ -190,3 +213,9 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
     }
 }
 
+// void MinitaurController::HandleDeathState()
+// {
+//     // Destroy the GameObject when the Minitaur dies
+//     std::cout << "Minitaur is being destroyed.\n";
+//     GetGameObject()->Delete();
+// }

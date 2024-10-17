@@ -25,6 +25,7 @@ private:
     void HandleIdleState();
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
+    void HandleDeathState();
     // Minitaur-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;
