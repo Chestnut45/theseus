@@ -26,7 +26,6 @@ public:
 
 protected:
     void ChangeState(EnemyState newState); // General state transition logic shared by all enemies
-    void HandleDeathState();               // General death state behavior, common across enemies
 
     // These components are common to all enemies and will be initialized here, but used in specific enemy classes
     wolf::Transform2D* m_pTransform = nullptr;

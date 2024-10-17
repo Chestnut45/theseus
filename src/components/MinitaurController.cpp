@@ -4,7 +4,15 @@
 
 MinitaurController::MinitaurController() : EnemyController() {}
 
-MinitaurController::~MinitaurController() = default;
+MinitaurController::~MinitaurController()
+{
+    std::cout<<"nullifying \n";
+    m_pAnimComponent = nullptr;
+    m_pTarget = nullptr;
+    m_pVelocity = nullptr;
+    m_pHealth = nullptr;
+    m_pTransform = nullptr;
+}
 
 void MinitaurController::Init()
 {
@@ -26,20 +34,13 @@ void MinitaurController::Init()
 
 }
 
+
 void MinitaurController::Update(float delta)
 {
     // Ensure components and target are initialized before performing any updates
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
 
-    // We can still track health, but we won't transition to the DEATH state for now
-    if (m_pHealth->GetHealth() <= 0.0f)
-    {
-        std::cout << "Minitaur health is zero, but death handling is disabled for now.\n";
-        // Don't transition to DEATH state yet
-        // ChangeState(EnemyState::DEATH);
-        return;
-    }
 
     // Update based on the current state
     switch (m_state)
@@ -219,3 +220,4 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
 //     std::cout << "Minitaur is being destroyed.\n";
 //     GetGameObject()->Delete();
 // }
+

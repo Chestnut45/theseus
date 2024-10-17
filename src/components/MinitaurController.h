@@ -11,8 +11,7 @@ class MinitaurController : public EnemyController
 {
 public:
     MinitaurController();
-    virtual ~MinitaurController();
-
+    virtual ~MinitaurController() override;   
     // Override Init and Update to implement specific behavior for Minitaur
     void Init() override;
     void Update(float delta) override;

@@ -5,10 +5,13 @@ EnemyController::EnemyController() = default;
 
 EnemyController::~EnemyController()
 {
+    std::cout<<"nullifiying enemyptrs \n";
     // Clean up pointers but avoid deleting objects (managed by GameObject)
     m_pTransform = nullptr;
     m_pHealth = nullptr;
     m_pCollider = nullptr;
+    m_pColliderManager = nullptr;
+     m_pTarget = nullptr;
 }
 
 void EnemyController::Init()
@@ -40,7 +43,6 @@ void EnemyController::Update(float delta)
             // Concrete enemies will implement their own attacking behavior
             break;
         case EnemyState::DEATH:
-            HandleDeathState();
             break;
     }
 }
@@ -60,11 +62,3 @@ void EnemyController::ChangeState(EnemyState newState)
     m_state = newState;
 }
 
-void EnemyController::HandleDeathState()
-{
-    // General behavior when an enemy enters the death state
-    if (m_pHealth && m_pHealth->GetHealth() <= 0)
-    {
-        GetGameObject()->Delete(); // Destroy the enemy game object
-    }
-}
