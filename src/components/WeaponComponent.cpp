@@ -10,14 +10,21 @@
 #include "PlayerController.h"
 #include "VelocityComponent.h"
 
-WeaponComponent::WeaponComponent(WeaponType p_weapon_type)
+WeaponComponent::WeaponComponent()
 {
-    this->m_WeaponType = p_weapon_type;
+    this->m_CurrentWeapon = WeaponComponent::WeaponType::NONE;
+
+    for(int i = 0; i < WeaponComponent::WeaponType::NONE; i++)
+    {
+        this->m_aAvailableWeapons[i] = 0;
+    }
+
+    this->m_aAvailableWeapons[WeaponComponent::WeaponType::NONE] = 1;
 }
 
 void WeaponComponent::Attack()
 {
-    switch(this->m_WeaponType)
+    switch(this->m_CurrentWeapon)
     {
         case WeaponType::CROSSBOW:
         auto& scene = this->GetGameObject()->GetScene();
@@ -35,8 +42,14 @@ void WeaponComponent::Attack()
         PlayerController* playerController = this->GetGameObject()->GetComponent<PlayerController>();
         if(playerController != nullptr)
         {
-            projectileVelocity.SetVelocity(playerController->GetCurrentDirectionVector());
+            projectileVelocity.SetVelocity(playerController->GetCurrentDirectionVector() * 128.0f);
         }
         
     }
+}
+
+void WeaponComponent::CollectWeapon(WeaponComponent::WeaponType p_weapon_type)
+{
+    this->m_CurrentWeapon = p_weapon_type;
+    this->m_aAvailableWeapons[p_weapon_type] = 1;
 }
