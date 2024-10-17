@@ -7,6 +7,7 @@
 #include "WeaponComponent.h"
 
 #include "ColliderComponent.h"
+#include "PlayerController.h"
 #include "VelocityComponent.h"
 
 WeaponComponent::WeaponComponent(WeaponType p_weapon_type)
@@ -31,6 +32,11 @@ void WeaponComponent::Attack()
         projectileCollider.SetDamage(10.0f);
         projectileCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
 
-        //projectileVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
+        PlayerController* playerController = this->GetGameObject()->GetComponent<PlayerController>();
+        if(playerController != nullptr)
+        {
+            //projectileVelocity.SetVelocity();
+        }
+        
     }
 }
