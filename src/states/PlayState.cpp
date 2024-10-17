@@ -217,6 +217,7 @@ void PlayState::CreatePlayer()
     // Add player controller and initialize
     // NOTE: This manages all player animations and the animated sprite component for the player
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
+    playerController.SetColliderManager(this->m_pColliderManager);
     playerController.LateInitialize();
 
     // Scale player
@@ -240,8 +241,7 @@ void PlayState::CreatePlayer()
 void PlayState::CreateMinitaurEnemy()
 {
     EnemyBuilder enemyBuilder(m_pGameInstance->GetScene());
-    m_pMinitaurObject = &enemyBuilder.BuildEnemy();
-
+    m_pMinitaurObject = &enemyBuilder.BuildEnemy(m_pColliderManager); 
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)

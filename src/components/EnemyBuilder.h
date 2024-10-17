@@ -16,7 +16,7 @@ public:
         : m_scene(scene), m_pEnemyObject(nullptr), m_pEnemyController(nullptr) {}
 
     // Build the enemy GameObject and return a reference to it
-    wolf::GameObject& BuildEnemy();
+     wolf::GameObject& BuildEnemy(ColliderManager* pColliderManager);
 
     // Function to get the EnemyController pointer
 

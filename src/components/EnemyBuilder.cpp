@@ -2,7 +2,7 @@
 #include <cassert>
 
 // Build the enemy GameObject and initialize its components
-wolf::GameObject& EnemyBuilder::BuildEnemy()
+wolf::GameObject& EnemyBuilder::BuildEnemy(ColliderManager* pColliderManager)  // Add parameter
 {
     // Create the enemy GameObject
     m_pEnemyObject = &m_scene.CreateObject2D();
@@ -10,30 +10,29 @@ wolf::GameObject& EnemyBuilder::BuildEnemy()
     // Add the EnemyController component to handle behavior and state
     m_pEnemyController = &m_pEnemyObject->AddComponent<EnemyController>(150.0f);
 
-    // Set initial position away from the player (example position)
+    // Set ColliderManager for EnemyController
+    m_pEnemyController->SetColliderManager(pColliderManager);  // Pass it here
+
+    // Set initial position
     auto* transform = m_pEnemyObject->GetComponent<wolf::Transform2D>();
-    transform->SetPosition(glm::vec2(800.0f, 500.0f));  // Set position away from the player for testing
+    transform->SetPosition(glm::vec2(800.0f, 500.0f));  // Example position
     transform->SetScale(glm::vec2(3.0f));
 
-    // Add the VelocityComponent to handle enemy movement
+    // Add the VelocityComponent
     m_pEnemyObject->AddComponent<VelocityComponent>();
 
-    // Add the ColliderComponent and configure it
+    // Add ColliderComponent
     auto& collider = m_pEnemyObject->AddComponent<ColliderComponent>(ColliderComponent::HITHURTBOXDD, false, true);
-    
-    // Configure the collider box (this replaces the hitbox and hurtbox)
-    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));  // Example dimensions and offset
+    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));  // Example box size
 
-    // Add the HealthComponent
-    m_pEnemyObject->AddComponent<HealthComponent>(100);   // Health component with 100 HP
+    // Add HealthComponent
+    m_pEnemyObject->AddComponent<HealthComponent>(100);
 
-    // Add the ArmourComponent using the default constructor and then configure it
+    // Add ArmourComponent
     auto& armourComponent = m_pEnemyObject->AddComponent<ArmourComponent>();
-    
-    // Set armour multiplier and any special properties using the CollectArmour method
-    armourComponent.CollectArmour(2);  // Set multiplier to 50, adjust if needed
+    armourComponent.CollectArmour(2);  // Example armor
 
-    // Initialize the EnemyController after all components are added
+    // Initialize the EnemyController
     m_pEnemyController->Init();
 
     return *m_pEnemyObject;
