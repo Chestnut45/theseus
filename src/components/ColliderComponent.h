@@ -70,6 +70,7 @@ private:
     float m_fDamage = 1.0f; // Amount of Damage to Deal (only for Damage Dealer hurtboxes) 
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
     bool m_bIsRelative = false; // Hitbox scales relative to object
+    bool m_bIsFlaggedForDestruction = false;
 
     ColliderType m_ColliderType = ColliderType::NONE;
 

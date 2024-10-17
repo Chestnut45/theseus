@@ -38,21 +38,21 @@ void PlayState::Enter()
     testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
     testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
     auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
+    auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
     testCollider.SetDamage(10.0f);
     testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
     auto& testVelocity = testObj.AddComponent<VelocityComponent>();
     testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
 
 
-    // auto& testObj2 = scene.CreateObject2D();
-    // testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    // testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
-    // auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDD, 1, 1);
-    // testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    // auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
-    // testVelocity2.SetVelocity(glm::vec2(64.0f, 0.0f));
+    auto& testObj2 = scene.CreateObject2D();
+    testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+    testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
+    auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+    testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
+    auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
+    testVelocity2.SetVelocity(glm::vec2(64.0f, 0.0f));
 
 }
 

@@ -69,18 +69,43 @@ void ColliderManager::CheckCollisions(float p_delta)
                             if(this->IsColliding(&collider1, &collider2, p_delta))
                             {
                                 isColliding = true;
+
+                                if(collider1.IsDestroyedOnCollision() && !collider1.m_bIsFlaggedForDestruction)
+                                {
+                                    collider1.m_bIsFlaggedForDestruction = true;
+                                    this->m_vToBeDestroyed.push_back(&collider1);
+                                }
+
+                                if(collider2.IsDestroyedOnCollision() && !collider2.m_bIsFlaggedForDestruction)
+                                {
+                                    collider2.m_bIsFlaggedForDestruction = true;
+                                    this->m_vToBeDestroyed.push_back(&collider2);
+                                }
                             } 
                         }   
                     }
 
-                    else if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver() ||
-                            collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
+                    else if(
+                            (collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver()) ||
+                            (collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
+                            )
                     {
                         if(this->IsColliding(&collider1, &collider2, p_delta))
                         {
                             isColliding = true;
+
+                            if(collider1.IsDestroyedOnCollision() && !collider1.m_bIsFlaggedForDestruction)
+                            {
+                                collider1.m_bIsFlaggedForDestruction = true;
+                                this->m_vToBeDestroyed.push_back(&collider1);
+                            }
+
+                            if(collider2.IsDestroyedOnCollision() && !collider2.m_bIsFlaggedForDestruction)
+                            {
+                                collider2.m_bIsFlaggedForDestruction = true;
+                                this->m_vToBeDestroyed.push_back(&collider2);
+                            }
                         } 
-                        
                     }
 
                     // Perform actions if colliding
@@ -175,17 +200,7 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
             {
                 float collisionTime = this->SweptAABB(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta);
                 if(collisionTime < 1.0f)
-                {
-                    if(p_colliderComponent1->IsDestroyedOnCollision())
-                    {
-                        this->m_vToBeDestroyed.push_back(p_colliderComponent1);
-                    }
-
-                    if(p_colliderComponent2->IsDestroyedOnCollision())
-                    {
-                        this->m_vToBeDestroyed.push_back(p_colliderComponent2);
-                    }
-                    
+                {   
                     return true;
                 }
             }            
