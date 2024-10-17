@@ -88,14 +88,14 @@ void ColliderManager::CheckCollisions(float p_delta)
                     {
                         if(collider1.IsHitbox() && collider2.IsHitbox())
                         {
-                            std::cout << "ColliderManager - Hitboxes Colliding " << object1.GetID() << " - " << object2.GetID() << std::endl;
+                            // std::cout << "ColliderManager - Hitboxes Colliding " << object1.GetID() << " - " << object2.GetID() << std::endl;
                             sweptAABBRemainingTime = 1.0f - sweptAABBCollisionTime;
                             glm::vec2 normal1, normal2 = glm::vec2(0.0f, 0.0f);
                         }
 
                         if(collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())
                         {
-                            std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
+                            // std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
                             HealthComponent* healthComponent = object2.GetComponent<HealthComponent>();
                             if(healthComponent != nullptr)
                             {   
@@ -110,7 +110,7 @@ void ColliderManager::CheckCollisions(float p_delta)
 
                         else if(collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
                         {
-                            std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
+                            // std::cout << "ColliderManager - Hurtboxes Colliding" << std::endl;
                             HealthComponent* healthComponent = object1.GetComponent<HealthComponent>();
                             if(healthComponent != nullptr)
                             {
@@ -170,54 +170,25 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
                 offset2 *= scale2;
             }
             glm::vec2 translation2 = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset2;
-
-            // if(combinedVelocity == glm::vec2(0.0f, 0.0f))
-            // {
                 
-            //     if(this->StandardAABB(translation1, translation2, dimensions1, dimensions2))
-            //     {
-            //         if(
-            //             p_colliderComponent1->IsDestroyedOnCollision() &&
-            //             std::find(this->m_vToBeDestroyed.begin(), this->m_vToBeDestroyed.end(), p_colliderComponent1) == this->m_vToBeDestroyed.end()
-            //             )
-            //         {
-
-            //             this->m_vToBeDestroyed.push_back(p_colliderComponent1);
-            //         }
-
-            //         if(
-            //             p_colliderComponent2->IsDestroyedOnCollision() &&
-            //             std::find(this->m_vToBeDestroyed.begin(), this->m_vToBeDestroyed.end(), p_colliderComponent2) == this->m_vToBeDestroyed.end()
-            //             )
-            //         {
-            //             this->m_vToBeDestroyed.push_back(p_colliderComponent2);
-            //         }
-
-            //         return true;
-            //     }
-            // }
-            // else
-            // {}
-                
-                if(this->StandardAABBBroadphase(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta))
+            if(this->StandardAABBBroadphase(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta))
+            {
+                float collisionTime = this->SweptAABB(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta);
+                if(collisionTime < 1.0f)
                 {
-                    float collisionTime = this->SweptAABB(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta);
-                    if(collisionTime < 1.0f)
+                    if(p_colliderComponent1->IsDestroyedOnCollision())
                     {
-                        if(p_colliderComponent1->IsDestroyedOnCollision())
-                        {
-                            this->m_vToBeDestroyed.push_back(p_colliderComponent1);
-                        }
-
-                        if(p_colliderComponent2->IsDestroyedOnCollision())
-                        {
-                            this->m_vToBeDestroyed.push_back(p_colliderComponent2);
-                        }
-                        
-                        return true;
+                        this->m_vToBeDestroyed.push_back(p_colliderComponent1);
                     }
+
+                    if(p_colliderComponent2->IsDestroyedOnCollision())
+                    {
+                        this->m_vToBeDestroyed.push_back(p_colliderComponent2);
+                    }
+                    
+                    return true;
                 }
-            
+            }            
         }
     }
     return false;
@@ -272,13 +243,6 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
     glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
 
     glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta; // Velocity of obj1 as observed from obj2
-
-    
-    // p_translation_1.x = relativeVelocity.x > 0.0f ? p_translation_1.x : p_translation_1.x + relativeVelocity.x;
-    // p_translation_1.y = relativeVelocity.y > 0.0f ? p_translation_1.y : p_translation_1.y + relativeVelocity.y;
-
-    // p_dimensions_1 += abs(relativeVelocity.x);
-    // p_dimensions_2 += abs(relativeVelocity.y);
 
     if(relativeVelocity.x > 0.0f)
     {
@@ -365,50 +329,58 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
         top2 = p_translation_2.y;
         bottom2 = p_translation_2.y + p_dimensions_2.y;
         
-        glm::vec2 collisionNormal = glm::vec2(0.0f, 0.0f);
-
-        std::cout << "ColliderManger - obj1: " << p_velocity_1->GetGameObject()->GetID() << std::endl;
-        std::cout << "ColliderManger - obj2: " << p_velocity_2->GetGameObject()->GetID() << std::endl;
-        std::cout << "ColliderManager - rvx: " << relativeVelocity.x << ", rvy: " << relativeVelocity.y << std::endl;
-        std::cout << "ColliderManager - l1: " << left1 << ", r1: " << right1 << ", t1: " << top1 << ", b1: " << bottom1 << std::endl;
-        std::cout << "ColliderManager - ol1: " << oldLeft1 << ", or1: " << oldRight1 << ", ot1: " << oldTop1 << ", ob1: " << oldBottom1 << std::endl;
-        std::cout << "ColliderManager - l2: " << left2 << ", r2: " << right2 << ", t2: " << top2 << ", b2: " << bottom2 << std::endl;
+        glm::vec2 collisionNormal1 = glm::vec2(0.0f, 0.0f);
+        glm::vec2 collisionNormal2 = glm::vec2(0.0f, 0.0f);
+        
         // obj1 left collision
         if(left1 <= right2 && oldLeft1 > right2)
         {
-            collisionNormal = glm::normalize(glm::vec2(1.0f, 0.0f));
-            printf("ColliderManager - C1\n");
+            collisionNormal2 = glm::normalize(glm::vec2(1.0f, 0.0f));
+            // printf("ColliderManager - C1\n");
         }
 
         // obj1 right collision
         else if(right1 >= left2 && oldRight1 < left2)
         {
-            collisionNormal = glm::normalize(glm::vec2(-1.0f, 0.0f));
-            printf("ColliderManager - C2\n");
+            collisionNormal2 = glm::normalize(glm::vec2(-1.0f, 0.0f));
+            // printf("ColliderManager - C2\n");
         }
 
         // obj1 top collision
         else if(top1 <= bottom2 && oldTop1 > bottom2)
         {
-            collisionNormal = glm::normalize(glm::vec2(0.0f, 1.0f));
-            printf("ColliderManager - C3\n");
+            collisionNormal2 = glm::normalize(glm::vec2(0.0f, 1.0f));
+            // printf("ColliderManager - C3\n");
         }
 
         // obj1 bottom collision
         else if(bottom1 >= top2 && oldBottom1 < top2)
         {
-            collisionNormal = glm::normalize(glm::vec2(0.0f, -1.0f));
-            printf("ColliderManager - C4\n");
+            collisionNormal2 = glm::normalize(glm::vec2(0.0f, -1.0f));
+            // printf("ColliderManager - C4\n");
         }
+
+        collisionNormal1 = glm::normalize(-collisionNormal2);
+
         if(p_velocity_1!= nullptr)
         {
-            p_velocity_1->SetVelocity(glm::vec2(0.0f, 0.0f));
+            float dotProduct1 = glm::dot(velocity1, collisionNormal2);
+            glm::vec2 newVelocity1 = velocity1 - collisionNormal2 * dotProduct1;
+            p_velocity_1->SetVelocity(newVelocity1);
+            // std::cout << "ColliderManager - nv1x: " << newVelocity1.x << ", nv1y: " << newVelocity1.y << std::endl;        
+            // std::cout << "ColliderManager - dp1: " << dotProduct1 << std::endl;
         }
 
        if(p_velocity_2!= nullptr)
         {
-            p_velocity_2->SetVelocity(glm::vec2(0.0f, 0.0f));
+            float dotProduct2 = glm::dot(velocity2, collisionNormal1);
+            glm::vec2 newVelocity2 = velocity2 - collisionNormal1 * dotProduct2;
+            p_velocity_2->SetVelocity(newVelocity2);
+            // std::cout << "ColliderManager - nv2x: " << newVelocity2.x << ", nv1y: " << newVelocity2.y << std::endl;
+            // std::cout << "ColliderManager - dp2: " << dotProduct2 << std::endl;
         }
+        // std::cout << "ColliderManager - cn1x: " << collisionNormal1.x << ", cn1y: " << collisionNormal1.y << std::endl;
+        // std::cout << "ColliderManager - cn2x: " << collisionNormal2.x << ", cn2y: " << collisionNormal2.y << std::endl;
 
         return entryTime;
     }

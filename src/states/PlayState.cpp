@@ -42,7 +42,7 @@ void PlayState::Enter()
     testCollider.SetDamage(10.0f);
     testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
     auto& testVelocity = testObj.AddComponent<VelocityComponent>();
-    //testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
+    testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
 
 
     // auto& testObj2 = scene.CreateObject2D();
