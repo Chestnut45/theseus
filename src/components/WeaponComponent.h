@@ -24,6 +24,7 @@ public:
     
     void Attack();
     void CollectWeapon(WeaponType p_weapon_type);
+    void SwitchToNextWeapon();
 
 private:
     // Weapon properties
