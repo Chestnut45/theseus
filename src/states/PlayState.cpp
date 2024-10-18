@@ -240,10 +240,20 @@ void PlayState::CreatePlayer()
 void PlayState::CreateMinitaurEnemy()
 {
     // Instantiate the MinitaurBuilder with the current scene
-    MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
+    EnemyDataLoader loader;
+    std::vector<EnemyData> enemyDataList = loader.LoadAllEnemyData("data/enemies.yaml");
 
-    // Build the Minitaur and assign it to m_pMinitaurObject
-    m_pMinitaurObject = &minitaurBuilder.BuildMinitaur(m_pColliderManager); 
+    // Assuming we want to create Minitaur, and we know Minitaur is the first entry in the list
+    for (const auto& enemyData : enemyDataList)
+    {
+        if (enemyData.type == "minitaur")  // Only process Minitaur enemy type
+        {
+            // Use MinitaurBuilder to create the Minitaur
+            MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
+            minitaurBuilder.BuildMinitaur(enemyData, m_pColliderManager);
+            break;  // Exit loop after creating the Minitaur
+        }
+    }
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)

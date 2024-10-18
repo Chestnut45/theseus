@@ -13,23 +13,28 @@ MinitaurController::~MinitaurController()
     m_pTransform = nullptr;
 }
 
-void MinitaurController::Init()
+void MinitaurController::Init(const EnemyData& data)
 {
-    EnemyController::Init(); // Call the base enemy initialization
+    EnemyController::Init();  // Call the base enemy initialization
+    m_meleeRange = data.meleeRange;
+    m_attackCooldown = data.attackCooldown;
+    m_detectionRange = data.detectionRange;
+    m_baseDamage = data.baseDamage;
+    m_chaseSpeed = data.chaseSpeed;
 
     // Get required components
     m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
-    m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>("data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 4.0f);
+    m_pAnimComponent = GetGameObject()->GetComponent<AnimatedSprite2D>();  
 
-    SetUpAnimations(); // Set up Minitaur-specific animations
+    // Set up Minitaur-specific animations with the animation sheet from data (Later on)
+    SetUpAnimations();
 
     // Find and set the player as the target
     for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
     {
         m_pTarget = playerController.GetGameObject();
-        break; // Assume there's only one player
+        break;  // Assume there's only one player
     }
-
 }
 
 
@@ -65,7 +70,7 @@ void MinitaurController::SetUpAnimations()
 {
     if (!m_pAnimComponent) return;
 
-    // Set up Minitaur animations
+    // Set up Minitaur animations (will update using the data driven approach by Aurora ~ youssef)
     m_pAnimComponent->AddAnimation("StandWest", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
     m_pAnimComponent->AddAnimation("StandSouth", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 2, 2, false);
     m_pAnimComponent->AddAnimation("StandEast", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 3, 3, false);

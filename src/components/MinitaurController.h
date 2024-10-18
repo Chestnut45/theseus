@@ -6,14 +6,14 @@
 #include <components/HealthComponent.h>
 #include <components/ColliderComponent.h>
 #include <components/AnimatedSprite2D.h>
+#include <EnemyDataLoader.h>
 
 class MinitaurController : public EnemyController
 {
 public:
     MinitaurController();
-    virtual ~MinitaurController() override;   
-    // Override Init and Update to implement specific behavior for Minitaur
-    void Init() override;
+    virtual ~MinitaurController() override;
+    void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
 
 private:
@@ -29,12 +29,12 @@ private:
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;
     VelocityComponent* m_pVelocity = nullptr;;
-    float m_meleeRange = 50.0f;
-    float m_attackCooldown = 1.0f;
+    float m_meleeRange;
+    float m_attackCooldown;
     float m_attackTimer = 0.0f;
-    float m_detectionRange = 300.0f;
-    float m_baseDamage = 15.0f;      // Minitaur-specific damage value
-    float m_chaseSpeed = 100.0f;     // Define m_chaseSpeed here for movement speed
+    float m_detectionRange;
+    float m_baseDamage;
+    float m_chaseSpeed;
     wolf::Timer m_transitionTimer;
     float m_transitionDelay = 0.2f; // Example delay for transitioning states
 };

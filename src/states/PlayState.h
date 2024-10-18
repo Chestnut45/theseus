@@ -19,6 +19,8 @@
 
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
+#include "EnemyDataLoader.h"
+
 
 class LabyrinthManager;
 
