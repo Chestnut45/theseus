@@ -142,12 +142,12 @@ void PlayState::Update(float delta)
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Stacking Heart", "This is a test consumable item that stacks", 10, true, 1);
+            ItemBase* pAddItem = new FlatAmtItem(CONSUMABLE, "HEAL", "This is a test consumable item that heals the player", 10, false, 1, HEALTH, 25.0f);
             playerInventory->AddItem(pAddItem);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Multi-Use Heart", "This is a test consumable item with multiple uses", 25, false, 3);
+            ItemBase* pAddItem = new StatusEffectItem(CONSUMABLE, "BURN", "This is a test consumable item that applies the BURNING status effect", 25, false, 1, StatusComponent::BURNING, 2.0f);
             playerInventory->AddItem(pAddItem);
         }
 
@@ -181,12 +181,14 @@ void PlayState::Update(float delta)
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
     }
+
     wolf::EventManager::Dispatch<DialogueTriggerEvent>();
+
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
 
     // Update managers
-    wolf::EventManager::Dispatch<DialogueTriggerEvent>();
+    wolf::EventManager::Dispatch();
 }
 
 void PlayState::Render()

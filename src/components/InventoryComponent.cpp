@@ -451,7 +451,7 @@ void InventoryComponent::UseItem(ItemBase* p_pItem, int p_iItemIndex) {
         }
 
         // Then we can use it!
-        pConsumable->UseItem();
+        pConsumable->Use();
     }
 }
 

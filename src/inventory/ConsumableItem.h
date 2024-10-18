@@ -14,6 +14,13 @@ enum Attribute {
     STAMINA = 2
 };
 
+enum ConsumableType {
+    BASIC_CONSUMABLE = 1,
+    FLAT_AMT = 2,
+    PERCENT_AMT = 4,
+    STATUS_EFFECT = 8,
+};
+
 class ConsumableItem : public ItemBase {
     public:
         ConsumableItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, int p_iNumUses)
@@ -24,7 +31,9 @@ class ConsumableItem : public ItemBase {
         int GetNumUses() const {return m_iNumUses;};
         void SetNumUses(int p_iNumUses) {m_iNumUses = p_iNumUses;};
 
-        virtual void UseItem() {
+        ConsumableType GetConsumableType() {return m_enType;};
+
+        virtual void Use() {
             m_iNumUses--;
             if (m_iNumUses <= 0) {
                 this->~ConsumableItem();
@@ -32,7 +41,10 @@ class ConsumableItem : public ItemBase {
         };
 
     private:
+        void SetConsumableType(ConsumableType p_enType) {m_enType = p_enType;};
+
         int m_iNumUses;
+        ConsumableType m_enType = BASIC_CONSUMABLE;
 
     friend class FlatAmtItem;
     friend class PercentItem;

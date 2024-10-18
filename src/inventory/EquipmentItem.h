@@ -18,7 +18,7 @@ enum EquipmentSlot {
     FEET,
     GLOVES,
     ACCESSORY,
-    END_OF_EQUIPMENT,
+    END_OF_EQUIPMENT, // Sentinal value for iteration
 };
 
 class EquipmentItem : public ItemBase {
