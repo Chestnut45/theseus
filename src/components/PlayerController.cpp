@@ -415,7 +415,7 @@ void PlayerController::ApplyDamageToEnemy()
             std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
 
             // Optionally, break here if you're only targeting one Minitaur at a time
-            break;
+            // break;
         }
     }
 }

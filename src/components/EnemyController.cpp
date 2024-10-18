@@ -5,13 +5,12 @@ EnemyController::EnemyController() = default;
 
 EnemyController::~EnemyController()
 {
-    std::cout<<"nullifiying enemyptrs \n";
     // Clean up pointers but avoid deleting objects (managed by GameObject)
     m_pTransform = nullptr;
     m_pHealth = nullptr;
     m_pCollider = nullptr;
     m_pColliderManager = nullptr;
-     m_pTarget = nullptr;
+    m_pTarget = nullptr;
 }
 
 void EnemyController::Init()

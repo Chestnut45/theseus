@@ -6,7 +6,6 @@ MinitaurController::MinitaurController() : EnemyController() {}
 
 MinitaurController::~MinitaurController()
 {
-    std::cout<<"nullifying \n";
     m_pAnimComponent = nullptr;
     m_pTarget = nullptr;
     m_pVelocity = nullptr;
@@ -21,7 +20,6 @@ void MinitaurController::Init()
     // Get required components
     m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>("data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 4.0f);
-
 
     SetUpAnimations(); // Set up Minitaur-specific animations
 
@@ -210,7 +208,7 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
     if (m_pAnimComponent->GetCurrentAnimation()->m_strName != animationName)
     {
         m_pAnimComponent->SetAnimation(animationName);
-        m_pAnimComponent->SetOriginToCenterOfFrame();  
+        m_pAnimComponent->SetOriginToCenterOfFrame();
     }
 }
 
@@ -220,4 +218,3 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
 //     std::cout << "Minitaur is being destroyed.\n";
 //     GetGameObject()->Delete();
 // }
-
