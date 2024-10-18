@@ -10,6 +10,7 @@
 #include "../components/StatusComponent.h"
 #include "../components/VelocityComponent.h"
 
+
 void PlayState::Enter()
 {
     // Grab a reference to the main scene
@@ -18,8 +19,18 @@ void PlayState::Enter()
     // Initialize the listener
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
 
-    // Initialize player object
-    CreatePlayer();
+    // Initialize the listener
+    wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
+    this->m_pColliderManager = new ColliderManager(&scene);
+
+    // Initialize the player object first
+     CreatePlayer();
+
+
+    // Initialize the Minitaur enemy object second
+     CreateMinitaurEnemy();
+
+
 
     // Add the main camera as a component of the player object
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
@@ -27,8 +38,7 @@ void PlayState::Enter()
     scene.SetActiveCamera(camera);
 
     // Initialise managers
-    this->m_pColliderManager = new ColliderManager(&scene);
-    this->m_pStatusManager = new StatusManager(&scene);
+    
 
     // Add the labyrinth manager component to an empty object and load default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
@@ -82,8 +92,6 @@ void PlayState::Resume()
 
 void PlayState::Update(float delta)
 {
-    // Input and debug hotkey handling
-
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
@@ -91,16 +99,17 @@ void PlayState::Update(float delta)
     }
 
     // Toggle Labyrinth Manager GUI with the semicolon key
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) m_showLabyrinthManager = !m_showLabyrinthManager;
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) 
+        m_showLabyrinthManager = !m_showLabyrinthManager;
 
     // Show the Labyrinth Manager debug GUI
-    if (m_showLabyrinthManager) m_pLabyrinthManager->ShowGUI();
+    if (m_showLabyrinthManager) 
+        m_pLabyrinthManager->ShowGUI();
 
     // Main object / component updates
-
-    // Update player controller
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
-    if (playerController) playerController->Update(delta);
+    if (playerController) 
+        playerController->Update(delta);
 
     // Update managers
     this->m_pColliderManager->Update(delta);
@@ -108,10 +117,18 @@ void PlayState::Update(float delta)
 
     // Update player animations
     auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
-    if (playerAnim) {
+    if (playerAnim) 
         playerAnim->Update(delta);
-    }
 
+    auto* minitaurController = m_pMinitaurObject->GetComponent<MinitaurController>();
+    if (minitaurController)
+    {
+        minitaurController->Update(delta);
+    }
+    auto* enemyAnim = m_pMinitaurObject->GetComponent<AnimatedSprite2D>();
+     if (enemyAnim) 
+        enemyAnim->Update(delta);
+    
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
     if (playerInventory) {
@@ -158,7 +175,7 @@ void PlayState::Update(float delta)
     }
 
     // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())  // Use GetScene()
+    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
     {
         transform.Translate(velocity.GetVelocity() * delta);
     }   
@@ -187,17 +204,12 @@ void PlayState::Render()
 
 void PlayState::BackgroundUpdate(float delta)
 {
-    // Update logic for when state is inactive
-
-    // Show the Labyrinth Manager debug GUI
-    if (m_showLabyrinthManager) m_pLabyrinthManager->ShowGUI();
+    if (m_showLabyrinthManager) 
+        m_pLabyrinthManager->ShowGUI();
 }
 
 void PlayState::BackgroundRender()
 {
-    // Render logic for when state is inactive
-    
-    // Render the game's scene
     m_pGameInstance->GetScene().Render();
 }
 
@@ -206,29 +218,18 @@ void PlayState::CreatePlayer()
     // Create player object with transform
     m_pPlayerObject = &m_pGameInstance->GetScene().CreateObject2D();
 
-    // Add player controller
-    m_pPlayerObject->AddComponent<PlayerController>();
+    // Add player controller and initialize
+    // NOTE: This manages all player animations and the animated sprite component for the player
+    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
+    playerController.LateInitialize();
 
     // Scale player
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
 
-    // Add animated sprite
-    auto& animSprite = m_pPlayerObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-    animSprite.AddAnimation("WalkSouth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 8, true);
-    animSprite.AddAnimation("WalkEast", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 9, 16, true);
-    animSprite.AddAnimation("WalkNorth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 17, 24, true);
-    animSprite.AddAnimation("WalkWest", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 25, 32, true);
-    animSprite.AddAnimation("StandSouth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
-    animSprite.AddAnimation("StandEast", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 2, 2, false);
-    animSprite.AddAnimation("StandNorth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 3, 3, false);
-    animSprite.AddAnimation("StandWest", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 4, 4, false);
-    animSprite.SetAnimation("StandSouth");
-    animSprite.SetOriginToCenterOfFrame();
-
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
-    // INVENTORY TESTING
+    // Add inventory
     auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
@@ -238,9 +239,6 @@ void PlayState::CreatePlayer()
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
     auto& armour = m_pPlayerObject->AddComponent<ArmourComponent>();
     armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
-
-    // auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)
