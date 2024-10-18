@@ -364,7 +364,7 @@ void InventoryComponent::ShowInventoryGUI() {
             std::string strIndex = std::to_string(k);
 
             // Now we can start making the actual buttons
-            if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetID()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetID()]->m_v2BotRight)) {
+            if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
             }
             
             // When we hover over an inventory slot

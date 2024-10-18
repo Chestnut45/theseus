@@ -13,16 +13,16 @@ HealthComponent::HealthComponent(int p_health)
     this->m_cap = p_health;
 
     // Add Listeners for the healing events related to items
-    wolf::EventManager::AddListener<PercentHealItemEvent, HealthComponent, &HealthComponent::HandlePercentHealItemEvent>(*this);
-    wolf::EventManager::AddListener<FlatHealItemEvent, HealthComponent, &HealthComponent::HandleFlatHealItemEvent>(*this);
+    wolf::EventManager::AddListener<PercentHealthItemEvent, HealthComponent, &HealthComponent::HandlePercentHealthItemEvent>(*this);
+    wolf::EventManager::AddListener<FlatHealthItemEvent, HealthComponent, &HealthComponent::HandleFlatHealthItemEvent>(*this);
 }
 
 // Destructor
 HealthComponent::~HealthComponent()
 {
     // Remove the healing item event Listeners
-    wolf::EventManager::RemoveListener<PercentHealItemEvent, HealthComponent, &HealthComponent::HandlePercentHealItemEvent>(*this);
-    wolf::EventManager::RemoveListener<FlatHealItemEvent, HealthComponent, &HealthComponent::HandleFlatHealItemEvent>(*this);
+    wolf::EventManager::RemoveListener<PercentHealthItemEvent, HealthComponent, &HealthComponent::HandlePercentHealthItemEvent>(*this);
+    wolf::EventManager::RemoveListener<FlatHealthItemEvent, HealthComponent, &HealthComponent::HandleFlatHealthItemEvent>(*this);
 }
 
 void HealthComponent::Init()
@@ -88,10 +88,20 @@ float HealthComponent::GetMaxHealth() const
 }
 
 // !-- Aurora added these events --!
-void HealthComponent::HandlePercentHealItemEvent(const PercentHealItemEvent& p_event) {
-    this->Heal(p_event.fHealAmt * m_cap);
+void HealthComponent::HandlePercentHealthItemEvent(const PercentHealthItemEvent& p_event) {
+    if (p_event.fHealthChangeAmt >= 0) {
+        this->Heal(p_event.fHealthChangeAmt * m_cap);
+    }
+    else {
+        this->Damage(-p_event.fHealthChangeAmt * m_cap);
+    }
 }
 
-void HealthComponent::HandleFlatHealItemEvent(const FlatHealItemEvent& p_event) {
-    this->Heal(p_event.fHealAmt);
+void HealthComponent::HandleFlatHealthItemEvent(const FlatHealthItemEvent& p_event) {
+    if (p_event.fHealthChangeAmt >= 0) {
+        this->Heal(p_event.fHealthChangeAmt);
+    }
+    else {
+        this->Damage(-p_event.fHealthChangeAmt);
+    }
 }

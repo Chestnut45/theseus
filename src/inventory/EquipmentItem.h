@@ -24,8 +24,8 @@ enum EquipmentSlot {
 class EquipmentItem : public ItemBase {
     public:
         // Note that EquipmentItems CANNOT be stacked
-        EquipmentItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, EquipmentSlot p_enEquipmentSlot)
-            : ItemBase(p_enID, p_strName, p_strDesc, p_iValue, false), m_enSlot(p_enEquipmentSlot)
+        EquipmentItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, int p_iTextureFrameIndex, EquipmentSlot p_enEquipmentSlot)
+            : ItemBase(p_enID, p_strName, p_strDesc, p_iValue, false, p_iTextureFrameIndex), m_enSlot(p_enEquipmentSlot)
         {
             // It is useful to have a string representation of the EquipmentSlot enum,
             // so this switch case sets that up automatically when an item is created

@@ -1,15 +1,15 @@
 #pragma once
 
-struct PercentHealItemEvent {
-    float fHealAmt;
+struct PercentHealthItemEvent {
+    float fHealthChangeAmt;
 };
 
 struct PercentStaminaItemEvent {
     float fStaminaAmt;
 };
 
-struct FlatHealItemEvent {
-    float fHealAmt;
+struct FlatHealthItemEvent {
+    float fHealthChangeAmt;
 };
 
 struct FlatStaminaItemEvent {

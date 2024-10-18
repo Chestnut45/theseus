@@ -27,8 +27,8 @@ public:
     void Heal(float p_heal);
     void Supercharge(float p_supercharge);
 
-    void HandlePercentHealItemEvent(const PercentHealItemEvent& p_event);
-    void HandleFlatHealItemEvent(const FlatHealItemEvent& p_event);
+    void HandlePercentHealthItemEvent(const PercentHealthItemEvent& p_event);
+    void HandleFlatHealthItemEvent(const FlatHealthItemEvent& p_event);
 
 private:
     float m_health = 100;

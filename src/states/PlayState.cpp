@@ -132,29 +132,34 @@ void PlayState::Update(float delta)
         if (m_showInventoryGUI) playerInventory->ShowInventoryGUI();
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Helmet", "This is a test equipment item", 5, HEAD);
+            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Helmet", "This is a test equipment item", 5, 3, HEAD);
             playerInventory->AddItem(pAddItem);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
-            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Sword", "This is a different test equipment item", 10, WEAPON);
+            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Sword", "This is a different test equipment item", 10, 3, WEAPON);
             playerInventory->AddItem(pAddItem);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-            ItemBase* pAddItem = new FlatAmtItem(CONSUMABLE, "HEAL", "This is a test consumable item that heals the player", 10, false, 1, HEALTH, 25.0f);
+            ItemBase* pAddItem = ItemCreator::CreateItem("Healing Heart");
             playerInventory->AddItem(pAddItem);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            ItemBase* pAddItem = new StatusEffectItem(CONSUMABLE, "BURN", "This is a test consumable item that applies the BURNING status effect", 25, false, 1, StatusComponent::BURNING, 2.0f);
+            ItemBase* pAddItem = ItemCreator::CreateItem("Hurting Heart");
             playerInventory->AddItem(pAddItem);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
+            ItemBase* pAddItem = ItemCreator::CreateItem("Burning Heart");
+            playerInventory->AddItem(pAddItem);
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
             ItemBase* pHeadItem = playerInventory->GetEquippedItem(HEAD);
             ItemBase* pWeaponItem = playerInventory->GetEquippedItem(WEAPON);
-            if (pHeadItem) {
+            if (pHeadItem) {\
                 printf("%s is equipped in the HEAD slot!\n", pHeadItem->GetName().c_str());
             }
             else {

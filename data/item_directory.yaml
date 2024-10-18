@@ -1,0 +1,36 @@
+Healing Heart: {
+  id: CONSUMABLE,
+  description: This heart will heal you!,
+  value: 100,
+  texture_frame: 2,
+  is_stackable: true,
+  num_uses: 1,
+  type: FLAT_AMT,
+  attribute: HEALTH,
+  amount: 50.0,
+}
+
+Hurting Heart: {
+  id: CONSUMABLE,
+  description: This will hurt.,
+  value: 0,
+  texture_frame: 2,
+  is_stackable: false,
+  num_uses: 1,
+  type: PERCENT_AMT,
+  attribute: HEALTH,
+  amount: -0.5,
+}
+
+Burning Heart: {
+  id: CONSUMABLE,
+  type: STATUS_EFFECT,
+  description: A love so hot it BURNS.,
+  value: 5,
+  texture_frame: 2,
+  is_stackable: false,
+  num_uses: 3,
+  type: STATUS_EFFECT,
+  status_effect_type: BURNING,
+  duration: 2.0,
+}
