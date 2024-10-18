@@ -1,7 +1,8 @@
 #include "PlayerController.h"
-#include "VelocityComponent.h"
-#include "HealthComponent.h"
 #include "ColliderComponent.h"
+#include "HealthComponent.h"
+#include "VelocityComponent.h"
+#include "WeaponComponent.h"
 #include "MinitaurController.h"
 #include <W_Input.h>
 #include <W_Logging.h>
@@ -349,6 +350,12 @@ void PlayerController::StartAttack()
 
         // Store the current animation to handle transitions later.
         m_currentAnimation = attackAnimation;
+
+        WeaponComponent* weaponComponent = this->GetGameObject()->GetComponent<WeaponComponent>();
+        if(weaponComponent != nullptr)
+        {
+            weaponComponent->Attack();
+        }
     }
 }
 

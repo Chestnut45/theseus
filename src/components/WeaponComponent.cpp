@@ -24,13 +24,16 @@ WeaponComponent::WeaponComponent()
 
 void WeaponComponent::Attack()
 {
+    glm::vec2 playerVelocity = glm::vec2(0.0f);
+        
     switch(this->m_CurrentWeapon)
     {
         case WeaponType::CROSSBOW:
+        {
             auto& scene = this->GetGameObject()->GetScene();
             auto& projectile = scene.CreateObject2D();
             auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-            auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 0, 1);
+            auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
             auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
 
             projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
@@ -40,12 +43,22 @@ void WeaponComponent::Attack()
             projectileCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
 
             PlayerController* playerController = this->GetGameObject()->GetComponent<PlayerController>();
+            VelocityComponent* playerVelocityComponent = this->GetGameObject()->GetComponent<VelocityComponent>();
+
             if(playerController != nullptr)
             {
-                projectileVelocity.SetVelocity(playerController->GetDirectionVector() * 128.0f);
+                if(playerVelocityComponent != nullptr)
+                {
+                    playerVelocity = playerVelocityComponent->GetVelocity();
+                }
+                else
+                {
+                    playerVelocity = glm::vec2(0.0f, 0.0f);
+                }
+                projectileVelocity.SetVelocity(playerController->GetDirectionVector() * 256.0f + playerVelocity);
             }
             break;
-        
+        }
     }
 }
 
