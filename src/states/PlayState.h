@@ -16,7 +16,6 @@
 #include "../events/DialogueTriggerEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
-#include "../StatusManager.h"
 
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
@@ -51,7 +50,6 @@ private:
 
     // Manager for colliders
     ColliderManager* m_pColliderManager = nullptr;
-    StatusManager* m_pStatusManager = nullptr;
 
     // Flags
     bool m_showLabyrinthManager = true;

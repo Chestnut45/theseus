@@ -42,7 +42,7 @@ void WeaponComponent::Attack()
             PlayerController* playerController = this->GetGameObject()->GetComponent<PlayerController>();
             if(playerController != nullptr)
             {
-                projectileVelocity.SetVelocity(playerController->GetCurrentDirectionVector() * 128.0f);
+                projectileVelocity.SetVelocity(playerController->GetDirectionVector() * 128.0f);
             }
             break;
         

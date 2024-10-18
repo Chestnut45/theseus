@@ -505,6 +505,10 @@ void PlayerController::Render()
         ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1, barHeight));
         ImGui::PopStyleColor(); // Pop color for health bar
         ImGui::End();
+
+        // Pop ImGui style variables and colors
+        ImGui::PopStyleVar(3); // Pop style variables (WindowRounding, FrameRounding, and FramePadding)
+        ImGui::PopStyleColor(3); // Pop style colors (WindowBg, Border, and BorderShadow)
     }
 
     // Move the position down for the stamina bar
@@ -520,7 +524,18 @@ void PlayerController::Render()
     ImGui::End();
 }
 
-glm::vec2 PlayerController::GetCurrentDirectionVector() const
+glm::vec2 PlayerController::GetDirectionVector() const
 {
-    return this->GetDirectionVector(this->m_lastDirectionEnum);
+    switch (this->m_lastDirectionEnum)
+    {
+        case PlayerDirection::NORTH:       return glm::normalize(glm::vec2(0.0f, 1.0f));
+        case PlayerDirection::NORTH_EAST:  return glm::normalize(glm::vec2(1.0f, 1.0f));
+        case PlayerDirection::EAST:        return glm::normalize(glm::vec2(1.0f, 0.0f));
+        case PlayerDirection::SOUTH_EAST:  return glm::normalize(glm::vec2(1.0f, -1.0f));
+        case PlayerDirection::SOUTH:       return glm::normalize(glm::vec2(0.0f, -1.0f));
+        case PlayerDirection::SOUTH_WEST:  return glm::normalize(glm::vec2(-1.0f, -1.0f));
+        case PlayerDirection::WEST:        return glm::normalize(glm::vec2(-1.0f, 0.0f));
+        case PlayerDirection::NORTH_WEST:  return glm::normalize(glm::vec2(-1.0f, 1.0f));
+        default:                           return glm::normalize(glm::vec2(0.0f, 0.0f)); 
+    }
 }

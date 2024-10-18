@@ -48,6 +48,9 @@ public:
     void Render();
     void SetAnimationComponent(AnimatedSprite2D* animComponent);
 
+    // Getters
+    glm::vec2 GetDirectionVector() const; // Returns normalised direction vector
+
     // Overloaded << operator for printing directions
     friend std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction);
     void SetColliderManager(ColliderManager* pColliderManager);

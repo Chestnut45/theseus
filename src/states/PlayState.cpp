@@ -49,18 +49,18 @@ void PlayState::Enter()
     testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
     testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
     auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 0, 1);
+    auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
     testCollider.SetDamage(10.0f);
     testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
     auto& testVelocity = testObj.AddComponent<VelocityComponent>();
-    testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
+    //testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
 
 
     // auto& testObj2 = scene.CreateObject2D();
     // testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
     // testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
     // auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDD, 1, 1);
     // testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
     // auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
     // testVelocity2.SetVelocity(glm::vec2(64.0f, 0.0f));
@@ -75,9 +75,6 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
 
     // Delete managers
-    delete this->m_pStatusManager;
-    this->m_pStatusManager = nullptr;
-
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
 }
@@ -113,7 +110,6 @@ void PlayState::Update(float delta)
 
     // Update managers
     this->m_pColliderManager->Update(delta);
-    this->m_pStatusManager->Update(delta);
 
     // Update player animations
     auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
@@ -239,6 +235,15 @@ void PlayState::CreatePlayer()
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
     auto& armour = m_pPlayerObject->AddComponent<ArmourComponent>();
     armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
+}
+
+void PlayState::CreateMinitaurEnemy()
+{
+    // Instantiate the MinitaurBuilder with the current scene
+    MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
+
+    // Build the Minitaur and assign it to m_pMinitaurObject
+    m_pMinitaurObject = &minitaurBuilder.BuildMinitaur(m_pColliderManager); 
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)
