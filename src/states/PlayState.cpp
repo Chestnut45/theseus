@@ -2,104 +2,69 @@
 #include "PauseState.h"
 #include "DialogueState.h"
 #include <imgui/imgui.h>
-#include <iostream>
 
 #include "../components/ArmourComponent.h"
+#include "../components/ColliderComponent.h"
 #include "../components/HealthComponent.h"
-#include "../components/HitboxComponent.h"
-#include "../components/HurtboxComponent.h"
+#include "../components/InventoryComponent.h"
+#include "../components/StatusComponent.h"
 #include "../components/VelocityComponent.h"
+
 
 void PlayState::Enter()
 {
-    std::cout << "Entering PlayState..." << std::endl;
-
-    // Grab a reference to the main scene and verify it's valid
+    // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
-    std::cout << "Scene reference obtained successfully." << std::endl;
 
-    // Initialize hitbox / hurtbox managers
-    this->m_pHitboxManager = new HitboxManager(&scene);
-    if (this->m_pHitboxManager)
-    {
-        std::cout << "HitboxManager initialized successfully." << std::endl;
-    }
-    else
-    {
-        std::cerr << "Error: Failed to initialize HitboxManager!" << std::endl;
-    }
-
-    this->m_pHurtboxManager = new HurtboxManager(&scene);
-    if (this->m_pHurtboxManager)
-    {
-        std::cout << "HurtboxManager initialized successfully." << std::endl;
-    }
-    else
-    {
-        std::cerr << "Error: Failed to initialize HurtboxManager!" << std::endl;
-    }
-
-    // Initialize the listener and check if successful
-    std::cout << "Initializing DialogueTriggerEvent listener..." << std::endl;
+    // Initialize the listener
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
-    std::cout << "DialogueTriggerEvent listener initialized successfully." << std::endl;
 
-    // Initialize player object and check if successful
-    std::cout << "Creating player object..." << std::endl;
-    CreatePlayer();
-    if (m_pPlayerObject)
-    {
-        std::cout << "Player object created successfully." << std::endl;
-    }
-    else
-    {
-        std::cerr << "Error: Failed to create player object!" << std::endl;
-        return;  // Exit if player object creation failed
-    }
+    // Initialize the listener
+    wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
+    this->m_pColliderManager = new ColliderManager(&scene);
+
+    // Initialize the player object first
+     CreatePlayer();
+
+
+    // Initialize the Minitaur enemy object second
+     CreateMinitaurEnemy();
+
+
 
     // Add the main camera as a component of the player object
-    std::cout << "Adding camera component to player object..." << std::endl;
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
-    std::cout << "Camera component added and set as active camera." << std::endl;
 
-    // Add the labyrinth manager component to an empty object and check if successful
-    std::cout << "Creating and adding LabyrinthManager component..." << std::endl;
+    // Initialise managers
+    
+
+    // Add the labyrinth manager component to an empty object and load default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
-    if (m_pLabyrinthManager)
-    {
-        std::cout << "LabyrinthManager component added successfully." << std::endl;
-    }
-    else
-    {
-        std::cerr << "Error: Failed to add LabyrinthManager component!" << std::endl;
-        return;  // Exit if labyrinth manager creation failed
-    }
+    m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
 
     // Testing: Create a test projectile object
-    std::cout << "Creating test projectile object..." << std::endl;
     auto& testObj = scene.CreateObject2D();
-    testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
-    testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
+    testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+    testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
     auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    std::cout << "Test sprite component added to test object." << std::endl;
-
-    // Initialize test hitbox and hurtbox components
-    auto& testHitbox = testObj.AddComponent<HitboxComponent>(1, 1);
-    testHitbox.AddHitbox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    std::cout << "Test hitbox component added to test object." << std::endl;
-
-    auto& testHurtbox = testObj.AddComponent<HurtboxComponent>(1, 1, 1, 1);
-    testHurtbox.AddHurtbox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    std::cout << "Test hurtbox component added to test object." << std::endl;
-
-    // Set velocity component
+    auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
+    testCollider.SetDamage(10.0f);
+    testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
     auto& testVelocity = testObj.AddComponent<VelocityComponent>();
-    testVelocity.SetVelocity(glm::vec2(-32.0f, 0.0f));
-    std::cout << "Test velocity component set successfully." << std::endl;
+    //testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
 
-    std::cout << "PlayState::Enter() completed successfully." << std::endl;
+
+    // auto& testObj2 = scene.CreateObject2D();
+    // testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+    // testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
+    // auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDD, 1, 1);
+    // testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
+    // auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
+    // testVelocity2.SetVelocity(glm::vec2(64.0f, 0.0f));
+
 }
 
 void PlayState::Exit()
@@ -110,10 +75,8 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
 
     // Delete managers
-    delete this->m_pHitboxManager;
-    this->m_pHitboxManager = nullptr;
-    delete this->m_pHurtboxManager;
-    this->m_pHurtboxManager = nullptr;
+    delete this->m_pColliderManager;
+    this->m_pColliderManager = nullptr;
 }
 
 void PlayState::Pause()
@@ -126,8 +89,6 @@ void PlayState::Resume()
 
 void PlayState::Update(float delta)
 {
-    // Input and debug hotkey handling
-
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
@@ -135,27 +96,39 @@ void PlayState::Update(float delta)
     }
 
     // Toggle Labyrinth Manager GUI with the semicolon key
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) m_showLabyrinthManager = !m_showLabyrinthManager;
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) 
+        m_showLabyrinthManager = !m_showLabyrinthManager;
 
     // Show the Labyrinth Manager debug GUI
-    if (m_showLabyrinthManager) m_pLabyrinthManager->ShowGUI();
+    if (m_showLabyrinthManager) 
+        m_pLabyrinthManager->ShowGUI();
 
     // Main object / component updates
-
-    // Update player controller
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
-    if (playerController) playerController->Update(delta);
+    if (playerController) 
+        playerController->Update(delta);
+
+    // Update managers
+    this->m_pColliderManager->Update(delta);
 
     // Update player animations
     auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
-    if (playerAnim) {
+    if (playerAnim) 
         playerAnim->Update(delta);
-    }
 
+    auto* minitaurController = m_pMinitaurObject->GetComponent<MinitaurController>();
+    if (minitaurController)
+    {
+        minitaurController->Update(delta);
+    }
+    auto* enemyAnim = m_pMinitaurObject->GetComponent<AnimatedSprite2D>();
+     if (enemyAnim) 
+        enemyAnim->Update(delta);
+    
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
     if (playerInventory) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) m_showInventoryGUI = !m_showInventoryGUI;
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) m_showInventoryGUI = !m_showInventoryGUI;
         if (m_showInventoryGUI) playerInventory->ShowInventoryGUI();
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
@@ -198,12 +171,12 @@ void PlayState::Update(float delta)
     }
 
     // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())  // Use GetScene()
+    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
     {
         transform.Translate(velocity.GetVelocity() * delta);
-    }
+    }   
 
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
@@ -213,8 +186,6 @@ void PlayState::Update(float delta)
     m_pGameInstance->GetScene().Update(delta);
 
     // Update managers
-    this->m_pHitboxManager->Update();
-    this->m_pHurtboxManager->Update();
     wolf::EventManager::Dispatch<DialogueTriggerEvent>();
 }
 
@@ -229,17 +200,12 @@ void PlayState::Render()
 
 void PlayState::BackgroundUpdate(float delta)
 {
-    // Update logic for when state is inactive
-
-    // Show the Labyrinth Manager debug GUI
-    if (m_showLabyrinthManager) m_pLabyrinthManager->ShowGUI();
+    if (m_showLabyrinthManager) 
+        m_pLabyrinthManager->ShowGUI();
 }
 
 void PlayState::BackgroundRender()
 {
-    // Render logic for when state is inactive
-    
-    // Render the game's scene
     m_pGameInstance->GetScene().Render();
 }
 
@@ -248,62 +214,49 @@ void PlayState::CreatePlayer()
     // Create player object with transform
     m_pPlayerObject = &m_pGameInstance->GetScene().CreateObject2D();
 
-    // Add player controller
-    m_pPlayerObject->AddComponent<PlayerController>();
+    // Add player controller and initialize
+    // NOTE: This manages all player animations and the animated sprite component for the player
+    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
+    playerController.LateInitialize();
 
     // Scale player
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
 
-    // Add animated sprite
-    auto& animSprite = m_pPlayerObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-    animSprite.AddAnimation("WalkSouth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 8, true);
-    animSprite.AddAnimation("WalkEast", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 9, 16, true);
-    animSprite.AddAnimation("WalkNorth", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 17, 24, true);
-    animSprite.AddAnimation("WalkWest", "data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 25, 32, true);
-    animSprite.AddAnimation("StandSouth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
-    animSprite.AddAnimation("StandEast", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 2, 2, false);
-    animSprite.AddAnimation("StandNorth", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 3, 3, false);
-    animSprite.AddAnimation("StandWest", "data/textures/TheseusStand-Sheet.png", glm::vec2(32.0f, 32.0f), 4, 4, false);
-    animSprite.SetAnimation("StandSouth");
-    animSprite.SetOriginToCenterOfFrame();
-
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
-    // INVENTORY TESTING
+    // Add inventory
     auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 
-    // Add hitbox
-    auto& hitbox = m_pPlayerObject->AddComponent<HitboxComponent>(0, 1);
-    hitbox.AddHitbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
-
-    // Add hurtbox
-    auto& hurtbox = m_pPlayerObject->AddComponent<HurtboxComponent>(0, 0, 0, 1);
-    hurtbox.AddHurtbox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
+    auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
+    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
 
     // Add health / armor
-    m_pPlayerObject->AddComponent<HealthComponent>();
-    m_pPlayerObject->AddComponent<ArmourComponent>(50);
+    auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
+    auto& armour = m_pPlayerObject->AddComponent<ArmourComponent>();
+    armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
+}
+
+void PlayState::CreateMinitaurEnemy()
+{
+    // Instantiate the MinitaurBuilder with the current scene
+    MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
+
+    // Build the Minitaur and assign it to m_pMinitaurObject
+    m_pMinitaurObject = &minitaurBuilder.BuildMinitaur(m_pColliderManager); 
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)
 {
-    std::cout << "StartDialogue called with ID: " << dialogueID << std::endl;
-
     // Create a new DialogueState and push it onto the state stack
     DialogueState* dialogueState = new DialogueState(m_pStateManager, m_pGameInstance, m_pDialogueManager);
-    std::cout << "DialogueState created successfully." << std::endl;
-
     m_pStateManager->PushState(dialogueState);
-    std::cout << "DialogueState pushed onto state stack." << std::endl;
 
     // Start the dialogue with the given ID
     dialogueState->StartDialogue(dialogueID);
-    std::cout << "Dialogue started successfully." << std::endl;
 }
 
 void PlayState::OnDialogueTriggerEvent(const DialogueTriggerEvent& event)
 {
-    std::cout << "Triggering dialogue with ID: " << event.dialogueID << std::endl;
     StartDialogue(event.dialogueID);
 }

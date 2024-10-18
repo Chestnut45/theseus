@@ -79,6 +79,7 @@ void Input::_KeyCallback(GLFWwindow* window, int key, int scancode, int action, 
     s_keys[key - GLFW_KEY_SPACE] = action != GLFW_RELEASE;
 }
 
+
 void Input::_MousePosCallback(GLFWwindow* window, double xpos, double ypos)
 {
 }
@@ -119,7 +120,6 @@ void Input::_Poll()
     // Reset mouse scroll
     s_mouseScroll = glm::vec2(0.0f);
 }
-
 void Input::_Setup(GLFWwindow* window)
 {
     glfwSetKeyCallback(window, Input::_KeyCallback);
@@ -127,5 +127,4 @@ void Input::_Setup(GLFWwindow* window)
     glfwSetScrollCallback(window, Input::_MouseScrollCallback);
     s_pWindow = window;
 }
-
 }

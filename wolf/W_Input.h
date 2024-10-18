@@ -56,6 +56,7 @@ namespace wolf
             static bool IsRMBReleased();
             static bool IsMMBReleased();
             static bool IsMouseCaptured() { return s_mouseCaptured; };
+            
 
             // Get the mouse position in pixel coordinates,
             // relative to the top-left corner of the window.
