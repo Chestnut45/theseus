@@ -28,6 +28,7 @@ void PlayState::Enter()
 
     // Initialise managers
     this->m_pColliderManager = new ColliderManager(&scene);
+    this->m_pStatusManager = new StatusManager(&scene);
 
     // Add the labyrinth manager component to an empty object and load default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
@@ -64,6 +65,9 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
 
     // Delete managers
+    delete this->m_pStatusManager;
+    this->m_pStatusManager = nullptr;
+
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
 }
@@ -100,6 +104,7 @@ void PlayState::Update(float delta)
 
     // Update managers
     this->m_pColliderManager->Update(delta);
+    this->m_pStatusManager->Update(delta);
 
     // Update player animations
     auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
@@ -233,6 +238,9 @@ void PlayState::CreatePlayer()
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
     auto& armour = m_pPlayerObject->AddComponent<ArmourComponent>();
     armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
+
+    // auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)

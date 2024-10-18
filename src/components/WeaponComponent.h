@@ -28,9 +28,10 @@ public:
 
 private:
     // Weapon properties
-    float m_fDelay = 0.0f;
+    float m_fAttackDelays[WeaponType::NONE];
 
     bool m_aAvailableWeapons[WeaponType::NONE];
+    
 
     // Projectile/Melee properties
     float m_fAtkDamage = 0.0f;

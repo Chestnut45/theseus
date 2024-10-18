@@ -15,6 +15,7 @@
 #include "../events/DialogueTriggerEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
+#include "../StatusManager.h"
 
 
 class LabyrinthManager;
@@ -45,6 +46,7 @@ private:
 
     // Manager for colliders
     ColliderManager* m_pColliderManager = nullptr;
+    StatusManager* m_pStatusManager = nullptr;
 
     // Flags
     bool m_showLabyrinthManager = true;

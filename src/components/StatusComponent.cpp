@@ -20,6 +20,8 @@ StatusComponent::~StatusComponent()
 {
 }
 
+// If status effect already present, reset timer
+// else, add status effect
 void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifespan)
 {
 
@@ -35,7 +37,7 @@ void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifesp
     
 }
 
-bool StatusComponent::IsStatusEffectTypePresent(StatusEffectType p_se_type) const
+bool StatusComponent::IsStatusEffectActive(StatusEffectType p_se_type) const
 {
     return this->m_aStatusEffects[p_se_type] == nullptr;
 }

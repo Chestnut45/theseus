@@ -18,7 +18,7 @@ public:
     StatusManager(wolf::Scene* p_scene);
     ~StatusManager();
 
-    void Update();
+    void Update(float p_delta);
 
 private:
     wolf::Scene* m_scene = nullptr;

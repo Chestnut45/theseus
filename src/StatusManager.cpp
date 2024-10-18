@@ -16,7 +16,7 @@ StatusManager::~StatusManager()
 
 }
 
-void StatusManager::Update()
+void StatusManager::Update(float p_delta)
 {
     for (auto&&[_,status] : this->m_scene->Each<StatusComponent>())
     {

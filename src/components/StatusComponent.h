@@ -16,6 +16,7 @@
 
 #include "../ColliderManager.h"
 
+class VelocityComponent;
 class StatusManager;
 
 class StatusComponent : public wolf::BaseComponent
@@ -35,7 +36,7 @@ public:
     virtual ~StatusComponent();
 
     void AddStatusEffect(StatusEffectType p_se_type, float p_lifespan);
-    bool IsStatusEffectTypePresent(StatusEffectType p_se_type) const;
+    bool IsStatusEffectActive(StatusEffectType p_se_type) const;
 
 private:
     struct StatusEffect
@@ -52,6 +53,14 @@ private:
 
         virtual ~StatusEffect()
         {
+            if(this->m_StatusEffectType == StatusComponent::StatusEffectType::PETRIFIED)
+            {
+                VelocityComponent* velocityComponent = this->GetOwnerComponent()->GetGameObject()->GetComponent<VelocityComponent>();
+                if(velocityComponent != nullptr)
+                {
+                    velocityComponent->SetPetrification(false);
+                }
+            }
             delete this->m_pTimer;
             this->m_pTimer = nullptr;
         }
@@ -102,6 +111,11 @@ private:
 
                 case StatusEffectType::PETRIFIED:
                 {
+                    VelocityComponent* velocityComponent = this->GetOwnerComponent()->GetGameObject()->GetComponent<VelocityComponent>();
+                    if(velocityComponent != nullptr)
+                    {
+                        velocityComponent->SetPetrification(true);
+                    }
                     break;
                 }      
                 

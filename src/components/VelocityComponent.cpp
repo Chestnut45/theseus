@@ -19,7 +19,16 @@ void VelocityComponent::SetVelocity(const glm::vec2& velocity)
 }
 
 // Get velocity method
-const glm::vec2& VelocityComponent::GetVelocity() const
+const glm::vec2 VelocityComponent::GetVelocity()
 {
+    if(this->m_bIsPetrified)
+    {
+        return glm::vec2(0.0f);
+    }
     return m_velocity;
+}
+
+void VelocityComponent::SetPetrification(bool p_is_petrified)
+{
+    this->m_bIsPetrified = p_is_petrified;
 }
