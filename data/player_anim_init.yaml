@@ -1,0 +1,13 @@
+frame_size: {x: 32.0, y: 32.0}
+playback_speed: 12.0
+
+start_animation: {
+  texture: data/textures/TheseusStand-Sheet.png,
+  name: StandSouth,
+}
+
+animation_sets: [
+  data/textures/player_stand_anim_set.yaml,
+  data/textures/player_walk_anim_set.yaml,
+  data/textures/player_sword_anim_set.yaml,
+]

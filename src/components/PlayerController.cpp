@@ -58,32 +58,10 @@ void PlayerController::InitializeAnimations()
 {
     if (!m_pAnimComponent) return;
 
-    // Define all player animations with their corresponding texture paths and frame indices.
-    std::vector<std::tuple<std::string, std::string, int, int, bool>> animations = {
-        // Movement animations (looping)
-        {"WalkSouth", "data/textures/TheseusWalk-Sheet.png", 1, 8, true},
-        {"WalkEast", "data/textures/TheseusWalk-Sheet.png", 9, 16, true},
-        {"WalkNorth", "data/textures/TheseusWalk-Sheet.png", 17, 24, true},
-        {"WalkWest", "data/textures/TheseusWalk-Sheet.png", 25, 32, true},
-
-        // Idle animations (not looping)
-        {"StandSouth", "data/textures/TheseusStand-Sheet.png", 1, 1, false},
-        {"StandEast", "data/textures/TheseusStand-Sheet.png", 2, 2, false},
-        {"StandNorth", "data/textures/TheseusStand-Sheet.png", 3, 3, false},
-        {"StandWest", "data/textures/TheseusStand-Sheet.png", 4, 4, false},
-
-        // Attack animations (not looping)
-        {"AttackSouth", "data/textures/TheseusSword-Sheet.png", 1, 7, false},
-        {"AttackEast", "data/textures/TheseusSword-Sheet.png", 8, 14, false},
-        {"AttackNorth", "data/textures/TheseusSword-Sheet.png", 15, 21, false},
-        {"AttackWest", "data/textures/TheseusSword-Sheet.png", 22, 28, false}
-    };
-
-    // Add animations to the component with correct frame ranges and loop settings
-    for (const auto& [name, path, startFrame, endFrame, isLooping] : animations)
-    {
-        m_pAnimComponent->AddAnimation(name, path, glm::vec2(32.0f, 32.0f), startFrame, endFrame, isLooping);
-    }
+    // Add each of the animation sets to the AnimatedSprite2D component
+    m_pAnimComponent->AddAnimationSet("data/player_walk_anim_set.yaml");
+    m_pAnimComponent->AddAnimationSet("data/player_stand_anim_set.yaml");
+    m_pAnimComponent->AddAnimationSet("data/player_sword_anim_set.yaml");
 
     m_pAnimComponent->SetAnimation("StandSouth"); // Default animation set to "StandSouth"
     m_pAnimComponent->SetOriginToCenterOfFrame();

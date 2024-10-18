@@ -57,6 +57,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         void Update(float p_fDelta);
 
         bool AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop);
+        bool AddAnimationSet(const std::string& p_strPathToSetFile);
         bool RemoveAnimation(const std::string& p_strName);
 
         void SetAnimation(const std::string& p_strName);
@@ -99,6 +100,8 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         // Multiplies final pixel color by provided tint color
         // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
         void Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint = glm::vec3(-1.0f));
+
+        static AnimatedSprite2D* CreateAnimatedSprite2D(const std::string& p_strFilePath);
 
     private:
         bool SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize);

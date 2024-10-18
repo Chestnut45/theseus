@@ -10,6 +10,8 @@
 
 #include "W_Logging.h"
 
+#include <yaml-cpp/yaml.h>
+
 // Initialize the counter
 int AnimatedSprite2D::s_iAnimSprite2DCount = 0;
 
@@ -385,4 +387,89 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
 
     // Unbind
     glBindVertexArray(0);
+}
+
+AnimatedSprite2D* AnimatedSprite2D::CreateAnimatedSprite2D(const std::string& p_strFilePath) {
+    // If something goes wrong we need to be able to free up the memory we temporarily used
+    AnimatedSprite2D* pAnimSprite;
+
+    try {
+        // Grab the file
+        YAML::Node node = YAML::LoadFile(p_strFilePath);
+
+        // Get the frame size
+        glm::vec2 v2Size;
+        v2Size.x = node["frame_size"]["x"].as<float>();
+        v2Size.y = node["frame_size"]["y"].as<float>();
+
+        // Get the playback speed
+        float fSpeed = node["playback_speed"].as<float>();
+
+        // Figure out which animation we'll be starting with and grab it's texture path and name
+        std::string strTexture = node["start_animation"]["texture"] ? node["start_animation"]["texture"].as<std::string>() : strTexture;
+        std::string strStartAnimName = node["start_animation"]["name"] ? node["start_animation"]["name"].as<std::string>() : strStartAnimName;
+
+        // At this point we have enough to create the component so we'll do so now
+        pAnimSprite = new AnimatedSprite2D(strTexture, v2Size, fSpeed);
+
+        // Now we need to start processing the animation sets
+        YAML::Node animSets = node["animation_sets"];
+        for (int i = 0; i < animSets.size(); ++i) {
+            std::string strSetFilePath = animSets[i] ? animSets[i].as<std::string>() : strSetFilePath;
+            pAnimSprite->AddAnimationSet(strSetFilePath);
+        }
+
+        // Once we've done that, we can set the start animation as active and setup the sprite origin
+        pAnimSprite->SetAnimation(strStartAnimName);
+        pAnimSprite->SetOriginToCenterOfFrame();
+
+        // And return the newly created component
+        return pAnimSprite;
+    }
+    catch (YAML::Exception& e) {
+        // Throw an error if something goes wrong
+        wolf::Error("Error parsing file '", p_strFilePath.c_str(), "': ", e.what());
+
+        // and delete whatever we made
+        delete(pAnimSprite);
+        return nullptr;
+    }
+}
+
+// Note that all animations in an animation set are assumed to have the SAME texture file and frame size,
+// If this is NOT the case, restructure your animation sets until it is.
+bool AnimatedSprite2D::AddAnimationSet(const std::string& p_strPathToSetFile) {
+    try {
+        // Grab the file
+        YAML::Node node = YAML::LoadFile(p_strPathToSetFile);
+
+        // Get the texture path
+        std::string strTexture = node["texture"] ? node["texture"].as<std::string>() : strTexture;
+
+        // Get the frame size
+        glm::vec2 v2Size;
+        v2Size.x = node["frame_size"]["x"].as<float>();
+        v2Size.y = node["frame_size"]["y"].as<float>();
+
+        // Then go through each of the animations in the set
+        YAML::Node animations = node["animations"];
+        for (int i = 0; i < animations.size(); ++i) {
+            // Get the node that represents each individual animation
+            YAML::Node anim = animations[i];
+
+            // And retrieve their unique information
+            std::string strName = anim["name"] ? anim["name"].as<std::string>() : strName;  // Name
+            int iStart = anim["start_frame"].as<int>(); // What frame it starts on (inclusive)
+            int iEnd = anim["end_frame"].as<int>(); // What frame it ends on (inclusive)
+            bool bLoops = anim["loops"] ? anim["loops"].as<bool>() : bLoops; // And whether the animation loops
+
+            // Then add the animation to the AnimatedSprite2D component
+            this->AddAnimation(strName, strTexture, v2Size, iStart, iEnd, bLoops);
+        }
+        return true;
+    }
+    catch (YAML::Exception& e) { // If something went wrong, we need to throw an error
+        wolf::Error("Error parsing file '", p_strPathToSetFile.c_str(), "': ", e.what());
+        return false;
+    }
 }
