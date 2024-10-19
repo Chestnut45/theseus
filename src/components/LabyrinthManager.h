@@ -94,8 +94,6 @@ private:
     int m_width = 125;
     int m_height = 125;
 
-    // TODO: Tweakable progression / difficulty parameters (connectivity, spawn rates, etc.)
-
     // Flags
     bool m_randomizeSeed = false;
     bool m_isGenerated = false;

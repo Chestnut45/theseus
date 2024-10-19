@@ -88,9 +88,13 @@ void LabyrinthManager::GenerateLabyrinth()
     // Carve maze into the logical tilemap
     CarveMaze();
 
-    // Entrance tile
-    m_labyrinthGrid.Set(m_width / 2 + 1, 0, LogicalTile::Floor);
+    // Generate entrance room
 
+    // Open up the labyrinth entrance tile (guaranteed to connect to a path or room)
+    m_labyrinthGrid.Set(m_width / 2, 0, LogicalTile::Floor);
+    m_labyrinthGrid.Set(m_width / 2, 1, LogicalTile::Floor);
+
+    auto& spawnRoomObj = pObject->GetScene().CreateObject2D();
 
 
     // Convert the logical tilemap into chunks and objects
@@ -579,7 +583,7 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
 glm::vec2 LabyrinthManager::GetSpawnLocation() const
 {
     if (!m_isGenerated) return glm::vec2(0.0f);
-    return glm::vec2(((float)m_width / 2 + 1) * LABYRINTH_TILE_SIZE * SCALE, 0);
+    return glm::vec2((float)m_width / 2 * LABYRINTH_TILE_SIZE * SCALE, 0);
 }
 
 void LabyrinthManager::Reset()
@@ -850,6 +854,47 @@ void LabyrinthManager::CarveMaze()
         for (int x = 1; x < m_width - 1; ++x)
         {
             if (m_labyrinthGrid.Get(x, y) == LogicalTile::Unvisited) CarveMaze(x, y);
+        }
+    }
+
+    // Do one last pass to ensure no diagonal gaps are left
+    for (int y = 1; y < m_height - 1; ++y)
+    {
+        for (int x = 1; x < m_width - 1; ++x)
+        {
+            if (m_labyrinthGrid.Get(x, y) == LogicalTile::Floor)
+            {
+                // Grab all neighbour values
+                short up = m_labyrinthGrid.Get(x, y + 1) == LogicalTile::Wall;
+                short down = m_labyrinthGrid.Get(x, y - 1) == LogicalTile::Wall;
+                short left = m_labyrinthGrid.Get(x - 1, y) == LogicalTile::Wall;
+                short right = m_labyrinthGrid.Get(x + 1, y) == LogicalTile::Wall;
+                short ur = m_labyrinthGrid.Get(x + 1, y + 1) == LogicalTile::Wall;
+                short ul = m_labyrinthGrid.Get(x - 1, y + 1) == LogicalTile::Wall;
+                short dr = m_labyrinthGrid.Get(x + 1, y - 1) == LogicalTile::Wall;
+                short dl = m_labyrinthGrid.Get(x - 1, y - 1) == LogicalTile::Wall;
+
+                if ((up && right && !ur) || (down && right && !dr))
+                {
+                    m_labyrinthGrid.Set(x + 1, y, LogicalTile::Floor);
+                    continue;
+                }
+                if ((up && left && !ul) || (down && left && !dl))
+                {
+                    m_labyrinthGrid.Set(x - 1, y, LogicalTile::Floor);
+                    continue;
+                }
+                if ((up && right && !ur) || (up && left && !ul))
+                {
+                    m_labyrinthGrid.Set(x, y + 1, LogicalTile::Floor);
+                    continue;
+                }
+                if ((down && left && !dl) || (down && right && !dr))
+                {
+                    m_labyrinthGrid.Set(x, y - 1, LogicalTile::Floor);
+                    continue;
+                }
+            }
         }
     }
 }
