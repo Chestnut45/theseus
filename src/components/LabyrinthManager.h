@@ -9,9 +9,6 @@
 // When attached to a game object, calling Generate() will create all the
 // necessary objects and components to represent the labyrinth and add them
 // all as child objects of the object the manager is attached to.
-// 
-// For now, it will only generate a test tilemap, but later it will manage the
-// chunk loading system as well as enemy spawns, items, etc.
 //-----------------------------------------------------------------------------
 
 #include <cstdint>
@@ -24,6 +21,7 @@
 #include <glm/gtx/hash.hpp>
 
 #include <W_GameObject.h>
+#include <W_Grid2D.h>
 #include <W_RNG.h>
 #include <W_Shapes.h>
 
@@ -72,6 +70,10 @@ public:
     // Saves the current config to a YAML file
     void SaveConfig(const std::string& filepath);
 
+    // Gets the spawn position of the labyrinth in world space
+    // NOTE: Returns (0, 0) if the labyrinth is not yet generated
+    glm::vec2 GetSpawnLocation() const;
+
     // Resets all properties to their defaults
     void Reset();
 
@@ -80,6 +82,7 @@ public:
     static const inline int MAX_LABYRINTH_DIM = 16'383;
     static const inline int LABYRINTH_TILE_SIZE = 32;
     static const inline int CHUNK_SIZE = 64;
+    static const inline int SCALE = 3;
 
 // Implementation
 private:
@@ -95,6 +98,22 @@ private:
 
     // Flags
     bool m_randomizeSeed = false;
+    bool m_isGenerated = false;
+
+    // Tile data
+
+    // Logical tile types (not including visual variations)
+    enum class LogicalTile
+    {
+        Unvisited,
+        Door,
+        Floor,
+        Grass,
+        Wall,
+    };
+
+    // Grid of logical tiles
+    wolf::Grid2D<LogicalTile> m_labyrinthGrid{m_width, m_height, LogicalTile::Unvisited};
 
     // Room data
 
@@ -177,4 +196,16 @@ private:
 
     // Map of chunk IDs to chunk game object pointers
     std::unordered_map<glm::ivec2, wolf::GameObject*> m_chunkMap;
+
+    // Helper methods
+
+    // Places all rooms and returns a list of the rectangles
+    // defining the bounds of all rooms successfully placed
+    std::vector<wolf::IRectangle> PlaceRooms();
+
+    // Carves the maze into the labyrinth using the current settings
+    void CarveMaze();
+
+    // Generates all chunk objects into the scene for the current maze
+    void GenerateChunks();
 };

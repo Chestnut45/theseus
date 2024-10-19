@@ -45,8 +45,8 @@ void LabyrinthManager::GenerateLabyrinth()
         return;
     }
 
-    auto* object = GetGameObject();
-    if (!object)
+    auto* pObject = GetGameObject();
+    if (!pObject)
     {
         wolf::Error("Labyrinth generator not attached to a GameObject");
         return;
@@ -57,376 +57,47 @@ void LabyrinthManager::GenerateLabyrinth()
     m_height = m_height % 2 == 0 ? m_height - 1 : m_height;
 
     // Initialize scale of all labyrinth objects
-    auto* pTransform = object->GetComponent<wolf::Transform2D>();
-    if (!pTransform) pTransform = &object->AddComponent<wolf::Transform2D>();
-    pTransform->SetScale(glm::vec2(3));
-
-    // Grab a scene reference
-    auto& scene = object->GetScene();
+    auto* pTransform = pObject->GetComponent<wolf::Transform2D>();
+    if (!pTransform) pTransform = &pObject->AddComponent<wolf::Transform2D>();
+    pTransform->SetScale(glm::vec2(SCALE));
 
     // Reseed the rng before generating
     if (m_randomizeSeed) m_rng.SetSeed(m_rng.NextInt(0, INT32_MAX));
     else m_rng.Reseed();
 
-    // Logical tile types (not including visual variations)
-    enum class LogicalTile
-    {
-        Unvisited,
-        Door,
-        Floor,
-        Grass,
-        Wall,
-    };
-
     // Initialize global grid of logical tile data for entire labyrinth
-    wolf::Grid2D<LogicalTile> labyrinthGrid(m_width, m_height, LogicalTile::Unvisited);
+    m_labyrinthGrid.Resize(m_width, m_height, LogicalTile::Unvisited);
 
     // Place top/bottom outer walls
     for (int i = 0; i < m_width; ++i)
     {
-        labyrinthGrid.Set(i, 0, LogicalTile::Wall);
-        labyrinthGrid.Set(i, m_height - 1, LogicalTile::Wall);
+        m_labyrinthGrid.Set(i, 0, LogicalTile::Wall);
+        m_labyrinthGrid.Set(i, m_height - 1, LogicalTile::Wall);
     }
 
     // Place left/right outer walls
     for (int i = 0; i < m_height; ++i)
     {
-        labyrinthGrid.Set(0, i, LogicalTile::Wall);
-        labyrinthGrid.Set(m_width - 1, i, LogicalTile::Wall);
+        m_labyrinthGrid.Set(0, i, LogicalTile::Wall);
+        m_labyrinthGrid.Set(m_width - 1, i, LogicalTile::Wall);
     }
 
-    // Place all rooms into the labyrinth
-    std::vector<wolf::IRectangle> placedRoomRects;
-    for (int i = 0; i < m_rooms.size(); ++i)
-    {
-        // Grab references to the current room
-        auto& room = m_rooms[i];
-        auto& rect = room.m_bounds;
+    // Place all rooms into the logical tilemap
+    PlaceRooms();
 
-        // Try to place all instances of the room
-        for (int instance = 0; instance < room.m_instances; ++instance)
-        {
-            // Generate final room properties
+    // Carve maze into the logical tilemap
+    CarveMaze();
 
-            // Room size
-            switch (room.m_sizeType)
-            {
-                case Room::SizeType::Manual:
-                    // Use bounds rectangle
-                    break;
-                
-                case Room::SizeType::RandomMinMax:
-                    
-                    // Generate a random size between the min and max
-                    rect.m_size.x = m_rng.NextInt(room.m_minSize.x, room.m_maxSize.x);
-                    rect.m_size.y = m_rng.NextInt(room.m_minSize.y, room.m_maxSize.y);
-                    break;
-            }
+    // Entrance tile
+    m_labyrinthGrid.Set(m_width / 2 + 1, 0, LogicalTile::Floor);
 
-            // Round down size if even (align with walls)
-            rect.m_size.x = rect.m_size.x % 2 == 0 ? rect.m_size.x - 1 : rect.m_size.x;
-            rect.m_size.y = rect.m_size.y % 2 == 0 ? rect.m_size.y - 1 : rect.m_size.y;
 
-            // Flag to know if we found a valid position
-            bool overlapping = false;
 
-            // Room position (origin at bottom-left tile)
-            switch (room.m_positionType)
-            {
-                case Room::PositionType::Manual:
+    // Convert the logical tilemap into chunks and objects
+    GenerateChunks();
 
-                    // Use bounds rectangle
-                    // Round down position if odd (align with walls)
-                    rect.m_origin.x = rect.m_origin.x % 2 == 0 ? rect.m_origin.x - 1 : rect.m_origin.x;
-                    rect.m_origin.y = rect.m_origin.y % 2 == 0 ? rect.m_origin.y - 1 : rect.m_origin.y;
-                    break;
-                
-                case Room::PositionType::Random:
-
-                    // Attempt to generate a valid position
-                    for (int attempt = 0; attempt < Room::MAX_PLACEMENT_ATTEMPTS; ++attempt)
-                    {
-                        // Generate random position so that it is guaranteed in-bounds
-                        rect.m_origin.x = m_rng.NextInt(1, m_width - rect.m_size.x - 1);
-                        rect.m_origin.y = m_rng.NextInt(1, m_height - rect.m_size.y - 1);
-
-                        // Round down position if odd (align with walls)
-                        rect.m_origin.x = rect.m_origin.x % 2 == 0 ? rect.m_origin.x - 1 : rect.m_origin.x;
-                        rect.m_origin.y = rect.m_origin.y % 2 == 0 ? rect.m_origin.y - 1 : rect.m_origin.y;
-
-                        // Reset flag
-                        overlapping = false;
-
-                        // Don't bother trying to fix overlap on the final attempt if force is checked
-                        if (attempt == Room::MAX_PLACEMENT_ATTEMPTS - 1 && room.m_force) break;
-
-                        // Validate that the room wouldn't overlap anything
-                        for (const auto& placedRect : placedRoomRects)
-                        {
-                            if (rect.Intersects(placedRect))
-                            {
-                                overlapping = true;
-                                break;
-                            }
-                        }
-
-                        // Exit if we found a valid spot
-                        if (!overlapping) break;
-                    }
-                    break;
-                
-                case Room::PositionType::RandomRadius:
-
-                    // Attempt to generate a valid position
-                    for (int attempt = 0; attempt < Room::MAX_PLACEMENT_ATTEMPTS; ++attempt)
-                    {
-                        // Generate random position in a square "radius" around a position
-                        const auto& pos = room.m_randomRadiusPosition;
-                        const auto& r = room.m_randomRadius;
-                        rect.m_origin.x = m_rng.NextInt(pos.x - r, pos.x + r);
-                        rect.m_origin.y = m_rng.NextInt(pos.y - r, pos.y + r);
-
-                        // Round down position if odd (align with walls)
-                        rect.m_origin.x = rect.m_origin.x % 2 == 0 ? rect.m_origin.x - 1 : rect.m_origin.x;
-                        rect.m_origin.y = rect.m_origin.y % 2 == 0 ? rect.m_origin.y - 1 : rect.m_origin.y;
-
-                        // Ensure valid position
-                        if (rect.m_origin.x > 0 && rect.m_origin.x < m_width - rect.m_size.x &&
-                            rect.m_origin.y > 0 && rect.m_origin.y < m_height - rect.m_size.y)
-                        {
-                            // Reset flag
-                            overlapping = false;
-
-                            // Don't bother trying to fix overlap on the final attempt if force is checked
-                            if (attempt == Room::MAX_PLACEMENT_ATTEMPTS - 1 && room.m_force) break;
-
-                            // Check if overlapping
-                            for (const auto& placedRect : placedRoomRects)
-                            {
-                                if (rect.Intersects(placedRect))
-                                {
-                                    overlapping = true;
-                                    break;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // Out of bounds, continue
-
-                            // If last attempt, make sure to guarantee an in-bounds origin
-                            if (attempt == Room::MAX_PLACEMENT_ATTEMPTS - 1 && room.m_force)
-                            {
-                                overlapping = false;
-                                rect.m_origin.x = 1;
-                                rect.m_origin.y = 1;
-                            }
-
-                            continue;
-                        }
-
-                        // Exit if we found a valid spot
-                        if (!overlapping) break;
-                    }
-                    break;
-            }
-
-            // If we haven't found a valid position, don't place the room / instance
-            if (overlapping)
-            {
-                wolf::Warning("Couldn't place room '", room.m_name.c_str(), "'");
-                continue;
-            }
-
-            // If we reach here, must be non-overlapping, place the room!
-            for (int y = -1; y <= rect.m_size.y; ++y)
-            {
-                for (int x = -1; x <= rect.m_size.x; ++x)
-                {
-                    glm::ivec2 worldPos = {x + rect.m_origin.x, y + rect.m_origin.y};
-
-                    // Debug bounds checking
-                    if (worldPos.x >= m_width || worldPos.y >= m_height || worldPos.x < 0 || worldPos.y < 0)
-                    {
-                        wolf::Warning("Room #", i, ", Tile (", worldPos.x, ", ", worldPos.y, ") out of bounds!");
-                        continue;
-                    }
-
-                    // Set border tiles of each room as walls
-                    if (x == -1 || x == rect.m_size.x || y == -1 || y == rect.m_size.y)
-                    {
-                        labyrinthGrid.Set(worldPos.x, worldPos.y, LogicalTile::Wall);
-                        continue;
-                    }
-
-                    labyrinthGrid.Set(worldPos.x, worldPos.y, LogicalTile::Floor);
-                }
-            }
-
-            // Add the specific room that was generated to the list
-            placedRoomRects.push_back(rect);
-        }
-    }
-
-    // Backtracking maze generation
-
-    enum class Dir
-    {
-        N,
-        E,
-        S,
-        W,
-    };
-
-    int deltaDirX[] = { 0, 1, 0, -1 };
-    int deltaDirY[] = { 1, 0, -1, 0 };
-
-    // Recursive lambda to carve the maze into the labyrinth
-    // TODO: Refactor to iterative version to increase labyrinth size limitation
-    std::function<void(int, int)> CarveMaze = [&, this](int x, int y) -> void
-    {
-        // Shuffle the 4 directions
-        std::vector<Dir> dirs =
-        {
-            Dir::N,
-            Dir::E,
-            Dir::S,
-            Dir::W,
-        };
-        std::shuffle(dirs.begin(), dirs.end(), this->m_rng.GetEngine());
-
-        // Place floor so we know this tile has been visited
-        labyrinthGrid.Set(x, y, LogicalTile::Floor);
-
-        for (Dir d : dirs)
-        {
-            // Grab deltas
-            int dx = deltaDirX[(int)d];
-            int dy = deltaDirY[(int)d];
-
-            // Calculate new coordinates
-            int newX = dx * 2 + x;
-            int newY = dy * 2 + y;
-
-            // Bounds checking
-            if (newX > 0 && newX < this->m_width - 1 && newY > 0 && newY < this->m_height - 1)
-            {
-                if (labyrinthGrid.Get(newX, newY) == LogicalTile::Unvisited)
-                {
-                    // Place intermediate floor
-                    labyrinthGrid.Set(x + dx, y + dy, LogicalTile::Floor);
-
-                    // Place walls
-                    int wx = x + deltaDirX[((int)d + 1) % 4];
-                    int wy = y + deltaDirY[((int)d + 1) % 4];
-                    if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
-                    wx += dx;
-                    wy += dy;
-                    if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
-                    wx = x + deltaDirX[((int)d + 3) % 4];
-                    wy = y + deltaDirY[((int)d + 3) % 4];
-                    if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
-                    wx += dx;
-                    wy += dy;
-                    if (labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
-
-                    CarveMaze(newX, newY);
-                }
-            }
-        }
-    };
-
-    // Carve mazes into every unvisited tile in the labyrinth
-    for (int y = 1; y < m_height - 1; ++y)
-    {
-        for (int x = 1; x < m_width - 1; ++x)
-        {
-            if (labyrinthGrid.Get(x, y) == LogicalTile::Unvisited) CarveMaze(x, y);
-        }
-    }
-
-    // Generate all chunks
-
-    // Calculate number of chunks per axis
-    const int numChunksX = m_width / CHUNK_SIZE + 1;
-    const int numChunksY = m_height / CHUNK_SIZE + 1;
-    for (int cy = 0; cy < numChunksY; ++cy)
-    {
-        for (int cx = 0; cx < numChunksX; ++cx)
-        {
-            // Grab chunk ID
-            glm::ivec2 chunkID = {cx, cy};
-
-            // Create the chunk object as a child object
-            auto& chunkObj = scene.CreateObject2D();
-            object->AddChild(chunkObj);
-
-            // Add the chunk object to the map
-            m_chunkMap[chunkID] = &chunkObj;
-
-            // Set transform offset
-            int xoffset = cx * CHUNK_SIZE;
-            int yoffset = cy *  CHUNK_SIZE;
-            auto* pTransform = chunkObj.GetComponent<wolf::Transform2D>();
-            pTransform->SetPosition(glm::vec2(xoffset * LABYRINTH_TILE_SIZE, yoffset * LABYRINTH_TILE_SIZE));
-
-            // Create tilemap
-            auto& tilemap = chunkObj.AddComponent<wolf::TileMap>(CHUNK_SIZE, CHUNK_SIZE);
-            tilemap.LoadTileSet("data/labyrinth.tileset");
-
-            // Iterate chunk's tilemap
-            for (int y = 0; y < CHUNK_SIZE; ++y)
-            {
-                for (int x = 0; x < CHUNK_SIZE; ++x)
-                {
-                    // Calculate world position
-                    glm::ivec2 worldPos = {x + xoffset, y + yoffset};
-
-                    // Don't bother trying to place tiles that don't exist
-                    if (worldPos.x >= m_width || worldPos.y >= m_height) continue;
-
-                    // Get the logical tile at the current position
-                    const LogicalTile& logicalTile = labyrinthGrid.Get(worldPos.x, worldPos.y);
-
-                    // Convert from logical tile to specific tile ID
-                    int tile = wolf::TileMap::EMPTY_TILE;
-                    switch (logicalTile)
-                    {
-                        case LogicalTile::Unvisited:
-                            
-                            // Do nothing
-                            break;
-                        
-                        case LogicalTile::Door:
-                            
-                            // TODO: Choose which floor tile represents a door
-                            tile = Tile::FloorSquareGold;
-                            break;
-                        
-                        case LogicalTile::Floor:
-                            
-                            // TODO: Choose a random non-gold floor tile
-                            tile = m_rng.NextInt(Tile::FloorSmallSquares, Tile::FloorSquare);
-                            break;
-                        
-                        case LogicalTile::Grass:
-                            tile = Tile::Grass;
-                            break;
-                        
-                        case LogicalTile::Wall:
-
-                            // TODO: Determine correct wall type based on surrounding tiles
-                            tile = m_rng.NextInt(Tile::WallBottomLeft, Tile::WallTop);
-
-                            // TODO: Add wall tile to wall collider for this chunk?
-                            break;
-                    }
-
-                    tilemap.SetTile(x, y, tile);
-                }
-            }
-        }
-    }
+    // Update flag
+    m_isGenerated = true;
 }
 
 void LabyrinthManager::DestroyLabyrinth()
@@ -440,6 +111,9 @@ void LabyrinthManager::DestroyLabyrinth()
 
     // Clear the chunk map
     m_chunkMap.clear();
+
+    // Update flag
+    m_isGenerated = false;
 }
 
 void LabyrinthManager::Regenerate()
@@ -902,6 +576,12 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
     file << "]";
 }
 
+glm::vec2 LabyrinthManager::GetSpawnLocation() const
+{
+    if (!m_isGenerated) return glm::vec2(0.0f);
+    return glm::vec2(((float)m_width / 2 + 1) * LABYRINTH_TILE_SIZE * SCALE, 0);
+}
+
 void LabyrinthManager::Reset()
 {
     // Reset to default values
@@ -910,4 +590,356 @@ void LabyrinthManager::Reset()
     m_width = 125;
     m_height = 125;
     m_rooms.clear();
+}
+
+std::vector<wolf::IRectangle> LabyrinthManager::PlaceRooms()
+{
+    // Place all rooms into the labyrinth
+    std::vector<wolf::IRectangle> placedRoomRects;
+    for (int i = 0; i < m_rooms.size(); ++i)
+    {
+        // Grab references to the current room
+        auto& room = m_rooms[i];
+        auto& rect = room.m_bounds;
+
+        // Try to place all instances of the room
+        for (int instance = 0; instance < room.m_instances; ++instance)
+        {
+            // Generate final room properties
+
+            // Room size
+            switch (room.m_sizeType)
+            {
+                case Room::SizeType::Manual:
+                    // Use bounds rectangle
+                    break;
+                
+                case Room::SizeType::RandomMinMax:
+                    
+                    // Generate a random size between the min and max
+                    rect.m_size.x = m_rng.NextInt(room.m_minSize.x, room.m_maxSize.x);
+                    rect.m_size.y = m_rng.NextInt(room.m_minSize.y, room.m_maxSize.y);
+                    break;
+            }
+
+            // Round down size if even (align with walls)
+            rect.m_size.x = rect.m_size.x % 2 == 0 ? rect.m_size.x - 1 : rect.m_size.x;
+            rect.m_size.y = rect.m_size.y % 2 == 0 ? rect.m_size.y - 1 : rect.m_size.y;
+
+            // Flag to know if we found a valid position
+            bool overlapping = false;
+
+            // Room position (origin at bottom-left tile)
+            switch (room.m_positionType)
+            {
+                case Room::PositionType::Manual:
+
+                    // Use bounds rectangle
+                    // Round down position if odd (align with walls)
+                    rect.m_origin.x = rect.m_origin.x % 2 == 0 ? rect.m_origin.x - 1 : rect.m_origin.x;
+                    rect.m_origin.y = rect.m_origin.y % 2 == 0 ? rect.m_origin.y - 1 : rect.m_origin.y;
+                    break;
+                
+                case Room::PositionType::Random:
+
+                    // Attempt to generate a valid position
+                    for (int attempt = 0; attempt < Room::MAX_PLACEMENT_ATTEMPTS; ++attempt)
+                    {
+                        // Generate random position so that it is guaranteed in-bounds
+                        rect.m_origin.x = m_rng.NextInt(1, m_width - rect.m_size.x - 1);
+                        rect.m_origin.y = m_rng.NextInt(1, m_height - rect.m_size.y - 1);
+
+                        // Round down position if odd (align with walls)
+                        rect.m_origin.x = rect.m_origin.x % 2 == 0 ? rect.m_origin.x - 1 : rect.m_origin.x;
+                        rect.m_origin.y = rect.m_origin.y % 2 == 0 ? rect.m_origin.y - 1 : rect.m_origin.y;
+
+                        // Reset flag
+                        overlapping = false;
+
+                        // Don't bother trying to fix overlap on the final attempt if force is checked
+                        if (attempt == Room::MAX_PLACEMENT_ATTEMPTS - 1 && room.m_force) break;
+
+                        // Validate that the room wouldn't overlap anything
+                        for (const auto& placedRect : placedRoomRects)
+                        {
+                            if (rect.Intersects(placedRect))
+                            {
+                                overlapping = true;
+                                break;
+                            }
+                        }
+
+                        // Exit if we found a valid spot
+                        if (!overlapping) break;
+                    }
+                    break;
+                
+                case Room::PositionType::RandomRadius:
+
+                    // Attempt to generate a valid position
+                    for (int attempt = 0; attempt < Room::MAX_PLACEMENT_ATTEMPTS; ++attempt)
+                    {
+                        // Generate random position in a square "radius" around a position
+                        const auto& pos = room.m_randomRadiusPosition;
+                        const auto& r = room.m_randomRadius;
+                        rect.m_origin.x = m_rng.NextInt(pos.x - r, pos.x + r);
+                        rect.m_origin.y = m_rng.NextInt(pos.y - r, pos.y + r);
+
+                        // Round down position if odd (align with walls)
+                        rect.m_origin.x = rect.m_origin.x % 2 == 0 ? rect.m_origin.x - 1 : rect.m_origin.x;
+                        rect.m_origin.y = rect.m_origin.y % 2 == 0 ? rect.m_origin.y - 1 : rect.m_origin.y;
+
+                        // Ensure valid position
+                        if (rect.m_origin.x > 0 && rect.m_origin.x < m_width - rect.m_size.x &&
+                            rect.m_origin.y > 0 && rect.m_origin.y < m_height - rect.m_size.y)
+                        {
+                            // Reset flag
+                            overlapping = false;
+
+                            // Don't bother trying to fix overlap on the final attempt if force is checked
+                            if (attempt == Room::MAX_PLACEMENT_ATTEMPTS - 1 && room.m_force) break;
+
+                            // Check if overlapping
+                            for (const auto& placedRect : placedRoomRects)
+                            {
+                                if (rect.Intersects(placedRect))
+                                {
+                                    overlapping = true;
+                                    break;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Out of bounds, continue
+
+                            // If last attempt, make sure to guarantee an in-bounds origin
+                            if (attempt == Room::MAX_PLACEMENT_ATTEMPTS - 1 && room.m_force)
+                            {
+                                overlapping = false;
+                                rect.m_origin.x = 1;
+                                rect.m_origin.y = 1;
+                            }
+
+                            continue;
+                        }
+
+                        // Exit if we found a valid spot
+                        if (!overlapping) break;
+                    }
+                    break;
+            }
+
+            // If we haven't found a valid position, don't place the room / instance
+            if (overlapping)
+            {
+                wolf::Warning("Couldn't place room '", room.m_name.c_str(), "'");
+                continue;
+            }
+
+            // If we reach here, must be non-overlapping, place the room!
+            for (int y = -1; y <= rect.m_size.y; ++y)
+            {
+                for (int x = -1; x <= rect.m_size.x; ++x)
+                {
+                    glm::ivec2 worldPos = {x + rect.m_origin.x, y + rect.m_origin.y};
+
+                    // Debug bounds checking
+                    if (worldPos.x >= m_width || worldPos.y >= m_height || worldPos.x < 0 || worldPos.y < 0)
+                    {
+                        wolf::Warning("Room #", i, ", Tile (", worldPos.x, ", ", worldPos.y, ") out of bounds!");
+                        continue;
+                    }
+
+                    // Set border tiles of each room as walls
+                    if (x == -1 || x == rect.m_size.x || y == -1 || y == rect.m_size.y)
+                    {
+                        m_labyrinthGrid.Set(worldPos.x, worldPos.y, LogicalTile::Wall);
+                        continue;
+                    }
+
+                    m_labyrinthGrid.Set(worldPos.x, worldPos.y, LogicalTile::Floor);
+                }
+            }
+
+            // Add the specific room that was generated to the list
+            placedRoomRects.push_back(rect);
+        }
+    }
+
+    return placedRoomRects;
+}
+
+void LabyrinthManager::CarveMaze()
+{
+    // Backtracking maze generation
+    // Adapted from the ruby implementation presented by Jamis Buck:
+    // https://weblog.jamisbuck.org/2010/12/27/maze-generation-recursive-backtracking
+
+    // TODO: Reimplement as an iterative version to remove the
+    // limitation on labyrinth size due to stack frame size limits.
+
+    enum class Dir
+    {
+        N,
+        E,
+        S,
+        W,
+    };
+
+    int deltaDirX[] = { 0, 1, 0, -1 };
+    int deltaDirY[] = { 1, 0, -1, 0 };
+
+    // Recursive lambda function to carve the maze into the labyrinth
+    std::function<void(int, int)> CarveMaze = [&, this](int x, int y) -> void
+    {
+        // Shuffle the 4 directions
+        std::vector<Dir> dirs =
+        {
+            Dir::N,
+            Dir::E,
+            Dir::S,
+            Dir::W,
+        };
+        std::shuffle(dirs.begin(), dirs.end(), this->m_rng.GetEngine());
+
+        // Place floor so we know this tile has been visited
+        m_labyrinthGrid.Set(x, y, LogicalTile::Floor);
+
+        for (Dir d : dirs)
+        {
+            // Grab deltas
+            int dx = deltaDirX[(int)d];
+            int dy = deltaDirY[(int)d];
+
+            // Calculate new coordinates
+            int newX = dx * 2 + x;
+            int newY = dy * 2 + y;
+
+            // Bounds checking
+            if (newX > 0 && newX < this->m_width - 1 && newY > 0 && newY < this->m_height - 1)
+            {
+                if (m_labyrinthGrid.Get(newX, newY) == LogicalTile::Unvisited)
+                {
+                    // Place intermediate floor
+                    m_labyrinthGrid.Set(x + dx, y + dy, LogicalTile::Floor);
+
+                    // Place walls
+                    int wx = x + deltaDirX[((int)d + 1) % 4];
+                    int wy = y + deltaDirY[((int)d + 1) % 4];
+                    if (m_labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) m_labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
+                    wx += dx;
+                    wy += dy;
+                    if (m_labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) m_labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
+                    wx = x + deltaDirX[((int)d + 3) % 4];
+                    wy = y + deltaDirY[((int)d + 3) % 4];
+                    if (m_labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) m_labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
+                    wx += dx;
+                    wy += dy;
+                    if (m_labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) m_labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
+
+                    CarveMaze(newX, newY);
+                }
+            }
+        }
+    };
+
+    // Carve mazes into every unvisited tile in the labyrinth
+    for (int y = 1; y < m_height - 1; ++y)
+    {
+        for (int x = 1; x < m_width - 1; ++x)
+        {
+            if (m_labyrinthGrid.Get(x, y) == LogicalTile::Unvisited) CarveMaze(x, y);
+        }
+    }
+}
+
+void LabyrinthManager::GenerateChunks()
+{
+    // Grab the current object
+    auto* pObject = GetGameObject();
+
+    // Grab a scene reference
+    auto& scene = pObject->GetScene();
+
+    // Calculate number of chunks per axis
+    const int numChunksX = m_width / CHUNK_SIZE + 1;
+    const int numChunksY = m_height / CHUNK_SIZE + 1;
+    for (int cy = 0; cy < numChunksY; ++cy)
+    {
+        for (int cx = 0; cx < numChunksX; ++cx)
+        {
+            // Grab chunk ID
+            glm::ivec2 chunkID = {cx, cy};
+
+            // Create the chunk object as a child object
+            auto& chunkObj = scene.CreateObject2D();
+            pObject->AddChild(chunkObj);
+
+            // Add the chunk object to the map
+            m_chunkMap[chunkID] = &chunkObj;
+
+            // Set transform offset
+            int xoffset = cx * CHUNK_SIZE;
+            int yoffset = cy *  CHUNK_SIZE;
+            auto* pTransform = chunkObj.GetComponent<wolf::Transform2D>();
+            pTransform->SetPosition(glm::vec2(xoffset * LABYRINTH_TILE_SIZE, yoffset * LABYRINTH_TILE_SIZE));
+
+            // Create tilemap
+            auto& tilemap = chunkObj.AddComponent<wolf::TileMap>(CHUNK_SIZE, CHUNK_SIZE);
+            tilemap.LoadTileSet("data/labyrinth.tileset");
+
+            // Iterate chunk's tilemap
+            for (int y = 0; y < CHUNK_SIZE; ++y)
+            {
+                for (int x = 0; x < CHUNK_SIZE; ++x)
+                {
+                    // Calculate world position
+                    glm::ivec2 worldPos = {x + xoffset, y + yoffset};
+
+                    // Don't bother trying to place tiles that don't exist
+                    if (worldPos.x >= m_width || worldPos.y >= m_height) continue;
+
+                    // Get the logical tile at the current position
+                    const LogicalTile& logicalTile = m_labyrinthGrid.Get(worldPos.x, worldPos.y);
+
+                    // Convert from logical tile to specific tile ID
+                    int tile = wolf::TileMap::EMPTY_TILE;
+                    switch (logicalTile)
+                    {
+                        case LogicalTile::Unvisited:
+                            
+                            // Do nothing
+                            break;
+                        
+                        case LogicalTile::Door:
+                            
+                            // TODO: Choose which floor tile represents a door
+                            tile = Tile::FloorSquareGold;
+                            break;
+                        
+                        case LogicalTile::Floor:
+                            
+                            // TODO: Choose a random non-gold floor tile
+                            tile = m_rng.NextInt(Tile::FloorSmallSquares, Tile::FloorSquare);
+                            break;
+                        
+                        case LogicalTile::Grass:
+                            tile = Tile::Grass;
+                            break;
+                        
+                        case LogicalTile::Wall:
+
+                            // TODO: Determine correct wall type based on surrounding tiles
+                            tile = m_rng.NextInt(Tile::WallBottomLeft, Tile::WallTop);
+
+                            // TODO: Add wall tile to wall collider for this chunk?
+                            break;
+                    }
+
+                    tilemap.SetTile(x, y, tile);
+                }
+            }
+        }
+    }
 }
