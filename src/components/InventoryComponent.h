@@ -16,6 +16,17 @@
 #include "inventory/ConsumableItem.h"
 #include "inventory/EquipmentItem.h"
 
+enum InventoryType {
+    BASIC_INVENTORY,
+    CHEST_INVENTORY,
+    PLAYER_INVENTORY,
+    MERCHANT_INVENTORY
+};
+
+struct AddToPlayerInventoryEvent {
+    ItemBase* pItem;
+};
+
 // Note that this struct is NOT a part of the ImGui library it just uses ImVec2s
 struct ImGuiUVSet {
     ImGuiUVSet(ImVec2 p_v2TopLeft, ImVec2 p_v2BotRight) : m_v2TopLeft(p_v2TopLeft), m_v2BotRight(p_v2BotRight) {};
@@ -36,6 +47,8 @@ class InventoryComponent : public wolf::BaseComponent {
         InventoryComponent(InventoryComponent&& other) = delete;
         InventoryComponent& operator=(InventoryComponent&& other) = delete;
 
+        InventoryType GetType() {return m_enType;};
+
         ItemBase* GetItem(const std::string& p_strItemName);
         ItemBase* GetItem(ItemID p_enItemID);
         ItemBase* GetItem(int p_iItemIndex);
@@ -54,9 +67,21 @@ class InventoryComponent : public wolf::BaseComponent {
         const int m_iMaxPerRow;
         int m_iSlotsInUse = 0;
 
+        InventoryType m_enType = BASIC_INVENTORY;
+
         std::vector<std::stack<ItemBase*>> m_vvpContents;
         std::vector<ImGuiUVSet*> m_vv2TextureCoords;
 
         wolf::Texture* m_pTexture;
         ImVec2 m_v2TexFrameSize;
+};
+
+struct OpenInventoryEvent {
+    InventoryType enType;
+    InventoryComponent* pInventory;
+};
+
+struct CloseInventoryEvent {
+    InventoryType enType;
+    InventoryComponent* pInventory;
 };

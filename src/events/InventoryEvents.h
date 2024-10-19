@@ -26,3 +26,7 @@ struct ApplyStatusEffectEvent {
 struct GoldEvent {
     int iAmt;
 };
+
+struct DeleteFromPlayerInventoryEvent {
+    std::string strItemName;
+};

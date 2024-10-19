@@ -1,7 +1,20 @@
 #include "PlayerInventoryComponent.h"
 
+PlayerInventoryComponent::~PlayerInventoryComponent() {
+    // Empty each of the stacks in the contents vector
+    this->EmptyInventory();
+
+    // Then delete the contents vector itself
+    m_vvpContents.clear();
+
+    // And deregister the chest's listeners
+    wolf::EventManager::RemoveListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
+    wolf::EventManager::RemoveListener<AddToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
+    wolf::EventManager::RemoveListener<DeleteFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDeleteFromPlayerInventoryEvent>(*this);
+}
+
 void PlayerInventoryComponent::ShowInventoryGUI() {
-    // You can't resize the inventory but you can move it around!
+    // You can't resize the inventory or move it
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
     // By default, the inventory appears close to the middle of the screen
@@ -243,4 +256,20 @@ bool PlayerInventoryComponent::TakeGold(int p_iAmt) {
     
     m_iGold -= p_iAmt;
     return true;
+}
+
+void PlayerInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
+    if (p_event.enType != PLAYER_INVENTORY) {
+        
+    }
+}
+
+void PlayerInventoryComponent::HandleAddToPlayerInventoryEvent(const AddToPlayerInventoryEvent& p_event) {
+    this->AddItem(p_event.pItem);
+}
+
+void PlayerInventoryComponent::HandleDeleteFromPlayerInventoryEvent(const DeleteFromPlayerInventoryEvent& p_event) {
+    ItemBase* pItem = this->GetItem(p_event.strItemName);
+    this->RemoveItem(p_event.strItemName);
+    delete(pItem);
 }
