@@ -22,3 +22,7 @@ struct ApplyStatusEffectEvent {
     int iType;
     float fDuration;
 };
+
+struct GoldEvent {
+    int iAmt;
+};

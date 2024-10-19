@@ -4,8 +4,7 @@
 // File:            InventoryComponent.h
 // Original Author: Aurora Ryder
 //
-// A class representing a consumable item which causes Theseus to incur a given
-// status effect
+// A class representing a basic inventory
 //-----------------------------------------------------------------------------
 
 #include <wolf.h>
@@ -29,11 +28,17 @@ class InventoryComponent : public wolf::BaseComponent {
         InventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize);
         ~InventoryComponent();
 
+        // Delete copy constructor/assignment
+        InventoryComponent(const InventoryComponent&) = delete;
+        InventoryComponent& operator=(const InventoryComponent&) = delete;
+
+        // Delete move constructor/assignment
+        InventoryComponent(InventoryComponent&& other) = delete;
+        InventoryComponent& operator=(InventoryComponent&& other) = delete;
+
         ItemBase* GetItem(const std::string& p_strItemName);
         ItemBase* GetItem(ItemID p_enItemID);
         ItemBase* GetItem(int p_iItemIndex);
-
-        ItemBase* GetEquippedItem(EquipmentSlot p_enSlot);
 
         bool AddItem(ItemBase* p_pItem);
 
@@ -42,20 +47,12 @@ class InventoryComponent : public wolf::BaseComponent {
         bool RemoveItem(int p_iItemIndex);
 
         void EmptyInventory();
+        virtual void ShowInventoryGUI();
 
-        void ShowInventoryGUI();
-
-    private:
-        void UseItem(ItemBase* p_pItem, int p_iItemIndex);
-        void EquipItem(ItemBase* p_pItem, int p_iItemIndex);
-        void UnequipItem(ItemBase* p_pItem);
-        void DiscardItem(int p_iItemIndex);
-
+    protected:
         const int m_iSize;
         const int m_iMaxPerRow;
         int m_iSlotsInUse = 0;
-
-        int m_iEquipmentSlots[END_OF_EQUIPMENT - 1] = {-1};
 
         std::vector<std::stack<ItemBase*>> m_vvpContents;
         std::vector<ImGuiUVSet*> m_vv2TextureCoords;

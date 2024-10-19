@@ -6,10 +6,9 @@
 #include "../components/ArmourComponent.h"
 #include "../components/ColliderComponent.h"
 #include "../components/HealthComponent.h"
-#include "../components/InventoryComponent.h"
+#include "../components/PlayerInventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/VelocityComponent.h"
-
 
 void PlayState::Enter()
 {
@@ -126,37 +125,33 @@ void PlayState::Update(float delta)
         enemyAnim->Update(delta);
     
     // INVENTORY TESTING
-    auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
+    auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
     if (playerInventory) {
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) m_showInventoryGUI = !m_showInventoryGUI;
         if (m_showInventoryGUI) playerInventory->ShowInventoryGUI();
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Helmet", "This is a test equipment item", 5, 3, HEAD);
-            playerInventory->AddItem(pAddItem);
+            ItemBase* pEquip1 = new EquipmentItem(EQUIPMENT, "Test Helmet", "This is a test equipment item", 5, 3, HEAD);
+            ItemBase* pEquip2 = new EquipmentItem(EQUIPMENT, "Test Sword", "This is a different test equipment item", 10, 3, WEAPON);
+            ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
+            ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
+            ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
+            playerInventory->AddItem(pEquip1);
+            playerInventory->AddItem(pEquip2);
+            playerInventory->AddItem(pHealHeart);
+            playerInventory->AddItem(pHurtHeart);
+            playerInventory->AddItem(pBurnHeart);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
-            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Sword", "This is a different test equipment item", 10, 3, WEAPON);
-            playerInventory->AddItem(pAddItem);
+            playerInventory->AddGold(10);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-            ItemBase* pAddItem = ItemCreator::CreateItem("Healing Heart");
-            playerInventory->AddItem(pAddItem);
+            playerInventory->TakeGold(5);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            ItemBase* pAddItem = ItemCreator::CreateItem("Hurting Heart");
-            playerInventory->AddItem(pAddItem);
-        }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            ItemBase* pAddItem = ItemCreator::CreateItem("Burning Heart");
-            playerInventory->AddItem(pAddItem);
-        }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
             ItemBase* pHeadItem = playerInventory->GetEquippedItem(HEAD);
             ItemBase* pWeaponItem = playerInventory->GetEquippedItem(WEAPON);
             if (pHeadItem) {\
@@ -233,7 +228,7 @@ void PlayState::CreatePlayer()
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
     // Add inventory
-    auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
+    auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
     collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
