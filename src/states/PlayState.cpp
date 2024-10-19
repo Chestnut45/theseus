@@ -29,9 +29,7 @@ void PlayState::Enter()
 
 
     // Initialize the Minitaur enemy object second
-     CreateMinitaurEnemy();
-
-
+    CreateMinitaurEnemy();
 
     // Add the main camera as a component of the player object
     auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
@@ -39,7 +37,6 @@ void PlayState::Enter()
     scene.SetActiveCamera(camera);
 
     // Initialise managers
-    
 
     // Add the labyrinth manager component to an empty object and load default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
@@ -103,27 +100,26 @@ void PlayState::Update(float delta)
     if (m_showLabyrinthManager) 
         m_pLabyrinthManager->ShowGUI();
 
-    // Main object / component updates
-    auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
-    if (playerController) 
-        playerController->Update(delta);
-
-    // Update managers
-    this->m_pColliderManager->Update(delta);
-
-    // Update player animations
-    auto* playerAnim = m_pPlayerObject->GetComponent<AnimatedSprite2D>();
-    if (playerAnim) 
-        playerAnim->Update(delta);
-
-    auto* minitaurController = m_pMinitaurObject->GetComponent<MinitaurController>();
-    if (minitaurController)
+    // Update all player controllers
+    for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<PlayerController>())
     {
-        minitaurController->Update(delta);
+        controller.Update(delta);
     }
-    auto* enemyAnim = m_pMinitaurObject->GetComponent<AnimatedSprite2D>();
-     if (enemyAnim) 
-        enemyAnim->Update(delta);
+
+    // Update all minitaur controllers
+    for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
+    {
+        controller.Update(delta);
+    }
+
+    // Update all animated sprites
+    for (auto&&[_, anim] : m_pGameInstance->GetScene().Each<AnimatedSprite2D>())
+    {
+        anim.Update(delta);
+    }
+
+    // Update collisions
+    this->m_pColliderManager->Update(delta);
     
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
@@ -246,8 +242,8 @@ void PlayState::CreateMinitaurEnemy()
     // Instantiate the MinitaurBuilder with the current scene
     MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
 
-    // Build the Minitaur and assign it to m_pMinitaurObject
-    m_pMinitaurObject = &minitaurBuilder.BuildMinitaur(m_pColliderManager); 
+    // Build the Minitaur
+    minitaurBuilder.BuildMinitaur(m_pColliderManager);
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)

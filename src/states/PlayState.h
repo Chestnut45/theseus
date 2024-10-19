@@ -45,8 +45,6 @@ private:
     wolf::GameObject* m_pPlayerObject = nullptr;
     LabyrinthManager* m_pLabyrinthManager = nullptr;
     DialogueManager* m_pDialogueManager = nullptr;
-    wolf::GameObject* m_pMinitaurObject = nullptr;
-
 
     // Manager for colliders
     ColliderManager* m_pColliderManager = nullptr;

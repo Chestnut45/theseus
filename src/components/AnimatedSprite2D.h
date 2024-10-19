@@ -46,6 +46,14 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         AnimatedSprite2D(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize, float p_fPlaybackSpeed);
         ~AnimatedSprite2D();
 
+        // Delete copy constructor/assignment
+        AnimatedSprite2D(const AnimatedSprite2D&) = delete;
+        AnimatedSprite2D& operator=(const AnimatedSprite2D&) = delete;
+
+        // Delete move constructor/assignment
+        AnimatedSprite2D(AnimatedSprite2D&& other) = delete;
+        AnimatedSprite2D& operator=(AnimatedSprite2D&& other) = delete;
+
         void Update(float p_fDelta);
 
         bool AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop);
