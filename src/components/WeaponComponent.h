@@ -26,12 +26,14 @@ public:
     void CollectWeapon(WeaponType p_weapon_type);
     void SwitchToNextWeapon();
 
+    float GetWeaponAttackDelay(WeaponType p_weapon_type);
+
 private:
     // Weapon properties
-    float m_fAttackDelays[WeaponType::NONE];
-
     bool m_aAvailableWeapons[WeaponType::NONE];
-    
+
+    static int s_iComponentCount;
+    static float s_aAttackDelays[WeaponType::NONE];
 
     // Projectile/Melee properties
     float m_fAtkDamage = 0.0f;

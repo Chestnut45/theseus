@@ -10,6 +10,9 @@
 #include "PlayerController.h"
 #include "VelocityComponent.h"
 
+int WeaponComponent::s_iComponentCount = 0;
+float WeaponComponent::s_aAttackDelays[WeaponComponent::WeaponType::NONE];
+
 WeaponComponent::WeaponComponent()
 {
     this->m_CurrentWeapon = WeaponComponent::WeaponType::NONE;
@@ -20,6 +23,15 @@ WeaponComponent::WeaponComponent()
     }
 
     this->m_aAvailableWeapons[WeaponComponent::WeaponType::NONE] = 1;
+
+    if(s_iComponentCount == 0)
+    {
+        s_aAttackDelays[WeaponComponent::WeaponType::BOW] = 1.0f;
+        s_aAttackDelays[WeaponComponent::WeaponType::CROSSBOW] = 0.5f;
+        s_aAttackDelays[WeaponComponent::WeaponType::SWORD] = 0.5f;
+        s_aAttackDelays[WeaponComponent::WeaponType::NONE] = 0.5f;
+    }
+    s_iComponentCount++; 
 }
 
 void WeaponComponent::Attack()
@@ -86,4 +98,9 @@ void WeaponComponent::SwitchToNextWeapon()
         }
         
     }
+}
+
+float WeaponComponent::GetWeaponAttackDelay(WeaponType p_weapon_type)
+{
+    return s_aAttackDelays[p_weapon_type];
 }
