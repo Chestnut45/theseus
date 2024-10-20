@@ -233,34 +233,27 @@ void PlayState::CreatePlayer()
     armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
 }
 
-void PlayState::CreateMinitaurEnemy()
-{
-    // Instantiate the EnemyDataLoader and load enemy data from the YAML file
+void PlayState::CreateMinitaurEnemy() {
+    // Instantiate the EnemyDataLoader and load the Minitaur enemy
     EnemyDataLoader loader;
-    std::vector<EnemyData> enemyDataList = loader.LoadAllEnemyData("data/enemies.yaml");
+    loader.LoadAllEnemyData("data/enemies.yaml");
 
-    // Assuming we want to create Minitaur, and we know Minitaur is the first entry in the list
-    for (const auto& enemyData : enemyDataList)
-    {
-        if (enemyData.type == "minitaur")  // Only process Minitaur enemy type
-        {
-            // Use MinitaurBuilder to create the Minitaur
-            MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
+    // Now we can load a specific enemy
+    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
 
-            // Set the desired position, for example, 300, 200
-            glm::vec2 minitaurPosition = glm::vec2(300.0f, 200.0f);
+    // Create the Minitaur using MinitaurBuilder and set its position
+    MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
 
-            // Call BuildMinitaur with the position
-            wolf::GameObject& minitaurObject = minitaurBuilder.BuildMinitaur(enemyData, minitaurPosition, m_pColliderManager);
+    // Example position
+    glm::vec2 minitaurPosition(300.0f, 200.0f);
 
-            // Set the transform scale to 3 (using the Labyrinth's default scale)
-            auto* transform = minitaurObject.GetComponent<wolf::Transform2D>();
-            if (transform)
-            {
-                transform->SetScale(glm::vec2(3.0f));  // Set the scale to 3
-            }
-            break;  // Exit loop after creating the Minitaur
-        }
+    // Build Minitaur at the given position
+    wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, minitaurPosition, m_pColliderManager);
+
+    // Ensure the Minitaur is scaled to 3
+    auto* transform = minitaur.GetComponent<wolf::Transform2D>();
+    if (transform) {
+        transform->SetScale(glm::vec2(3.0f));  // Set scale explicitly to 3
     }
 }
 

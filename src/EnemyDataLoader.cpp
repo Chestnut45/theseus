@@ -1,10 +1,9 @@
 #include "EnemyDataLoader.h"
 
-std::vector<EnemyData> EnemyDataLoader::LoadAllEnemyData(const std::string& filepath) {
+void EnemyDataLoader::LoadAllEnemyData(const std::string& filepath) {
     YAML::Node node = YAML::LoadFile(filepath);
     YAML::Node enemiesNode = node["enemies"];
 
-    std::vector<EnemyData> enemies;
     for (std::size_t i = 0; i < enemiesNode.size(); ++i) {
         YAML::Node enemyNode = enemiesNode[i];
 
@@ -12,7 +11,6 @@ std::vector<EnemyData> EnemyDataLoader::LoadAllEnemyData(const std::string& file
         data.type = enemyNode["type"].as<std::string>();
         data.health = enemyNode["health"].as<int>();
         data.armour = enemyNode["armour"].as<int>();
-        // No position and scale fields anymore
         data.meleeRange = enemyNode["melee_range"].as<float>();
         data.attackCooldown = enemyNode["attack_cooldown"].as<float>();
         data.detectionRange = enemyNode["detection_range"].as<float>();
@@ -20,7 +18,19 @@ std::vector<EnemyData> EnemyDataLoader::LoadAllEnemyData(const std::string& file
         data.chaseSpeed = enemyNode["chase_speed"].as<float>();
         data.animationSheet = enemyNode["animation_sheet"].as<std::string>();
 
-        enemies.push_back(data);
+        // Store the data in the map with the type as the key
+        m_enemyCache[data.type] = data;
     }
-    return enemies;
+}
+
+EnemyData EnemyDataLoader::LoadEnemyData(const std::string& type) {
+    if (m_enemyCache.find(type) != m_enemyCache.end()) {
+        return m_enemyCache[type];
+    }
+
+    // Log an error message using wolf's error logging system and return a default EnemyData
+    wolf::Error("EnemyDataLoader: Enemy type '", type.c_str(), "' not found.");
+    
+    // Return a default/empty EnemyData object to avoid runtime crashes
+    return EnemyData();
 }

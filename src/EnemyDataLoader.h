@@ -2,6 +2,7 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <yaml-cpp/yaml.h>
+#include "W_Logging.h"
 
 struct EnemyData 
 {
@@ -20,5 +21,8 @@ struct EnemyData
 class EnemyDataLoader {
 
 public:
-    std::vector<EnemyData> LoadAllEnemyData(const std::string& filepath);
+    void LoadAllEnemyData(const std::string& filepath);
+    EnemyData LoadEnemyData(const std::string& type);
+private:
+    std::unordered_map<std::string, EnemyData> m_enemyCache;
 };
