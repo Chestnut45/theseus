@@ -1,4 +1,4 @@
-random_seed: true
+random_seed: false
 seed: 4545
 width: 125
 height: 125

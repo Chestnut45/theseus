@@ -56,6 +56,10 @@ void LabyrinthManager::GenerateLabyrinth()
     m_width = m_width % 2 == 0 ? m_width - 1 : m_width;
     m_height = m_height % 2 == 0 ? m_height - 1 : m_height;
 
+    // Ensure spawn room size is odd
+    m_spawnRoomSize.x = m_spawnRoomSize.x % 2 == 0 ? m_spawnRoomSize.x - 1 : m_spawnRoomSize.x;
+    m_spawnRoomSize.y = m_spawnRoomSize.y % 2 == 0 ? m_spawnRoomSize.y - 1 : m_spawnRoomSize.y;
+
     // Initialize scale of all labyrinth objects
     auto* pTransform = pObject->GetComponent<wolf::Transform2D>();
     if (!pTransform) pTransform = &pObject->AddComponent<wolf::Transform2D>();
@@ -88,17 +92,15 @@ void LabyrinthManager::GenerateLabyrinth()
     // Carve maze into the logical tilemap
     CarveMaze();
 
-    // Generate entrance room
-
-    // Open up the labyrinth entrance tile (guaranteed to connect to a path or room)
+    // Open up the labyrinth entrance tiles
     m_labyrinthGrid.Set(m_width / 2, 0, LogicalTile::Floor);
     m_labyrinthGrid.Set(m_width / 2, 1, LogicalTile::Floor);
 
-    auto& spawnRoomObj = pObject->GetScene().CreateObject2D();
-
-
     // Convert the logical tilemap into chunks and objects
     GenerateChunks();
+
+    // Generate entrance room
+    GenerateEntrance();
 
     // Update flag
     m_isGenerated = true;
@@ -583,7 +585,7 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
 glm::vec2 LabyrinthManager::GetSpawnLocation() const
 {
     if (!m_isGenerated) return glm::vec2(0.0f);
-    return glm::vec2((float)m_width / 2 * LABYRINTH_TILE_SIZE * SCALE, 0);
+    return glm::vec2((float)m_width / 2 * LABYRINTH_TILE_SIZE * SCALE, -(float)m_spawnRoomSize.y / 2 * LABYRINTH_TILE_SIZE * SCALE);
 }
 
 void LabyrinthManager::Reset()
@@ -857,7 +859,9 @@ void LabyrinthManager::CarveMaze()
         }
     }
 
-    // Do one last pass to ensure no diagonal gaps are left
+    // Cleanup passes
+
+    // Diagonal gap fixing pass
     for (int y = 1; y < m_height - 1; ++y)
     {
         for (int x = 1; x < m_width - 1; ++x)
@@ -906,6 +910,12 @@ void LabyrinthManager::GenerateChunks()
 
     // Grab a scene reference
     auto& scene = pObject->GetScene();
+
+    // Static tile type arrays
+    static int nonGoldFloors[] = {Tile::FloorSmallSquares, Tile::FloorSquare, Tile::FloorSpiral};
+    static int goldFloors[] = {Tile::FloorSquareGold, Tile::FloorSpiralGold};
+    static int walls[] = {Tile::WallBottom, Tile::WallBottomLeft, Tile::WallBottomRight, Tile::WallLeft, Tile::WallRight, Tile::WallTop, Tile::WallTopRight, Tile::WallTopLeft};
+    static int specialWalls[] = {Tile::WallChest, Tile::WallHelmet, Tile::WallMaze, Tile::WallMinotaur, Tile::WallPillars, Tile::WallPot};
 
     // Calculate number of chunks per axis
     const int numChunksX = m_width / CHUNK_SIZE + 1;
@@ -965,8 +975,8 @@ void LabyrinthManager::GenerateChunks()
                         
                         case LogicalTile::Floor:
                             
-                            // TODO: Choose a random non-gold floor tile
-                            tile = m_rng.NextInt(Tile::FloorSmallSquares, Tile::FloorSquare);
+                            // Choose a random non-gold floor tile
+                            tile = nonGoldFloors[m_rng.NextInt(0, sizeof(nonGoldFloors) / sizeof(int) - 1)];
                             break;
                         
                         case LogicalTile::Grass:
@@ -976,7 +986,7 @@ void LabyrinthManager::GenerateChunks()
                         case LogicalTile::Wall:
 
                             // TODO: Determine correct wall type based on surrounding tiles
-                            tile = m_rng.NextInt(Tile::WallBottomLeft, Tile::WallTop);
+                            tile = walls[m_rng.NextInt(0, sizeof(walls) / sizeof(int) - 1)];
 
                             // TODO: Add wall tile to wall collider for this chunk?
                             break;
@@ -985,6 +995,43 @@ void LabyrinthManager::GenerateChunks()
                     tilemap.SetTile(x, y, tile);
                 }
             }
+        }
+    }
+}
+
+void LabyrinthManager::GenerateEntrance()
+{
+    auto* pObject = GetGameObject();
+
+    auto& spawnRoomObj = pObject->GetScene().CreateObject2D();
+    pObject->AddChild(spawnRoomObj);
+
+    // Create the initial tilemap
+    auto& tilemap = spawnRoomObj.AddComponent<wolf::TileMap>(m_spawnPatchSize.x, m_spawnPatchSize.y);
+    tilemap.LoadTileSet("data/labyrinth.tileset");
+    tilemap.Clear(Tile::Grass);
+
+    // Position the object
+    auto& transform = *spawnRoomObj.GetComponent<wolf::Transform2D>();
+    transform.SetPosition(glm::vec2(m_width / 2 * LABYRINTH_TILE_SIZE - (m_spawnPatchSize.x / 2 * LABYRINTH_TILE_SIZE), -m_spawnPatchSize.y * LABYRINTH_TILE_SIZE));
+
+    // Place walls
+    for (int y = m_spawnPatchSize.y - 1; y >= m_spawnPatchSize.y - m_spawnRoomSize.y; --y)
+    {
+        tilemap.SetTile(m_spawnPatchSize.x / 2 - (m_spawnRoomSize.x / 2) - 1, y, Tile::WallPillars);
+        tilemap.SetTile(m_spawnPatchSize.x / 2 + (m_spawnRoomSize.x / 2) + 1, y, Tile::WallPillars);
+    }
+    for (int x = m_spawnPatchSize.x / 2 - (m_spawnRoomSize.x / 2) - 1; x <= m_spawnPatchSize.x / 2 + (m_spawnRoomSize.x / 2) + 1; ++x)
+    {
+        tilemap.SetTile(x, m_spawnPatchSize.y - m_spawnRoomSize.y - 1, Tile::WallPillars);
+    }
+
+    // Place floors
+    for (int y = m_spawnPatchSize.y - 1; y >= m_spawnPatchSize.y - m_spawnRoomSize.y; --y)
+    {
+        for (int x = m_spawnPatchSize.x / 2 - (m_spawnRoomSize.x / 2); x <= m_spawnPatchSize.x / 2 + (m_spawnRoomSize.x / 2); ++x)
+        {
+            tilemap.SetTile(x, y, Tile::FloorSpiral);
         }
     }
 }

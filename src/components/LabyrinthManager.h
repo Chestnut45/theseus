@@ -94,6 +94,10 @@ private:
     int m_width = 125;
     int m_height = 125;
 
+    // Spawn area settings
+    glm::ivec2 m_spawnPatchSize = glm::ivec2(25);
+    glm::ivec2 m_spawnRoomSize = glm::ivec2(5);
+
     // Flags
     bool m_randomizeSeed = false;
     bool m_isGenerated = false;
@@ -206,4 +210,7 @@ private:
 
     // Generates all chunk objects into the scene for the current maze
     void GenerateChunks();
+
+    // Generates the entrance room to the maze
+    void GenerateEntrance();
 };
