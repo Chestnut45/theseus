@@ -6,17 +6,17 @@
 
 struct EnemyData 
 {
-    std::string type;
-    int health;
-    int armour;
-    glm::vec2 position;
-    float scale;
-    float meleeRange;
-    float attackCooldown;
-    float detectionRange;
-    float baseDamage;
-    float chaseSpeed;
-    std::string animationSheet;
+    std::string type = "";
+    int health = 0;
+    int armour = 0;
+    glm::vec2 position{0.0f};
+    float scale = 1.0f;
+    float meleeRange = 1.0f;
+    float attackCooldown = 1.0f;
+    float detectionRange = 1.0f;
+    float baseDamage = 0.0f;
+    float chaseSpeed = 1.0f;
+    std::string animationInitFile = "";
 };
 class EnemyDataLoader {
 

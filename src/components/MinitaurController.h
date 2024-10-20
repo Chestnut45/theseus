@@ -18,7 +18,7 @@ public:
 
 private:
     // Minitaur-specific methods
-    void SetUpAnimations();          
+    void SetUpAnimations(const std::string& animationInitPath);          
     void UpdateAnimationBasedOnDirection();
     void MoveTowardsTarget(float delta);
     void HandleIdleState();

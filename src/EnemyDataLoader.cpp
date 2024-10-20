@@ -1,25 +1,33 @@
 #include "EnemyDataLoader.h"
 
 void EnemyDataLoader::LoadAllEnemyData(const std::string& filepath) {
-    YAML::Node node = YAML::LoadFile(filepath);
-    YAML::Node enemiesNode = node["enemies"];
 
-    for (std::size_t i = 0; i < enemiesNode.size(); ++i) {
-        YAML::Node enemyNode = enemiesNode[i];
+    try
+    {
+        YAML::Node node = YAML::LoadFile(filepath);
+        YAML::Node enemiesNode = node["enemies"];
 
-        EnemyData data;
-        data.type = enemyNode["type"].as<std::string>();
-        data.health = enemyNode["health"].as<int>();
-        data.armour = enemyNode["armour"].as<int>();
-        data.meleeRange = enemyNode["melee_range"].as<float>();
-        data.attackCooldown = enemyNode["attack_cooldown"].as<float>();
-        data.detectionRange = enemyNode["detection_range"].as<float>();
-        data.baseDamage = enemyNode["base_damage"].as<float>();
-        data.chaseSpeed = enemyNode["chase_speed"].as<float>();
-        data.animationSheet = enemyNode["animation_sheet"].as<std::string>();
+        for (std::size_t i = 0; i < enemiesNode.size(); ++i) {
+            YAML::Node enemyNode = enemiesNode[i];
 
-        // Store the data in the map with the type as the key
-        m_enemyCache[data.type] = data;
+            EnemyData data;
+            data.type = enemyNode["type"].as<std::string>();
+            data.health = enemyNode["health"].as<int>();
+            data.armour = enemyNode["armour"].as<int>();
+            data.meleeRange = enemyNode["melee_range"].as<float>();
+            data.attackCooldown = enemyNode["attack_cooldown"].as<float>();
+            data.detectionRange = enemyNode["detection_range"].as<float>();
+            data.baseDamage = enemyNode["base_damage"].as<float>();
+            data.chaseSpeed = enemyNode["chase_speed"].as<float>();
+            data.animationInitFile = enemyNode["animation_init_file"].as<std::string>();
+
+            // Store the data in the map with the type as the key
+            m_enemyCache[data.type] = data;
+        }
+    }
+    catch (YAML::Exception& e)
+    {
+        wolf::Error("Error parsing file '", filepath.c_str(), "': ", e.what());
     }
 }
 

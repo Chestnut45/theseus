@@ -7,4 +7,4 @@ enemies:
     detection_range: 300.0
     base_damage: 15.0
     chase_speed: 100.0
-    animation_sheet: "data/textures/Minitaur-Sheet.png"
+    animation_init_file: "data/minitaur_anim_init.yaml"

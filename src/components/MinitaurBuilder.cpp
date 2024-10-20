@@ -22,10 +22,6 @@ wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, const gl
     // Add ArmourComponent
     auto& armourComponent = minitaurObject->AddComponent<ArmourComponent>();
     armourComponent.CollectArmour(data.armour);
-    
-    // add AnimatedSprite2D Component
-    auto& animComponent = minitaurObject->AddComponent<AnimatedSprite2D>("data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-
 
     // Add MinitaurController and initialize it with data
     auto& controller = minitaurObject->AddComponent<MinitaurController>();

@@ -15,6 +15,13 @@ MinitaurController::~MinitaurController()
 
 void MinitaurController::Init(const EnemyData& data)
 {
+    auto* pGameObject = GetGameObject();
+    if (!pGameObject)
+    {
+        wolf::Error("LateInitialize failed: MinitaurController not attached to GameObject!");
+        return;
+    }
+
     EnemyController::Init();  // Call the base enemy initialization
     m_meleeRange = data.meleeRange;
     m_attackCooldown = data.attackCooldown;
@@ -24,10 +31,9 @@ void MinitaurController::Init(const EnemyData& data)
 
     // Get required components
     m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
-    m_pAnimComponent = GetGameObject()->GetComponent<AnimatedSprite2D>();  
 
-    // Set up Minitaur-specific animations with the animation sheet from data (Later on)
-    SetUpAnimations();
+    // Set up Minitaur-specific animations
+    SetUpAnimations(data.animationInitFile);
 
     // Find and set the player as the target
     for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
@@ -66,19 +72,19 @@ void MinitaurController::Update(float delta)
     UpdateAnimationBasedOnDirection();
 }
 
-void MinitaurController::SetUpAnimations()
+void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
 {
-    if (!m_pAnimComponent) return;
+    auto* pGameObject = GetGameObject();
+    
+    // Check if the AnimatedSprite2D component exists
+    if (pGameObject->HasAll<AnimatedSprite2D>())
+    {
+        pGameObject->DeleteComponent<AnimatedSprite2D>();  // Use DeleteComponent to remove the existing component
+        wolf::Warning("Removed existing anim component from minitaur...");
+    }
 
-    // Set up Minitaur animations (will update using the data driven approach by Aurora ~ youssef)
-    m_pAnimComponent->AddAnimation("StandWest", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 1, 1, false);
-    m_pAnimComponent->AddAnimation("StandSouth", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 2, 2, false);
-    m_pAnimComponent->AddAnimation("StandEast", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 3, 3, false);
-    m_pAnimComponent->AddAnimation("StandNorth", "data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 4, 4, false);
-
-    // Set the default animation to face south
-    m_pAnimComponent->SetAnimation("StandSouth");
-    m_pAnimComponent->SetOriginToCenterOfFrame();
+    // Initialize the AnimatedSprite2D component
+    m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
 }
 
 void MinitaurController::MoveTowardsTarget(float delta)
