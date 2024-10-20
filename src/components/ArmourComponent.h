@@ -12,12 +12,25 @@
 class ArmourComponent: public wolf::BaseComponent
 {
 public:
-    ArmourComponent() = default;
-    ArmourComponent(int p_multiplier);
+    enum SpecialProperty
+    {
+        CONTACTDAMAGE,
+        FIRERESISTANCE,
+        HEALING,
+        NONE
+    };
+
+    ArmourComponent();
+    ~ArmourComponent();
+
+    void CollectArmour(int p_multiplier, std::initializer_list<std::pair<SpecialProperty, float>> p_special_properties_info = {{SpecialProperty::NONE, 0}});
+    bool IsSpecialPropertyPresent(SpecialProperty p_special_property) const;
+    float GetSpecialPropertiesValues(SpecialProperty p_special_property) const;
     int GetMultiplier() const;
-    void SetMultiplier(int p_multiplier);
 
 private:
-    int m_multiplier = 0; // Default multiplier
+    int m_iMultiplier = 0; // Default multiplier
+    bool m_aSpecialProperties[SpecialProperty::NONE]; // Flags for special properties of current armour
+    float m_aSpecialPropertiesValues[SpecialProperty::NONE]; // Values for special properties of current armour (if applicable)
 
 };

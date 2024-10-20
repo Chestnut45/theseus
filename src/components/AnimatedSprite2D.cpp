@@ -163,6 +163,20 @@ bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const
     return true;
 }
 
+void AnimatedSprite2D::SetOriginToCenterOfFrame()
+{
+    // Don't bother if we don't have an animation loaded
+    if (!m_pCurrentAnim)
+    {
+        wolf::Error("No animation loaded, can't center origin of AnimatedSprite2D");
+        return;
+    }
+
+    const glm::vec2& frameSize = m_pCurrentAnim->m_v2FrameSize;
+    m_origin.x = frameSize.x * 0.5f;
+    m_origin.y = frameSize.y * 0.5f;
+}
+
 AnimatedSprite2D::~AnimatedSprite2D() {
     // Update the number of AnimatedSprite2D instances that currently exist
     s_iAnimSprite2DCount -= 1;
@@ -229,6 +243,8 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[m_pCurrentAnim->m_iStartFrame];
         m_bFrameChanged = true;
+        m_bIsAnimFinished = false;
+        m_iAnimLoopCount = 0;
     }
 }
 
@@ -251,6 +267,8 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame + p_iTargetAnimFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[iTargetFrame];
         m_bFrameChanged = true;
+        m_bIsAnimFinished = false;
+        m_iAnimLoopCount = 0;
     }
 }
 
@@ -268,8 +286,10 @@ void AnimatedSprite2D::Update(float p_fDelta) {
             if (m_pCurrentAnim->m_bLoop) {
                 // And if it is, restart the animation
                 m_fCurrentFrame = (float)m_pCurrentAnim->m_iStartFrame;
+                m_iAnimLoopCount++;
             }
             else {
+                m_bIsAnimFinished = true;
                 m_fCurrentFrame = (float)m_pCurrentAnim->m_iEndFrame;
             }
         }
@@ -287,7 +307,7 @@ void AnimatedSprite2D::Update(float p_fDelta) {
     }
 }
 
-void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale) {
+void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint) {
     // If we don't have a texture (or the coordinates that go with one) then we shouldn't be trying to draw anything
     if (!m_pTexture || m_vpFrameUVCoords.empty()) {
         return;
@@ -331,10 +351,10 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
         m_arTempVertexData[15] = m_pCurrentFrameUVs->m_v2BotRight.y; // V
         
         // Once we've got our temporary array set up, we can copy the data to the buffer using glBufferSubData
-        glBufferSubData(GL_ARRAY_BUFFER, 0, 16 * sizeof(GLfloat), this->m_arTempVertexData);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(m_arTempVertexData), m_arTempVertexData);
 
         // Then we reset the flag
-        m_bFrameChanged = false;
+        
     }
 
     // And perform the rest of the draw call
@@ -342,14 +362,18 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
     // Grab the texture size
     const glm::vec2 texSize = glm::vec2(m_pTexture->GetWidth(), m_pTexture->GetHeight());
 
+    // Determine tint to use
+    const glm::vec3& chosenTint = tint == glm::vec3(-1.0f) ? m_tint : tint;
+
     // Build model matrix
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(position, 0.0f));
+    model = glm::translate(model, glm::vec3(position - m_origin * scale, 0.0f));
     model = glm::rotate(model, rotationRadians, glm::vec3(0.0f, 0.0f, 1.0f));
     model = glm::scale(model, glm::vec3(scale * m_v2FrameSize, 1.0f));
 
     // Set model uniform
     s_pProgram->SetUniform("model", model);
+    s_pProgram->SetUniform("tint", chosenTint);
 
     // Bind shader and texture
     s_pProgram->Bind();

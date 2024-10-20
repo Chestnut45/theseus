@@ -7,8 +7,7 @@
 // Component includes
 #include <components/ArmourComponent.h>
 #include <components/HealthComponent.h>
-#include <components/HitboxComponent.h>
-#include <components/HurtboxComponent.h>
+#include <components/ColliderComponent.h>
 #include <components/LabyrinthManager.h>
 #include <components/PlayerController.h>
 #include <components/VelocityComponent.h>

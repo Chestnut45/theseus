@@ -1,0 +1,27 @@
+dialogue:
+  - id: "intro_1"
+    event: "player_meets_npc"
+    characters:
+      - name: "Theseus"
+        portrait: "theseus_happy.png"
+        expression: "neutral"
+      - name: "Minotaur"
+        portrait: "minotaur_angry.png"
+        expression: "angry"
+    lines:
+      - character: "Theseus"
+        text: "I finally found you, Minotaur!"
+        duration: 2.0
+      - character: "Minotaur"
+        text: "You won't leave this labyrinth alive!"
+        duration: 3.0
+  - id: "victory"
+    event: "minotaur_defeated"
+    characters:
+      - name: "Theseus"
+        portrait: "theseus_victorious.png"
+        expression: "smile"
+    lines:
+      - character: "Theseus"
+        text: "It's over, Minotaur. The Labyrinth is free!"
+        duration: 4.0

@@ -11,10 +11,8 @@
 namespace wolf
 {
 
-TileMap::TileMap(int mapWidth, int mapHeight)
-    :   m_width(mapWidth),
-        m_height(mapHeight),
-        m_tileData(mapWidth * mapHeight, EMPTY_TILE)
+TileMap::TileMap(int width, int height)
+    : m_tileGrid(width, height, EMPTY_TILE)
 {
     if (s_refCount == 0)
     {
@@ -236,37 +234,42 @@ bool TileMap::LoadTileSet(const std::string& filepath)
 
 int TileMap::GetTile(int x, int y) const
 {
-    // Calculate index and return empty if out of bounds
-    int index = y * m_width + x;
-    if (index < 0 || index >= m_tileData.size()) return EMPTY_TILE;
+    if (x < 0 || x >= m_tileGrid.GetWidth() ||
+        y < 0 || y >= m_tileGrid.GetHeight())
+    {
+        wolf::Error("Out of bounds call to TileMap::GetTile()");
+        return EMPTY_TILE;
+    }
 
     // Return actual tile value if in bounds
-    return m_tileData[index];
+    return m_tileGrid.Get(x, y);
 }
 
 void TileMap::SetTile(int x, int y, int tileID)
 {
-    // Calculate index and do nothing if out of bounds
-    int index = y * m_width + x;
-    if (index < 0 || index >= m_tileData.size()) return;
+    if (x < 0 || x >= m_tileGrid.GetWidth() ||
+        y < 0 || y >= m_tileGrid.GetHeight())
+    {
+        wolf::Error("Out of bounds call to TileMap::SetTile()");
+        return;
+    }
 
-    // Update tile id and set update flag
-    m_tileData[index] = tileID;
-    m_VBODirty = true;
+    m_tileGrid.Set(x, y, tileID);
 }
 
 void TileMap::Clear()
 {
     // Set every tile to -1
-    std::fill(m_tileData.begin(), m_tileData.end(), EMPTY_TILE);
+    m_tileGrid.Clear(EMPTY_TILE);
+
+    // Update flag
     m_VBODirty = true;
 }
 
 void TileMap::Resize(int width, int height)
 {
-    // Resize the internal flattened tile ID array and clear
-    m_tileData.resize(width * height);
-    Clear();
+    // Resize the internal tile grid
+    m_tileGrid.Resize(width, height, EMPTY_TILE);
 
     // Regenerate VAO and VBO
     _GenerateVAO();
@@ -308,19 +311,22 @@ void TileMap::_UpdateVBO()
     std::vector<float> data;
 
     // Iterate through all tiles in the map
-    int n = m_tileData.size();
+    const auto& flat = m_tileGrid.Data();
+    const int width = m_tileGrid.GetWidth();
+    const int height = m_tileGrid.GetHeight();
+    int n = flat.size();
     int toDraw = 0;
     for (int i = 0; i < n; ++i)
     {
-        int tile = m_tileData[i];
+        int tile = flat[i];
         if (tile != EMPTY_TILE)
         {
             // Add the tile's data to the local buffer
 
             // NOTE: This could be optimized by caching a LUT containing
             // the positions for each tile index in the flattened array.
-            data.push_back(i % m_width); // X coordinate
-            data.push_back(i / m_width); // Y coordinate
+            data.push_back(i % width); // X coordinate
+            data.push_back(i / height); // Y coordinate
             data.push_back(tile); // Index into the tile set
 
             // Increase counter
@@ -365,7 +371,7 @@ void TileMap::_GenerateVAO()
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
 
     // Create storage for tile VBO
-    glBufferData(GL_ARRAY_BUFFER, m_tileData.size() * sizeof(float) * 3, nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, m_tileGrid.Data().size() * sizeof(float) * 3, nullptr, GL_STATIC_DRAW);
 
     // Add instanced tile vertex attribute
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, nullptr);

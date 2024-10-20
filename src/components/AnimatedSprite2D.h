@@ -46,6 +46,14 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         AnimatedSprite2D(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize, float p_fPlaybackSpeed);
         ~AnimatedSprite2D();
 
+        // Delete copy constructor/assignment
+        AnimatedSprite2D(const AnimatedSprite2D&) = delete;
+        AnimatedSprite2D& operator=(const AnimatedSprite2D&) = delete;
+
+        // Delete move constructor/assignment
+        AnimatedSprite2D(AnimatedSprite2D&& other) = delete;
+        AnimatedSprite2D& operator=(AnimatedSprite2D&& other) = delete;
+
         void Update(float p_fDelta);
 
         bool AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop);
@@ -58,17 +66,43 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         void SetPlaybackSpeed(float p_fSpeed) {m_fPlaybackSpeed = p_fSpeed;};
         float GetPlaybackSpeed() const {return m_fPlaybackSpeed;};
 
-        bool SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize);
         wolf::Texture* GetTexture() const {return m_pTexture;};
+
+        // Set or get the origin to render the animated sprite from
+        // Measured in pixel coordinates from the bottom-left of the frame
+        inline void SetOrigin(const glm::vec2& p_v2Origin) { m_origin = p_v2Origin; };
+        inline const glm::vec2& GetOrigin() const { return m_origin; }
+
+        // Helper to center an animated sprite with respect to
+        // the current animation's frame size.
+        void SetOriginToCenterOfFrame();
+
+        // Set the tint of the animated sprite with a floating point [0, 1] RGB color
+        void SetTint(const glm::vec3& tint) { m_tint = tint; }
+        const glm::vec3& GetTint() const { return m_tint; }
 
         // You CANNOT change the frame size or texture path without using SetTexture as
         // doing so would SERIOUSLY mess up the UV coordinates
         const glm::vec2& GetFrameSize() const {return m_v2FrameSize;};
         const std::string& GetCurrentTexturePath() const {return m_strCurrentTexturePath;};
 
-        void Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale);
+        bool IsAnimationFinished() const {return m_bIsAnimFinished;};
+        
+        int GetAnimationLoopCount() const {return m_iAnimLoopCount;};
+
+        // Keep in mind that while this method will return an integer, the internal representation is a float.
+        // It is generally unadvised to do things based on specific frames of an animation -- consider
+        // using multiple animations, instead and checking they have finished.
+        int GetCurrentFrame() const {return (int) m_fCurrentFrame;};
+
+        // Draw the sprite at the given position, rotation, and scale in world space
+        // Multiplies final pixel color by provided tint color
+        // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
+        void Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint = glm::vec3(-1.0f));
 
     private:
+        bool SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize);
+
         // Map of animations
         std::map<std::string, SpriteAnimation2D*> m_mAnimationMap; // Name = Key, Animation Details = Value
 
@@ -80,6 +114,13 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         wolf::Texture* m_pTexture = nullptr; // The texture we're currently using
         std::string m_strCurrentTexturePath;
 
+        // Origin to draw the animated sprite at, in pixel coordinates
+        // measured from the bottom-left of the frame
+        glm::vec2 m_origin{0.0f};
+
+        // Tint color of the animated sprite
+        glm::vec3 m_tint{1.0f};
+
         float m_fPlaybackSpeed; // How fast is the animation playing?
         float m_fCurrentFrame; // Which animation frame are we currently on?
         float m_fLastFrame = 0.0f; // Which animation frame were we on last Update
@@ -87,6 +128,9 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         // We want to limit the amount of changes we make to the Vertex Buffer contents so we use
         // a dirty flag to keep track of when the UV coordinates have changed
         bool m_bFrameChanged = true;
+        bool m_bIsAnimFinished = false;
+
+        int m_iAnimLoopCount = 0;
 
         glm::vec2 m_v2FrameSize; // This vector represents the size of a single animation frame in a spritesheet
 

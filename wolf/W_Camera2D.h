@@ -44,6 +44,10 @@ public:
     // Updates the UBO if necessary
     void Bind(int index = 0);
 
+    // Constants
+    static const inline float MAX_ZOOM = 8.0f;
+    static const inline float MIN_ZOOM = 0.0001f;
+
 private:
 
     // Internal functions
