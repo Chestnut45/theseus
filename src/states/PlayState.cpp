@@ -235,7 +235,7 @@ void PlayState::CreatePlayer()
 
 void PlayState::CreateMinitaurEnemy()
 {
-    // Instantiate the MinitaurBuilder with the current scene
+    // Instantiate the EnemyDataLoader and load enemy data from the YAML file
     EnemyDataLoader loader;
     std::vector<EnemyData> enemyDataList = loader.LoadAllEnemyData("data/enemies.yaml");
 
@@ -246,7 +246,19 @@ void PlayState::CreateMinitaurEnemy()
         {
             // Use MinitaurBuilder to create the Minitaur
             MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
-            minitaurBuilder.BuildMinitaur(enemyData, m_pColliderManager);
+
+            // Set the desired position, for example, 300, 200
+            glm::vec2 minitaurPosition = glm::vec2(300.0f, 200.0f);
+
+            // Call BuildMinitaur with the position
+            wolf::GameObject& minitaurObject = minitaurBuilder.BuildMinitaur(enemyData, minitaurPosition, m_pColliderManager);
+
+            // Set the transform scale to 3 (using the Labyrinth's default scale)
+            auto* transform = minitaurObject.GetComponent<wolf::Transform2D>();
+            if (transform)
+            {
+                transform->SetScale(glm::vec2(3.0f));  // Set the scale to 3
+            }
             break;  // Exit loop after creating the Minitaur
         }
     }

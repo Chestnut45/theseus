@@ -2,8 +2,6 @@ enemies:
   - type: minitaur
     health: 150
     armour: 3
-    position: { x: 800, y: 500 }
-    scale: 3.0
     melee_range: 50.0
     attack_cooldown: 1.0
     detection_range: 300.0

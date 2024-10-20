@@ -12,8 +12,7 @@ std::vector<EnemyData> EnemyDataLoader::LoadAllEnemyData(const std::string& file
         data.type = enemyNode["type"].as<std::string>();
         data.health = enemyNode["health"].as<int>();
         data.armour = enemyNode["armour"].as<int>();
-        data.position = glm::vec2(enemyNode["position"]["x"].as<float>(), enemyNode["position"]["y"].as<float>());
-        data.scale = enemyNode["scale"].as<float>();
+        // No position and scale fields anymore
         data.meleeRange = enemyNode["melee_range"].as<float>();
         data.attackCooldown = enemyNode["attack_cooldown"].as<float>();
         data.detectionRange = enemyNode["detection_range"].as<float>();

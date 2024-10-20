@@ -3,14 +3,15 @@
 #include <cassert>
 
 // Build the Minitaur GameObject and initialize its components
-wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, ColliderManager* pColliderManager) {
+wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, const glm::vec2& position, ColliderManager* pColliderManager) {
     // Create the Minitaur GameObject
     wolf::GameObject* minitaurObject = &m_scene.CreateObject2D();
 
-    // Set initial position and scale from data
+    // Set the position from the constructor parameter
     auto* transform = minitaurObject->GetComponent<wolf::Transform2D>();
-    transform->SetPosition(data.position);
-    transform->SetScale(glm::vec2(data.scale));
+    transform->SetPosition(position);
+
+    // The scale will be inherited from the Labyrinth, so no need to set it here
 
     // Add components using the data
     minitaurObject->AddComponent<HealthComponent>(data.health);
@@ -21,6 +22,8 @@ wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, Collider
     // Add ArmourComponent
     auto& armourComponent = minitaurObject->AddComponent<ArmourComponent>();
     armourComponent.CollectArmour(data.armour);
+    
+    // add AnimatedSprite2D Component
     auto& animComponent = minitaurObject->AddComponent<AnimatedSprite2D>("data/textures/Minitaur-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
 
 
