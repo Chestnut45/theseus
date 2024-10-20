@@ -238,13 +238,28 @@ void PlayState::CreatePlayer()
     armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
 }
 
-void PlayState::CreateMinitaurEnemy()
-{
-    // Instantiate the MinitaurBuilder with the current scene
+void PlayState::CreateMinitaurEnemy() {
+    // Instantiate the EnemyDataLoader and load the Minitaur enemy
+    EnemyDataLoader loader;
+    loader.LoadAllEnemyData("data/enemies.yaml");
+
+    // Now we can load a specific enemy
+    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
+
+    // Create the Minitaur using MinitaurBuilder and set its position
     MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
 
-    // Build the Minitaur
-    minitaurBuilder.BuildMinitaur(m_pColliderManager);
+    // Example position
+    glm::vec2 minitaurPosition(300.0f, 200.0f);
+
+    // Build Minitaur at the given position
+    wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, minitaurPosition, m_pColliderManager);
+
+    // Ensure the Minitaur is scaled to 3
+    auto* transform = minitaur.GetComponent<wolf::Transform2D>();
+    if (transform) {
+        transform->SetScale(glm::vec2(3.0f));  // Set scale explicitly to 3
+    }
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)

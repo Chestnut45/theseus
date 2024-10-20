@@ -43,7 +43,13 @@ struct FrameUVCoordSet {
 
 class AnimatedSprite2D : public wolf::BaseComponent {
     public:
+        
+        // Creates an animated sprite component from a yaml config file (new API)
+        AnimatedSprite2D(const std::string& p_strPathToInit);
+
+        // Creates an animated sprite component manually (old API)
         AnimatedSprite2D(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize, float p_fPlaybackSpeed);
+
         ~AnimatedSprite2D();
 
         // Delete copy constructor/assignment
@@ -57,6 +63,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         void Update(float p_fDelta);
 
         bool AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop);
+        bool AddAnimationSet(const std::string& p_strPathToSetFile);
         bool RemoveAnimation(const std::string& p_strName);
 
         void SetAnimation(const std::string& p_strName);
@@ -146,4 +153,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         static inline wolf::VertexBuffer* s_pVertexBuffer = nullptr;
         static inline wolf::IndexBuffer* s_pIndexBuffer = nullptr;
         static inline wolf::VertexDeclaration* s_pVAO = nullptr;
+
+        // Reference counting helper
+        static void IncreaseReferences();
 };

@@ -38,6 +38,14 @@ void PlayerController::LateInitialize()
         return;
     }
 
+    InitializeAnimations();
+}
+
+// Add and initialize animations for the player character
+void PlayerController::InitializeAnimations()
+{
+    auto* pGameObject = GetGameObject();
+    
     // Check if the AnimatedSprite2D component exists
     if (pGameObject->HasAll<AnimatedSprite2D>())
     {
@@ -46,47 +54,7 @@ void PlayerController::LateInitialize()
     }
 
     // Initialize the AnimatedSprite2D component
-    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-    // Initialize animations
-    InitializeAnimations();
-
-    // Check if essential components are initialized properly
-}
-
-// Add and initialize animations for the player character
-void PlayerController::InitializeAnimations()
-{
-    if (!m_pAnimComponent) return;
-
-    // Define all player animations with their corresponding texture paths and frame indices.
-    std::vector<std::tuple<std::string, std::string, int, int, bool>> animations = {
-        // Movement animations (looping)
-        {"WalkSouth", "data/textures/TheseusWalk-Sheet.png", 1, 8, true},
-        {"WalkEast", "data/textures/TheseusWalk-Sheet.png", 9, 16, true},
-        {"WalkNorth", "data/textures/TheseusWalk-Sheet.png", 17, 24, true},
-        {"WalkWest", "data/textures/TheseusWalk-Sheet.png", 25, 32, true},
-
-        // Idle animations (not looping)
-        {"StandSouth", "data/textures/TheseusStand-Sheet.png", 1, 1, false},
-        {"StandEast", "data/textures/TheseusStand-Sheet.png", 2, 2, false},
-        {"StandNorth", "data/textures/TheseusStand-Sheet.png", 3, 3, false},
-        {"StandWest", "data/textures/TheseusStand-Sheet.png", 4, 4, false},
-
-        // Attack animations (not looping)
-        {"AttackSouth", "data/textures/TheseusSword-Sheet.png", 1, 7, false},
-        {"AttackEast", "data/textures/TheseusSword-Sheet.png", 8, 14, false},
-        {"AttackNorth", "data/textures/TheseusSword-Sheet.png", 15, 21, false},
-        {"AttackWest", "data/textures/TheseusSword-Sheet.png", 22, 28, false}
-    };
-
-    // Add animations to the component with correct frame ranges and loop settings
-    for (const auto& [name, path, startFrame, endFrame, isLooping] : animations)
-    {
-        m_pAnimComponent->AddAnimation(name, path, glm::vec2(32.0f, 32.0f), startFrame, endFrame, isLooping);
-    }
-
-    m_pAnimComponent->SetAnimation("StandSouth"); // Default animation set to "StandSouth"
-    m_pAnimComponent->SetOriginToCenterOfFrame();
+    m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
 }
 
 // Main update loop for the player controller
@@ -314,15 +282,15 @@ std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection dir
 {
     switch (direction)
     {
-        case PlayerDirection::SOUTH:       return "AttackSouth";
-        case PlayerDirection::EAST:        return "AttackEast";
-        case PlayerDirection::NORTH:       return "AttackNorth";
-        case PlayerDirection::WEST:        return "AttackWest";
-        case PlayerDirection::NORTH_EAST:  return "AttackEast";
-        case PlayerDirection::NORTH_WEST:  return "AttackWest";
-        case PlayerDirection::SOUTH_EAST:  return "AttackEast";
-        case PlayerDirection::SOUTH_WEST:  return "AttackWest";
-        default:                           return "AttackSouth";
+        case PlayerDirection::SOUTH:       return "SwordAttackSouth";
+        case PlayerDirection::EAST:        return "SwordAttackEast";
+        case PlayerDirection::NORTH:       return "SwordAttackNorth";
+        case PlayerDirection::WEST:        return "SwordAttackWest";
+        case PlayerDirection::NORTH_EAST:  return "SwordAttackEast";
+        case PlayerDirection::NORTH_WEST:  return "SwordAttackWest";
+        case PlayerDirection::SOUTH_EAST:  return "SwordAttackEast";
+        case PlayerDirection::SOUTH_WEST:  return "SwordAttackWest";
+        default:                           return "SwordAttackSouth";
     }
 }
 
