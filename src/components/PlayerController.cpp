@@ -38,6 +38,14 @@ void PlayerController::LateInitialize()
         return;
     }
 
+    InitializeAnimations();
+}
+
+// Add and initialize animations for the player character
+void PlayerController::InitializeAnimations()
+{
+    auto* pGameObject = GetGameObject();
+    
     // Check if the AnimatedSprite2D component exists
     if (pGameObject->HasAll<AnimatedSprite2D>())
     {
@@ -46,25 +54,7 @@ void PlayerController::LateInitialize()
     }
 
     // Initialize the AnimatedSprite2D component
-    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-    // Initialize animations
-    InitializeAnimations();
-
-    // Check if essential components are initialized properly
-}
-
-// Add and initialize animations for the player character
-void PlayerController::InitializeAnimations()
-{
-    if (!m_pAnimComponent) return;
-
-    // Add each of the animation sets to the AnimatedSprite2D component
-    m_pAnimComponent->AddAnimationSet("data/player_walk_anim_set.yaml");
-    m_pAnimComponent->AddAnimationSet("data/player_stand_anim_set.yaml");
-    m_pAnimComponent->AddAnimationSet("data/player_sword_anim_set.yaml");
-
-    m_pAnimComponent->SetAnimation("StandSouth"); // Default animation set to "StandSouth"
-    m_pAnimComponent->SetOriginToCenterOfFrame();
+    m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
 }
 
 // Main update loop for the player controller
@@ -292,15 +282,15 @@ std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection dir
 {
     switch (direction)
     {
-        case PlayerDirection::SOUTH:       return "AttackSouth";
-        case PlayerDirection::EAST:        return "AttackEast";
-        case PlayerDirection::NORTH:       return "AttackNorth";
-        case PlayerDirection::WEST:        return "AttackWest";
-        case PlayerDirection::NORTH_EAST:  return "AttackEast";
-        case PlayerDirection::NORTH_WEST:  return "AttackWest";
-        case PlayerDirection::SOUTH_EAST:  return "AttackEast";
-        case PlayerDirection::SOUTH_WEST:  return "AttackWest";
-        default:                           return "AttackSouth";
+        case PlayerDirection::SOUTH:       return "SwordAttackSouth";
+        case PlayerDirection::EAST:        return "SwordAttackEast";
+        case PlayerDirection::NORTH:       return "SwordAttackNorth";
+        case PlayerDirection::WEST:        return "SwordAttackWest";
+        case PlayerDirection::NORTH_EAST:  return "SwordAttackEast";
+        case PlayerDirection::NORTH_WEST:  return "SwordAttackWest";
+        case PlayerDirection::SOUTH_EAST:  return "SwordAttackEast";
+        case PlayerDirection::SOUTH_WEST:  return "SwordAttackWest";
+        default:                           return "SwordAttackSouth";
     }
 }
 
