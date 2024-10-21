@@ -107,9 +107,9 @@ void PlayState::Update(float delta)
     }
 
     // Update all minitaur controllers
-    for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
+    for (auto&& [entity, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
     {
-        controller.Update(delta);
+        minitaurController.Update(delta);
     }
 
     // Update all animated sprites
@@ -233,27 +233,30 @@ void PlayState::CreatePlayer()
     armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
 }
 
-void PlayState::CreateMinitaurEnemy() {
-    // Instantiate the EnemyDataLoader and load the Minitaur enemy
+void PlayState::CreateMinitaurEnemy()
+{
     EnemyDataLoader loader;
     loader.LoadAllEnemyData("data/enemies.yaml");
 
-    // Now we can load a specific enemy
-    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-
-    // Create the Minitaur using MinitaurBuilder and set its position
     MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
 
-    // Example position
-    glm::vec2 minitaurPosition(300.0f, 200.0f);
+    glm::vec2 positions[] = {
+        glm::vec2(300.0f, 200.0f),
+        glm::vec2(400.0f, 200.0f),
+        glm::vec2(500.0f, 200.0f)
+    };
 
-    // Build Minitaur at the given position
-    wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, minitaurPosition, m_pColliderManager);
-
-    // Ensure the Minitaur is scaled to 3
-    auto* transform = minitaur.GetComponent<wolf::Transform2D>();
-    if (transform) {
-        transform->SetScale(glm::vec2(3.0f));  // Set scale explicitly to 3
+    for (const auto& position : positions)
+    {
+        EnemyData minitaurData = loader.LoadEnemyData("minitaur");
+        auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, position, m_pColliderManager);
+        
+        // Set the scale of each Minitaur to 3
+        auto* transform = minitaur.GetComponent<wolf::Transform2D>();
+        if (transform)
+        {
+            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each minitaur
+        }
     }
 }
 

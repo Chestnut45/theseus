@@ -113,9 +113,12 @@ void MinitaurController::MoveTowardsTarget(float delta)
 
 void MinitaurController::HandleIdleState()
 {
-    if (glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition()) < m_detectionRange)
+    const float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
+
+    // If the player comes into detection range, start chasing
+    if (distanceToPlayer <= m_detectionRange)
     {
-        ChangeState(EnemyState::CHASING);  // This should transition the enemy to the CHASING state
+        ChangeState(EnemyState::CHASING);
     }
 }
 
@@ -132,8 +135,7 @@ void MinitaurController::HandleChasingState(float delta)
         m_transitionTimer.Start();
     }
 
-
-
+    // If the player is within melee range, attempt to attack
     if (distanceToPlayer <= m_meleeRange)
     {
         if (m_transitionTimer.Elapsed() >= m_transitionDelay)
@@ -141,6 +143,11 @@ void MinitaurController::HandleChasingState(float delta)
             ChangeState(EnemyState::ATTACKING);
             m_transitionTimer.Reset();
         }
+    }
+    else if (distanceToPlayer > m_detectionRange)
+    {
+        // If the player is out of detection range, return to idle
+        ChangeState(EnemyState::IDLE);
     }
     else
     {
