@@ -29,23 +29,6 @@ ColliderManager* PlayerController::GetColliderManager() const
     return m_pColliderManager;
 }
 
-// get normalised direction vector
-glm::vec2 PlayerController::GetDirectionVector()
-{
-    switch (this->m_lastDirectionEnum)
-    {
-        case PlayerDirection::NORTH:       return glm::normalize(glm::vec2(0.0f, 1.0f));
-        case PlayerDirection::NORTH_EAST:  return glm::normalize(glm::vec2(1.0f, 1.0f));
-        case PlayerDirection::EAST:        return glm::normalize(glm::vec2(1.0f, 0.0f));
-        case PlayerDirection::SOUTH_EAST:  return glm::normalize(glm::vec2(1.0f, -1.0f));
-        case PlayerDirection::SOUTH:       return glm::normalize(glm::vec2(0.0f, -1.0f));
-        case PlayerDirection::SOUTH_WEST:  return glm::normalize(glm::vec2(-1.0f, -1.0f));
-        case PlayerDirection::WEST:        return glm::normalize(glm::vec2(-1.0f, 0.0f));
-        case PlayerDirection::NORTH_WEST:  return glm::normalize(glm::vec2(-1.0f, 1.0f));
-        default:                           return glm::normalize(glm::vec2(0.0f, 0.0f));
-    }
-}
-
 // CollectWeapon
 void PlayerController::CollectWeapon(EquipmentItem::WeaponType p_weapon_type)
 {
@@ -375,7 +358,48 @@ void PlayerController::StartAttack()
         m_currentAnimation = attackAnimation;
 
         // Attack
+        glm::vec2 playerDirection;
+        switch (this->m_lastDirectionEnum)
+        {
+            case PlayerDirection::NORTH:       
+                playerDirection = glm::normalize(glm::vec2(0.0f, 1.0f));
+                break;
+
+            case PlayerDirection::NORTH_EAST:  
+                playerDirection = glm::normalize(glm::vec2(1.0f, 1.0f));
+                break;
+
+            case PlayerDirection::EAST:        
+                playerDirection = glm::normalize(glm::vec2(1.0f, 0.0f));
+                break;
+
+            case PlayerDirection::SOUTH_EAST:  
+                playerDirection = glm::normalize(glm::vec2(1.0f, -1.0f));
+                break;
+
+            case PlayerDirection::SOUTH:       
+                playerDirection = glm::normalize(glm::vec2(0.0f, -1.0f));
+                break;
+
+            case PlayerDirection::SOUTH_WEST:  
+                playerDirection = glm::normalize(glm::vec2(-1.0f, -1.0f));
+                break;
+            
+            case PlayerDirection::WEST:        
+                playerDirection = glm::normalize(glm::vec2(-1.0f, 0.0f));
+                break;
+
+            case PlayerDirection::NORTH_WEST:  
+                playerDirection = glm::normalize(glm::vec2(-1.0f, 1.0f));
+                break;
+
+            default:
+                playerDirection = glm::vec2(0.0f, 0.0f);
+                break;
+        }
         glm::vec2 playerVelocity = glm::vec2(0.0f);
+
+
         switch(this->m_eCurrentWeapon)
         {
             case EquipmentItem::WeaponType::CROSSBOW:
@@ -392,21 +416,18 @@ void PlayerController::StartAttack()
                 projectileCollider.SetDamage(10.0f);
                 projectileCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
 
-                PlayerController* playerController = this->GetGameObject()->GetComponent<PlayerController>();
                 VelocityComponent* playerVelocityComponent = this->GetGameObject()->GetComponent<VelocityComponent>();
 
-                if(playerController != nullptr)
+                if(playerVelocityComponent != nullptr)
                 {
-                    if(playerVelocityComponent != nullptr)
-                    {
-                        playerVelocity = playerVelocityComponent->GetVelocity();
-                    }
-                    else
-                    {
-                        playerVelocity = glm::vec2(0.0f, 0.0f);
-                    }
-                    projectileVelocity.SetVelocity(playerController->GetDirectionVector() * 256.0f + playerVelocity);
+                    playerVelocity = playerVelocityComponent->GetVelocity();
                 }
+                else
+                {
+                    playerVelocity = glm::vec2(0.0f, 0.0f);
+                }
+                projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
+            
                 break;
             }
         }

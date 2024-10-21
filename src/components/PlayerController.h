@@ -53,7 +53,6 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction);
     void SetColliderManager(ColliderManager* pColliderManager);
     ColliderManager* GetColliderManager() const;
-    glm::vec2 GetDirectionVector();
 
     // Weapon & Attack functions
     void CollectWeapon(EquipmentItem::WeaponType p_weapon_type);
@@ -95,7 +94,7 @@ private:
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
-    PlayerDirection m_lastDirectionEnum = PlayerDirection::NONE;
+    PlayerDirection m_lastDirectionEnum = PlayerDirection::SOUTH;
     std::vector<int> m_heldKeys;  // List of currently held keys
     float m_moveSpeed = 200.0f;
 
