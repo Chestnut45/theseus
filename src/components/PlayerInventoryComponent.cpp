@@ -15,181 +15,183 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
 }
 
 void PlayerInventoryComponent::ShowInventoryGUI() {
-    float iNumRows = m_vvpContents.size() / m_iMaxPerRow;
-    float fOffset = 18.25f;
+    if (m_bIsOpen) {
+        float iNumRows = m_vvpContents.size() / m_iMaxPerRow;
+        float fOffset = 18.25f;
 
-    // For some silly reason, if the inventory can be shown on
-    // a single row the inventory padding is a bit too small
-    if (iNumRows == 1) {
-        // So we add a little bit extra
-        iNumRows += 0.4f;
-    }
+        // For some silly reason, if the inventory can be shown on
+        // a single row the inventory padding is a bit too small
+        if (iNumRows == 1) {
+            // So we add a little bit extra
+            iNumRows += 0.4f;
+        }
 
-    // We run into a similar issue when we're only showing one item
-    // on the X axis, so we add an extra offset to accomodate that
-    if (m_iMaxPerRow == 1) {
-        fOffset += 6.0f;
-    }
+        // We run into a similar issue when we're only showing one item
+        // on the X axis, so we add an extra offset to accomodate that
+        if (m_iMaxPerRow == 1) {
+            fOffset += 6.0f;
+        }
 
-    // You can't resize the inventory or move it
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        // You can't resize the inventory or move it
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
-    // By default, the inventory appears close to the middle of the screen
-    ImGui::SetNextWindowPos({500, 200});
-    ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + fOffset) * m_iMaxPerRow, (m_v2TexFrameSize.y + 22) * iNumRows});
-    ImGui::Begin("\t~ Inventory ~", nullptr, flags);
+        // By default, the inventory appears close to the middle of the screen
+        ImGui::SetNextWindowPos({500, 200});
+        ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + fOffset) * m_iMaxPerRow, (m_v2TexFrameSize.y + 22) * iNumRows});
+        ImGui::Begin("\t~ Inventory ~", &m_bIsOpen, flags);
 
-    // This counter lets us control how many items are drawn in a row
-    int counter = 0;
+        // This counter lets us control how many items are drawn in a row
+        int counter = 0;
 
-    // We need to draw m_iSize number of slots
-    for (int k = 0; k < m_iSize; k++) {
-        // If there is an item (or stack of items as it were) in this slot
-        if (!m_vvpContents[k].empty()) {
-            // We grab a reference to the top item and create a variable to hold the item's details
-            ItemBase* pItem = m_vvpContents[k].top();
-            std::string strTooltipText;
+        // We need to draw m_iSize number of slots
+        for (int k = 0; k < m_iSize; k++) {
+            // If there is an item (or stack of items as it were) in this slot
+            if (!m_vvpContents[k].empty()) {
+                // We grab a reference to the top item and create a variable to hold the item's details
+                ItemBase* pItem = m_vvpContents[k].top();
+                std::string strTooltipText;
 
-            // There are different rules for drawing Consumables and Equipment Items so we need to figure out
-            // what this particular item is before we go any further
+                // There are different rules for drawing Consumables and Equipment Items so we need to figure out
+                // what this particular item is before we go any further
 
-            // There's a chance we won't need this value but if we do then we need it to survive the if ID == EQUIPMENT scope
-            bool bIsEquipped = false;
+                // There's a chance we won't need this value but if we do then we need it to survive the if ID == EQUIPMENT scope
+                bool bIsEquipped = false;
 
-            // If this is a consumable item
-            if (pItem->GetID() == CONSUMABLE) {
-                // Try to cast it
-                ConsumableItem* pConsumable = dynamic_cast<ConsumableItem*>(pItem);
-                if (!pConsumable) {
-                    // And throw an error if we couldn't
-                    wolf::Error("Failed to cast ItemBase to ConsumableItem!\n");
+                // If this is a consumable item
+                if (pItem->GetID() == CONSUMABLE) {
+                    // Try to cast it
+                    ConsumableItem* pConsumable = dynamic_cast<ConsumableItem*>(pItem);
+                    if (!pConsumable) {
+                        // And throw an error if we couldn't
+                        wolf::Error("Failed to cast ItemBase to ConsumableItem!\n");
+                    }
+
+                    // Then construct the string that will be used to display all of the item's details
+                    strTooltipText = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + pConsumable->GetDescription() 
+                        + "\n\nValue: " + std::to_string(pConsumable->GetValue()) + "\nUses: " + std::to_string(pConsumable->GetNumUses());
+
                 }
+                else if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
+                    // Try to cast it
+                    EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(pItem);
+                    if (!pEquipment) {
+                        // And throw an error if we couldn't
+                        wolf::Error("Failed to cast ItemBase to EquipmentItem!\n");
+                    }
+                    
+                    // Then start constructing the string that will be used to display all of the item's details
+                    strTooltipText = pEquipment->GetName();
 
-                // Then construct the string that will be used to display all of the item's details
-                strTooltipText = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + pConsumable->GetDescription() 
-                    + "\n\nValue: " + std::to_string(pConsumable->GetValue()) + "\nUses: " + std::to_string(pConsumable->GetNumUses());
+                    // If this item is equipped then we want to show that in the details string
+                    if (pEquipment->IsEquipped()) {
+                        strTooltipText += " (E)";
+                        bIsEquipped = true; // (And we'll need to remember that it's equipped later on)
+                    }
 
-            }
-            else if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
-                // Try to cast it
-                EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(pItem);
-                if (!pEquipment) {
-                    // And throw an error if we couldn't
-                    wolf::Error("Failed to cast ItemBase to EquipmentItem!\n");
+                    // Add the rest of the item's details to the string
+                    strTooltipText += "\n\n" + pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue()) + "\nSlot: " + pEquipment->GetEquipmentSlotString();
+                }
+                else { // If for some reason this item isn't Consumable OR Equipment
+                    strTooltipText = pItem->GetName() + "\n\n" + pItem->GetDescription(); // We only show the name and the description
                 }
                 
-                // Then start constructing the string that will be used to display all of the item's details
-                strTooltipText = pEquipment->GetName();
+                // We're also going to store a string representation of the slot index that we're on
+                // so that we can create unique tooltips for each slot later
+                std::string strIndex = std::to_string(k);
 
-                // If this item is equipped then we want to show that in the details string
-                if (pEquipment->IsEquipped()) {
-                    strTooltipText += " (E)";
-                    bIsEquipped = true; // (And we'll need to remember that it's equipped later on)
+                // Now we can start making the actual buttons
+                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
+                }
+                
+                // When we hover over an inventory slot
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    // We display the details string that we constructed earlier
+                    ImGui::BeginTooltip();
+                    ImGui::Text("%s", strTooltipText.c_str());
+                    ImGui::EndTooltip();
                 }
 
-                // Add the rest of the item's details to the string
-                strTooltipText += "\n\n" + pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue()) + "\nSlot: " + pEquipment->GetEquipmentSlotString();
-            }
-            else { // If for some reason this item isn't Consumable OR Equipment
-                strTooltipText = pItem->GetName() + "\n\n" + pItem->GetDescription(); // We only show the name and the description
-            }
-            
-            // We're also going to store a string representation of the slot index that we're on
-            // so that we can create unique tooltips for each slot later
-            std::string strIndex = std::to_string(k);
-
-            // Now we can start making the actual buttons
-            if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
-            }
-            
-            // When we hover over an inventory slot
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                // We display the details string that we constructed earlier
-                ImGui::BeginTooltip();
-                ImGui::Text("%s", strTooltipText.c_str());
-                ImGui::EndTooltip();
-            }
-
-            // When we click on an inventory slot
-            if (ImGui::IsItemClicked()) {
-                // We open a little pop-up menu
-                ImGui::OpenPopup(strIndex.c_str());
-            }
-            
-            // The pop-up menu has different buttons based on what the item is and what "state" it's in
-            if (ImGui::BeginPopup(strIndex.c_str())) {
-                if (pItem->GetID() == CONSUMABLE) { // If the item is Consumable
-                    // We need to be able to "use" it
-                    if (ImGui::Button("Use")) {
-                        this->UseItem(pItem, k);
-                        ImGui::CloseCurrentPopup();
-                    }
+                // When we click on an inventory slot
+                if (ImGui::IsItemClicked()) {
+                    // We open a little pop-up menu
+                    ImGui::OpenPopup(strIndex.c_str());
                 }
-                else if (pItem->GetID() == EQUIPMENT) { // If the item is a piece of Equipment
-                    if (!bIsEquipped) { // We need to know if it is equipped
-                        // If it isn't, we need to be able to put it on
-                        if (ImGui::Button("Equip")) {
-                            this->EquipItem(pItem, k);
+                
+                // The pop-up menu has different buttons based on what the item is and what "state" it's in
+                if (ImGui::BeginPopup(strIndex.c_str())) {
+                    if (pItem->GetID() == CONSUMABLE) { // If the item is Consumable
+                        // We need to be able to "use" it
+                        if (ImGui::Button("Use")) {
+                            this->UseItem(pItem, k);
                             ImGui::CloseCurrentPopup();
                         }
                     }
-                    else {
-                        // And if it IS equipped, we need to be able to take it off
-                        if (ImGui::Button("Unequip")) {
-                            this->UnequipItem(pItem);
+                    else if (pItem->GetID() == EQUIPMENT) { // If the item is a piece of Equipment
+                        if (!bIsEquipped) { // We need to know if it is equipped
+                            // If it isn't, we need to be able to put it on
+                            if (ImGui::Button("Equip")) {
+                                this->EquipItem(pItem, k);
+                                ImGui::CloseCurrentPopup();
+                            }
+                        }
+                        else {
+                            // And if it IS equipped, we need to be able to take it off
+                            if (ImGui::Button("Unequip")) {
+                                this->UnequipItem(pItem);
+                                ImGui::CloseCurrentPopup();
+                            }
+                        }
+                    }
+
+                    // If we currently have a chest open
+                    if (m_iOpenChestIdNum != -1) {
+                        // Then we need to be able to move items into it
+                        if (ImGui::Button("Store")) {
+                            // We move items by sending an event to the open chest
+                            // !-- Note that we send the index that we're storing the item at in the player's inventory so that
+                            // when the chest sends a return message telling us to remove the item from the player's inventory,
+                            // we can make remove the specific item we sent rather than the first instance of it in our inventory --!
+                            wolf::EventManager::TriggerEvent(SendItemToChestEvent(m_iOpenChestIdNum, this->GetItem(k), k));
                             ImGui::CloseCurrentPopup();
                         }
                     }
-                }
 
-                // If we currently have a chest open
-                if (m_iOpenChestIdNum != -1) {
-                    // Then we need to be able to move items into it
-                    if (ImGui::Button("Store")) {
-                        // We move items by sending an event to the open chest
-                        // !-- Note that we send the index that we're storing the item at in the player's inventory so that
-                        // when the chest sends a return message telling us to remove the item from the player's inventory,
-                        // we can make remove the specific item we sent rather than the first instance of it in our inventory --!
-                        wolf::EventManager::TriggerEvent(SendItemToChestEvent(m_iOpenChestIdNum, this->GetItem(k), k));
+                    // We can discard any item we like
+                    if (ImGui::Button("Discard")) {
+                        this->DiscardItem(k);
                         ImGui::CloseCurrentPopup();
                     }
-                }
 
-                // We can discard any item we like
-                if (ImGui::Button("Discard")) {
-                    this->DiscardItem(k);
-                    ImGui::CloseCurrentPopup();
+                    // And we can close the pop-up menu whenever we like
+                    if (ImGui::Button("Close")) {
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
                 }
+            }
+            else { // Otherwise, this is an empty inventory slot
+            if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[NONE]->m_v2TopLeft, m_vv2TextureCoords[NONE]->m_v2BotRight)) {
 
-                // And we can close the pop-up menu whenever we like
-                if (ImGui::Button("Close")) {
-                    ImGui::CloseCurrentPopup();
-                }
-                ImGui::EndPopup();
+            }
+            }
+
+            // If we've drawn the maximum number of slots per row
+            if (counter == m_iMaxPerRow - 1) {
+                // Reset the counter
+                counter = 0;
+            }
+            else {
+                // Otherwise, this slot needs to be drawn on the same line as the last one
+                ImGui::SameLine();
+                counter++;
             }
         }
-        else { // Otherwise, this is an empty inventory slot
-           if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[NONE]->m_v2TopLeft, m_vv2TextureCoords[NONE]->m_v2BotRight)) {
 
-           }
-        }
+        ImGui::Text("Gold: %d", m_iGold);
 
-        // If we've drawn the maximum number of slots per row
-        if (counter == m_iMaxPerRow - 1) {
-            // Reset the counter
-            counter = 0;
-        }
-        else {
-            // Otherwise, this slot needs to be drawn on the same line as the last one
-            ImGui::SameLine();
-            counter++;
-        }
+        // End of window
+        ImGui::End();
     }
-
-    ImGui::Text("Gold: %d", m_iGold);
-
-    // End of window
-    ImGui::End();
 }
 
 void PlayerInventoryComponent::UseItem(ItemBase* p_pItem, int p_iItemIndex) {

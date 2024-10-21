@@ -128,8 +128,7 @@ void PlayState::Update(float delta)
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
     if (playerInventory) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) m_showInventoryGUI = !m_showInventoryGUI;
-        if (m_showInventoryGUI) playerInventory->ShowInventoryGUI();
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
             ItemBase* pEquip1 = new EquipmentItem(EQUIPMENT, "Test Helmet", "This is a test equipment item", 5, 3, HEAD);
@@ -169,15 +168,14 @@ void PlayState::Update(float delta)
                 printf("Nothing is equipped in the WEAPON slot!\n");
             }
         }
+
+        playerInventory->ShowInventoryGUI();
     }
     
     auto* chest = m_pPlayerObject->GetComponent<ChestInventoryComponent>();
     if (chest) {
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            chest->OpenChest();
-        }
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
-            chest->CloseChest();
+            chest->ToggleOpen();
         }
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
             chest->AddItem(ItemCreator::CreateItem("Healing Heart"));

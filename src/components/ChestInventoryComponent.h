@@ -24,10 +24,10 @@ class ChestInventoryComponent : public InventoryComponent {
         ~ChestInventoryComponent();
 
         bool FillChestFromFile(const std::string& p_strFilePath);
-        bool IsOpen() {return m_bIsOpen;};
 
-        void OpenChest();
-        void CloseChest();
+        virtual void Open();
+        virtual void Close();
+        virtual void ToggleOpen();
 
         void HandleAddToChestEvent(const SendItemToChestEvent& p_event);
         void HandleRemoveFromChestEvent(const RemoveFromChestEvent& p_event);
@@ -37,5 +37,4 @@ class ChestInventoryComponent : public InventoryComponent {
 
     private:
         void SendItemToPlayer(int p_iItemIndex);
-        bool m_bIsOpen = false;
 };

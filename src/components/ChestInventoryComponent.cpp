@@ -44,7 +44,13 @@ void ChestInventoryComponent::ShowInventoryGUI() {
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos({800, 200});
         ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + fOffset) * m_iMaxPerRow, (m_v2TexFrameSize.y + 25) * fNumRows});
-        ImGui::Begin("\t~ Chest ~", nullptr, flags);
+        ImGui::Begin("\t~ Chest ~", &m_bIsOpen, flags);
+
+        // If we've closed the window using the ImGui button
+        if (!m_bIsOpen) {
+            // We need to call the actual close method
+            this->Close();
+        }
 
         // This counter lets us control how many items are drawn in a row
         int counter = 0;
@@ -160,18 +166,29 @@ void ChestInventoryComponent::ShowInventoryGUI() {
     }
 }
 
-void ChestInventoryComponent::OpenChest() {
+void ChestInventoryComponent::Open() {
     m_bIsOpen = true;
 
     // Let anyone interested know which specific chest was opened
     wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
 }
 
-void ChestInventoryComponent::CloseChest() {
+void ChestInventoryComponent::Close() {
     m_bIsOpen = false;
 
     // Let anyone interested know which specific chest was closed
     wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+}
+
+void ChestInventoryComponent::ToggleOpen() {
+    m_bIsOpen = !m_bIsOpen;
+
+    if (m_bIsOpen) {
+        wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
+    }
+    else {
+        wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+    }
 }
 
 void ChestInventoryComponent::SendItemToPlayer(int p_iItemIndex) {

@@ -50,6 +50,12 @@ class InventoryComponent : public wolf::BaseComponent {
         ItemBase* GetItem(ItemID p_enItemID);
         ItemBase* GetItem(int p_iItemIndex);
 
+        virtual void Open() {m_bIsOpen = true;};
+        virtual void Close() {m_bIsOpen = false;};
+        virtual void ToggleOpen() {m_bIsOpen = !m_bIsOpen;};
+
+        bool IsOpen() {return m_bIsOpen;};
+
         bool AddItem(ItemBase* p_pItem);
 
         bool RemoveItem(const std::string& p_strItemName);
@@ -66,6 +72,8 @@ class InventoryComponent : public wolf::BaseComponent {
         const int m_iSize;
         const int m_iMaxPerRow;
         int m_iSlotsInUse = 0;
+
+        bool m_bIsOpen = false;
 
         InventoryType m_enType = BASIC_INVENTORY;
 
