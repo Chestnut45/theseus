@@ -1,8 +1,7 @@
 #include "PlayerController.h"
-#include "ColliderComponent.h"
-#include "HealthComponent.h"
 #include "VelocityComponent.h"
-#include "WeaponComponent.h"
+#include "HealthComponent.h"
+#include "ColliderComponent.h"
 #include "MinitaurController.h"
 #include <W_Input.h>
 #include <W_Logging.h>
@@ -39,14 +38,6 @@ void PlayerController::LateInitialize()
         return;
     }
 
-    InitializeAnimations();
-}
-
-// Add and initialize animations for the player character
-void PlayerController::InitializeAnimations()
-{
-    auto* pGameObject = GetGameObject();
-    
     // Check if the AnimatedSprite2D component exists
     if (pGameObject->HasAll<AnimatedSprite2D>())
     {
@@ -55,7 +46,47 @@ void PlayerController::InitializeAnimations()
     }
 
     // Initialize the AnimatedSprite2D component
-    m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
+    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
+    // Initialize animations
+    InitializeAnimations();
+
+    // Check if essential components are initialized properly
+}
+
+// Add and initialize animations for the player character
+void PlayerController::InitializeAnimations()
+{
+    if (!m_pAnimComponent) return;
+
+    // Define all player animations with their corresponding texture paths and frame indices.
+    std::vector<std::tuple<std::string, std::string, int, int, bool>> animations = {
+        // Movement animations (looping)
+        {"WalkSouth", "data/textures/TheseusWalk-Sheet.png", 1, 8, true},
+        {"WalkEast", "data/textures/TheseusWalk-Sheet.png", 9, 16, true},
+        {"WalkNorth", "data/textures/TheseusWalk-Sheet.png", 17, 24, true},
+        {"WalkWest", "data/textures/TheseusWalk-Sheet.png", 25, 32, true},
+
+        // Idle animations (not looping)
+        {"StandSouth", "data/textures/TheseusStand-Sheet.png", 1, 1, false},
+        {"StandEast", "data/textures/TheseusStand-Sheet.png", 2, 2, false},
+        {"StandNorth", "data/textures/TheseusStand-Sheet.png", 3, 3, false},
+        {"StandWest", "data/textures/TheseusStand-Sheet.png", 4, 4, false},
+
+        // Attack animations (not looping)
+        {"AttackSouth", "data/textures/TheseusSword-Sheet.png", 1, 7, false},
+        {"AttackEast", "data/textures/TheseusSword-Sheet.png", 8, 14, false},
+        {"AttackNorth", "data/textures/TheseusSword-Sheet.png", 15, 21, false},
+        {"AttackWest", "data/textures/TheseusSword-Sheet.png", 22, 28, false}
+    };
+
+    // Add animations to the component with correct frame ranges and loop settings
+    for (const auto& [name, path, startFrame, endFrame, isLooping] : animations)
+    {
+        m_pAnimComponent->AddAnimation(name, path, glm::vec2(32.0f, 32.0f), startFrame, endFrame, isLooping);
+    }
+
+    m_pAnimComponent->SetAnimation("StandSouth"); // Default animation set to "StandSouth"
+    m_pAnimComponent->SetOriginToCenterOfFrame();
 }
 
 // Main update loop for the player controller
@@ -166,14 +197,7 @@ void PlayerController::HandleRolling(float delta)
         return;
     }
 
-    // Only start roll if a direction is being held
-    glm::vec2 direction(0.0f);
-    direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
-    direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
-    direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
-    direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
-
-    if (direction != glm::vec2(0.0f) && wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
     {
         StartRoll();
     }
@@ -283,15 +307,15 @@ std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection dir
 {
     switch (direction)
     {
-        case PlayerDirection::SOUTH:       return "SwordAttackSouth";
-        case PlayerDirection::EAST:        return "SwordAttackEast";
-        case PlayerDirection::NORTH:       return "SwordAttackNorth";
-        case PlayerDirection::WEST:        return "SwordAttackWest";
-        case PlayerDirection::NORTH_EAST:  return "SwordAttackEast";
-        case PlayerDirection::NORTH_WEST:  return "SwordAttackWest";
-        case PlayerDirection::SOUTH_EAST:  return "SwordAttackEast";
-        case PlayerDirection::SOUTH_WEST:  return "SwordAttackWest";
-        default:                           return "SwordAttackSouth";
+        case PlayerDirection::SOUTH:       return "AttackSouth";
+        case PlayerDirection::EAST:        return "AttackEast";
+        case PlayerDirection::NORTH:       return "AttackNorth";
+        case PlayerDirection::WEST:        return "AttackWest";
+        case PlayerDirection::NORTH_EAST:  return "AttackEast";
+        case PlayerDirection::NORTH_WEST:  return "AttackWest";
+        case PlayerDirection::SOUTH_EAST:  return "AttackEast";
+        case PlayerDirection::SOUTH_WEST:  return "AttackWest";
+        default:                           return "AttackSouth";
     }
 }
 
@@ -325,12 +349,6 @@ void PlayerController::StartAttack()
 
         // Store the current animation to handle transitions later.
         m_currentAnimation = attackAnimation;
-
-        WeaponComponent* weaponComponent = this->GetGameObject()->GetComponent<WeaponComponent>();
-        if(weaponComponent != nullptr)
-        {
-            weaponComponent->Attack();
-        }
     }
 }
 
@@ -487,10 +505,6 @@ void PlayerController::Render()
         ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1, barHeight));
         ImGui::PopStyleColor(); // Pop color for health bar
         ImGui::End();
-
-        // Pop ImGui style variables and colors
-        ImGui::PopStyleVar(3); // Pop style variables (WindowRounding, FrameRounding, and FramePadding)
-        ImGui::PopStyleColor(3); // Pop style colors (WindowBg, Border, and BorderShadow)
     }
 
     // Move the position down for the stamina bar
@@ -504,20 +518,8 @@ void PlayerController::Render()
     ImGui::ProgressBar(m_stamina / m_maxStamina, ImVec2(-1, barHeight)); // Full width, defined height
     ImGui::PopStyleColor(); // Pop color for stamina bar
     ImGui::End();
-}
 
-glm::vec2 PlayerController::GetDirectionVector() const
-{
-    switch (this->m_lastDirectionEnum)
-    {
-        case PlayerDirection::NORTH:       return glm::normalize(glm::vec2(0.0f, 1.0f));
-        case PlayerDirection::NORTH_EAST:  return glm::normalize(glm::vec2(1.0f, 1.0f));
-        case PlayerDirection::EAST:        return glm::normalize(glm::vec2(1.0f, 0.0f));
-        case PlayerDirection::SOUTH_EAST:  return glm::normalize(glm::vec2(1.0f, -1.0f));
-        case PlayerDirection::SOUTH:       return glm::normalize(glm::vec2(0.0f, -1.0f));
-        case PlayerDirection::SOUTH_WEST:  return glm::normalize(glm::vec2(-1.0f, -1.0f));
-        case PlayerDirection::WEST:        return glm::normalize(glm::vec2(-1.0f, 0.0f));
-        case PlayerDirection::NORTH_WEST:  return glm::normalize(glm::vec2(-1.0f, 1.0f));
-        default:                           return glm::normalize(glm::vec2(0.0f, 0.0f)); 
-    }
+    // Pop ImGui style variables and colors
+    ImGui::PopStyleVar(3); // Pop style variables (WindowRounding, FrameRounding, and FramePadding)
+    ImGui::PopStyleColor(3); // Pop style colors (WindowBg, Border, and BorderShadow)
 }
