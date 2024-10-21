@@ -285,6 +285,9 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
         colCaseY = 0;
     }
 
+    // std::cout << "ColliderManager - colCaseX: " << colCaseX << std::endl;
+    // std::cout << "ColliderManager - colCaseY: " << colCaseY << std::endl;
+
     // Time calculations
     if(relativeVelocity.x == 0.0f)
     {
@@ -351,28 +354,28 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
         if(left1 <= right2 && oldLeft1 > right2)
         {
             collisionNormal2 = glm::normalize(glm::vec2(1.0f, 0.0f));
-            // printf("ColliderManager - C1\n");
+            printf("ColliderManager - C1\n");
         }
 
         // obj1 right collision
         else if(right1 >= left2 && oldRight1 < left2)
         {
             collisionNormal2 = glm::normalize(glm::vec2(-1.0f, 0.0f));
-            // printf("ColliderManager - C2\n");
+            printf("ColliderManager - C2\n");
         }
 
         // obj1 top collision
         else if(top1 <= bottom2 && oldTop1 > bottom2)
         {
             collisionNormal2 = glm::normalize(glm::vec2(0.0f, 1.0f));
-            // printf("ColliderManager - C3\n");
+            printf("ColliderManager - C3\n");
         }
 
         // obj1 bottom collision
         else if(bottom1 >= top2 && oldBottom1 < top2)
         {
             collisionNormal2 = glm::normalize(glm::vec2(0.0f, -1.0f));
-            // printf("ColliderManager - C4\n");
+            printf("ColliderManager - C4\n");
         }
 
         collisionNormal1 = glm::normalize(-collisionNormal2);

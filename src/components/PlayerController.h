@@ -6,7 +6,7 @@
 #include <components/HealthComponent.h>
 #include <components/EnemyController.h>
 #include <components/ColliderComponent.h>
-#include "../inventory/EquipmentItem.h"
+#include <components/InventoryComponent.h>
 #include <iostream>
 
 //-----------------------------------------------------------------------------
@@ -55,7 +55,6 @@ public:
     ColliderManager* GetColliderManager() const;
 
     // Weapon & Attack functions
-    void CollectWeapon(EquipmentItem::WeaponType p_weapon_type);
 
 private:
     // Initialization and animation management
@@ -124,6 +123,8 @@ private:
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
 
+    static float s_aAttackCooldown[WeaponType::FISTS + 1];
+
     // Animation and state tracking flags
     bool m_animationFinished = false;
     std::string m_currentAnimation;
@@ -133,5 +134,5 @@ private:
     ColliderManager* m_pColliderManager = nullptr;
 
     // Weapons
-    EquipmentItem::WeaponType m_eCurrentWeapon = EquipmentItem::WeaponType::NONE;
+    WeaponType m_eCurrentWeapon = WeaponType::FISTS;
 };

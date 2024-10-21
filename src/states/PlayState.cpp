@@ -168,7 +168,13 @@ void PlayState::Update(float delta)
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
     {
         transform.Translate(velocity.GetVelocity() * delta);
-    }   
+    }
+
+    // Inflict status effects upon the player
+    for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
+    {
+        status.InflictStatusEffects();
+    }    
 
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
@@ -222,7 +228,7 @@ void PlayState::CreatePlayer()
     // Add inventory
     auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 
-    auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
+    auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDD, 0, 1);
     collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
 
     // Add health / armor
@@ -231,7 +237,13 @@ void PlayState::CreatePlayer()
     armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
 
     // Add weapon
-    playerController.CollectWeapon(EquipmentItem::WeaponType::CROSSBOW);
+    EquipmentItem* crossbow = new EquipmentItem(EQUIPMENT, "Crossbow", "This is a Crossbow", 10, WEAPON, WeaponType::CROSSBOW);
+
+    m_pPlayerObject->GetComponent<InventoryComponent>()->AddItem(crossbow);
+
+    // Add status component and status effect
+    // auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
 }
 
 void PlayState::CreateMinitaurEnemy() {

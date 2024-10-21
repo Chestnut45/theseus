@@ -37,6 +37,28 @@ void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifesp
     
 }
 
+void StatusComponent::InflictStatusEffects()
+{
+    for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
+    {
+        StatusComponent::StatusEffect * statusEffect = this->m_aStatusEffects[i];
+        
+        if(statusEffect != nullptr)
+        {
+            if(statusEffect->GetTimer()->Elapsed() >= statusEffect->GetLifespan())
+            {
+                std::cout << "StatusComponent - Delete status effect: " << statusEffect->GetStatusEffectType() << std::endl;
+                
+                this->RemoveStatusEffect(statusEffect->GetStatusEffectType());
+            }
+            else
+            {
+                statusEffect->ApplyStatusEffect();
+            }
+        }
+    }
+}
+
 bool StatusComponent::IsStatusEffectActive(StatusEffectType p_se_type) const
 {
     return this->m_aStatusEffects[p_se_type] == nullptr;

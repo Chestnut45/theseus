@@ -2,7 +2,7 @@ enemies:
   - type: minitaur
     health: 150
     armour: 3
-    melee_range: 50.0
+    melee_range: 80.0
     attack_cooldown: 1.0
     detection_range: 300.0
     base_damage: 15.0

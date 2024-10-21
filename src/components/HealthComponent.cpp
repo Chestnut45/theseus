@@ -45,7 +45,7 @@ void HealthComponent::Damage(float p_damage)
             this->m_health -= p_damage;
         }
 
-        std::cout << "HealthComponent - Health: " << this->m_health << std::endl;
+        // std::cout << "HealthComponent - Health: " << this->m_health << std::endl;
 
         if(this->m_health <= 0)
         {

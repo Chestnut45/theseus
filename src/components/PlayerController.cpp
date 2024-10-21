@@ -12,6 +12,8 @@
 // ver 2.0: Optimized and restructured for readability and performance.
 //-----------------------------------------------------------------------------
 
+float PlayerController::s_aAttackCooldown[WeaponType::FISTS + 1] = {0.5f, 1.0f, 0.5f, 0.25f};
+
 PlayerController::PlayerController() = default;
 
 void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
@@ -27,12 +29,6 @@ void PlayerController::SetColliderManager(ColliderManager* pColliderManager)
 ColliderManager* PlayerController::GetColliderManager() const
 {
     return m_pColliderManager;
-}
-
-// CollectWeapon
-void PlayerController::CollectWeapon(EquipmentItem::WeaponType p_weapon_type)
-{
-    this->m_eCurrentWeapon = p_weapon_type;
 }
 
 // Initialize components related to the player
@@ -181,7 +177,7 @@ void PlayerController:: HandleAttacking(float delta)
     }
 
     // Check if enough time has elapsed since the last attack to allow for damage application.
-    if (m_attackTimer.Elapsed() >= m_attackCooldown && m_isAttacking)
+    if (m_attackTimer.Elapsed() >= s_aAttackCooldown[m_eCurrentWeapon] && m_isAttacking)
     {
         ApplyDamageToEnemy(); // Apply damage if there's a collision with an enemy.
         m_attackTimer.Restart(); // Restart the timer for future attacks.
@@ -402,11 +398,12 @@ void PlayerController::StartAttack()
 
         switch(this->m_eCurrentWeapon)
         {
-            case EquipmentItem::WeaponType::CROSSBOW:
+            case WeaponType::CROSSBOW:
             {
                 auto& scene = this->GetGameObject()->GetScene();
                 auto& projectile = scene.CreateObject2D();
                 auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+                projectileSprite.SetOriginToCenterOfTexture();
                 auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
                 auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
 
@@ -426,7 +423,7 @@ void PlayerController::StartAttack()
                 {
                     playerVelocity = glm::vec2(0.0f, 0.0f);
                 }
-                projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
+                //projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
             
                 break;
             }

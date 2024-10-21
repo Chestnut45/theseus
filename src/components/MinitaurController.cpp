@@ -126,7 +126,8 @@ void MinitaurController::HandleChasingState(float delta)
         m_transitionTimer.Start();
     }
 
-
+    
+    // std::cout << "MinitaurController - distanceToPlayer: " << distanceToPlayer << std::endl;
 
     if (distanceToPlayer <= m_meleeRange)
     {

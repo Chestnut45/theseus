@@ -17,12 +17,9 @@
 #include "../ColliderManager.h"
 
 class VelocityComponent;
-class StatusManager;
 
 class StatusComponent : public wolf::BaseComponent
 {
-    friend StatusManager;
-
 public:
     enum StatusEffectType
     {
@@ -36,6 +33,7 @@ public:
     virtual ~StatusComponent();
 
     void AddStatusEffect(StatusEffectType p_se_type, float p_lifespan);
+    void InflictStatusEffects();
     bool IsStatusEffectActive(StatusEffectType p_se_type) const;
 
 private:
