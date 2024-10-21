@@ -13,7 +13,6 @@ class WeaponComponent : public wolf::BaseComponent
 public:
     enum WeaponType
     {
-
         BOW,
         CROSSBOW,
         SWORD,
