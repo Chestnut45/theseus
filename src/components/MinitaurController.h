@@ -15,6 +15,7 @@ public:
     virtual ~MinitaurController() override;
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
+    
 
 private:
     // Minitaur-specific methods
@@ -25,6 +26,9 @@ private:
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
     void HandleDeathState();
+    void ChangeState(EnemyState newState) ;
+    
+
     // Minitaur-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;

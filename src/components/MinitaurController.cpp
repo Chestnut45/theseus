@@ -30,7 +30,10 @@ void MinitaurController::Init(const EnemyData& data)
     m_chaseSpeed = data.chaseSpeed;
 
     // Get required components
-    m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
+    m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
+    m_pTransform = pGameObject->GetComponent<wolf::Transform2D>();
+    m_pHealth = pGameObject->GetComponent<HealthComponent>();
+
 
     // Set up Minitaur-specific animations
     SetUpAnimations(data.animationInitFile);
@@ -110,15 +113,15 @@ void MinitaurController::MoveTowardsTarget(float delta)
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
     }
 }
-
 void MinitaurController::HandleIdleState()
 {
-    const float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
+    // Check if the player is within detection range
+    float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
 
     // If the player comes into detection range, start chasing
     if (distanceToPlayer <= m_detectionRange)
     {
-        ChangeState(EnemyState::CHASING);
+        ChangeState(EnemyState::CHASING);  // Transition to CHASING when the player is in range
     }
 }
 
@@ -130,12 +133,19 @@ void MinitaurController::HandleChasingState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
+    // Check if the player has moved out of the detection range and transition to IDLE
+    if (distanceToPlayer > m_detectionRange)
+    {
+        ChangeState(EnemyState::IDLE);
+        m_pVelocity->SetVelocity(glm::vec2(0.0f));  // Reset velocity when returning to idle
+        return;
+    }
+
     if (!m_transitionTimer.IsRunning())
     {
         m_transitionTimer.Start();
     }
 
-    // If the player is within melee range, attempt to attack
     if (distanceToPlayer <= m_meleeRange)
     {
         if (m_transitionTimer.Elapsed() >= m_transitionDelay)
@@ -144,20 +154,12 @@ void MinitaurController::HandleChasingState(float delta)
             m_transitionTimer.Reset();
         }
     }
-    else if (distanceToPlayer > m_detectionRange)
-    {
-        // If the player is out of detection range, return to idle
-        ChangeState(EnemyState::IDLE);
-    }
     else
     {
         // Ensure the timer is reset if the player is not in range
         m_transitionTimer.Reset();
     }
 }
-
-
-
 
 void MinitaurController::HandleAttackingState(float delta)
 {
@@ -174,13 +176,11 @@ void MinitaurController::HandleAttackingState(float delta)
     // Apply damage if player is within melee range and attack cooldown is over
     if (distanceToPlayer <= m_meleeRange && m_attackTimer <= 0.0f)
     {
-        
         // Simulate applying damage to the player
         auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
         if (playerHealth)
         {
-            playerHealth->Damage(m_baseDamage);  // Apply damage to the player
-            std::cout << "Player Health: " << playerHealth->GetHealth() << "\n";
+            playerHealth->Damage(m_baseDamage);
 
             // Reset attack cooldown timer
             m_attackTimer = m_attackCooldown;
@@ -196,6 +196,7 @@ void MinitaurController::HandleAttackingState(float delta)
         ChangeState(EnemyState::CHASING);
     }
 }
+
 
 
 void MinitaurController::UpdateAnimationBasedOnDirection()
@@ -245,6 +246,10 @@ void MinitaurController::HandleDeathState()
     }
 
     // Destroy the GameObject when the Minitaur dies
-    std::cout << "Minitaur has died and is being destroyed.\n";
-    GetGameObject()->Delete();
+    //will be implemented later
+}
+
+void MinitaurController::ChangeState(EnemyState newState)
+{
+    m_state = newState;
 }

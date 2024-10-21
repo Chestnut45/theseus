@@ -107,7 +107,7 @@ void PlayState::Update(float delta)
     }
 
     // Update all minitaur controllers
-    for (auto&& [entity, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
+    for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
     {
         minitaurController.Update(delta);
     }
