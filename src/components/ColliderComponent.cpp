@@ -32,7 +32,7 @@ wolf::VertexBuffer *ColliderComponent::s_pVB = nullptr;
 // Constructor for custom attributes
 ColliderComponent::ColliderComponent(ColliderType p_collider_type, bool p_doc, bool p_relativity)
 {
-    this->m_ColliderType = p_collider_type;
+    this->m_eColliderType = p_collider_type;
     this->m_bIsDestroyedOnCollision = p_doc;
     this->m_bIsRelative = p_relativity;
 
@@ -85,7 +85,7 @@ std::vector<wolf::Rectangle> ColliderComponent::GetColliderBoxes() const
 
 bool ColliderComponent::IsHitbox() const
 {
-    if(this->m_ColliderType == ColliderType::HITBOX || this->m_ColliderType == ColliderType::HITHURTBOXDD || this->m_ColliderType == ColliderType::HITHURTBOXDR)
+    if(this->m_eColliderType == ColliderType::HITBOX || this->m_eColliderType == ColliderType::HITHURTBOXDD || this->m_eColliderType == ColliderType::HITHURTBOXDR)
     {
         return true;
     }
@@ -94,7 +94,7 @@ bool ColliderComponent::IsHitbox() const
 
 bool ColliderComponent::IsHurtbox() const
 {
-    if(this->m_ColliderType == ColliderType::HURTBOXDD || this->m_ColliderType == ColliderType::HURTBOXDR || this->m_ColliderType == ColliderType::HITHURTBOXDD || this->m_ColliderType == ColliderType::HITHURTBOXDR)
+    if(this->m_eColliderType == ColliderType::HURTBOXDD || this->m_eColliderType == ColliderType::HURTBOXDR || this->m_eColliderType == ColliderType::HITHURTBOXDD || this->m_eColliderType == ColliderType::HITHURTBOXDR)
     {
         return true;
     }
@@ -103,7 +103,7 @@ bool ColliderComponent::IsHurtbox() const
 
 bool ColliderComponent::IsHurtboxDamageDealer() const
 {
-    if(this->m_ColliderType == ColliderType::HURTBOXDD || this->m_ColliderType == ColliderType::HITHURTBOXDD)
+    if(this->m_eColliderType == ColliderType::HURTBOXDD || this->m_eColliderType == ColliderType::HITHURTBOXDD)
     {
         return true;
     }
@@ -112,7 +112,7 @@ bool ColliderComponent::IsHurtboxDamageDealer() const
 
 bool ColliderComponent::IsHurtboxDamageReceiver() const
 {
-    if(this->m_ColliderType == ColliderType::HURTBOXDR || this->m_ColliderType == ColliderType::HITHURTBOXDR)
+    if(this->m_eColliderType == ColliderType::HURTBOXDR || this->m_eColliderType == ColliderType::HITHURTBOXDR)
     {
         return true;
     }
@@ -145,11 +145,16 @@ void ColliderComponent::SetDamage(float p_damage)
 {
     this->m_fDamage = p_damage;
 }
+// Set collider type
+void ColliderComponent::SetColliderType(ColliderComponent::ColliderType p_collider_type)
+{
+    this->m_eColliderType = p_collider_type;
+}
 
 // Get collider type
 ColliderComponent::ColliderType ColliderComponent::GetColliderType() const
 {
-    return this->m_ColliderType;
+    return this->m_eColliderType;
 }
 
 // Fill vertex array with vertices of instance

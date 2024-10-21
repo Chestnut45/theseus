@@ -57,8 +57,10 @@ public:
     bool IsRelative() const;
 
     float GetDamage() const;
-    void SetDamage(float p_damage);
     ColliderType GetColliderType() const;
+
+    void SetDamage(float p_damage);
+    void SetColliderType(ColliderComponent::ColliderType p_collider_type);    
 
 
     void FillVertexArray();
@@ -71,8 +73,9 @@ private:
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
     bool m_bIsRelative = false; // Hitbox scales relative to object
     bool m_bIsFlaggedForDestruction = false;
+    wolf::Timer m_Timer;
 
-    ColliderType m_ColliderType = ColliderType::NONE;
+    ColliderType m_eColliderType = ColliderType::NONE;
 
     std::vector<wolf::Rectangle> m_vColliderBoxes;
 
