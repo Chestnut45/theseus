@@ -22,27 +22,58 @@ void MinitaurController::Init(const EnemyData& data)
         return;
     }
 
-    EnemyController::Init();  // Call the base enemy initialization
+    // Log that initialization has started
+    wolf::Log("Initializing Minitaur with GameObject ID " + std::to_string(pGameObject->GetID()));
+
+    // Call base initialization
+    EnemyController::Init();
+
+    // Assign enemy data
     m_meleeRange = data.meleeRange;
     m_attackCooldown = data.attackCooldown;
     m_detectionRange = data.detectionRange;
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
-    // Get required components
-    m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
-    m_pTransform = pGameObject->GetComponent<wolf::Transform2D>();
-    m_pHealth = pGameObject->GetComponent<HealthComponent>();
+    // Log initialized values
+    wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " initialized with melee range " + std::to_string(m_meleeRange) + 
+              ", attack cooldown " + std::to_string(m_attackCooldown) + 
+              ", detection range " + std::to_string(m_detectionRange) + 
+              ", base damage " + std::to_string(m_baseDamage) + 
+              ", and chase speed " + std::to_string(m_chaseSpeed));
 
+    // Get required components and log their initialization
+    m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
+    if (m_pVelocity)
+    {
+        wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " VelocityComponent initialized.");
+    }
+    else
+    {
+        wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " could not find VelocityComponent!");
+    }
 
     // Set up Minitaur-specific animations
     SetUpAnimations(data.animationInitFile);
+    wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " animation initialized using file " + data.animationInitFile);
 
     // Find and set the player as the target
+    bool targetFound = false;
     for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
     {
         m_pTarget = playerController.GetGameObject();
+        wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " found player target with GameObject ID " + std::to_string(m_pTarget->GetID()));
+        targetFound = true;
         break;  // Assume there's only one player
+    }
+
+    if (!targetFound)
+    {
+        wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
+    }
+    else
+    {
+        wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " successfully set the target to player.");
     }
 }
 
