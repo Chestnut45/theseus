@@ -177,16 +177,6 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
             glm::vec2 dimensions2 = glm::vec2(collider2.GetWidth(), collider2.GetHeight());
             glm::vec2 offset2 = collider2.GetPosition();
             VelocityComponent* velocity2 = p_colliderComponent2->GetGameObject()->GetComponent<VelocityComponent>();
-
-            glm::vec2 combinedVelocity = glm::vec2(0.0f, 0.0f);
-            if(velocity1 != nullptr)
-            {
-                combinedVelocity += velocity1->GetVelocity();
-            }
-            if(velocity2 != nullptr)
-            {
-                combinedVelocity -= velocity2->GetVelocity();
-            }
             
             if(p_colliderComponent2->IsRelative())
             {
@@ -195,15 +185,14 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
                 offset2 *= scale2;
             }
             glm::vec2 translation2 = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset2;
-                
-            if(this->StandardAABBBroadphase(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta))
-            {
-                float collisionTime = this->SweptAABB(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta);
-                if(collisionTime < 1.0f)
-                {   
-                    return true;
-                }
-            }            
+
+            float collisionTime = this->SweptAABB(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta);
+            if(collisionTime < 1.0f)
+            {   
+                std::cout << "ColliderManager -  collide" << std::endl;
+                return true;
+            }
+                    
         }
     }
     return false;
@@ -247,161 +236,162 @@ bool ColliderManager::StandardAABBBroadphase(glm::vec2 p_translation_1, glm::vec
 
 float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
 {
-    float   xEntryDist, yEntryDist, xExitDist, yExitDist,
-            xEntryTime, yEntryTime, xExitTime, yExitTime,
-            entryTime, exitTime;
-
-    // Distance calculations
-    int colCaseX, colCaseY = 0;
-
-    glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
-    glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
-
-    glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta; // Velocity of obj1 as observed from obj2
-
-    if(relativeVelocity.x > 0.0f)
+    if(this->StandardAABBBroadphase(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta))
     {
-        xEntryDist = p_translation_2.x - (p_translation_1.x + p_dimensions_1.x);
-        xExitDist = (p_translation_2.x + p_dimensions_2.x) - p_translation_1.x;
-        colCaseX = 1;
-    }
-    else
-    {
-        xEntryDist = (p_translation_2.x + p_dimensions_2.x) - p_translation_1.x;
-        xExitDist = p_translation_2.x - (p_translation_1.x + p_dimensions_1.x);
-        colCaseX = 0;
-    }
+        bool isBroadphaseColliding = true;
+        float   xEntryDist, yEntryDist, xExitDist, yExitDist,
+                xEntryTime, yEntryTime, xExitTime, yExitTime,
+                entryTime, exitTime;
 
-    if (relativeVelocity.y > 0.0f)
-    {
-        yEntryDist = p_translation_2.y - (p_translation_1.y + p_dimensions_1.y);
-        yExitDist = (p_translation_2.y + p_dimensions_2.y) - p_translation_1.y;
-        colCaseY = 1;
-    }
-    else
-    {
-        yEntryDist = (p_translation_2.y + p_dimensions_2.y) - p_translation_1.y;
-        yExitDist = p_translation_2.y - (p_translation_1.y + p_dimensions_1.y);
-        colCaseY = 0;
-    }
+        // Distance calculations
+        int colCaseX, colCaseY = 0;
 
-    // std::cout << "ColliderManager - colCaseX: " << colCaseX << std::endl;
-    // std::cout << "ColliderManager - colCaseY: " << colCaseY << std::endl;
+        glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
+        glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
 
-    // Time calculations
-    if(relativeVelocity.x == 0.0f)
-    {
-        xEntryTime = -std::numeric_limits<float>::infinity();
-        xExitTime = std::numeric_limits<float>::infinity();
-    }
-    else
-    {
-        xEntryTime = xEntryDist / relativeVelocity.x;
-        xExitTime = xExitDist / relativeVelocity.x;
-    }
+        glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta; // Velocity of obj1 as observed from obj2
+        
+        glm::vec2 shiftedTranslation1;
 
-    if(relativeVelocity.y == 0.0f)
-    {
-        yEntryTime = -std::numeric_limits<float>::infinity();
-        yExitTime = std::numeric_limits<float>::infinity();
-    }
-    else
-    {
-        yEntryTime = yEntryDist / relativeVelocity.y;
-        yExitTime = yExitDist / relativeVelocity.y;
-    }
-    entryTime = std::max(xEntryTime, yEntryTime);
-    exitTime = std::min(xExitTime, yExitTime);
+        shiftedTranslation1.x = relativeVelocity.x > 0.0f ? p_translation_2.x - p_dimensions_1.x: p_translation_2.x + p_dimensions_2.x;
+        shiftedTranslation1.y = relativeVelocity.y > 0.0f ? p_translation_2.y - p_dimensions_1.y: p_translation_2.y + p_dimensions_2.y;
+        
 
-    // Non-collision check
-    if
-    (
-        (entryTime > exitTime) ||
-        (xEntryTime < 0.0f && yEntryTime < 0.0f) ||
-        (xEntryTime > 1.0f) ||
-        (yEntryTime > 1.0f)
-    )
-    {
-        return 1.0f;
-    }
-    else
-    {   
-        float 
-        oldLeft1, oldRight1,oldTop1, oldBottom1,
-        left1, right1, top1, bottom1,
-        left2, right2, top2, bottom2;
+        if(relativeVelocity.x > 0.0f)
+        {
+            xEntryDist = p_translation_2.x - (shiftedTranslation1.x + p_dimensions_1.x);
+            xExitDist = (p_translation_2.x + p_dimensions_2.x) - shiftedTranslation1.x;
+            colCaseX = 1;
+        }
+        else
+        {
+            xEntryDist = (p_translation_2.x + p_dimensions_2.x) - shiftedTranslation1.x;
+            xExitDist = p_translation_2.x - (shiftedTranslation1.x + p_dimensions_1.x);
+            colCaseX = 0;
+        }
 
-        oldLeft1 = p_translation_1.x;
-        oldRight1 = p_translation_1.x + p_dimensions_1.x;
-        oldTop1 = p_translation_1.y;
-        oldBottom1 = p_translation_1.y + p_dimensions_1.y;
+        if (relativeVelocity.y > 0.0f)
+        {
+            yEntryDist = p_translation_2.y - (shiftedTranslation1.y + p_dimensions_1.y);
+            yExitDist = (p_translation_2.y + p_dimensions_2.y) - shiftedTranslation1.y;
+            colCaseY = 1;
+        }
+        else
+        {
+            yEntryDist = (p_translation_2.y + p_dimensions_2.y) - shiftedTranslation1.y;
+            yExitDist = p_translation_2.y - (shiftedTranslation1.y + p_dimensions_1.y);
+            colCaseY = 0;
+        }
 
-        left1 = oldLeft1 + relativeVelocity.x;
-        right1 = oldRight1 + relativeVelocity.x;
-        top1 = oldTop1 + relativeVelocity.y;
-        bottom1 = oldBottom1 + relativeVelocity.y;
+        // Time calculations
+        if(relativeVelocity.x == 0.0f)
+        {
+            xEntryTime = -std::numeric_limits<float>::infinity();
+            xExitTime = std::numeric_limits<float>::infinity();
+        }
+        else
+        {
+            xEntryTime = xEntryDist / relativeVelocity.x;
+            xExitTime = xExitDist / relativeVelocity.x;
+        }
+
+        if(relativeVelocity.y == 0.0f)
+        {
+            yEntryTime = -std::numeric_limits<float>::infinity();
+            yExitTime = std::numeric_limits<float>::infinity();
+        }
+        else
+        {
+            yEntryTime = yEntryDist / relativeVelocity.y;
+            yExitTime = yExitDist / relativeVelocity.y;
+        }
+        entryTime = std::max(xEntryTime, yEntryTime);
+        exitTime = std::min(xExitTime, yExitTime);
 
         
-        left2 = p_translation_2.x;
-        right2 = p_translation_2.x + p_dimensions_2.x;
-        top2 = p_translation_2.y;
-        bottom2 = p_translation_2.y + p_dimensions_2.y;
-        
-        glm::vec2 collisionNormal1 = glm::vec2(0.0f, 0.0f);
-        glm::vec2 collisionNormal2 = glm::vec2(0.0f, 0.0f);
-        
-        // obj1 left collision
-        if(left1 <= right2 && oldLeft1 > right2)
+        // Non-collision check
+        if
+        (
+            (entryTime > exitTime) ||
+            (xEntryTime < 0.0f && yEntryTime < 0.0f) ||
+            (xEntryTime > 1.0f) ||
+            (yEntryTime > 1.0f)
+        )
         {
-            collisionNormal2 = glm::normalize(glm::vec2(1.0f, 0.0f));
-            printf("ColliderManager - C1\n");
+            return 1.0f;
         }
+        else
+        {   
+            float 
+            oldLeft1, oldRight1,oldTop1, oldBottom1,
+            left1, right1, top1, bottom1,
+            left2, right2, top2, bottom2;
 
-        // obj1 right collision
-        else if(right1 >= left2 && oldRight1 < left2)
-        {
-            collisionNormal2 = glm::normalize(glm::vec2(-1.0f, 0.0f));
-            printf("ColliderManager - C2\n");
+            oldLeft1 = p_translation_1.x;
+            oldRight1 = p_translation_1.x + p_dimensions_1.x;
+            oldTop1 = p_translation_1.y;
+            oldBottom1 = p_translation_1.y + p_dimensions_1.y;
+
+            left1 = oldLeft1 + relativeVelocity.x;
+            right1 = oldRight1 + relativeVelocity.x;
+            top1 = oldTop1 + relativeVelocity.y;
+            bottom1 = oldBottom1 + relativeVelocity.y;
+
+            
+            left2 = p_translation_2.x;
+            right2 = p_translation_2.x + p_dimensions_2.x;
+            top2 = p_translation_2.y;
+            bottom2 = p_translation_2.y + p_dimensions_2.y;
+            
+            glm::vec2 collisionNormal1 = glm::vec2(0.0f, 0.0f);
+            glm::vec2 collisionNormal2 = glm::vec2(0.0f, 0.0f);
+
+            // obj1 left collision
+            if(left1 <= right2 && oldLeft1 > right2)
+            {
+                collisionNormal2 = glm::normalize(glm::vec2(1.0f, 0.0f));
+                // printf("ColliderManager - C1\n");
+            }
+
+            // obj1 right collision
+            else if(right1 >= left2 && oldRight1 < left2)
+            {
+                collisionNormal2 = glm::normalize(glm::vec2(-1.0f, 0.0f));
+                // printf("ColliderManager - C2\n");
+            }
+
+            // obj1 top collision
+            else if(top1 <= bottom2 && oldTop1 > bottom2)
+            {
+                collisionNormal2 = glm::normalize(glm::vec2(0.0f, 1.0f));
+                // printf("ColliderManager - C3\n");
+            }
+
+            // obj1 bottom collision
+            else if(bottom1 >= top2 && oldBottom1 < top2)
+            {
+                collisionNormal2 = glm::normalize(glm::vec2(0.0f, -1.0f));
+                // printf("ColliderManager - C4\n");
+            }
+
+            collisionNormal1 = glm::normalize(-collisionNormal2);
+
+            if(p_velocity_1!= nullptr)
+            {
+                float dotProduct1 = glm::dot(velocity1, collisionNormal2);
+                glm::vec2 newVelocity1 = velocity1 - collisionNormal2 * dotProduct1;
+                p_velocity_1->SetVelocity(newVelocity1);
+            }
+
+           if(p_velocity_2!= nullptr)
+            {
+                float dotProduct2 = glm::dot(velocity2, collisionNormal1);
+                glm::vec2 newVelocity2 = velocity2 - collisionNormal1 * dotProduct2;
+                p_velocity_2->SetVelocity(newVelocity2);
+            }
+
+            return entryTime;
         }
-
-        // obj1 top collision
-        else if(top1 <= bottom2 && oldTop1 > bottom2)
-        {
-            collisionNormal2 = glm::normalize(glm::vec2(0.0f, 1.0f));
-            printf("ColliderManager - C3\n");
-        }
-
-        // obj1 bottom collision
-        else if(bottom1 >= top2 && oldBottom1 < top2)
-        {
-            collisionNormal2 = glm::normalize(glm::vec2(0.0f, -1.0f));
-            printf("ColliderManager - C4\n");
-        }
-
-        collisionNormal1 = glm::normalize(-collisionNormal2);
-
-        if(p_velocity_1!= nullptr)
-        {
-            float dotProduct1 = glm::dot(velocity1, collisionNormal2);
-            glm::vec2 newVelocity1 = velocity1 - collisionNormal2 * dotProduct1;
-            p_velocity_1->SetVelocity(newVelocity1);
-            // std::cout << "ColliderManager - nv1x: " << newVelocity1.x << ", nv1y: " << newVelocity1.y << std::endl;        
-            // std::cout << "ColliderManager - dp1: " << dotProduct1 << std::endl;
-        }
-
-       if(p_velocity_2!= nullptr)
-        {
-            float dotProduct2 = glm::dot(velocity2, collisionNormal1);
-            glm::vec2 newVelocity2 = velocity2 - collisionNormal1 * dotProduct2;
-            p_velocity_2->SetVelocity(newVelocity2);
-            // std::cout << "ColliderManager - nv2x: " << newVelocity2.x << ", nv1y: " << newVelocity2.y << std::endl;
-            // std::cout << "ColliderManager - dp2: " << dotProduct2 << std::endl;
-        }
-        // std::cout << "ColliderManager - cn1x: " << collisionNormal1.x << ", cn1y: " << collisionNormal1.y << std::endl;
-        // std::cout << "ColliderManager - cn2x: " << collisionNormal2.x << ", cn2y: " << collisionNormal2.y << std::endl;
-
-        return entryTime;
     }
     return 1.0f;
-
 }
