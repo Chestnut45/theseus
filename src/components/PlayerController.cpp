@@ -402,16 +402,19 @@ void PlayerController::StartAttack()
             {
                 auto& scene = this->GetGameObject()->GetScene();
                 auto& projectile = scene.CreateObject2D();
+                
                 auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
                 projectileSprite.SetOriginToCenterOfTexture();
+                
                 auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+                projectileCollider.SetDamage(10.0f);
+                projectileCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
+
+                
                 auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
 
                 projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
                 projectile.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition()));
-
-                projectileCollider.SetDamage(10.0f);
-                projectileCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
 
                 VelocityComponent* playerVelocityComponent = this->GetGameObject()->GetComponent<VelocityComponent>();
 
@@ -423,7 +426,7 @@ void PlayerController::StartAttack()
                 {
                     playerVelocity = glm::vec2(0.0f, 0.0f);
                 }
-                //projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
+                projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
             
                 break;
             }
