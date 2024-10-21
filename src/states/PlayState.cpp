@@ -173,7 +173,7 @@ void PlayState::Update(float delta)
     // Inflict status effects upon the player
     for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
     {
-        status.InflictStatusEffects();
+        status.Update();
     }    
 
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))

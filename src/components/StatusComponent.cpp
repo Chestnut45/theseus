@@ -12,7 +12,8 @@ StatusComponent::StatusComponent()
 {
     for(int i = 0; i < StatusEffectType::NONE; i++)
     {
-        this->m_aStatusEffects[i] = nullptr;
+        this->m_aStatusEffects[i].m_OwnerComponent = this;
+        this->m_aStatusEffects[i].m_StatusEffectType = (StatusEffectType)i;
     }
 }
 
@@ -24,48 +25,80 @@ StatusComponent::~StatusComponent()
 // else, add status effect
 void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifespan)
 {
-
-    if(this->m_aStatusEffects[p_se_type] != nullptr)
-    {
-        this->m_aStatusEffects[p_se_type]->GetTimer()->Reset();
-    }
-    else
-    {
-        StatusEffect* statusEffect = new StatusEffect(p_se_type, p_lifespan, this);
-        this->m_aStatusEffects[p_se_type] = statusEffect;
-    }
-    
+    this->m_aStatusEffects[p_se_type].m_StatusEffectType = p_se_type;
+    this->m_aStatusEffects[p_se_type].m_isActive = true;
+    this->m_aStatusEffects[p_se_type].m_timer.Restart();
+    this->m_aStatusEffects[p_se_type].m_fLifespan = p_lifespan;
 }
 
-void StatusComponent::InflictStatusEffects()
+bool StatusComponent::IsStatusEffectActive(StatusEffectType p_se_type) const
+{
+    return this->m_aStatusEffects[p_se_type].m_isActive;
+}
+
+void StatusComponent::Update()
 {
     for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
     {
-        StatusComponent::StatusEffect * statusEffect = this->m_aStatusEffects[i];
+        StatusComponent::StatusEffect& statusEffect = this->m_aStatusEffects[i];
         
-        if(statusEffect != nullptr)
+        if(statusEffect.m_isActive)
         {
-            if(statusEffect->GetTimer()->Elapsed() >= statusEffect->GetLifespan())
+            statusEffect.ApplyStatusEffect();
+
+            if(statusEffect.m_fLifespan >= 0 && statusEffect.m_timer.Elapsed() >= statusEffect.m_fLifespan)
             {
-                std::cout << "StatusComponent - Delete status effect: " << statusEffect->GetStatusEffectType() << std::endl;
+                std::cout << "StatusComponent - Delete status effect: " << statusEffect.m_StatusEffectType << std::endl;
                 
-                this->RemoveStatusEffect(statusEffect->GetStatusEffectType());
-            }
-            else
-            {
-                statusEffect->ApplyStatusEffect();
+                this->RemoveStatusEffect(statusEffect.m_StatusEffectType);
             }
         }
     }
 }
 
-bool StatusComponent::IsStatusEffectActive(StatusEffectType p_se_type) const
-{
-    return this->m_aStatusEffects[p_se_type] == nullptr;
-}
-
 void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 {
-    delete this->m_aStatusEffects[p_se_type];
-    this->m_aStatusEffects[p_se_type] = nullptr;
+    this->m_aStatusEffects[p_se_type].m_isActive = false;
+}
+
+void StatusComponent::StatusEffect::ApplyStatusEffect()
+{
+    switch (this->m_StatusEffectType)
+    {
+        case StatusEffectType::BURNING:
+        {
+            float damage = 0.1f;
+            HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
+            if(health != nullptr)
+            {
+                ArmourComponent* armour = this->m_OwnerComponent->GetGameObject()->GetComponent<ArmourComponent>();
+                if(armour != nullptr && armour->IsSpecialPropertyPresent(ArmourComponent::SpecialProperty::FIRERESISTANCE));
+                {
+                    damage *= (100 - armour->GetSpecialPropertiesValues(ArmourComponent::SpecialProperty::FIRERESISTANCE)) * 0.01f;
+                }
+                health->Damage(damage);
+            }
+            else
+            {
+                std::cout << "StatusComponent - ERROR: HealthComponent not found." << std::endl;
+            }
+            break;
+        }
+
+        case StatusEffectType::PETRIFIED:
+        {
+            VelocityComponent* velocityComponent = this->m_OwnerComponent->GetGameObject()->GetComponent<VelocityComponent>();
+            if(velocityComponent != nullptr)
+            {
+                velocityComponent->SetPetrification(true);
+            }
+            break;
+        }      
+        
+        case StatusEffectType::POISONED:
+        {
+            this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>()->Damage(0.2f);
+            break;
+        }
+    }
 }
