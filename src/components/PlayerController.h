@@ -6,6 +6,7 @@
 #include <components/HealthComponent.h>
 #include <components/EnemyController.h>
 #include <components/ColliderComponent.h>
+#include "../inventory/EquipmentItem.h"
 #include <iostream>
 
 //-----------------------------------------------------------------------------
@@ -52,6 +53,11 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction);
     void SetColliderManager(ColliderManager* pColliderManager);
     ColliderManager* GetColliderManager() const;
+    glm::vec2 GetDirectionVector();
+
+    // Weapon & Attack functions
+    void CollectWeapon(EquipmentItem::WeaponType p_weapon_type);
+
 private:
     // Initialization and animation management
     void InitializeAnimations();
@@ -126,4 +132,7 @@ private:
     PlayerDirection m_previousDirection = PlayerDirection::NONE;
 
     ColliderManager* m_pColliderManager = nullptr;
+
+    // Weapons
+    EquipmentItem::WeaponType m_eCurrentWeapon = EquipmentItem::WeaponType::NONE;
 };

@@ -28,6 +28,30 @@ ColliderManager* PlayerController::GetColliderManager() const
 {
     return m_pColliderManager;
 }
+
+// get normalised direction vector
+glm::vec2 PlayerController::GetDirectionVector()
+{
+    switch (this->m_lastDirectionEnum)
+    {
+        case PlayerDirection::NORTH:       return glm::normalize(glm::vec2(0.0f, 1.0f));
+        case PlayerDirection::NORTH_EAST:  return glm::normalize(glm::vec2(1.0f, 1.0f));
+        case PlayerDirection::EAST:        return glm::normalize(glm::vec2(1.0f, 0.0f));
+        case PlayerDirection::SOUTH_EAST:  return glm::normalize(glm::vec2(1.0f, -1.0f));
+        case PlayerDirection::SOUTH:       return glm::normalize(glm::vec2(0.0f, -1.0f));
+        case PlayerDirection::SOUTH_WEST:  return glm::normalize(glm::vec2(-1.0f, -1.0f));
+        case PlayerDirection::WEST:        return glm::normalize(glm::vec2(-1.0f, 0.0f));
+        case PlayerDirection::NORTH_WEST:  return glm::normalize(glm::vec2(-1.0f, 1.0f));
+        default:                           return glm::normalize(glm::vec2(0.0f, 0.0f));
+    }
+}
+
+// CollectWeapon
+void PlayerController::CollectWeapon(EquipmentItem::WeaponType p_weapon_type)
+{
+    this->m_eCurrentWeapon = p_weapon_type;
+}
+
 // Initialize components related to the player
 void PlayerController::LateInitialize()
 {
@@ -349,6 +373,43 @@ void PlayerController::StartAttack()
 
         // Store the current animation to handle transitions later.
         m_currentAnimation = attackAnimation;
+
+        // Attack
+        glm::vec2 playerVelocity = glm::vec2(0.0f);
+        switch(this->m_eCurrentWeapon)
+        {
+            case EquipmentItem::WeaponType::CROSSBOW:
+            {
+                auto& scene = this->GetGameObject()->GetScene();
+                auto& projectile = scene.CreateObject2D();
+                auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+                auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+                auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+
+                projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+                projectile.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition()));
+
+                projectileCollider.SetDamage(10.0f);
+                projectileCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
+
+                PlayerController* playerController = this->GetGameObject()->GetComponent<PlayerController>();
+                VelocityComponent* playerVelocityComponent = this->GetGameObject()->GetComponent<VelocityComponent>();
+
+                if(playerController != nullptr)
+                {
+                    if(playerVelocityComponent != nullptr)
+                    {
+                        playerVelocity = playerVelocityComponent->GetVelocity();
+                    }
+                    else
+                    {
+                        playerVelocity = glm::vec2(0.0f, 0.0f);
+                    }
+                    projectileVelocity.SetVelocity(playerController->GetDirectionVector() * 256.0f + playerVelocity);
+                }
+                break;
+            }
+        }
     }
 }
 

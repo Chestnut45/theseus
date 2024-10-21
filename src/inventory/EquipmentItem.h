@@ -23,6 +23,14 @@ enum EquipmentSlot {
 
 class EquipmentItem : public ItemBase {
     public:
+        enum WeaponType
+        {
+            BOW,
+            CROSSBOW,
+            SWORD,
+            NONE //Fists
+        };
+
         // Note that EquipmentItems CANNOT be stacked
         EquipmentItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, EquipmentSlot p_enEquipmentSlot)
             : ItemBase(p_enID, p_strName, p_strDesc, p_iValue, false), m_enSlot(p_enEquipmentSlot)

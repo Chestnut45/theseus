@@ -36,6 +36,7 @@ WeaponComponent::WeaponComponent()
 
 void WeaponComponent::Attack()
 {
+
     glm::vec2 playerVelocity = glm::vec2(0.0f);
         
     switch(this->m_CurrentWeapon)
@@ -67,7 +68,7 @@ void WeaponComponent::Attack()
                 {
                     playerVelocity = glm::vec2(0.0f, 0.0f);
                 }
-                //projectileVelocity.SetVelocity(playerController->GetDirectionVector() * 256.0f + playerVelocity);
+                projectileVelocity.SetVelocity(playerController->GetDirectionVector() * 256.0f + playerVelocity);
             }
             break;
         }

@@ -9,8 +9,6 @@
 #include "../components/InventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/VelocityComponent.h"
-#include "../components/WeaponComponent.h"
-
 
 void PlayState::Enter()
 {
@@ -232,9 +230,8 @@ void PlayState::CreatePlayer()
     auto& armour = m_pPlayerObject->AddComponent<ArmourComponent>();
     armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
 
-    // Add weapon component
-    auto& weaponComponent = m_pPlayerObject->AddComponent<WeaponComponent>();
-    weaponComponent.CollectWeapon(WeaponComponent::WeaponType::CROSSBOW);
+    // Add weapon
+    playerController.CollectWeapon(EquipmentItem::WeaponType::CROSSBOW);
 }
 
 void PlayState::CreateMinitaurEnemy() {
