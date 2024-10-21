@@ -28,7 +28,7 @@ private:
     void HandleDeathState();
     void ChangeState(EnemyState newState) ;
     
-
+    
     // Minitaur-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;

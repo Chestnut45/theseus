@@ -87,6 +87,7 @@ void MinitaurController::Update(float delta)
     // Check if health is below or equal to 0 and transition to the DEATH state
     if (m_pHealth->GetHealth() <= 0)
     {
+        // Switch to the DEATH state if the health is depleted
         ChangeState(EnemyState::DEATH);
     }
 
@@ -103,8 +104,8 @@ void MinitaurController::Update(float delta)
             HandleAttackingState(delta);
             break;
         case EnemyState::DEATH:
-            HandleDeathState();  
-            break;
+            HandleDeathState();
+            return;  // After calling HandleDeathState(), return immediately since the object is now deleted
     }
 
     // Update animations based on direction after handling movement
@@ -137,13 +138,23 @@ void MinitaurController::MoveTowardsTarget(float delta)
 
     // Calculate direction vector
     glm::vec2 direction = targetPosition - currentPosition;
+
+    // Log for debugging current position, target position, and distance
+    // printf("Minitaur MoveTowardsTarget: Current Pos: (%f, %f), Target Pos: (%f, %f)\n", 
+    //        currentPosition.x, currentPosition.y, targetPosition.x, targetPosition.y);
+
     if (glm::length(direction) > 0.01f) {
         direction = glm::normalize(direction);
         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+
+        // Log the velocity being set
+        // printf("Velocity Set: (%f, %f)\n", direction.x * m_chaseSpeed, direction.y * m_chaseSpeed);
     } else {
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        // printf("Velocity Stopped\n");
     }
 }
+
 void MinitaurController::HandleIdleState()
 {
     // Check if the player is within detection range
@@ -159,6 +170,8 @@ void MinitaurController::HandleIdleState()
 void MinitaurController::HandleChasingState(float delta)
 {
     MoveTowardsTarget(delta);
+    // glm::vec2 currentVelocity = m_pVelocity->GetVelocity();
+    // printf("After MoveTowardsTarget - Velocity: (%f, %f)\n", currentVelocity.x, currentVelocity.y);
 
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();

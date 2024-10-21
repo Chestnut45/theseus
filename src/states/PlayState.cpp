@@ -107,11 +107,29 @@ void PlayState::Update(float delta)
     }
 
     // Update all minitaur controllers
+    // First pass: Update all minitaur controllers (without deletion)
     for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
     {
-        minitaurController.Update(delta);
+        minitaurController.Update(delta);  // Update logic only
     }
 
+    // // Debugging the final minitaur's position and state
+
+    // for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
+    // {
+    //     auto* pGameObject = minitaurController.GetGameObject();
+    //     if (pGameObject)
+    //     {
+    //         auto* transform = pGameObject->GetComponent<wolf::Transform2D>();
+    //         if (transform)
+    //         {
+    //             glm::vec2 pos = transform->GetGlobalPosition();
+    //             printf("Minitaur Render Position: (%f, %f)\n", pos.x, pos.y);  // Debug rendering position
+    //         }
+    //     }
+    // }
+
+    
     // Update all animated sprites
     for (auto&&[_, anim] : m_pGameInstance->GetScene().Each<AnimatedSprite2D>())
     {
@@ -120,7 +138,13 @@ void PlayState::Update(float delta)
 
     // Update collisions
     this->m_pColliderManager->Update(delta);
-    
+
+    // Apply velocity to transforms for all objects with both components
+    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
+    {
+        transform.Translate(velocity.GetVelocity() * delta);
+    }   
+
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
     if (playerInventory) {
@@ -166,18 +190,33 @@ void PlayState::Update(float delta)
         }
     }
 
-    // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
-    {
-        transform.Translate(velocity.GetVelocity() * delta);
-    }   
-
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
     }
     wolf::EventManager::Dispatch<DialogueTriggerEvent>();
+
+            // Second pass: Reverse iteration to safely handle deletions
+    auto& scene = m_pGameInstance->GetScene();
+    auto view = scene.Each<MinitaurController>();
+    auto viewSize = std::distance(view.begin(), view.end());
+
+    for (int i = viewSize - 1; i >= 0; --i)
+    {
+        auto it = view.begin();
+        std::advance(it, i); // Move the iterator to the correct position
+
+        // Access the MinitaurController from the tuple
+        MinitaurController& minitaurController = std::get<1>(*it);
+
+        // Check for deletion condition (if health <= 0, call Delete)
+        auto* pGameObject = minitaurController.GetGameObject();
+        if (pGameObject && pGameObject->GetComponent<HealthComponent>()->GetHealth() <= 0)
+        {
+            pGameObject->Delete();  // Immediate deletion
+        }
+    }
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
 
