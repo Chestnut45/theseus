@@ -23,10 +23,6 @@ enum InventoryType {
     MERCHANT_INVENTORY
 };
 
-struct AddToPlayerInventoryEvent {
-    ItemBase* pItem;
-};
-
 // Note that this struct is NOT a part of the ImGui library it just uses ImVec2s
 struct ImGuiUVSet {
     ImGuiUVSet(ImVec2 p_v2TopLeft, ImVec2 p_v2BotRight) : m_v2TopLeft(p_v2TopLeft), m_v2BotRight(p_v2BotRight) {};
@@ -48,6 +44,7 @@ class InventoryComponent : public wolf::BaseComponent {
         InventoryComponent& operator=(InventoryComponent&& other) = delete;
 
         InventoryType GetType() {return m_enType;};
+        int GetIdNum() {return m_iIdNum;};
 
         ItemBase* GetItem(const std::string& p_strItemName);
         ItemBase* GetItem(ItemID p_enItemID);
@@ -63,6 +60,9 @@ class InventoryComponent : public wolf::BaseComponent {
         virtual void ShowInventoryGUI();
 
     protected:
+        static int m_iNextIdNum;
+        const int m_iIdNum;
+
         const int m_iSize;
         const int m_iMaxPerRow;
         int m_iSlotsInUse = 0;
@@ -78,10 +78,38 @@ class InventoryComponent : public wolf::BaseComponent {
 
 struct OpenInventoryEvent {
     InventoryType enType;
-    InventoryComponent* pInventory;
+    int iIdNum;
 };
 
 struct CloseInventoryEvent {
     InventoryType enType;
-    InventoryComponent* pInventory;
+    int iIdNum;
+};
+
+struct SendItemToChestEvent {
+    int iChestIdNum;
+    ItemBase* pItem;
+
+    // It is technically optional to include the item's player inventory index, but
+    // it should be used whenever possible to make sure that we remove a
+    // specific item instance rather than the first one we find.
+    int iPlayerInventoryIndex;
+};
+
+struct RemoveFromChestEvent {
+    int iChestIdNum;
+    std::string strItemName;
+
+    // This is a similarly optional index that should be included whenever possible
+    int iChestInventoryIndex = -1;
+};
+
+struct SendItemToPlayerInventoryEvent {
+    InventoryType enSenderType;
+    int iSenderIdNum;
+
+    ItemBase* pItem;
+
+    // This is also an optional index that should be included whenever possible
+    int iSenderInventoryIndex = -1;
 };

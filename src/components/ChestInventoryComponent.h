@@ -16,6 +16,8 @@ class ChestInventoryComponent : public InventoryComponent {
             {
                 m_enType = CHEST_INVENTORY;
 
+                wolf::EventManager::AddListener<SendItemToChestEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleAddToChestEvent>(*this);
+                wolf::EventManager::AddListener<RemoveFromChestEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleRemoveFromChestEvent>(*this);
                 wolf::EventManager::AddListener<OpenInventoryEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleOpenInventoryEvent>(*this);
             };
 
@@ -27,6 +29,8 @@ class ChestInventoryComponent : public InventoryComponent {
         void OpenChest();
         void CloseChest();
 
+        void HandleAddToChestEvent(const SendItemToChestEvent& p_event);
+        void HandleRemoveFromChestEvent(const RemoveFromChestEvent& p_event);
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
 
         virtual void ShowInventoryGUI();

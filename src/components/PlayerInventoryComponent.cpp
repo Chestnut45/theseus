@@ -9,17 +9,34 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
 
     // And deregister the chest's listeners
     wolf::EventManager::RemoveListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
-    wolf::EventManager::RemoveListener<AddToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
-    wolf::EventManager::RemoveListener<DeleteFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDeleteFromPlayerInventoryEvent>(*this);
+    wolf::EventManager::RemoveListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
+    wolf::EventManager::RemoveListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
+    wolf::EventManager::RemoveListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
 }
 
 void PlayerInventoryComponent::ShowInventoryGUI() {
+    float iNumRows = m_vvpContents.size() / m_iMaxPerRow;
+    float fOffset = 18.25f;
+
+    // For some silly reason, if the inventory can be shown on
+    // a single row the inventory padding is a bit too small
+    if (iNumRows == 1) {
+        // So we add a little bit extra
+        iNumRows += 0.4f;
+    }
+
+    // We run into a similar issue when we're only showing one item
+    // on the X axis, so we add an extra offset to accomodate that
+    if (m_iMaxPerRow == 1) {
+        fOffset += 6.0f;
+    }
+
     // You can't resize the inventory or move it
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
     // By default, the inventory appears close to the middle of the screen
     ImGui::SetNextWindowPos({500, 200});
-    ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + 18.25f) * m_iMaxPerRow, (m_v2TexFrameSize.y + 22) * m_iMaxPerRow});
+    ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + fOffset) * m_iMaxPerRow, (m_v2TexFrameSize.y + 22) * iNumRows});
     ImGui::Begin("\t~ Inventory ~", nullptr, flags);
 
     // This counter lets us control how many items are drawn in a row
@@ -122,6 +139,19 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                             this->UnequipItem(pItem);
                             ImGui::CloseCurrentPopup();
                         }
+                    }
+                }
+
+                // If we currently have a chest open
+                if (m_iOpenChestIdNum != -1) {
+                    // Then we need to be able to move items into it
+                    if (ImGui::Button("Store")) {
+                        // We move items by sending an event to the open chest
+                        // !-- Note that we send the index that we're storing the item at in the player's inventory so that
+                        // when the chest sends a return message telling us to remove the item from the player's inventory,
+                        // we can make remove the specific item we sent rather than the first instance of it in our inventory --!
+                        wolf::EventManager::TriggerEvent(SendItemToChestEvent(m_iOpenChestIdNum, this->GetItem(k), k));
+                        ImGui::CloseCurrentPopup();
                     }
                 }
 
@@ -242,34 +272,63 @@ void PlayerInventoryComponent::DiscardItem(int p_iItemIndex) {
 }
 
 void PlayerInventoryComponent::AddGold(int p_iAmt) {
+    // Add some more gold to our "wallet"
     m_iGold += p_iAmt;
 
+    // If that sends us over the limit
     if (m_iGold > MAX_GOLD) {
+        // Pretend that it didn't.
         m_iGold = MAX_GOLD;
     }
 }
 
 bool PlayerInventoryComponent::TakeGold(int p_iAmt) {
-    if (m_iGold - p_iAmt < 0) {
+    // If taking away the given amount of gold would send us into the negative
+    if ((m_iGold - p_iAmt) < 0) {
+        // Then we return false and don't deplete the gold
         return false;
     }
     
+    // Otherwise, we just take away the given amount and return true
     m_iGold -= p_iAmt;
     return true;
 }
 
 void PlayerInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
-    if (p_event.enType != PLAYER_INVENTORY) {
-        
+    // If we have opened a chest (and it's not the chest we already have open)
+    if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum != m_iOpenChestIdNum) {
+        // Then we need to keep track of its id number so we can move items between the two inventories
+        m_iOpenChestIdNum = p_event.iIdNum;
     }
 }
 
-void PlayerInventoryComponent::HandleAddToPlayerInventoryEvent(const AddToPlayerInventoryEvent& p_event) {
-    this->AddItem(p_event.pItem);
+void PlayerInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
+    // If we have closed the chest that we are holding the id number for
+    if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum == m_iOpenChestIdNum) {
+        // Then we can safely discard the id number because we're done moving items between the two inventories
+        m_iOpenChestIdNum = -1;
+    }
 }
 
-void PlayerInventoryComponent::HandleDeleteFromPlayerInventoryEvent(const DeleteFromPlayerInventoryEvent& p_event) {
-    ItemBase* pItem = this->GetItem(p_event.strItemName);
-    this->RemoveItem(p_event.strItemName);
-    delete(pItem);
+void PlayerInventoryComponent::HandleAddToPlayerInventoryEvent(const SendItemToPlayerInventoryEvent& p_event) {
+    // If we have space in our inventory for the item
+    if (this->AddItem(p_event.pItem)) {
+        // And we took the item out of a chest
+        if (p_event.enSenderType == CHEST_INVENTORY) {
+            // Then we need to let the chest know that it no longer has the item
+            wolf::EventManager::TriggerEvent(RemoveFromChestEvent(p_event.iSenderIdNum, p_event.pItem->GetName(), p_event.iSenderInventoryIndex));
+        }
+    }
+}
+
+void PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent(const RemoveFromPlayerInventoryEvent& p_event) {
+    // If the sender knew what index *this* inventory is storing the item at
+    if (p_event.iIndex != -1) {
+        // Then we can remove whatever item is at that specific index
+        this->RemoveItem(p_event.iIndex);
+    }
+    else {
+        // Otherwise, we remove the item by name (so we remove the first instance of it that we find)
+        this->RemoveItem(p_event.strItemName);
+    }
 }

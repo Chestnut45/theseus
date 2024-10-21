@@ -1,7 +1,9 @@
 #include "InventoryComponent.h"
 #include "W_Logging.h"
 
-InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow) {
+int InventoryComponent::m_iNextIdNum = 0;
+
+InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow), m_iIdNum(m_iNextIdNum){
     // Reserve the amount of space we've been asked for
     m_vvpContents.reserve(p_iSize);
 
@@ -73,6 +75,8 @@ InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, const st
         m_pTexture = pNewTexture;
         m_v2TexFrameSize = ImVec2(p_v2TexFrameSize.x, p_v2TexFrameSize.y);
     }
+
+    m_iNextIdNum++;
 }
 
 InventoryComponent::~InventoryComponent() {
@@ -296,6 +300,15 @@ void InventoryComponent::EmptyInventory() {
 }
 
 void InventoryComponent::ShowInventoryGUI() {
+    float iNumRows = m_vvpContents.size() / m_iMaxPerRow;
+
+    // For some silly reason, if the inventory can be shown on
+    // a single row the inventory padding is a bit too small
+    if (iNumRows == 1) {
+        // So we add a little bit extra
+        iNumRows += 0.4f;
+    }
+    
     // You can't resize the inventory but you can move it around!
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 

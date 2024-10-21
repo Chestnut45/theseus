@@ -8,6 +8,8 @@ ChestInventoryComponent::~ChestInventoryComponent() {
     m_vvpContents.clear();
 
     // And deregister the chest's listeners
+    wolf::EventManager::RemoveListener<SendItemToChestEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleAddToChestEvent>(*this);
+    wolf::EventManager::RemoveListener<RemoveFromChestEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleRemoveFromChestEvent>(*this);
     wolf::EventManager::RemoveListener<OpenInventoryEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleOpenInventoryEvent>(*this);
 }
 
@@ -15,24 +17,33 @@ bool ChestInventoryComponent::FillChestFromFile(const std::string& p_strFilePath
     return false;
 }
 
-void ChestInventoryComponent::OpenChest() {
-    m_bIsOpen = true;
-    wolf::EventManager::EnqueueEvent(OpenInventoryEvent(m_enType, this));
-}
-
-void ChestInventoryComponent::CloseChest() {
-    m_bIsOpen = false;
-    wolf::EventManager::EnqueueEvent(CloseInventoryEvent(m_enType, this));
-}
-
 void ChestInventoryComponent::ShowInventoryGUI() {
     if (m_bIsOpen) {
+        float fNumRows = m_vvpContents.size() / m_iMaxPerRow;
+        float fOffset = 18.25f;
+
+        // For some silly reason, if the inventory can be shown on
+        // a single row the inventory padding is a bit too small
+        if (fNumRows == 1) {
+            // So we add a little bit extra
+            fNumRows += 0.4f;
+        }
+        else if (fNumRows == 2) {
+            fNumRows += 0.2f;
+        }
+        
+        // We run into a similar issue when we're only showing one item
+        // on the X axis, so we add an extra offset to accomodate that
+        if (m_iMaxPerRow == 1) {
+            fOffset += 6.0f;
+        }
+
         // You can't resize the inventory or move it
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos({800, 200});
-        ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + 18.25f) * m_iMaxPerRow, (m_v2TexFrameSize.y + 22) * m_iMaxPerRow});
+        ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + fOffset) * m_iMaxPerRow, (m_v2TexFrameSize.y + 25) * fNumRows});
         ImGui::Begin("\t~ Chest ~", nullptr, flags);
 
         // This counter lets us control how many items are drawn in a row
@@ -149,21 +160,62 @@ void ChestInventoryComponent::ShowInventoryGUI() {
     }
 }
 
-void ChestInventoryComponent::SendItemToPlayer(int p_iItemIndex) {
-    // Retrieve the item from the inventory and send it to the player via an event
-    wolf::EventManager::EnqueueEvent(this->GetItem(p_iItemIndex));
+void ChestInventoryComponent::OpenChest() {
+    m_bIsOpen = true;
 
-    // Then take the item out of the chest
-    this->RemoveItem(p_iItemIndex);
+    // Let anyone interested know which specific chest was opened
+    wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
+}
+
+void ChestInventoryComponent::CloseChest() {
+    m_bIsOpen = false;
+
+    // Let anyone interested know which specific chest was closed
+    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+}
+
+void ChestInventoryComponent::SendItemToPlayer(int p_iItemIndex) {
+    // Retrieve the item from the inventory and send it to the player via an event.
+    wolf::EventManager::TriggerEvent(SendItemToPlayerInventoryEvent(m_enType, m_iIdNum, this->GetItem(p_iItemIndex), p_iItemIndex));
+    
+    // !-- Note that we also send along the index that this specific chest was storing the item at to make sure
+    // that when we the player tells us to remove the item from the chest later we can remove the exact item that
+    // we sent rather than the first instance of it (in case we have multiple items with the same name) --!
 }
 
 void ChestInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
     // If this chest is open
     if (m_bIsOpen) {
         // And a different chest is opening
-        if (p_event.enType == CHEST_INVENTORY && p_event.pInventory != this) {
+        if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
             m_bIsOpen = false;
+        }
+    }
+}
+
+void ChestInventoryComponent::HandleAddToChestEvent(const SendItemToChestEvent& p_event) {
+    // If the player is trying to add an item to this specific chest
+    if (p_event.iChestIdNum == m_iIdNum) {
+        // And we have the space to hold it
+        if (this->AddItem(p_event.pItem)) {
+            // Then we need to let the player know that they can remove the item from their inventory
+            wolf::EventManager::TriggerEvent(RemoveFromPlayerInventoryEvent(p_event.pItem->GetName(), p_event.iPlayerInventoryIndex));
+        }
+    }
+}
+
+void ChestInventoryComponent::HandleRemoveFromChestEvent(const RemoveFromChestEvent& p_event) {
+    // If someone has taken an item out of this specific chest
+    if (p_event.iChestIdNum == m_iIdNum) {
+        // Then we check if they knew what index of the chest's inventory the item was stored at
+        if (p_event.iChestInventoryIndex != -1) {
+            // And if they did, we remove whatever item is there
+            this->RemoveItem(p_event.iChestInventoryIndex);
+        }
+        else {
+            // Otherwise, we remove the first instance of the item that we can find by using its name
+            this->RemoveItem(p_event.strItemName);
         }
     }
 }

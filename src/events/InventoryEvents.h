@@ -27,6 +27,11 @@ struct GoldEvent {
     int iAmt;
 };
 
-struct DeleteFromPlayerInventoryEvent {
+struct RemoveFromPlayerInventoryEvent {
     std::string strItemName;
+
+    // Providing the index is optional, but it should be used whenever possible
+    // as it ensures that we are deleting a specific instance of an item, rather
+    // rather than the first one that we find.
+    int iIndex = -1;
 };

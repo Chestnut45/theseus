@@ -7,6 +7,7 @@
 #include "../components/ColliderComponent.h"
 #include "../components/HealthComponent.h"
 #include "../components/PlayerInventoryComponent.h"
+#include "../components/ChestInventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/VelocityComponent.h"
 
@@ -169,6 +170,21 @@ void PlayState::Update(float delta)
             }
         }
     }
+    
+    auto* chest = m_pPlayerObject->GetComponent<ChestInventoryComponent>();
+    if (chest) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
+            chest->OpenChest();
+        }
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
+            chest->CloseChest();
+        }
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
+            chest->AddItem(ItemCreator::CreateItem("Healing Heart"));
+        }
+        
+        chest->ShowInventoryGUI();
+    }
 
     // Apply velocity to transforms for all objects with both components
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
@@ -237,6 +253,8 @@ void PlayState::CreatePlayer()
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
     auto& armour = m_pPlayerObject->AddComponent<ArmourComponent>();
     armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
+
+    m_pPlayerObject->AddComponent<ChestInventoryComponent>(4, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 }
 
 void PlayState::CreateMinitaurEnemy()

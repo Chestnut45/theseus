@@ -24,8 +24,9 @@ class PlayerInventoryComponent : public InventoryComponent {
 
                 // We also need to register for events related to the player's inventory
                 wolf::EventManager::AddListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
-                wolf::EventManager::AddListener<AddToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
-                wolf::EventManager::AddListener<DeleteFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDeleteFromPlayerInventoryEvent>(*this);
+                wolf::EventManager::AddListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
+                wolf::EventManager::AddListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
+                wolf::EventManager::AddListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
             };
         
         ~PlayerInventoryComponent();
@@ -48,8 +49,9 @@ class PlayerInventoryComponent : public InventoryComponent {
         inline int GetGold() {return m_iGold;};
 
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
-        void HandleAddToPlayerInventoryEvent(const AddToPlayerInventoryEvent& p_event);
-        void HandleDeleteFromPlayerInventoryEvent(const DeleteFromPlayerInventoryEvent& p_event);
+        void HandleCloseInventoryEvent(const CloseInventoryEvent& p_event);
+        void HandleAddToPlayerInventoryEvent(const SendItemToPlayerInventoryEvent& p_event);
+        void HandleRemoveFromPlayerInventoryEvent(const RemoveFromPlayerInventoryEvent& p_event);
 
     private:
         void UseItem(ItemBase* p_pItem, int p_iItemIndex);
@@ -59,6 +61,8 @@ class PlayerInventoryComponent : public InventoryComponent {
 
         const int MAX_GOLD = 999;
         int m_iGold = 0;
+
+        int m_iOpenChestIdNum = -1;
 
         int m_iEquipmentSlots[END_OF_EQUIPMENT - 1];
 };
