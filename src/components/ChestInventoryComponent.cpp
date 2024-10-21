@@ -1,5 +1,8 @@
 #include "ChestInventoryComponent.h"
 
+#include <yaml-cpp/yaml.h>
+#include "inventory/ItemCreator.h"
+
 ChestInventoryComponent::~ChestInventoryComponent() {
     // Empty each of the stacks in the contents vector
     this->EmptyInventory();
@@ -14,7 +17,41 @@ ChestInventoryComponent::~ChestInventoryComponent() {
 }
 
 bool ChestInventoryComponent::FillChestFromFile(const std::string& p_strFilePath) {
-    return false;
+    try {
+        // Load the file
+        YAML::Node node = YAML::Load(p_strFilePath);
+
+        // Go through the list of items
+        YAML::Node itemList = node["item_list"];
+        for (int i = 0; i < itemList.size(); ++i) {
+            // !-- This is throwing an error and I DON'T know why --!
+            std::string strItemName = itemList[i].as<std::string>();
+            
+            // Try to create one
+            ItemBase* pNextItem = ItemCreator::CreateItem(strItemName);
+
+            // If it works,
+            if (pNextItem) {
+                // Add it to the inventory
+                this->AddItem(pNextItem);
+            }
+            else {
+                // Otherwise, empty the inventory (delete whatever we've made so far)
+                this->EmptyInventory();
+
+                // And return false
+                return false;
+            }
+        }
+    }
+    catch (YAML::Exception& e) {
+        // If we run into an error, then we should print it and return false
+        wolf::Error("Error using '", p_strFilePath.c_str(), ": ", e.what());
+        return false;
+    }
+
+    // If we didn't encounter any issues, we return true
+    return true;
 }
 
 void ChestInventoryComponent::ShowInventoryGUI() {

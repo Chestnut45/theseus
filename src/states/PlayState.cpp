@@ -177,8 +177,8 @@ void PlayState::Update(float delta)
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
             chest->ToggleOpen();
         }
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
-            chest->AddItem(ItemCreator::CreateItem("Healing Heart"));
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
+            chest->FillChestFromFile("data/test_chest_contents.yaml");
         }
         
         chest->ShowInventoryGUI();
