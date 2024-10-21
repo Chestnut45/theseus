@@ -12,11 +12,8 @@
 
 #include "ArmourComponent.h"
 #include "HealthComponent.h"
-#include "VelocityComponent.h"
 
 #include "../ColliderManager.h"
-
-class VelocityComponent;
 
 class StatusComponent : public wolf::BaseComponent
 {

@@ -168,17 +168,17 @@ void PlayState::Update(float delta)
         }
     }
 
-    // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
-    {
-        transform.Translate(velocity.GetVelocity() * delta);
-    }
-
     // Inflict status effects upon the player
     for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
     {
         status.Update();
     }    
+
+    // Apply velocity to transforms for all objects with both components
+    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
+    {
+        transform.Translate(velocity.GetVelocity() * delta);
+    }
 
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
@@ -246,8 +246,8 @@ void PlayState::CreatePlayer()
     m_pPlayerObject->GetComponent<InventoryComponent>()->AddItem(crossbow);
 
     // Add status component and status effect
-    // auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+    auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
 }
 
 void PlayState::CreateMinitaurEnemy() {

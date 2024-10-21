@@ -8,6 +8,9 @@
 
 #include "StatusComponent.h"
 
+#include "AnimatedSprite2D.h"
+#include "VelocityComponent.h"
+
 StatusComponent::StatusComponent()
 {
     for(int i = 0; i < StatusEffectType::NONE; i++)
@@ -59,6 +62,15 @@ void StatusComponent::Update()
 void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 {
     this->m_aStatusEffects[p_se_type].m_isActive = false;
+
+    if(p_se_type == StatusEffectType::PETRIFIED)
+    {
+    AnimatedSprite2D* animatedSprite2DComponent = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+        if(animatedSprite2DComponent != nullptr)
+        {
+            animatedSprite2DComponent->SetTint(glm::vec3(1.0f));
+        }
+    }
 }
 
 void StatusComponent::StatusEffect::ApplyStatusEffect()
@@ -90,8 +102,15 @@ void StatusComponent::StatusEffect::ApplyStatusEffect()
             VelocityComponent* velocityComponent = this->m_OwnerComponent->GetGameObject()->GetComponent<VelocityComponent>();
             if(velocityComponent != nullptr)
             {
-                velocityComponent->SetPetrification(true);
+                velocityComponent->SetVelocity(glm::vec2(0.0f, 0.0f));
             }
+
+            AnimatedSprite2D* animatedSprite2DComponent = this->m_OwnerComponent->GetGameObject()->GetComponent<AnimatedSprite2D>();
+            if(animatedSprite2DComponent != nullptr)
+            {
+                animatedSprite2DComponent->SetTint(glm::vec3(1.5f, 1.5f, 1.5f));
+            }
+
             break;
         }      
         

@@ -18,13 +18,8 @@ public:
     VelocityComponent() = default;  // No arguments needed
 
     void SetVelocity(const glm::vec2& velocity);  // Setter for velocity
-    const glm::vec2 GetVelocity();  // Getter for velocityu
-    void SetPetrification(bool p_is_petrified);
-    
+    const glm::vec2 GetVelocity() const;  // Getter for velocityu    
+
 private:
-
-    
-
-    bool m_bIsPetrified = false;
     glm::vec2 m_velocity = glm::vec2(0.0f, 0.0f);  // Store velocity
 };
