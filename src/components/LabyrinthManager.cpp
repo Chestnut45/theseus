@@ -1076,6 +1076,12 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Build Minitaur at the given position
                         wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, pos, m_pColliderManager);
 
+                        // auto& minitaur = pObject->GetScene().CreateObject2D();
+                        // minitaur.GetComponent<wolf::Transform2D>()->SetPosition(pos);
+                        // minitaur.AddComponent<AnimatedSprite2D>("data/minitaur_anim_init.yaml");
+                        // auto& collider = minitaur.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, false, true);
+                        // collider.AddColliderBox(glm::vec2(16, 16));
+
                         // TODO: Add as a child object of the correct chunk
                         pObject->AddChild(minitaur);
                     }
