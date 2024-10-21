@@ -101,7 +101,7 @@ private:
     float m_stamina = 100.0f;
     const float m_maxStamina = 100.0f;
     const float m_staminaRegenRate = 20.0f;
-    const float m_staminaRegenDelay = 1.0f;
+    const float m_staminaRegenDelay = 0.5f;
     wolf::Timer m_staminaRegenTimer;
 
     // Jumping management

@@ -23,6 +23,9 @@
 // For parsing the labyrinth config file
 #include <yaml-cpp/yaml.h>
 
+#include <EnemyDataLoader.h>
+#include <MinitaurBuilder.h>
+
 LabyrinthManager::LabyrinthManager()
 {
 }
@@ -87,10 +90,13 @@ void LabyrinthManager::GenerateLabyrinth()
     }
 
     // Place all rooms into the logical tilemap
-    PlaceRooms();
+    auto placedRooms = PlaceRooms();
 
     // Carve maze into the logical tilemap
     CarveMaze();
+
+    // Guarantee connectivity of all sections to the entrance
+    ConnectRooms(placedRooms);
 
     // Open up the labyrinth entrance tiles
     m_labyrinthGrid.Set(m_width / 2, 0, LogicalTile::Floor);
@@ -98,6 +104,9 @@ void LabyrinthManager::GenerateLabyrinth()
 
     // Convert the logical tilemap into chunks and objects
     GenerateChunks();
+
+    // Place all entitites
+    PopulateEntities(placedRooms);
 
     // Generate entrance room
     GenerateEntrance();
@@ -598,10 +607,10 @@ void LabyrinthManager::Reset()
     m_rooms.clear();
 }
 
-std::vector<wolf::IRectangle> LabyrinthManager::PlaceRooms()
+std::vector<LabyrinthManager::Room> LabyrinthManager::PlaceRooms()
 {
     // Place all rooms into the labyrinth
-    std::vector<wolf::IRectangle> placedRoomRects;
+    std::vector<Room> placedRooms;
     for (int i = 0; i < m_rooms.size(); ++i)
     {
         // Grab references to the current room
@@ -666,9 +675,9 @@ std::vector<wolf::IRectangle> LabyrinthManager::PlaceRooms()
                         if (attempt == Room::MAX_PLACEMENT_ATTEMPTS - 1 && room.m_force) break;
 
                         // Validate that the room wouldn't overlap anything
-                        for (const auto& placedRect : placedRoomRects)
+                        for (const auto& room : placedRooms)
                         {
-                            if (rect.Intersects(placedRect))
+                            if (rect.Intersects(room.m_bounds))
                             {
                                 overlapping = true;
                                 break;
@@ -706,9 +715,9 @@ std::vector<wolf::IRectangle> LabyrinthManager::PlaceRooms()
                             if (attempt == Room::MAX_PLACEMENT_ATTEMPTS - 1 && room.m_force) break;
 
                             // Check if overlapping
-                            for (const auto& placedRect : placedRoomRects)
+                            for (const auto& room : placedRooms)
                             {
-                                if (rect.Intersects(placedRect))
+                                if (rect.Intersects(room.m_bounds))
                                 {
                                     overlapping = true;
                                     break;
@@ -769,11 +778,11 @@ std::vector<wolf::IRectangle> LabyrinthManager::PlaceRooms()
             }
 
             // Add the specific room that was generated to the list
-            placedRoomRects.push_back(rect);
+            placedRooms.push_back(room);
         }
     }
 
-    return placedRoomRects;
+    return placedRooms;
 }
 
 void LabyrinthManager::CarveMaze()
@@ -862,45 +871,83 @@ void LabyrinthManager::CarveMaze()
     // Cleanup passes
 
     // Diagonal gap fixing pass
-    for (int y = 1; y < m_height - 1; ++y)
-    {
-        for (int x = 1; x < m_width - 1; ++x)
-        {
-            if (m_labyrinthGrid.Get(x, y) == LogicalTile::Floor)
-            {
-                // Grab all neighbour values
-                short up = m_labyrinthGrid.Get(x, y + 1) == LogicalTile::Wall;
-                short down = m_labyrinthGrid.Get(x, y - 1) == LogicalTile::Wall;
-                short left = m_labyrinthGrid.Get(x - 1, y) == LogicalTile::Wall;
-                short right = m_labyrinthGrid.Get(x + 1, y) == LogicalTile::Wall;
-                short ur = m_labyrinthGrid.Get(x + 1, y + 1) == LogicalTile::Wall;
-                short ul = m_labyrinthGrid.Get(x - 1, y + 1) == LogicalTile::Wall;
-                short dr = m_labyrinthGrid.Get(x + 1, y - 1) == LogicalTile::Wall;
-                short dl = m_labyrinthGrid.Get(x - 1, y - 1) == LogicalTile::Wall;
+    // for (int y = 1; y < m_height - 1; ++y)
+    // {
+    //     for (int x = 1; x < m_width - 1; ++x)
+    //     {
+    //         if (m_labyrinthGrid.Get(x, y) == LogicalTile::Floor)
+    //         {
+    //             // Grab all neighbour values
+    //             short up = m_labyrinthGrid.Get(x, y + 1) == LogicalTile::Wall;
+    //             short down = m_labyrinthGrid.Get(x, y - 1) == LogicalTile::Wall;
+    //             short left = m_labyrinthGrid.Get(x - 1, y) == LogicalTile::Wall;
+    //             short right = m_labyrinthGrid.Get(x + 1, y) == LogicalTile::Wall;
+    //             short ur = m_labyrinthGrid.Get(x + 1, y + 1) == LogicalTile::Wall;
+    //             short ul = m_labyrinthGrid.Get(x - 1, y + 1) == LogicalTile::Wall;
+    //             short dr = m_labyrinthGrid.Get(x + 1, y - 1) == LogicalTile::Wall;
+    //             short dl = m_labyrinthGrid.Get(x - 1, y - 1) == LogicalTile::Wall;
 
-                if ((up && right && !ur) || (down && right && !dr))
-                {
-                    m_labyrinthGrid.Set(x + 1, y, LogicalTile::Floor);
-                    continue;
-                }
-                if ((up && left && !ul) || (down && left && !dl))
-                {
-                    m_labyrinthGrid.Set(x - 1, y, LogicalTile::Floor);
-                    continue;
-                }
-                if ((up && right && !ur) || (up && left && !ul))
-                {
-                    m_labyrinthGrid.Set(x, y + 1, LogicalTile::Floor);
-                    continue;
-                }
-                if ((down && left && !dl) || (down && right && !dr))
-                {
-                    m_labyrinthGrid.Set(x, y - 1, LogicalTile::Floor);
-                    continue;
-                }
-            }
-        }
-    }
+    //             if ((up && right && !ur) || (down && right && !dr))
+    //             {
+    //                 m_labyrinthGrid.Set(x + 1, y, LogicalTile::Floor);
+    //                 continue;
+    //             }
+    //             if ((up && left && !ul) || (down && left && !dl))
+    //             {
+    //                 m_labyrinthGrid.Set(x - 1, y, LogicalTile::Floor);
+    //                 continue;
+    //             }
+    //             if ((up && right && !ur) || (up && left && !ul))
+    //             {
+    //                 m_labyrinthGrid.Set(x, y + 1, LogicalTile::Floor);
+    //                 continue;
+    //             }
+    //             if ((down && left && !dl) || (down && right && !dr))
+    //             {
+    //                 m_labyrinthGrid.Set(x, y - 1, LogicalTile::Floor);
+    //                 continue;
+    //             }
+    //         }
+    //     }
+    // }
+}
+
+void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& placedRooms)
+{
+    // Map of tile positions to section numbers
+    std::unordered_map<glm::ivec2, int> tileSectionMap;
+
+    // Data structure for a connector
+    struct Connector
+    {
+        glm::ivec2 m_pos;
+        int m_connection;
+    };
+
+    // Data structure for a section
+    struct Section
+    {
+        // Map of connected sections
+        std::unordered_map<int, bool> m_connected;
+
+        // List of connectors to other sections
+        std::vector<Connector> m_connectors;
+    };
+
+    // List of sections
+    std::vector<Section> sections;
+
+    // TODO:
+
+    // Build list of sections
+
+    // Add all tiles for each section to the tileSectionMap
+
+    // Add all connectors between disconnected sections (to just one is fine)
+
+    // For each section:
+    // For each connector (random):
+    // knock down wall, set connection, and discard all other connectors to that section
 }
 
 void LabyrinthManager::GenerateChunks()
@@ -912,10 +959,10 @@ void LabyrinthManager::GenerateChunks()
     auto& scene = pObject->GetScene();
 
     // Static tile type arrays
-    static int nonGoldFloors[] = {Tile::FloorSmallSquares, Tile::FloorSquare, Tile::FloorSpiral};
-    static int goldFloors[] = {Tile::FloorSquareGold, Tile::FloorSpiralGold};
-    static int walls[] = {Tile::WallBottom, Tile::WallBottomLeft, Tile::WallBottomRight, Tile::WallLeft, Tile::WallRight, Tile::WallTop, Tile::WallTopRight, Tile::WallTopLeft};
-    static int specialWalls[] = {Tile::WallChest, Tile::WallHelmet, Tile::WallMaze, Tile::WallMinotaur, Tile::WallPillars, Tile::WallPot};
+    const int nonGoldFloors[] = {Tile::FloorSmallSquares, Tile::FloorSquare, Tile::FloorSpiral};
+    const int goldFloors[] = {Tile::FloorSquareGold, Tile::FloorSpiralGold};
+    const int walls[] = {Tile::WallBottom, Tile::WallBottomLeft, Tile::WallBottomRight, Tile::WallLeft, Tile::WallRight, Tile::WallTop, Tile::WallTopRight, Tile::WallTopLeft};
+    const int specialWalls[] = {Tile::WallChest, Tile::WallHelmet, Tile::WallMaze, Tile::WallMinotaur, Tile::WallPillars, Tile::WallPot};
 
     // Calculate number of chunks per axis
     const int numChunksX = m_width / CHUNK_SIZE + 1;
@@ -994,6 +1041,45 @@ void LabyrinthManager::GenerateChunks()
 
                     tilemap.SetTile(x, y, tile);
                 }
+            }
+        }
+    }
+}
+
+void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room>& placedRooms)
+{
+    auto* pObject = GetGameObject();
+
+    // Load enemy data
+    EnemyDataLoader loader;
+    loader.LoadAllEnemyData("data/enemies.yaml");
+    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
+    MinitaurBuilder minitaurBuilder(pObject->GetScene());
+
+    for (const auto& room : placedRooms)
+    {
+        for (const auto& entity : room.m_entitySpawns)
+        {
+            switch (entity.m_type)
+            {
+                case Room::EntityType::Minitaur:
+
+                    // Iterate each instance to spawn
+                    for (int i = 0; i < entity.m_amount; ++i)
+                    {
+                        // TODO: Calculate position
+                        glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
+                                      room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
+                        
+                        pos *= LABYRINTH_TILE_SIZE;
+
+                        // Build Minitaur at the given position
+                        wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, pos, m_pColliderManager);
+
+                        // TODO: Add as a child object of the correct chunk
+                        pObject->AddChild(minitaur);
+                    }
+                    break;
             }
         }
     }

@@ -82,6 +82,22 @@ void PlayerController::Update(float delta)
         return;
     }
     
+    // Debug speed modifier hotkeys
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
+    {
+        m_moveSpeed *= 0.5f;
+        m_rollSpeed *= 0.5f;
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
+    {
+        m_moveSpeed *= 2;
+        m_rollSpeed *= 2;
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
+    {
+        m_moveSpeed = 200.0f;
+        m_rollSpeed = 400.0f;
+    }
 
     HandlePlayerInput(delta);
     RegenerateStamina(delta);

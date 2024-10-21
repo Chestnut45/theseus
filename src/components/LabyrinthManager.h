@@ -25,7 +25,9 @@
 #include <W_RNG.h>
 #include <W_Shapes.h>
 
-#include "../LabyrinthTiles.h"
+#include <LabyrinthTiles.h>
+
+#include <ColliderManager.h>
 
 class LabyrinthManager : public wolf::BaseComponent
 {
@@ -110,6 +112,7 @@ private:
         Unvisited,
         Door,
         Floor,
+        OccupiedFloor,
         Grass,
         Wall,
     };
@@ -194,6 +197,10 @@ private:
     // List of all rooms to be generated in the labyrinth
     std::vector<Room> m_rooms;
 
+    // Non-owning pointer to collider manager. Necessary for building minitaurs
+    ColliderManager* m_pColliderManager = nullptr;
+    friend class PlayState;
+
     // Chunk management
 
     // Map of chunk IDs to chunk game object pointers
@@ -201,15 +208,20 @@ private:
 
     // Helper methods
 
-    // Places all rooms and returns a list of the rectangles
-    // defining the bounds of all rooms successfully placed
-    std::vector<wolf::IRectangle> PlaceRooms();
+    // Attempts to place all rooms and returns a vector of those successfully placed
+    std::vector<Room> PlaceRooms();
 
     // Carves the maze into the labyrinth using the current settings
     void CarveMaze();
 
+    // Guarantees connectivity between all rooms and the entrance of the maze
+    void ConnectRooms(const std::vector<Room>& placedRooms);
+
     // Generates all chunk objects into the scene for the current maze
     void GenerateChunks();
+
+    // Spawns all the entities from placed rooms into the chunks
+    void PopulateEntities(const std::vector<Room>& placedRooms);
 
     // Generates the entrance room to the maze
     void GenerateEntrance();
