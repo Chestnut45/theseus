@@ -50,6 +50,11 @@ void MinitaurController::Update(float delta)
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
 
+    // Check if health is below or equal to 0 and transition to the DEATH state
+    if (m_pHealth->GetHealth() <= 0)
+    {
+        ChangeState(EnemyState::DEATH);
+    }
 
     // Update based on the current state
     switch (m_state)
@@ -63,14 +68,15 @@ void MinitaurController::Update(float delta)
         case EnemyState::ATTACKING:
             HandleAttackingState(delta);
             break;
-        // case EnemyState::DEATH:
-        //     HandleDeathState();  // Temporarily disable death handling
-        //     break;
+        case EnemyState::DEATH:
+            HandleDeathState();  
+            break;
     }
 
     // Update animations based on direction after handling movement
     UpdateAnimationBasedOnDirection();
 }
+
 
 void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
 {
@@ -223,9 +229,15 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
     }
 }
 
-// void MinitaurController::HandleDeathState()
-// {
-//     // Destroy the GameObject when the Minitaur dies
-//     std::cout << "Minitaur is being destroyed.\n";
-//     GetGameObject()->Delete();
-// }
+void MinitaurController::HandleDeathState()
+{
+    // Stop Minitaur's movement
+    if (m_pVelocity)
+    {
+        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    }
+
+    // Destroy the GameObject when the Minitaur dies
+    std::cout << "Minitaur has died and is being destroyed.\n";
+    GetGameObject()->Delete();
+}
