@@ -3,16 +3,14 @@
 #include <wolf.h>
 #include "MinitaurController.h"
 #include "ColliderManager.h"
+#include <EnemyDataLoader.h>
 
 class MinitaurBuilder
 {
 public:
-    // Constructor to initialize the builder with a scene reference
-    explicit MinitaurBuilder(wolf::Scene& scene)
-        : m_scene(scene) {}
+    explicit MinitaurBuilder(wolf::Scene& scene) : m_scene(scene) {}
+    wolf::GameObject& BuildMinitaur(const EnemyData& data, const glm::vec2& position, ColliderManager* pColliderManager);
 
-    // Build the Minitaur and return the created GameObject
-    wolf::GameObject& BuildMinitaur(ColliderManager* pColliderManager);
 
 private:
     // Reference to the scene where the Minitaur will be created
