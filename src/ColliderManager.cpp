@@ -267,6 +267,7 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
 
         shiftedTranslation1.x = relativeVelocity.x > 0.0f ? p_translation_2.x - p_dimensions_1.x: p_translation_2.x + p_dimensions_2.x;
         shiftedTranslation1.y = relativeVelocity.y > 0.0f ? p_translation_2.y - p_dimensions_1.y: p_translation_2.y + p_dimensions_2.y;
+
         
 
         if(relativeVelocity.x > 0.0f)
@@ -435,28 +436,19 @@ void ColliderManager::PushAABB(glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_
         isObj2Pushable = true;
     }
 
+    glm::vec2 obj1Translation = p_obj_1->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 obj2Translation = p_obj_2->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
     // obj1-true obj2-false 
     if(isObj1Pushable && !isObj2Pushable)
     {
         relativeVelocity = velocity1 - velocity2;
-        
-        glm::vec2 shiftVector1;
-        shiftVector1.x = relativeVelocity.x > 0.0f ? -p_dimensions_1.x: p_dimensions_2.x;
-        shiftVector1.y = relativeVelocity.y > 0.0f ? -p_dimensions_1.y: p_dimensions_2.y;
-
-        p_obj_1->GetComponent<wolf::Transform2D>()->Translate(shiftVector1);
     }
     
     // obj1-false obj2-true
     else if(!isObj1Pushable && isObj2Pushable)
     {
-        relativeVelocity = velocity2 - velocity1;
-
-        glm::vec2 shiftVector2;
-        shiftVector2.x = relativeVelocity.x > 0.0f ? -p_dimensions_2.x: p_dimensions_1.x;
-        shiftVector2.y = relativeVelocity.y > 0.0f ? -p_dimensions_2.y: p_dimensions_1.y;
-
-        p_obj_2->GetComponent<wolf::Transform2D>()->Translate(shiftVector2);
+       relativeVelocity = velocity2 - velocity1;
     }
 
     // obj1-false obj2-false
@@ -468,23 +460,13 @@ void ColliderManager::PushAABB(glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_
     // obj1-true obj2-true
     else
     {
-        relativeVelocity = glm::length(velocity1) >= glm::length(velocity2) ? velocity1 - velocity2 : velocity2 - velocity1;
-
-        if(glm::length(velocity1) >= glm::length(velocity2))
+        if(glm::length(velocity1) <= glm::length(velocity2))
         {
-            glm::vec2 shiftVector1;
-            shiftVector1.x = relativeVelocity.x > 0.0f ? -p_dimensions_1.x: p_dimensions_2.x;
-            shiftVector1.y = relativeVelocity.y > 0.0f ? -p_dimensions_1.y: p_dimensions_2.y;
-
-            p_obj_1->GetComponent<wolf::Transform2D>()->Translate(shiftVector1);
+            relativeVelocity = velocity1 - velocity2;
         }
         else
         {
-            glm::vec2 shiftVector2;
-            shiftVector2.x = relativeVelocity.x > 0.0f ? -p_dimensions_2.x: p_dimensions_1.x;
-            shiftVector2.y = relativeVelocity.y > 0.0f ? -p_dimensions_2.y: p_dimensions_1.y;
-
-            p_obj_2->GetComponent<wolf::Transform2D>()->Translate(shiftVector2);
+            relativeVelocity = velocity2 - velocity1;
         }
     }
 }

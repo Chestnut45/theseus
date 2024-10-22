@@ -53,7 +53,7 @@ void PlayState::Enter()
 
     auto& testObj2 = scene.CreateObject2D();
     testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
+    testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(5120.0f, 0.0f));
 
     auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
     testSprite2.SetOriginToCenterOfTexture();
