@@ -17,8 +17,16 @@ class VelocityComponent : public wolf::BaseComponent
 public:
     VelocityComponent() = default;  // No arguments needed
 
+    // Delete copy constructor/assignment
+    VelocityComponent(const VelocityComponent&) = delete;
+    VelocityComponent& operator=(const VelocityComponent&) = delete;
+
+    // Delete move constructor/assignment
+    VelocityComponent(VelocityComponent&& other) = delete;
+    VelocityComponent& operator=(VelocityComponent&& other) = delete;
+
     void SetVelocity(const glm::vec2& velocity);  // Setter for velocity
-    const glm::vec2& GetVelocity() const;  // Getter for velocityu
+    const glm::vec2& GetVelocity() const;  // Getter for velocity
 
 private:
     glm::vec2 m_velocity = glm::vec2(0.0f, 0.0f);  // Store velocity

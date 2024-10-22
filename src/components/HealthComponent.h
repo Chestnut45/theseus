@@ -13,9 +13,16 @@
 class HealthComponent : public wolf::BaseComponent
 {
 public:
-    HealthComponent() = default;
     HealthComponent(int p_health);
     ~HealthComponent();
+
+    // Delete copy constructor/assignment
+    HealthComponent(const HealthComponent&) = delete;
+    HealthComponent& operator=(const HealthComponent&) = delete;
+
+    // Delete move constructor/assignment
+    HealthComponent(HealthComponent&& other) = delete;
+    HealthComponent& operator=(HealthComponent&& other) = delete;
     
     void Init();
     float GetMaxHealth() const;
