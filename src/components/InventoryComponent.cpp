@@ -1,7 +1,9 @@
 #include "InventoryComponent.h"
 #include "W_Logging.h"
 
-InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow) {
+int InventoryComponent::m_iNextIdNum = 0;
+
+InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow), m_iIdNum(m_iNextIdNum){
     // Reserve the amount of space we've been asked for
     m_vvpContents.reserve(p_iSize);
 
@@ -73,6 +75,8 @@ InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, const st
         m_pTexture = pNewTexture;
         m_v2TexFrameSize = ImVec2(p_v2TexFrameSize.x, p_v2TexFrameSize.y);
     }
+
+    m_iNextIdNum++;
 }
 
 InventoryComponent::~InventoryComponent() {
@@ -154,7 +158,7 @@ bool InventoryComponent::AddItem(ItemBase* p_pItem) {
         ItemBase* pItem = m_vvpContents[i].top();
 
         // If we find an item with the same ID and it is stackable
-        if (pItem->GetID() == p_pItem->GetID() && p_pItem->IsStackable()) {
+        if (pItem->GetID() == p_pItem->GetID() && p_pItem->IsStackable() && pItem->IsStackable()) {
             // Then we push the item to the stack
             m_vvpContents[i].push(p_pItem);
             return true;
@@ -263,6 +267,16 @@ bool InventoryComponent::RemoveItem(int p_iItemIndex) {
         return false;
     }
 
+    // Retrieve the item that we're trying to delete
+    ItemBase* pItem = m_vvpContents[p_iItemIndex].top();
+
+    // If it is a piece of equipment
+    if (pItem->GetID() == EQUIPMENT) {
+        // Unequip it before we delete it
+        EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(pItem);
+        pEquipment->SetEquipped(false);
+    }
+
     // Otherwise we remove the first item in the stack at the given index
     m_vvpContents[p_iItemIndex].pop();
 
@@ -296,13 +310,22 @@ void InventoryComponent::EmptyInventory() {
 }
 
 void InventoryComponent::ShowInventoryGUI() {
+    float iNumRows = m_vvpContents.size() / m_iMaxPerRow;
+
+    // For some silly reason, if the inventory can be shown on
+    // a single row the inventory padding is a bit too small
+    if (iNumRows == 1) {
+        // So we add a little bit extra
+        iNumRows += 0.4f;
+    }
+    
     // You can't resize the inventory but you can move it around!
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
     // By default, the inventory appears close to the middle of the screen
     ImGui::SetNextWindowPos({500, 200});
-    ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + 20) * m_iMaxPerRow, (m_v2TexFrameSize.y + 20) * m_iMaxPerRow});
-    ImGui::Begin("~ Inventory ~", nullptr, flags);
+    ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + 18.25f) * m_iMaxPerRow, (m_v2TexFrameSize.y + 22) * m_iMaxPerRow});
+    ImGui::Begin("\t~ Inventory ~", nullptr, flags);
 
     // This counter lets us control how many items are drawn in a row
     int counter = 0;
@@ -364,7 +387,7 @@ void InventoryComponent::ShowInventoryGUI() {
             std::string strIndex = std::to_string(k);
 
             // Now we can start making the actual buttons
-            if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetID()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetID()]->m_v2BotRight)) {
+            if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
             }
             
             // When we hover over an inventory slot
@@ -373,51 +396,6 @@ void InventoryComponent::ShowInventoryGUI() {
                 ImGui::BeginTooltip();
                 ImGui::Text("%s", strTooltipText.c_str());
                 ImGui::EndTooltip();
-            }
-
-            // When we click on an inventory slot
-            if (ImGui::IsItemClicked()) {
-                // We open a little pop-up menu
-                ImGui::OpenPopup(strIndex.c_str());
-            }
-            
-            // The pop-up menu has different buttons based on what the item is and what "state" it's in
-            if (ImGui::BeginPopup(strIndex.c_str())) {
-                if (pItem->GetID() == CONSUMABLE) { // If the item is Consumable
-                    // We need to be able to "use" it
-                    if (ImGui::Button("Use")) {
-                        this->UseItem(pItem, k);
-                        ImGui::CloseCurrentPopup();
-                    }
-                }
-                else if (pItem->GetID() == EQUIPMENT) { // If the item is a piece of Equipment
-                    if (!bIsEquipped) { // We need to know if it is equipped
-                        // If it isn't, we need to be able to put it on
-                        if (ImGui::Button("Equip")) {
-                            this->EquipItem(pItem, k);
-                            ImGui::CloseCurrentPopup();
-                        }
-                    }
-                    else {
-                        // And if it IS equipped, we need to be able to take it off
-                        if (ImGui::Button("Unequip")) {
-                            this->UnequipItem(pItem);
-                            ImGui::CloseCurrentPopup();
-                        }
-                    }
-                }
-
-                // We can discard any item we like
-                if (ImGui::Button("Discard")) {
-                    this->DiscardItem(k);
-                    ImGui::CloseCurrentPopup();
-                }
-
-                // And we can close the pop-up menu whenever we like
-                if (ImGui::Button("Close")) {
-                    ImGui::CloseCurrentPopup();
-                }
-                ImGui::EndPopup();
             }
         }
         else { // Otherwise, this is an empty inventory slot
@@ -437,85 +415,7 @@ void InventoryComponent::ShowInventoryGUI() {
             counter++;
         }
     }
+
     // End of window
     ImGui::End();
-}
-
-void InventoryComponent::UseItem(ItemBase* p_pItem, int p_iItemIndex) {
-    ConsumableItem* pConsumable = dynamic_cast<ConsumableItem*>(p_pItem);
-    if (pConsumable) {
-        // If this is the last use the item has left
-        if (pConsumable->GetNumUses() == 1) {
-            // Then we need to take it out of the inventory
-            this->RemoveItem(p_iItemIndex);
-        }
-
-        // Then we can use it!
-        pConsumable->UseItem();
-    }
-}
-
-void InventoryComponent::EquipItem(ItemBase* p_pItem, int p_iItemIndex) {
-    EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(p_pItem);
-    if (pEquipment) {
-        // If we're trying to equip something that we're already wearing
-        if (pEquipment->IsEquipped()) {
-            return; // Just return
-        }
-
-        // First we need to figure out if there is already something equipped in the slot
-        // that the item we're trying to equip corresponds to
-        int iPrevItemIndex = m_iEquipmentSlots[pEquipment->GetEquipmentSlot()];
-
-        // If there is, the index will be a positive integer (or zero)
-        if (iPrevItemIndex >= 0) {
-            // So we need to retrieve and then unequip the item at that index
-            this->UnequipItem(this->GetItem(iPrevItemIndex));
-        }
-
-        // Then we can store the index of the newly equipped item
-        m_iEquipmentSlots[pEquipment->GetEquipmentSlot()] = p_iItemIndex;
-
-        // And let the item know it has been equipped
-        pEquipment->SetEquipped(true);
-    }
-}
-
-void InventoryComponent::UnequipItem(ItemBase* p_pItem) {
-    EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(p_pItem);
-    if (pEquipment) {
-        // If for some reason we're trying to unequip something we don't have equipped
-        if (!pEquipment->IsEquipped()) {
-            return; // Just return
-        }
-
-        // Figure out which slot this item equips into and "empty" that slot by setting it to an invalid index
-        m_iEquipmentSlots[pEquipment->GetEquipmentSlot()] = -1;
-
-        // Then let the item know it's been unequipped
-        pEquipment->SetEquipped(false);
-    }
-}
-
-// This is a wrapper for GetItem that retrieves whichever item in the inventory is equipped
-// in a given equipment slot, or nullptr if there is no item currently equipped in that slot
-ItemBase* InventoryComponent::GetEquippedItem(EquipmentSlot p_enSlot) {
-    return GetItem(m_iEquipmentSlots[p_enSlot]);
-}
-
-void InventoryComponent::DiscardItem(int p_iItemIndex) {
-    // First find the item we want to discard
-    ItemBase* pItem = m_vvpContents[p_iItemIndex].top();
-
-    // If it is an equipment item
-    if (pItem->GetID() == EQUIPMENT) {
-        // We need to make sure it is unequipped
-        this->UnequipItem(pItem);
-    }
-
-    // Then we can remove it from the inventory
-    this->RemoveItem(p_iItemIndex);
-
-    // And delete it!
-    delete pItem;
 }

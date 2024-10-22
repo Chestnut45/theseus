@@ -14,6 +14,7 @@
 #include "HealthComponent.h"
 
 #include "../ColliderManager.h"
+#include "../events/InventoryEvents.h"
 
 class StatusComponent : public wolf::BaseComponent
 {
@@ -49,4 +50,7 @@ private:
     StatusEffect m_aStatusEffects [StatusEffectType::NONE];
 
     void RemoveStatusEffect(StatusEffectType p_se_type);
+    
+    // !-- Aurora added this method to be used with StatusEffectItems --!
+    void HandleApplyStatusEffectEvent(const ApplyStatusEffectEvent& p_event);
 };

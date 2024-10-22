@@ -13,6 +13,8 @@
 #include "../inventory/EquipmentItem.h"
 #include "../inventory/FlatAmtItem.h"
 #include "../inventory/PercentItem.h"
+#include "../inventory/StatusEffectItem.h"
+#include "../inventory/ItemCreator.h"
 #include "../events/DialogueTriggerEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"

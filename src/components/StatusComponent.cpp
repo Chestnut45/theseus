@@ -18,10 +18,13 @@ StatusComponent::StatusComponent()
         this->m_aStatusEffects[i].m_OwnerComponent = this;
         this->m_aStatusEffects[i].m_StatusEffectType = (StatusEffectType)i;
     }
+
+    wolf::EventManager::AddListener<ApplyStatusEffectEvent, StatusComponent, &StatusComponent::HandleApplyStatusEffectEvent>(*this);
 }
 
 StatusComponent::~StatusComponent()
 {
+    wolf::EventManager::RemoveListener<ApplyStatusEffectEvent, StatusComponent, &StatusComponent::HandleApplyStatusEffectEvent>(*this);
 }
 
 // If status effect already present, reset timer
@@ -120,4 +123,9 @@ void StatusComponent::StatusEffect::ApplyStatusEffect()
             break;
         }
     }
+}
+
+// !-- Aurora added this method to be used with StatusEffectItems -- !
+void StatusComponent::HandleApplyStatusEffectEvent(const ApplyStatusEffectEvent& p_event) {
+    this->AddStatusEffect(static_cast<StatusComponent::StatusEffectType>(p_event.iType), p_event.fDuration);
 }

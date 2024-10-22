@@ -17,6 +17,11 @@ float PlayerController::s_aAttackCooldown[WeaponType::FISTS + 1] = {0.5f, 1.0f, 
 
 PlayerController::PlayerController() = default;
 
+PlayerController::~PlayerController() {
+    wolf::EventManager::RemoveListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+    wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
+}
+
 void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
 {
     m_pAnimComponent = animComponent;
@@ -42,6 +47,18 @@ void PlayerController::LateInitialize()
         return;
     }
 
+    InitializeAnimations();
+
+    // !-- Aurora added this --!
+    wolf::EventManager::AddListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+    wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
+}
+
+// Add and initialize animations for the player character
+void PlayerController::InitializeAnimations()
+{
+    auto* pGameObject = GetGameObject();
+    
     // Check if the AnimatedSprite2D component exists
     if (pGameObject->HasAll<AnimatedSprite2D>())
     {
@@ -51,46 +68,6 @@ void PlayerController::LateInitialize()
 
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-    // Initialize animations
-    InitializeAnimations();
-
-    // Check if essential components are initialized properly
-}
-
-// Add and initialize animations for the player character
-void PlayerController::InitializeAnimations()
-{
-    if (!m_pAnimComponent) return;
-
-    // Define all player animations with their corresponding texture paths and frame indices.
-    std::vector<std::tuple<std::string, std::string, int, int, bool>> animations = {
-        // Movement animations (looping)
-        {"WalkSouth", "data/textures/TheseusWalk-Sheet.png", 1, 8, true},
-        {"WalkEast", "data/textures/TheseusWalk-Sheet.png", 9, 16, true},
-        {"WalkNorth", "data/textures/TheseusWalk-Sheet.png", 17, 24, true},
-        {"WalkWest", "data/textures/TheseusWalk-Sheet.png", 25, 32, true},
-
-        // Idle animations (not looping)
-        {"StandSouth", "data/textures/TheseusStand-Sheet.png", 1, 1, false},
-        {"StandEast", "data/textures/TheseusStand-Sheet.png", 2, 2, false},
-        {"StandNorth", "data/textures/TheseusStand-Sheet.png", 3, 3, false},
-        {"StandWest", "data/textures/TheseusStand-Sheet.png", 4, 4, false},
-
-        // Attack animations (not looping)
-        {"AttackSouth", "data/textures/TheseusSword-Sheet.png", 1, 7, false},
-        {"AttackEast", "data/textures/TheseusSword-Sheet.png", 8, 14, false},
-        {"AttackNorth", "data/textures/TheseusSword-Sheet.png", 15, 21, false},
-        {"AttackWest", "data/textures/TheseusSword-Sheet.png", 22, 28, false}
-    };
-
-    // Add animations to the component with correct frame ranges and loop settings
-    for (const auto& [name, path, startFrame, endFrame, isLooping] : animations)
-    {
-        m_pAnimComponent->AddAnimation(name, path, glm::vec2(32.0f, 32.0f), startFrame, endFrame, isLooping);
-    }
-
-    m_pAnimComponent->SetAnimation("StandSouth"); // Default animation set to "StandSouth"
-    m_pAnimComponent->SetOriginToCenterOfFrame();
 }
 
 // Main update loop for the player controller
@@ -659,4 +636,13 @@ void PlayerController::Render()
     // Pop ImGui style variables and colors
     ImGui::PopStyleVar(3); // Pop style variables (WindowRounding, FrameRounding, and FramePadding)
     ImGui::PopStyleColor(3); // Pop style colors (WindowBg, Border, and BorderShadow)
+}
+
+// !-- Aurora added this --!
+void PlayerController::HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event) {
+    printf("The player equipped a %s!\n", p_event.pWeapon->GetName().c_str());
+}
+
+void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {
+    printf("The player equipped a %s!\n", p_event.pArmour->GetName().c_str());
 }

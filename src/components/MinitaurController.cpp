@@ -284,7 +284,7 @@ void MinitaurController::HandleDeathState()
     }
 
     // Destroy the GameObject when the Minitaur dies
-    //implemented in playstate
+    GetGameObject()->Delete();
 }
 
 void MinitaurController::ChangeState(EnemyState newState)
