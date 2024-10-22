@@ -9,6 +9,7 @@
 #include <wolf.h>
 
 #include "ArmourComponent.h"
+#include "../events/InventoryEvents.h"
 
 class HealthComponent : public wolf::BaseComponent
 {
@@ -32,6 +33,9 @@ public:
     void Damage(float p_damage);
     void Heal(float p_heal);
     void Supercharge(float p_supercharge);
+
+    void HandlePercentHealthItemEvent(const PercentHealthItemEvent& p_event);
+    void HandleFlatHealthItemEvent(const FlatHealthItemEvent& p_event);
 
 private:
     float m_health = 100;

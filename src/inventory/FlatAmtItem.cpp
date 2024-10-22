@@ -4,7 +4,7 @@ void FlatAmtItem::Use() {
     // Figure out which attribute this item is affecting and send the corresponding event
     switch(this->m_enAttrib) {
         case HEALTH:
-            wolf::EventManager::EnqueueEvent(FlatHealItemEvent(this->m_fAmt));
+            wolf::EventManager::EnqueueEvent(FlatHealthItemEvent(this->m_fAmt));
         break;
 
         case STAMINA:

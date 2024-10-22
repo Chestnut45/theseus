@@ -14,10 +14,13 @@ StatusComponent::StatusComponent()
     {
         this->m_aStatusEffects[i] = nullptr;
     }
+
+    wolf::EventManager::AddListener<ApplyStatusEffectEvent, StatusComponent, &StatusComponent::HandleApplyStatusEffectEvent>(*this);
 }
 
 StatusComponent::~StatusComponent()
 {
+    wolf::EventManager::RemoveListener<ApplyStatusEffectEvent, StatusComponent, &StatusComponent::HandleApplyStatusEffectEvent>(*this);
 }
 
 void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifespan)
@@ -44,4 +47,9 @@ void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 {
     delete this->m_aStatusEffects[p_se_type];
     this->m_aStatusEffects[p_se_type] = nullptr;
+}
+
+// !-- Aurora added this method to be used with StatusEffectItems -- !
+void StatusComponent::HandleApplyStatusEffectEvent(const ApplyStatusEffectEvent& p_event) {
+    this->AddStatusEffect(static_cast<StatusComponent::StatusEffectType>(p_event.iType), p_event.fDuration);
 }

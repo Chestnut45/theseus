@@ -10,19 +10,30 @@
 //-----------------------------------------------------------------------------
 
 #include <string>
+#include "InventoryEvents.h"
 
 enum ItemID {
     NONE = 1,
     CONSUMABLE,
     EQUIPMENT,
+    GOLD,
 };
 
 class ItemBase {
     public:
-        ItemBase(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable)
-            : m_enID(p_enID), m_strName(p_strName), m_strDesc(p_strDesc), m_iValue(p_iValue), m_bStackable(p_bStackable) {};
+        ItemBase(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, int p_iTextureFrameIndex)
+            : m_enID(p_enID), m_strName(p_strName), m_strDesc(p_strDesc), m_iValue(p_iValue), m_bStackable(p_bStackable), m_iTextureFrameIndex(p_iTextureFrameIndex)
+            {};
 
         virtual ~ItemBase() {};
+
+        // Delete copy constructor/assignment
+        ItemBase(const ItemBase&) = delete;
+        ItemBase& operator=(const ItemBase&) = delete;
+
+        // Delete move constructor/assignment
+        ItemBase(ItemBase&& other) = delete;
+        ItemBase& operator=(ItemBase&& other) = delete;
 
         // Once an ID is set you can't change it
         ItemID GetID() const {return m_enID;};
@@ -39,8 +50,12 @@ class ItemBase {
         const std::string& GetDescription() const {return m_strDesc;};
         void SetDescription(const std::string& p_strDesc) {m_strDesc = p_strDesc;};
 
+        int GetTextureFrameIndex() const {return m_iTextureFrameIndex;};
+        void SetTextureFrameIndex(int p_iIndex) {m_iTextureFrameIndex = p_iIndex;};
+
     private:
         int m_iValue;
+        int m_iTextureFrameIndex;
         bool m_bStackable;
         const ItemID m_enID;
 

@@ -15,6 +15,11 @@
 
 PlayerController::PlayerController() = default;
 
+PlayerController::~PlayerController() {
+    wolf::EventManager::RemoveListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+    wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
+}
+
 void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
 {
     m_pAnimComponent = animComponent;
@@ -40,6 +45,10 @@ void PlayerController::LateInitialize()
     }
 
     InitializeAnimations();
+
+    // !-- Aurora added this --!
+    wolf::EventManager::AddListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+    wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
 }
 
 // Add and initialize animations for the player character
@@ -551,4 +560,13 @@ void PlayerController::Render()
     // Pop ImGui style variables and colors
     ImGui::PopStyleVar(3); // Pop style variables (WindowRounding, FrameRounding, and FramePadding)
     ImGui::PopStyleColor(3); // Pop style colors (WindowBg, Border, and BorderShadow)
+}
+
+// !-- Aurora added this --!
+void PlayerController::HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event) {
+    printf("The player equipped a %s!\n", p_event.pWeapon->GetName().c_str());
+}
+
+void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {
+    printf("The player equipped a %s!\n", p_event.pArmour->GetName().c_str());
 }
