@@ -2,16 +2,8 @@
 #include "PlayerController.h"
 #include <cassert>
 
-MinitaurController::MinitaurController() : EnemyController() {}
 
-MinitaurController::~MinitaurController()
-{
-    m_pAnimComponent = nullptr;
-    m_pTarget = nullptr;
-    m_pVelocity = nullptr;
-    m_pHealth = nullptr;
-    m_pTransform = nullptr;
-}
+
 
 void MinitaurController::Init(const EnemyData& data)
 {

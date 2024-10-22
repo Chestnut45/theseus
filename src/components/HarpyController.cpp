@@ -2,16 +2,7 @@
 #include "PlayerController.h"
 #include <cassert>
 
-HarpyController::HarpyController() : EnemyController() {}
 
-HarpyController::~HarpyController()
-{
-    m_pAnimComponent = nullptr;
-    m_pTarget = nullptr;
-    m_pVelocity = nullptr;
-    m_pHealth = nullptr;
-    m_pTransform = nullptr;
-}
 
 void HarpyController::Init(const EnemyData& data)
 {

@@ -11,8 +11,8 @@
 class HarpyController : public EnemyController
 {
 public:
-    HarpyController();
-    virtual ~HarpyController() override;
+    HarpyController() = default;    
+    ~HarpyController() = default; 
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
     

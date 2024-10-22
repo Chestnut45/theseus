@@ -11,8 +11,17 @@
 class MinitaurController : public EnemyController
 {
 public:
-    MinitaurController();
-    virtual ~MinitaurController() override;
+    MinitaurController() = default;    
+    ~MinitaurController() = default; 
+
+    // Copy assignment operator
+    MinitaurController& operator=(const MinitaurController&) = default;
+
+    // Move constructor
+    MinitaurController(MinitaurController&& other) = default;
+
+    // Move assignment operator
+    MinitaurController& operator=(MinitaurController&& other) = default;
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
     
