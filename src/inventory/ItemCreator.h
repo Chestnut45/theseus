@@ -215,7 +215,7 @@ namespace ItemCreator {
                     }
                     else {
                         // If there is not an enum equivalent to the string equipment slot then we cannot create the item
-                        printf("ItemCreator Error: Invalid equipment slot ", strEquipmentSlot.c_str(), " for ", p_strItemName.c_str());
+                        wolf::Log("ItemCreator Error: Invalid equipment slot ", strEquipmentSlot.c_str(), " for ", p_strItemName.c_str());
                         return nullptr;
                     }
 

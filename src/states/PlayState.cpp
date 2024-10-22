@@ -191,12 +191,6 @@ void PlayState::Update(float delta)
         chest->ShowInventoryGUI();
     }
 
-    // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
-    {
-        transform.Translate(velocity.GetVelocity() * delta);
-    }   
-
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
@@ -204,45 +198,7 @@ void PlayState::Update(float delta)
     }
 
     wolf::EventManager::Dispatch<DialogueTriggerEvent>();
-
-     // Second pass: Reverse iteration to safely handle deletions
-    auto& scene = m_pGameInstance->GetScene();
-    auto view = scene.Each<MinitaurController>();
-    auto viewSize = std::distance(view.begin(), view.end());
-
-    for (int i = viewSize - 1; i >= 0; --i)
-    {
-        auto it = view.begin();
-        std::advance(it, i); // Move the iterator to the correct position
-
-        // Access the MinitaurController from the tuple
-        MinitaurController& minitaurController = std::get<1>(*it);
-
-        // Check for deletion condition (if health <= 0, call Delete)
-        auto* pGameObject = minitaurController.GetGameObject();
-        if (pGameObject && pGameObject->GetComponent<HealthComponent>()->GetHealth() <= 0)
-        {
-            pGameObject->Delete();  // Immediate deletion
-        }
-    }
-
-     // Reverse iteration for HarpyController deletion
-    auto harpyView = scene.Each<HarpyController>();
-    auto harpyViewSize = std::distance(harpyView.begin(), harpyView.end());
-
-    for (int i = harpyViewSize - 1; i >= 0; --i)
-    {
-        auto it = harpyView.begin();
-        std::advance(it, i);
-
-        // Access the HarpyController from the tuple
-        HarpyController& harpyController = std::get<1>(*it);
-        auto* pGameObject = harpyController.GetGameObject();
-        if (pGameObject && pGameObject->GetComponent<HealthComponent>()->GetHealth() <= 0)
-        {
-            pGameObject->Delete();
-        }
-    }
+    
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
 
