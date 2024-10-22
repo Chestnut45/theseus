@@ -1012,38 +1012,59 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
     }
 
     // Iterate all sections and knock down connectors
-    for (auto& section : m_sections)
-    {
-        // Keep opening up connectors until we run out
-        while (section.m_connectors.size() > 0)
-        {
-            // Randomly select the next connector to check
-            auto& connector = section.m_connectors[m_rng.NextInt(0, section.m_connectors.size() - 1)];
+    // for (int i = 0; i < m_sections.size(); ++i)
+    // {
+    //     // Grab a reference
+    //     auto& section = m_sections[i];
 
-            // Grab a copy of the new section it would connect
-            int newSection = connector.m_connection;
+    //     // Keep opening up connectors until we run out
+    //     while (section.m_connectors.size() > 0)
+    //     {
+    //         // Randomly select the next connector to check
+    //         int index = m_rng.NextInt(0, section.m_connectors.size() - 1);
+    //         auto& connector = section.m_connectors[index];
 
-            // If the connector brings us to a yet-unconnected section
-            if (!section.m_connected.contains(newSection))
-            {
-                // Mark the 2 sections as connected
-                section.m_connected[newSection] = true;
+    //         // Grab a copy of the new section it would connect
+    //         int newSection = connector.m_connection;
+
+    //         // If the connector brings us to a yet-unconnected section
+    //         if (!section.m_connected.contains(newSection))
+    //         {
+    //             // Mark the 2 sections as connected
+    //             section.m_connected[newSection] = true;
+    //             m_sections[newSection].m_connected[i] = true;
+
+    //             // Mark all sections that were connected to either as connected to both
+    //             for (int j = 0; j < m_sections.size(); ++j)
+    //             {
+    //                 auto& s = m_sections[j];
+    //                 if (s.m_connected.contains(i))
+    //                 {
+    //                     s.m_connected[newSection] = true;
+    //                     for (const auto& kvp : m_sections[newSection].m_connected)
+    //                     {
+    //                         s.m_connected[kvp.first] = true;
+    //                     }
+    //                 }
+    //                 if (s.m_connected.contains(newSection))
+    //                 {
+    //                     s.m_connected[i] = true;
+    //                     for (const auto& kvp : section.m_connected)
+    //                     {
+    //                         s.m_connected[kvp.first] = true;
+    //                     }
+    //                 }
+    //             }
                 
-                // Replace the connector wall with a floor
-                // TODO: Doors?
-                m_labyrinthGrid.Set(connector.m_pos.x, connector.m_pos.y, LogicalTile::Floor);
-
-                // Delete all connectors that connect to the newly-connected section
-                for (int i = section.m_connectors.size() - 1; i >= 0; --i)
-                {
-                    if (section.m_connectors[i].m_connection == newSection)
-                    {
-                        section.m_connectors.erase(section.m_connectors.begin() + i);
-                    }
-                }
-            }
-        }
-    }
+    //             // Replace the connector wall with a floor
+    //             // TODO: Doors?
+    //             m_labyrinthGrid.Set(connector.m_pos.x, connector.m_pos.y, LogicalTile::Floor);
+    //         }
+            
+    //         // Delete the connector
+    //         section.m_connectors.erase(section.m_connectors.begin() + index);
+    //     }
+    // }
 }
 
 void LabyrinthManager::GenerateChunks()
@@ -1081,7 +1102,7 @@ void LabyrinthManager::GenerateChunks()
             int xoffset = cx * CHUNK_SIZE;
             int yoffset = cy *  CHUNK_SIZE;
             auto* pTransform = chunkObj.GetComponent<wolf::Transform2D>();
-            pTransform->SetPosition(glm::vec2(xoffset * LABYRINTH_TILE_SIZE, yoffset * LABYRINTH_TILE_SIZE));
+            pTransform->SetPosition(glm::vec2(xoffset * LABYRINTH_TILE_SIZE * SCALE, yoffset * LABYRINTH_TILE_SIZE * SCALE));
             pTransform->SetScale(glm::vec2(SCALE));
 
             // Create tilemap
