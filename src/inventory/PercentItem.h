@@ -20,6 +20,14 @@ class PercentItem : public ConsumableItem {
 
         ~PercentItem() {};
 
+        // Delete copy constructor/assignment
+        PercentItem(const PercentItem&) = delete;
+        PercentItem& operator=(const PercentItem&) = delete;
+
+        // Delete move constructor/assignment
+        PercentItem(PercentItem&& other) = delete;
+        PercentItem& operator=(PercentItem&& other) = delete;
+
         Attribute GetAttribute() const {return m_enAttrib;};
         void SetAttribute(Attribute p_enAttrib) {m_enAttrib = p_enAttrib;};
 

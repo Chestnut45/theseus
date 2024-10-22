@@ -28,6 +28,14 @@ class ConsumableItem : public ItemBase {
         
         ~ConsumableItem() {};
 
+        // Delete copy constructor/assignment
+        ConsumableItem(const ConsumableItem&) = delete;
+        ConsumableItem& operator=(const ConsumableItem&) = delete;
+
+        // Delete move constructor/assignment
+        ConsumableItem(ConsumableItem&& other) = delete;
+        ConsumableItem& operator=(ConsumableItem&& other) = delete;
+
         int GetNumUses() const {return m_iNumUses;};
         void SetNumUses(int p_iNumUses) {m_iNumUses = p_iNumUses;};
 

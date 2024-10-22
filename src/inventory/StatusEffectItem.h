@@ -21,6 +21,14 @@ class StatusEffectItem : public ConsumableItem {
 
         ~StatusEffectItem() {};
 
+        // Delete copy constructor/assignment
+        StatusEffectItem(const StatusEffectItem&) = delete;
+        StatusEffectItem& operator=(const StatusEffectItem&) = delete;
+
+        // Delete move constructor/assignment
+        StatusEffectItem(StatusEffectItem&& other) = delete;
+        StatusEffectItem& operator=(StatusEffectItem&& other) = delete;
+
         virtual void Use();
 
     private:

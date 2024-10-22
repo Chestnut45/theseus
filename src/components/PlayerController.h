@@ -10,6 +10,7 @@
 
 // !-- Aurora added this --!
 #include "../inventory/WeaponItem.h"
+#include "../inventory/ArmourItem.h"
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
@@ -46,6 +47,16 @@ public:
 
     // Constructor and initialization methods
     PlayerController();
+    ~PlayerController();
+
+    // Delete copy constructor/assignment
+    PlayerController(const PlayerController&) = delete;
+    PlayerController& operator=(const PlayerController&) = delete;
+
+    // Delete move constructor/assignment
+    PlayerController(PlayerController&& other) = delete;
+    PlayerController& operator=(PlayerController&& other) = delete;
+
     void LateInitialize();
     void Update(float delta);
     void Render();
@@ -68,6 +79,7 @@ private:
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
+    void HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event);
 
     // Manage and transition different player states
     void StartAttack();

@@ -20,6 +20,14 @@ class FlatAmtItem : public ConsumableItem {
 
         ~FlatAmtItem() {};
 
+        // Delete copy constructor/assignment
+        FlatAmtItem(const FlatAmtItem&) = delete;
+        FlatAmtItem& operator=(const FlatAmtItem&) = delete;
+
+        // Delete move constructor/assignment
+        FlatAmtItem(FlatAmtItem&& other) = delete;
+        FlatAmtItem& operator=(FlatAmtItem&& other) = delete;
+
         Attribute GetAttribute() const {return m_enAttrib;};
         void SetAttribute(Attribute p_enAttrib) {m_enAttrib = p_enAttrib;};
 

@@ -23,6 +23,14 @@ class ChestInventoryComponent : public InventoryComponent {
 
         ~ChestInventoryComponent();
 
+        // Delete copy constructor/assignment
+        ChestInventoryComponent(const ChestInventoryComponent&) = delete;
+        ChestInventoryComponent& operator=(const ChestInventoryComponent&) = delete;
+
+        // Delete move constructor/assignment
+        ChestInventoryComponent(ChestInventoryComponent&& other) = delete;
+        ChestInventoryComponent& operator=(ChestInventoryComponent&& other) = delete;
+
         bool FillChestFromFile(const std::string& p_strFilePath);
 
         virtual void Open();

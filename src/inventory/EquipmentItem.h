@@ -71,6 +71,14 @@ class EquipmentItem : public ItemBase {
 
         ~EquipmentItem() {};
 
+        // Delete copy constructor/assignment
+        EquipmentItem(const EquipmentItem&) = delete;
+        EquipmentItem& operator=(const EquipmentItem&) = delete;
+
+        // Delete move constructor/assignment
+        EquipmentItem(EquipmentItem&& other) = delete;
+        EquipmentItem& operator=(EquipmentItem&& other) = delete;
+
         bool IsEquipped() {return m_bEquipped;};
         virtual void SetEquipped(bool p_bEquip) {m_bEquipped = p_bEquip;};
 
