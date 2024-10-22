@@ -20,8 +20,8 @@ wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, const gl
     collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
 
     // Add ArmourComponent
-    auto& armourComponent = minitaurObject->AddComponent<ArmourComponent>();
-    armourComponent.CollectArmour(data.armour);
+    // auto& armourComponent = minitaurObject->AddComponent<ArmourComponent>();
+    // armourComponent.CollectArmour(data.armour);
 
     // Add MinitaurController and initialize it with data
     auto& controller = minitaurObject->AddComponent<MinitaurController>();

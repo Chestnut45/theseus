@@ -86,11 +86,6 @@ void StatusComponent::StatusEffect::ApplyStatusEffect()
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
-                ArmourComponent* armour = this->m_OwnerComponent->GetGameObject()->GetComponent<ArmourComponent>();
-                if(armour != nullptr && armour->IsSpecialPropertyPresent(ArmourComponent::SpecialProperty::FIRERESISTANCE));
-                {
-                    damage *= (100 - armour->GetSpecialPropertiesValues(ArmourComponent::SpecialProperty::FIRERESISTANCE)) * 0.01f;
-                }
                 health->Damage(damage);
             }
             else

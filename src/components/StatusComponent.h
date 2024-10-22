@@ -10,7 +10,6 @@
 #include <glm/glm.hpp>
 #include <wolf.h>
 
-#include "ArmourComponent.h"
 #include "HealthComponent.h"
 
 #include "../ColliderManager.h"

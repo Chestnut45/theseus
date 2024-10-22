@@ -3,7 +3,6 @@
 #include "DialogueState.h"
 #include <imgui/imgui.h>
 
-#include "../components/ArmourComponent.h"
 #include "../components/ColliderComponent.h"
 #include "../components/HealthComponent.h"
 #include "../components/PlayerInventoryComponent.h"
@@ -258,10 +257,8 @@ void PlayState::CreatePlayer()
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
     collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
 
-    // Add health / armor
+    // Add health
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
-    auto& armour = m_pPlayerObject->AddComponent<ArmourComponent>();
-    armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();

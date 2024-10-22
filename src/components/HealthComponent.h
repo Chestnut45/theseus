@@ -8,7 +8,6 @@
 #include <glm/glm.hpp>
 #include <wolf.h>
 
-#include "ArmourComponent.h"
 #include "../events/InventoryEvents.h"
 
 class HealthComponent : public wolf::BaseComponent
