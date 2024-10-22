@@ -37,7 +37,7 @@ void PlayState::Enter()
     // Add the labyrinth manager and generate the default labyrinth config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
-    m_pLabyrinthManager->LoadConfig("data/test_config_0.yaml");
+    m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
     m_pLabyrinthManager->GenerateLabyrinth();
 
     // Testing: Create a test projectile object

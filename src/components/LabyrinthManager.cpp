@@ -835,7 +835,7 @@ void LabyrinthManager::CarveMaze()
     int deltaDirY[] = { 1, 0, -1, 0 };
 
     // Recursive lambda function to carve the maze into the labyrinth
-    std::function<void(int, int, int)> CarveMaze = [&, this](int x, int y, int section) -> void
+    std::function<void(int, int)> CarveMaze = [&, this](int x, int y) -> void
     {
         // Shuffle the 4 directions
         std::vector<Dir> dirs =
@@ -849,9 +849,6 @@ void LabyrinthManager::CarveMaze()
 
         // Place floor so we know this tile has been visited
         m_labyrinthGrid.Set(x, y, LogicalTile::Floor);
-
-        // Add floor tile to section map
-        this->m_tileSectionMap[glm::ivec2(x, y)] = section;
 
         for (Dir d : dirs)
         {
@@ -871,9 +868,6 @@ void LabyrinthManager::CarveMaze()
                     // Place intermediate floor
                     m_labyrinthGrid.Set(x + dx, y + dy, LogicalTile::Floor);
 
-                    // Add floor tile to section map
-                    this->m_tileSectionMap[glm::ivec2(x + dx, y + dy)] = section;
-
                     // Place walls
                     int wx = x + deltaDirX[((int)d + 1) % 4];
                     int wy = y + deltaDirY[((int)d + 1) % 4];
@@ -888,7 +882,7 @@ void LabyrinthManager::CarveMaze()
                     wy += dy;
                     if (m_labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) m_labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
 
-                    CarveMaze(newX, newY, section);
+                    CarveMaze(newX, newY);
                 }
             }
         }
@@ -901,63 +895,98 @@ void LabyrinthManager::CarveMaze()
         {
             if (m_labyrinthGrid.Get(x, y) == LogicalTile::Unvisited)
             {
-                // Create a new section
-                int newSection = m_sections.size();
-                m_sections.push_back(Section());
-
                 // Carve maze from this section
-                CarveMaze(x, y, newSection);
+                CarveMaze(x, y);
             }
         }
     }
 
     // Cleanup passes
 
-    // Diagonal gap fixing pass
-    // for (int y = 1; y < m_height - 1; ++y)
-    // {
-    //     for (int x = 1; x < m_width - 1; ++x)
-    //     {
-    //         if (m_labyrinthGrid.Get(x, y) == LogicalTile::Floor)
-    //         {
-    //             // Grab all neighbour values
-    //             short up = m_labyrinthGrid.Get(x, y + 1) == LogicalTile::Wall;
-    //             short down = m_labyrinthGrid.Get(x, y - 1) == LogicalTile::Wall;
-    //             short left = m_labyrinthGrid.Get(x - 1, y) == LogicalTile::Wall;
-    //             short right = m_labyrinthGrid.Get(x + 1, y) == LogicalTile::Wall;
-    //             short ur = m_labyrinthGrid.Get(x + 1, y + 1) == LogicalTile::Wall;
-    //             short ul = m_labyrinthGrid.Get(x - 1, y + 1) == LogicalTile::Wall;
-    //             short dr = m_labyrinthGrid.Get(x + 1, y - 1) == LogicalTile::Wall;
-    //             short dl = m_labyrinthGrid.Get(x - 1, y - 1) == LogicalTile::Wall;
-
-    //             if ((up && right && !ur) || (down && right && !dr))
-    //             {
-    //                 m_labyrinthGrid.Set(x + 1, y, LogicalTile::Floor);
-    //                 continue;
-    //             }
-    //             if ((up && left && !ul) || (down && left && !dl))
-    //             {
-    //                 m_labyrinthGrid.Set(x - 1, y, LogicalTile::Floor);
-    //                 continue;
-    //             }
-    //             if ((up && right && !ur) || (up && left && !ul))
-    //             {
-    //                 m_labyrinthGrid.Set(x, y + 1, LogicalTile::Floor);
-    //                 continue;
-    //             }
-    //             if ((down && left && !dl) || (down && right && !dr))
-    //             {
-    //                 m_labyrinthGrid.Set(x, y - 1, LogicalTile::Floor);
-    //                 continue;
-    //             }
-    //         }
-    //     }
-    // }
+    // Single floor surrounded by walls fix
+    for (int y = 1; y < m_height - 1; ++y)
+    {
+        for (int x = 1; x < m_width - 1; ++x)
+        {
+            if (m_labyrinthGrid.Get(x, y) == LogicalTile::Floor)
+            {
+                // Grab all neighbour values
+                short up = m_labyrinthGrid.Get(x, y + 1) == LogicalTile::Wall;
+                short down = m_labyrinthGrid.Get(x, y - 1) == LogicalTile::Wall;
+                short left = m_labyrinthGrid.Get(x - 1, y) == LogicalTile::Wall;
+                short right = m_labyrinthGrid.Get(x + 1, y) == LogicalTile::Wall;
+                if (up + down + left + right == 4)
+                {
+                    m_labyrinthGrid.Set(x, y, LogicalTile::Wall);
+                }
+            }
+        }
+    }
 }
 
 void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& placedRooms)
 {
-    // TODO:
+    // Detect all maze sections
+    std::vector<glm::ivec2> toProcess;
+    for (int y = 1; y < m_height - 2; ++y)
+    {
+        for (int x = 1; x < m_width - 2; ++x)
+        {
+            if (m_labyrinthGrid.Get(x, y) == LogicalTile::Floor)
+            {
+                glm::ivec2 pos(x, y);
+                if (!m_tileSectionMap.contains(pos))
+                {
+                    // Create new section
+                    int newSection = m_sections.size();
+                    m_sections.push_back(Section());
+
+                    m_tileSectionMap[pos] = newSection;
+
+                    if (m_labyrinthGrid.Get(x - 1, y) == LogicalTile::Floor && !m_tileSectionMap.contains(glm::ivec2(x - 1, y)))
+                    {
+                        toProcess.push_back(glm::ivec2(x - 1, y));
+                    }
+                    if (m_labyrinthGrid.Get(x + 1, y) == LogicalTile::Floor && !m_tileSectionMap.contains(glm::ivec2(x + 1, y)))
+                    {
+                        toProcess.push_back(glm::ivec2(x + 1, y));
+                    }
+                    if (m_labyrinthGrid.Get(x, y - 1) == LogicalTile::Floor && !m_tileSectionMap.contains(glm::ivec2(x, y - 1)))
+                    {
+                        toProcess.push_back(glm::ivec2(x, y - 1));
+                    }
+                    if (m_labyrinthGrid.Get(x, y + 1) == LogicalTile::Floor && !m_tileSectionMap.contains(glm::ivec2(x, y + 1)))
+                    {
+                        toProcess.push_back(glm::ivec2(x, y + 1));
+                    }
+
+                    while (toProcess.size() > 0)
+                    {
+                        const auto p = toProcess[toProcess.size() - 1];
+                        toProcess.pop_back();
+                        m_tileSectionMap[p] = newSection;
+                        
+                        if (m_labyrinthGrid.Get(p.x - 1, p.y) == LogicalTile::Floor && !m_tileSectionMap.contains(glm::ivec2(p.x - 1, p.y)))
+                        {
+                            toProcess.push_back(glm::ivec2(p.x - 1, p.y));
+                        }
+                        if (m_labyrinthGrid.Get(p.x + 1, p.y) == LogicalTile::Floor && !m_tileSectionMap.contains(glm::ivec2(p.x + 1, p.y)))
+                        {
+                            toProcess.push_back(glm::ivec2(p.x + 1, p.y));
+                        }
+                        if (m_labyrinthGrid.Get(p.x, p.y - 1) == LogicalTile::Floor && !m_tileSectionMap.contains(glm::ivec2(p.x, p.y - 1)))
+                        {
+                            toProcess.push_back(glm::ivec2(p.x, p.y - 1));
+                        }
+                        if (m_labyrinthGrid.Get(p.x, p.y + 1) == LogicalTile::Floor && !m_tileSectionMap.contains(glm::ivec2(p.x, p.y + 1)))
+                        {
+                            toProcess.push_back(glm::ivec2(p.x, p.y + 1));
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     // Add all connectors between disconnected sections
     for (int y = 1; y < m_height - 1; ++y)
@@ -1012,59 +1041,59 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
     }
 
     // Iterate all sections and knock down connectors
-    // for (int i = 0; i < m_sections.size(); ++i)
-    // {
-    //     // Grab a reference
-    //     auto& section = m_sections[i];
+    for (int i = 0; i < m_sections.size(); ++i)
+    {
+        // Grab a reference
+        auto& section = m_sections[i];
 
-    //     // Keep opening up connectors until we run out
-    //     while (section.m_connectors.size() > 0)
-    //     {
-    //         // Randomly select the next connector to check
-    //         int index = m_rng.NextInt(0, section.m_connectors.size() - 1);
-    //         auto& connector = section.m_connectors[index];
+        // Keep opening up connectors until we run out
+        while (section.m_connectors.size() > 0)
+        {
+            // Randomly select the next connector to check
+            int index = m_rng.NextInt(0, section.m_connectors.size() - 1);
+            auto& connector = section.m_connectors[index];
 
-    //         // Grab a copy of the new section it would connect
-    //         int newSection = connector.m_connection;
+            // Grab a copy of the new section it would connect
+            int newSection = connector.m_connection;
 
-    //         // If the connector brings us to a yet-unconnected section
-    //         if (!section.m_connected.contains(newSection))
-    //         {
-    //             // Mark the 2 sections as connected
-    //             section.m_connected[newSection] = true;
-    //             m_sections[newSection].m_connected[i] = true;
+            // If the connector brings us to a yet-unconnected section
+            if (!section.m_connected.contains(newSection))
+            {
+                // Mark the 2 sections as connected
+                section.m_connected[newSection] = true;
+                m_sections[newSection].m_connected[i] = true;
 
-    //             // Mark all sections that were connected to either as connected to both
-    //             for (int j = 0; j < m_sections.size(); ++j)
-    //             {
-    //                 auto& s = m_sections[j];
-    //                 if (s.m_connected.contains(i))
-    //                 {
-    //                     s.m_connected[newSection] = true;
-    //                     for (const auto& kvp : m_sections[newSection].m_connected)
-    //                     {
-    //                         s.m_connected[kvp.first] = true;
-    //                     }
-    //                 }
-    //                 if (s.m_connected.contains(newSection))
-    //                 {
-    //                     s.m_connected[i] = true;
-    //                     for (const auto& kvp : section.m_connected)
-    //                     {
-    //                         s.m_connected[kvp.first] = true;
-    //                     }
-    //                 }
-    //             }
+                // Mark all sections that were connected to either as connected to both
+                for (int j = 0; j < m_sections.size(); ++j)
+                {
+                    auto& s = m_sections[j];
+                    if (s.m_connected.contains(i))
+                    {
+                        s.m_connected[newSection] = true;
+                        for (const auto& kvp : m_sections[newSection].m_connected)
+                        {
+                            s.m_connected[kvp.first] = true;
+                        }
+                    }
+                    if (s.m_connected.contains(newSection))
+                    {
+                        s.m_connected[i] = true;
+                        for (const auto& kvp : section.m_connected)
+                        {
+                            s.m_connected[kvp.first] = true;
+                        }
+                    }
+                }
                 
-    //             // Replace the connector wall with a floor
-    //             // TODO: Doors?
-    //             m_labyrinthGrid.Set(connector.m_pos.x, connector.m_pos.y, LogicalTile::Floor);
-    //         }
+                // Replace the connector wall with a floor
+                // TODO: Doors?
+                m_labyrinthGrid.Set(connector.m_pos.x, connector.m_pos.y, LogicalTile::Floor);
+            }
             
-    //         // Delete the connector
-    //         section.m_connectors.erase(section.m_connectors.begin() + index);
-    //     }
-    // }
+            // Delete the connector
+            section.m_connectors.erase(section.m_connectors.begin() + index);
+        }
+    }
 }
 
 void LabyrinthManager::GenerateChunks()
