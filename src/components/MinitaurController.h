@@ -14,14 +14,6 @@ public:
     MinitaurController() = default;    
     ~MinitaurController() = default; 
 
-    // Copy assignment operator
-    MinitaurController& operator=(const MinitaurController&) = default;
-
-    // Move constructor
-    MinitaurController(MinitaurController&& other) = default;
-
-    // Move assignment operator
-    MinitaurController& operator=(MinitaurController&& other) = default;
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
     
@@ -35,7 +27,7 @@ private:
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
     void HandleDeathState();
-    void ChangeState(EnemyState newState) ;
+    void ChangeState(EnemyState newState);
     
     
     // Minitaur-specific properties
