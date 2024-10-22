@@ -93,6 +93,10 @@ private:
     std::vector<int> m_heldKeys;  // List of currently held keys
     float m_moveSpeed = 200.0f;
 
+    // Sound effect properties
+    wolf::Timer m_walkSoundTimer;
+    float m_walkSoundInterval = 0.34f;
+
     // Stamina management
     bool m_isRolling = false;
     float m_rollSpeed = 400.0f;
