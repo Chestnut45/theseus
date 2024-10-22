@@ -105,7 +105,7 @@ void ColliderManager::CheckCollisions(float p_delta)
                                 collider2.m_bIsFlaggedForDestruction = true;
                                 this->m_vToBeDestroyed.push_back(&collider2);
                             }
-                        } 
+                        }
                     }
 
                     // Perform actions if colliding
@@ -186,13 +186,25 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
             }
             glm::vec2 translation2 = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset2;
 
-            float collisionTime = this->SweptAABB(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta);
-            if(collisionTime < 1.0f)
-            {   
-                std::cout << "ColliderManager -  collide" << std::endl;
-                return true;
-            }
+            glm::vec2 relativeVelocity = glm::vec2(0.0f, 0.0f);
+            relativeVelocity = velocity1 == nullptr ? relativeVelocity + glm::vec2(0.0f) : relativeVelocity - velocity1->GetVelocity();
+            relativeVelocity = velocity2 == nullptr ? relativeVelocity - glm::vec2(0.0f) : relativeVelocity - velocity2->GetVelocity(); 
+            // if(relativeVelocity == glm::vec2(0.0f, 0.0f))
+            // {
+            //     if(StandardAABB(translation1, translation2, dimensions1, dimensions2))
+            //     {
                     
+            //     }
+            // }
+            // else
+            // {
+                float collisionTime = this->SweptAABB(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta);
+                if(collisionTime < 1.0f)
+                {   
+                    std::cout << "ColliderManager -  collide" << std::endl;
+                    return true;
+                }   
+            //}    
         }
     }
     return false;
@@ -390,8 +402,89 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
                 p_velocity_2->SetVelocity(newVelocity2);
             }
 
+            this->PushAABB(p_dimensions_1, p_dimensions_2, p_velocity_1->GetGameObject(), p_velocity_2->GetGameObject());
+
             return entryTime;
         }
     }
     return 1.0f;
+}
+
+void ColliderManager::PushAABB(glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, wolf::GameObject* p_obj_1, wolf::GameObject* p_obj_2)
+{
+    glm::vec2 relativeVelocity = glm::vec2(0.0f, 0.0f);
+
+    bool isObj1Pushable = false;
+    bool isObj2Pushable = false;
+
+    VelocityComponent* velocityComponent1 = p_obj_1 != nullptr ? p_obj_1->GetComponent<VelocityComponent>() : nullptr;
+    VelocityComponent* velocityComponent2 = p_obj_2 != nullptr ? p_obj_2->GetComponent<VelocityComponent>() : nullptr;
+
+    glm::vec2 velocity1 = velocityComponent1 != nullptr ? velocityComponent1->GetVelocity() : glm::vec2(0.0f);
+    glm::vec2 velocity2 = velocityComponent2 != nullptr ? velocityComponent2->GetVelocity() : glm::vec2(0.0f);
+
+    // Check if obj1 is pushable
+    if(p_obj_1 != nullptr && velocityComponent1 != nullptr)
+    {
+        isObj1Pushable = true;
+    }
+
+    // Check if obj2 is pushable
+    if(p_obj_2 != nullptr && velocityComponent2 != nullptr)
+    {
+        isObj2Pushable = true;
+    }
+
+    // obj1-true obj2-false 
+    if(isObj1Pushable && !isObj2Pushable)
+    {
+        relativeVelocity = velocity1 - velocity2;
+        
+        glm::vec2 shiftVector1;
+        shiftVector1.x = relativeVelocity.x > 0.0f ? -p_dimensions_1.x: p_dimensions_2.x;
+        shiftVector1.y = relativeVelocity.y > 0.0f ? -p_dimensions_1.y: p_dimensions_2.y;
+
+        p_obj_1->GetComponent<wolf::Transform2D>()->Translate(shiftVector1);
+    }
+    
+    // obj1-false obj2-true
+    else if(!isObj1Pushable && isObj2Pushable)
+    {
+        relativeVelocity = velocity2 - velocity1;
+
+        glm::vec2 shiftVector2;
+        shiftVector2.x = relativeVelocity.x > 0.0f ? -p_dimensions_2.x: p_dimensions_1.x;
+        shiftVector2.y = relativeVelocity.y > 0.0f ? -p_dimensions_2.y: p_dimensions_1.y;
+
+        p_obj_2->GetComponent<wolf::Transform2D>()->Translate(shiftVector2);
+    }
+
+    // obj1-false obj2-false
+    else if(!isObj1Pushable && !isObj2Pushable)
+    {
+        relativeVelocity = glm::vec2(0.0f);
+    }
+    
+    // obj1-true obj2-true
+    else
+    {
+        relativeVelocity = glm::length(velocity1) >= glm::length(velocity2) ? velocity1 - velocity2 : velocity2 - velocity1;
+
+        if(glm::length(velocity1) >= glm::length(velocity2))
+        {
+            glm::vec2 shiftVector1;
+            shiftVector1.x = relativeVelocity.x > 0.0f ? -p_dimensions_1.x: p_dimensions_2.x;
+            shiftVector1.y = relativeVelocity.y > 0.0f ? -p_dimensions_1.y: p_dimensions_2.y;
+
+            p_obj_1->GetComponent<wolf::Transform2D>()->Translate(shiftVector1);
+        }
+        else
+        {
+            glm::vec2 shiftVector2;
+            shiftVector2.x = relativeVelocity.x > 0.0f ? -p_dimensions_2.x: p_dimensions_1.x;
+            shiftVector2.y = relativeVelocity.y > 0.0f ? -p_dimensions_2.y: p_dimensions_1.y;
+
+            p_obj_2->GetComponent<wolf::Transform2D>()->Translate(shiftVector2);
+        }
+    }
 }
