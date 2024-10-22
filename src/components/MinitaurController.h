@@ -16,7 +16,6 @@ public:
 
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
-    
 
 private:
     // Minitaur-specific methods

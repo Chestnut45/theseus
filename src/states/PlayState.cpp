@@ -23,28 +23,22 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     this->m_pColliderManager = new ColliderManager(&scene);
 
-    // Initialize the player object first
-     CreatePlayer();
+    // Initialize the player object
+    CreatePlayer();
 
-
-    // Initialize the Minitaur enemy object second
-    CreateMinitaurEnemy();
-
-    // Initialize the Harpy enemy object Third
-    CreateHarpyEnemy();
-
-
-
-    // Add the main camera as a component of the player object
-    auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
+    // Add the main camera as a child object of the player
+    auto& cameraObj = scene.CreateObject2D();
+    auto& camera = cameraObj.AddComponent<wolf::Camera2D>(1280, 720);
+    m_pPlayerObject->AddChild(cameraObj);
+    camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
 
-    // Initialise managers
-
-    // Add the labyrinth manager component to an empty object and load default config
+    // Add the labyrinth manager and generate the default labyrinth config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
+    m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    m_pLabyrinthManager->GenerateLabyrinth();
 
     // Testing: Create a test projectile object
     auto& testObj = scene.CreateObject2D();
@@ -281,8 +275,9 @@ void PlayState::CreatePlayer()
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
 
-    // Scale player
-    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
+    // Start player at the labyrinth spawn location and scale appropriately
+    auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
+    transform.SetScale(glm::vec2(3));
 
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();

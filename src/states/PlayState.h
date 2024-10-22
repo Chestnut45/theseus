@@ -53,7 +53,7 @@ private:
     ColliderManager* m_pColliderManager = nullptr;
 
     // Flags
-    bool m_showLabyrinthManager = true;
+    bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;
 
     // Private helper methods

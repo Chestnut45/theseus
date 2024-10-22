@@ -83,6 +83,22 @@ void PlayerController::Update(float delta)
         return;
     }
     
+    // Debug speed modifier hotkeys
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
+    {
+        m_moveSpeed *= 0.5f;
+        m_rollSpeed *= 0.5f;
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
+    {
+        m_moveSpeed *= 2;
+        m_rollSpeed *= 2;
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
+    {
+        m_moveSpeed = 200.0f;
+        m_rollSpeed = 400.0f;
+    }
 
     HandlePlayerInput(delta);
     RegenerateStamina(delta);
@@ -123,7 +139,16 @@ void PlayerController::HandleMovement(float delta)
     {
         if (!m_isAttacking && !m_isRolling) m_action = PlayerAction::NONE;
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        m_walkSoundTimer.Reset();
         return;
+    }
+
+    // Play walking sound effect
+    if (!m_walkSoundTimer.IsRunning()) m_walkSoundTimer.Start();
+    if (m_walkSoundTimer.Elapsed() > m_walkSoundInterval)
+    {
+        wolf::Audio::Play("data/sounds/walk.wav");
+        m_walkSoundTimer.Restart();
     }
 
     direction = glm::normalize(direction);
@@ -388,6 +413,7 @@ void PlayerController::ApplyDamageToEnemy()
             minitaurHealth->Damage(m_attackDamage);
             std::cout << "Player attacked Minitaur! Damage: " << m_attackDamage << std::endl;
             std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
+            wolf::Audio::Play("data/sounds/hit.wav");
 
             // Optionally, break here if you're only targeting one Minitaur at a time
             // break;
