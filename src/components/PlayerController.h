@@ -6,6 +6,7 @@
 #include <components/HealthComponent.h>
 #include <components/EnemyController.h>
 #include <components/ColliderComponent.h>
+#include <components/InventoryComponent.h>
 #include <iostream>
 
 // !-- Aurora added this --!
@@ -66,6 +67,9 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction);
     void SetColliderManager(ColliderManager* pColliderManager);
     ColliderManager* GetColliderManager() const;
+
+    // Weapon & Attack functions
+
 private:
     // Initialization and animation management
     void InitializeAnimations();
@@ -107,7 +111,7 @@ private:
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
-    PlayerDirection m_lastDirectionEnum = PlayerDirection::NONE;
+    PlayerDirection m_lastDirectionEnum = PlayerDirection::SOUTH;
     std::vector<int> m_heldKeys;  // List of currently held keys
     float m_moveSpeed = 200.0f;
 
@@ -141,6 +145,8 @@ private:
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
 
+    static float s_aAttackCooldown[(int)WeaponType::BOW + 1];
+
     // Animation and state tracking flags
     bool m_animationFinished = false;
     std::string m_currentAnimation;
@@ -148,4 +154,7 @@ private:
     PlayerDirection m_previousDirection = PlayerDirection::NONE;
 
     ColliderManager* m_pColliderManager = nullptr;
+
+    // Weapons
+    WeaponType m_eCurrentWeapon = WeaponType::SWORD;
 };

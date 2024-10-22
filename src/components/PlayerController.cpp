@@ -13,6 +13,8 @@
 // ver 2.0: Optimized and restructured for readability and performance.
 //-----------------------------------------------------------------------------
 
+float PlayerController::s_aAttackCooldown[(int)WeaponType::BOW + 1] = {0.25f, 1.0f, 0.5f};
+
 PlayerController::PlayerController() = default;
 
 PlayerController::~PlayerController() {
@@ -34,6 +36,7 @@ ColliderManager* PlayerController::GetColliderManager() const
 {
     return m_pColliderManager;
 }
+
 // Initialize components related to the player
 void PlayerController::LateInitialize()
 {
@@ -64,7 +67,7 @@ void PlayerController::InitializeAnimations()
     }
 
     // Initialize the AnimatedSprite2D component
-    m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
+    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
 }
 
 // Main update loop for the player controller
@@ -168,7 +171,7 @@ void PlayerController::HandleMovement(float delta)
 }
 
 // Manage attack state and animation transitions
-void PlayerController:: HandleAttacking(float delta)
+void PlayerController::HandleAttacking(float delta)
 {
     // Start the attack if the left mouse button is pressed and the player is not currently attacking.
     if (wolf::Input::IsLMBJustDown() && !m_isAttacking)
@@ -177,7 +180,7 @@ void PlayerController:: HandleAttacking(float delta)
     }
 
     // Check if enough time has elapsed since the last attack to allow for damage application.
-    if (m_attackTimer.Elapsed() >= m_attackCooldown && m_isAttacking)
+    if (m_attackTimer.Elapsed() >= s_aAttackCooldown[(int)m_eCurrentWeapon] && m_isAttacking)
     {
         ApplyDamageToEnemy(); // Apply damage if there's a collision with an enemy.
         m_attackTimer.Restart(); // Restart the timer for future attacks.
@@ -200,14 +203,7 @@ void PlayerController::HandleRolling(float delta)
         return;
     }
 
-    // Only start roll if a direction is being held
-    glm::vec2 direction(0.0f);
-    direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
-    direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
-    direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
-    direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
-
-    if (direction != glm::vec2(0.0f) && wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
     {
         StartRoll();
     }
@@ -359,6 +355,85 @@ void PlayerController::StartAttack()
 
         // Store the current animation to handle transitions later.
         m_currentAnimation = attackAnimation;
+
+        // Attack
+        glm::vec2 playerDirection;
+        switch (this->m_lastDirectionEnum)
+        {
+            case PlayerDirection::NORTH:       
+                playerDirection = glm::normalize(glm::vec2(0.0f, 1.0f));
+                break;
+
+            case PlayerDirection::NORTH_EAST:  
+                playerDirection = glm::normalize(glm::vec2(1.0f, 1.0f));
+                break;
+
+            case PlayerDirection::EAST:        
+                playerDirection = glm::normalize(glm::vec2(1.0f, 0.0f));
+                break;
+
+            case PlayerDirection::SOUTH_EAST:  
+                playerDirection = glm::normalize(glm::vec2(1.0f, -1.0f));
+                break;
+
+            case PlayerDirection::SOUTH:       
+                playerDirection = glm::normalize(glm::vec2(0.0f, -1.0f));
+                break;
+
+            case PlayerDirection::SOUTH_WEST:  
+                playerDirection = glm::normalize(glm::vec2(-1.0f, -1.0f));
+                break;
+            
+            case PlayerDirection::WEST:        
+                playerDirection = glm::normalize(glm::vec2(-1.0f, 0.0f));
+                break;
+
+            case PlayerDirection::NORTH_WEST:  
+                playerDirection = glm::normalize(glm::vec2(-1.0f, 1.0f));
+                break;
+
+            default:
+                playerDirection = glm::vec2(0.0f, 0.0f);
+                break;
+        }
+        glm::vec2 playerVelocity = glm::vec2(0.0f);
+
+
+        switch(this->m_eCurrentWeapon)
+        {
+            case WeaponType::BOW:
+            {
+                auto& scene = this->GetGameObject()->GetScene();
+                auto& projectile = scene.CreateObject2D();
+                
+                auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+                projectileSprite.SetOriginToCenterOfTexture();
+                
+                auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+                projectileCollider.SetDamage(10.0f);
+                projectileCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
+
+                
+                auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+
+                projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+                projectile.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition()));
+
+                VelocityComponent* playerVelocityComponent = this->GetGameObject()->GetComponent<VelocityComponent>();
+
+                if(playerVelocityComponent != nullptr)
+                {
+                    playerVelocity = playerVelocityComponent->GetVelocity();
+                }
+                else
+                {
+                    playerVelocity = glm::vec2(0.0f, 0.0f);
+                }
+                projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
+            
+                break;
+            }
+        }
     }
 }
 
@@ -422,6 +497,7 @@ void PlayerController::ApplyDamageToEnemy()
             minitaurHealth->Damage(m_attackDamage);
             std::cout << "Player attacked Minitaur! Damage: " << m_attackDamage << std::endl;
             std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
+
             wolf::Audio::Play("data/sounds/hit.wav");
 
             // Optionally, break here if you're only targeting one Minitaur at a time

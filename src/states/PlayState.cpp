@@ -3,7 +3,6 @@
 #include "DialogueState.h"
 #include <imgui/imgui.h>
 
-#include "../components/ArmourComponent.h"
 #include "../components/ColliderComponent.h"
 #include "../components/HealthComponent.h"
 #include "../components/PlayerInventoryComponent.h"
@@ -43,26 +42,29 @@ void PlayState::Enter()
     m_pLabyrinthManager->GenerateLabyrinth();
 
     // Testing: Create a test projectile object
-    auto& testObj = scene.CreateObject2D();
-    testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
-    auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-    testCollider.SetDamage(10.0f);
-    testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    auto& testVelocity = testObj.AddComponent<VelocityComponent>();
+    // auto& testObj = scene.CreateObject2D();
+    // testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+    // testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
+    // auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    // auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
+    // testCollider.SetDamage(10.0f);
+    // testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
+    // auto& testVelocity = testObj.AddComponent<VelocityComponent>();
     //testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
 
 
-    // auto& testObj2 = scene.CreateObject2D();
-    // testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    // testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
-    // auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDD, 1, 1);
-    // testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    // auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
-    // testVelocity2.SetVelocity(glm::vec2(64.0f, 0.0f));
+    auto& testObj2 = scene.CreateObject2D();
+    testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+    testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(5120.0f, 0.0f));
 
+    auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    testSprite2.SetOriginToCenterOfTexture();
+
+    auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
+    testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
+    
+    auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
+    // testVelocity2.SetVelocity(glm::vec2(64.0f, 0.0f));
 }
 
 void PlayState::Exit()
@@ -191,6 +193,12 @@ void PlayState::Update(float delta)
         chest->ShowInventoryGUI();
     }
 
+    // Inflict status effects upon the player
+    for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
+    {
+        status.Update();
+    }
+
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
@@ -249,10 +257,12 @@ void PlayState::CreatePlayer()
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
     collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
 
-    // Add health / armor
+    // Add health
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
-    auto& armour = m_pPlayerObject->AddComponent<ArmourComponent>();
-    armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
+
+    // Add status component and status effect
+    auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
 
     m_pPlayerObject->AddComponent<ChestInventoryComponent>(4, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 }
