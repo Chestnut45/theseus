@@ -344,7 +344,7 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
             bottom2 = p_translation_2.y + p_dimensions_2.y;
             
             glm::vec2 collisionNormal1 = glm::vec2(0.0f, 0.0f);
-            glm::vec2 collisionNormal2 = glm::vec2(0.0f, 0.0f);
+            glm::vec2 collisionNormal2 = glm::vec2(0.0f, 1.0f);
 
             // obj1 left collision
             if(left1 <= right2 && oldLeft1 > right2)
