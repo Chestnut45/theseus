@@ -191,12 +191,6 @@ void PlayState::Update(float delta)
         chest->ShowInventoryGUI();
     }
 
-    // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
-    {
-        transform.Translate(velocity.GetVelocity() * delta);
-    }   
-
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
