@@ -206,7 +206,7 @@ void PlayState::Update(float delta)
     }
     wolf::EventManager::Dispatch<DialogueTriggerEvent>();
 
-            // Second pass: Reverse iteration to safely handle deletions
+     // Second pass: Reverse iteration to safely handle deletions
     auto& scene = m_pGameInstance->GetScene();
     auto view = scene.Each<MinitaurController>();
     auto viewSize = std::distance(view.begin(), view.end());
