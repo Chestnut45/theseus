@@ -85,6 +85,10 @@ The Floor is Lava Boots: {
   slot: FEET,
   damage_reduction: 0.05,
   has_status_effects: true,
-  status_effect_type: BURNING,
-  duration: 2.0,
+  status_effects: [
+    {
+      type: BURNING,
+      duration: 2.0,
+    }
+  ]
 }

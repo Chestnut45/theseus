@@ -220,36 +220,46 @@ namespace ItemCreator {
 
                     // Does this armour piece apply any status effects?
                     bool bHasStatusEffects = itemEntry["has_status_effects"].as<bool>();
+                    std::vector<ArmourStatusEffect> vStatusEffects;
 
+                    // If it does...
                     if (bHasStatusEffects) {
-                        // Status Effect items have a target status effect and a duration
-                        std::string strStatusEffect = itemEntry["status_effect_type"].as<std::string>();
-                        float fDuration = itemEntry["duration"].as<float>();
+                        // Get the list of status effects
+                        YAML::Node effectList = itemEntry["status_effects"];
 
-                        // Once we know which status effect this item causes, we need to convert it to the enum equivalent
-                        StatusComponent::StatusEffectType enStatusEffectType;
-                        if (strStatusEffect == "BURNING") {
-                            enStatusEffectType = StatusComponent::BURNING;
-                        }
-                        else if (strStatusEffect == "PETRIFIED") {
-                            enStatusEffectType = StatusComponent::PETRIFIED;
-                        }
-                        else if (strStatusEffect == "POISONED") {
-                            enStatusEffectType = StatusComponent::POISONED;
-                        }
-                        else {
-                            // If we're trying to apply a status effect that doesn't exist then we can't create the item
-                            wolf::Error("ItemCreator Error: Invalid status effect type ", strStatusEffect.c_str(), " for ", p_strItemName.c_str());
-                            return nullptr;
-                        }
+                        // Then iterate through it
+                        for (int j = 0; j < effectList.size(); ++j) {
+                            // Figure out what type of status effect this is
+                            std::string strEffectType = effectList[j]["type"].as<std::string>();
 
-                        // Then we can create the armour item with the status effect
-                        pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enSlot, fDamageReduction, enStatusEffectType, fDuration);
+                            // And convert it to the enum equivalent
+                            StatusComponent::StatusEffectType enEffectType;
+                            if (strEffectType == "BURNING") {
+                                enEffectType = StatusComponent::BURNING;
+                            }
+                            else if (strEffectType == "PETRIFIED") {
+                                enEffectType = StatusComponent::PETRIFIED;
+                            }
+                            else if (strEffectType == "POISONED") {
+                                enEffectType = StatusComponent::POISONED;
+                            }
+                            else {
+                                // If we're trying to apply a status effect that doesn't exist then we can't create the item
+                                wolf::Error("ItemCreator Error: Invalid status effect type ", strEffectType.c_str(), " for ", p_strItemName.c_str());
+                                return nullptr;
+                            }
+
+                            // Then find the effect's duration
+                            float fDuration = effectList[j]["duration"].as<float>();
+
+                            // And add the effect to the vector
+                            vStatusEffects.push_back({enEffectType, fDuration});
+                        }
                     }
-                    else { // If we don't have status effects
-                        // Then we can create the armour item with no status effect
-                        pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enSlot, fDamageReduction, StatusComponent::StatusEffectType::NONE, 0.0f);
-                    }
+
+                    // Then we can create the armour item!
+                    pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enSlot, fDamageReduction, vStatusEffects);
+
                 }
             }
             else {
