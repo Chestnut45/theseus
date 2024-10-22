@@ -413,6 +413,7 @@ void PlayerController::ApplyDamageToEnemy()
             minitaurHealth->Damage(m_attackDamage);
             std::cout << "Player attacked Minitaur! Damage: " << m_attackDamage << std::endl;
             std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
+            wolf::Audio::Play("data/sounds/hit.wav");
 
             // Optionally, break here if you're only targeting one Minitaur at a time
             // break;

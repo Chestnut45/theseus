@@ -168,6 +168,7 @@ void MinitaurController::HandleAttackingState(float delta)
         {
             playerHealth->Damage(m_baseDamage);  // Apply damage to the player
             std::cout << "Player Health: " << playerHealth->GetHealth() << "\n";
+            wolf::Audio::Play("data/sounds/hurt.wav");
 
             // Reset attack cooldown timer
             m_attackTimer = m_attackCooldown;
