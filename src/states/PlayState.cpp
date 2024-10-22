@@ -161,11 +161,11 @@ void PlayState::Update(float delta)
             ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
             ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
             ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
-            playerInventory->AddItem(pBoots);
-            playerInventory->AddItem(pBow);
-            playerInventory->AddItem(pHealHeart);
-            playerInventory->AddItem(pHurtHeart);
-            playerInventory->AddItem(pBurnHeart);
+            playerInventory->AddItemOrDelete(pBoots);
+            playerInventory->AddItemOrDelete(pBow);
+            playerInventory->AddItemOrDelete(pHealHeart);
+            playerInventory->AddItemOrDelete(pHurtHeart);
+            playerInventory->AddItemOrDelete(pBurnHeart);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
