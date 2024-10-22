@@ -107,7 +107,110 @@ namespace ItemCreator {
                 }
             }
             else if (strItemId == "EQUIPMENT") { // If it is a piece of equipment
+                // Figure out which slot it equips into
+                std::string strEquipmentSlot = itemEntry["slot"].as<std::string>();
 
+                if (strEquipmentSlot == "WEAPON") { // If this is a weapon
+                    // Then we need to know what type of weapon it is and convert it to its enum equivalent
+                    std::string strWeaponType = itemEntry["type"].as<std::string>();
+                    WeaponType enWeaponType;
+
+                    if (strWeaponType == "SWORD") { // If this is a sword
+                        enWeaponType = SWORD;
+                    }
+                    else if (strEquipmentSlot == "SPEAR") { // If this is a spear
+                        enWeaponType = SPEAR;
+                    }
+                    else if (strEquipmentSlot == "BOW") { // If this is a bow
+                        enWeaponType = BOW;
+                    }
+                    else {
+                        // If the string version of the weapon type does not have a corresponding enum then we can't create the item
+                        return nullptr;
+                    }
+                    
+                    // Then we need to get the properties that all weapons have
+                    float fDelay = itemEntry["delay"].as<float>(); // Time between attacks
+                    float fDamage = itemEntry["damage"].as<float>(); // How much damage the weapon does
+
+                    // And the size of the weapon's hurtbox (Note that this is different than the projectile hurtbox)
+                    glm::vec2 v2HurtboxSize;
+                    v2HurtboxSize.x = itemEntry["hurtbox_size"]["x"].as<float>();
+                    v2HurtboxSize.y = itemEntry["hurtbox_size"]["y"].as<float>();
+
+                    // Then we need to know if the weapon has projectiles
+                    bool bHasProjectiles = itemEntry["has_projectiles"].as<bool>();
+
+                    // Once we have all that, we can create the item
+                    WeaponItem* pWeapon = new WeaponItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enWeaponType, fDelay, fDamage, v2HurtboxSize, bHasProjectiles);
+                    
+                    // If the weapon has projectiles
+                    if (bHasProjectiles) {
+                        // We need to find the properties associated with them
+                        float fProjectileDamage = itemEntry["projectile"]["damage"].as<bool>(); // How much damage each projectile does
+
+                        // How big is the projectile's hurtbox
+                        glm::vec2 v2ProjectileHurtbox;
+                        v2ProjectileHurtbox.x = itemEntry["projectile"]["hurtbox_size"]["x"].as<float>();
+                        v2ProjectileHurtbox.y = itemEntry["projectile"]["hurtbox_size"]["y"].as<float>();
+
+                        // What is the projectile's initial velocity
+                        glm::vec2 v2ProjectileVelocity;
+                        v2ProjectileVelocity.x = itemEntry["projectile"]["initial_velocity"]["x"].as<float>();
+                        v2ProjectileVelocity.y = itemEntry["projectile"]["initial_velocity"]["y"].as<float>();
+                        
+                        // Where is the projectile's sprite located?
+                        std::string strPathToProjectileSprite = itemEntry["projectile"]["sprite_path"].as<std::string>();
+
+                        // Once we have all that, we can attach the properties to the weapon
+                        pWeapon->SetProjectileProperties(fProjectileDamage, v2ProjectileHurtbox, v2ProjectileVelocity, strPathToProjectileSprite);
+                    }
+
+                    // Then we return the weapon we created
+                    pCreatedItem = pWeapon;
+                }
+                else { // If this is a piece of armour
+                    // We need to figure out which armour slot it equips into and convert that to the enum equivalent
+                    EquipmentSlot enSlot;
+
+                    if (strEquipmentSlot == "HEAD") { // Equips in the head slot
+                        enSlot = HEAD;
+                    }
+                    else if (strEquipmentSlot == "BODY") { // Equips in the body slot
+                        enSlot = BODY;
+                    }
+                    else if (strEquipmentSlot == "ARMS") { // Equips in the arms slot
+                        enSlot = ARMS;
+                    }
+                    else if (strEquipmentSlot == "LEGS") { // Equips in the legs slot
+                        enSlot = LEGS;
+                    }
+                    else if (strEquipmentSlot == "FEET") { // Equips in the feet slot
+                        enSlot = FEET;
+                    }
+                    else if (strEquipmentSlot == "GLOVES") { // Equips in the gloves slot
+                        enSlot = GLOVES;
+                    }
+                    else if (strEquipmentSlot == "ACCESSORY") { // Equips in the accessory slot
+                        enSlot = ACCESSORY;
+                    }
+                    else {
+                        // If there is not an enum equivalent to the string equipment slot then we cannot create the item
+                        return nullptr;
+                    }
+
+                    // How much damage does this armour piece reduce (as a percentage)
+                    float fDamageReduction = itemEntry["damage_reduction"].as<float>();
+
+                    // Does this armour piece apply any status effects?
+                    bool bHasStatusEffects = itemEntry["has_status_effects"].as<bool>();
+
+                    if (bHasStatusEffects) {
+                        // !-- DO SOMETHING --!
+                    }
+
+                    pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enSlot, fDamageReduction, nullptr);
+                }
             }
             else {
                 // If the ID doesn't match one of the enums that we use then we can't create the item
