@@ -21,6 +21,9 @@
 
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
+#include <HarpyBuilder.h>
+#include "EnemyDataLoader.h"
+
 
 class LabyrinthManager;
 
@@ -47,14 +50,12 @@ private:
     wolf::GameObject* m_pPlayerObject = nullptr;
     LabyrinthManager* m_pLabyrinthManager = nullptr;
     DialogueManager* m_pDialogueManager = nullptr;
-    wolf::GameObject* m_pMinitaurObject = nullptr;
-
 
     // Manager for colliders
     ColliderManager* m_pColliderManager = nullptr;
 
     // Flags
-    bool m_showLabyrinthManager = true;
+    bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;
 
     // Private helper methods
@@ -65,4 +66,5 @@ private:
     // POST: m_pPlayerObject will be set to a pointer to the newly created player object
     void CreatePlayer();
     void CreateMinitaurEnemy();
+    void CreateHarpyEnemy();
 };
