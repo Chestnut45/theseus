@@ -158,7 +158,7 @@ bool InventoryComponent::AddItem(ItemBase* p_pItem) {
         ItemBase* pItem = m_vvpContents[i].top();
 
         // If we find an item with the same ID and it is stackable
-        if (pItem->GetID() == p_pItem->GetID() && p_pItem->IsStackable()) {
+        if (pItem->GetID() == p_pItem->GetID() && p_pItem->IsStackable() && pItem->IsStackable()) {
             // Then we push the item to the stack
             m_vvpContents[i].push(p_pItem);
             return true;

@@ -133,13 +133,13 @@ void PlayState::Update(float delta)
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-            ArmourItem* pEquip1 = new ArmourItem(EQUIPMENT, "Test Helmet", "This is a test equipment item", 5, 3, HEAD, 0.2f, nullptr);
-            WeaponItem* pEquip2 = new WeaponItem(EQUIPMENT, "Test Sword", "This is a mighty blade", 10, 3, SWORD, 0.1f, 10000.0f, glm::vec2(1.0f, 1.0f), true);
+            ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
+            ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
             ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
             ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
             ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
-            playerInventory->AddItem(pEquip1);
-            playerInventory->AddItem(pEquip2);
+            playerInventory->AddItem(pBoots);
+            playerInventory->AddItem(pBow);
             playerInventory->AddItem(pHealHeart);
             playerInventory->AddItem(pHurtHeart);
             playerInventory->AddItem(pBurnHeart);
@@ -153,33 +153,15 @@ void PlayState::Update(float delta)
             playerInventory->TakeGold(5);
         }
 
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            ItemBase* pHeadItem = playerInventory->GetEquippedItem(HEAD);
-            ItemBase* pWeaponItem = playerInventory->GetEquippedItem(WEAPON);
-            if (pHeadItem) {\
-                printf("%s is equipped in the HEAD slot!\n", pHeadItem->GetName().c_str());
-            }
-            else {
-                printf("Nothing is equipped in the HEAD slot!\n");
-            }
-
-            if (pWeaponItem) {
-                printf("%s is equipped in the WEAPON slot!\n", pWeaponItem->GetName().c_str());
-            }
-            else {
-                printf("Nothing is equipped in the WEAPON slot!\n");
-            }
-        }
-
         playerInventory->ShowInventoryGUI();
     }
     
     auto* chest = m_pPlayerObject->GetComponent<ChestInventoryComponent>();
     if (chest) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
             chest->ToggleOpen();
         }
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
             chest->FillChestFromFile("data/test_chest_contents.yaml");
         }
         

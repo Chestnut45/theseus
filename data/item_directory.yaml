@@ -76,3 +76,15 @@ Dented Helmet: {
   damage_reduction: 0.02,
   has_status_effects: false,
 }
+
+The Floor is Lava Boots: {
+  id: EQUIPMENT,
+  description: Guaranteed to make you feel like you're walking in lava!,
+  value: 25,
+  texture_frame: 3,
+  slot: FEET,
+  damage_reduction: 0.05,
+  has_status_effects: true,
+  status_effect_type: BURNING,
+  duration: 2.0,
+}

@@ -5,9 +5,20 @@
 #include "FlatAmtItem.h"
 #include "PercentItem.h"
 #include "StatusEffectItem.h"
-#include "EquipmentItem.h"
+#include "WeaponItem.h"
+#include "ArmourItem.h"
+
+//-----------------------------------------------------------------------------
+// File:            ItemCreator.h
+// Original Author: Aurora Ryder
+//
+// This namespace and static method lets the user create an item of any type
+// by searching a .yaml directory for an entry with a given name
+//-----------------------------------------------------------------------------
+
 
 namespace ItemCreator {
+    // The item directory that describes all of the items (index by names)
     const std::string ITEM_DIRECTORY_PATH = "data/item_directory.yaml";
 
     inline ItemBase* CreateItem(const std::string& p_strItemName) {
@@ -49,6 +60,7 @@ namespace ItemCreator {
                     }
                     else {
                         // And if we're trying to target an attribute that does not have an enum representation then we can't create the item
+                        wolf::Error("ItemCreator Error: Invalid target attribute ", strAttribute.c_str(), " for ", p_strItemName.c_str());
                         return nullptr;
                     }
 
@@ -71,6 +83,7 @@ namespace ItemCreator {
                     }
                     else {
                         // And if we're trying to target an attribute that does not have an enum representation then we can't create the item
+                        wolf::Error("ItemCreator Error: Invalid target attribute ", strAttribute.c_str(), " for ", p_strItemName.c_str());
                         return nullptr;
                     }
 
@@ -95,6 +108,7 @@ namespace ItemCreator {
                     }
                     else {
                         // If we're trying to apply a status effect that doesn't exist then we can't create the item
+                        wolf::Error("ItemCreator Error: Invalid status effect type ", strStatusEffect.c_str(), " for ", p_strItemName.c_str());
                         return nullptr;
                     }
 
@@ -118,14 +132,15 @@ namespace ItemCreator {
                     if (strWeaponType == "SWORD") { // If this is a sword
                         enWeaponType = SWORD;
                     }
-                    else if (strEquipmentSlot == "SPEAR") { // If this is a spear
+                    else if (strWeaponType == "SPEAR") { // If this is a spear
                         enWeaponType = SPEAR;
                     }
-                    else if (strEquipmentSlot == "BOW") { // If this is a bow
+                    else if (strWeaponType == "BOW") { // If this is a bow
                         enWeaponType = BOW;
                     }
                     else {
                         // If the string version of the weapon type does not have a corresponding enum then we can't create the item
+                        wolf::Error("ItemCreator Error: Invalid weapon type ", strWeaponType.c_str(), " for ", p_strItemName.c_str());
                         return nullptr;
                     }
                     
@@ -147,7 +162,7 @@ namespace ItemCreator {
                     // If the weapon has projectiles
                     if (bHasProjectiles) {
                         // We need to find the properties associated with them
-                        float fProjectileDamage = itemEntry["projectile"]["damage"].as<bool>(); // How much damage each projectile does
+                        float fProjectileDamage = itemEntry["projectile"]["damage"].as<float>(); // How much damage each projectile does
 
                         // How big is the projectile's hurtbox
                         glm::vec2 v2ProjectileHurtbox;
@@ -196,6 +211,7 @@ namespace ItemCreator {
                     }
                     else {
                         // If there is not an enum equivalent to the string equipment slot then we cannot create the item
+                        printf("ItemCreator Error: Invalid equipment slot ", strEquipmentSlot.c_str(), " for ", p_strItemName.c_str());
                         return nullptr;
                     }
 
@@ -206,14 +222,39 @@ namespace ItemCreator {
                     bool bHasStatusEffects = itemEntry["has_status_effects"].as<bool>();
 
                     if (bHasStatusEffects) {
-                        // !-- DO SOMETHING --!
-                    }
+                        // Status Effect items have a target status effect and a duration
+                        std::string strStatusEffect = itemEntry["status_effect_type"].as<std::string>();
+                        float fDuration = itemEntry["duration"].as<float>();
 
-                    pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enSlot, fDamageReduction, nullptr);
+                        // Once we know which status effect this item causes, we need to convert it to the enum equivalent
+                        StatusComponent::StatusEffectType enStatusEffectType;
+                        if (strStatusEffect == "BURNING") {
+                            enStatusEffectType = StatusComponent::BURNING;
+                        }
+                        else if (strStatusEffect == "PETRIFIED") {
+                            enStatusEffectType = StatusComponent::PETRIFIED;
+                        }
+                        else if (strStatusEffect == "POISONED") {
+                            enStatusEffectType = StatusComponent::POISONED;
+                        }
+                        else {
+                            // If we're trying to apply a status effect that doesn't exist then we can't create the item
+                            wolf::Error("ItemCreator Error: Invalid status effect type ", strStatusEffect.c_str(), " for ", p_strItemName.c_str());
+                            return nullptr;
+                        }
+
+                        // Then we can create the armour item with the status effect
+                        pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enSlot, fDamageReduction, enStatusEffectType, fDuration);
+                    }
+                    else { // If we don't have status effects
+                        // Then we can create the armour item with no status effect
+                        pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enSlot, fDamageReduction, StatusComponent::StatusEffectType::NONE, 0.0f);
+                    }
                 }
             }
             else {
                 // If the ID doesn't match one of the enums that we use then we can't create the item
+                wolf::Error("ItemCreator Error: Invalid item type id ", strItemId.c_str(), " for ", p_strItemName.c_str());
                 return nullptr;
             }
         }

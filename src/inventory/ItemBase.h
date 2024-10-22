@@ -26,6 +26,14 @@ class ItemBase {
 
         virtual ~ItemBase() {};
 
+        // Delete copy constructor/assignment
+        ItemBase(const ItemBase&) = delete;
+        ItemBase& operator=(const ItemBase&) = delete;
+
+        // Delete move constructor/assignment
+        ItemBase(ItemBase&& other) = delete;
+        ItemBase& operator=(ItemBase&& other) = delete;
+
         // Once an ID is set you can't change it
         ItemID GetID() const {return m_enID;};
 
