@@ -38,7 +38,11 @@ namespace ItemCreator {
             int iTextureFrameIndex = itemEntry["texture_frame"].as<int>();
 
             // Then figure out what kind of item it is
-            if (strItemId == "CONSUMABLE") { // If it is a consumable
+            if (strItemId == "GOLD") { // If this is a gold item
+                // Then we don't need anything else so we can just use an ItemBase to create the item
+                pCreatedItem = new ItemBase(GOLD, p_strItemName, strDesc, iValue, true, iTextureFrameIndex);
+            }
+            else if (strItemId == "CONSUMABLE") { // If it is a consumable
                 // All consumables will have these attributes so we look for them
                 std::string strType = itemEntry["type"] ? itemEntry["type"].as<std::string>() : strType;
                 bool bStackable = itemEntry["is_stackable"] ? itemEntry["is_stackable"].as<bool>() : bStackable;

@@ -313,12 +313,22 @@ void PlayerInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEve
 }
 
 void PlayerInventoryComponent::HandleAddToPlayerInventoryEvent(const SendItemToPlayerInventoryEvent& p_event) {
-    // If we have space in our inventory for the item
-    if (this->AddItem(p_event.pItem)) {
-        // And we took the item out of a chest
-        if (p_event.enSenderType == CHEST_INVENTORY) {
-            // Then we need to let the chest know that it no longer has the item
-            wolf::EventManager::TriggerEvent(RemoveFromChestEvent(p_event.iSenderIdNum, p_event.pItem->GetName(), p_event.iSenderInventoryIndex));
+    // If this is a gold item
+    if (p_event.pItem->GetID() == GOLD) {
+        // Then we don't add it to our inventory, we just add the gold to our wallet
+        this->AddGold(p_event.pItem->GetValue());
+
+        // And let the chest know it no longer has the item
+        wolf::EventManager::TriggerEvent(RemoveFromChestEvent(p_event.iSenderIdNum, p_event.pItem->GetName(), p_event.iSenderInventoryIndex));
+    }
+    else {
+        // If we have space in our inventory for the item
+        if (this->AddItem(p_event.pItem)) {
+            // And we took the item out of a chest
+            if (p_event.enSenderType == CHEST_INVENTORY) {
+                // Then we need to let the chest know that it no longer has the item
+                wolf::EventManager::TriggerEvent(RemoveFromChestEvent(p_event.iSenderIdNum, p_event.pItem->GetName(), p_event.iSenderInventoryIndex));
+            }
         }
     }
 }

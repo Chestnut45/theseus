@@ -16,6 +16,7 @@ enum ItemID {
     NONE = 1,
     CONSUMABLE,
     EQUIPMENT,
+    GOLD,
 };
 
 class ItemBase {

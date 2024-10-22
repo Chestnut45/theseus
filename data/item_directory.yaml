@@ -1,3 +1,10 @@
+Gold Coin: {
+  id: GOLD,
+  description: A shiny gold coin!,
+  value: 1,
+  texture_frame: 2,
+}
+
 Healing Heart: {
   id: CONSUMABLE,
   description: This heart will heal you!,
