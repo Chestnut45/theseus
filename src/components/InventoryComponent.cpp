@@ -267,6 +267,16 @@ bool InventoryComponent::RemoveItem(int p_iItemIndex) {
         return false;
     }
 
+    // Retrieve the item that we're trying to delete
+    ItemBase* pItem = m_vvpContents[p_iItemIndex].top();
+
+    // If it is a piece of equipment
+    if (pItem->GetID() == EQUIPMENT) {
+        // Unequip it before we delete it
+        EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(pItem);
+        pEquipment->SetEquipped(false);
+    }
+
     // Otherwise we remove the first item in the stack at the given index
     m_vvpContents[p_iItemIndex].pop();
 
