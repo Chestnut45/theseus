@@ -22,24 +22,58 @@ void MinitaurController::Init(const EnemyData& data)
         return;
     }
 
-    EnemyController::Init();  // Call the base enemy initialization
+    // Log that initialization has started
+    wolf::Log("Initializing Minitaur with GameObject ID " + std::to_string(pGameObject->GetID()));
+
+    // Call base initialization
+    EnemyController::Init();
+
+    // Assign enemy data
     m_meleeRange = data.meleeRange;
     m_attackCooldown = data.attackCooldown;
     m_detectionRange = data.detectionRange;
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
-    // Get required components
+    // Log initialized values
+    wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " initialized with melee range " + std::to_string(m_meleeRange) + 
+              ", attack cooldown " + std::to_string(m_attackCooldown) + 
+              ", detection range " + std::to_string(m_detectionRange) + 
+              ", base damage " + std::to_string(m_baseDamage) + 
+              ", and chase speed " + std::to_string(m_chaseSpeed));
+
+    // Get required components and log their initialization
     m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
+    if (m_pVelocity)
+    {
+        wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " VelocityComponent initialized.");
+    }
+    else
+    {
+        wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " could not find VelocityComponent!");
+    }
 
     // Set up Minitaur-specific animations
     SetUpAnimations(data.animationInitFile);
+    wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " animation initialized using file " + data.animationInitFile);
 
     // Find and set the player as the target
+    bool targetFound = false;
     for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
     {
         m_pTarget = playerController.GetGameObject();
+        wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " found player target with GameObject ID " + std::to_string(m_pTarget->GetID()));
+        targetFound = true;
         break;  // Assume there's only one player
+    }
+
+    if (!targetFound)
+    {
+        wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
+    }
+    else
+    {
+        wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " successfully set the target to player.");
     }
 }
 
@@ -50,6 +84,11 @@ void MinitaurController::Update(float delta)
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
 
+    // Check if health is below or equal to 0 and transition to the DEATH state
+    if (m_pHealth->GetHealth() <= 0)
+    {
+        ChangeState(EnemyState::DEATH);
+    }
 
     // Update based on the current state
     switch (m_state)
@@ -63,14 +102,15 @@ void MinitaurController::Update(float delta)
         case EnemyState::ATTACKING:
             HandleAttackingState(delta);
             break;
-        // case EnemyState::DEATH:
-        //     HandleDeathState();  // Temporarily disable death handling
-        //     break;
+        case EnemyState::DEATH:
+            HandleDeathState();  
+            break;
     }
 
     // Update animations based on direction after handling movement
     UpdateAnimationBasedOnDirection();
 }
+
 
 void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
 {
@@ -104,12 +144,15 @@ void MinitaurController::MoveTowardsTarget(float delta)
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
     }
 }
-
 void MinitaurController::HandleIdleState()
 {
-    if (glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition()) < m_detectionRange)
+    // Check if the player is within detection range
+    float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
+
+    // If the player comes into detection range, start chasing
+    if (distanceToPlayer <= m_detectionRange)
     {
-        ChangeState(EnemyState::CHASING);  // This should transition the enemy to the CHASING state
+        ChangeState(EnemyState::CHASING);  // Transition to CHASING when the player is in range
     }
 }
 
@@ -121,13 +164,18 @@ void MinitaurController::HandleChasingState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
+    // Check if the player has moved out of the detection range and transition to IDLE
+    if (distanceToPlayer > m_detectionRange)
+    {
+        ChangeState(EnemyState::IDLE);
+        m_pVelocity->SetVelocity(glm::vec2(0.0f));  // Reset velocity when returning to idle
+        return;
+    }
+
     if (!m_transitionTimer.IsRunning())
     {
         m_transitionTimer.Start();
     }
-
-    
-    // std::cout << "MinitaurController - distanceToPlayer: " << distanceToPlayer << std::endl;
 
     if (distanceToPlayer <= m_meleeRange)
     {
@@ -144,9 +192,6 @@ void MinitaurController::HandleChasingState(float delta)
     }
 }
 
-
-
-
 void MinitaurController::HandleAttackingState(float delta)
 {
     if (!m_pTarget) return;
@@ -162,13 +207,11 @@ void MinitaurController::HandleAttackingState(float delta)
     // Apply damage if player is within melee range and attack cooldown is over
     if (distanceToPlayer <= m_meleeRange && m_attackTimer <= 0.0f)
     {
-        
         // Simulate applying damage to the player
         auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
         if (playerHealth)
         {
-            playerHealth->Damage(m_baseDamage);  // Apply damage to the player
-            std::cout << "Player Health: " << playerHealth->GetHealth() << "\n";
+            playerHealth->Damage(m_baseDamage);
 
             // Reset attack cooldown timer
             m_attackTimer = m_attackCooldown;
@@ -184,6 +227,7 @@ void MinitaurController::HandleAttackingState(float delta)
         ChangeState(EnemyState::CHASING);
     }
 }
+
 
 
 void MinitaurController::UpdateAnimationBasedOnDirection()
@@ -224,9 +268,19 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
     }
 }
 
-// void MinitaurController::HandleDeathState()
-// {
-//     // Destroy the GameObject when the Minitaur dies
-//     std::cout << "Minitaur is being destroyed.\n";
-//     GetGameObject()->Delete();
-// }
+void MinitaurController::HandleDeathState()
+{
+    // Stop Minitaur's movement
+    if (m_pVelocity)
+    {
+        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    }
+
+    // Destroy the GameObject when the Minitaur dies
+    //will be implemented later
+}
+
+void MinitaurController::ChangeState(EnemyState newState)
+{
+    m_state = newState;
+}
