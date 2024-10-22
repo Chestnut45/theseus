@@ -13,6 +13,7 @@ class MinitaurController : public EnemyController
 public:
     MinitaurController();
     virtual ~MinitaurController() override;
+
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
 

@@ -23,14 +23,6 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     this->m_pColliderManager = new ColliderManager(&scene);
 
-    // Initialise managers
-
-    // Add the labyrinth manager and generate the default labyrinth config
-    m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
-    m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
-    m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
-    m_pLabyrinthManager->GenerateLabyrinth();
-
     // Initialize the player object
     CreatePlayer();
 
@@ -42,8 +34,11 @@ void PlayState::Enter()
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
 
-    // Test minitaur enemy
-    CreateMinitaurEnemy();
+    // Add the labyrinth manager and generate the default labyrinth config
+    m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
+    m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
+    m_pLabyrinthManager->LoadConfig("data/test_config_0.yaml");
+    m_pLabyrinthManager->GenerateLabyrinth();
 
     // Testing: Create a test projectile object
     auto& testObj = scene.CreateObject2D();
@@ -221,7 +216,6 @@ void PlayState::CreatePlayer()
 
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
-    transform.SetPosition(m_pLabyrinthManager->GetSpawnLocation());
     transform.SetScale(glm::vec2(3));
 
     // Add velocity

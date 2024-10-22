@@ -201,6 +201,29 @@ private:
     ColliderManager* m_pColliderManager = nullptr;
     friend class PlayState;
 
+    // Map of tile positions to section numbers
+    std::unordered_map<glm::ivec2, int> m_tileSectionMap;
+
+    // Data structure for a connector
+    struct Connector
+    {
+        glm::ivec2 m_pos;
+        int m_connection;
+    };
+
+    // Data structure for a section
+    struct Section
+    {
+        // Map of connected sections
+        std::unordered_map<int, bool> m_connected;
+
+        // List of connectors to other sections
+        std::vector<Connector> m_connectors;
+    };
+
+    // List of sections
+    std::vector<Section> m_sections;
+
     // Chunk management
 
     // Map of chunk IDs to chunk game object pointers

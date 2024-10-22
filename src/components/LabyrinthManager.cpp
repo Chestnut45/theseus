@@ -25,6 +25,7 @@
 
 #include <EnemyDataLoader.h>
 #include <MinitaurBuilder.h>
+#include <PlayerController.h>
 
 LabyrinthManager::LabyrinthManager()
 {
@@ -55,6 +56,10 @@ void LabyrinthManager::GenerateLabyrinth()
         return;
     }
 
+    // Clear all data structures
+    m_tileSectionMap.clear();
+    m_sections.clear();
+
     // Ensure width and height are odd
     m_width = m_width % 2 == 0 ? m_width - 1 : m_width;
     m_height = m_height % 2 == 0 ? m_height - 1 : m_height;
@@ -66,7 +71,6 @@ void LabyrinthManager::GenerateLabyrinth()
     // Initialize scale of all labyrinth objects
     auto* pTransform = pObject->GetComponent<wolf::Transform2D>();
     if (!pTransform) pTransform = &pObject->AddComponent<wolf::Transform2D>();
-    pTransform->SetScale(glm::vec2(SCALE));
 
     // Reseed the rng before generating
     if (m_randomizeSeed) m_rng.SetSeed(m_rng.NextInt(0, INT32_MAX));
@@ -113,11 +117,26 @@ void LabyrinthManager::GenerateLabyrinth()
 
     // Update flag
     m_isGenerated = true;
+
+    // Place the player at the spawn location of the labyrinth
+    wolf::GameObject* pPlayer = nullptr;
+    for (auto&&[_, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
+    {
+        // Position player at spawn
+        pPlayer = playerController.GetGameObject();
+        pTransform = pPlayer->GetComponent<wolf::Transform2D>();
+        pTransform->SetPosition(GetSpawnLocation());
+
+        // Update camera position
+        auto* pCamera = pPlayer->GetChildren()[0]->GetComponent<wolf::Camera2D>();
+        if (pCamera) pCamera->SetPosition(pTransform->GetLocalPosition());
+        break;
+    }
 }
 
 void LabyrinthManager::DestroyLabyrinth()
 {
-    // Delete all child objects ob the labyrinth manager
+    // Delete all child objects of the labyrinth manager
     auto* object = GetGameObject();
     if (object)
     {
@@ -752,7 +771,13 @@ std::vector<LabyrinthManager::Room> LabyrinthManager::PlaceRooms()
                 continue;
             }
 
-            // If we reach here, must be non-overlapping, place the room!
+            // If we reach here, the room must be non-overlapping, place it!
+
+            // Create a new logical section for connectivity rules
+            int newSection = m_sections.size();
+            m_sections.push_back(Section());
+
+            // Iterate all tiles included in the room
             for (int y = -1; y <= rect.m_size.y; ++y)
             {
                 for (int x = -1; x <= rect.m_size.x; ++x)
@@ -773,7 +798,11 @@ std::vector<LabyrinthManager::Room> LabyrinthManager::PlaceRooms()
                         continue;
                     }
 
+                    // Set floor tiles
                     m_labyrinthGrid.Set(worldPos.x, worldPos.y, LogicalTile::Floor);
+
+                    // Add floor tiles to new section
+                    m_tileSectionMap[worldPos] = newSection;
                 }
             }
 
@@ -806,7 +835,7 @@ void LabyrinthManager::CarveMaze()
     int deltaDirY[] = { 1, 0, -1, 0 };
 
     // Recursive lambda function to carve the maze into the labyrinth
-    std::function<void(int, int)> CarveMaze = [&, this](int x, int y) -> void
+    std::function<void(int, int, int)> CarveMaze = [&, this](int x, int y, int section) -> void
     {
         // Shuffle the 4 directions
         std::vector<Dir> dirs =
@@ -820,6 +849,9 @@ void LabyrinthManager::CarveMaze()
 
         // Place floor so we know this tile has been visited
         m_labyrinthGrid.Set(x, y, LogicalTile::Floor);
+
+        // Add floor tile to section map
+        this->m_tileSectionMap[glm::ivec2(x, y)] = section;
 
         for (Dir d : dirs)
         {
@@ -839,6 +871,9 @@ void LabyrinthManager::CarveMaze()
                     // Place intermediate floor
                     m_labyrinthGrid.Set(x + dx, y + dy, LogicalTile::Floor);
 
+                    // Add floor tile to section map
+                    this->m_tileSectionMap[glm::ivec2(x + dx, y + dy)] = section;
+
                     // Place walls
                     int wx = x + deltaDirX[((int)d + 1) % 4];
                     int wy = y + deltaDirY[((int)d + 1) % 4];
@@ -853,7 +888,7 @@ void LabyrinthManager::CarveMaze()
                     wy += dy;
                     if (m_labyrinthGrid.Get(wx, wy) == LogicalTile::Unvisited) m_labyrinthGrid.Set(wx, wy, LogicalTile::Wall);
 
-                    CarveMaze(newX, newY);
+                    CarveMaze(newX, newY, section);
                 }
             }
         }
@@ -864,7 +899,15 @@ void LabyrinthManager::CarveMaze()
     {
         for (int x = 1; x < m_width - 1; ++x)
         {
-            if (m_labyrinthGrid.Get(x, y) == LogicalTile::Unvisited) CarveMaze(x, y);
+            if (m_labyrinthGrid.Get(x, y) == LogicalTile::Unvisited)
+            {
+                // Create a new section
+                int newSection = m_sections.size();
+                m_sections.push_back(Section());
+
+                // Carve maze from this section
+                CarveMaze(x, y, newSection);
+            }
         }
     }
 
@@ -914,40 +957,93 @@ void LabyrinthManager::CarveMaze()
 
 void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& placedRooms)
 {
-    // Map of tile positions to section numbers
-    std::unordered_map<glm::ivec2, int> tileSectionMap;
-
-    // Data structure for a connector
-    struct Connector
-    {
-        glm::ivec2 m_pos;
-        int m_connection;
-    };
-
-    // Data structure for a section
-    struct Section
-    {
-        // Map of connected sections
-        std::unordered_map<int, bool> m_connected;
-
-        // List of connectors to other sections
-        std::vector<Connector> m_connectors;
-    };
-
-    // List of sections
-    std::vector<Section> sections;
-
     // TODO:
 
-    // Build list of sections
+    // Add all connectors between disconnected sections
+    for (int y = 1; y < m_height - 1; ++y)
+    {
+        for (int x = 1; x < m_width - 1; ++x)
+        {
+            const auto& tile = m_labyrinthGrid.Get(x, y);
+            if (tile == LogicalTile::Wall)
+            {
+                // Left-right connector case
+                if (m_labyrinthGrid.Get(x - 1, y) == LogicalTile::Floor && m_labyrinthGrid.Get(x + 1, y) == LogicalTile::Floor)
+                {
+                    // This can technically throw, but all placed
+                    // floor tiles are guaranteed to be in the map
+                    int leftSection = m_tileSectionMap.at(glm::ivec2(x - 1, y));
+                    int rightSection = m_tileSectionMap.at(glm::ivec2(x + 1, y));
+                    if (leftSection != rightSection)
+                    {
+                        // Create the connector (from smaller section to larger section, by index)
+                        Connector connector;
+                        connector.m_connection = glm::max(leftSection, rightSection);
+                        connector.m_pos = glm::ivec2(x, y);
 
-    // Add all tiles for each section to the tileSectionMap
+                        // Add the connector to the smaller section
+                        m_sections[glm::min(leftSection, rightSection)].m_connectors.push_back(connector);
 
-    // Add all connectors between disconnected sections (to just one is fine)
+                        // A wall can't be both a horizontal and vertical connector so it's safe to continue here
+                        continue;
+                    }
+                }
 
-    // For each section:
-    // For each connector (random):
-    // knock down wall, set connection, and discard all other connectors to that section
+                // Top-bottom connector case
+                if (m_labyrinthGrid.Get(x, y - 1) == LogicalTile::Floor && m_labyrinthGrid.Get(x, y + 1) == LogicalTile::Floor)
+                {
+                    // This can technically throw, but all placed
+                    // floor tiles are guaranteed to be in the map
+                    int bottomSection = m_tileSectionMap.at(glm::ivec2(x, y - 1));
+                    int topSection = m_tileSectionMap.at(glm::ivec2(x, y + 1));
+                    if (bottomSection != topSection)
+                    {
+                        // Create the connector (from smaller section to larger section, by index)
+                        Connector connector;
+                        connector.m_connection = glm::max(bottomSection, topSection);
+                        connector.m_pos = glm::ivec2(x, y);
+
+                        // Add the connector to the smaller section
+                        m_sections[glm::min(bottomSection, topSection)].m_connectors.push_back(connector);
+                    }
+                }
+            }
+        }
+    }
+
+    // Iterate all sections and knock down connectors
+    for (auto& section : m_sections)
+    {
+        // Keep opening up connectors until we run out
+        while (section.m_connectors.size() > 0)
+        {
+            // Randomly select the next connector to check
+            auto& connector = section.m_connectors[m_rng.NextInt(0, section.m_connectors.size() - 1)];
+
+            // Grab a copy of the new section it would connect
+            int newSection = connector.m_connection;
+
+            // If the connector brings us to a yet-unconnected section
+            if (!section.m_connected.contains(newSection))
+            {
+                // Mark the 2 sections as connected
+                section.m_connected[newSection] = true;
+                
+                // Replace the connector wall with a floor
+                // TODO: Doors?
+                m_labyrinthGrid.Set(connector.m_pos.x, connector.m_pos.y, LogicalTile::Floor);
+
+                // Delete all connectors that connect to the newly-connected section
+                for (int i = section.m_connectors.size() - 1; i >= 0; --i)
+                {
+                    if (section.m_connectors[i].m_connection == newSection)
+                    {
+                        section.m_connectors.erase(section.m_connectors.begin() + i);
+                    }
+                }
+            }
+        }
+    }
 }
 
 void LabyrinthManager::GenerateChunks()
@@ -981,11 +1077,12 @@ void LabyrinthManager::GenerateChunks()
             // Add the chunk object to the map
             m_chunkMap[chunkID] = &chunkObj;
 
-            // Set transform offset
+            // Set transform offset and scale
             int xoffset = cx * CHUNK_SIZE;
             int yoffset = cy *  CHUNK_SIZE;
             auto* pTransform = chunkObj.GetComponent<wolf::Transform2D>();
             pTransform->SetPosition(glm::vec2(xoffset * LABYRINTH_TILE_SIZE, yoffset * LABYRINTH_TILE_SIZE));
+            pTransform->SetScale(glm::vec2(SCALE));
 
             // Create tilemap
             auto& tilemap = chunkObj.AddComponent<wolf::TileMap>(CHUNK_SIZE, CHUNK_SIZE);
@@ -1071,16 +1168,13 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
                                       room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
                         
-                        pos *= LABYRINTH_TILE_SIZE;
+                        pos *= LABYRINTH_TILE_SIZE * SCALE;
 
                         // Build Minitaur at the given position
                         wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, pos, m_pColliderManager);
 
-                        // auto& minitaur = pObject->GetScene().CreateObject2D();
-                        // minitaur.GetComponent<wolf::Transform2D>()->SetPosition(pos);
-                        // minitaur.AddComponent<AnimatedSprite2D>("data/minitaur_anim_init.yaml");
-                        // auto& collider = minitaur.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, false, true);
-                        // collider.AddColliderBox(glm::vec2(16, 16));
+                        // Scale the minitaur
+                        minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
 
                         // TODO: Add as a child object of the correct chunk
                         pObject->AddChild(minitaur);
@@ -1103,9 +1197,10 @@ void LabyrinthManager::GenerateEntrance()
     tilemap.LoadTileSet("data/labyrinth.tileset");
     tilemap.Clear(Tile::Grass);
 
-    // Position the object
+    // Position and scale the object
     auto& transform = *spawnRoomObj.GetComponent<wolf::Transform2D>();
-    transform.SetPosition(glm::vec2(m_width / 2 * LABYRINTH_TILE_SIZE - (m_spawnPatchSize.x / 2 * LABYRINTH_TILE_SIZE), -m_spawnPatchSize.y * LABYRINTH_TILE_SIZE));
+    transform.SetPosition(glm::vec2((m_width / 2 * LABYRINTH_TILE_SIZE - (m_spawnPatchSize.x / 2 * LABYRINTH_TILE_SIZE)) * SCALE, -m_spawnPatchSize.y * LABYRINTH_TILE_SIZE * SCALE));
+    transform.SetScale(glm::vec2(SCALE));
 
     // Place walls
     for (int y = m_spawnPatchSize.y - 1; y >= m_spawnPatchSize.y - m_spawnRoomSize.y; --y)
