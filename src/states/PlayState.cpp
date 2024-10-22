@@ -22,23 +22,22 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     this->m_pColliderManager = new ColliderManager(&scene);
 
-    // Initialize the player object first
-     CreatePlayer();
+    // Initialize the player object
+    CreatePlayer();
 
-
-    // Initialize the Minitaur enemy object second
-    CreateMinitaurEnemy();
-
-    // Add the main camera as a component of the player object
-    auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
+    // Add the main camera as a child object of the player
+    auto& cameraObj = scene.CreateObject2D();
+    auto& camera = cameraObj.AddComponent<wolf::Camera2D>(1280, 720);
+    m_pPlayerObject->AddChild(cameraObj);
+    camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
 
-    // Initialise managers
-
-    // Add the labyrinth manager component to an empty object and load default config
+    // Add the labyrinth manager and generate the default labyrinth config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
+    m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    m_pLabyrinthManager->GenerateLabyrinth();
 
     // Testing: Create a test projectile object
     // auto& testObj = scene.CreateObject2D();
@@ -109,11 +108,33 @@ void PlayState::Update(float delta)
     }
 
     // Update all minitaur controllers
+    // First pass: Update all minitaur controllers (without deletion)
     for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
     {
-        minitaurController.Update(delta);
+        minitaurController.Update(delta);  // Update logic for Minitaurs
+    }
+    for (auto&& [_, harpyController] : m_pGameInstance->GetScene().Each<HarpyController>())
+    {
+        harpyController.Update(delta);  // Update logic for Harpies
     }
 
+    // // Debugging the final minitaur's position and state
+
+    // for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
+    // {
+    //     auto* pGameObject = minitaurController.GetGameObject();
+    //     if (pGameObject)
+    //     {
+    //         auto* transform = pGameObject->GetComponent<wolf::Transform2D>();
+    //         if (transform)
+    //         {
+    //             glm::vec2 pos = transform->GetGlobalPosition();
+    //             printf("Minitaur Render Position: (%f, %f)\n", pos.x, pos.y);  // Debug rendering position
+    //         }
+    //     }
+    // }
+
+    
     // Update all animated sprites
     for (auto&&[_, anim] : m_pGameInstance->GetScene().Each<AnimatedSprite2D>())
     {
@@ -122,7 +143,13 @@ void PlayState::Update(float delta)
 
     // Update collisions
     this->m_pColliderManager->Update(delta);
-    
+
+    // Apply velocity to transforms for all objects with both components
+    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
+    {
+        transform.Translate(velocity.GetVelocity() * delta);
+    }   
+
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
     if (playerInventory) {
@@ -172,12 +199,6 @@ void PlayState::Update(float delta)
     for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
     {
         status.Update();
-    }    
-
-    // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
-    {
-        transform.Translate(velocity.GetVelocity() * delta);
     }
 
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
@@ -186,6 +207,45 @@ void PlayState::Update(float delta)
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
     }
     wolf::EventManager::Dispatch<DialogueTriggerEvent>();
+
+     // Second pass: Reverse iteration to safely handle deletions
+    auto& scene = m_pGameInstance->GetScene();
+    auto view = scene.Each<MinitaurController>();
+    auto viewSize = std::distance(view.begin(), view.end());
+
+    for (int i = viewSize - 1; i >= 0; --i)
+    {
+        auto it = view.begin();
+        std::advance(it, i); // Move the iterator to the correct position
+
+        // Access the MinitaurController from the tuple
+        MinitaurController& minitaurController = std::get<1>(*it);
+
+        // Check for deletion condition (if health <= 0, call Delete)
+        auto* pGameObject = minitaurController.GetGameObject();
+        if (pGameObject && pGameObject->GetComponent<HealthComponent>()->GetHealth() <= 0)
+        {
+            pGameObject->Delete();  // Immediate deletion
+        }
+    }
+
+     // Reverse iteration for HarpyController deletion
+    auto harpyView = scene.Each<HarpyController>();
+    auto harpyViewSize = std::distance(harpyView.begin(), harpyView.end());
+
+    for (int i = harpyViewSize - 1; i >= 0; --i)
+    {
+        auto it = harpyView.begin();
+        std::advance(it, i);
+
+        // Access the HarpyController from the tuple
+        HarpyController& harpyController = std::get<1>(*it);
+        auto* pGameObject = harpyController.GetGameObject();
+        if (pGameObject && pGameObject->GetComponent<HealthComponent>()->GetHealth() <= 0)
+        {
+            pGameObject->Delete();
+        }
+    }
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
 
@@ -223,8 +283,9 @@ void PlayState::CreatePlayer()
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
 
-    // Scale player
-    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
+    // Start player at the labyrinth spawn location and scale appropriately
+    auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
+    transform.SetScale(glm::vec2(3));
 
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
@@ -273,6 +334,32 @@ void PlayState::CreateMinitaurEnemy()
         if (transform)
         {
             transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each minitaur
+        }
+    }
+}
+void PlayState::CreateHarpyEnemy()
+{
+    EnemyDataLoader loader;
+    loader.LoadAllEnemyData("data/enemies.yaml");
+
+    HarpyBuilder harpyBuilder(m_pGameInstance->GetScene());
+
+    glm::vec2 positions[] = {
+        glm::vec2(-300.0f, -300.0f),
+        glm::vec2(-400.0f, -400.0f),
+        glm::vec2(-500.0f, -500.0f)
+    };
+
+    for (const auto& position : positions)
+    {
+        EnemyData harpyData = loader.LoadEnemyData("harpy");
+        auto& harpy = harpyBuilder.BuildHarpy(harpyData, position, m_pColliderManager);
+        
+        // Set the scale of each Minitaur to 3
+        auto* transform = harpy.GetComponent<wolf::Transform2D>();
+        if (transform)
+        {
+            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
         }
     }
 }

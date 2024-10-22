@@ -257,19 +257,19 @@ void TileMap::SetTile(int x, int y, int tileID)
     m_tileGrid.Set(x, y, tileID);
 }
 
-void TileMap::Clear()
+void TileMap::Clear(int tile)
 {
     // Set every tile to -1
-    m_tileGrid.Clear(EMPTY_TILE);
+    m_tileGrid.Clear(tile);
 
     // Update flag
     m_VBODirty = true;
 }
 
-void TileMap::Resize(int width, int height)
+void TileMap::Resize(int width, int height, int clearTile)
 {
     // Resize the internal tile grid
-    m_tileGrid.Resize(width, height, EMPTY_TILE);
+    m_tileGrid.Resize(width, height, clearTile);
 
     // Regenerate VAO and VBO
     _GenerateVAO();

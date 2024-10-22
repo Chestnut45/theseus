@@ -3,6 +3,7 @@
 #include "HealthComponent.h"
 #include "ColliderComponent.h"
 #include "MinitaurController.h"
+#include "HarpyController.h"
 #include <W_Input.h>
 #include <W_Logging.h>
 
@@ -117,6 +118,22 @@ void PlayerController::Update(float delta)
         return;
     }
     
+    // Debug speed modifier hotkeys
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
+    {
+        m_moveSpeed *= 0.5f;
+        m_rollSpeed *= 0.5f;
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
+    {
+        m_moveSpeed *= 2;
+        m_rollSpeed *= 2;
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
+    {
+        m_moveSpeed = 200.0f;
+        m_rollSpeed = 400.0f;
+    }
 
     HandlePlayerInput(delta);
     RegenerateStamina(delta);
@@ -157,7 +174,16 @@ void PlayerController::HandleMovement(float delta)
     {
         if (!m_isAttacking && !m_isRolling) m_action = PlayerAction::NONE;
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        m_walkSoundTimer.Reset();
         return;
+    }
+
+    // Play walking sound effect
+    if (!m_walkSoundTimer.IsRunning()) m_walkSoundTimer.Start();
+    if (m_walkSoundTimer.Elapsed() > m_walkSoundInterval)
+    {
+        wolf::Audio::Play("data/sounds/walk.wav");
+        m_walkSoundTimer.Restart();
     }
 
     direction = glm::normalize(direction);
@@ -487,7 +513,6 @@ void PlayerController::ApplyDamageToEnemy()
         const glm::vec2 minitaurPosition = minitaurTransform->GetGlobalPosition();
         const float distanceToMinitaur = glm::length(playerPosition - minitaurPosition);
 
-
         // Check if the Minitaur is within attack range
         if (distanceToMinitaur <= m_attackRange)
         {
@@ -495,8 +520,37 @@ void PlayerController::ApplyDamageToEnemy()
             minitaurHealth->Damage(m_attackDamage);
             std::cout << "Player attacked Minitaur! Damage: " << m_attackDamage << std::endl;
             std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
+            wolf::Audio::Play("data/sounds/hit.wav");
 
             // Optionally, break here if you're only targeting one Minitaur at a time
+            // break;
+        }
+    }
+
+    // Iterate through all Harpies in the scene (HarpyController)
+    for (auto&& [entity, harpyController] : GetGameObject()->GetScene().Each<HarpyController>())
+    {
+        // Get the transform of the Harpy
+        auto* harpyTransform = harpyController.GetGameObject()->GetComponent<wolf::Transform2D>();
+        auto* harpyHealth = harpyController.GetGameObject()->GetComponent<HealthComponent>();
+
+        // Ensure the Harpy has a HealthComponent and a Transform
+        if (!harpyTransform || !harpyHealth) continue;
+
+        // Calculate the distance between the player and the Harpy
+        const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
+        const glm::vec2 harpyPosition = harpyTransform->GetGlobalPosition();
+        const float distanceToHarpy = glm::length(playerPosition - harpyPosition);
+
+        // Check if the Harpy is within attack range
+        if (distanceToHarpy <= m_attackRange)
+        {
+            // Apply damage to the Harpy
+            harpyHealth->Damage(m_attackDamage);
+            std::cout << "Player attacked Harpy! Damage: " << m_attackDamage << std::endl;
+            std::cout << "Harpy Health: " << harpyHealth->GetHealth() << std::endl;
+
+            // Optionally, break here if you're only targeting one Harpy at a time
             // break;
         }
     }

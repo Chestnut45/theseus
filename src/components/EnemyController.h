@@ -15,9 +15,8 @@ public:
         ATTACKING,
         DEATH
     };
-
-    EnemyController();   // No specific parameters, general initialization
-    virtual ~EnemyController();
+    EnemyController() = default;    
+    ~EnemyController() = default; 
 
     virtual void Init();                  // General initialization of components
     virtual void Update(float delta);     // Update enemy state, to be extended in concrete enemies

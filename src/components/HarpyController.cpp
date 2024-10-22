@@ -1,21 +1,20 @@
-#include "MinitaurController.h"
+#include "HarpyController.h"
 #include "PlayerController.h"
 #include <cassert>
 
 
 
-
-void MinitaurController::Init(const EnemyData& data)
+void HarpyController::Init(const EnemyData& data)
 {
     auto* pGameObject = GetGameObject();
     if (!pGameObject)
     {
-        wolf::Error("LateInitialize failed: MinitaurController not attached to GameObject!");
+        wolf::Error("LateInitialize failed: HarpyController not attached to GameObject!");
         return;
     }
 
     // Log that initialization has started
-    wolf::Log("Initializing Minitaur with GameObject ID " + std::to_string(pGameObject->GetID()));
+    wolf::Log("Initializing Harpy with GameObject ID " + std::to_string(pGameObject->GetID()));
 
     // Call base initialization
     EnemyController::Init();
@@ -28,7 +27,7 @@ void MinitaurController::Init(const EnemyData& data)
     m_chaseSpeed = data.chaseSpeed;
 
     // Log initialized values
-    wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " initialized with melee range " + std::to_string(m_meleeRange) + 
+    wolf::Log("Harpy " + std::to_string(pGameObject->GetID()) + " initialized with melee range " + std::to_string(m_meleeRange) + 
               ", attack cooldown " + std::to_string(m_attackCooldown) + 
               ", detection range " + std::to_string(m_detectionRange) + 
               ", base damage " + std::to_string(m_baseDamage) + 
@@ -38,39 +37,39 @@ void MinitaurController::Init(const EnemyData& data)
     m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
     if (m_pVelocity)
     {
-        wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " VelocityComponent initialized.");
+        wolf::Log("Harpy " + std::to_string(pGameObject->GetID()) + " VelocityComponent initialized.");
     }
     else
     {
-        wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " could not find VelocityComponent!");
+        wolf::Warning("Harpy " + std::to_string(pGameObject->GetID()) + " could not find VelocityComponent!");
     }
 
-    // Set up Minitaur-specific animations
+    // Set up Harpy-specific animations
     SetUpAnimations(data.animationInitFile);
-    wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " animation initialized using file " + data.animationInitFile);
+    wolf::Log("Harpy " + std::to_string(pGameObject->GetID()) + " animation initialized using file " + data.animationInitFile);
 
     // Find and set the player as the target
     bool targetFound = false;
     for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
     {
         m_pTarget = playerController.GetGameObject();
-        wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " found player target with GameObject ID " + std::to_string(m_pTarget->GetID()));
+        wolf::Log("Harpy " + std::to_string(pGameObject->GetID()) + " found player target with GameObject ID " + std::to_string(m_pTarget->GetID()));
         targetFound = true;
         break;  // Assume there's only one player
     }
 
     if (!targetFound)
     {
-        wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
+        wolf::Warning("Harpy " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
     }
     else
     {
-        wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " successfully set the target to player.");
+        wolf::Log("Harpy " + std::to_string(pGameObject->GetID()) + " successfully set the target to player.");
     }
 }
 
 
-void MinitaurController::Update(float delta)
+void HarpyController::Update(float delta)
 {
     // Ensure components and target are initialized before performing any updates
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
@@ -105,7 +104,7 @@ void MinitaurController::Update(float delta)
 }
 
 
-void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
+void HarpyController::SetUpAnimations(const std::string& animationInitPath)
 {
     auto* pGameObject = GetGameObject();
     
@@ -113,18 +112,19 @@ void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
     if (pGameObject->HasAll<AnimatedSprite2D>())
     {
         pGameObject->DeleteComponent<AnimatedSprite2D>();  // Use DeleteComponent to remove the existing component
-        wolf::Warning("Removed existing anim component from minitaur...");
+        wolf::Warning("Removed existing anim component from Harpy...");
     }
 
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
+    m_pAnimComponent->SetTint(glm::vec3(1,0,0));
 }
 
-void MinitaurController::MoveTowardsTarget(float delta)
+void HarpyController::MoveTowardsTarget(float delta)
 {
     if (!m_pTarget || !m_pVelocity || !m_pTransform) return;
 
-    // Calculate the direction towards the player and move the Minitaur
+    // Calculate the direction towards the player and move the Harpy
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
 
@@ -132,7 +132,7 @@ void MinitaurController::MoveTowardsTarget(float delta)
     glm::vec2 direction = targetPosition - currentPosition;
 
     // Log for debugging current position, target position, and distance
-    // printf("Minitaur MoveTowardsTarget: Current Pos: (%f, %f), Target Pos: (%f, %f)\n", 
+    // printf("Harpy MoveTowardsTarget: Current Pos: (%f, %f), Target Pos: (%f, %f)\n", 
     //        currentPosition.x, currentPosition.y, targetPosition.x, targetPosition.y);
 
     if (glm::length(direction) > 0.01f) {
@@ -147,7 +147,7 @@ void MinitaurController::MoveTowardsTarget(float delta)
     }
 }
 
-void MinitaurController::HandleIdleState()
+void HarpyController::HandleIdleState()
 {
     // Check if the player is within detection range
     float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
@@ -159,7 +159,7 @@ void MinitaurController::HandleIdleState()
     }
 }
 
-void MinitaurController::HandleChasingState(float delta)
+void HarpyController::HandleChasingState(float delta)
 {
     MoveTowardsTarget(delta);
     // glm::vec2 currentVelocity = m_pVelocity->GetVelocity();
@@ -197,11 +197,11 @@ void MinitaurController::HandleChasingState(float delta)
     }
 }
 
-void MinitaurController::HandleAttackingState(float delta)
+void HarpyController::HandleAttackingState(float delta)
 {
     if (!m_pTarget) return;
 
-    // Stop Minitaur's movement during attack
+    // Stop Harpy's movement during attack
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
     // Check distance to player
@@ -216,9 +216,7 @@ void MinitaurController::HandleAttackingState(float delta)
         auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
         if (playerHealth)
         {
-            playerHealth->Damage(m_baseDamage);  // Apply damage to the player
-            std::cout << "Player Health: " << playerHealth->GetHealth() << "\n";
-            wolf::Audio::Play("data/sounds/hurt.wav");
+            playerHealth->Damage(m_baseDamage);
 
             // Reset attack cooldown timer
             m_attackTimer = m_attackCooldown;
@@ -237,7 +235,7 @@ void MinitaurController::HandleAttackingState(float delta)
 
 
 
-void MinitaurController::UpdateAnimationBasedOnDirection()
+void HarpyController::UpdateAnimationBasedOnDirection()
 {
     if (!m_pAnimComponent || !m_pVelocity) return;
 
@@ -246,7 +244,7 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
     // Get the current velocity to determine direction
     glm::vec2 velocity = m_pVelocity->GetVelocity();
 
-    // Only update animation if the Minitaur is moving
+    // Only update animation if the Harpy is moving
     if (glm::length(velocity) > 0.01f)  // Ensure the velocity is not zero
     {
         // Check if the movement is more along the X or Y axis
@@ -275,19 +273,19 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
     }
 }
 
-void MinitaurController::HandleDeathState()
+void HarpyController::HandleDeathState()
 {
-    // Stop Minitaur's movement
+    // Stop Harpy's movement
     if (m_pVelocity)
     {
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
     }
 
-    // Destroy the GameObject when the Minitaur dies
-    //implemented in playstate
+    // Destroy the GameObject when the Harpy dies
+    //will be implemented later
 }
 
-void MinitaurController::ChangeState(EnemyState newState)
+void HarpyController::ChangeState(EnemyState newState)
 {
     m_state = newState;
 }

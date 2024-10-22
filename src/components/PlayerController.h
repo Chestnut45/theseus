@@ -97,6 +97,10 @@ private:
     std::vector<int> m_heldKeys;  // List of currently held keys
     float m_moveSpeed = 200.0f;
 
+    // Sound effect properties
+    wolf::Timer m_walkSoundTimer;
+    float m_walkSoundInterval = 0.34f;
+
     // Stamina management
     bool m_isRolling = false;
     float m_rollSpeed = 400.0f;
@@ -105,7 +109,7 @@ private:
     float m_stamina = 100.0f;
     const float m_maxStamina = 100.0f;
     const float m_staminaRegenRate = 20.0f;
-    const float m_staminaRegenDelay = 1.0f;
+    const float m_staminaRegenDelay = 0.5f;
     wolf::Timer m_staminaRegenTimer;
 
     // Jumping management
@@ -119,7 +123,7 @@ private:
     bool m_isAttacking = false;
     float m_attackCooldown = 0.5f;
     float m_attackDamage = 50.0f;
-    float m_attackRange = 50.0f;
+    float m_attackRange = 100.0f;
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
 

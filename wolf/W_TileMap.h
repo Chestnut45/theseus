@@ -64,11 +64,11 @@ public:
     void SetTile(int x, int y, int tileID);
 
     // Deletes all tiles in the map.
-    void Clear();
+    void Clear(int tile = EMPTY_TILE);
 
     // Resizes the map to the given dimensions.
     // NOTE: Resizing will clear the map too!
-    void Resize(int width, int height);
+    void Resize(int width, int height, int clearTile = EMPTY_TILE);
 
     // TODO: Set origin to center of tilemap (including tile texture size)
 

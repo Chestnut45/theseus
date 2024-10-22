@@ -8,14 +8,14 @@
 #include <components/AnimatedSprite2D.h>
 #include <EnemyDataLoader.h>
 
-class MinitaurController : public EnemyController
+class HarpyController : public EnemyController
 {
 public:
-    MinitaurController() = default;    
-    ~MinitaurController() = default; 
-
+    HarpyController() = default;    
+    ~HarpyController() = default; 
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
+    
 
 private:
     // Minitaur-specific methods
@@ -26,7 +26,7 @@ private:
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
     void HandleDeathState();
-    void ChangeState(EnemyState newState);
+    void ChangeState(EnemyState newState) ;
     
     
     // Minitaur-specific properties
