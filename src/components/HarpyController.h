@@ -8,20 +8,11 @@
 #include <components/AnimatedSprite2D.h>
 #include <EnemyDataLoader.h>
 
-class MinitaurController : public EnemyController
+class HarpyController : public EnemyController
 {
 public:
-    MinitaurController() = default;    
-    ~MinitaurController() = default; 
-
-    // Copy assignment operator
-    MinitaurController& operator=(const MinitaurController&) = default;
-
-    // Move constructor
-    MinitaurController(MinitaurController&& other) = default;
-
-    // Move assignment operator
-    MinitaurController& operator=(MinitaurController&& other) = default;
+    HarpyController() = default;    
+    ~HarpyController() = default; 
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
     
