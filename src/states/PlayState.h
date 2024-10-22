@@ -19,6 +19,7 @@
 
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
+#include <HarpyBuilder.h>
 #include "EnemyDataLoader.h"
 
 
@@ -63,4 +64,5 @@ private:
     // POST: m_pPlayerObject will be set to a pointer to the newly created player object
     void CreatePlayer();
     void CreateMinitaurEnemy();
+    void CreateHarpyEnemy();
 };

@@ -106,11 +106,33 @@ void PlayState::Update(float delta)
     }
 
     // Update all minitaur controllers
-    for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
+    // First pass: Update all minitaur controllers (without deletion)
+    for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
     {
-        controller.Update(delta);
+        minitaurController.Update(delta);  // Update logic for Minitaurs
+    }
+    for (auto&& [_, harpyController] : m_pGameInstance->GetScene().Each<HarpyController>())
+    {
+        harpyController.Update(delta);  // Update logic for Harpies
     }
 
+    // // Debugging the final minitaur's position and state
+
+    // for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
+    // {
+    //     auto* pGameObject = minitaurController.GetGameObject();
+    //     if (pGameObject)
+    //     {
+    //         auto* transform = pGameObject->GetComponent<wolf::Transform2D>();
+    //         if (transform)
+    //         {
+    //             glm::vec2 pos = transform->GetGlobalPosition();
+    //             printf("Minitaur Render Position: (%f, %f)\n", pos.x, pos.y);  // Debug rendering position
+    //         }
+    //     }
+    // }
+
+    
     // Update all animated sprites
     for (auto&&[_, anim] : m_pGameInstance->GetScene().Each<AnimatedSprite2D>())
     {
@@ -119,7 +141,13 @@ void PlayState::Update(float delta)
 
     // Update collisions
     this->m_pColliderManager->Update(delta);
-    
+
+    // Apply velocity to transforms for all objects with both components
+    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
+    {
+        transform.Translate(velocity.GetVelocity() * delta);
+    }   
+
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
     if (playerInventory) {
@@ -165,18 +193,51 @@ void PlayState::Update(float delta)
         }
     }
 
-    // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
-    {
-        transform.Translate(velocity.GetVelocity() * delta);
-    }   
-
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
     }
     wolf::EventManager::Dispatch<DialogueTriggerEvent>();
+
+     // Second pass: Reverse iteration to safely handle deletions
+    auto& scene = m_pGameInstance->GetScene();
+    auto view = scene.Each<MinitaurController>();
+    auto viewSize = std::distance(view.begin(), view.end());
+
+    for (int i = viewSize - 1; i >= 0; --i)
+    {
+        auto it = view.begin();
+        std::advance(it, i); // Move the iterator to the correct position
+
+        // Access the MinitaurController from the tuple
+        MinitaurController& minitaurController = std::get<1>(*it);
+
+        // Check for deletion condition (if health <= 0, call Delete)
+        auto* pGameObject = minitaurController.GetGameObject();
+        if (pGameObject && pGameObject->GetComponent<HealthComponent>()->GetHealth() <= 0)
+        {
+            pGameObject->Delete();  // Immediate deletion
+        }
+    }
+
+     // Reverse iteration for HarpyController deletion
+    auto harpyView = scene.Each<HarpyController>();
+    auto harpyViewSize = std::distance(harpyView.begin(), harpyView.end());
+
+    for (int i = harpyViewSize - 1; i >= 0; --i)
+    {
+        auto it = harpyView.begin();
+        std::advance(it, i);
+
+        // Access the HarpyController from the tuple
+        HarpyController& harpyController = std::get<1>(*it);
+        auto* pGameObject = harpyController.GetGameObject();
+        if (pGameObject && pGameObject->GetComponent<HealthComponent>()->GetHealth() <= 0)
+        {
+            pGameObject->Delete();
+        }
+    }
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
 
@@ -233,27 +294,56 @@ void PlayState::CreatePlayer()
     armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
 }
 
-void PlayState::CreateMinitaurEnemy() {
-    // Instantiate the EnemyDataLoader and load the Minitaur enemy
+void PlayState::CreateMinitaurEnemy()
+{
     EnemyDataLoader loader;
     loader.LoadAllEnemyData("data/enemies.yaml");
 
-    // Now we can load a specific enemy
-    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-
-    // Create the Minitaur using MinitaurBuilder and set its position
     MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
 
-    // Example position
-    glm::vec2 minitaurPosition(300.0f, 200.0f);
+    glm::vec2 positions[] = {
+        glm::vec2(300.0f, 200.0f),
+        glm::vec2(400.0f, 200.0f),
+        glm::vec2(500.0f, 200.0f)
+    };
 
-    // Build Minitaur at the given position
-    wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, minitaurPosition, m_pColliderManager);
+    for (const auto& position : positions)
+    {
+        EnemyData minitaurData = loader.LoadEnemyData("minitaur");
+        auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, position, m_pColliderManager);
+        
+        // Set the scale of each Minitaur to 3
+        auto* transform = minitaur.GetComponent<wolf::Transform2D>();
+        if (transform)
+        {
+            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each minitaur
+        }
+    }
+}
+void PlayState::CreateHarpyEnemy()
+{
+    EnemyDataLoader loader;
+    loader.LoadAllEnemyData("data/enemies.yaml");
 
-    // Ensure the Minitaur is scaled to 3
-    auto* transform = minitaur.GetComponent<wolf::Transform2D>();
-    if (transform) {
-        transform->SetScale(glm::vec2(3.0f));  // Set scale explicitly to 3
+    HarpyBuilder harpyBuilder(m_pGameInstance->GetScene());
+
+    glm::vec2 positions[] = {
+        glm::vec2(-300.0f, -300.0f),
+        glm::vec2(-400.0f, -400.0f),
+        glm::vec2(-500.0f, -500.0f)
+    };
+
+    for (const auto& position : positions)
+    {
+        EnemyData harpyData = loader.LoadEnemyData("harpy");
+        auto& harpy = harpyBuilder.BuildHarpy(harpyData, position, m_pColliderManager);
+        
+        // Set the scale of each Minitaur to 3
+        auto* transform = harpy.GetComponent<wolf::Transform2D>();
+        if (transform)
+        {
+            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
+        }
     }
 }
 
