@@ -8,6 +8,7 @@
 //-----------------------------------------------------------------------------
 
 #include "ItemBase.h"
+#include "StatusComponent.h"
 
 enum EquipmentSlot {
     WEAPON,
@@ -18,7 +19,7 @@ enum EquipmentSlot {
     FEET,
     GLOVES,
     ACCESSORY,
-    END_OF_EQUIPMENT, // Sentinal value for iteration
+    END_OF_EQUIPMENT, // Sentinel value for iteration
 };
 
 class EquipmentItem : public ItemBase {
@@ -71,7 +72,7 @@ class EquipmentItem : public ItemBase {
         ~EquipmentItem() {};
 
         bool IsEquipped() {return m_bEquipped;};
-        void SetEquipped(bool p_bEquip) {m_bEquipped = p_bEquip;};
+        virtual void SetEquipped(bool p_bEquip) {m_bEquipped = p_bEquip;};
 
         // Once you set the equipment slot you can't change it later
         EquipmentSlot GetEquipmentSlot() {return m_enSlot;};
@@ -80,7 +81,7 @@ class EquipmentItem : public ItemBase {
         // for all other uses such as comparison/iteration/etc. use GetEquipmentSlot() and the enum itself.
         const std::string& GetEquipmentSlotString() {return m_strSlot;};
 
-    private:
+    protected:
         bool m_bEquipped = false;
         EquipmentSlot m_enSlot;
         std::string m_strSlot;

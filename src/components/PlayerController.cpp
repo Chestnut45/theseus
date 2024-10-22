@@ -50,6 +50,9 @@ void PlayerController::LateInitialize()
     // Initialize animations
     InitializeAnimations();
 
+    // !-- Aurora added this --!
+    wolf::EventManager::AddListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+
     // Check if essential components are initialized properly
 }
 
@@ -522,4 +525,9 @@ void PlayerController::Render()
     // Pop ImGui style variables and colors
     ImGui::PopStyleVar(3); // Pop style variables (WindowRounding, FrameRounding, and FramePadding)
     ImGui::PopStyleColor(3); // Pop style colors (WindowBg, Border, and BorderShadow)
+}
+
+// !-- Aurora added this --!
+void PlayerController::HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event) {
+    printf("The player equipped a %s!\n", p_event.pWeapon->GetName().c_str());
 }

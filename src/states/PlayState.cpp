@@ -10,6 +10,7 @@
 #include "../components/ChestInventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/VelocityComponent.h"
+#include "../inventory/WeaponItem.h"
 
 void PlayState::Enter()
 {
@@ -132,7 +133,7 @@ void PlayState::Update(float delta)
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
             ItemBase* pEquip1 = new EquipmentItem(EQUIPMENT, "Test Helmet", "This is a test equipment item", 5, 3, HEAD);
-            ItemBase* pEquip2 = new EquipmentItem(EQUIPMENT, "Test Sword", "This is a different test equipment item", 10, 3, WEAPON);
+            WeaponItem* pEquip2 = new WeaponItem(EQUIPMENT, "Test Sword", "This is a mighty blade", 10, 3, SWORD, 0.1f, 10000.0f, glm::vec2(1.0f, 1.0f), true);
             ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
             ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
             ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");

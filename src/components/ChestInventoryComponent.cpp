@@ -19,12 +19,11 @@ ChestInventoryComponent::~ChestInventoryComponent() {
 bool ChestInventoryComponent::FillChestFromFile(const std::string& p_strFilePath) {
     try {
         // Load the file
-        YAML::Node node = YAML::Load(p_strFilePath);
+        YAML::Node node = YAML::LoadFile(p_strFilePath);
 
         // Go through the list of items
         YAML::Node itemList = node["item_list"];
         for (int i = 0; i < itemList.size(); ++i) {
-            // !-- This is throwing an error and I DON'T know why --!
             std::string strItemName = itemList[i].as<std::string>();
             
             // Try to create one
@@ -32,6 +31,7 @@ bool ChestInventoryComponent::FillChestFromFile(const std::string& p_strFilePath
 
             // If it works,
             if (pNextItem) {
+
                 // Add it to the inventory
                 this->AddItem(pNextItem);
             }

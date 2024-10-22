@@ -40,14 +40,9 @@ class ConsumableItem : public ItemBase {
             }
         };
 
-    private:
+    protected:
         void SetConsumableType(ConsumableType p_enType) {m_enType = p_enType;};
 
         int m_iNumUses;
         ConsumableType m_enType = BASIC_CONSUMABLE;
-
-    friend class FlatAmtItem;
-    friend class PercentItem;
-    friend class StatusEffectItem;
-
 };

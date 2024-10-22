@@ -8,6 +8,9 @@
 #include <components/ColliderComponent.h>
 #include <iostream>
 
+// !-- Aurora added this --!
+#include "../inventory/WeaponItem.h"
+
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
 // Original Author: Youssef Ashraf
@@ -62,6 +65,9 @@ private:
     void HandleRolling(float delta);     // Declaration for HandleRolling
     void HandleJumping(float delta);     // Declaration for HandleJumping
     void HandleAttacking(float delta);   // Declaration for HandleAttacking
+
+    // !-- Aurora added this --!
+    void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
 
     // Manage and transition different player states
     void StartAttack();
