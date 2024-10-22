@@ -58,6 +58,14 @@ class InventoryComponent : public wolf::BaseComponent {
 
         bool AddItem(ItemBase* p_pItem);
 
+        // Safe wrapper to delete items if they could not be added
+        bool AddItemOrDelete(ItemBase* p_pItem)
+        {
+            bool success = AddItem(p_pItem);
+            if (!success) delete p_pItem;
+            return success; 
+        }
+
         bool RemoveItem(const std::string& p_strItemName);
         bool RemoveItem(ItemID p_enItemID);
         bool RemoveItem(int p_iItemIndex);

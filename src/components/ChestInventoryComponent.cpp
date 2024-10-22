@@ -33,7 +33,7 @@ bool ChestInventoryComponent::FillChestFromFile(const std::string& p_strFilePath
             if (pNextItem) {
 
                 // Add it to the inventory
-                this->AddItem(pNextItem);
+                this->AddItemOrDelete(pNextItem);
             }
             else {
                 // Otherwise, empty the inventory (delete whatever we've made so far)
