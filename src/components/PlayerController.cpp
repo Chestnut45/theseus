@@ -13,7 +13,7 @@
 // ver 2.0: Optimized and restructured for readability and performance.
 //-----------------------------------------------------------------------------
 
-float PlayerController::s_aAttackCooldown[WeaponType::FISTS + 1] = {0.5f, 1.0f, 0.5f, 0.25f};
+float PlayerController::s_aAttackCooldown[WeaponType::FISTS + 1] = {0.5f, 1.0f, 0.25f, 0.25f};
 
 PlayerController::PlayerController() = default;
 
@@ -194,7 +194,7 @@ void PlayerController::HandleMovement(float delta)
 }
 
 // Manage attack state and animation transitions
-void PlayerController:: HandleAttacking(float delta)
+void PlayerController::HandleAttacking(float delta)
 {
     // Start the attack if the left mouse button is pressed and the player is not currently attacking.
     if (wolf::Input::IsLMBJustDown() && !m_isAttacking)
@@ -520,6 +520,7 @@ void PlayerController::ApplyDamageToEnemy()
             minitaurHealth->Damage(m_attackDamage);
             std::cout << "Player attacked Minitaur! Damage: " << m_attackDamage << std::endl;
             std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
+
             wolf::Audio::Play("data/sounds/hit.wav");
 
             // Optionally, break here if you're only targeting one Minitaur at a time
