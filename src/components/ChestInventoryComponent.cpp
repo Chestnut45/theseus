@@ -141,7 +141,7 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                     strTooltipText += "\n\n" + pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue()) + "\nSlot: " + pEquipment->GetEquipmentSlotString();
                 }
                 else { // If for some reason this item isn't Consumable OR Equipment
-                    strTooltipText = pItem->GetName() + "\n\n" + pItem->GetDescription(); // We only show the name and the description
+                    strTooltipText = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")" + "\n\n" + pItem->GetDescription(); // We only show the name and the description
                 }
                 
                 // We're also going to store a string representation of the slot index that we're on
