@@ -22,14 +22,6 @@ enum EquipmentSlot {
     END_OF_EQUIPMENT, // Sentinel value for iteration
 };
 
-enum WeaponType
-{
-    BOW,
-    CROSSBOW,
-    SWORD,
-    FISTS
-};
-
 enum ArmourType
 {
     SPIKEDHELMET,
@@ -88,53 +80,6 @@ class EquipmentItem : public ItemBase {
                 break;
             }
         };
-
-        // Nhat - Tester
-
-        EquipmentItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, EquipmentSlot p_enEquipmentSlot, int p_enDetailedType)
-            : ItemBase(p_enID, p_strName, p_strDesc, p_iValue, false), m_enSlot(p_enEquipmentSlot), m_enDetailedType(p_enDetailedType)
-        {
-            // It is useful to have a string representation of the EquipmentSlot enum,
-            // so this switch case sets that up automatically when an item is created
-            switch (m_enSlot) {
-                case WEAPON:
-                    m_strSlot = "WEAPON";
-                break;
-
-                case HEAD:
-                    m_strSlot = "HEAD";
-                break;
-
-                case BODY:
-                    m_strSlot = "BODY";
-                break;
-
-                case ARMS:
-                    m_strSlot = "ARMS";
-                break;
-
-                case LEGS:
-                    m_strSlot = "LEGS";
-                break;
-
-                case FEET:
-                    m_strSlot = "FEET";
-                break;
-
-                case GLOVES:
-                    m_strSlot = "GLOVES";
-                break;
-
-                case ACCESSORY:
-                    m_strSlot = "ACCESSORY";
-                break;
-                
-                default:
-                    m_strSlot = "PROBLEM!";
-                break;
-            }
-        };
-
 
         ~EquipmentItem() {};
 

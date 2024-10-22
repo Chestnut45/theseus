@@ -145,7 +145,7 @@ private:
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
 
-    static float s_aAttackCooldown[WeaponType::FISTS + 1];
+    static float s_aAttackCooldown[(int)WeaponType::BOW + 1];
 
     // Animation and state tracking flags
     bool m_animationFinished = false;

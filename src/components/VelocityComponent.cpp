@@ -7,8 +7,6 @@
 // ver 1.2, updated to handle object transform.
 //-----------------------------------------------------------------------------
 
-#include "VelocityComponent.h"
-
 // Constructor (if needed, but not required since it's default)
 // The default constructor does nothing special for now, but can be expanded if needed
 
@@ -19,7 +17,7 @@ void VelocityComponent::SetVelocity(const glm::vec2& velocity)
 }
 
 // Get velocity method
-const glm::vec2 VelocityComponent::GetVelocity() const
+const glm::vec2& VelocityComponent::GetVelocity() const
 {
     return m_velocity;
 }

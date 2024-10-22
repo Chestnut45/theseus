@@ -13,7 +13,7 @@
 // ver 2.0: Optimized and restructured for readability and performance.
 //-----------------------------------------------------------------------------
 
-float PlayerController::s_aAttackCooldown[WeaponType::FISTS + 1] = {0.5f, 1.0f, 0.25f, 0.25f};
+float PlayerController::s_aAttackCooldown[(int)WeaponType::BOW + 1] = {0.25f, 1.0f, 0.5f};
 
 PlayerController::PlayerController() = default;
 
@@ -67,7 +67,7 @@ void PlayerController::InitializeAnimations()
     }
 
     // Initialize the AnimatedSprite2D component
-    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
+    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
 }
 
 // Main update loop for the player controller
@@ -180,7 +180,7 @@ void PlayerController::HandleAttacking(float delta)
     }
 
     // Check if enough time has elapsed since the last attack to allow for damage application.
-    if (m_attackTimer.Elapsed() >= s_aAttackCooldown[m_eCurrentWeapon] && m_isAttacking)
+    if (m_attackTimer.Elapsed() >= s_aAttackCooldown[(int)m_eCurrentWeapon] && m_isAttacking)
     {
         ApplyDamageToEnemy(); // Apply damage if there's a collision with an enemy.
         m_attackTimer.Restart(); // Restart the timer for future attacks.
@@ -313,15 +313,15 @@ std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection dir
 {
     switch (direction)
     {
-        case PlayerDirection::SOUTH:       return "AttackSouth";
-        case PlayerDirection::EAST:        return "AttackEast";
-        case PlayerDirection::NORTH:       return "AttackNorth";
-        case PlayerDirection::WEST:        return "AttackWest";
-        case PlayerDirection::NORTH_EAST:  return "AttackEast";
-        case PlayerDirection::NORTH_WEST:  return "AttackWest";
-        case PlayerDirection::SOUTH_EAST:  return "AttackEast";
-        case PlayerDirection::SOUTH_WEST:  return "AttackWest";
-        default:                           return "AttackSouth";
+        case PlayerDirection::SOUTH:       return "SwordAttackSouth";
+        case PlayerDirection::EAST:        return "SwordAttackEast";
+        case PlayerDirection::NORTH:       return "SwordAttackNorth";
+        case PlayerDirection::WEST:        return "SwordAttackWest";
+        case PlayerDirection::NORTH_EAST:  return "SwordAttackEast";
+        case PlayerDirection::NORTH_WEST:  return "SwordAttackWest";
+        case PlayerDirection::SOUTH_EAST:  return "SwordAttackEast";
+        case PlayerDirection::SOUTH_WEST:  return "SwordAttackWest";
+        default:                           return "SwordAttackSouth";
     }
 }
 
@@ -401,7 +401,7 @@ void PlayerController::StartAttack()
 
         switch(this->m_eCurrentWeapon)
         {
-            case WeaponType::CROSSBOW:
+            case WeaponType::BOW:
             {
                 auto& scene = this->GetGameObject()->GetScene();
                 auto& projectile = scene.CreateObject2D();

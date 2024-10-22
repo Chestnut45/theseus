@@ -134,13 +134,13 @@ namespace ItemCreator {
                     WeaponType enWeaponType;
 
                     if (strWeaponType == "SWORD") { // If this is a sword
-                        enWeaponType = SWORD;
+                        enWeaponType = WeaponType::SWORD;
                     }
                     else if (strWeaponType == "SPEAR") { // If this is a spear
-                        enWeaponType = SPEAR;
+                        enWeaponType = WeaponType::SPEAR;
                     }
                     else if (strWeaponType == "BOW") { // If this is a bow
-                        enWeaponType = BOW;
+                        enWeaponType = WeaponType::BOW;
                     }
                     else {
                         // If the string version of the weapon type does not have a corresponding enum then we can't create the item

@@ -12,7 +12,7 @@
 
 #include "EquipmentItem.h"
 
-enum WeaponType {
+enum class WeaponType {
     SWORD,
     SPEAR,
     BOW

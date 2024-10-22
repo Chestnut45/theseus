@@ -263,11 +263,6 @@ void PlayState::CreatePlayer()
     auto& armour = m_pPlayerObject->AddComponent<ArmourComponent>();
     armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
 
-    // Add weapon
-    EquipmentItem* crossbow = new EquipmentItem(EQUIPMENT, "Crossbow", "This is a Crossbow", 10, WEAPON, WeaponType::CROSSBOW);
-
-    m_pPlayerObject->GetComponent<InventoryComponent>()->AddItem(crossbow);
-
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
     // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
