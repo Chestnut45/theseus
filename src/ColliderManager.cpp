@@ -210,6 +210,11 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
                     return true;
                 }
             //}
+
+            // if(this->StandardAABBWithSliding(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta))
+            // {
+            //     return true;
+            // }
         }
     }
     return false;
@@ -223,57 +228,6 @@ bool ColliderManager::StandardAABB(glm::vec2 p_translation_1, glm::vec2 p_transl
         p_translation_1.y - p_dimensions_1.y > p_translation_2.y                        ||  // Lower1 > Upper2
         p_translation_1.y                    < p_translation_2.y - p_dimensions_2.y         // Upper1 < Lower2
     );
-}
-
-bool StandardAABBWithSliding(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
-{
-    glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
-    glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
-
-    glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
-
-    glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;
-    bool result = !(
-        p_translation_1.x + p_dimensions_1.x < p_translation_2.x                        ||  // Right1 > Left2
-        p_translation_1.x                    > p_translation_2.x + p_dimensions_2.x     ||  // Left1 < Right2
-        p_translation_1.y - p_dimensions_1.y > p_translation_2.y                        ||  // Lower1 > Upper2
-        p_translation_1.y                    < p_translation_2.y - p_dimensions_2.y         // Upper1 < Lower2
-    );
-
-    bool newResult = !(
-        newTranslation1.x + p_dimensions_1.x < p_translation_2.x                        ||  // Right1 > Left2
-        newTranslation1.x                    > p_translation_2.x + p_dimensions_2.x     ||  // Left1 < Right2
-        newTranslation1.y - p_dimensions_1.y > p_translation_2.y                        ||  // Lower1 > Upper2
-        newTranslation1.y                    < p_translation_2.y - p_dimensions_2.y         // Upper1 < Lower2
-    );
-
-   
-    // Collision happens
-    if(result || newResult)
-    {
-         // Already colliding
-        if(result && newResult)
-        {
-            
-                
-        }
-
-        // Just collided
-        else if (!result && newResult)
-        {
-
-        }
-
-        // Possible tunneling
-        else if(result && !newResult)
-        {
-        }
-
-        return true;
-    }
-
-    // No collision
-    return false;
 }
 
 bool ColliderManager::StandardAABBBroadphase(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
@@ -429,6 +383,60 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
     return 100.0f;
 }
 
+bool ColliderManager::StandardAABBWithSliding(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
+{
+    glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
+    glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
+
+    glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
+
+    glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;
+    bool result = !(
+        p_translation_1.x + p_dimensions_1.x < p_translation_2.x                        ||  // Right1 > Left2
+        p_translation_1.x                    > p_translation_2.x + p_dimensions_2.x     ||  // Left1 < Right2
+        p_translation_1.y - p_dimensions_1.y > p_translation_2.y                        ||  // Lower1 > Upper2
+        p_translation_1.y                    < p_translation_2.y - p_dimensions_2.y         // Upper1 < Lower2
+    );
+
+    bool newResult = !(
+        newTranslation1.x + p_dimensions_1.x < p_translation_2.x                        ||  // Right1 > Left2
+        newTranslation1.x                    > p_translation_2.x + p_dimensions_2.x     ||  // Left1 < Right2
+        newTranslation1.y - p_dimensions_1.y > p_translation_2.y                        ||  // Lower1 > Upper2
+        newTranslation1.y                    < p_translation_2.y - p_dimensions_2.y         // Upper1 < Lower2
+    );
+
+   
+    // Collision happens
+    if(result || newResult)
+    {
+         // Already colliding
+        if(result && newResult)
+        {
+            printf("ColliderManager - Already Colliding\n");
+            this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+        }
+
+        // Just collided
+        else if (!result && newResult)
+        {
+            printf("ColliderManager - Just Collided\n");
+            this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+        }
+
+        // Possible tunneling
+        else if(result && !newResult)
+        {
+            printf("ColliderManager - Possible Tunneling\n");
+            this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+        }
+
+        return true;
+    }
+
+    // No collision
+    return false;
+}
+
 void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
 {
     glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
@@ -494,8 +502,6 @@ void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translati
         printf("ColliderManager - C5\n");
     }
 
-
-
     collisionNormal1 = collisionNormal2 == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(-collisionNormal2);
 
     if(p_velocity_1!= nullptr)
@@ -510,5 +516,85 @@ void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translati
         float dotProduct2 = glm::dot(velocity2, collisionNormal1);
         glm::vec2 newVelocity2 = velocity2 - collisionNormal1 * dotProduct2;
         p_velocity_2->SetVelocity(newVelocity2);
+    }
+}
+
+void ColliderManager::PushAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
+{
+    glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
+    glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
+    
+    glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
+    
+    float   oldLeft1, oldRight1,oldTop1, oldBottom1,
+            left1, right1, top1, bottom1,
+            left2, right2, top2, bottom2;
+
+    oldLeft1 = p_translation_1.x;
+    oldRight1 = p_translation_1.x + p_dimensions_1.x;
+    oldTop1 = p_translation_1.y;
+    oldBottom1 = p_translation_1.y - p_dimensions_1.y;
+
+    left1 = oldLeft1 + relativeVelocity.x;
+    right1 = oldRight1 + relativeVelocity.x;
+    top1 = oldTop1 + relativeVelocity.y;
+    bottom1 = oldBottom1 + relativeVelocity.y;
+
+
+    left2 = p_translation_2.x;
+    right2 = p_translation_2.x + p_dimensions_2.x;
+    top2 = p_translation_2.y;
+    bottom2 = p_translation_2.y - p_dimensions_2.y;
+
+    glm::vec2 collisionNormal1 = glm::vec2(0.0f, 0.0f);
+    glm::vec2 collisionNormal2 = glm::vec2(0.0f, 0.0f);
+
+    glm::vec2 overlap = glm::vec2(
+        std::abs(std::min(oldRight1 - left2, right2 - oldLeft1)),
+        std::abs(std::min(oldTop1 - bottom2, top2 - oldBottom1))
+    );
+
+    // obj1 pushes obj2
+    if(p_velocity_1 == nullptr && p_velocity_2 != nullptr)
+    {  
+        glm::vec2 shiftVector = glm::vec2(0.0f, 0.0f);
+        
+        shiftVector.x = velocity2.x > 0.0f ? overlap.x : -overlap.x;
+        shiftVector.y = velocity2.y > 0.0f ? -overlap.y : overlap.y;
+        
+        p_velocity_2->GetGameObject()->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(shiftVector));
+    }   
+
+    // obj2 pushes obj1
+    else if(p_velocity_1 != nullptr && p_velocity_2 == nullptr)
+    {
+        glm::vec2 shiftVector = glm::vec2(0.0f, 0.0f);
+        
+        shiftVector.x = velocity1.x > 0.0f ? overlap.x : -overlap.x;
+        shiftVector.y = velocity1.y > 0.0f ? -overlap.y : overlap.y;
+        
+        p_velocity_1->GetGameObject()->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(shiftVector));
+    }
+    // obj1 & obj2 both push
+    else if(p_velocity_1 != nullptr && p_velocity_2 != nullptr)
+    {
+        bool isObj1FasterThanObj2 = glm::length(velocity1) > glm::length(velocity2);
+        glm::vec2 relativeVelocity = isObj1FasterThanObj2 ? velocity2 - velocity1 : velocity1 - velocity2;
+        glm::vec2 benchmarkVelocity = isObj1FasterThanObj2 ? velocity2 : velocity1; 
+        glm::vec2 shiftVector = glm::vec2(0.0f, 0.0f);
+        
+        shiftVector.x = benchmarkVelocity.x > 0.0f ? overlap.x : -overlap.x;
+        shiftVector.y = benchmarkVelocity.y > 0.0f ? -overlap.y : overlap.y;
+        
+        if(isObj1FasterThanObj2)
+        {
+            p_velocity_2->GetGameObject()->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(shiftVector));
+
+        }
+        else
+        {
+            p_velocity_1->GetGameObject()->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(shiftVector));
+
+        }
     }
 }
