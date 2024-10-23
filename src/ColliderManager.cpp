@@ -225,6 +225,57 @@ bool ColliderManager::StandardAABB(glm::vec2 p_translation_1, glm::vec2 p_transl
     );
 }
 
+bool StandardAABBWithSliding(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
+{
+    glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
+    glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
+
+    glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
+
+    glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;
+    bool result = !(
+        p_translation_1.x + p_dimensions_1.x < p_translation_2.x                        ||  // Right1 > Left2
+        p_translation_1.x                    > p_translation_2.x + p_dimensions_2.x     ||  // Left1 < Right2
+        p_translation_1.y - p_dimensions_1.y > p_translation_2.y                        ||  // Lower1 > Upper2
+        p_translation_1.y                    < p_translation_2.y - p_dimensions_2.y         // Upper1 < Lower2
+    );
+
+    bool newResult = !(
+        newTranslation1.x + p_dimensions_1.x < p_translation_2.x                        ||  // Right1 > Left2
+        newTranslation1.x                    > p_translation_2.x + p_dimensions_2.x     ||  // Left1 < Right2
+        newTranslation1.y - p_dimensions_1.y > p_translation_2.y                        ||  // Lower1 > Upper2
+        newTranslation1.y                    < p_translation_2.y - p_dimensions_2.y         // Upper1 < Lower2
+    );
+
+   
+    // Collision happens
+    if(result || newResult)
+    {
+         // Already colliding
+        if(result && newResult)
+        {
+            
+                
+        }
+
+        // Just collided
+        else if (!result && newResult)
+        {
+
+        }
+
+        // Possible tunneling
+        else if(result && !newResult)
+        {
+        }
+
+        return true;
+    }
+
+    // No collision
+    return false;
+}
+
 bool ColliderManager::StandardAABBBroadphase(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
 {
     glm::vec2 relativeVelocity = glm::vec2(0.0f);
@@ -274,8 +325,8 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
         glm::vec2 shiftedTranslation1;
 
         shiftedTranslation1 = p_translation_1;
-        // shiftedTranslation1.x = relativeVelocity.x > 0.0f ? p_translation_2.x - p_dimensions_1.x: p_translation_2.x + p_dimensions_2.x;
-        // shiftedTranslation1.y = relativeVelocity.y > 0.0f ? p_translation_2.y - p_dimensions_2.y: p_translation_2.y + p_dimensions_1.y;
+        shiftedTranslation1.x = relativeVelocity.x > 0.0f ? p_translation_2.x - p_dimensions_1.x: p_translation_2.x + p_dimensions_2.x;
+        shiftedTranslation1.y = relativeVelocity.y > 0.0f ? p_translation_2.y - p_dimensions_2.y: p_translation_2.y + p_dimensions_1.y;
 
         if(relativeVelocity.x > 0.0f)
         {
@@ -337,10 +388,35 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
             (yEntryTime > 1.0f)
         )
         {
-            // std::cout << "ColliderManager - id1: " << p_velocity_1->GetGameObject()->GetID() << ", id2: " <<  p_velocity_2->GetGameObject()->GetID() << std::endl;
+            float   oldLeft1, oldRight1,oldTop1, oldBottom1,
+                    left1, right1, top1, bottom1,
+                    left2, right2, top2, bottom2;
+
+            oldLeft1 = p_translation_1.x;
+            oldRight1 = p_translation_1.x + p_dimensions_1.x;
+            oldTop1 = p_translation_1.y;
+            oldBottom1 = p_translation_1.y - p_dimensions_1.y;
+
+            left1 = oldLeft1 + relativeVelocity.x;
+            right1 = oldRight1 + relativeVelocity.x;
+            top1 = oldTop1 + relativeVelocity.y;
+            bottom1 = oldBottom1 + relativeVelocity.y;
+
+
+            left2 = p_translation_2.x;
+            right2 = p_translation_2.x + p_dimensions_2.x;
+            top2 = p_translation_2.y;
+            bottom2 = p_translation_2.y - p_dimensions_2.y;
+
+            std::cout << "ColliderManager - id1: " << p_velocity_1->GetGameObject()->GetID() << ", id2: " <<  p_velocity_2->GetGameObject()->GetID() << std::endl;
+            std::cout << "ColliderManager - entryTime: " << entryTime << std::endl;
+            std::cout << "ColliderManager - exitTime: " << exitTime << std::endl;
+            std::cout << "ColliderManager - xEntryTime: " << xEntryTime << std::endl;
+            std::cout << "ColliderManager - yEntryTime: " << xEntryTime << std::endl;
             // std::cout << "ColliderManager - oldTop1: " << oldTop1 << ", oldBottom1: " << oldBottom1 << ", oldLeft1: " << oldLeft1 << ", oldRight1: " << oldRight1 << std::endl;
             // std::cout << "ColliderManager - top1: " << top1 << ", bottom1: " << bottom1 << ", left1: " << left1 << ", right: " << right1 << std::endl;
             // std::cout << "ColliderManager - top2: " << top2 << ", bottom2: " << bottom2 << ", left2: " << left2 << ", right: " << right2 << std::endl;
+            
             return 100.0f;
         }
         else
@@ -425,14 +501,14 @@ void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translati
     if(p_velocity_1!= nullptr)
     {
         float dotProduct1 = glm::dot(velocity1, collisionNormal2);
-        glm::vec2 newVelocity1 = collisionNormal2 == glm::vec2(0.0f) ? -velocity1 : velocity1 -collisionNormal2 * dotProduct1;
+        glm::vec2 newVelocity1 = velocity1 -collisionNormal2 * dotProduct1;
         p_velocity_1->SetVelocity(newVelocity1);
     }
 
     if(p_velocity_2!= nullptr)
     {
         float dotProduct2 = glm::dot(velocity2, collisionNormal1);
-        glm::vec2 newVelocity2 = collisionNormal1 == glm::vec2(0.0f) ? -velocity2 : velocity2 - collisionNormal1 * dotProduct2;
+        glm::vec2 newVelocity2 = velocity2 - collisionNormal1 * dotProduct2;
         p_velocity_2->SetVelocity(newVelocity2);
     }
 }
