@@ -3,11 +3,12 @@
 #include "DialogueState.h"
 #include <imgui/imgui.h>
 
+#include "../components/ChestInventoryComponent.h"
 #include "../components/ColliderComponent.h"
 #include "../components/HealthComponent.h"
 #include "../components/PlayerInventoryComponent.h"
-#include "../components/ChestInventoryComponent.h"
 #include "../components/StatusComponent.h"
+#include "../components/TimedDestroyerComponent.h"
 #include "../components/VelocityComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
@@ -55,16 +56,16 @@ void PlayState::Enter()
 
     auto& testObj2 = scene.CreateObject2D();
     testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(5120.0f, 0.0f));
+    testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(6000.0f, 0.0f));
 
     auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
     testSprite2.SetOriginToCenterOfTexture();
 
     auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-    testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
+    testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
     
     auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
-    // testVelocity2.SetVelocity(glm::vec2(64.0f, 0.0f));
+    // testVelocity2.SetVelocity(glm::vec2(0.0f, 64.0f));
 }
 
 void PlayState::Exit()
@@ -212,6 +213,11 @@ void PlayState::Update(float delta)
 
     // Update managers
     wolf::EventManager::Dispatch();
+
+    for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
+    {
+        TimedDestroyerComponent.Update(delta);
+    }
 }
 
 void PlayState::Render()
@@ -255,7 +261,7 @@ void PlayState::CreatePlayer()
     auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
-    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
+    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, 14.0f));
 
     // Add health
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);

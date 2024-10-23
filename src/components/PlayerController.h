@@ -156,5 +156,5 @@ private:
     ColliderManager* m_pColliderManager = nullptr;
 
     // Weapons
-    WeaponType m_eCurrentWeapon = WeaponType::SWORD;
+    WeaponType m_eCurrentWeapon = WeaponType::BOW;
 };

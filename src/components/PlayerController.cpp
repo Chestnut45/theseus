@@ -1,9 +1,12 @@
-#include "PlayerController.h"
-#include "VelocityComponent.h"
-#include "HealthComponent.h"
+
 #include "ColliderComponent.h"
-#include "MinitaurController.h"
+#include "HealthComponent.h"
+#include "VelocityComponent.h"
+#include "TimedDestroyerComponent.h"
 #include "HarpyController.h"
+#include "MinitaurController.h"
+#include "PlayerController.h"
+
 #include <W_Input.h>
 #include <W_Logging.h>
 
@@ -128,6 +131,7 @@ void PlayerController::Update(float delta)
 // Handle all player inputs and manage states accordingly
 void PlayerController::HandlePlayerInput(float delta)
 {
+
     HandleMovement(delta);
     HandleRolling(delta);
     HandleJumping(delta);
@@ -355,85 +359,6 @@ void PlayerController::StartAttack()
 
         // Store the current animation to handle transitions later.
         m_currentAnimation = attackAnimation;
-
-        // Attack
-        glm::vec2 playerDirection;
-        switch (this->m_lastDirectionEnum)
-        {
-            case PlayerDirection::NORTH:       
-                playerDirection = glm::normalize(glm::vec2(0.0f, 1.0f));
-                break;
-
-            case PlayerDirection::NORTH_EAST:  
-                playerDirection = glm::normalize(glm::vec2(1.0f, 1.0f));
-                break;
-
-            case PlayerDirection::EAST:        
-                playerDirection = glm::normalize(glm::vec2(1.0f, 0.0f));
-                break;
-
-            case PlayerDirection::SOUTH_EAST:  
-                playerDirection = glm::normalize(glm::vec2(1.0f, -1.0f));
-                break;
-
-            case PlayerDirection::SOUTH:       
-                playerDirection = glm::normalize(glm::vec2(0.0f, -1.0f));
-                break;
-
-            case PlayerDirection::SOUTH_WEST:  
-                playerDirection = glm::normalize(glm::vec2(-1.0f, -1.0f));
-                break;
-            
-            case PlayerDirection::WEST:        
-                playerDirection = glm::normalize(glm::vec2(-1.0f, 0.0f));
-                break;
-
-            case PlayerDirection::NORTH_WEST:  
-                playerDirection = glm::normalize(glm::vec2(-1.0f, 1.0f));
-                break;
-
-            default:
-                playerDirection = glm::vec2(0.0f, 0.0f);
-                break;
-        }
-        glm::vec2 playerVelocity = glm::vec2(0.0f);
-
-
-        switch(this->m_eCurrentWeapon)
-        {
-            case WeaponType::BOW:
-            {
-                auto& scene = this->GetGameObject()->GetScene();
-                auto& projectile = scene.CreateObject2D();
-                
-                auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-                projectileSprite.SetOriginToCenterOfTexture();
-                
-                auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-                projectileCollider.SetDamage(10.0f);
-                projectileCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
-
-                
-                auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
-
-                projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-                projectile.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition()));
-
-                VelocityComponent* playerVelocityComponent = this->GetGameObject()->GetComponent<VelocityComponent>();
-
-                if(playerVelocityComponent != nullptr)
-                {
-                    playerVelocity = playerVelocityComponent->GetVelocity();
-                }
-                else
-                {
-                    playerVelocity = glm::vec2(0.0f, 0.0f);
-                }
-                projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
-            
-                break;
-            }
-        }
     }
 }
 
@@ -472,64 +397,188 @@ void PlayerController::UpdateAttackState(float delta)
 
 void PlayerController::ApplyDamageToEnemy()
 {
-    auto* pGameObject = GetGameObject();
-    if (!pGameObject || !m_pTransform) return;
+    // auto* pGameObject = GetGameObject();
+    // if (!pGameObject || !m_pTransform) return;
 
     // Iterate through all Minitaurs in the scene (MinitaurController)
-    for (auto&& [entity, minitaurController] : GetGameObject()->GetScene().Each<MinitaurController>())
-    {
-        // Get the transform of the Minitaur
-        auto* minitaurTransform = minitaurController.GetGameObject()->GetComponent<wolf::Transform2D>();
-        auto* minitaurHealth = minitaurController.GetGameObject()->GetComponent<HealthComponent>();
+    // for (auto&& [entity, minitaurController] : GetGameObject()->GetScene().Each<MinitaurController>())
+    // {
+    //     // Get the transform of the Minitaur
+    //     auto* minitaurTransform = minitaurController.GetGameObject()->GetComponent<wolf::Transform2D>();
+    //     auto* minitaurHealth = minitaurController.GetGameObject()->GetComponent<HealthComponent>();
 
-        // Ensure the Minitaur has a HealthComponent and a Transform
-        if (!minitaurTransform || !minitaurHealth) continue;
+    //     // Ensure the Minitaur has a HealthComponent and a Transform
+    //     if (!minitaurTransform || !minitaurHealth) continue;
 
-        // Calculate the distance between the player and the Minitaur
-        const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
-        const glm::vec2 minitaurPosition = minitaurTransform->GetGlobalPosition();
-        const float distanceToMinitaur = glm::length(playerPosition - minitaurPosition);
+    //     // Calculate the distance between the player and the Minitaur
+    //     const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
+    //     const glm::vec2 minitaurPosition = minitaurTransform->GetGlobalPosition();
+    //     const float distanceToMinitaur = glm::length(playerPosition - minitaurPosition);
 
-        // Check if the Minitaur is within attack range
-        if (distanceToMinitaur <= m_attackRange)
-        {
-            // Apply damage to the Minitaur
-            minitaurHealth->Damage(m_attackDamage);
-            std::cout << "Player attacked Minitaur! Damage: " << m_attackDamage << std::endl;
-            std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
+    //     // Check if the Minitaur is within attack range
+    //     if (distanceToMinitaur <= m_attackRange)
+    //     {
+    //         // Apply damage to the Minitaur
+    //         minitaurHealth->Damage(m_attackDamage);
+    //         std::cout << "Player attacked Minitaur! Damage: " << m_attackDamage << std::endl;
+    //         std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
 
-            wolf::Audio::Play("data/sounds/hit.wav");
+    //         wolf::Audio::Play("data/sounds/hit.wav");
 
-            // Optionally, break here if you're only targeting one Minitaur at a time
-            // break;
-        }
-    }
+    //         // Optionally, break here if you're only targeting one Minitaur at a time
+    //         // break;
+    //     }
+    // }
 
     // Iterate through all Harpies in the scene (HarpyController)
-    for (auto&& [entity, harpyController] : GetGameObject()->GetScene().Each<HarpyController>())
+    // for (auto&& [entity, harpyController] : GetGameObject()->GetScene().Each<HarpyController>())
+    // {
+    //     // Get the transform of the Harpy
+    //     auto* harpyTransform = harpyController.GetGameObject()->GetComponent<wolf::Transform2D>();
+    //     auto* harpyHealth = harpyController.GetGameObject()->GetComponent<HealthComponent>();
+
+    //     // Ensure the Harpy has a HealthComponent and a Transform
+    //     if (!harpyTransform || !harpyHealth) continue;
+
+    //     // Calculate the distance between the player and the Harpy
+    //     const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
+    //     const glm::vec2 harpyPosition = harpyTransform->GetGlobalPosition();
+    //     const float distanceToHarpy = glm::length(playerPosition - harpyPosition);
+
+    //     // Check if the Harpy is within attack range
+    //     if (distanceToHarpy <= m_attackRange)
+    //     {
+    //         // Apply damage to the Harpy
+    //         harpyHealth->Damage(m_attackDamage);
+    //         std::cout << "Player attacked Harpy! Damage: " << m_attackDamage << std::endl;
+    //         std::cout << "Harpy Health: " << harpyHealth->GetHealth() << std::endl;
+
+    //         // Optionally, break here if you're only targeting one Harpy at a time
+    //         // break;
+    //     }
+    // }
+
+    // Attack
+    auto* player = this->GetGameObject();
+    if (!player || !m_pTransform) return;
+
+    glm::vec2 playerScale = player->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+    glm::vec2 playerDirection;
+    glm::vec2 spawnOffset;
+
+    switch (this->m_lastDirectionEnum)
     {
-        // Get the transform of the Harpy
-        auto* harpyTransform = harpyController.GetGameObject()->GetComponent<wolf::Transform2D>();
-        auto* harpyHealth = harpyController.GetGameObject()->GetComponent<HealthComponent>();
+        case PlayerDirection::NORTH:       
+            playerDirection = glm::normalize(glm::vec2(0.0f, 1.0f));
+            spawnOffset.x = 0.0f * playerScale.x;
+            spawnOffset.y = 14.0f * playerScale.y;
+            break;
 
-        // Ensure the Harpy has a HealthComponent and a Transform
-        if (!harpyTransform || !harpyHealth) continue;
+        case PlayerDirection::NORTH_EAST:  
+            playerDirection = glm::normalize(glm::vec2(1.0f, 1.0f));
+            spawnOffset.x = 7.5f * playerScale.x;
+            spawnOffset.y = 14.0f * playerScale.y;
+            break;
 
-        // Calculate the distance between the player and the Harpy
-        const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
-        const glm::vec2 harpyPosition = harpyTransform->GetGlobalPosition();
-        const float distanceToHarpy = glm::length(playerPosition - harpyPosition);
+        case PlayerDirection::EAST:        
+            playerDirection = glm::normalize(glm::vec2(1.0f, 0.0f));
+            spawnOffset.x = 7.5f * playerScale.x;
+            spawnOffset.y = 0.0f * playerScale.y;
+            break;
 
-        // Check if the Harpy is within attack range
-        if (distanceToHarpy <= m_attackRange)
+        case PlayerDirection::SOUTH_EAST:  
+            playerDirection = glm::normalize(glm::vec2(1.0f, -1.0f));
+            spawnOffset.x = 7.5f * playerScale.x;
+            spawnOffset.y = -16.0f * playerScale.y;
+            break;
+
+        case PlayerDirection::SOUTH:       
+            playerDirection = glm::normalize(glm::vec2(0.0f, -1.0f));
+            spawnOffset.x = 0.0f * playerScale.x;
+            spawnOffset.y = -16.0f * playerScale.y;
+            break;
+
+        case PlayerDirection::SOUTH_WEST:  
+            playerDirection = glm::normalize(glm::vec2(-1.0f, -1.0f));
+            spawnOffset.x = -8.5f * playerScale.x;
+            spawnOffset.y = -16.0f * playerScale.y;
+            break;
+        
+        case PlayerDirection::WEST:        
+            playerDirection = glm::normalize(glm::vec2(-1.0f, 0.0f));
+            spawnOffset.x = -8.5f * playerScale.x;
+            spawnOffset.y = 0.0f * playerScale.y;
+            break;
+
+        case PlayerDirection::NORTH_WEST:  
+            playerDirection = glm::normalize(glm::vec2(-1.0f, 1.0f));
+            spawnOffset.x = -8.5f * playerScale.x;
+            spawnOffset.y = 14.0f * playerScale.y;
+            break;
+
+        default:
+            playerDirection = glm::vec2(0.0f, 0.0f);
+            break;
+    }
+
+    glm::vec2 playerVelocity = glm::vec2(0.0f);
+
+    switch(this->m_eCurrentWeapon)
+    {
+        case WeaponType::BOW:
         {
-            // Apply damage to the Harpy
-            harpyHealth->Damage(m_attackDamage);
-            std::cout << "Player attacked Harpy! Damage: " << m_attackDamage << std::endl;
-            std::cout << "Harpy Health: " << harpyHealth->GetHealth() << std::endl;
+            glm::vec2 projectileDimensions = glm::vec2(32.0f, 32.0f);
+            glm::vec2 hurtboxOffset = glm::vec2(-16.0f, -16.0f);
 
-            // Optionally, break here if you're only targeting one Harpy at a time
-            // break;
+            auto& scene = player->GetScene();
+            auto& projectile = scene.CreateObject2D();
+
+            auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+            projectileSprite.SetOriginToCenterOfTexture();
+            
+            auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            projectileCollider.SetDamage(100.0f);
+            projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+
+            spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + projectileDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - projectileDimensions.x * 0.5f) : (spawnOffset.x));
+            spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + projectileDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - projectileDimensions.y * 0.5f) : (spawnOffset.y));
+                        
+            projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
+           
+            auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+
+            VelocityComponent* playerVelocityComponent = player->GetComponent<VelocityComponent>();
+
+            if(playerVelocityComponent != nullptr)
+            {
+                playerVelocity = playerVelocityComponent->GetVelocity();
+            }
+            else
+            {
+                playerVelocity = glm::vec2(0.0f, 0.0f);
+            }
+            projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
+        
+            break;
+        }
+
+        case WeaponType::SWORD:
+        {
+            glm::vec2 meleeDimensions = glm::vec2(32.0f, 32.0f);
+            glm::vec2 hurtboxOffset = glm::vec2(-16.0f, -16.0f);
+
+            auto& scene = player->GetScene();
+            auto& melee = scene.CreateObject2D();
+
+            auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            meleeCollider.SetDamage(100.0f);
+            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-16.0f, -16.0f));
+            spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + meleeDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - meleeDimensions.x * 0.5f) : (spawnOffset.x));
+            spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + meleeDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - meleeDimensions.y * 0.5f) : (spawnOffset.y));
+            
+            melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
+            melee.AddComponent<TimedDestroyerComponent>(1,1);
+
         }
     }
 }
