@@ -4,6 +4,7 @@
 #include "ColliderComponent.h"
 #include "MinitaurController.h"
 #include "HarpyController.h"
+#include "GorgonController.h"
 #include <W_Input.h>
 #include <W_Logging.h>
 
@@ -418,6 +419,33 @@ void PlayerController::ApplyDamageToEnemy()
             std::cout << "Harpy Health: " << harpyHealth->GetHealth() << std::endl;
 
             // Optionally, break here if you're only targeting one Harpy at a time
+            // break;
+        }
+    }
+    // Iterate through all Harpies in the scene (GorgonController)
+    for (auto&& [entity, gorgonController] : GetGameObject()->GetScene().Each<GorgonController>())
+    {
+        // Get the transform of the Gorgon
+        auto* gorgonTransform = gorgonController.GetGameObject()->GetComponent<wolf::Transform2D>();
+        auto* gorgonHealth = gorgonController.GetGameObject()->GetComponent<HealthComponent>();
+
+        // Ensure the Harpy has a HealthComponent and a Transform
+        if (!gorgonTransform || !gorgonHealth) continue;
+
+        // Calculate the distance between the player and the Gorgon
+        const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
+        const glm::vec2 gorgonPosition = gorgonTransform->GetGlobalPosition();
+        const float distancetoGorgon = glm::length(playerPosition - gorgonPosition);
+
+        // Check if the Gorgon is within attack range
+        if (distancetoGorgon <= m_attackRange)
+        {
+            // Apply damage to the Gorgon
+            gorgonHealth->Damage(m_attackDamage);
+            std::cout << "Player attacked Gorgon! Damage: " << m_attackDamage << std::endl;
+            std::cout << "Gorgon Health: " << gorgonHealth->GetHealth() << std::endl;
+
+            // Optionally, break here if you're only targeting one Gorgon at a time
             // break;
         }
     }
