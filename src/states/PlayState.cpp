@@ -121,6 +121,10 @@ void PlayState::Update(float delta)
     {
         harpyController.Update(delta);  // Update logic for Harpies
     }
+    for (auto&& [_, gorgonController] : m_pGameInstance->GetScene().Each<GorgonController>())
+    {
+        gorgonController.Update(delta);  // Update logic for Harpies
+    }
 
     // // Debugging the final minitaur's position and state
 
@@ -244,6 +248,22 @@ void PlayState::Update(float delta)
             pGameObject->Delete();
         }
     }
+    auto gorgonView = scene.Each<GorgonController>();
+    auto gorgonViewSize = std::distance(gorgonView.begin(), gorgonView.end());
+
+    for (int i = gorgonViewSize - 1; i >= 0; --i)
+    {
+        auto it = gorgonView.begin();
+        std::advance(it, i);
+
+        // Access the HarpyController from the tuple
+        GorgonController& GorgonController = std::get<1>(*it);
+        auto* pGameObject = GorgonController.GetGameObject();
+        if (pGameObject && pGameObject->GetComponent<HealthComponent>()->GetHealth() <= 0)
+        {
+            pGameObject->Delete();
+        }
+    }
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
 
@@ -342,6 +362,33 @@ void PlayState::CreateHarpyEnemy()
     {
         EnemyData harpyData = loader.LoadEnemyData("harpy");
         auto& harpy = harpyBuilder.BuildHarpy(harpyData, position, m_pColliderManager);
+        
+        // Set the scale of each Minitaur to 3
+        auto* transform = harpy.GetComponent<wolf::Transform2D>();
+        if (transform)
+        {
+            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
+        }
+    }
+}
+
+void PlayState::CreateGorgonEnemy()
+{
+    EnemyDataLoader loader;
+    loader.LoadAllEnemyData("data/enemies.yaml");
+
+    GorgonBuilder gorgonBuilder(m_pGameInstance->GetScene());
+
+    glm::vec2 positions[] = {
+        glm::vec2(-600.0f, 500.0f),
+        glm::vec2(-700.0f, 600.0f),
+        glm::vec2(-800.0f, 700.0f)
+    };
+
+    for (const auto& position : positions)
+    {
+        EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+        auto& harpy = gorgonBuilder.BuildGorgon(gorgonData, position, m_pColliderManager);
         
         // Set the scale of each Minitaur to 3
         auto* transform = harpy.GetComponent<wolf::Transform2D>();

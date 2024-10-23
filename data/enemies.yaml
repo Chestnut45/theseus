@@ -19,3 +19,13 @@ enemies:
     chase_speed: 80
     animation_init_file: "data/minitaur_anim_init.yaml"
 
+  - type: gorgon
+    health: 125
+    armour: 1
+    projectile_range: 200
+    attack_cooldown: 4
+    detection_range: 400
+    base_damage: 50
+    chase_speed: 25
+    animation_init_file: "data/minitaur_anim_init.yaml"
+

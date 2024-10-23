@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "EnemyController.h"
@@ -8,18 +9,17 @@
 #include <components/AnimatedSprite2D.h>
 #include <EnemyDataLoader.h>
 
-class MinitaurController : public EnemyController
+class GorgonController : public EnemyController
 {
 public:
-    MinitaurController() = default;    
-    ~MinitaurController() = default; 
-
+    GorgonController() = default;    
+    ~GorgonController() = default; 
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
     
 
 private:
-    // Minitaur-specific methods
+    // Gorgon-specific methods
     void SetUpAnimations(const std::string& animationInitPath);          
     void UpdateAnimationBasedOnDirection();
     void MoveTowardsTarget(float delta);
@@ -30,7 +30,7 @@ private:
     void ChangeState(EnemyState newState) ;
     
     
-    // Minitaur-specific properties
+    // Gorgon-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;
     VelocityComponent* m_pVelocity = nullptr;;

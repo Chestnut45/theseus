@@ -19,6 +19,7 @@
 
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
+#include <GorgonBuilder.h>
 #include <HarpyBuilder.h>
 #include "EnemyDataLoader.h"
 
@@ -65,4 +66,5 @@ private:
     void CreatePlayer();
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
+    void CreateGorgonEnemy();
 };
