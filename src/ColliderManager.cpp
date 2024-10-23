@@ -252,7 +252,7 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
 {
     if(this->StandardAABBBroadphase(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta))
     {
-        bool isBroadphaseColliding = true;
+        std::cout << "Collider Manager - Broadphased - id1: " << p_velocity_1->GetGameObject()->GetID() << ", id2: " << p_velocity_2->GetGameObject()->GetID() << std::endl;
         float   xEntryDist, yEntryDist, xExitDist, yExitDist,
                 xEntryTime, yEntryTime, xExitTime, yExitTime,
                 entryTime, exitTime;
@@ -267,6 +267,7 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
 
         if(relativeVelocity == glm::vec2(0.0f, 0.0f))
         {
+            printf("ColliderManager - C0\n");
             return 0.0f;
         }
 
@@ -327,7 +328,6 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
         entryTime = std::max(xEntryTime, yEntryTime);
         exitTime = std::min(xExitTime, yExitTime);
 
-
         // Non-collision check
         if
         (
@@ -337,237 +337,102 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
             (yEntryTime > 1.0f)
         )
         {
-            return 100.0f;
-        }
-        else
-        {
-            float
-            oldLeft1, oldRight1,oldTop1, oldBottom1,
-            left1, right1, top1, bottom1,
-            left2, right2, top2, bottom2;
-
-            oldLeft1 = p_translation_1.x;
-            oldRight1 = p_translation_1.x + p_dimensions_1.x;
-            oldTop1 = p_translation_1.y;
-            oldBottom1 = p_translation_1.y - p_dimensions_1.y;
-
-            left1 = oldLeft1 + relativeVelocity.x;
-            right1 = oldRight1 + relativeVelocity.x;
-            top1 = oldTop1 + relativeVelocity.y;
-            bottom1 = oldBottom1 + relativeVelocity.y;
-
-
-            left2 = p_translation_2.x;
-            right2 = p_translation_2.x + p_dimensions_2.x;
-            top2 = p_translation_2.y;
-            bottom2 = p_translation_2.y - p_dimensions_2.y;
-
-            glm::vec2 collisionNormal1 = glm::vec2(0.0f, 0.0f);
-            glm::vec2 collisionNormal2 = glm::vec2(0.0f, 0.0f);
-
-            glm::vec2 playerPos = p_velocity_1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-
-            // std::cout << "ColliderManager - player postion - x: " << playerPos.x << ", y: " << playerPos.y << std::endl;
             // std::cout << "ColliderManager - id1: " << p_velocity_1->GetGameObject()->GetID() << ", id2: " <<  p_velocity_2->GetGameObject()->GetID() << std::endl;
             // std::cout << "ColliderManager - oldTop1: " << oldTop1 << ", oldBottom1: " << oldBottom1 << ", oldLeft1: " << oldLeft1 << ", oldRight1: " << oldRight1 << std::endl;
             // std::cout << "ColliderManager - top1: " << top1 << ", bottom1: " << bottom1 << ", left1: " << left1 << ", right: " << right1 << std::endl;
             // std::cout << "ColliderManager - top2: " << top2 << ", bottom2: " << bottom2 << ", left2: " << left2 << ", right: " << right2 << std::endl;
-
-            // obj1 left collision
-            if(left1 <= right2 && oldLeft1 > right2)
-            {
-                collisionNormal2 = glm::normalize(glm::vec2(1.0f, 0.0f));
-                printf("ColliderManager - C1\n");
-            }
-
-            // obj1 right collision
-            else if(right1 >= left2 && oldRight1 < left2)
-            {
-                collisionNormal2 = glm::normalize(glm::vec2(-1.0f, 0.0f));
-                printf("ColliderManager - C2\n");
-            }
-
-            // obj1 top collision
-            else if(top1 >= bottom2 && oldTop1 < bottom2)
-            {
-                collisionNormal2 = glm::normalize(glm::vec2(0.0f, -1.0f));
-                printf("ColliderManager - C3\n");
-            }
-
-            // obj1 bottom collision
-            else if(bottom1 <= top2 && oldBottom1 > top2)
-            {
-                collisionNormal2 = glm::normalize(glm::vec2(0.0f, 1.0f));
-                printf("ColliderManager - C4\n");
-
-            }
-            else
-            {
-                printf("ColliderManager - C5\n");
-            }
-
-            collisionNormal1 = collisionNormal2 == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(-collisionNormal2);
-
-            if(p_velocity_1!= nullptr)
-            {
-                float dotProduct1 = glm::dot(velocity1, collisionNormal2);
-                glm::vec2 newVelocity1 = collisionNormal2 == glm::vec2(0.0f) ? glm::vec2 (0.0f) : velocity1 -collisionNormal2 * dotProduct1;
-                p_velocity_1->SetVelocity(newVelocity1);
-            }
-
-           if(p_velocity_2!= nullptr)
-            {
-                float dotProduct2 = glm::dot(velocity2, collisionNormal1);
-                glm::vec2 newVelocity2 = collisionNormal1 == glm::vec2(0.0f) ? glm::vec2(0.0f) : velocity2 - collisionNormal1 * dotProduct2;
-                p_velocity_2->SetVelocity(newVelocity2);
-            }
-
+            return 100.0f;
+        }
+        else
+        {
+            
+            this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
             return entryTime;
         }
     }
     return 100.0f;
 }
 
-void ColliderManager::PushAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, wolf::GameObject* p_obj_1, wolf::GameObject* p_obj_2)
+void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
 {
-    glm::vec2 relativeVelocity = glm::vec2(0.0f, 0.0f);
-
-    bool isObj1Pushable = false;
-    bool isObj2Pushable = false;
-
-    VelocityComponent* velocityComponent1 = p_obj_1 != nullptr ? p_obj_1->GetComponent<VelocityComponent>() : nullptr;
-    VelocityComponent* velocityComponent2 = p_obj_2 != nullptr ? p_obj_2->GetComponent<VelocityComponent>() : nullptr;
-
-    glm::vec2 velocity1 = velocityComponent1 != nullptr ? velocityComponent1->GetVelocity() : glm::vec2(0.0f);
-    glm::vec2 velocity2 = velocityComponent2 != nullptr ? velocityComponent2->GetVelocity() : glm::vec2(0.0f);
+    glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
+    glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
     
+    glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
+    
+    float   oldLeft1, oldRight1,oldTop1, oldBottom1,
+            left1, right1, top1, bottom1,
+            left2, right2, top2, bottom2;
+
+    oldLeft1 = p_translation_1.x;
+    oldRight1 = p_translation_1.x + p_dimensions_1.x;
+    oldTop1 = p_translation_1.y;
+    oldBottom1 = p_translation_1.y - p_dimensions_1.y;
+
+    left1 = oldLeft1 + relativeVelocity.x;
+    right1 = oldRight1 + relativeVelocity.x;
+    top1 = oldTop1 + relativeVelocity.y;
+    bottom1 = oldBottom1 + relativeVelocity.y;
+
+
+    left2 = p_translation_2.x;
+    right2 = p_translation_2.x + p_dimensions_2.x;
+    top2 = p_translation_2.y;
+    bottom2 = p_translation_2.y - p_dimensions_2.y;
+
     glm::vec2 collisionNormal1 = glm::vec2(0.0f, 0.0f);
     glm::vec2 collisionNormal2 = glm::vec2(0.0f, 0.0f);
 
-    glm::vec2 obj1Translation = p_obj_1->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 obj2Translation = p_obj_2->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
 
-    glm::vec2 overlap = glm::vec2(
-            std::min(p_translation_1.x + p_dimensions_1.x - p_translation_2.x, p_translation_2.x + p_dimensions_2.x - p_translation_1.x), // Horizontal overlap
-            std::min(p_translation_1.y - p_translation_2.y - p_dimensions_2.y, p_translation_2.y - p_translation_1.y - p_dimensions_1.y)  // Vertical overlap
-    );
-
-    // Check if obj1 is pushable
-    if(p_obj_1 != nullptr && velocityComponent1 != nullptr)
+    // obj1 left collision
+    if(left1 <= right2 && oldLeft1 > right2)
     {
-        isObj1Pushable = true;
+        collisionNormal2 = glm::normalize(glm::vec2(1.0f, 0.0f));
+        printf("ColliderManager - C1\n");
     }
 
-    // Check if obj2 is pushable
-    if(p_obj_2 != nullptr && velocityComponent2 != nullptr)
+    // obj1 right collision
+    else if(right1 >= left2 && oldRight1 < left2)
     {
-        isObj2Pushable = true;
+        collisionNormal2 = glm::normalize(glm::vec2(-1.0f, 0.0f));
+        printf("ColliderManager - C2\n");
     }
 
-    // Horizontal collision
-    if(overlap.x < overlap.y)
+    // obj1 top collision
+    else if(top1 >= bottom2 && oldTop1 < bottom2)
     {
-        if(p_translation_1.x < p_translation_2.x)
-        {
-            collisionNormal1 = glm::vec2(1.0f, 0.0f);
-            collisionNormal2 = glm::vec2(-1.0f, 0.0f);
-        }
-        else
-        {
-            collisionNormal1 = glm::vec2(-1.0f, 0.0f);
-            collisionNormal2 = glm::vec2(1.0f, 0.0f);
-        }
+        collisionNormal2 = glm::normalize(glm::vec2(0.0f, -1.0f));
+        printf("ColliderManager - C3\n");
     }
-    // Vertical collision
+
+    // obj1 bottom collision
+    else if(bottom1 <= top2 && oldBottom1 > top2)
+    {
+        collisionNormal2 = glm::normalize(glm::vec2(0.0f, 1.0f));
+        printf("ColliderManager - C4\n");
+
+    }
     else
     {
-        if(p_translation_1.y < p_translation_2.y)
-        {
-            collisionNormal1 = glm::vec2(0.0f, 1.0f);
-            collisionNormal2 = glm::vec2(0.0f, -1.0f);
-        }
-        else
-        {
-            collisionNormal1 = glm::vec2(0.0f, -1.0f);
-            collisionNormal2 = glm::vec2(0.0f, 1.0f);
-        }
+        collisionNormal2 = glm::vec2(0.0f, 0.0f);
+        printf("ColliderManager - C5\n");
     }
 
-    // obj1 pushes obj2
-    if(
-        (isObj1Pushable && !isObj2Pushable) ||
-        ((isObj1Pushable && isObj2Pushable) && glm::length(velocity1) <= glm::length(velocity2))
-    )
-    {
-        relativeVelocity = velocity1 - velocity2;
 
-        if(collisionNormal2.x != 0.0f)
-        {
-            // Push obj1 right
-            if(collisionNormal2.x > 0.0f)
-            {
-                p_obj_1->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(overlap.x, 0.0f));
-            }
-            // Push obj1 left
-            else
-            {
-                p_obj_1->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(-overlap.x, 0.0f));
-            }
-        }
-        else if(collisionNormal2.y != 0.0f)
-        {
-            // Push obj1 up
-            if(collisionNormal2.y > 0.0f)
-            {
-                p_obj_1->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(0.0f, overlap.y));
-            }
-            // Push obj1 down
-            else
-            {
-                p_obj_1->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(0.0f, -overlap.y));
-            }
-        }
+
+    collisionNormal1 = collisionNormal2 == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(-collisionNormal2);
+
+    if(p_velocity_1!= nullptr)
+    {
+        float dotProduct1 = glm::dot(velocity1, collisionNormal2);
+        glm::vec2 newVelocity1 = collisionNormal2 == glm::vec2(0.0f) ? -velocity1 : velocity1 -collisionNormal2 * dotProduct1;
+        p_velocity_1->SetVelocity(newVelocity1);
     }
 
-    // obj2 pushes obj1
-    else if(
-        (!isObj1Pushable && isObj2Pushable) ||
-        ((isObj1Pushable && isObj2Pushable) && glm::length(velocity1) > glm::length(velocity2))
-    )
+    if(p_velocity_2!= nullptr)
     {
-       relativeVelocity = velocity2 - velocity1;
-
-       if(collisionNormal1.x != 0.0f)
-        {
-            // Push obj2 right
-            if(collisionNormal1.x > 0.0f)
-            {
-                p_obj_2->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(overlap.x, 0.0f));
-            }
-            // Push obj2 left
-            else
-            {
-                p_obj_2->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(-overlap.x, 0.0f));
-            }
-        }
-        else if(collisionNormal1.y != 0.0f)
-        {
-            // Push obj2 up
-            if(collisionNormal1.y > 0.0f)
-            {
-                p_obj_2->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(0.0f, overlap.y));
-            }
-            // Push obj2 down
-            else
-            {
-                p_obj_2->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(0.0f, -overlap.y));
-            }
-        }
-    }
-
-    // Both immobile
-    else if(!isObj1Pushable && !isObj2Pushable)
-    {
-        relativeVelocity = glm::vec2(0.0f);
+        float dotProduct2 = glm::dot(velocity2, collisionNormal1);
+        glm::vec2 newVelocity2 = collisionNormal1 == glm::vec2(0.0f) ? -velocity2 : velocity2 - collisionNormal1 * dotProduct2;
+        p_velocity_2->SetVelocity(newVelocity2);
     }
 }
