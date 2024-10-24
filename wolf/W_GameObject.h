@@ -69,7 +69,7 @@ public:
         return m_scene.m_registry.try_get<T>(m_id);
     }
 
-    // Deletes the component from the object, if it exists
+    // Deletes the component, if it exists
     template <typename T>
     void DeleteComponent()
     {
@@ -96,17 +96,17 @@ public:
     // If the object already has a parent, it is removed from that parent first
     void AddChild(GameObject& object);
 
-    // Removes the given child object from our list of children, and
+    // Removes the given child game object from our list of children, and
     // updates the child object's parent pointer to be empty
     void RemoveChild(GameObject& object);
 
-    // Removes and deletes all child objects
+    // Removes and deletes all child game objects
     void DeleteAllChildren();
 
-    // Returns a pointer to the parent object, or nullptr if we have none
+    // Returns a pointer to the parent game object, or nullptr if we have none
     inline GameObject* GetParent() const { return m_parent; }
 
-    // Gets the list of children objects by id
+    // Gets a const reference to the list of child game object pointers
     inline const std::vector<GameObject*>& GetChildren() const { return m_children; }
 
     // True if this object has 1 or more children
