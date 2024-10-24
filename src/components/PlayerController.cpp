@@ -528,7 +528,7 @@ void PlayerController::ApplyDamageToEnemy()
         case WeaponType::BOW:
         {
             glm::vec2 projectileDimensions = glm::vec2(32.0f, 32.0f);
-            glm::vec2 hurtboxOffset = glm::vec2(-16.0f, -16.0f);
+            glm::vec2 hurtboxOffset = glm::vec2(-16.0f, 16.0f);
 
             auto& scene = player->GetScene();
             auto& projectile = scene.CreateObject2D();
@@ -572,7 +572,7 @@ void PlayerController::ApplyDamageToEnemy()
 
             auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
             meleeCollider.SetDamage(100.0f);
-            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-16.0f, -16.0f));
+            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-16.0f, 16.0f));
             spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + meleeDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - meleeDimensions.x * 0.5f) : (spawnOffset.x));
             spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + meleeDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - meleeDimensions.y * 0.5f) : (spawnOffset.y));
             

@@ -409,26 +409,29 @@ bool ColliderManager::StandardAABBWithSliding(glm::vec2 p_translation_1, glm::ve
     // Collision happens
     if(result || newResult)
     {
-         // Already colliding
-        if(result && newResult)
-        {
-            printf("ColliderManager - Already Colliding\n");
-            this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
-        }
+        //  // Already colliding
+        // if(result && newResult)
+        // {
+        //     printf("ColliderManager - Already Colliding\n");
+        //     this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+        // }
 
-        // Just collided
-        else if (!result && newResult)
-        {
-            printf("ColliderManager - Just Collided\n");
-            this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
-        }
+        // // Just collided
+        // else if (!result && newResult)
+        // {
+        //     printf("ColliderManager - Just Collided\n");
+        //     this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+        // }
 
-        // Possible tunneling
-        else if(result && !newResult)
-        {
-            printf("ColliderManager - Possible Tunneling\n");
-            this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
-        }
+        // // Possible tunneling
+        // else if(result && !newResult)
+        // {
+        //     printf("ColliderManager - Possible Tunneling\n");
+        //     this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+        // }
+
+        p_velocity_1->SetVelocity(glm::vec2(0.0f, 0.0f));
+        p_velocity_2->SetVelocity(glm::vec2(0.0f, 0.0f));
 
         return true;
     }
