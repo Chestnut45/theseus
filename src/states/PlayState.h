@@ -16,13 +16,17 @@
 #include "../inventory/StatusEffectItem.h"
 #include "../inventory/ItemCreator.h"
 #include "../events/DialogueTriggerEvent.h"
+#include "../events/TriggerEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
 
+#include <TrapComponent.h>
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
 #include <HarpyBuilder.h>
+#include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
+#include "TriggerManager.h"
 
 
 class LabyrinthManager;
@@ -50,6 +54,7 @@ private:
     wolf::GameObject* m_pPlayerObject = nullptr;
     LabyrinthManager* m_pLabyrinthManager = nullptr;
     DialogueManager* m_pDialogueManager = nullptr;
+    TriggerManager* m_pTriggerManager = nullptr;
 
     // Manager for colliders
     ColliderManager* m_pColliderManager = nullptr;
@@ -60,6 +65,8 @@ private:
 
     // Private helper methods
     void StartDialogue(const std::string& dialogueID);
+    void OnTriggerEvent(const TriggerEvent& event);
+    void OnPressurePlateSteppedOn();
 
     // Creates the player object and all of its components
     // PRE: The player must not have been created yet
@@ -67,4 +74,5 @@ private:
     void CreatePlayer();
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
+    void CreatePressurePlate();
 };
