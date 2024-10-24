@@ -96,9 +96,6 @@ void Input::_Poll()
     for (int i = 0; i < NUM_KEYS; i++)
     {
         s_prevKeys[i] = s_keys[i];
-        
-        // Alternate method for polling keys without callbacks
-        // s_keys[i] = glfwGetKey(s_pWindow, i + GLFW_KEY_SPACE) != GLFW_RELEASE;
     }
 
     // Update mouse buttons

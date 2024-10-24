@@ -17,10 +17,9 @@ void PlayState::Enter()
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
 
-    // Initialize the listener
+    // Initialize the dialogue listener
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
-
-    wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
+    
     this->m_pColliderManager = new ColliderManager(&scene);
 
     // Initialize the player object
