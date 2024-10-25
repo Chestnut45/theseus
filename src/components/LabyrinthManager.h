@@ -76,6 +76,23 @@ public:
     // NOTE: Returns (0, 0) if the labyrinth is not yet generated
     glm::vec2 GetSpawnLocation() const;
 
+    // Gets the chunk ID for the chunk containing a given world space position
+    glm::ivec2 GetChunkID(const glm::vec2& worldPosition);
+
+    // Gets a pointer to the chunk object with the given ID
+    // NOTE: Returns nullptr if no chunk exists with the given ID
+    wolf::GameObject* GetChunk(const glm::ivec2& chunkID);
+
+    // Gets the tile ID at the given tile position of the labyrinth
+    // NOTE: Returns -1 if the tile is empty
+    // NOTE: Returns -2 if out of bounds or not yet generated
+    int GetTile(int x, int y);
+
+    // Sets the tile at the given tile position of the labyrinth
+    // NOTE: Does nothing if out of bounds
+    // NOTE: Does not validate tileID
+    void SetTile(int x, int y, int tileID);
+
     // Resets all properties to their defaults
     void Reset();
 
