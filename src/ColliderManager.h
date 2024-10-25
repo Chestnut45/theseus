@@ -45,5 +45,9 @@ private:
     void SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);
     void PushAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);
 
+    void addNewVelocity(wolf::GameObjectID p_id, glm::vec2 p_new_velocity);
+    void ApplyNewVelocities();
+
     std::vector<ColliderComponent *> m_vToBeDestroyed;
+    std::map<wolf::GameObjectID, std::vector<glm::vec2>> m_mNewVelocityVectors;
 };

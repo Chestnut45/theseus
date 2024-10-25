@@ -25,6 +25,7 @@ void ColliderManager::Update(float p_delta)
 {
     this->RemoveFlagged();
     this->CheckCollisions(p_delta);
+    this->ApplyNewVelocities();
 }
 
 // Remove objects flagged for destruction
@@ -186,10 +187,6 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
             }
             glm::vec2 translation2 = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset2;
 
-
-            glm::vec2 relativeVelocity = glm::vec2(0.0f, 0.0f);
-            relativeVelocity = velocity1 == nullptr ? relativeVelocity + glm::vec2(0.0f) : relativeVelocity - velocity1->GetVelocity();
-            relativeVelocity = velocity2 == nullptr ? relativeVelocity - glm::vec2(0.0f) : relativeVelocity - velocity2->GetVelocity();
             // if(relativeVelocity == glm::vec2(0.0f, 0.0f))
             // {
             //     if(StandardAABB(translation1, translation2, dimensions1, dimensions2))
@@ -199,22 +196,22 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
             // }
             // else
             // {
-                float collisionTime = this->SweptAABB(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta);
-                if(collisionTime < 1.0f)
-                {
-                    //std::cout << "ColliderManager - collide" << std::endl;
-                    // std::cout << "ColliderManager - offset1 - x: " << offset1.x << ", y: " << offset1.y << std::endl;
-                    // std::cout << "ColliderManager - offset2 - x: " << offset2.x << ", y: " << offset2.y << std::endl;
-                    // std::cout << "ColliderManager - translation1 - x: " << translation1.x << ", y: " << translation1.y << std::endl;
-                    // std::cout << "ColliderManager - translation2 - x: " << translation2.x << ", y: " << translation2.y << std::endl;
-                    return true;
-                }
-            //}
+            //      float collisionTime = this->SweptAABB(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta);
+            //      if(collisionTime < 1.0f)
+            //      {
+            //      std::cout << "ColliderManager - collide" << std::endl;
+            //      std::cout << "ColliderManager - offset1 - x: " << offset1.x << ", y: " << offset1.y << std::endl;
+            //      std::cout << "ColliderManager - offset2 - x: " << offset2.x << ", y: " << offset2.y << std::endl;
+            //      std::cout << "ColliderManager - translation1 - x: " << translation1.x << ", y: " << translation1.y << std::endl;
+            //      std::cout << "ColliderManager - translation2 - x: " << translation2.x << ", y: " << translation2.y << std::endl;
+            //      return true;5
+            //      }
+            //  }
 
-            // if(this->StandardAABBWithSliding(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta))
-            // {
-            //     return true;
-            // }
+            if(this->StandardAABBWithSliding(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta))
+            {
+                return true;
+            }
         }
     }
     return false;
@@ -257,7 +254,7 @@ float ColliderManager::SweptAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
 {
     if(this->StandardAABBBroadphase(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta))
     {
-        std::cout << "Collider Manager - Broadphased - id1: " << p_velocity_1->GetGameObject()->GetID() << ", id2: " << p_velocity_2->GetGameObject()->GetID() << std::endl;
+        //std::cout << "Collider Manager - Broadphased - id1: " << p_velocity_1->GetGameObject()->GetID() << ", id2: " << p_velocity_2->GetGameObject()->GetID() << std::endl;
         float   xEntryDist, yEntryDist, xExitDist, yExitDist,
                 xEntryTime, yEntryTime, xExitTime, yExitTime,
                 entryTime, exitTime;
@@ -409,29 +406,32 @@ bool ColliderManager::StandardAABBWithSliding(glm::vec2 p_translation_1, glm::ve
     // Collision happens
     if(result || newResult)
     {
-        //  // Already colliding
-        // if(result && newResult)
-        // {
-        //     printf("ColliderManager - Already Colliding\n");
-        //     this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
-        // }
+        // Already colliding
+        if(result && newResult)
+        {
+            printf("ColliderManager - Already Colliding\n");
+            //this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+            this->addNewVelocity(p_velocity_1->GetGameObject()->GetID(), glm::vec2(0.0f));
+            this->addNewVelocity(p_velocity_2->GetGameObject()->GetID(), glm::vec2(0.0f));
+        }
 
-        // // Just collided
-        // else if (!result && newResult)
-        // {
-        //     printf("ColliderManager - Just Collided\n");
-        //     this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
-        // }
+        // Collision imminent
+        else if (!result && newResult)
+        {
+            printf("ColliderManager - Just Collided\n");
+            //this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+            this->addNewVelocity(p_velocity_1->GetGameObject()->GetID(), glm::vec2(0.0f));
+            this->addNewVelocity(p_velocity_2->GetGameObject()->GetID(), glm::vec2(0.0f));
+        }
 
-        // // Possible tunneling
-        // else if(result && !newResult)
-        // {
-        //     printf("ColliderManager - Possible Tunneling\n");
-        //     this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
-        // }
-
-        p_velocity_1->SetVelocity(glm::vec2(0.0f, 0.0f));
-        p_velocity_2->SetVelocity(glm::vec2(0.0f, 0.0f));
+        // Possible tunneling
+        else if(result && !newResult)
+        {
+            printf("ColliderManager - Possible Tunneling\n");
+            //this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+            this->addNewVelocity(p_velocity_1->GetGameObject()->GetID(), glm::vec2(0.0f));
+            this->addNewVelocity(p_velocity_2->GetGameObject()->GetID(), glm::vec2(0.0f));
+        }
 
         return true;
     }
@@ -511,14 +511,20 @@ void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translati
     {
         float dotProduct1 = glm::dot(velocity1, collisionNormal2);
         glm::vec2 newVelocity1 = velocity1 -collisionNormal2 * dotProduct1;
-        p_velocity_1->SetVelocity(newVelocity1);
+        
+        //p_velocity_1->SetVelocity(newVelocity1);
+
+        this->addNewVelocity(p_velocity_1->GetGameObject()->GetID(), newVelocity1);
     }
 
     if(p_velocity_2!= nullptr)
     {
         float dotProduct2 = glm::dot(velocity2, collisionNormal1);
         glm::vec2 newVelocity2 = velocity2 - collisionNormal1 * dotProduct2;
-        p_velocity_2->SetVelocity(newVelocity2);
+        
+        //p_velocity_2->SetVelocity(newVelocity2);
+
+       this->addNewVelocity(p_velocity_2->GetGameObject()->GetID(), newVelocity2);
     }
 }
 
@@ -599,5 +605,34 @@ void ColliderManager::PushAABB(glm::vec2 p_translation_1, glm::vec2 p_translatio
             p_velocity_1->GetGameObject()->GetComponent<wolf::Transform2D>()->Translate(glm::vec2(shiftVector));
 
         }
+    }
+}
+
+void ColliderManager::addNewVelocity(wolf::GameObjectID p_id, glm::vec2 p_new_velocity)
+{
+    if(this->m_mNewVelocityVectors.find(p_id) == this->m_mNewVelocityVectors.end())
+    {
+        this->m_mNewVelocityVectors.insert(std::pair<wolf::GameObjectID, std::vector<glm::vec2>>(p_id, {}));
+    }
+    this->m_mNewVelocityVectors.at(p_id).push_back(p_new_velocity);
+}
+
+void ColliderManager::ApplyNewVelocities()
+{
+    if(!this->m_mNewVelocityVectors.empty())
+    {
+        for(auto info = this->m_mNewVelocityVectors.begin(); info != this->m_mNewVelocityVectors.end(); info++)
+        {
+            wolf::GameObjectID id = info->first;
+            std::vector<glm::vec2> newVelocities = info->second;
+            wolf::GameObject* obj = this->m_scene->GetObject(id);
+            VelocityComponent* velocityComponent = obj->GetComponent<VelocityComponent>();
+
+            for (glm::vec2 newVelocity : newVelocities)
+            {
+                velocityComponent->SetVelocity(newVelocity);
+            }
+        }    
+        this->m_mNewVelocityVectors.clear();
     }
 }
