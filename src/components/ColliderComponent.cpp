@@ -30,11 +30,13 @@ wolf::Program *ColliderComponent::s_pProgram = nullptr;
 wolf::VertexBuffer *ColliderComponent::s_pVB = nullptr;
 
 // Constructor for custom attributes
-ColliderComponent::ColliderComponent(ColliderType p_collider_type, bool p_doc, bool p_relativity)
+ColliderComponent::ColliderComponent(ColliderType p_collider_type, bool p_doc, bool p_relativity, bool p_wall_hitbox, wolf::GameObjectID p_ignore_id)
 {
     this->m_eColliderType = p_collider_type;
     this->m_bIsDestroyedOnCollision = p_doc;
     this->m_bIsRelative = p_relativity;
+    this->m_bIsWallHitbox = p_wall_hitbox;
+    this->m_IgnoreID = p_ignore_id;
 
     if (s_pProgram == nullptr)
     {

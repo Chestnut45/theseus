@@ -53,22 +53,22 @@ void PlayState::Enter()
     //testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
 
 
-    auto& testObj2 = scene.CreateObject2D();
-    testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(6000.0f, 0.0f));
+    // auto& testObj2 = scene.CreateObject2D();
+    // testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+    // testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(6000.0f, 0.0f));
 
-    auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    testSprite2.SetOriginToCenterOfTexture();
+    // auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    // testSprite2.SetOriginToCenterOfTexture();
 
-    auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-    testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
+    // testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
     
-    auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
-    testVelocity2.SetVelocity(glm::vec2(0.0f, 128.0f));
+    // auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
+    // testVelocity2.SetVelocity(glm::vec2(0.0f, 128.0f));
     
     // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
 
-    // this->CreateHarpyEnemy();
+    this->CreateHarpyEnemy();
 }
 
 void PlayState::Exit()

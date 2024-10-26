@@ -259,7 +259,7 @@ void HarpyController::HandleAttackingState(float delta)
             harpyDirection = harpyDirection == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(harpyDirection);
             projectileVelocity.SetVelocity(harpyDirection * 168.0f);
 
-            auto &projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 8.0f, 16);
+            auto &projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 12.0f, 16);
         }
     }
 
