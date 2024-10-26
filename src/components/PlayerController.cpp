@@ -470,50 +470,34 @@ void PlayerController::ApplyDamageToEnemy()
     {
         case PlayerDirection::NORTH:       
             playerDirection = glm::normalize(glm::vec2(0.0f, 1.0f));
-            spawnOffset.x = 0.0f * playerScale.x;
-            spawnOffset.y = 14.0f * playerScale.y;
             break;
 
         case PlayerDirection::NORTH_EAST:  
             playerDirection = glm::normalize(glm::vec2(1.0f, 1.0f));
-            spawnOffset.x = 7.5f * playerScale.x;
-            spawnOffset.y = 14.0f * playerScale.y;
             break;
 
         case PlayerDirection::EAST:        
             playerDirection = glm::normalize(glm::vec2(1.0f, 0.0f));
-            spawnOffset.x = 7.5f * playerScale.x;
-            spawnOffset.y = 0.0f * playerScale.y;
             break;
 
         case PlayerDirection::SOUTH_EAST:  
             playerDirection = glm::normalize(glm::vec2(1.0f, -1.0f));
-            spawnOffset.x = 7.5f * playerScale.x;
-            spawnOffset.y = -16.0f * playerScale.y;
             break;
 
         case PlayerDirection::SOUTH:       
             playerDirection = glm::normalize(glm::vec2(0.0f, -1.0f));
-            spawnOffset.x = 0.0f * playerScale.x;
-            spawnOffset.y = -16.0f * playerScale.y;
             break;
 
         case PlayerDirection::SOUTH_WEST:  
             playerDirection = glm::normalize(glm::vec2(-1.0f, -1.0f));
-            spawnOffset.x = -8.5f * playerScale.x;
-            spawnOffset.y = -16.0f * playerScale.y;
             break;
         
         case PlayerDirection::WEST:        
             playerDirection = glm::normalize(glm::vec2(-1.0f, 0.0f));
-            spawnOffset.x = -8.5f * playerScale.x;
-            spawnOffset.y = 0.0f * playerScale.y;
             break;
 
         case PlayerDirection::NORTH_WEST:  
             playerDirection = glm::normalize(glm::vec2(-1.0f, 1.0f));
-            spawnOffset.x = -8.5f * playerScale.x;
-            spawnOffset.y = 14.0f * playerScale.y;
             break;
 
         default:
@@ -539,11 +523,12 @@ void PlayerController::ApplyDamageToEnemy()
             auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
             projectileCollider.SetDamage(100.0f);
             projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+            projectileCollider.SetIgnoreTag(player->GetID());
 
             spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + projectileDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - projectileDimensions.x * 0.5f) : (spawnOffset.x));
             spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + projectileDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - projectileDimensions.y * 0.5f) : (spawnOffset.y));
                         
-            projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
+            projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
            
             auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
 
@@ -564,20 +549,19 @@ void PlayerController::ApplyDamageToEnemy()
 
         case WeaponType::SWORD:
         {
-            glm::vec2 meleeDimensions = glm::vec2(32.0f, 32.0f);
-            glm::vec2 hurtboxOffset = glm::vec2(-16.0f, -16.0f);
+            // glm::vec2 meleeDimensions = glm::vec2(32.0f, 32.0f);
+            // glm::vec2 hurtboxOffset = glm::vec2(-16.0f, -16.0f);
 
-            auto& scene = player->GetScene();
-            auto& melee = scene.CreateObject2D();
+            // auto& scene = player->GetScene();
+            // auto& melee = scene.CreateObject2D();
 
-            auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-            meleeCollider.SetDamage(100.0f);
-            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-16.0f, 16.0f));
-            spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + meleeDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - meleeDimensions.x * 0.5f) : (spawnOffset.x));
-            spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + meleeDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - meleeDimensions.y * 0.5f) : (spawnOffset.y));
+            // auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            // meleeCollider.SetDamage(100.0f);
+            // meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-16.0f, 16.0f));
+            // meleeCollider.SetIgnoreTag(player->GetID());
             
-            melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
-            melee.AddComponent<TimedDestroyerComponent>(1,1);
+            // melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
+            // melee.AddComponent<TimedDestroyerComponent>(1,1);
 
         }
     }

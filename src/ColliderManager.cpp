@@ -60,7 +60,11 @@ void ColliderManager::CheckCollisions(float p_delta)
                 float sweptAABBCollisionTime = 1.0f;
                 float sweptAABBRemainingTime = 0.0f;
 
-                if(id1 != id2)
+                if(
+                    (id1 != id2)                    &&
+                    (collider1.m_IgnoreID != id2)   && 
+                    (collider2.m_IgnoreID != id1)
+                )
                 {
                     // Checking for collision
                     if(collider1.IsHitbox() && collider2.IsHitbox())

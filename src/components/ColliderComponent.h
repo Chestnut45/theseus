@@ -62,6 +62,7 @@ public:
     void SetDamage(float p_damage);
     void SetColliderType(ColliderComponent::ColliderType p_collider_type);    
 
+    void SetIgnoreTag(wolf::GameObjectID p_id);
 
     void FillVertexArray();
 
@@ -73,6 +74,7 @@ private:
     bool m_bIsRelative = false; // Hitbox scales relative to object
     bool m_bIsFlaggedForDestruction = false;
     float m_fDamage = 1.0f; // Amount of Damage to Deal (only for Damage Dealer hurtboxes) 
+    wolf::GameObjectID m_IgnoreID = -1; // Projectiles bypass collision check with firer
 
     ColliderType m_eColliderType = ColliderType::NONE;
 

@@ -157,6 +157,11 @@ ColliderComponent::ColliderType ColliderComponent::GetColliderType() const
     return this->m_eColliderType;
 }
 
+void ColliderComponent::SetIgnoreTag(wolf::GameObjectID p_id)
+{
+    this->m_IgnoreID = p_id;
+}
+
 // Fill vertex array with vertices of instance
 void ColliderComponent::FillVertexArray()
 {

@@ -212,7 +212,7 @@ void MinitaurController::HandleAttackingState(float delta)
     // Apply damage if player is within melee range and attack cooldown is over
     if (distanceToPlayer <= m_meleeRange && m_attackTimer <= 0.0f)
     {
-        // Simulate applying damage to the player
+        // // Simulate applying damage to the player
         auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
         if (playerHealth)
         {
@@ -223,6 +223,22 @@ void MinitaurController::HandleAttackingState(float delta)
             // Reset attack cooldown timer
             m_attackTimer = m_attackCooldown;
         }
+
+        // glm::vec2 meleeDimensions = glm::vec2(32.0f, 32.0f);
+        // glm::vec2 hurtboxOffset = glm::vec2(-16.0f, -16.0f);
+
+        // auto& scene = this->GetGameObject()->GetScene();
+        // auto& melee = scene.CreateObject2D();
+
+        // auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+        // meleeCollider.SetDamage(100.0f);
+        // meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-16.0f, 16.0f));
+        // spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + meleeDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - meleeDimensions.x * 0.5f) : (spawnOffset.x));
+        // spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + meleeDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - meleeDimensions.y * 0.5f) : (spawnOffset.y));
+        
+        // melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
+        // melee.AddComponent<TimedDestroyerComponent>(1,1);
+
     }
 
     // Cooldown timer for next attack
