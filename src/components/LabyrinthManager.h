@@ -84,7 +84,7 @@ public:
     wolf::GameObject* GetChunk(const glm::ivec2& chunkID) const;
 
     // Converts a world space position to tile coordinates
-    // NOTE: Returns (-1, -1) if the position is not a valid tile
+    // NOTE: Returns (-1, -1) if the position is not on a valid tile
     glm::ivec2 GetTilePosition(const glm::vec2& worldPosition) const;
 
     // Gets the tile ID at the given tile position of the labyrinth
