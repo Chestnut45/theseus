@@ -24,6 +24,7 @@ void TimedDestroyerComponent::Update(float p_delta)
     
     if(this->m_fTimer >= m_fLifespan)
     {
+        printf("TimedDestroyerComponent - Destroy\n");
         this->GetGameObject()->GetScene().DeleteObject(this->GetGameObject()->GetID());
     }
 }

@@ -32,13 +32,15 @@ private:
     // Minitaur-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;
-    VelocityComponent* m_pVelocity = nullptr;;
+    VelocityComponent* m_pVelocity = nullptr;
     float m_meleeRange;
+    float m_rangedRange = 300.0f;
     float m_attackCooldown;
     float m_attackTimer = 0.0f;
     float m_detectionRange;
     float m_baseDamage;
     float m_chaseSpeed;
     wolf::Timer m_transitionTimer;
+    wolf::RNG m_RNG;
     float m_transitionDelay = 0.2f; // Example delay for transitioning states
 };

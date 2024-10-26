@@ -83,6 +83,7 @@ private:
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
+    void HandleWeaponUnequippedEvent(const WeaponEquippedEvent& p_event);
     void HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event);
 
     // Manage and transition different player states
@@ -156,5 +157,6 @@ private:
     ColliderManager* m_pColliderManager = nullptr;
 
     // Weapons
-    WeaponType m_eCurrentWeapon = WeaponType::BOW;
+    WeaponItem* m_pDefaultWeapon = nullptr;
+    WeaponItem* m_pCurrentWeapon = nullptr;
 };

@@ -7,6 +7,8 @@
 #include "MinitaurController.h"
 #include "PlayerController.h"
 
+#include "../inventory/ItemCreator.h"
+
 #include <W_Input.h>
 #include <W_Logging.h>
 
@@ -49,6 +51,9 @@ void PlayerController::LateInitialize()
         wolf::Error("LateInitialize failed: PlayerController not attached to GameObject!");
         return;
     }
+
+    this->m_pDefaultWeapon = dynamic_cast<WeaponItem*>(ItemCreator::CreateItem("Dull Blade"));
+    this->m_pCurrentWeapon = this->m_pDefaultWeapon;
 
     InitializeAnimations();
 
@@ -184,7 +189,7 @@ void PlayerController::HandleAttacking(float delta)
     }
 
     // Check if enough time has elapsed since the last attack to allow for damage application.
-    if (m_attackTimer.Elapsed() >= s_aAttackCooldown[(int)m_eCurrentWeapon] && m_isAttacking)
+    if (m_attackTimer.Elapsed() >= s_aAttackCooldown[(int)m_pCurrentWeapon->GetWeaponType()] && m_isAttacking)
     {
         ApplyDamageToEnemy(); // Apply damage if there's a collision with an enemy.
         m_attackTimer.Restart(); // Restart the timer for future attacks.
@@ -463,6 +468,8 @@ void PlayerController::ApplyDamageToEnemy()
     if (!player || !m_pTransform) return;
 
     glm::vec2 playerScale = player->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+    VelocityComponent* playerVelocityComponent = player->GetComponent<VelocityComponent>();
+    glm::vec2 playerVelocity = playerVelocityComponent == nullptr ? glm::vec2(0.0f) : playerVelocityComponent->GetVelocity();
     glm::vec2 playerDirection;
     glm::vec2 spawnOffset;
 
@@ -505,9 +512,9 @@ void PlayerController::ApplyDamageToEnemy()
             break;
     }
 
-    glm::vec2 playerVelocity = glm::vec2(0.0f);
 
-    switch(this->m_eCurrentWeapon)
+
+    switch(this->m_pCurrentWeapon->GetWeaponType())
     {
         case WeaponType::BOW:
         {
@@ -531,17 +538,6 @@ void PlayerController::ApplyDamageToEnemy()
             projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
            
             auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
-
-            VelocityComponent* playerVelocityComponent = player->GetComponent<VelocityComponent>();
-
-            if(playerVelocityComponent != nullptr)
-            {
-                playerVelocity = playerVelocityComponent->GetVelocity();
-            }
-            else
-            {
-                playerVelocity = glm::vec2(0.0f, 0.0f);
-            }
             projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
         
             break;
@@ -549,20 +545,40 @@ void PlayerController::ApplyDamageToEnemy()
 
         case WeaponType::SWORD:
         {
-            // glm::vec2 meleeDimensions = glm::vec2(32.0f, 32.0f);
-            // glm::vec2 hurtboxOffset = glm::vec2(-16.0f, -16.0f);
+            glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
+            glm::vec2 offset = glm::vec2(0.0f, 0.0f);
+            if(playerDirection.x != 0.0f)
+            {
+                offset.x = 9.0f;
+                meleeDimensions.y = 24.0f;
+            }
 
-            // auto& scene = player->GetScene();
-            // auto& melee = scene.CreateObject2D();
+            if(playerDirection.y != 0.0f)
+            {
+                offset.y = 12.0f;
+                meleeDimensions.x = 24.0f;
+            }
 
-            // auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-            // meleeCollider.SetDamage(100.0f);
-            // meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-16.0f, 16.0f));
-            // meleeCollider.SetIgnoreTag(player->GetID());
+            offset.x = playerDirection.x * offset.x;
+            offset.y = playerDirection.y * offset.y;
+            offset *= playerScale;
+            std::cout << "PlayerController - Offset - x: " << offset.x << ", y: " << offset.y << std::endl;
+
+            auto& scene = player->GetScene();
+            auto& melee = scene.CreateObject2D();
+            melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
+
+            auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            meleeCollider.SetDamage(100.0f);
+            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f, meleeDimensions.y * 0.5f));
+            meleeCollider.SetIgnoreTag(player->GetID());
             
-            // melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
-            // melee.AddComponent<TimedDestroyerComponent>(1,1);
+            melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
+            melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
+            melee.AddComponent<TimedDestroyerComponent>(1,1);
 
+            auto& meleeVelocity = melee.AddComponent<VelocityComponent>();
+            meleeVelocity.SetVelocity(glm::vec2(0.0f, 0.0f));
         }
     }
 }
@@ -674,6 +690,7 @@ void PlayerController::Render()
 // !-- Aurora added this --!
 void PlayerController::HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event) {
     printf("The player equipped a %s!\n", p_event.pWeapon->GetName().c_str());
+    this->m_pCurrentWeapon = p_event.pWeapon;
 }
 
 void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {

@@ -6,6 +6,7 @@
 #include "../components/ChestInventoryComponent.h"
 #include "../components/ColliderComponent.h"
 #include "../components/HealthComponent.h"
+#include "../components/HomingComponent.h"
 #include "../components/PlayerInventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/TimedDestroyerComponent.h"
@@ -63,7 +64,11 @@ void PlayState::Enter()
     testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
     
     auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
-    // testVelocity2.SetVelocity(glm::vec2(0.0f, 64.0f));
+    testVelocity2.SetVelocity(glm::vec2(0.0f, 128.0f));
+    
+    // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
+
+    // this->CreateHarpyEnemy();
 }
 
 void PlayState::Exit()
@@ -142,6 +147,11 @@ void PlayState::Update(float delta)
         anim.Update(delta);
     }
 
+    for (auto&&[_, homing] : m_pGameInstance->GetScene().Each<HomingComponent>())
+    {
+        homing.Update(delta);
+    }
+
     // Update collisions
     this->m_pColliderManager->Update(delta);
 
@@ -212,6 +222,8 @@ void PlayState::Update(float delta)
     // Update managers
     wolf::EventManager::Dispatch();
 
+    
+    
     for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
     {
         TimedDestroyerComponent.Update(delta);
@@ -259,7 +271,7 @@ void PlayState::CreatePlayer()
     auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
-    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, 13.0f));
+    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-6.5f, 13.0f));
 
     // Add health
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
@@ -305,9 +317,10 @@ void PlayState::CreateHarpyEnemy()
     HarpyBuilder harpyBuilder(m_pGameInstance->GetScene());
 
     glm::vec2 positions[] = {
-        glm::vec2(-300.0f, -300.0f),
-        glm::vec2(-400.0f, -400.0f),
-        glm::vec2(-500.0f, -500.0f)
+        // glm::vec2(-300.0f, -300.0f),
+        // glm::vec2(-400.0f, -400.0f),
+        // glm::vec2(-500.0f, -500.0f)
+        glm::vec2(6000.0f, 0.0f)
     };
 
     for (const auto& position : positions)

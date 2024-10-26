@@ -14,6 +14,8 @@ ColliderManager::ColliderManager(wolf::Scene* p_scene)
 {
     this->m_scene = p_scene;
 
+    //wolf::EventManager::AddListener<>();
+
 }
 
 ColliderManager::~ColliderManager()
@@ -408,19 +410,25 @@ bool ColliderManager::StandardAABBWithSliding(glm::vec2 p_translation_1, glm::ve
     // Collision cases
     if(result || newResult)
     {
-        if(result && newResult)
+            if(result && newResult)
         {
             printf("ColliderManager - 11\n");
             // this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
-            this->addNewVelocity(p_velocity_1->GetGameObject()->GetID(), glm::vec2(0.0f));
-            this->addNewVelocity(p_velocity_2->GetGameObject()->GetID(), glm::vec2(0.0f));
+            if(p_velocity_1->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox() && p_velocity_2->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox())
+            {
+                this->addNewVelocity(p_velocity_1->GetGameObject()->GetID(), glm::vec2(0.0f));
+                this->addNewVelocity(p_velocity_2->GetGameObject()->GetID(), glm::vec2(0.0f));
+            }
             // this->PushAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
         }
 
         else if (!result && newResult)
         {
             printf("ColliderManager - 01\n");
-            this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+            if(p_velocity_1->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox() && p_velocity_2->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox())
+            {
+                this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+            }
             // this->addNewVelocity(p_velocity_1->GetGameObject()->GetID(), glm::vec2(0.0f));
             // this->addNewVelocity(p_velocity_2->GetGameObject()->GetID(), glm::vec2(0.0f));
         }
@@ -428,7 +436,10 @@ bool ColliderManager::StandardAABBWithSliding(glm::vec2 p_translation_1, glm::ve
         else if(result && !newResult)
         {
             printf("ColliderManager - 10\n");
-            this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+            if(p_velocity_1->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox() && p_velocity_2->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox())
+            {
+                this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+            }
             // this->addNewVelocity(p_velocity_1->GetGameObject()->GetID(), glm::vec2(0.0f));
             // this->addNewVelocity(p_velocity_2->GetGameObject()->GetID(), glm::vec2(0.0f));
         }
@@ -506,28 +517,35 @@ void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translati
 
     collisionNormal1 = collisionNormal2 == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(-collisionNormal2);
 
-    if(p_velocity_1!= nullptr)
+    if(p_velocity_1 != nullptr)
     {
         float dotProduct1 = glm::dot(velocity1, collisionNormal2);
 
-        glm::vec2 newVelocity1 = velocity1 - collisionNormal2 * dotProduct1;
+        if(dotProduct1 <= 0.0f)
+        {
+            glm::vec2 newVelocity1 = velocity1 - collisionNormal2 * dotProduct1;
         
-        //p_velocity_1->SetVelocity(newVelocity1);
+            //p_velocity_1->SetVelocity(newVelocity1);
 
-        this->addNewVelocity(p_velocity_1->GetGameObject()->GetID(), newVelocity1);
+            this->addNewVelocity(p_velocity_1->GetGameObject()->GetID(), newVelocity1);
+        }
+        
         
 
     }
 
-    if(p_velocity_2!= nullptr)
+    if(p_velocity_2 != nullptr)
     {
         float dotProduct2 = glm::dot(velocity2, collisionNormal1);
-
-        glm::vec2 newVelocity2 = velocity2 - collisionNormal1 * dotProduct2;
+        
+        if(dotProduct2 <= 0.0f)
+        {
+            glm::vec2 newVelocity2 = velocity2 - collisionNormal1 * dotProduct2;
     
-        //p_velocity_2->SetVelocity(newVelocity2);
+            //p_velocity_2->SetVelocity(newVelocity2);
 
-        this->addNewVelocity(p_velocity_2->GetGameObject()->GetID(), newVelocity2); 
+            this->addNewVelocity(p_velocity_2->GetGameObject()->GetID(), newVelocity2); 
+        }
     }
 }
 
@@ -616,6 +634,7 @@ void ColliderManager::addNewVelocity(wolf::GameObjectID p_id, glm::vec2 p_new_ve
 
 void ColliderManager::ApplyNewVelocities()
 {
+    // printf("ColliderManager - Apply new velocities\n");
     if(!this->m_mNewVelocityVectors.empty())
     {
         for(auto info = this->m_mNewVelocityVectors.begin(); info != this->m_mNewVelocityVectors.end(); info++)

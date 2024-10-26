@@ -1,5 +1,6 @@
 #include "HarpyController.h"
 #include "PlayerController.h"
+#include "HomingComponent.h"
 #include <cassert>
 
 
@@ -182,7 +183,15 @@ void HarpyController::HandleChasingState(float delta)
         m_transitionTimer.Start();
     }
 
-    if (distanceToPlayer <= m_meleeRange)
+    // if (distanceToPlayer <= m_meleeRange)
+    // {
+    //     if (m_transitionTimer.Elapsed() >= m_transitionDelay)
+    //     {
+    //         ChangeState(EnemyState::ATTACKING);
+    //         m_transitionTimer.Reset();
+    //     }
+    // }
+    if(distanceToPlayer <= m_rangedRange)
     {
         if (m_transitionTimer.Elapsed() >= m_transitionDelay)
         {
@@ -210,16 +219,47 @@ void HarpyController::HandleAttackingState(float delta)
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
     // Apply damage if player is within melee range and attack cooldown is over
-    if (distanceToPlayer <= m_meleeRange && m_attackTimer <= 0.0f)
-    {
-        // Simulate applying damage to the player
-        auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
-        if (playerHealth)
-        {
-            playerHealth->Damage(m_baseDamage);
+    // if (distanceToPlayer <= m_meleeRange && m_attackTimer <= 0.0f)
+    // {
+    //     // Simulate applying damage to the player
+    //     auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
+    //     if (playerHealth)
+    //     {
+    //         playerHealth->Damage(m_baseDamage);
 
-            // Reset attack cooldown timer
-            m_attackTimer = m_attackCooldown;
+    //         // Reset attack cooldown timer
+    //         m_attackTimer = m_attackCooldown;
+    //     }
+    // }
+
+    // Ranged Attack
+    if (distanceToPlayer <= m_rangedRange)
+    {
+        int chance = m_RNG.NextInt(1, 100);
+        if(chance < 10)
+        {
+            glm::vec2 projectileDimensions = glm::vec2(32.0f, 32.0f);
+            glm::vec2 hurtboxOffset = glm::vec2(-16.0f, 16.0f);
+
+            auto& scene = this->GetGameObject()->GetScene();
+            auto& projectile = scene.CreateObject2D();
+
+            auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+            projectileSprite.SetOriginToCenterOfTexture();
+            
+            auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            projectileCollider.SetDamage(100.0f);
+            projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+            projectileCollider.SetIgnoreTag(this->GetGameObject()->GetID());
+                     
+            projectile.GetComponent<wolf::Transform2D>()->SetPosition(this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+    
+            auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+            glm::vec2 harpyDirection = targetPosition - currentPosition;
+            harpyDirection = harpyDirection == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(harpyDirection);
+            projectileVelocity.SetVelocity(harpyDirection * 168.0f);
+
+            auto &projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 8.0f, 16);
         }
     }
 
