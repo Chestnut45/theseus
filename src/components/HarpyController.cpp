@@ -267,7 +267,7 @@ void HarpyController::HandleAttackingState(float delta)
     m_attackTimer -= delta;
 
     // Return to chasing if player moves out of range
-    if (distanceToPlayer > m_meleeRange)
+    if (distanceToPlayer > m_rangedRange)
     {
         ChangeState(EnemyState::CHASING);
     }
