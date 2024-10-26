@@ -77,16 +77,20 @@ public:
     glm::vec2 GetSpawnLocation() const;
 
     // Gets the chunk ID for the chunk containing a given world space position
-    glm::ivec2 GetChunkID(const glm::vec2& worldPosition);
+    glm::ivec2 GetChunkID(const glm::vec2& worldPosition) const;
 
     // Gets a pointer to the chunk object with the given ID
     // NOTE: Returns nullptr if no chunk exists with the given ID
-    wolf::GameObject* GetChunk(const glm::ivec2& chunkID);
+    wolf::GameObject* GetChunk(const glm::ivec2& chunkID) const;
+
+    // Converts a world space position to tile coordinates
+    // NOTE: Returns (-1, -1) if the position is not a valid tile
+    glm::ivec2 GetTilePosition(const glm::vec2& worldPosition) const;
 
     // Gets the tile ID at the given tile position of the labyrinth
     // NOTE: Returns -1 if the tile is empty
     // NOTE: Returns -2 if out of bounds or not yet generated
-    int GetTile(int x, int y);
+    int GetTile(int x, int y) const;
 
     // Sets the tile at the given tile position of the labyrinth
     // NOTE: Does nothing if out of bounds
@@ -99,7 +103,7 @@ public:
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 16'383;
-    static const inline int LABYRINTH_TILE_SIZE = 32;
+    static const inline int TILE_SIZE = 32;
     static const inline int CHUNK_SIZE = 64;
     static const inline int SCALE = 3;
 
