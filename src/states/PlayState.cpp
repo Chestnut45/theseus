@@ -7,6 +7,7 @@
 #include "../components/HealthComponent.h"
 #include "../components/PlayerInventoryComponent.h"
 #include "../components/ChestInventoryComponent.h"
+#include "../components/MerchantInventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/VelocityComponent.h"
 #include "../inventory/WeaponItem.h"
@@ -194,10 +195,24 @@ void PlayState::Update(float delta)
             chest->ToggleOpen();
         }
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            chest->FillChestFromFile("data/test_chest_contents.yaml");
+            chest->FillInventoryFromFile("data/test_chest_contents.yaml");
         }
         
         chest->ShowInventoryGUI();
+    }
+
+    auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
+    if (merchant) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
+            merchant->ToggleOpen();
+        }
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
+            merchant->AddItemOrDelete(ItemCreator::CreateItem("Hurting Heart"));
+            merchant->AddItemOrDelete(ItemCreator::CreateItem("Healing Heart"));
+            merchant->AddItemOrDelete(ItemCreator::CreateItem("Dented Helmet"));
+        }
+
+        merchant->ShowInventoryGUI();
     }
 
     // Inflict status effects upon the player
@@ -271,7 +286,9 @@ void PlayState::CreatePlayer()
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
     // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
 
+    // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     m_pPlayerObject->AddComponent<ChestInventoryComponent>(4, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
+    m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f), "Merchant Guy", 0.1f);
 }
 
 void PlayState::CreateMinitaurEnemy()

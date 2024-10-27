@@ -1,6 +1,9 @@
 #include "InventoryComponent.h"
 #include "W_Logging.h"
 
+#include <yaml-cpp/yaml.h>
+#include "../inventory/ItemCreator.h"
+
 int InventoryComponent::m_iNextIdNum = 0;
 
 InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow), m_iIdNum(m_iNextIdNum){
@@ -421,4 +424,43 @@ void InventoryComponent::ShowInventoryGUI() {
 
     // End of window
     ImGui::End();
+}
+
+
+bool InventoryComponent::FillInventoryFromFile(const std::string& p_strFilePath) {
+    try {
+        // Load the file
+        YAML::Node node = YAML::LoadFile(p_strFilePath);
+
+        // Go through the list of items
+        YAML::Node itemList = node["item_list"];
+        for (int i = 0; i < itemList.size(); ++i) {
+            std::string strItemName = itemList[i].as<std::string>();
+            
+            // Try to create one
+            ItemBase* pNextItem = ItemCreator::CreateItem(strItemName);
+
+            // If it works,
+            if (pNextItem) {
+
+                // Add it to the inventory
+                this->AddItemOrDelete(pNextItem);
+            }
+            else {
+                // Otherwise, empty the inventory (delete whatever we've made so far)
+                this->EmptyInventory();
+
+                // And return false
+                return false;
+            }
+        }
+    }
+    catch (YAML::Exception& e) {
+        // If we run into an error, then we should print it and return false
+        wolf::Error("Error using '", p_strFilePath.c_str(), ": ", e.what());
+        return false;
+    }
+
+    // If we didn't encounter any issues, we return true
+    return true;
 }

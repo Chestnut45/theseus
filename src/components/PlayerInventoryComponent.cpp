@@ -10,6 +10,7 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
     // And deregister the chest's listeners
     wolf::EventManager::RemoveListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
+    wolf::EventManager::RemoveListener<SellItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleSellItemToPlayerEvent>(*this);
     wolf::EventManager::RemoveListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
 }
@@ -39,6 +40,12 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
         ImGui::SetNextWindowPos({500, 200});
         ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + fOffset) * m_iMaxPerRow, (m_v2TexFrameSize.y + 22) * iNumRows});
         ImGui::Begin("\t~ Inventory ~", &m_bIsOpen, flags);
+
+        // If we closed the inventory
+        if (!m_bIsOpen) {
+            // Let anyone interested know
+            wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+        }
 
         // This counter lets us control how many items are drawn in a row
         int counter = 0;
@@ -156,6 +163,19 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                         }
                     }
 
+                    // If we are currently talking to a merchant
+                    if (m_iOpenMerchantIdNum != -1) {
+                        // The we need to be able to sell items to them
+                        if (ImGui::Button("Sell")) {
+                            // We sell an item by sending an event to the merchant we're talking to
+                            // !-- Note that we send along the index that we're storing the item at in the player's inventory so that
+                            // when the merchant sends a return message telling us that the item has been purchased we can remove the
+                            // specific item that we sent rather than the first instance of it in our inventory --!
+                            wolf::EventManager::TriggerEvent(SellItemToMerchantEvent(m_iOpenMerchantIdNum, this->GetItem(k), k));
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+
                     // We can discard any item we like
                     if (ImGui::Button("Discard")) {
                         this->DiscardItem(k);
@@ -191,6 +211,52 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
         // End of window
         ImGui::End();
+
+        if (m_bShowFullInventoryPrompt) {
+            // You can't resize the inventory or move it
+            ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+
+            // By default, the prompt appears close to the middle of the screen
+            ImGui::SetNextWindowPos({600, 300});
+            ImGui::SetNextWindowSize({300, 75});
+            ImGui::Begin("Inventory Is Full Prompt", nullptr, flags);
+
+            // Show a message asking the player if they are okay with selling the item for less than its value
+            ImGui::Text("\t\tYour inventory is full.");
+            ImGui::NewLine();
+            ImGui::Text("\t\t\t\t");
+            ImGui::SameLine();
+            
+            // If they are
+            if (ImGui::Button("Close")) {
+                // Close this prompt and process the sale
+                m_bShowFullInventoryPrompt = false;
+            }
+            ImGui::End();
+        }
+
+        if (m_bShowTooExpensivePrompt) {
+            // You can't resize the inventory or move it
+            ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+
+            // By default, the prompt appears close to the middle of the screen
+            ImGui::SetNextWindowPos({600, 300});
+            ImGui::SetNextWindowSize({300, 75});
+            ImGui::Begin("Too Expensive Prompt", nullptr, flags);
+
+            // Show a message asking the player if they are okay with selling the item for less than its value
+            ImGui::Text(" You don't have enough gold to buy that.");
+            ImGui::NewLine();
+            ImGui::Text("\t\t\t\t");
+            ImGui::SameLine();
+            
+            // If they are
+            if (ImGui::Button("Close")) {
+                // Close this prompt and process the sale
+                m_bShowTooExpensivePrompt = false;
+            }
+            ImGui::End();
+        }
     }
 }
 
@@ -296,12 +362,27 @@ bool PlayerInventoryComponent::TakeGold(int p_iAmt) {
     return true;
 }
 
+void PlayerInventoryComponent::Close() {
+    // Close the inventory
+    m_bIsOpen = false;
+
+    // Then let anyone interested know it happened
+    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+}
+
 void PlayerInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
     // If we have opened a chest (and it's not the chest we already have open)
     if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum != m_iOpenChestIdNum) {
         // Then we need to keep track of its id number so we can move items between the two inventories
         m_iOpenChestIdNum = p_event.iIdNum;
     }
+    else if (p_event.enType == MERCHANT_INVENTORY && p_event.iIdNum != m_iOpenChestIdNum) {
+        // We do the same with merchant inventories
+        m_iOpenMerchantIdNum = p_event.iIdNum;
+    }
+
+    // In any case, we want to open the player's inventory, too
+    m_bIsOpen = true;
 }
 
 void PlayerInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
@@ -309,6 +390,35 @@ void PlayerInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEve
     if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum == m_iOpenChestIdNum) {
         // Then we can safely discard the id number because we're done moving items between the two inventories
         m_iOpenChestIdNum = -1;
+    }
+    else if (p_event.enType == MERCHANT_INVENTORY && p_event.iIdNum == m_iOpenMerchantIdNum) {
+        // We do the same with merchant inventories
+        m_iOpenMerchantIdNum = -1;
+    }
+
+    // In any case, we want to close the player's inventory, too
+    m_bIsOpen = false;
+}
+
+void PlayerInventoryComponent::HandleSellItemToPlayerEvent(const SellItemToPlayerEvent& p_event) {
+    // If we can afford this item
+    if (this->TakeGold(p_event.iPrice)) {
+        // And we have space in our inventory for it
+        if (this->AddItem(p_event.pItem)) {
+            // Then we need to let the merchant know we've processed our end of the sale so that they can process theirs
+            wolf::EventManager::TriggerEvent(BoughtItemFromMerchantEvent(p_event.iMerchantIdNum, p_event.pItem->GetName(), p_event.iPrice, p_event.iMerchantInventoryIndex));
+        }
+        else { // If we didn't have room for the item but we did have enough money for it,
+            // Then we need to add the money we "spent" back into the player's inventory
+            this->AddGold(p_event.iPrice);
+
+            // And let the player know we didn't have room for the item
+            m_bShowFullInventoryPrompt = true;
+        }
+    }
+    else {
+        // If we can't afford the item we're trying to buy, we should let the player know
+        m_bShowTooExpensivePrompt = true;
     }
 }
 
@@ -330,6 +440,10 @@ void PlayerInventoryComponent::HandleAddToPlayerInventoryEvent(const SendItemToP
                 wolf::EventManager::TriggerEvent(RemoveFromChestEvent(p_event.iSenderIdNum, p_event.pItem->GetName(), p_event.iSenderInventoryIndex));
             }
         }
+        else {
+            // If we can't fit it in our inventory, then we should let the player know
+            m_bShowFullInventoryPrompt;
+        }
     }
 }
 
@@ -343,4 +457,8 @@ void PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent(const Remove
         // Otherwise, we remove the item by name (so we remove the first instance of it that we find)
         this->RemoveItem(p_event.strItemName);
     }
+
+    // If we were removing the item because we sold it to someone, then we'll want to add the amount we sold it for
+    // to our wallet. (If we didn't sell the item this is technically a pointless function call)
+    this->AddGold(p_event.iItemSoldFor);
 }

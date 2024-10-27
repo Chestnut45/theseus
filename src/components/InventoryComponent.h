@@ -43,6 +43,8 @@ class InventoryComponent : public wolf::BaseComponent {
         InventoryComponent(InventoryComponent&& other) = delete;
         InventoryComponent& operator=(InventoryComponent&& other) = delete;
 
+        bool FillInventoryFromFile(const std::string& p_strFilePath);
+
         InventoryType GetType() {return m_enType;};
         int GetIdNum() {return m_iIdNum;};
 
@@ -132,6 +134,16 @@ struct SendItemToPlayerInventoryEvent {
     int iSenderInventoryIndex = -1;
 };
 
+struct SellItemToPlayerEvent {
+    int iMerchantIdNum;
+
+    ItemBase* pItem;
+    int iPrice;
+
+    // This is an optional index that should be included whenever possible
+    int iMerchantInventoryIndex = -1;
+};
+
 struct SellItemToMerchantEvent {
     int iMerchantIdNum;
     ItemBase* pItem;
@@ -140,9 +152,11 @@ struct SellItemToMerchantEvent {
     int iPlayerInventoryIndex;
 };
 
-struct BuyItemFromMerchantEvent {
+struct BoughtItemFromMerchantEvent {
     int iMerchantIdNum;
     std::string strItemName;
+
+    int iBoughtFor;
 
     // This is also an optional index that should be included whenever possible
     int iMerchantInventoryIndex = -1;

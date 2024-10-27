@@ -19,6 +19,7 @@ class ChestInventoryComponent : public InventoryComponent {
                 wolf::EventManager::AddListener<SendItemToChestEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleAddToChestEvent>(*this);
                 wolf::EventManager::AddListener<RemoveFromChestEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleRemoveFromChestEvent>(*this);
                 wolf::EventManager::AddListener<OpenInventoryEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleOpenInventoryEvent>(*this);
+                wolf::EventManager::AddListener<CloseInventoryEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleCloseInventoryEvent>(*this);
             };
 
         ~ChestInventoryComponent();
@@ -31,8 +32,6 @@ class ChestInventoryComponent : public InventoryComponent {
         ChestInventoryComponent(ChestInventoryComponent&& other) = delete;
         ChestInventoryComponent& operator=(ChestInventoryComponent&& other) = delete;
 
-        bool FillChestFromFile(const std::string& p_strFilePath);
-
         virtual void Open();
         virtual void Close();
         virtual void ToggleOpen();
@@ -40,6 +39,7 @@ class ChestInventoryComponent : public InventoryComponent {
         void HandleAddToChestEvent(const SendItemToChestEvent& p_event);
         void HandleRemoveFromChestEvent(const RemoveFromChestEvent& p_event);
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
+        void HandleCloseInventoryEvent(const CloseInventoryEvent& p_event);
 
         virtual void ShowInventoryGUI();
 

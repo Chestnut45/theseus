@@ -1,8 +1,5 @@
 #include "ChestInventoryComponent.h"
 
-#include <yaml-cpp/yaml.h>
-#include "inventory/ItemCreator.h"
-
 ChestInventoryComponent::~ChestInventoryComponent() {
     // Empty each of the stacks in the contents vector
     this->EmptyInventory();
@@ -14,44 +11,7 @@ ChestInventoryComponent::~ChestInventoryComponent() {
     wolf::EventManager::RemoveListener<SendItemToChestEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleAddToChestEvent>(*this);
     wolf::EventManager::RemoveListener<RemoveFromChestEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleRemoveFromChestEvent>(*this);
     wolf::EventManager::RemoveListener<OpenInventoryEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleOpenInventoryEvent>(*this);
-}
-
-bool ChestInventoryComponent::FillChestFromFile(const std::string& p_strFilePath) {
-    try {
-        // Load the file
-        YAML::Node node = YAML::LoadFile(p_strFilePath);
-
-        // Go through the list of items
-        YAML::Node itemList = node["item_list"];
-        for (int i = 0; i < itemList.size(); ++i) {
-            std::string strItemName = itemList[i].as<std::string>();
-            
-            // Try to create one
-            ItemBase* pNextItem = ItemCreator::CreateItem(strItemName);
-
-            // If it works,
-            if (pNextItem) {
-
-                // Add it to the inventory
-                this->AddItemOrDelete(pNextItem);
-            }
-            else {
-                // Otherwise, empty the inventory (delete whatever we've made so far)
-                this->EmptyInventory();
-
-                // And return false
-                return false;
-            }
-        }
-    }
-    catch (YAML::Exception& e) {
-        // If we run into an error, then we should print it and return false
-        wolf::Error("Error using '", p_strFilePath.c_str(), ": ", e.what());
-        return false;
-    }
-
-    // If we didn't encounter any issues, we return true
-    return true;
+    wolf::EventManager::RemoveListener<CloseInventoryEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleCloseInventoryEvent>(*this);
 }
 
 void ChestInventoryComponent::ShowInventoryGUI() {
@@ -243,6 +203,17 @@ void ChestInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent&
         // And a different chest is opening
         if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
+            m_bIsOpen = false;
+        }
+    }
+}
+
+void ChestInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
+    // If the player just closed their inventory
+    if (p_event.enType == PLAYER_INVENTORY) {
+        // And this chest is open
+        if (m_bIsOpen) {
+            // Close it
             m_bIsOpen = false;
         }
     }

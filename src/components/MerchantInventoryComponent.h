@@ -11,19 +11,21 @@
 
 struct ItemInStasis {
     ItemBase* pItem;
-    int iInventoryIndex;
+    int iPlayerInventoryIndex;
 };
 
 class MerchantInventoryComponent : public InventoryComponent {
     public:
-        MerchantInventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize)
-            : InventoryComponent(p_iSize, p_iSlotsPerRow, p_strTexture, p_v2TexFrameSize)
+        MerchantInventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize, const std::string& p_strMerchantName, float p_fPercentMarkup)
+            : InventoryComponent(p_iSize, p_iSlotsPerRow, p_strTexture, p_v2TexFrameSize), m_strMerchantName(p_strMerchantName), m_fPercentMarkup(p_fPercentMarkup)
             {
                 m_enType = MERCHANT_INVENTORY;
                 m_ItemInStasis = ItemInStasis(nullptr, -1);
 
                 wolf::EventManager::AddListener<OpenInventoryEvent, MerchantInventoryComponent, &MerchantInventoryComponent::HandleOpenInventoryEvent>(*this);
-
+                wolf::EventManager::AddListener<CloseInventoryEvent, MerchantInventoryComponent, &MerchantInventoryComponent::HandleCloseInventoryEvent>(*this);
+                wolf::EventManager::AddListener<SellItemToMerchantEvent, MerchantInventoryComponent, &MerchantInventoryComponent::HandleSellItemToMerchantEvent>(*this);
+                wolf::EventManager::AddListener<BoughtItemFromMerchantEvent, MerchantInventoryComponent, &MerchantInventoryComponent::HandleBoughtItemFromMerchantEvent>(*this);
             };
 
         ~MerchantInventoryComponent();
@@ -36,31 +38,55 @@ class MerchantInventoryComponent : public InventoryComponent {
         MerchantInventoryComponent(MerchantInventoryComponent&& other) = delete;
         MerchantInventoryComponent& operator=(MerchantInventoryComponent&& other) = delete;
 
-        bool StockMerchantFromFile(const std::string& p_strFilePath);
-
         virtual void Open();
         virtual void Close();
         virtual void ToggleOpen();
 
-        bool CanAddItem(ItemBase* p_pItem);
+        void SetMarkup(float p_fMarkup) {m_fPercentMarkup = p_fMarkup;};
+        float GetMarkup() const {return m_fPercentMarkup;};
 
-        void SetMarkup(float p_fMarkup) {m_fMarkupValue = p_fMarkup;};
-        float GetMarkup() const {return m_fMarkupValue;};
 
         int GetGold() const {return m_iGold;};
 
+        void SetGold(int p_iAmt) {
+            m_iGold = p_iAmt;
+            if (m_iGold > MAX_GOLD) {
+                m_iGold = MAX_GOLD;
+            }
+        }
+
+        void TakeGold(int p_iAmt) {
+            m_iGold -= p_iAmt;
+            if (m_iGold < 0) {
+                m_iGold = 0;
+            }
+        }
+
+        void AddGold(int p_iAmt) {
+            m_iGold += p_iAmt;
+            if (m_iGold > MAX_GOLD) {
+                m_iGold = MAX_GOLD;
+            }
+        }
+
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
+        void HandleCloseInventoryEvent(const CloseInventoryEvent& p_event);
         void HandleSellItemToMerchantEvent(const SellItemToMerchantEvent& p_event);
-        void HandleBuyItemFromMerchantEvent(const BuyItemFromMerchantEvent& p_event);
+        void HandleBoughtItemFromMerchantEvent(const BoughtItemFromMerchantEvent& p_event);
 
         virtual void ShowInventoryGUI();
 
     private:
+        bool CanAddItem(ItemBase* p_pItem);
+
+        void TakeItemOutOfStasis(bool p_bSold);
+        void SellItemToPlayer(int p_iItemIndex, int p_iItemPrice);
+
         std::string m_strMerchantName;
-        float m_fMarkupValue = 0.0f;
+        float m_fPercentMarkup = 0.0f;
 
         ItemInStasis m_ItemInStasis;
-        bool m_bShowSellForLessPrompt;
+        bool m_bShowSellForLessPrompt = false;
 
         const int MAX_GOLD = 999;
         int m_iGold = 0;

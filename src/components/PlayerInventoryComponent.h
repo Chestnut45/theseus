@@ -25,6 +25,7 @@ class PlayerInventoryComponent : public InventoryComponent {
                 // We also need to register for events related to the player's inventory
                 wolf::EventManager::AddListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
                 wolf::EventManager::AddListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
+                wolf::EventManager::AddListener<SellItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleSellItemToPlayerEvent>(*this);
                 wolf::EventManager::AddListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
                 wolf::EventManager::AddListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
             };
@@ -41,6 +42,8 @@ class PlayerInventoryComponent : public InventoryComponent {
 
         ItemBase* GetEquippedItem(EquipmentSlot p_enSlot);
 
+        virtual void Close();
+
         virtual void ShowInventoryGUI();
 
         void AddGold(int p_iAmt);
@@ -50,6 +53,7 @@ class PlayerInventoryComponent : public InventoryComponent {
 
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
         void HandleCloseInventoryEvent(const CloseInventoryEvent& p_event);
+        void HandleSellItemToPlayerEvent(const SellItemToPlayerEvent& p_event);
         void HandleAddToPlayerInventoryEvent(const SendItemToPlayerInventoryEvent& p_event);
         void HandleRemoveFromPlayerInventoryEvent(const RemoveFromPlayerInventoryEvent& p_event);
 
@@ -59,10 +63,14 @@ class PlayerInventoryComponent : public InventoryComponent {
         void UnequipItem(ItemBase* p_pItem);
         void DiscardItem(int p_iItemIndex);
 
+        bool m_bShowFullInventoryPrompt = false;
+        bool m_bShowTooExpensivePrompt = false;
+
         const int MAX_GOLD = 999;
         int m_iGold = 0;
 
         int m_iOpenChestIdNum = -1;
+        int m_iOpenMerchantIdNum = -1;
 
         int m_iEquipmentSlots[END_OF_EQUIPMENT - 1];
 };
