@@ -83,7 +83,7 @@ private:
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
-    void HandleWeaponUnequippedEvent(const WeaponEquippedEvent& p_event);
+    void HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event);
     void HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event);
 
     // Manage and transition different player states

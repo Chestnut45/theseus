@@ -25,6 +25,7 @@ PlayerController::PlayerController() = default;
 PlayerController::~PlayerController() {
     wolf::EventManager::RemoveListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
+    wolf::EventManager::RemoveListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
 }
 
 void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
@@ -59,6 +60,7 @@ void PlayerController::LateInitialize()
 
     // !-- Aurora added this --!
     wolf::EventManager::AddListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+    wolf::EventManager::AddListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
 }
 
@@ -697,6 +699,14 @@ void PlayerController::Render()
 void PlayerController::HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event) {
     printf("The player equipped a %s!\n", p_event.pWeapon->GetName().c_str());
     this->m_pCurrentWeapon = p_event.pWeapon;
+}
+
+void PlayerController::HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event)
+{
+    if(this->m_pCurrentWeapon->GetID() == p_event.pWeapon->GetID())
+    {
+        this->m_pCurrentWeapon = this->m_pDefaultWeapon;
+    }
 }
 
 void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {

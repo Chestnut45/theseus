@@ -79,3 +79,7 @@ class WeaponItem : public EquipmentItem {
 struct WeaponEquippedEvent {
     WeaponItem* pWeapon; // Whatever weapon was just equipped
 };
+
+struct WeaponUnequippedEvent {
+    WeaponItem* pWeapon; // Whatever weapon was just equipped
+};
