@@ -3,6 +3,7 @@
 #include "HealthComponent.h"
 #include "ColliderComponent.h"
 #include "MinitaurController.h"
+#include "HarpyController.h"
 #include <W_Input.h>
 #include <W_Logging.h>
 
@@ -12,7 +13,14 @@
 // ver 2.0: Optimized and restructured for readability and performance.
 //-----------------------------------------------------------------------------
 
+float PlayerController::s_aAttackCooldown[(int)WeaponType::BOW + 1] = {0.25f, 1.0f, 0.5f};
+
 PlayerController::PlayerController() = default;
+
+PlayerController::~PlayerController() {
+    wolf::EventManager::RemoveListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+    wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
+}
 
 void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
 {
@@ -28,6 +36,7 @@ ColliderManager* PlayerController::GetColliderManager() const
 {
     return m_pColliderManager;
 }
+
 // Initialize components related to the player
 void PlayerController::LateInitialize()
 {
@@ -38,6 +47,18 @@ void PlayerController::LateInitialize()
         return;
     }
 
+    InitializeAnimations();
+
+    // !-- Aurora added this --!
+    wolf::EventManager::AddListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+    wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
+}
+
+// Add and initialize animations for the player character
+void PlayerController::InitializeAnimations()
+{
+    auto* pGameObject = GetGameObject();
+    
     // Check if the AnimatedSprite2D component exists
     if (pGameObject->HasAll<AnimatedSprite2D>())
     {
@@ -46,47 +67,7 @@ void PlayerController::LateInitialize()
     }
 
     // Initialize the AnimatedSprite2D component
-    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/textures/TheseusWalk-Sheet.png", glm::vec2(32.0f, 32.0f), 12.0f);
-    // Initialize animations
-    InitializeAnimations();
-
-    // Check if essential components are initialized properly
-}
-
-// Add and initialize animations for the player character
-void PlayerController::InitializeAnimations()
-{
-    if (!m_pAnimComponent) return;
-
-    // Define all player animations with their corresponding texture paths and frame indices.
-    std::vector<std::tuple<std::string, std::string, int, int, bool>> animations = {
-        // Movement animations (looping)
-        {"WalkSouth", "data/textures/TheseusWalk-Sheet.png", 1, 8, true},
-        {"WalkEast", "data/textures/TheseusWalk-Sheet.png", 9, 16, true},
-        {"WalkNorth", "data/textures/TheseusWalk-Sheet.png", 17, 24, true},
-        {"WalkWest", "data/textures/TheseusWalk-Sheet.png", 25, 32, true},
-
-        // Idle animations (not looping)
-        {"StandSouth", "data/textures/TheseusStand-Sheet.png", 1, 1, false},
-        {"StandEast", "data/textures/TheseusStand-Sheet.png", 2, 2, false},
-        {"StandNorth", "data/textures/TheseusStand-Sheet.png", 3, 3, false},
-        {"StandWest", "data/textures/TheseusStand-Sheet.png", 4, 4, false},
-
-        // Attack animations (not looping)
-        {"AttackSouth", "data/textures/TheseusSword-Sheet.png", 1, 7, false},
-        {"AttackEast", "data/textures/TheseusSword-Sheet.png", 8, 14, false},
-        {"AttackNorth", "data/textures/TheseusSword-Sheet.png", 15, 21, false},
-        {"AttackWest", "data/textures/TheseusSword-Sheet.png", 22, 28, false}
-    };
-
-    // Add animations to the component with correct frame ranges and loop settings
-    for (const auto& [name, path, startFrame, endFrame, isLooping] : animations)
-    {
-        m_pAnimComponent->AddAnimation(name, path, glm::vec2(32.0f, 32.0f), startFrame, endFrame, isLooping);
-    }
-
-    m_pAnimComponent->SetAnimation("StandSouth"); // Default animation set to "StandSouth"
-    m_pAnimComponent->SetOriginToCenterOfFrame();
+    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
 }
 
 // Main update loop for the player controller
@@ -114,6 +95,22 @@ void PlayerController::Update(float delta)
         return;
     }
     
+    // Debug speed modifier hotkeys
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
+    {
+        m_moveSpeed *= 0.5f;
+        m_rollSpeed *= 0.5f;
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
+    {
+        m_moveSpeed *= 2;
+        m_rollSpeed *= 2;
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
+    {
+        m_moveSpeed = 200.0f;
+        m_rollSpeed = 400.0f;
+    }
 
     HandlePlayerInput(delta);
     RegenerateStamina(delta);
@@ -154,7 +151,16 @@ void PlayerController::HandleMovement(float delta)
     {
         if (!m_isAttacking && !m_isRolling) m_action = PlayerAction::NONE;
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        m_walkSoundTimer.Reset();
         return;
+    }
+
+    // Play walking sound effect
+    if (!m_walkSoundTimer.IsRunning()) m_walkSoundTimer.Start();
+    if (m_walkSoundTimer.Elapsed() > m_walkSoundInterval)
+    {
+        wolf::Audio::Play("data/sounds/walk.wav");
+        m_walkSoundTimer.Restart();
     }
 
     direction = glm::normalize(direction);
@@ -165,7 +171,7 @@ void PlayerController::HandleMovement(float delta)
 }
 
 // Manage attack state and animation transitions
-void PlayerController:: HandleAttacking(float delta)
+void PlayerController::HandleAttacking(float delta)
 {
     // Start the attack if the left mouse button is pressed and the player is not currently attacking.
     if (wolf::Input::IsLMBJustDown() && !m_isAttacking)
@@ -174,7 +180,7 @@ void PlayerController:: HandleAttacking(float delta)
     }
 
     // Check if enough time has elapsed since the last attack to allow for damage application.
-    if (m_attackTimer.Elapsed() >= m_attackCooldown && m_isAttacking)
+    if (m_attackTimer.Elapsed() >= s_aAttackCooldown[(int)m_eCurrentWeapon] && m_isAttacking)
     {
         ApplyDamageToEnemy(); // Apply damage if there's a collision with an enemy.
         m_attackTimer.Restart(); // Restart the timer for future attacks.
@@ -197,14 +203,7 @@ void PlayerController::HandleRolling(float delta)
         return;
     }
 
-    // Only start roll if a direction is being held
-    glm::vec2 direction(0.0f);
-    direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
-    direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
-    direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
-    direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
-
-    if (direction != glm::vec2(0.0f) && wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
     {
         StartRoll();
     }
@@ -314,15 +313,15 @@ std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection dir
 {
     switch (direction)
     {
-        case PlayerDirection::SOUTH:       return "AttackSouth";
-        case PlayerDirection::EAST:        return "AttackEast";
-        case PlayerDirection::NORTH:       return "AttackNorth";
-        case PlayerDirection::WEST:        return "AttackWest";
-        case PlayerDirection::NORTH_EAST:  return "AttackEast";
-        case PlayerDirection::NORTH_WEST:  return "AttackWest";
-        case PlayerDirection::SOUTH_EAST:  return "AttackEast";
-        case PlayerDirection::SOUTH_WEST:  return "AttackWest";
-        default:                           return "AttackSouth";
+        case PlayerDirection::SOUTH:       return "SwordAttackSouth";
+        case PlayerDirection::EAST:        return "SwordAttackEast";
+        case PlayerDirection::NORTH:       return "SwordAttackNorth";
+        case PlayerDirection::WEST:        return "SwordAttackWest";
+        case PlayerDirection::NORTH_EAST:  return "SwordAttackEast";
+        case PlayerDirection::NORTH_WEST:  return "SwordAttackWest";
+        case PlayerDirection::SOUTH_EAST:  return "SwordAttackEast";
+        case PlayerDirection::SOUTH_WEST:  return "SwordAttackWest";
+        default:                           return "SwordAttackSouth";
     }
 }
 
@@ -356,6 +355,85 @@ void PlayerController::StartAttack()
 
         // Store the current animation to handle transitions later.
         m_currentAnimation = attackAnimation;
+
+        // Attack
+        glm::vec2 playerDirection;
+        switch (this->m_lastDirectionEnum)
+        {
+            case PlayerDirection::NORTH:       
+                playerDirection = glm::normalize(glm::vec2(0.0f, 1.0f));
+                break;
+
+            case PlayerDirection::NORTH_EAST:  
+                playerDirection = glm::normalize(glm::vec2(1.0f, 1.0f));
+                break;
+
+            case PlayerDirection::EAST:        
+                playerDirection = glm::normalize(glm::vec2(1.0f, 0.0f));
+                break;
+
+            case PlayerDirection::SOUTH_EAST:  
+                playerDirection = glm::normalize(glm::vec2(1.0f, -1.0f));
+                break;
+
+            case PlayerDirection::SOUTH:       
+                playerDirection = glm::normalize(glm::vec2(0.0f, -1.0f));
+                break;
+
+            case PlayerDirection::SOUTH_WEST:  
+                playerDirection = glm::normalize(glm::vec2(-1.0f, -1.0f));
+                break;
+            
+            case PlayerDirection::WEST:        
+                playerDirection = glm::normalize(glm::vec2(-1.0f, 0.0f));
+                break;
+
+            case PlayerDirection::NORTH_WEST:  
+                playerDirection = glm::normalize(glm::vec2(-1.0f, 1.0f));
+                break;
+
+            default:
+                playerDirection = glm::vec2(0.0f, 0.0f);
+                break;
+        }
+        glm::vec2 playerVelocity = glm::vec2(0.0f);
+
+
+        switch(this->m_eCurrentWeapon)
+        {
+            case WeaponType::BOW:
+            {
+                auto& scene = this->GetGameObject()->GetScene();
+                auto& projectile = scene.CreateObject2D();
+                
+                auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+                projectileSprite.SetOriginToCenterOfTexture();
+                
+                auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+                projectileCollider.SetDamage(10.0f);
+                projectileCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
+
+                
+                auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+
+                projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+                projectile.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition()));
+
+                VelocityComponent* playerVelocityComponent = this->GetGameObject()->GetComponent<VelocityComponent>();
+
+                if(playerVelocityComponent != nullptr)
+                {
+                    playerVelocity = playerVelocityComponent->GetVelocity();
+                }
+                else
+                {
+                    playerVelocity = glm::vec2(0.0f, 0.0f);
+                }
+                projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
+            
+                break;
+            }
+        }
     }
 }
 
@@ -412,7 +490,6 @@ void PlayerController::ApplyDamageToEnemy()
         const glm::vec2 minitaurPosition = minitaurTransform->GetGlobalPosition();
         const float distanceToMinitaur = glm::length(playerPosition - minitaurPosition);
 
-
         // Check if the Minitaur is within attack range
         if (distanceToMinitaur <= m_attackRange)
         {
@@ -421,7 +498,37 @@ void PlayerController::ApplyDamageToEnemy()
             std::cout << "Player attacked Minitaur! Damage: " << m_attackDamage << std::endl;
             std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
 
+            wolf::Audio::Play("data/sounds/hit.wav");
+
             // Optionally, break here if you're only targeting one Minitaur at a time
+            // break;
+        }
+    }
+
+    // Iterate through all Harpies in the scene (HarpyController)
+    for (auto&& [entity, harpyController] : GetGameObject()->GetScene().Each<HarpyController>())
+    {
+        // Get the transform of the Harpy
+        auto* harpyTransform = harpyController.GetGameObject()->GetComponent<wolf::Transform2D>();
+        auto* harpyHealth = harpyController.GetGameObject()->GetComponent<HealthComponent>();
+
+        // Ensure the Harpy has a HealthComponent and a Transform
+        if (!harpyTransform || !harpyHealth) continue;
+
+        // Calculate the distance between the player and the Harpy
+        const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
+        const glm::vec2 harpyPosition = harpyTransform->GetGlobalPosition();
+        const float distanceToHarpy = glm::length(playerPosition - harpyPosition);
+
+        // Check if the Harpy is within attack range
+        if (distanceToHarpy <= m_attackRange)
+        {
+            // Apply damage to the Harpy
+            harpyHealth->Damage(m_attackDamage);
+            std::cout << "Player attacked Harpy! Damage: " << m_attackDamage << std::endl;
+            std::cout << "Harpy Health: " << harpyHealth->GetHealth() << std::endl;
+
+            // Optionally, break here if you're only targeting one Harpy at a time
             // break;
         }
     }
@@ -529,4 +636,13 @@ void PlayerController::Render()
     // Pop ImGui style variables and colors
     ImGui::PopStyleVar(3); // Pop style variables (WindowRounding, FrameRounding, and FramePadding)
     ImGui::PopStyleColor(3); // Pop style colors (WindowBg, Border, and BorderShadow)
+}
+
+// !-- Aurora added this --!
+void PlayerController::HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event) {
+    printf("The player equipped a %s!\n", p_event.pWeapon->GetName().c_str());
+}
+
+void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {
+    printf("The player equipped a %s!\n", p_event.pArmour->GetName().c_str());
 }

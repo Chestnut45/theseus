@@ -59,16 +59,16 @@ public:
     int GetTile(int x, int y) const;
 
     // Sets the tile at the given location to the given ID.
-    // NOTE: Does nothing if position is out of bounds.
+    // NOTE: Logs an error if position is out of bounds.
     // NOTE: Does not validate tileID
     void SetTile(int x, int y, int tileID);
 
     // Deletes all tiles in the map.
-    void Clear();
+    void Clear(int tile = EMPTY_TILE);
 
     // Resizes the map to the given dimensions.
     // NOTE: Resizing will clear the map too!
-    void Resize(int width, int height);
+    void Resize(int width, int height, int clearTile = EMPTY_TILE);
 
     // TODO: Set origin to center of tilemap (including tile texture size)
 
@@ -115,7 +115,7 @@ private:
         glm::ivec2 m_tileSize{0};
     };
 
-    // Map from file path to refernece counted tile set array texture ID
+    // Map from file path to reference counted tile set array texture ID
     static inline std::unordered_map<std::string, TileSetEntry> s_tileSetIDMap;
 
     // Static rendering resources

@@ -6,7 +6,12 @@
 #include <components/HealthComponent.h>
 #include <components/EnemyController.h>
 #include <components/ColliderComponent.h>
+#include <components/InventoryComponent.h>
 #include <iostream>
+
+// !-- Aurora added this --!
+#include "../inventory/WeaponItem.h"
+#include "../inventory/ArmourItem.h"
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
@@ -43,6 +48,16 @@ public:
 
     // Constructor and initialization methods
     PlayerController();
+    ~PlayerController();
+
+    // Delete copy constructor/assignment
+    PlayerController(const PlayerController&) = delete;
+    PlayerController& operator=(const PlayerController&) = delete;
+
+    // Delete move constructor/assignment
+    PlayerController(PlayerController&& other) = delete;
+    PlayerController& operator=(PlayerController&& other) = delete;
+
     void LateInitialize();
     void Update(float delta);
     void Render();
@@ -52,6 +67,9 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction);
     void SetColliderManager(ColliderManager* pColliderManager);
     ColliderManager* GetColliderManager() const;
+
+    // Weapon & Attack functions
+
 private:
     // Initialization and animation management
     void InitializeAnimations();
@@ -62,6 +80,10 @@ private:
     void HandleRolling(float delta);     // Declaration for HandleRolling
     void HandleJumping(float delta);     // Declaration for HandleJumping
     void HandleAttacking(float delta);   // Declaration for HandleAttacking
+
+    // !-- Aurora added this --!
+    void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
+    void HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event);
 
     // Manage and transition different player states
     void StartAttack();
@@ -89,9 +111,13 @@ private:
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
-    PlayerDirection m_lastDirectionEnum = PlayerDirection::NONE;
+    PlayerDirection m_lastDirectionEnum = PlayerDirection::SOUTH;
     std::vector<int> m_heldKeys;  // List of currently held keys
     float m_moveSpeed = 200.0f;
+
+    // Sound effect properties
+    wolf::Timer m_walkSoundTimer;
+    float m_walkSoundInterval = 0.34f;
 
     // Stamina management
     bool m_isRolling = false;
@@ -101,7 +127,7 @@ private:
     float m_stamina = 100.0f;
     const float m_maxStamina = 100.0f;
     const float m_staminaRegenRate = 20.0f;
-    const float m_staminaRegenDelay = 1.0f;
+    const float m_staminaRegenDelay = 0.5f;
     wolf::Timer m_staminaRegenTimer;
 
     // Jumping management
@@ -115,9 +141,11 @@ private:
     bool m_isAttacking = false;
     float m_attackCooldown = 0.5f;
     float m_attackDamage = 50.0f;
-    float m_attackRange = 50.0f;
+    float m_attackRange = 100.0f;
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
+
+    static float s_aAttackCooldown[(int)WeaponType::BOW + 1];
 
     // Animation and state tracking flags
     bool m_animationFinished = false;
@@ -126,4 +154,7 @@ private:
     PlayerDirection m_previousDirection = PlayerDirection::NONE;
 
     ColliderManager* m_pColliderManager = nullptr;
+
+    // Weapons
+    WeaponType m_eCurrentWeapon = WeaponType::SWORD;
 };

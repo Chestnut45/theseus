@@ -1,0 +1,21 @@
+enemies:
+  - type: minitaur
+    health: 150
+    armour: 3
+    melee_range: 80.0
+    attack_cooldown: 1.0
+    detection_range: 300.0
+    base_damage: 15.0
+    chase_speed: 100.0
+    animation_init_file: "data/minitaur_anim_init.yaml"
+
+  - type: harpy
+    health: 200
+    armour: 2
+    melee_range: 100
+    attack_cooldown: 2
+    detection_range: 400
+    base_damage: 20
+    chase_speed: 80
+    animation_init_file: "data/minitaur_anim_init.yaml"
+

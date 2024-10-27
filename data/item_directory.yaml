@@ -1,0 +1,101 @@
+Gold Coin: {
+  id: GOLD,
+  description: A shiny gold coin!,
+  value: 1,
+  texture_frame: 2,
+}
+
+Healing Heart: {
+  id: CONSUMABLE,
+  description: This heart will heal you!,
+  value: 100,
+  texture_frame: 2,
+  is_stackable: true,
+  num_uses: 1,
+  type: FLAT_AMT,
+  attribute: HEALTH,
+  amount: 50.0,
+}
+
+Hurting Heart: {
+  id: CONSUMABLE,
+  description: This will hurt.,
+  value: 0,
+  texture_frame: 2,
+  is_stackable: false,
+  num_uses: 1,
+  type: PERCENT_AMT,
+  attribute: HEALTH,
+  amount: -0.5,
+}
+
+Burning Heart: {
+  id: CONSUMABLE,
+  type: STATUS_EFFECT,
+  description: A love so hot it BURNS.,
+  value: 5,
+  texture_frame: 2,
+  is_stackable: false,
+  num_uses: 3,
+  type: STATUS_EFFECT,
+  status_effect_type: BURNING,
+  duration: 2.0,
+}
+
+Dull Blade: {
+  id: EQUIPMENT,
+  description: A blade so dull butter could cut through it,
+  value: 5,
+  texture_frame: 3,
+  slot: WEAPON,
+  type: SWORD,
+  delay: 0.2,
+  damage: 10.0,
+  hurtbox_size: {x: 1.0, y: 1.0},
+  has_projectiles: false
+}
+
+Old Bow: {
+  id: EQUIPMENT,
+  description: This bow smells very musty,
+  value: 2,
+  texture_frame: 3,
+  slot: WEAPON,
+  type: BOW,
+  delay: 0.2,
+  damage: 2.0,
+  hurtbox_size: {x: 1.0, y: 1.0},
+  has_projectiles: true,
+  projectile: {
+    damage: 1.0,
+    hurtbox_size: {x: 1.0, y: 1.0},
+    initial_velocity: {x: 1.0, y: 1.0},
+    sprite_path: data/textures/DebugSprites/debug_sprite.png
+  }
+}
+
+Dented Helmet: {
+  id: EQUIPMENT,
+  description: Someone definitely died in this helmet,
+  value: 1,
+  texture_frame: 3,
+  slot: HEAD,
+  damage_reduction: 0.02,
+  has_status_effects: false,
+}
+
+The Floor is Lava Boots: {
+  id: EQUIPMENT,
+  description: Guaranteed to make you feel like you're walking in lava!,
+  value: 25,
+  texture_frame: 3,
+  slot: FEET,
+  damage_reduction: 0.05,
+  has_status_effects: true,
+  status_effects: [
+    {
+      type: BURNING,
+      duration: 2.0,
+    }
+  ]
+}

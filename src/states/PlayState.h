@@ -13,12 +13,17 @@
 #include "../inventory/EquipmentItem.h"
 #include "../inventory/FlatAmtItem.h"
 #include "../inventory/PercentItem.h"
+#include "../inventory/StatusEffectItem.h"
+#include "../inventory/ItemCreator.h"
 #include "../events/DialogueTriggerEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
 
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
+#include <HarpyBuilder.h>
+#include "EnemyDataLoader.h"
+
 
 class LabyrinthManager;
 
@@ -50,7 +55,7 @@ private:
     ColliderManager* m_pColliderManager = nullptr;
 
     // Flags
-    bool m_showLabyrinthManager = true;
+    bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;
 
     // Private helper methods
@@ -61,4 +66,5 @@ private:
     // POST: m_pPlayerObject will be set to a pointer to the newly created player object
     void CreatePlayer();
     void CreateMinitaurEnemy();
+    void CreateHarpyEnemy();
 };
