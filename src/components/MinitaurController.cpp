@@ -89,6 +89,9 @@ void MinitaurController::Update(float delta)
         case EnemyState::IDLE:
             HandleIdleState();
             break;
+        case EnemyState::PROSPECT:
+            HandleProspectState(delta);
+            break;
         case EnemyState::CHASING:
             HandleChasingState(delta);
             break;
@@ -159,6 +162,51 @@ void MinitaurController::HandleIdleState()
     }
 }
 
+void MinitaurController::HandleProspectState(float delta)
+{
+
+    // Chase player if in range
+    float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
+    if (distanceToPlayer <= m_detectionRange)
+    {
+        std::cout << "MinitaurController - chase" << std::endl;
+        ChangeState(EnemyState::CHASING); 
+        m_prospectCounter = 0;
+    }
+
+    // else, prospect
+    else
+    {
+        std::cout << "MinitaurController - prospect" << std::endl;
+        std::cout << "MinitaurController - prospect counter: " << m_prospectCounter << std::endl;
+        if(m_prospectCounter == 0)
+        {
+            // Roll for prospect
+            float rng = m_RNG.NextInt(1, 100);
+            
+            std::cout << "MinitaurController - prospect rng: " << rng << std::endl;
+            // Begin prospecting
+            if(rng > 20)
+            {             
+                m_prospectCounter = m_RNG.NextInt(100, 200);
+                glm::vec2 direction = glm::normalize(glm::vec2(m_RNG.NextInt(-100, 100), m_RNG.NextInt(-100, 100)));
+                m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+            }
+
+            // Change to idle
+            else
+            {
+                ChangeState(EnemyState::IDLE);
+                m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Reset velocity when returning to idle
+            }
+        }
+        else
+        {
+            m_prospectCounter--;
+        }
+    }
+}
+
 void MinitaurController::HandleChasingState(float delta)
 {
     MoveTowardsTarget(delta);
@@ -169,11 +217,10 @@ void MinitaurController::HandleChasingState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
-    // Check if the player has moved out of the detection range and transition to IDLE
+    // Check if the player has moved out of the detection range and transition to PROSPECT
     if (distanceToPlayer > m_detectionRange)
     {
-        ChangeState(EnemyState::IDLE);
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));  // Reset velocity when returning to idle
+        ChangeState(EnemyState::PROSPECT);      
         return;
     }
 

@@ -23,6 +23,7 @@ private:
     void UpdateAnimationBasedOnDirection();
     void MoveTowardsTarget(float delta);
     void HandleIdleState();
+    void HandleProspectState(float delta);
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
     void HandleDeathState(float delta);
@@ -44,6 +45,9 @@ private:
 
     // Added by Nhật
     wolf::RNG m_RNG; 
+
+    float m_prospectCounter = 0.0f;
+
     float m_fallDeadTimer = 0.0f;
     float m_lieDeadTimer = 0.0f;
     float m_timeToFallDead = 0.6f;

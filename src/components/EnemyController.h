@@ -11,6 +11,7 @@ public:
     enum class EnemyState
     {
         IDLE,
+        PROSPECT,
         CHASING,
         ATTACKING,
         DEATH
