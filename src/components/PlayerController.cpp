@@ -126,12 +126,22 @@ void PlayerController::Update(float delta)
 
 
 // Handle all player inputs and manage states accordingly
-void PlayerController::HandlePlayerInput(float delta)
-{
-    HandleMovement(delta);
-    HandleRolling(delta);
-    HandleJumping(delta);
-    HandleAttacking(delta);
+void PlayerController::HandlePlayerInput(float delta) {
+    auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
+
+    if (playerInventory && playerInventory->IsOpen()) {
+        // If the inventory is open, reduce movement speed and disable attacks
+        m_moveSpeed = 100.0f;  // Reduced speed when inventory is open
+        HandleMovement(delta);  // Allow movement, even if inventory is open
+    } else {
+        // Restore normal movement speed and handle regular input
+        m_moveSpeed = 200.0f;  // Default speed
+        HandleMovement(delta);  // Regular movement handling
+        HandleAttacking(delta);  // Only allow attacking when the inventory is closed
+    }
+
+    HandleRolling(delta);  // Rolling should still be allowed
+    HandleJumping(delta);  // Jumping should still be allowed
 }
 
 // Handle player movement based on input

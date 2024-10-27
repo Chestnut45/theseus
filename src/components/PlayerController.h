@@ -7,6 +7,7 @@
 #include <components/EnemyController.h>
 #include <components/ColliderComponent.h>
 #include <components/InventoryComponent.h>
+#include <components/PlayerInventoryComponent.h>
 #include <iostream>
 
 // !-- Aurora added this --!
