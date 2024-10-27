@@ -255,6 +255,7 @@ void TileMap::SetTile(int x, int y, int tileID)
     }
 
     m_tileGrid.Set(x, y, tileID);
+    m_VBODirty = true;
 }
 
 void TileMap::Clear(int tile)

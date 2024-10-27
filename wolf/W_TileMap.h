@@ -77,6 +77,9 @@ public:
     // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
     void Draw(const glm::vec2& position, float rotationRadians = 0.0f, const glm::vec2& scale = glm::vec2(1.0f), const glm::vec3& tint = glm::vec3(1.0f));
 
+    // TODO: Generate a collider component that lines up with collidable tiles
+    void GenerateCollider();
+
 // Implementation
 private:
 

@@ -613,7 +613,81 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
 glm::vec2 LabyrinthManager::GetSpawnLocation() const
 {
     if (!m_isGenerated) return glm::vec2(0.0f);
-    return glm::vec2((float)m_width / 2 * LABYRINTH_TILE_SIZE * SCALE, -(float)m_spawnRoomSize.y / 2 * LABYRINTH_TILE_SIZE * SCALE);
+    return glm::vec2((float)m_width / 2 * TILE_SIZE * SCALE, -(float)m_spawnRoomSize.y / 2 * TILE_SIZE * SCALE);
+}
+
+glm::ivec2 LabyrinthManager::GetChunkID(const glm::vec2& worldPosition) const
+{
+    return worldPosition / glm::vec2(TILE_SIZE * CHUNK_SIZE * SCALE);
+}
+
+wolf::GameObject* LabyrinthManager::GetChunk(const glm::ivec2& chunkID) const
+{
+    const auto it = m_chunkMap.find(chunkID);
+    if (it == m_chunkMap.end()) return nullptr;
+    return it->second;
+}
+
+glm::ivec2 LabyrinthManager::GetTilePosition(const glm::vec2& worldPosition) const
+{
+    if (worldPosition.x < 0 || worldPosition.y < 0 || worldPosition.x >= m_width * SCALE * TILE_SIZE || worldPosition.y >= m_height * SCALE * TILE_SIZE)
+    {
+        return glm::ivec2(-1);
+    }
+    
+    return worldPosition / glm::vec2(SCALE * TILE_SIZE);
+}
+
+int LabyrinthManager::GetTile(int x, int y) const
+{
+    // Validate position
+    if (x < 0 || y < 0 || x >= m_width || y >= m_height) return -2;
+
+    // Grab chunk pointer
+    glm::ivec2 chunkID(x / CHUNK_SIZE, y / CHUNK_SIZE);
+    auto* pChunk = GetChunk(chunkID);
+
+    if (!pChunk)
+    {
+        wolf::Warning("Chunk does not exist in call to GetTile(...)");
+        return -2;
+    }
+
+    auto* pTilemap = pChunk->GetChildren()[0]->GetComponent<wolf::TileMap>();
+    if (!pTilemap)
+    {
+        wolf::Warning("No tilemap found in call to GetTile(...)");
+        return -2;
+    }
+
+    glm::ivec2 localPos = glm::ivec2(x - (chunkID.x * CHUNK_SIZE), y - (chunkID.y * CHUNK_SIZE));
+    return pTilemap->GetTile(localPos.x, localPos.y);
+}
+
+void LabyrinthManager::SetTile(int x, int y, int tileID)
+{
+    // Validate position
+    if (x < 0 || y < 0 || x >= m_width || y >= m_height) return;
+
+    // Grab chunk pointer
+    glm::ivec2 chunkID(x / CHUNK_SIZE, y / CHUNK_SIZE);
+    auto* pChunk = GetChunk(chunkID);
+
+    if (!pChunk)
+    {
+        wolf::Warning("Chunk does not exist in call to SetTile(...)");
+        return;
+    }
+
+    auto* pTilemap = pChunk->GetChildren()[0]->GetComponent<wolf::TileMap>();
+    if (!pTilemap)
+    {
+        wolf::Warning("No tilemap found in call to SetTile(...)");
+        return;
+    }
+
+    glm::ivec2 localPos = glm::ivec2(x - (chunkID.x * CHUNK_SIZE), y - (chunkID.y * CHUNK_SIZE));
+    pTilemap->SetTile(localPos.x, localPos.y, tileID);
 }
 
 void LabyrinthManager::Reset()
@@ -1121,21 +1195,25 @@ void LabyrinthManager::GenerateChunks()
             glm::ivec2 chunkID = {cx, cy};
 
             // Create the chunk object as a child object
-            auto& chunkObj = scene.CreateObject2D();
+            auto& chunkObj = scene.CreateObject();
             pObject->AddChild(chunkObj);
 
             // Add the chunk object to the map
             m_chunkMap[chunkID] = &chunkObj;
 
+            // Create the tilemap object
+            auto& tilemapObj = scene.CreateObject2D();
+            chunkObj.AddChild(tilemapObj);
+
             // Set transform offset and scale
             int xoffset = cx * CHUNK_SIZE;
             int yoffset = cy *  CHUNK_SIZE;
-            auto* pTransform = chunkObj.GetComponent<wolf::Transform2D>();
-            pTransform->SetPosition(glm::vec2(xoffset * LABYRINTH_TILE_SIZE * SCALE, yoffset * LABYRINTH_TILE_SIZE * SCALE));
+            auto* pTransform = tilemapObj.GetComponent<wolf::Transform2D>();
+            pTransform->SetPosition(glm::vec2(xoffset * TILE_SIZE * SCALE, yoffset * TILE_SIZE * SCALE));
             pTransform->SetScale(glm::vec2(SCALE));
 
             // Create tilemap
-            auto& tilemap = chunkObj.AddComponent<wolf::TileMap>(CHUNK_SIZE, CHUNK_SIZE);
+            auto& tilemap = tilemapObj.AddComponent<wolf::TileMap>(CHUNK_SIZE, CHUNK_SIZE);
             tilemap.LoadTileSet("data/labyrinth.tileset");
 
             // Iterate chunk's tilemap
@@ -1218,7 +1296,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
                                       room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
                         
-                        pos *= LABYRINTH_TILE_SIZE * SCALE;
+                        pos *= TILE_SIZE * SCALE;
 
                         // Build Minitaur at the given position
                         wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, pos, m_pColliderManager);
@@ -1249,7 +1327,7 @@ void LabyrinthManager::GenerateEntrance()
 
     // Position and scale the object
     auto& transform = *spawnRoomObj.GetComponent<wolf::Transform2D>();
-    transform.SetPosition(glm::vec2((m_width / 2 * LABYRINTH_TILE_SIZE - (m_spawnPatchSize.x / 2 * LABYRINTH_TILE_SIZE)) * SCALE, -m_spawnPatchSize.y * LABYRINTH_TILE_SIZE * SCALE));
+    transform.SetPosition(glm::vec2((m_width / 2 * TILE_SIZE - (m_spawnPatchSize.x / 2 * TILE_SIZE)) * SCALE, -m_spawnPatchSize.y * TILE_SIZE * SCALE));
     transform.SetScale(glm::vec2(SCALE));
 
     // Place walls
