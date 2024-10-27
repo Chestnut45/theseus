@@ -27,6 +27,9 @@ void MinitaurController::Init(const EnemyData& data)
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
+    // Set attack timer
+    m_attackTimer = m_attackCooldown;
+
     // Log initialized values
     wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " initialized with melee range " + std::to_string(m_meleeRange) + 
               ", attack cooldown " + std::to_string(m_attackCooldown) + 
@@ -169,7 +172,6 @@ void MinitaurController::HandleProspectState(float delta)
     float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
     if (distanceToPlayer <= m_detectionRange)
     {
-        std::cout << "MinitaurController - chase" << std::endl;
         ChangeState(EnemyState::CHASING); 
         m_prospectCounter = 0;
     }
@@ -177,18 +179,16 @@ void MinitaurController::HandleProspectState(float delta)
     // else, prospect
     else
     {
-        std::cout << "MinitaurController - prospect" << std::endl;
-        std::cout << "MinitaurController - prospect counter: " << m_prospectCounter << std::endl;
         if(m_prospectCounter == 0)
         {
             // Roll for prospect
             float rng = m_RNG.NextInt(1, 100);
             
-            std::cout << "MinitaurController - prospect rng: " << rng << std::endl;
             // Begin prospecting
             if(rng > 20)
-            {             
-                m_prospectCounter = m_RNG.NextInt(100, 200);
+            {
+                
+                m_prospectCounter = m_RNG.NextInt(1, 100);
                 glm::vec2 direction = glm::normalize(glm::vec2(m_RNG.NextInt(-100, 100), m_RNG.NextInt(-100, 100)));
                 m_pVelocity->SetVelocity(direction * m_chaseSpeed);
             }
@@ -250,51 +250,37 @@ void MinitaurController::HandleAttackingState(float delta)
 
     // Stop Minitaur's movement during attack
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-
-    // Check distance to player
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
-
-    // Apply damage if player is within melee range and attack cooldown is over
-    if (distanceToPlayer <= m_meleeRange && m_attackTimer <= 0.0f)
+    if(m_attackTimer <= 0.0f)
     {
-        // // Simulate applying damage to the player
-        auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
-        if (playerHealth)
+        // Check distance to player
+        const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+        const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+
+        // Apply damage if player is within melee range and attack cooldown is over
+        if (distanceToPlayer <= m_meleeRange)
         {
-            playerHealth->Damage(m_baseDamage);  // Apply damage to the player
-            std::cout << "Player Health: " << playerHealth->GetHealth() << "\n";
-            wolf::Audio::Play("data/sounds/hurt.wav");
-
-            // Reset attack cooldown timer
-            m_attackTimer = m_attackCooldown;
+            // // Simulate applying damage to the player
+            auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
+            if (playerHealth)
+            {
+                playerHealth->Damage(m_baseDamage);  // Apply damage to the player
+                std::cout << "Player Health: " << playerHealth->GetHealth() << "\n";
+                wolf::Audio::Play("data/sounds/hurt.wav");
+            }        
         }
-
-        // glm::vec2 meleeDimensions = glm::vec2(32.0f, 32.0f);
-        // glm::vec2 hurtboxOffset = glm::vec2(-16.0f, -16.0f);
-
-        // auto& scene = this->GetGameObject()->GetScene();
-        // auto& melee = scene.CreateObject2D();
-
-        // auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-        // meleeCollider.SetDamage(100.0f);
-        // meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-16.0f, 16.0f));
-        // spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + meleeDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - meleeDimensions.x * 0.5f) : (spawnOffset.x));
-        // spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + meleeDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - meleeDimensions.y * 0.5f) : (spawnOffset.y));
-        
-        // melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
-        // melee.AddComponent<TimedDestroyerComponent>(1,1);
-
+        else 
+        {
+            // Return to chasing if player moves out of range
+            ChangeState(EnemyState::CHASING);
+        }
+        // Reset attack cooldown timer
+        m_attackTimer = m_attackCooldown;
     }
-
-    // Cooldown timer for next attack
-    m_attackTimer -= delta;
-
-    // Return to chasing if player moves out of range
-    if (distanceToPlayer > m_meleeRange)
+    else
     {
-        ChangeState(EnemyState::CHASING);
+        m_attackTimer -= delta;
+        std::cout << "MinitaurController - attack timer: " << m_attackTimer << std::endl;
     }
 }
 
