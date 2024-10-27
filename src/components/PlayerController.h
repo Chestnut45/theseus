@@ -30,7 +30,8 @@ public:
         WALKING,
         JUMPING,
         ROLLING,
-        ATTACKING
+        ATTACKING,
+        IN_INVENTORY
     };
 
     // Enum for player movement directions

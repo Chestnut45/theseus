@@ -129,19 +129,31 @@ void PlayerController::Update(float delta)
 void PlayerController::HandlePlayerInput(float delta) {
     auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
 
-    if (playerInventory && playerInventory->IsOpen()) {
-        // If the inventory is open, reduce movement speed and disable attacks
-        m_moveSpeed = 100.0f;  // Reduced speed when inventory is open
-        HandleMovement(delta);  // Allow movement, even if inventory is open
-    } else {
-        // Restore normal movement speed and handle regular input
-        m_moveSpeed = 200.0f;  // Default speed
-        HandleMovement(delta);  // Regular movement handling
-        HandleAttacking(delta);  // Only allow attacking when the inventory is closed
+     // Check for Left Alt key (hold) to manage the inventory state
+    if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) {
+        // Open the inventory while Left Alt is held
+        if (m_action != PlayerAction::IN_INVENTORY) {
+            playerInventory->Open();
+            m_action = PlayerAction::IN_INVENTORY;
+        }
+    } else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) { // Use IsKeyReleased instead
+        // Close the inventory when Left Alt is released
+        playerInventory->Close();
+        m_action = PlayerAction::NONE;
     }
 
-    HandleRolling(delta);  // Rolling should still be allowed
-    HandleJumping(delta);  // Jumping should still be allowed
+    // If the player is in inventory mode, reduce movement speed but still allow movement
+    if (m_action == PlayerAction::IN_INVENTORY) {
+        m_moveSpeed = 100.0f;  // Reduced speed when inventory is open
+        HandleMovement(delta);  // Allow movement even if inventory is open
+    } else {
+        // Regular input handling if inventory is not open
+        m_moveSpeed = 200.0f;  // Normal speed
+        HandleMovement(delta);
+        HandleAttacking(delta);
+        HandleRolling(delta);
+        HandleJumping(delta);
+    }
 }
 
 // Handle player movement based on input
@@ -183,6 +195,11 @@ void PlayerController::HandleMovement(float delta)
 // Manage attack state and animation transitions
 void PlayerController::HandleAttacking(float delta)
 {
+    if (m_action == PlayerAction::IN_INVENTORY) {
+        // Disable attacking while in inventory
+        return;
+    }
+
     // Start the attack if the left mouse button is pressed and the player is not currently attacking.
     if (wolf::Input::IsLMBJustDown() && !m_isAttacking)
     {
@@ -202,7 +219,6 @@ void PlayerController::HandleAttacking(float delta)
         UpdateAttackState(delta);
     }
 }
-
 // Handle rolling logic based on player input and stamina
 void PlayerController::HandleRolling(float delta)
 {
@@ -243,8 +259,8 @@ void PlayerController::HandleJumping(float delta)
 
 void PlayerController::SetAnimationBasedOnState()
 {
-    // Skip if the player is performing an action that overrides animations like attacking, rolling, or jumping.
-    if (m_isAttacking || m_isRolling || m_isJumping) return;
+    // Skip if the player is performing an action that overrides animations like attacking, rolling, jumping, or inventory management.
+    if (m_isAttacking || m_isRolling || m_isJumping || m_action == PlayerAction::IN_INVENTORY) return;
 
     std::string animationName;
 
