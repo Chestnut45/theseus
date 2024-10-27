@@ -36,4 +36,7 @@ struct RemoveFromPlayerInventoryEvent {
     // as it ensures that we are deleting a specific instance of an item, rather
     // rather than the first one that we find.
     int iIndex = -1;
+
+    // This is an optional variable that lets us know if the item is being removed because it was sold
+    bool bWasSold = false;
 };

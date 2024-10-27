@@ -57,6 +57,7 @@ class InventoryComponent : public wolf::BaseComponent {
         bool IsOpen() {return m_bIsOpen;};
 
         bool AddItem(ItemBase* p_pItem);
+        int GetLastUsedSlot() const {return m_iLastUsedSlot;};
 
         // Safe wrapper to delete items if they could not be added
         bool AddItemOrDelete(ItemBase* p_pItem)
@@ -80,6 +81,7 @@ class InventoryComponent : public wolf::BaseComponent {
         const int m_iSize;
         const int m_iMaxPerRow;
         int m_iSlotsInUse = 0;
+        int m_iLastUsedSlot = 0;
 
         bool m_bIsOpen = false;
 
@@ -128,4 +130,20 @@ struct SendItemToPlayerInventoryEvent {
 
     // This is also an optional index that should be included whenever possible
     int iSenderInventoryIndex = -1;
+};
+
+struct SellItemToMerchantEvent {
+    int iMerchantIdNum;
+    ItemBase* pItem;
+
+    // This is an optional index that should be included whenever possible
+    int iPlayerInventoryIndex;
+};
+
+struct BuyItemFromMerchantEvent {
+    int iMerchantIdNum;
+    std::string strItemName;
+
+    // This is also an optional index that should be included whenever possible
+    int iMerchantInventoryIndex = -1;
 };

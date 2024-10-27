@@ -161,6 +161,7 @@ bool InventoryComponent::AddItem(ItemBase* p_pItem) {
         if (pItem->GetID() == p_pItem->GetID() && p_pItem->IsStackable() && pItem->IsStackable()) {
             // Then we push the item to the stack
             m_vvpContents[i].push(p_pItem);
+            m_iLastUsedSlot = i; // Save what index we added the item to
             return true;
         }
     }
@@ -169,6 +170,7 @@ bool InventoryComponent::AddItem(ItemBase* p_pItem) {
     if (m_iSlotsInUse < m_iSize) {
         // Push the item to the next open slot
         m_vvpContents[m_iSlotsInUse].push(p_pItem);
+        m_iLastUsedSlot = m_iSlotsInUse; // Save what index we added the item to
 
         // Update the number of slots we're using
         m_iSlotsInUse++;
@@ -177,7 +179,8 @@ bool InventoryComponent::AddItem(ItemBase* p_pItem) {
         return true;
     }
 
-    // And if all that fails, we return false
+    // And if all that fails, we keep track of the failed attempt and return false
+    m_iLastUsedSlot = -1;
     return false;
 }
 
