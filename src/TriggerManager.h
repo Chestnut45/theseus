@@ -1,21 +1,15 @@
 #pragma once
-#include <vector>
+#include "TriggerEvent.h"
+#include "W_EventManager.h"
 #include "TriggerComponent.h"
+#include <vector>
 
 class TriggerManager {
 public:
-    void AddTrigger(TriggerComponent* trigger) {
-        m_triggers.push_back(trigger);
-    }
-
-    void Update(float delta) {
-        for (auto* trigger : m_triggers) {
-            if (trigger != nullptr) {
-                trigger->Update(delta);  // Pass delta to each trigger
-            }
-        }
-    }
-
+    void AddTrigger(TriggerComponent* trigger);
+    void Update(float delta);
+    
 private:
     std::vector<TriggerComponent*> m_triggers;
 };
+

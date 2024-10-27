@@ -19,6 +19,8 @@ void PlayState::Enter()
 
     // Initialize the dialogue listener
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
+    wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
+
     
     this->m_pColliderManager = new ColliderManager(&scene);
 
@@ -124,13 +126,11 @@ void PlayState::Update(float delta)
     {
         harpyController.Update(delta);  // Update logic for Harpies
     }
-    for (auto&& [_, trigger] : m_pGameInstance->GetScene().Each<TriggerComponent>())
-    {
-        trigger.Update(delta); // No delta needed since it just checks for collisions
+    for (auto&& [_, trigger] : m_pGameInstance->GetScene().Each<TriggerComponent>()) {
+        trigger.Update(delta);
     }
-    for (auto&& [_, trap] : m_pGameInstance->GetScene().Each<TrapComponent>())
-    {
-        trap.Update(delta);  // Manage lifespan, attack cooldown, and other logic here
+    for (auto&& [_, trap] : m_pGameInstance->GetScene().Each<TrapComponent>()) {
+        trap.Update(delta);
     }
 
     // // Debugging the final minitaur's position and state
@@ -218,7 +218,6 @@ void PlayState::Update(float delta)
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
     }
     m_pTriggerManager->Update(delta);
-    wolf::EventManager::Dispatch<DialogueTriggerEvent>();
     
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
@@ -349,53 +348,59 @@ void PlayState::OnDialogueTriggerEvent(const DialogueTriggerEvent& event)
 }
 
 void PlayState::OnTriggerEvent(const TriggerEvent& event) {
+    wolf::Log("TriggerEvent received: " + event.triggerName);
+
     if (event.triggerName == "PressurePlateSteppedOn") {
-        // Get the position of the pressure plate (assuming the event holds the trigger object reference)
         auto* pressurePlateObject = event.triggerObject;
 
         if (pressurePlateObject) {
+            // Proceed with trap creation (no need to check or set trapSpawned here)
             auto* plateTransform = pressurePlateObject->GetComponent<wolf::Transform2D>();
-            if (plateTransform) {
-                // Get the global position of the pressure plate
-                glm::vec2 platePosition = plateTransform->GetGlobalPosition();
-                
-                // Adjust the trap's spawn position to be slightly in front of the pressure plate (e.g., 50 units in the Y direction)
-                glm::vec2 trapOffset = glm::vec2(0.0f, -64.0f); // Adjust offset as needed
-                glm::vec2 trapPosition = platePosition + trapOffset;
-
-                // Create the trap object
-                auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
-
-                // Add trap sprite for visualization
-                auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/spiketrap.png");
-                trapSprite.SetOriginToCenterOfTexture();
-
-                // Add transform and set the calculated position
-                if (!trapObj.HasAll<wolf::Transform2D>()) {
-                    trapObj.AddComponent<wolf::Transform2D>();
-                   
-                }
-                auto* trapTransform = trapObj.GetComponent<wolf::Transform2D>();
-                trapTransform->SetPosition(trapPosition);
-                trapTransform->SetScale(glm::vec2(3.0f));  // Scale the trap's sprite by 3
-
-                // Add velocity component (even if trap is stationary)
-                auto& velocity = trapObj.AddComponent<VelocityComponent>();
-                velocity.SetVelocity(glm::vec2(0.0f, 0.0f));
-
-                // Add the TrapComponent with 50 damage, 5-second lifespan, and the collider manager
-                auto& trap = trapObj.AddComponent<TrapComponent>(50.0f, 5.0f, m_pColliderManager);
-
-                // Add a collider to detect collisions with the player
-                auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-                trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
-
-                // Activate the trap immediately
-                trap.Activate();
+            if (!plateTransform) {
+                wolf::Error("PressurePlate has no Transform2D component!");
+                return;
             }
+
+            glm::vec2 platePosition = plateTransform->GetGlobalPosition();
+            wolf::Log("PressurePlate position: (" + std::to_string(platePosition.x) + ", " + std::to_string(platePosition.y) + ")");
+
+            glm::vec2 trapOffset = glm::vec2(0.0f, -64.0f); 
+            glm::vec2 trapPosition = platePosition + trapOffset;
+
+            // Create the trap object
+            wolf::Log("Creating trap at position: (" + std::to_string(trapPosition.x) + ", " + std::to_string(trapPosition.y) + ")");
+            auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
+
+            // Add trap sprite
+            auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/spiketrap.png");
+            trapSprite.SetOriginToCenterOfTexture();
+
+            // Add transform and set position
+            if (!trapObj.HasAll<wolf::Transform2D>()) {
+                wolf::Log("Adding Transform2D to trap...");
+                trapObj.AddComponent<wolf::Transform2D>();
+            }
+
+            auto* trapTransform = trapObj.GetComponent<wolf::Transform2D>();
+            trapTransform->SetPosition(trapPosition);
+            trapTransform->SetScale(glm::vec2(3.0f)); 
+
+            auto& velocity = trapObj.AddComponent<VelocityComponent>();
+            velocity.SetVelocity(glm::vec2(0.0f, 0.0f));
+
+            auto& trap = trapObj.AddComponent<TrapComponent>(50.0f, 5.0f, m_pColliderManager);
+            wolf::Log("Added TrapComponent with damage: 50.0 and lifespan: 5.0");
+
+            auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
+            trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
+            wolf::Log("Added ColliderComponent to the trap.");
+
+            trap.Activate();
+            wolf::Log("Trap activated.");
         }
     }
 }
+
 
 void PlayState::CreatePressurePlate() {
     // Create the pressure plate object
@@ -412,8 +417,6 @@ void PlayState::CreatePressurePlate() {
     transform->SetScale(glm::vec2(3.0f));
         
 
-    
-
 
     auto& velocity = pressurePlateObj.AddComponent<VelocityComponent>();
     velocity.SetVelocity(glm::vec2(0.0f, 0.0f));
@@ -423,7 +426,7 @@ void PlayState::CreatePressurePlate() {
     collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
 
     // Add the trigger component for the pressure plate
-    auto& pressurePlate = pressurePlateObj.AddComponent<TriggerComponent>(m_pColliderManager, "PressurePlateSteppedOn");
+    auto& pressurePlate = pressurePlateObj.AddComponent<TriggerComponent>(m_pColliderManager);
 
     // Add the trigger to the TriggerManager
     m_pTriggerManager->AddTrigger(&pressurePlate);
