@@ -203,7 +203,13 @@ void PlayerController::HandleRolling(float delta)
         return;
     }
 
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
+    // Only start roll if a direction is being held
+    glm::vec2 direction(0.0f);
+    direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
+    direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
+    direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
+    direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
+    if (direction != glm::vec2(0.0f) && wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
     {
         StartRoll();
     }
