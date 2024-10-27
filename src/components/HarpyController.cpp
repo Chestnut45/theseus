@@ -1,6 +1,7 @@
 #include "HarpyController.h"
 #include "PlayerController.h"
 #include "HomingComponent.h"
+#include "TimedDestroyerComponent.h"
 #include <cassert>
 
 
@@ -96,7 +97,7 @@ void HarpyController::Update(float delta)
             HandleAttackingState(delta);
             break;
         case EnemyState::DEATH:
-            HandleDeathState();
+            HandleDeathState(delta);
             return;  // After calling HandleDeathState(), return immediately since the object is now deleted
     }
 
@@ -118,7 +119,7 @@ void HarpyController::SetUpAnimations(const std::string& animationInitPath)
 
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
-    m_pAnimComponent->SetTint(glm::vec3(1,0,0));
+    m_pAnimComponent->SetTint(glm::vec3(0,1,0));
 }
 
 void HarpyController::MoveTowardsTarget(float delta)
@@ -211,7 +212,7 @@ void HarpyController::HandleAttackingState(float delta)
     if (!m_pTarget) return;
 
     // Stop Harpy's movement during attack
-    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    // m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
     // Check distance to player
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -233,33 +234,39 @@ void HarpyController::HandleAttackingState(float delta)
     // }
 
     // Ranged Attack
-    if (distanceToPlayer <= m_rangedRange)
+    if (distanceToPlayer <= m_rangedRange && m_attackTimer <= 0.0f)
     {
         int chance = m_RNG.NextInt(1, 100);
-        if(chance < 10)
+        if(chance < 2)
         {
-            glm::vec2 projectileDimensions = glm::vec2(32.0f, 32.0f);
-            glm::vec2 hurtboxOffset = glm::vec2(-16.0f, 16.0f);
-
-            auto& scene = this->GetGameObject()->GetScene();
-            auto& projectile = scene.CreateObject2D();
-
-            auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-            projectileSprite.SetOriginToCenterOfTexture();
+            int projectileCount = m_RNG.NextInt(1, 3);
             
-            auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-            projectileCollider.SetDamage(100.0f);
-            projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
-            projectileCollider.SetIgnoreTag(this->GetGameObject()->GetID());
-                     
-            projectile.GetComponent<wolf::Transform2D>()->SetPosition(this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
-    
-            auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
-            glm::vec2 harpyDirection = targetPosition - currentPosition;
-            harpyDirection = harpyDirection == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(harpyDirection);
-            projectileVelocity.SetVelocity(harpyDirection * 168.0f);
+            for(int i = 0; i < projectileCount; i++)
+            {
+                glm::vec2 projectileDimensions = glm::vec2(32.0f, 32.0f);
+                glm::vec2 hurtboxOffset = glm::vec2(-16.0f, 16.0f);
 
-            auto &projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 12.0f, 16);
+                auto& scene = this->GetGameObject()->GetScene();
+                auto& projectile = scene.CreateObject2D();
+
+                auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+                projectileSprite.SetOriginToCenterOfTexture();
+                
+                auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+                projectileCollider.SetDamage(100.0f);
+                projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+                projectileCollider.SetIgnoreTag(this->GetGameObject()->GetID());
+                            
+                projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition());
+
+                auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+                glm::vec2 harpyDirection = targetPosition - currentPosition;
+                harpyDirection = harpyDirection == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(harpyDirection);
+                projectileVelocity.SetVelocity(harpyDirection * 168.0f);
+
+                auto& projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 12.0f, 16);
+                auto& projectileTimedDestroyer = projectile.AddComponent<TimedDestroyerComponent>(10);
+            } 
         }
     }
 
@@ -313,16 +320,42 @@ void HarpyController::UpdateAnimationBasedOnDirection()
     }
 }
 
-void HarpyController::HandleDeathState()
+void HarpyController::HandleDeathState(float delta)
 {
-    // Stop Harpy's movement
-    if (m_pVelocity)
+     // Fall over
+    if(m_fallDeadTimer <= m_timeToFallDead)
     {
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        if(m_fallDeadTimer == 0.0f)
+        {
+            if (m_pVelocity)
+            {
+                m_pVelocity->SetVelocity(glm::vec2(0.0f));
+            }
+
+            ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
+            if(collider != nullptr)
+            {
+                collider->SetColliderType(ColliderComponent::ColliderType::NONE);
+            }
+            
+            m_pAnimComponent->SetTint(glm::vec3(1,0,0));
+        }
+
+        float angle = (90.0f / m_timeToFallDead) * delta;
+        m_pTransform->RotateDegrees(angle);
+        
+        m_fallDeadTimer += delta;
     }
 
-    // Destroy the GameObject when the Harpy dies
-    //will be implemented later
+    // Lie dead
+    else
+    {
+        if(m_lieDeadTimer >= m_timeToLieDead)
+        {
+            GetGameObject()->Delete();
+        }
+        m_lieDeadTimer += delta;
+    }  
 }
 
 void HarpyController::ChangeState(EnemyState newState)

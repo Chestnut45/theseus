@@ -96,7 +96,7 @@ void MinitaurController::Update(float delta)
             HandleAttackingState(delta);
             break;
         case EnemyState::DEATH:
-            HandleDeathState();
+            HandleDeathState(delta);
             return;  // After calling HandleDeathState(), return immediately since the object is now deleted
     }
 
@@ -291,16 +291,42 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
     }
 }
 
-void MinitaurController::HandleDeathState()
+void MinitaurController::HandleDeathState(float delta)
 {
-    // Stop Minitaur's movement
-    if (m_pVelocity)
+    // Fall over
+    if(m_fallDeadTimer <= m_timeToFallDead)
     {
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        if(m_fallDeadTimer == 0.0f)
+        {
+            if (m_pVelocity)
+            {
+                m_pVelocity->SetVelocity(glm::vec2(0.0f));
+            }
+
+            ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
+            if(collider != nullptr)
+            {
+                collider->SetColliderType(ColliderComponent::ColliderType::NONE);
+            }
+            
+            m_pAnimComponent->SetTint(glm::vec3(1,0,0));
+        }
+
+        float angle = (90.0f / m_timeToFallDead) * delta;
+        m_pTransform->RotateDegrees(angle);
+        
+        m_fallDeadTimer += delta;
     }
 
-    // Destroy the GameObject when the Minitaur dies
-    GetGameObject()->Delete();
+    // Lie dead
+    else
+    {
+        if(m_lieDeadTimer >= m_timeToLieDead)
+        {
+            GetGameObject()->Delete();
+        }
+        m_lieDeadTimer += delta;
+    }  
 }
 
 void MinitaurController::ChangeState(EnemyState newState)

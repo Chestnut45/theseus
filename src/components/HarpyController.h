@@ -25,7 +25,7 @@ private:
     void HandleIdleState();
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
-    void HandleDeathState();
+    void HandleDeathState(float delta);
     void ChangeState(EnemyState newState) ;
     
     
@@ -34,13 +34,20 @@ private:
     wolf::GameObject* m_pTarget = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
     float m_meleeRange;
-    float m_rangedRange = 300.0f;
     float m_attackCooldown;
     float m_attackTimer = 0.0f;
     float m_detectionRange;
     float m_baseDamage;
     float m_chaseSpeed;
     wolf::Timer m_transitionTimer;
-    wolf::RNG m_RNG;
     float m_transitionDelay = 0.2f; // Example delay for transitioning states
+
+    // Added by Nhật
+    wolf::RNG m_RNG;
+    float m_rangedRange = 300.0f;
+
+    float m_fallDeadTimer = 0.0f;
+    float m_lieDeadTimer = 0.0f;
+    float m_timeToFallDead = 0.6f;
+    float m_timeToLieDead = 0.8f;
 };
