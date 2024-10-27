@@ -406,8 +406,8 @@ for (auto&&[id, hitbox, transform] : scene.Each<Hitbox2D, Transform2D>())
 // Notice you can iterate the objects themselves directly with the exact same syntax as iterating components
 for (auto&&[id, object] : scene.Each<GameObject>())
 {
-    // Collect only game objects with no children (root objects)
-    if (!object.HasChildren())
+    // Collect only game objects with no parent (root objects in the scene)
+    if (!object.GetParent())
     {
         // ...
     }
