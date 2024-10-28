@@ -16,31 +16,12 @@ ChestInventoryComponent::~ChestInventoryComponent() {
 
 void ChestInventoryComponent::ShowInventoryGUI() {
     if (m_bIsOpen) {
-        float fNumRows = m_vvpContents.size() / m_iMaxPerRow;
-        float fOffset = 18.25f;
-
-        // For some silly reason, if the inventory can be shown on
-        // a single row the inventory padding is a bit too small
-        if (fNumRows == 1) {
-            // So we add a little bit extra
-            fNumRows += 0.4f;
-        }
-        else if (fNumRows == 2) {
-            fNumRows += 0.2f;
-        }
-        
-        // We run into a similar issue when we're only showing one item
-        // on the X axis, so we add an extra offset to accomodate that
-        if (m_iMaxPerRow == 1) {
-            fOffset += 6.0f;
-        }
-
         // You can't resize the inventory or move it
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
         // By default, the inventory appears close to the middle of the screen
-        ImGui::SetNextWindowPos({800, 200});
-        ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + fOffset) * m_iMaxPerRow, (m_v2TexFrameSize.y + 25) * fNumRows});
+        ImGui::SetNextWindowPos({800, 450});
+        ImGui::SetNextWindowSize({0,0});
         ImGui::Begin("\t~ Chest ~", &m_bIsOpen, flags);
 
         // If we've closed the window using the ImGui button

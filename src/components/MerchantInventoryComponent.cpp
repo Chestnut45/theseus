@@ -167,30 +167,12 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
         // We want to show the merchant's name as part of the window title so we build a string with it real quick
         std::string strTitle = "  ~ " + m_strMerchantName + " ~";
 
-        // We're going to need this information to control how the inventory slots are displayed
-        // (padding / number of rows needed to show all the slots)
-        float iNumRows = m_vvpContents.size() / m_iMaxPerRow;
-        float fOffset = 18.25f;
-
-        // For some silly reason, if the inventory can be shown on
-        // a single row the inventory padding is a bit too small
-        if (iNumRows == 1) {
-            // So we add a little bit extra
-            iNumRows += 0.4f;
-        }
-
-        // We run into a similar issue when we're only showing one item
-        // on the X axis, so we add an extra offset to accomodate that
-        if (m_iMaxPerRow == 1) {
-            fOffset += 6.0f;
-        }
-
         // You can't resize the inventory or move it
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos({800, 200});
-        ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + fOffset) * m_iMaxPerRow, (m_v2TexFrameSize.y + 22) * iNumRows});
+        ImGui::SetNextWindowSize({0,0});
         ImGui::Begin(strTitle.c_str(), &m_bIsOpen, flags);
 
         // This counter lets us control how many items are drawn in a row
@@ -309,7 +291,7 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
 
             // By default, the prompt appears close to the middle of the screen
             ImGui::SetNextWindowPos({550, 300});
-            ImGui::SetNextWindowSize({425, 100});
+            ImGui::SetNextWindowSize({0,0});
             ImGui::Begin("Not Enough Gold", nullptr, flags);
 
             // Show a message asking the player if they are okay with selling the item for less than its value

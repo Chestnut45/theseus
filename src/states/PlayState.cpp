@@ -288,7 +288,7 @@ void PlayState::CreatePlayer()
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     m_pPlayerObject->AddComponent<ChestInventoryComponent>(4, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
-    m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f), "Merchant Guy", 0.1f);
+    m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f), "Merchant Guy", 0.1f, 50);
 }
 
 void PlayState::CreateMinitaurEnemy()

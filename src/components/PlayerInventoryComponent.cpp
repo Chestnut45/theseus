@@ -17,28 +17,12 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
 
 void PlayerInventoryComponent::ShowInventoryGUI() {
     if (m_bIsOpen) {
-        float iNumRows = m_vvpContents.size() / m_iMaxPerRow;
-        float fOffset = 18.25f;
-
-        // For some silly reason, if the inventory can be shown on
-        // a single row the inventory padding is a bit too small
-        if (iNumRows == 1) {
-            // So we add a little bit extra
-            iNumRows += 0.4f;
-        }
-
-        // We run into a similar issue when we're only showing one item
-        // on the X axis, so we add an extra offset to accomodate that
-        if (m_iMaxPerRow == 1) {
-            fOffset += 6.0f;
-        }
-
         // You can't resize the inventory or move it
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos({500, 200});
-        ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + fOffset) * m_iMaxPerRow, (m_v2TexFrameSize.y + 22) * iNumRows});
+        ImGui::SetNextWindowSize({0,0});
         ImGui::Begin("\t~ Inventory ~", &m_bIsOpen, flags);
 
         // If we closed the inventory
@@ -218,13 +202,13 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
             // By default, the prompt appears close to the middle of the screen
             ImGui::SetNextWindowPos({600, 300});
-            ImGui::SetNextWindowSize({300, 75});
+            ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Inventory Is Full Prompt", nullptr, flags);
 
             // Show a message asking the player if they are okay with selling the item for less than its value
-            ImGui::Text("\t\tYour inventory is full.");
+            ImGui::Text("Your inventory is full.");
             ImGui::NewLine();
-            ImGui::Text("\t\t\t\t");
+            ImGui::Text("\t   ");
             ImGui::SameLine();
             
             // If they are
@@ -241,11 +225,11 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
             // By default, the prompt appears close to the middle of the screen
             ImGui::SetNextWindowPos({600, 300});
-            ImGui::SetNextWindowSize({300, 75});
+            ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Too Expensive Prompt", nullptr, flags);
 
             // Show a message asking the player if they are okay with selling the item for less than its value
-            ImGui::Text(" You don't have enough gold to buy that.");
+            ImGui::Text("You don't have enough gold to buy that.");
             ImGui::NewLine();
             ImGui::Text("\t\t\t\t");
             ImGui::SameLine();
@@ -442,7 +426,7 @@ void PlayerInventoryComponent::HandleAddToPlayerInventoryEvent(const SendItemToP
         }
         else {
             // If we can't fit it in our inventory, then we should let the player know
-            m_bShowFullInventoryPrompt;
+            m_bShowFullInventoryPrompt = true;
         }
     }
 }

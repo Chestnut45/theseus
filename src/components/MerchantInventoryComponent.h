@@ -16,9 +16,11 @@ struct ItemInStasis {
 
 class MerchantInventoryComponent : public InventoryComponent {
     public:
-        MerchantInventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize, const std::string& p_strMerchantName, float p_fPercentMarkup)
+        MerchantInventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize, const std::string& p_strMerchantName, float p_fPercentMarkup, int p_iStartingGold)
             : InventoryComponent(p_iSize, p_iSlotsPerRow, p_strTexture, p_v2TexFrameSize), m_strMerchantName(p_strMerchantName), m_fPercentMarkup(p_fPercentMarkup)
             {
+                this->SetGold(p_iStartingGold);
+
                 m_enType = MERCHANT_INVENTORY;
                 m_ItemInStasis = ItemInStasis(nullptr, -1);
 
