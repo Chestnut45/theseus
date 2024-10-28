@@ -17,12 +17,21 @@ enum ItemID {
     CONSUMABLE,
     EQUIPMENT,
     GOLD,
+    SCHEMATIC,
+};
+
+enum Rarity {
+    COMMON,
+    UNCOMMON,
+    RARE,
+    EPIC,
+    LEGENDARY,
 };
 
 class ItemBase {
     public:
-        ItemBase(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, int p_iTextureFrameIndex)
-            : m_enID(p_enID), m_strName(p_strName), m_strDesc(p_strDesc), m_iValue(p_iValue), m_bStackable(p_bStackable), m_iTextureFrameIndex(p_iTextureFrameIndex)
+        ItemBase(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, int p_iTextureFrameIndex, Rarity p_enRarity)
+            : m_enID(p_enID), m_strName(p_strName), m_strDesc(p_strDesc), m_iValue(p_iValue), m_bStackable(p_bStackable), m_iTextureFrameIndex(p_iTextureFrameIndex), m_enRarity(p_enRarity)
             {};
 
         virtual ~ItemBase() {};
@@ -37,6 +46,7 @@ class ItemBase {
 
         // Once an ID is set you can't change it
         ItemID GetID() const {return m_enID;};
+        Rarity GetRarity() const {return m_enRarity;};
 
         int GetValue() const {return m_iValue;};
         void SetValue(int p_iValue) {m_iValue = p_iValue;};
@@ -53,14 +63,14 @@ class ItemBase {
         int GetTextureFrameIndex() const {return m_iTextureFrameIndex;};
         void SetTextureFrameIndex(int p_iIndex) {m_iTextureFrameIndex = p_iIndex;};
 
-    private:
+    protected:
         int m_iValue;
         int m_iTextureFrameIndex;
         bool m_bStackable;
+
         const ItemID m_enID;
+        const Rarity m_enRarity;
 
         std::string m_strName;
         std::string m_strDesc;
-    
-    friend class ConsumableItem;
 };

@@ -29,8 +29,8 @@ struct ProjectileProperties {
 
 class WeaponItem : public EquipmentItem {
     public:
-        WeaponItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, int p_iTextureFrameIndex, WeaponType p_enType, float p_fDelay, float p_fDamage, const glm::vec2& p_v2HurtboxSize, bool p_bHasProjectiles)
-            : EquipmentItem(p_enID, p_strName, p_strDesc, p_iValue, p_iTextureFrameIndex, WEAPON), m_enType(p_enType), m_fDelay(p_fDelay), m_fDamage(p_fDamage), m_v2HurtboxSize(p_v2HurtboxSize), m_bHasProjectiles(p_bHasProjectiles)
+        WeaponItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, int p_iTextureFrameIndex, Rarity p_enRarity, WeaponType p_enType, float p_fDelay, float p_fDamage, const glm::vec2& p_v2HurtboxSize, bool p_bHasProjectiles)
+            : EquipmentItem(p_enID, p_strName, p_strDesc, p_iValue, p_iTextureFrameIndex, p_enRarity, WEAPON), m_enType(p_enType), m_fDelay(p_fDelay), m_fDamage(p_fDamage), m_v2HurtboxSize(p_v2HurtboxSize), m_bHasProjectiles(p_bHasProjectiles)
             {};
 
         virtual void SetEquipped(bool p_bEquip);
