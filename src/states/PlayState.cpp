@@ -34,8 +34,6 @@ void PlayState::Enter()
     camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
-
-    m_pTriggerManager = new TriggerManager();
     
     // Create the pressure plate using the helper function
     CreatePressurePlate();
@@ -226,7 +224,6 @@ void PlayState::Update(float delta)
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
     }
-    m_pTriggerManager->Update(delta);
     
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
@@ -414,19 +411,20 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 void PlayState::CreatePressurePlate() {
     // Create the pressure plate object
     auto& pressurePlateObj = m_pGameInstance->GetScene().CreateObject2D();
+    
     // Add a sprite for visualization
     auto& sprite = pressurePlateObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/pressureplate.png");
     sprite.SetOriginToCenterOfTexture();
-    // Add a transform component and set the position
+
+    // Set up the transform and position
     if (!pressurePlateObj.HasAll<wolf::Transform2D>()) {
         pressurePlateObj.AddComponent<wolf::Transform2D>();
     }
-    auto* transform =  pressurePlateObj.GetComponent<wolf::Transform2D>();
-    transform->SetPosition(glm::vec2(100.0f,100.0f));
+    auto* transform = pressurePlateObj.GetComponent<wolf::Transform2D>();
+    transform->SetPosition(glm::vec2(100.0f, 100.0f));
     transform->SetScale(glm::vec2(3.0f));
-        
 
-
+    // Add velocity component
     auto& velocity = pressurePlateObj.AddComponent<VelocityComponent>();
     velocity.SetVelocity(glm::vec2(0.0f, 0.0f));
 
@@ -434,9 +432,6 @@ void PlayState::CreatePressurePlate() {
     auto& collider = pressurePlateObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
     collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
 
-    // Add the trigger component for the pressure plate
-    auto& pressurePlate = pressurePlateObj.AddComponent<TriggerComponent>(m_pColliderManager);
-
-    // Add the trigger to the TriggerManager
-    m_pTriggerManager->AddTrigger(&pressurePlate);
+    // Add TriggerComponent directly without TriggerManager
+    pressurePlateObj.AddComponent<TriggerComponent>(m_pColliderManager);
 }

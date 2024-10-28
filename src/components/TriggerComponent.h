@@ -3,6 +3,8 @@
 #include "ColliderComponent.h"
 #include "PlayerController.h"
 #include "W_GameObject.h"
+#include "W_EventManager.h"
+#include <events/TriggerEvent.h>
 
 class TriggerComponent : public wolf::BaseComponent {
 public:

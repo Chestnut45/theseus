@@ -26,7 +26,6 @@
 #include <HarpyBuilder.h>
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
-#include "TriggerManager.h"
 
 
 class LabyrinthManager;
@@ -54,7 +53,6 @@ private:
     wolf::GameObject* m_pPlayerObject = nullptr;
     LabyrinthManager* m_pLabyrinthManager = nullptr;
     DialogueManager* m_pDialogueManager = nullptr;
-    TriggerManager* m_pTriggerManager = nullptr;
 
     // Manager for colliders
     ColliderManager* m_pColliderManager = nullptr;
