@@ -8,6 +8,7 @@
 #include "../components/HealthComponent.h"
 #include "../components/HomingComponent.h"
 #include "../components/PlayerInventoryComponent.h"
+#include "../components/AttackDamageComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/TimedDestroyerComponent.h"
 #include "../components/VelocityComponent.h"
@@ -146,6 +147,11 @@ void PlayState::Update(float delta)
 
     // Update collisions
     this->m_pColliderManager->Update(delta);
+
+    for(auto&& [_, attackDamageComponent] : m_pGameInstance->GetScene().Each<AttackDamageComponent>())
+    {
+        attackDamageComponent.Update(delta);
+    }
 
     // Apply velocity to transforms for all objects with both components
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())

@@ -1,5 +1,6 @@
 #include "HarpyController.h"
 #include "PlayerController.h"
+#include "AttackDamageComponent.h"
 #include "HomingComponent.h"
 #include "TimedDestroyerComponent.h"
 
@@ -239,11 +240,12 @@ void HarpyController::HandleAttackingState(float delta)
     {
         auto& projectile = scene.CreateObject2D();
 
+        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
+
         auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
         projectileSprite.SetOriginToCenterOfTexture();
         
         auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-        projectileCollider.SetDamage(100.0f);
         projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
         projectileCollider.SetIgnoreTag(this->GetGameObject()->GetID());
 
@@ -251,7 +253,6 @@ void HarpyController::HandleAttackingState(float delta)
         auto& projectileTimedDestroyer = projectile.AddComponent<TimedDestroyerComponent>(10);
 
         auto& projectileVelocityComponent = projectile.AddComponent<VelocityComponent>();
-        
         // float angle = (60 * -i) / (MATH_PI * 180.0f);
         // glm::vec2 projectileVelocity = glm::vec2(0.0f, 0.0f);
         // projectileVelocity.x = projectileDefaultVelocity.x * glm::cos(angle) - projectileDefaultVelocity.y * glm::sin(angle);

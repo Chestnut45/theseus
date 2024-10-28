@@ -1,4 +1,5 @@
 
+#include "AttackDamageComponent.h"
 #include "ColliderComponent.h"
 #include "HealthComponent.h"
 #include "VelocityComponent.h"
@@ -410,67 +411,6 @@ void PlayerController::UpdateAttackState(float delta)
 
 void PlayerController::ApplyDamageToEnemy()
 {
-    // auto* pGameObject = GetGameObject();
-    // if (!pGameObject || !m_pTransform) return;
-
-    // Iterate through all Minitaurs in the scene (MinitaurController)
-    // for (auto&& [entity, minitaurController] : GetGameObject()->GetScene().Each<MinitaurController>())
-    // {
-    //     // Get the transform of the Minitaur
-    //     auto* minitaurTransform = minitaurController.GetGameObject()->GetComponent<wolf::Transform2D>();
-    //     auto* minitaurHealth = minitaurController.GetGameObject()->GetComponent<HealthComponent>();
-
-    //     // Ensure the Minitaur has a HealthComponent and a Transform
-    //     if (!minitaurTransform || !minitaurHealth) continue;
-
-    //     // Calculate the distance between the player and the Minitaur
-    //     const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
-    //     const glm::vec2 minitaurPosition = minitaurTransform->GetGlobalPosition();
-    //     const float distanceToMinitaur = glm::length(playerPosition - minitaurPosition);
-
-    //     // Check if the Minitaur is within attack range
-    //     if (distanceToMinitaur <= m_attackRange)
-    //     {
-    //         // Apply damage to the Minitaur
-    //         minitaurHealth->Damage(m_attackDamage);
-    //         std::cout << "Player attacked Minitaur! Damage: " << m_attackDamage << std::endl;
-    //         std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
-
-    //         wolf::Audio::Play("data/sounds/hit.wav");
-
-    //         // Optionally, break here if you're only targeting one Minitaur at a time
-    //         // break;
-    //     }
-    // }
-
-    // Iterate through all Harpies in the scene (HarpyController)
-    // for (auto&& [entity, harpyController] : GetGameObject()->GetScene().Each<HarpyController>())
-    // {
-    //     // Get the transform of the Harpy
-    //     auto* harpyTransform = harpyController.GetGameObject()->GetComponent<wolf::Transform2D>();
-    //     auto* harpyHealth = harpyController.GetGameObject()->GetComponent<HealthComponent>();
-
-    //     // Ensure the Harpy has a HealthComponent and a Transform
-    //     if (!harpyTransform || !harpyHealth) continue;
-
-    //     // Calculate the distance between the player and the Harpy
-    //     const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
-    //     const glm::vec2 harpyPosition = harpyTransform->GetGlobalPosition();
-    //     const float distanceToHarpy = glm::length(playerPosition - harpyPosition);
-
-    //     // Check if the Harpy is within attack range
-    //     if (distanceToHarpy <= m_attackRange)
-    //     {
-    //         // Apply damage to the Harpy
-    //         harpyHealth->Damage(m_attackDamage);
-    //         std::cout << "Player attacked Harpy! Damage: " << m_attackDamage << std::endl;
-    //         std::cout << "Harpy Health: " << harpyHealth->GetHealth() << std::endl;
-
-    //         // Optionally, break here if you're only targeting one Harpy at a time
-    //         // break;
-    //     }
-    // }
-
     // Attack
     auto* player = this->GetGameObject();
     if (!player || !m_pTransform) return;
@@ -536,9 +476,10 @@ void PlayerController::ApplyDamageToEnemy()
             projectileSprite.SetOriginToCenterOfTexture();
             
             auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-            projectileCollider.SetDamage(100.0f);
             projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
             projectileCollider.SetIgnoreTag(player->GetID());
+
+            auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
 
             spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + projectileDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - projectileDimensions.x * 0.5f) : (spawnOffset.x));
             spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + projectileDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - projectileDimensions.y * 0.5f) : (spawnOffset.y));
@@ -577,9 +518,10 @@ void PlayerController::ApplyDamageToEnemy()
             melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
 
             auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-            meleeCollider.SetDamage(100.0f);
             meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f, meleeDimensions.y * 0.5f));
             meleeCollider.SetIgnoreTag(player->GetID());
+
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
             
             melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
             melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
@@ -617,7 +559,6 @@ void PlayerController::ApplyDamageToEnemy()
             melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
 
             auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-            meleeCollider.SetDamage(100.0f);
             meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f, meleeDimensions.y * 0.5f));
             meleeCollider.SetIgnoreTag(player->GetID());
             

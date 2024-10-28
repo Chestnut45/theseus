@@ -130,22 +130,6 @@ bool ColliderComponent::IsRelative() const
 {
     return this->m_bIsRelative;
 }
-
-// Get damage
-float ColliderComponent::GetDamage() const
-{
-    if(this->IsHurtboxDamageDealer())
-    {
-        return this->m_fDamage;
-    }
-    return 0.0f;
-}
-
-// Set damage
-void ColliderComponent::SetDamage(float p_damage)
-{
-    this->m_fDamage = p_damage;
-}
 // Set collider type
 void ColliderComponent::SetColliderType(ColliderComponent::ColliderType p_collider_type)
 {
