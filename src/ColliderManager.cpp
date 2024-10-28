@@ -140,15 +140,12 @@ bool ColliderManager::StandardAABBWithSliding(glm::vec2 p_translation_1, glm::ve
 
     glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
 
-    
     bool result = !(
         p_translation_1.x + p_dimensions_1.x < p_translation_2.x                        ||
         p_translation_1.x                    > p_translation_2.x + p_dimensions_2.x     ||
         p_translation_1.y - p_dimensions_1.y > p_translation_2.y                        ||
         p_translation_1.y                    < p_translation_2.y - p_dimensions_2.y
-    );
-
-    
+    );    
 
     // If both hitboxes, respond accordingly
     if
@@ -169,10 +166,10 @@ bool ColliderManager::StandardAABBWithSliding(glm::vec2 p_translation_1, glm::ve
         // Collision cases
         if(result || newResult)
         {
-            // Respond only if both VelocityComponents available
+            // Respond only if a VelocityComponent is available
             if
             (
-                p_velocity_1 != nullptr &&
+                p_velocity_1 != nullptr ||
                 p_velocity_2 != nullptr
             )
             {
@@ -201,7 +198,6 @@ bool ColliderManager::StandardAABBWithSliding(glm::vec2 p_translation_1, glm::ve
             return true;
         }
     }
-
     // If not, return standard AABB
     else
     {
