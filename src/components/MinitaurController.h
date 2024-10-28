@@ -23,10 +23,9 @@ private:
     void UpdateAnimationBasedOnDirection();
     void MoveTowardsTarget(float delta);
     void HandleIdleState();
-    void HandleProspectState(float delta);
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
-    void HandleDeathState(float delta);
+    void HandleDeathState();
     void ChangeState(EnemyState newState);
     
     
@@ -42,15 +41,4 @@ private:
     float m_chaseSpeed;
     wolf::Timer m_transitionTimer;
     float m_transitionDelay = 0.2f; // Example delay for transitioning states
-
-    // Added by Nhật
-    wolf::RNG m_RNG; 
-
-    float m_prospectCounter = 0.0f;
-    
-    float m_fallDeadTimer = 0.0f;
-    float m_lieDeadTimer = 0.0f;
-    float m_timeToFallDead = 0.6f;
-    float m_timeToLieDead = 0.8f;
-
 };

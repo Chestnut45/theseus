@@ -11,7 +11,6 @@ public:
     enum class EnemyState
     {
         IDLE,
-        PROSPECT,
         CHASING,
         ATTACKING,
         DEATH
@@ -36,5 +35,4 @@ protected:
     ColliderManager* m_pColliderManager = nullptr;
     wolf::GameObject* m_pTarget = nullptr;  // Target (usually the player)
 
-    float m_fCountdownToDeath = 2.0f;
 };

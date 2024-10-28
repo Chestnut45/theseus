@@ -1,10 +1,5 @@
 #include "HarpyController.h"
 #include "PlayerController.h"
-#include "AttackDamageComponent.h"
-#include "HomingComponent.h"
-#include "TimedDestroyerComponent.h"
-
-#include <math.h>
 #include <cassert>
 
 
@@ -87,12 +82,6 @@ void HarpyController::Update(float delta)
         ChangeState(EnemyState::DEATH);
     }
 
-    if(m_attackTimer > 0.0f)
-    {
-        // Cooldown timer for next attack
-        m_attackTimer -= delta;
-    }
-
     // Update based on the current state
     switch (m_state)
     {
@@ -106,7 +95,7 @@ void HarpyController::Update(float delta)
             HandleAttackingState(delta);
             break;
         case EnemyState::DEATH:
-            HandleDeathState(delta);
+            HandleDeathState();
             return;  // After calling HandleDeathState(), return immediately since the object is now deleted
     }
 
@@ -128,7 +117,7 @@ void HarpyController::SetUpAnimations(const std::string& animationInitPath)
 
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
-    m_pAnimComponent->SetTint(glm::vec3(0,1,0));
+    m_pAnimComponent->SetTint(glm::vec3(1,0,0));
 }
 
 void HarpyController::MoveTowardsTarget(float delta)
@@ -193,22 +182,12 @@ void HarpyController::HandleChasingState(float delta)
         m_transitionTimer.Start();
     }
 
-    // if (distanceToPlayer <= m_meleeRange)
-    // {
-    //     if (m_transitionTimer.Elapsed() >= m_transitionDelay)
-    //     {
-    //         ChangeState(EnemyState::ATTACKING);
-    //         m_transitionTimer.Reset();
-    //     }
-    // }
-    if(distanceToPlayer <= m_rangedRange)
+    if (distanceToPlayer <= m_meleeRange)
     {
-        if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_attackTimer <= 0.0f)
+        if (m_transitionTimer.Elapsed() >= m_transitionDelay)
         {
-            
             ChangeState(EnemyState::ATTACKING);
             m_transitionTimer.Reset();
-            
         }
     }
     else
@@ -222,52 +201,36 @@ void HarpyController::HandleAttackingState(float delta)
 {
     if (!m_pTarget) return;
 
+    // Stop Harpy's movement during attack
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
     // Check distance to player
-    
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
-    glm::vec2 projectileDimensions = glm::vec2(32.0f, 32.0f);
-    glm::vec2 hurtboxOffset = glm::vec2(-16.0f, 16.0f);
-    glm::vec2 harpyDirection = targetPosition - currentPosition == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(targetPosition - currentPosition);
-    glm::vec2 perpendicularVector = harpyDirection == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(glm::vec2(harpyDirection.y, -harpyDirection.x));
-    glm::vec2 projectileDefaultVelocity = harpyDirection * 168.0f;
-
-    auto& scene = this->GetGameObject()->GetScene();
-    
-    for(int i = -1; i <= 1; i += 1)
+    // Apply damage if player is within melee range and attack cooldown is over
+    if (distanceToPlayer <= m_meleeRange && m_attackTimer <= 0.0f)
     {
-        auto& projectile = scene.CreateObject2D();
+        // Simulate applying damage to the player
+        auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
+        if (playerHealth)
+        {
+            playerHealth->Damage(m_baseDamage);
 
-        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
-
-        auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-        projectileSprite.SetOriginToCenterOfTexture();
-        
-        auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-        projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
-        projectileCollider.SetIgnoreTag(this->GetGameObject()->GetID());
-
-        auto& projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 12.0f, 16);
-        auto& projectileTimedDestroyer = projectile.AddComponent<TimedDestroyerComponent>(10);
-
-        auto& projectileVelocityComponent = projectile.AddComponent<VelocityComponent>();
-        // float angle = (60 * -i) / (MATH_PI * 180.0f);
-        // glm::vec2 projectileVelocity = glm::vec2(0.0f, 0.0f);
-        // projectileVelocity.x = projectileDefaultVelocity.x * glm::cos(angle) - projectileDefaultVelocity.y * glm::sin(angle);
-        // projectileVelocity.y = projectileDefaultVelocity.x * glm::sin(angle) + projectileDefaultVelocity.y * glm::cos(angle);
-        projectileVelocityComponent.SetVelocity(projectileDefaultVelocity);
-
-        glm::vec2 offset = perpendicularVector * (30.0f * i);
-        projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset);
+            // Reset attack cooldown timer
+            m_attackTimer = m_attackCooldown;
+        }
     }
-    
-    
-    m_attackTimer = m_attackCooldown;
-    
 
-    ChangeState(EnemyState::CHASING);
+    // Cooldown timer for next attack
+    m_attackTimer -= delta;
+
+    // Return to chasing if player moves out of range
+    if (distanceToPlayer > m_meleeRange)
+    {
+        ChangeState(EnemyState::CHASING);
+    }
 }
 
 
@@ -310,42 +273,16 @@ void HarpyController::UpdateAnimationBasedOnDirection()
     }
 }
 
-void HarpyController::HandleDeathState(float delta)
+void HarpyController::HandleDeathState()
 {
-     // Fall over
-    if(m_fallDeadTimer <= m_timeToFallDead)
+    // Stop Harpy's movement
+    if (m_pVelocity)
     {
-        if(m_fallDeadTimer == 0.0f)
-        {
-            if (m_pVelocity)
-            {
-                m_pVelocity->SetVelocity(glm::vec2(0.0f));
-            }
-
-            ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
-            if(collider != nullptr)
-            {
-                collider->SetColliderType(ColliderComponent::ColliderType::NONE);
-            }
-            
-            m_pAnimComponent->SetTint(glm::vec3(1,0,0));
-        }
-
-        float angle = (90.0f / m_timeToFallDead) * delta;
-        m_pTransform->RotateDegrees(angle);
-        
-        m_fallDeadTimer += delta;
+        m_pVelocity->SetVelocity(glm::vec2(0.0f));
     }
 
-    // Lie dead
-    else
-    {
-        if(m_lieDeadTimer >= m_timeToLieDead)
-        {
-            GetGameObject()->Delete();
-        }
-        m_lieDeadTimer += delta;
-    }  
+    // Destroy the GameObject when the Harpy dies
+    //will be implemented later
 }
 
 void HarpyController::ChangeState(EnemyState newState)
