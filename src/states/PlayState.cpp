@@ -151,13 +151,12 @@ void PlayState::Update(float delta)
         homing.Update(delta);
     }
 
-    // Update collisions
-    this->m_pColliderManager->Update(delta);
-
     for(auto&& [_, attackDamageComponent] : m_pGameInstance->GetScene().Each<AttackDamageComponent>())
     {
         attackDamageComponent.Update(delta);
     }
+    // Update collisions
+    this->m_pColliderManager->Update(delta);
 
     // Apply velocity to transforms for all objects with both components
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())

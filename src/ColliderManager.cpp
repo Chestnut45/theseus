@@ -62,7 +62,6 @@ void ColliderManager::CheckCollisions(float p_delta)
                 {
                     if(this->IsColliding(&collider1, &collider2, p_delta))
                     {
-
                         if(collider1.IsDestroyedOnCollision() && !collider1.m_bIsFlaggedForDestruction)
                         {
                             collider1.m_bIsFlaggedForDestruction = true;
