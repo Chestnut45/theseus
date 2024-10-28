@@ -90,9 +90,9 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
     )
     {
         glm::vec2 obj1Translation = p_colliderComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        VelocityComponent* velocity1 = p_colliderComponent1->GetGameObject()->GetComponent<VelocityComponent>();
         for(wolf::Rectangle collider1 : p_colliderComponent1->GetColliderBoxes())
-        {
-            VelocityComponent* velocity1 = p_colliderComponent1->GetGameObject()->GetComponent<VelocityComponent>();
+        { 
             glm::vec2 dimensions1 = glm::vec2(collider1.GetWidth(), collider1.GetHeight());
             glm::vec2 offset1 = collider1.GetPosition();
 
@@ -102,12 +102,13 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
                 dimensions1 *= scale1;
                 offset1 *= scale1;
             }
-            glm::vec2 translation1 = obj1Translation + offset1;
             
+            glm::vec2 translation1 = obj1Translation + offset1;
             glm::vec2 obj2Translation = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            VelocityComponent* velocity2 = p_colliderComponent2->GetGameObject()->GetComponent<VelocityComponent>();
+            
             for(wolf::Rectangle collider2 : p_colliderComponent2->GetColliderBoxes())
-            {
-                VelocityComponent* velocity2 = p_colliderComponent2->GetGameObject()->GetComponent<VelocityComponent>();
+            {                
                 glm::vec2 dimensions2 = glm::vec2(collider2.GetWidth(), collider2.GetHeight());
                 glm::vec2 offset2 = collider2.GetPosition();
 
