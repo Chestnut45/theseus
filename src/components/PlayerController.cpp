@@ -100,16 +100,23 @@ void PlayerController::Update(float delta)
     {
         m_moveSpeed *= 0.5f;
         m_rollSpeed *= 0.5f;
+        m_inventoryMoveSpeed *= 0.5f;
+       
     }
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
     {
         m_moveSpeed *= 2;
         m_rollSpeed *= 2;
+        m_inventoryMoveSpeed *= 2;
+
+
     }
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
     {
         m_moveSpeed = 200.0f;
         m_rollSpeed = 400.0f;
+        m_inventoryMoveSpeed = 200.0f;
+
     }
 
     HandlePlayerInput(delta);
@@ -129,38 +136,28 @@ void PlayerController::Update(float delta)
 void PlayerController::HandlePlayerInput(float delta) {
     auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
 
-     // Check for Left Alt key (hold) to manage the inventory state
+    // Check for Left Alt key (hold) to manage the inventory state
     if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) {
-        // Open the inventory while Left Alt is held
         if (m_action != PlayerAction::IN_INVENTORY) {
             playerInventory->Open();
             m_action = PlayerAction::IN_INVENTORY;
         }
-    } else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) { // Use IsKeyReleased instead
-        // Close the inventory when Left Alt is released
+    } else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) {
         playerInventory->Close();
         m_action = PlayerAction::NONE;
     }
 
-    //IN_INVENTORY state when inventory is toggled with 0 (handled in PlayState)
+    // IN_INVENTORY state when inventory is toggled with 0 (handled in PlayState)
     if (playerInventory && playerInventory->IsOpen()) {
         m_action = PlayerAction::IN_INVENTORY;
     } else if (m_action == PlayerAction::IN_INVENTORY) {
         m_action = PlayerAction::NONE;
     }
 
-    // If the player is in inventory mode, reduce movement speed but still allow movement
-    if (m_action == PlayerAction::IN_INVENTORY) {
-        m_moveSpeed = 100.0f;  // Reduced speed when inventory is open
-        HandleMovement(delta);  // Allow movement even if inventory is open
-    } else {
-        // Regular input handling if inventory is not open
-        m_moveSpeed = 200.0f;  // Normal speed
-        HandleMovement(delta);
-        HandleAttacking(delta);
-        HandleRolling(delta);
-        HandleJumping(delta);
-    }
+    HandleMovement(delta);
+    HandleAttacking(delta);
+    HandleRolling(delta);
+    HandleJumping(delta);
 }
 
 // Handle player movement based on input
@@ -194,7 +191,8 @@ void PlayerController::HandleMovement(float delta)
 
     direction = glm::normalize(direction);
     m_lastDirectionEnum = GetDirectionFromVector(direction);
-    m_pVelocity->SetVelocity(direction * m_moveSpeed);
+    float currentSpeed = (m_action == PlayerAction::IN_INVENTORY) ? m_inventoryMoveSpeed : m_moveSpeed;
+    m_pVelocity->SetVelocity(direction * currentSpeed);
 
     if (!m_isRolling && !m_isJumping) m_action = PlayerAction::WALKING;
 }
