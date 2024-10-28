@@ -77,9 +77,9 @@ class WeaponItem : public EquipmentItem {
 
 // Event for when we equip a weapon
 struct WeaponEquippedEvent {
-    WeaponItem* pWeapon; // Whatever weapon was just equipped
+    WeaponItem* pWeapon = nullptr; // Whatever weapon was just equipped
 };
 
 struct WeaponUnequippedEvent {
-    WeaponItem* pWeapon; // Whatever weapon was just equipped
+    WeaponItem* pWeapon = nullptr; // Whatever weapon was just equipped
 };
