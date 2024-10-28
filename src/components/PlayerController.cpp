@@ -142,6 +142,13 @@ void PlayerController::HandlePlayerInput(float delta) {
         m_action = PlayerAction::NONE;
     }
 
+    //IN_INVENTORY state when inventory is toggled with 0 (handled in PlayState)
+    if (playerInventory && playerInventory->IsOpen()) {
+        m_action = PlayerAction::IN_INVENTORY;
+    } else if (m_action == PlayerAction::IN_INVENTORY) {
+        m_action = PlayerAction::NONE;
+    }
+
     // If the player is in inventory mode, reduce movement speed but still allow movement
     if (m_action == PlayerAction::IN_INVENTORY) {
         m_moveSpeed = 100.0f;  // Reduced speed when inventory is open
