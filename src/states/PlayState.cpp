@@ -68,7 +68,8 @@ void PlayState::Enter()
     // testVelocity2.SetVelocity(glm::vec2(0.0f, 128.0f));
     
     // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
-    this->CreateMinitaurEnemy();
+    
+    // this->CreateMinitaurEnemy();
     // this->CreateHarpyEnemy();
 }
 
@@ -287,10 +288,9 @@ void PlayState::CreateMinitaurEnemy()
     MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
 
     glm::vec2 positions[] = {
-        // glm::vec2(300.0f, 200.0f),
-        // glm::vec2(400.0f, 200.0f),
-        // glm::vec2(500.0f, 200.0f)
-        glm::vec2(6100.0f, 0.0f)
+        glm::vec2(300.0f, 200.0f),
+        glm::vec2(400.0f, 200.0f),
+        glm::vec2(500.0f, 200.0f)
     };
 
     for (const auto& position : positions)
@@ -314,10 +314,9 @@ void PlayState::CreateHarpyEnemy()
     HarpyBuilder harpyBuilder(m_pGameInstance->GetScene());
 
     glm::vec2 positions[] = {
-        // glm::vec2(-300.0f, -300.0f),
-        // glm::vec2(-400.0f, -400.0f),
-        // glm::vec2(-500.0f, -500.0f)
-        glm::vec2(6000.0f, 0.0f)
+        glm::vec2(-300.0f, -300.0f),
+        glm::vec2(-400.0f, -400.0f),
+        glm::vec2(-500.0f, -500.0f)
     };
 
     for (const auto& position : positions)
