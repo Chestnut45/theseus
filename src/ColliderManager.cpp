@@ -13,9 +13,6 @@
 ColliderManager::ColliderManager(wolf::Scene* p_scene)
 {
     this->m_scene = p_scene;
-
-    //wolf::EventManager::AddListener<>();
-
 }
 
 ColliderManager::~ColliderManager()
@@ -36,7 +33,6 @@ void ColliderManager::RemoveFlagged()
     {
         std::cout << "ColliderManager - Remove id:" << this->m_vToBeDestroyed.at(i) << std::endl;
         this->m_scene->DeleteObject(this->m_vToBeDestroyed.at(i));
-
     }
     this->m_vToBeDestroyed.clear();
 }

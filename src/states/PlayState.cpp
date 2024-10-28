@@ -117,6 +117,12 @@ void PlayState::Update(float delta)
     //     m_pLabyrinthManager->SetTile(tilePos.x, tilePos.y, -1);
     // }
 
+    // Update timed destroyer components
+    for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
+    {
+        TimedDestroyerComponent.Update(delta);
+    }
+
     // Update all player controllers
     for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<PlayerController>())
     {
@@ -219,13 +225,6 @@ void PlayState::Update(float delta)
 
     // Update managers
     wolf::EventManager::Dispatch();
-
-    
-    
-    for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
-    {
-        TimedDestroyerComponent.Update(delta);
-    }
 }
 
 void PlayState::Render()

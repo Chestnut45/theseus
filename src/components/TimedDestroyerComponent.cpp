@@ -20,11 +20,11 @@ TimedDestroyerComponent::~TimedDestroyerComponent()
 
 void TimedDestroyerComponent::Update(float p_delta)
 {   
-    this->m_fTimer = this->m_bIsFrameTimer ? this->m_fTimer + 1 : this->m_fTimer + p_delta;
     if(this->m_fTimer >= m_fLifespan)
     {
         printf("TimedDestroyerComponent - Destroy\n");
         this->GetGameObject()->GetScene().DeleteObject(this->GetGameObject()->GetID());
     }
-    
+    this->m_fTimer = this->m_bIsFrameTimer ? this->m_fTimer + 1 : this->m_fTimer + p_delta;
+
 }
