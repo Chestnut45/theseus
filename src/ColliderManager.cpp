@@ -84,38 +84,41 @@ void ColliderManager::CheckCollisions(float p_delta)
 bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta)
 {
     if(
-        (p_colliderComponent1->GetGameObject()->GetID() != p_colliderComponent2->GetGameObject()->GetID())  &&
-        (p_colliderComponent1->m_IgnoreID != p_colliderComponent2->GetGameObject()->GetID())                && 
-        (p_colliderComponent2->m_IgnoreID != p_colliderComponent1->GetGameObject()->GetID())
+        (p_colliderComponent1->GetGameObject()->GetID() == p_colliderComponent2->GetGameObject()->GetID())  ||
+        (p_colliderComponent1->m_IgnoreID == p_colliderComponent2->GetGameObject()->GetID())                || 
+        (p_colliderComponent2->m_IgnoreID == p_colliderComponent1->GetGameObject()->GetID())
     )
     {
-        glm::vec2 scale1 = p_colliderComponent1->IsRelative() ? p_colliderComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
-        glm::vec2 objTranslation1 = p_colliderComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        VelocityComponent* velocity1 = p_colliderComponent1->GetGameObject()->GetComponent<VelocityComponent>();
+        return false;
+    }
+
+    glm::vec2 scale1 = p_colliderComponent1->IsRelative() ? p_colliderComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
+    glm::vec2 objTranslation1 = p_colliderComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    VelocityComponent* velocity1 = p_colliderComponent1->GetGameObject()->GetComponent<VelocityComponent>();
+    
+    for(const wolf::Rectangle& collider1 : p_colliderComponent1->GetColliderBoxes())
+    { 
+        glm::vec2 dimensions1 = glm::vec2(collider1.GetWidth(), collider1.GetHeight()) * scale1;
+        glm::vec2 offset1 = collider1.GetPosition() * scale1;            
+        glm::vec2 translation1 = objTranslation1 + offset1;
+
+        glm::vec2 scale2 = p_colliderComponent2->IsRelative() ? p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
+        glm::vec2 objTranslation2 = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        VelocityComponent* velocity2 = p_colliderComponent2->GetGameObject()->GetComponent<VelocityComponent>();
         
-        for(wolf::Rectangle collider1 : p_colliderComponent1->GetColliderBoxes())
-        { 
-            glm::vec2 dimensions1 = glm::vec2(collider1.GetWidth(), collider1.GetHeight()) * scale1;
-            glm::vec2 offset1 = collider1.GetPosition() * scale1;            
-            glm::vec2 translation1 = objTranslation1 + offset1;
+        for(const wolf::Rectangle& collider2 : p_colliderComponent2->GetColliderBoxes())
+        {                
+            glm::vec2 dimensions2 = glm::vec2(collider2.GetWidth(), collider2.GetHeight()) * scale2;
+            glm::vec2 offset2 = collider2.GetPosition() * scale2;        
+            glm::vec2 translation2 = objTranslation2 + offset2;
 
-            glm::vec2 scale2 = p_colliderComponent2->IsRelative() ? p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
-            glm::vec2 objTranslation2 = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            VelocityComponent* velocity2 = p_colliderComponent2->GetGameObject()->GetComponent<VelocityComponent>();
-            
-            for(wolf::Rectangle collider2 : p_colliderComponent2->GetColliderBoxes())
-            {                
-                glm::vec2 dimensions2 = glm::vec2(collider2.GetWidth(), collider2.GetHeight()) * scale2;
-                glm::vec2 offset2 = collider2.GetPosition() * scale2;        
-                glm::vec2 translation2 = objTranslation2 + offset2;
-
-                if(this->StandardAABBWithSliding(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta))
-                {
-                    return true;
-                }
+            if(this->StandardAABBWithSliding(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta))
+            {
+                return true;
             }
         }
     }
+    
     
     return false;
 }
