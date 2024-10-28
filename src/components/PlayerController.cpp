@@ -133,31 +133,45 @@ void PlayerController::Update(float delta)
 
 
 // Handle all player inputs and manage states accordingly
-void PlayerController::HandlePlayerInput(float delta) {
+void PlayerController::HandlePlayerInput(float delta) 
+{
     auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
 
     // Check for Left Alt key (hold) to manage the inventory state
-    if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) {
-        if (m_action != PlayerAction::IN_INVENTORY) {
+    if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) 
+    {
+        if (m_action != PlayerAction::IN_INVENTORY) 
+        {
             playerInventory->Open();
             m_action = PlayerAction::IN_INVENTORY;
         }
-    } else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) {
+    } 
+    else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) 
+    {
         playerInventory->Close();
         m_action = PlayerAction::NONE;
     }
 
     // IN_INVENTORY state when inventory is toggled with 0 (handled in PlayState)
-    if (playerInventory && playerInventory->IsOpen()) {
+    if (playerInventory && playerInventory->IsOpen()) 
+    {
         m_action = PlayerAction::IN_INVENTORY;
-    } else if (m_action == PlayerAction::IN_INVENTORY) {
+    }
+    else if (m_action == PlayerAction::IN_INVENTORY) 
+    {
         m_action = PlayerAction::NONE;
     }
 
+    // Skip input handling for attacks when in inventory
+    if (m_action != PlayerAction::IN_INVENTORY)
+    {
+        HandleAttacking(delta);
+        HandleRolling(delta);
+        HandleJumping(delta);
+    }
+
+    // Process movement input regardless of inventory state
     HandleMovement(delta);
-    HandleAttacking(delta);
-    HandleRolling(delta);
-    HandleJumping(delta);
 }
 
 // Handle player movement based on input
@@ -227,6 +241,9 @@ void PlayerController::HandleAttacking(float delta)
 // Handle rolling logic based on player input and stamina
 void PlayerController::HandleRolling(float delta)
 {
+    // Prevent rolling if the player is in the inventory state
+    if (m_action == PlayerAction::IN_INVENTORY) return;
+
     if (m_isRolling)
     {
         m_rollTimer -= delta;
@@ -234,12 +251,13 @@ void PlayerController::HandleRolling(float delta)
         return;
     }
 
-    // Only start roll if a direction is being held
+    // Only start roll if a direction is being held and sufficient stamina is available
     glm::vec2 direction(0.0f);
     direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
     direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
     direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
     direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
+
     if (direction != glm::vec2(0.0f) && wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
     {
         StartRoll();
