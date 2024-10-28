@@ -118,8 +118,6 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
             }
         }
     }
-    
-    
     return false;
 }
 
@@ -168,21 +166,18 @@ bool ColliderManager::StandardAABBWithSliding(glm::vec2 p_translation_1, glm::ve
                     printf("ColliderManager - 11\n");  
                     p_velocity_1->SetVelocity(glm::vec2(0.0f, 0.0f));
                     p_velocity_2->SetVelocity(glm::vec2(0.0f, 0.0f));
-                    
                 }
 
                 else if (!result && newResult)
                 {
                     printf("ColliderManager - 01\n");
                     this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
-                    
                 }
 
                 else if(result && !newResult)
                 {
                     printf("ColliderManager - 10\n");
                     this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
-                    
                 }
             }
             return true;
