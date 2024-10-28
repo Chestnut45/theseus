@@ -48,6 +48,6 @@ private:
     void addNewVelocity(wolf::GameObjectID p_id, glm::vec2 p_new_velocity);
     void ApplyNewVelocities();
 
-    std::vector<ColliderComponent *> m_vToBeDestroyed;
+    std::vector<wolf::GameObjectID> m_vToBeDestroyed;
     std::map<wolf::GameObjectID, std::vector<glm::vec2>> m_mNewVelocityVectors;
 };

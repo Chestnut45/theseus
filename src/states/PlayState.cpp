@@ -132,23 +132,6 @@ void PlayState::Update(float delta)
     {
         harpyController.Update(delta);  // Update logic for Harpies
     }
-
-    // // Debugging the final minitaur's position and state
-
-    // for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
-    // {
-    //     auto* pGameObject = minitaurController.GetGameObject();
-    //     if (pGameObject)
-    //     {
-    //         auto* transform = pGameObject->GetComponent<wolf::Transform2D>();
-    //         if (transform)
-    //         {
-    //             glm::vec2 pos = transform->GetGlobalPosition();
-    //             printf("Minitaur Render Position: (%f, %f)\n", pos.x, pos.y);  // Debug rendering position
-    //         }
-    //     }
-    // }
-
     
     // Update all animated sprites
     for (auto&&[_, anim] : m_pGameInstance->GetScene().Each<AnimatedSprite2D>())

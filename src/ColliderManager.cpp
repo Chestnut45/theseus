@@ -35,8 +35,8 @@ void ColliderManager::RemoveFlagged()
 {
     for (int i = 0; i < this->m_vToBeDestroyed.size(); i++)
     {
-        std::cout << "ColliderManager - Remove id:" << this->m_vToBeDestroyed.at(i)->GetGameObject()->GetID() << std::endl;
-        this->m_scene->DeleteObject(this->m_vToBeDestroyed.at(i)->GetGameObject()->GetID());
+        std::cout << "ColliderManager - Remove id:" << this->m_vToBeDestroyed.at(i) << std::endl;
+        this->m_scene->DeleteObject(this->m_vToBeDestroyed.at(i));
 
     }
     this->m_vToBeDestroyed.clear();
@@ -80,13 +80,13 @@ void ColliderManager::CheckCollisions(float p_delta)
                                 if(collider1.IsDestroyedOnCollision() && !collider1.m_bIsFlaggedForDestruction)
                                 {
                                     collider1.m_bIsFlaggedForDestruction = true;
-                                    this->m_vToBeDestroyed.push_back(&collider1);
+                                    this->m_vToBeDestroyed.push_back(id1);
                                 }
 
                                 if(collider2.IsDestroyedOnCollision() && !collider2.m_bIsFlaggedForDestruction)
                                 {
                                     collider2.m_bIsFlaggedForDestruction = true;
-                                    this->m_vToBeDestroyed.push_back(&collider2);
+                                    this->m_vToBeDestroyed.push_back(id2);
                                 }
                             }
                         }
@@ -104,13 +104,13 @@ void ColliderManager::CheckCollisions(float p_delta)
                             if(collider1.IsDestroyedOnCollision() && !collider1.m_bIsFlaggedForDestruction)
                             {
                                 collider1.m_bIsFlaggedForDestruction = true;
-                                this->m_vToBeDestroyed.push_back(&collider1);
+                                this->m_vToBeDestroyed.push_back(id1);
                             }
 
                             if(collider2.IsDestroyedOnCollision() && !collider2.m_bIsFlaggedForDestruction)
                             {
                                 collider2.m_bIsFlaggedForDestruction = true;
-                                this->m_vToBeDestroyed.push_back(&collider2);
+                                this->m_vToBeDestroyed.push_back(id2);
                             }
                         }
                     }
