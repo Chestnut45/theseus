@@ -20,6 +20,7 @@ TimedDestroyerComponent::~TimedDestroyerComponent()
 
 void TimedDestroyerComponent::Update(float p_delta)
 {   
+    // If expired, destroy
     if(this->m_fTimer >= m_fLifespan)
     {
         printf("TimedDestroyerComponent - Destroy\n");

@@ -95,7 +95,7 @@ private:
     void EndJump();         // Ends a jumping action
 
     // Utility functions
-    void ApplyDamageToEnemy(); // Applies damage to enemies in range
+    void ApplyDamageToEnemy(); // Applies damage to enemies
     void RegenerateStamina(float delta); // Regenerates stamina over time
 
     // Animation utility functions
@@ -156,7 +156,7 @@ private:
 
     ColliderManager* m_pColliderManager = nullptr;
 
-    // Weapons
+    // Default weapon if no weapon equipped
     WeaponItem* m_pDefaultWeapon = nullptr;
     WeaponItem* m_pCurrentWeapon = nullptr;
 };

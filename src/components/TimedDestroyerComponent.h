@@ -16,5 +16,5 @@ public:
 private:
     float m_fLifespan = 0.0f;
     float m_fTimer = 0.0f;
-    bool m_bIsFrameTimer;
+    bool m_bIsFrameTimer; // If true: count number of frames - If false: count time passed
 };

@@ -460,15 +460,16 @@ void PlayerController::ApplyDamageToEnemy()
             break;
     }
 
-
-
     switch(this->m_pCurrentWeapon->GetWeaponType())
     {
+        // Spawn projectile for bow
         case WeaponType::BOW:
         {
+            // Set data for projectile collider
             glm::vec2 projectileDimensions = glm::vec2(32.0f, 32.0f);
             glm::vec2 hurtboxOffset = glm::vec2(-16.0f, 16.0f);
 
+            // Spawn projectile object & add components
             auto& scene = player->GetScene();
             auto& projectile = scene.CreateObject2D();
 
@@ -491,11 +492,14 @@ void PlayerController::ApplyDamageToEnemy()
         
             break;
         }
-
+        
+        // Spawn melee collider for sword
         case WeaponType::SWORD:
         {
+            // Set & calculate data for melee collider
             glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
+             
             if(playerDirection.x != 0.0f)
             {
                 offset.x = 9.0f;
@@ -508,12 +512,16 @@ void PlayerController::ApplyDamageToEnemy()
                 meleeDimensions.x *= 2.0f;
             }
 
+            // Shift offset along player direction
             offset.x = playerDirection.x * offset.x;
             offset.y = playerDirection.y * offset.y;
+
+            // Scale offset by player scale
             offset *= playerScale;
-            std::cout << "PlayerController - Offset - x: " << offset.x << ", y: " << offset.y << std::endl;
 
             auto& scene = player->GetScene();
+
+            // Create melee object & add components
             auto& melee = scene.CreateObject2D();
             melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
 
