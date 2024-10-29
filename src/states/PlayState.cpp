@@ -214,7 +214,7 @@ void PlayState::Update(float delta)
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
             merchant->ToggleOpen();
         }
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
             merchant->FillInventoryFromFile("data/test_chest_contents.yaml");
         }
 
