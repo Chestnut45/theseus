@@ -33,7 +33,10 @@ public:
     // Set the state of the throwable object
     void SetState(ThrowableState newState);
 
+    //Set Thrown
     void SetThrown();
+
+
 
 private:
     void FollowPlayer(); // Makes the object follow the player when picked up

@@ -86,11 +86,31 @@ void ThrowableObjectComponent::RenderPickupPrompt() {
     ImGui::PopStyleVar(2);
 }
 void ThrowableObjectComponent::FollowPlayer() {
+    if (!m_pTransform) return;
+
+    // Retrieve the player’s direction
     for (auto&& [_, playerController] : GetGameObject()->GetScene().Each<PlayerController>()) {
         auto* playerTransform = playerController.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (playerTransform && m_pTransform) {
-            m_pTransform->SetPosition(playerTransform->GetGlobalPosition() + glm::vec2(10.0f, 0.0f)); // Offset slightly to the right
+        if (!playerTransform) continue;
+
+        glm::vec2 offset;
+
+        // Adjust offset based on player's facing direction
+        switch (playerController.GetLastFacingDirection()) { 
+            case PlayerController::PlayerDirection::EAST:        offset = glm::vec2(45.0f, 0.0f); break;
+            case PlayerController::PlayerDirection::WEST:        offset = glm::vec2(-45.0f, 0.0f); break;
+            case PlayerController::PlayerDirection::NORTH:       offset = glm::vec2(0.0f, 60.0f); break;
+            case PlayerController::PlayerDirection::SOUTH:       offset = glm::vec2(0.0f, -60.0f); break;
+            case PlayerController::PlayerDirection::NORTH_EAST:  offset = glm::vec2(35.0f, 35.0f); break; // Reduced by 10 units
+            case PlayerController::PlayerDirection::NORTH_WEST:  offset = glm::vec2(-35.0f, 35.0f); break; // Reduced by 10 units
+            case PlayerController::PlayerDirection::SOUTH_EAST:  offset = glm::vec2(35.0f, -35.0f); break; // Reduced by 10 units
+            case PlayerController::PlayerDirection::SOUTH_WEST:  offset = glm::vec2(-35.0f, -35.0f); break; // Reduced by 10 units
+            default:                                             offset = glm::vec2(45.0f, 0.0f); break; // Default to right
         }
+
+        // Smoothly update the object's position relative to the player with the calculated offset
+        glm::vec2 targetPosition = playerTransform->GetGlobalPosition() + offset;
+        m_pTransform->SetPosition(glm::mix(m_pTransform->GetGlobalPosition(), targetPosition, 0.1f)); // 0.1f for smooth following
     }
 }
 
