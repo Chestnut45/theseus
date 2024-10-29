@@ -50,7 +50,7 @@ Dull Blade: {
   slot: WEAPON,
   type: SWORD,
   delay: 0.2,
-  damage: 10.0,
+  damage: 50.0,
   hurtbox_size: {x: 1.0, y: 1.0},
   has_projectiles: false
 }
@@ -63,7 +63,7 @@ Old Bow: {
   slot: WEAPON,
   type: BOW,
   delay: 0.2,
-  damage: 2.0,
+  damage: 100.0,
   hurtbox_size: {x: 1.0, y: 1.0},
   has_projectiles: true,
   projectile: {
