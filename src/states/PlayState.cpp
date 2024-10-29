@@ -214,7 +214,7 @@ void PlayState::Update(float delta)
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
             merchant->ToggleOpen();
         }
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
             merchant->FillInventoryFromFile("data/test_chest_contents.yaml");
         }
 
@@ -226,7 +226,7 @@ void PlayState::Update(float delta)
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_8)) {
             dispensary->ToggleOpen();
         }
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_9)) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
             dispensary->FillInventoryFromFile("data/test_dispensary_contents.yaml");
         }
 
