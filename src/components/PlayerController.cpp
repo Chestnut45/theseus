@@ -303,7 +303,7 @@ void PlayerController::HandleMovement(float delta)
 
     glm::vec2 direction(0.0f);
 
-    // Capture directional input
+    // Track and update currently held keys for smooth directional input
     direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
     direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
     direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
@@ -316,7 +316,7 @@ void PlayerController::HandleMovement(float delta)
         return;
     }
 
-    // Play walking sound effect if necessary
+    // Play walking sound effect
     if (!m_walkSoundTimer.IsRunning()) m_walkSoundTimer.Start();
     if (m_walkSoundTimer.Elapsed() > m_walkSoundInterval) {
         wolf::Audio::Play("data/sounds/walk.wav");
