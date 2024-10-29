@@ -120,6 +120,16 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
     return false;
 }
 
+bool ColliderManager::StandardAABB(float left1, float right1, float top1, float bottom1, float left2, float right2, float top2, float bottom2)
+{
+    return !(
+        right1  < left2     ||
+        left1   > right2    ||
+        bottom1 > top2      ||
+        top1    < bottom2
+    ); 
+}
+
 bool ColliderManager::CustomAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
 {
     glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
@@ -127,12 +137,10 @@ bool ColliderManager::CustomAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
 
     glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
 
-    bool result = !(
-        p_translation_1.x + p_dimensions_1.x < p_translation_2.x                        ||
-        p_translation_1.x                    > p_translation_2.x + p_dimensions_2.x     ||
-        p_translation_1.y - p_dimensions_1.y > p_translation_2.y                        ||
-        p_translation_1.y                    < p_translation_2.y - p_dimensions_2.y
-    );    
+    bool result = StandardAABB(
+        p_translation_1.x, p_translation_1.x + p_dimensions_1.x, p_translation_1.y, p_translation_1.y - p_dimensions_1.y,
+        p_translation_2.x, p_translation_2.x + p_dimensions_2.x, p_translation_2.y, p_translation_2.y - p_dimensions_2.y
+    );
 
     // If both hitboxes, respond accordingly
     if
@@ -143,13 +151,10 @@ bool ColliderManager::CustomAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
     {
         glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;
         
-        bool newResult = !(
-        newTranslation1.x + p_dimensions_1.x < p_translation_2.x                        ||
-        newTranslation1.x                    > p_translation_2.x + p_dimensions_2.x     ||
-        newTranslation1.y - p_dimensions_1.y > p_translation_2.y                        ||
-        newTranslation1.y                    < p_translation_2.y - p_dimensions_2.y
+        bool newResult = StandardAABB(
+        newTranslation1.x, newTranslation1.x + p_dimensions_1.x, newTranslation1.y, newTranslation1.y - p_dimensions_1.y,
+        p_translation_2.x, p_translation_2.x + p_dimensions_2.x, p_translation_2.y, p_translation_2.y - p_dimensions_2.y
         );
-
         // Collision cases
         if(result || newResult)
         {
@@ -162,18 +167,14 @@ bool ColliderManager::CustomAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
             {
                 if(result && newResult)
                 {
-                    printf("ColliderManager - 11\n");  
                 }
 
                 else if (!result && newResult)
                 {
-                    printf("ColliderManager - 01\n");
                 }
 
                 else if(result && !newResult)
                 {
-                    printf("ColliderManager - 10\n");
-
                 }
             }
             return true;
@@ -223,37 +224,32 @@ void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translati
     glm::vec2 collisionNormal2 = glm::vec2(0.0f, 0.0f);
 
     // obj1 left collision
-    if(newLeft1 <= right2 && left1 > right2)
+    if(newLeft1 <= right2 && left1 >= right2)
     {
         collisionNormal2 = glm::normalize(glm::vec2(1.0f, 0.0f));
-        // printf("ColliderManager - C1\n");
     }
 
     // obj1 right collision
-    else if(newRight1 >= left2 && right1 < left2)
+    else if(newRight1 >= left2 && right1 <= left2)
     {
         collisionNormal2 = glm::normalize(glm::vec2(-1.0f, 0.0f));
-        // printf("ColliderManager - C2\n");
     }
 
     // obj1 top collision
-    else if(newTop1 >= bottom2 && top1 < bottom2)
+    else if(newTop1 >= bottom2 && top1 <= bottom2)
     {
         collisionNormal2 = glm::normalize(glm::vec2(0.0f, -1.0f));
-        // printf("ColliderManager - C3\n");
     }
 
     // obj1 bottom collision
-    else if(newBottom1 <= top2 && bottom1 > top2)
+    else if(newBottom1 <= top2 && bottom1 >= top2)
     {
         collisionNormal2 = glm::normalize(glm::vec2(0.0f, 1.0f));
-        // printf("ColliderManager - C4\n");
 
     }
     else
     {
         collisionNormal2 = glm::vec2(0.0f, 0.0f);
-        printf("ColliderManager - C5\n");
     }
 
     collisionNormal1 = collisionNormal2 == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(-collisionNormal2);
@@ -265,7 +261,6 @@ void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translati
         if(dotProduct1 <= 0.0f)
         {
             glm::vec2 newVelocity1 = velocity1 - collisionNormal2 * dotProduct1;
-        
             p_velocity_1->SetVelocity(newVelocity1);
         }
     }
@@ -277,7 +272,6 @@ void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translati
         if(dotProduct2 <= 0.0f)
         {
             glm::vec2 newVelocity2 = velocity2 - collisionNormal1 * dotProduct2;
-    
             p_velocity_2->SetVelocity(newVelocity2);
         }
     }
@@ -330,14 +324,25 @@ bool ColliderManager::CustomAABBInternalUse(glm::vec2 p_translation_1, glm::vec2
     glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
     glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
 
-    glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
+    float   left1, right1, top1, bottom1,
+            left2, right2, top2, bottom2,
+            newLeft1, newRight1,newTop1, newBottom1,
+            newLeft2, newRight2,newTop2, newBottom2;
 
-    bool result = !(
-        p_translation_1.x + p_dimensions_1.x < p_translation_2.x                        ||
-        p_translation_1.x                    > p_translation_2.x + p_dimensions_2.x     ||
-        p_translation_1.y - p_dimensions_1.y > p_translation_2.y                        ||
-        p_translation_1.y                    < p_translation_2.y - p_dimensions_2.y
-    );    
+        left1 = p_translation_1.x;
+        right1 = p_translation_1.x + p_dimensions_1.x;
+        top1 = p_translation_1.y;
+        bottom1 = p_translation_1.y - p_dimensions_1.y;
+
+        left2 = p_translation_2.x;
+        right2 = p_translation_2.x + p_dimensions_2.x;
+        top2 = p_translation_2.y;
+        bottom2 = p_translation_2.y - p_dimensions_2.y;
+
+    bool result = StandardAABB(
+        left1, right1, top1, bottom1,
+        left2, right2, top2, bottom2
+    );
 
     // If both hitboxes, respond accordingly
     if
@@ -346,14 +351,20 @@ bool ColliderManager::CustomAABBInternalUse(glm::vec2 p_translation_1, glm::vec2
         p_velocity_2->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox()
     )
     {
-        glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;
+        newLeft1 = left1 + velocity1.x * p_delta;
+        newRight1 = right1 + velocity1.x * p_delta;
+        newTop1 = top1 + velocity1.y * p_delta;
+        newBottom1 = bottom1 + velocity1.y * p_delta;
+
+        newLeft2 = left2 + velocity2.x * p_delta;
+        newRight2 = right2 + velocity2.x * p_delta;
+        newTop2 = top2 + velocity2.y * p_delta;
+        newBottom2 = bottom2 + velocity2.y * p_delta;
         
-        bool newResult = !(
-        newTranslation1.x + p_dimensions_1.x < p_translation_2.x                        ||
-        newTranslation1.x                    > p_translation_2.x + p_dimensions_2.x     ||
-        newTranslation1.y - p_dimensions_1.y > p_translation_2.y                        ||
-        newTranslation1.y                    < p_translation_2.y - p_dimensions_2.y
-        );
+        bool newResult = StandardAABB(
+            newLeft1, newRight1, newTop1, newBottom1,
+            newLeft2, newRight2, newTop2, newBottom2
+        );      
 
         // Collision cases
         if(result || newResult)
@@ -367,21 +378,48 @@ bool ColliderManager::CustomAABBInternalUse(glm::vec2 p_translation_1, glm::vec2
             {
                 if(result && newResult)
                 {
-                    printf("ColliderManager - 11\n");  
-                    p_velocity_1->SetVelocity(glm::vec2(0.0f, 0.0f));
-                    p_velocity_2->SetVelocity(glm::vec2(0.0f, 0.0f));
-                }
+                    glm::vec2 newVelocity1 = glm::vec2(0.0f, 0.0f);
+                    glm::vec2 newVelocity2 = glm::vec2(0.0f, 0.0f);
+
+                    // If obj1 can get unstuck, allow movement
+                    if(p_velocity_1 != nullptr && !this->StandardAABB(
+                        newLeft1, newRight1, newTop1, newBottom1,
+                        left2, right2, top2, bottom2
+                    ))
+                    {
+                        newVelocity1 = velocity1;
+                    }
+
+                    // If obj2 can get unstuck, allow movement
+                    else if(p_velocity_2 != nullptr && !this->StandardAABB(
+                        left1, right1, top1, bottom1,
+                        newLeft2, newRight2, newTop2, newBottom2
+                    ))
+                    { 
+                        newVelocity2 = velocity2;
+                    }
+                    else
+                    {
+                    }
+
+                    if(p_velocity_1 != nullptr)
+                    {
+                        p_velocity_1->SetVelocity(newVelocity1);
+                    }
+                    if(p_velocity_2 != nullptr)
+                    {                   
+                        p_velocity_2->SetVelocity(newVelocity2);
+                    }
+                }   
 
                 else if (!result && newResult)
                 {
-                    printf("ColliderManager - 01\n");
                     this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
                 }
 
                 else if(result && !newResult)
                 {
-                    printf("ColliderManager - 10\n");
-                    this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+                    // this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
                 }
             }
             return true;
