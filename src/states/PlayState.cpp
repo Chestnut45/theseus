@@ -9,6 +9,7 @@
 #include "../components/ChestInventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/VelocityComponent.h"
+#include "../components/ThrowableObjectComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
 
@@ -24,6 +25,8 @@ void PlayState::Enter()
 
     // Initialize the player object
     CreatePlayer();
+    CreateThrowableObject();
+
 
     // Add the main camera as a child object of the player
     auto& cameraObj = scene.CreateObject2D();
@@ -38,6 +41,8 @@ void PlayState::Enter()
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
     m_pLabyrinthManager->GenerateLabyrinth();
+
+
 
     // Testing: Create a test projectile object
     // auto& testObj = scene.CreateObject2D();
@@ -125,6 +130,11 @@ void PlayState::Update(float delta)
     for (auto&& [_, harpyController] : m_pGameInstance->GetScene().Each<HarpyController>())
     {
         harpyController.Update(delta);  // Update logic for Harpies
+    }
+        
+    for (auto&& [_, throwable] : m_pGameInstance->GetScene().Each<ThrowableObjectComponent>()) 
+    {
+        throwable.Update(delta);  // Update logic for throwable objects
     }
 
     // // Debugging the final minitaur's position and state
@@ -326,6 +336,43 @@ void PlayState::CreateHarpyEnemy()
         }
     }
 }
+
+void PlayState::CreateThrowableObject()
+{
+    // Create a throwable object in the scene
+    auto& throwableObj = m_pGameInstance->GetScene().CreateObject2D();
+
+    // Set the initial position (for testing purposes)
+    auto* transform = throwableObj.GetComponent<wolf::Transform2D>();
+    if (transform) {
+        transform->SetPosition(glm::vec2(600.0f, 200.0f)); // Example position
+    } else {
+        transform = &throwableObj.AddComponent<wolf::Transform2D>();
+        transform->SetPosition(glm::vec2(600.0f, 200.0f));
+    }
+
+    // Add a sprite for visual representation (optional)
+    auto& sprite = throwableObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    sprite.SetOriginToCenterOfTexture();
+
+    // Add a collider to enable interaction with enemies
+    auto& collider = throwableObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 1, 0);
+    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));  // Adjusted size for the object
+
+    // Add the velocity component with an initial zero velocity
+    auto& velocity = throwableObj.AddComponent<VelocityComponent>();
+    velocity.SetVelocity(glm::vec2(0.0f, 0.0f)); // Will be updated upon throwing
+
+    // Add the throwable component with parameters matching the constructor
+    auto& throwable = throwableObj.AddComponent<ThrowableObjectComponent>(25.0f, m_pColliderManager);
+
+}
+
+
+
+
+
+
 
 void PlayState::StartDialogue(const std::string& dialogueID)
 {

@@ -8,6 +8,7 @@
 #include <components/ColliderComponent.h>
 #include <components/InventoryComponent.h>
 #include <components/PlayerInventoryComponent.h>
+#include <components/ThrowableObjectComponent.h>
 #include <iostream>
 
 // !-- Aurora added this --!
@@ -31,7 +32,9 @@ public:
         JUMPING,
         ROLLING,
         ATTACKING,
-        IN_INVENTORY
+        IN_INVENTORY,
+        PICKING_UP,
+        THROWING
     };
 
     // Enum for player movement directions
@@ -70,6 +73,9 @@ public:
     void SetColliderManager(ColliderManager* pColliderManager);
     ColliderManager* GetColliderManager() const;
 
+    void SetAction(PlayerAction action);
+    void SetHoldingObject(bool isHolding);
+
     // Weapon & Attack functions
 
 private:
@@ -82,6 +88,9 @@ private:
     void HandleRolling(float delta);     // Declaration for HandleRolling
     void HandleJumping(float delta);     // Declaration for HandleJumping
     void HandleAttacking(float delta);   // Declaration for HandleAttacking
+    void HandleThrowing(float delta);  // New method to handle throwing
+    
+
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
@@ -94,6 +103,9 @@ private:
     void EndRoll();         // Ends a rolling action
     void StartJump();       // Starts a jumping action
     void EndJump();         // Ends a jumping action
+    void ThrowHeldObject();
+    void PickUpObject();
+    void DropObject();
 
     // Utility functions
     void ApplyDamageToEnemy(); // Applies damage to enemies in range
@@ -110,6 +122,7 @@ private:
     wolf::Transform2D* m_pTransform = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
     AnimatedSprite2D* m_pAnimComponent = nullptr;
+    ThrowableObjectComponent* m_pHeldObject = nullptr;
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
@@ -147,6 +160,11 @@ private:
     float m_attackRange = 100.0f;
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
+
+    //picking up management
+    bool m_isHoldingObject = false;
+    float m_chargeTime = 0.0f;  // New variable to store charge time for throws
+    float m_throwSpeed = 300.0f;  // Speed multiplier for the throw
 
     static float s_aAttackCooldown[(int)WeaponType::BOW + 1];
 

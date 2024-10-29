@@ -37,6 +37,23 @@ ColliderManager* PlayerController::GetColliderManager() const
     return m_pColliderManager;
 }
 
+void PlayerController::SetAction(PlayerAction action)
+{
+    // If transitioning to THROWING or PICKING_UP state, reset any active attack
+    if ((action == PlayerAction::THROWING || action == PlayerAction::PICKING_UP) && m_isAttacking)
+    {
+        m_isAttacking = false;
+        m_action = PlayerAction::NONE; // Reset to NONE to avoid conflict
+    }
+
+    m_action = action;
+}
+
+void PlayerController::SetHoldingObject(bool isHolding) {
+    m_isHoldingObject = isHolding;
+}
+
+
 // Initialize components related to the player
 void PlayerController::LateInitialize()
 {
@@ -132,73 +149,148 @@ void PlayerController::Update(float delta)
 }
 
 
-// Handle all player inputs and manage states accordingly
-void PlayerController::HandlePlayerInput(float delta) 
+void PlayerController::HandlePlayerInput(float delta)
 {
     auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
 
-    // Check for Left Alt key (hold) to manage the inventory state
-    if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) 
-    {
-        if (m_action != PlayerAction::IN_INVENTORY) 
-        {
+    // Handle inventory management with left alt
+    if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) {
+        if (m_action != PlayerAction::IN_INVENTORY) {
             playerInventory->Open();
-            m_action = PlayerAction::IN_INVENTORY;
+            SetAction(PlayerAction::IN_INVENTORY);
         }
-    } 
-    else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) 
-    {
+    } else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) {
         playerInventory->Close();
-        m_action = PlayerAction::NONE;
+        SetAction(PlayerAction::NONE);
     }
 
-    // IN_INVENTORY state when inventory is toggled with 0 (handled in PlayState)
-    if (playerInventory && playerInventory->IsOpen()) 
-    {
-        m_action = PlayerAction::IN_INVENTORY;
-    }
-    else if (m_action == PlayerAction::IN_INVENTORY) 
-    {
-        m_action = PlayerAction::NONE;
+    // If holding an object, handle throw/drop actions
+    if (m_isHoldingObject) {
+        HandleThrowing(delta);  // Throw if needed
+        HandleMovement(delta);  // Continue to allow movement
+        return;  // Skip attack or other actions while holding an object
     }
 
-    // Skip input handling for attacks when in inventory
-    if (m_action != PlayerAction::IN_INVENTORY)
-    {
-        HandleAttacking(delta);
-        HandleRolling(delta);
-        HandleJumping(delta);
+    // Handle pick up and drop actions
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+        PickUpObject();
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q) && m_isHoldingObject) {
+        DropObject();
     }
 
-    // Process movement input regardless of inventory state
-    HandleMovement(delta);
+    // Handle regular player actions
+    switch (m_action) {
+        case PlayerAction::IN_INVENTORY:
+            HandleMovement(delta);  // Allow movement while in inventory
+            break;
+        case PlayerAction::PICKING_UP:
+            SetAction(PlayerAction::NONE);  // Transition to NONE after picking up
+            break;
+        case PlayerAction::THROWING:
+            HandleThrowing(delta);  // Handle throw logic
+            HandleMovement(delta);
+            break;
+        default:
+            HandleAttacking(delta);
+            HandleRolling(delta);
+            HandleJumping(delta);
+            HandleMovement(delta);
+            break;
+    }
+}
+
+void PlayerController::PickUpObject() {
+    // Attempt to pick up a nearby throwable object
+    for (auto&& [entity, throwable] : GetGameObject()->GetScene().Each<ThrowableObjectComponent>()) {
+        if (throwable.IsCloseToPlayer(150.0f)) {  // Check proximity
+            throwable.PickUp();
+            m_pHeldObject = &throwable;           // Store reference to the held object
+            m_isHoldingObject = true;
+            SetAction(PlayerAction::PICKING_UP);  // Temporary state while picking up
+            std::cout << "Picked up object!" << std::endl;
+            return;
+        }
+    }
+}
+
+void PlayerController::DropObject() {
+    if (m_isHoldingObject && m_pHeldObject) {  // Only drop if holding a specific object
+        m_pHeldObject->Drop();
+        m_isHoldingObject = false;
+        m_pHeldObject = nullptr;  // Clear the reference after dropping
+        SetAction(PlayerAction::NONE);
+        std::cout << "Dropped object!" << std::endl;
+    }
+}
+
+void PlayerController::HandleThrowing(float delta)
+{
+    // Allow charging and throwing the object when holding it
+    if (wolf::Input::IsLMBHeld() && m_isHoldingObject) {
+        SetAction(PlayerAction::THROWING);
+        m_chargeTime += delta;
+    }
+
+    // Release to throw the object
+    if (wolf::Input::IsLMBReleased() && m_isHoldingObject) {
+        ThrowHeldObject();
+        m_chargeTime = 0.0f;  // Reset charge time
+        m_isHoldingObject = false;
+        SetAction(PlayerAction::NONE);  // Reset action after throwing
+    }
+}
+
+
+void PlayerController::ThrowHeldObject() {
+    if (!m_isHoldingObject || !m_pHeldObject) {
+        std::cout << "No object is being held to throw!" << std::endl;
+        return;
+    }
+
+    // Get player direction and velocity
+    glm::vec2 throwDirection = glm::normalize(glm::vec2(1.0f, 0.0f)); // Example direction
+    VelocityComponent* playerVelocityComponent = GetGameObject()->GetComponent<VelocityComponent>();
+    glm::vec2 playerVelocity = playerVelocityComponent ? playerVelocityComponent->GetVelocity() : glm::vec2(0.0f);
+
+    // Set the object's velocity to the throw direction with an added component of the player's velocity
+    if (auto* throwableVelocity = m_pHeldObject->GetGameObject()->GetComponent<VelocityComponent>()) {
+        throwableVelocity->SetVelocity(throwDirection * m_throwSpeed + playerVelocity);
+        std::cout << "[DEBUG] Object thrown with velocity: (" << throwableVelocity->GetVelocity().x << ", " << throwableVelocity->GetVelocity().y << ")" << std::endl;
+    }
+
+    // Set the state of the object to THROWN
+    m_pHeldObject->SetState(ThrowableState::THROWN);
+
+    // Reset the held object reference and state
+    m_isHoldingObject = false;
+    m_pHeldObject = nullptr;
+    SetAction(PlayerAction::NONE);
 }
 
 // Handle player movement based on input
 void PlayerController::HandleMovement(float delta)
 {
-    if (m_action == PlayerAction::ROLLING) return;
+    if (m_action == PlayerAction::ROLLING || m_action == PlayerAction::THROWING) return;  // Skip movement if rolling or throwing
 
     glm::vec2 direction(0.0f);
 
-    // Track and update currently held keys for smooth directional input
+    // Capture directional input
     direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
     direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
     direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
     direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
 
-    if (glm::length(direction) == 0.0f)
-    {
+    if (glm::length(direction) == 0.0f) {
         if (!m_isAttacking && !m_isRolling) m_action = PlayerAction::NONE;
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
         m_walkSoundTimer.Reset();
         return;
     }
 
-    // Play walking sound effect
+    // Play walking sound effect if necessary
     if (!m_walkSoundTimer.IsRunning()) m_walkSoundTimer.Start();
-    if (m_walkSoundTimer.Elapsed() > m_walkSoundInterval)
-    {
+    if (m_walkSoundTimer.Elapsed() > m_walkSoundInterval) {
         wolf::Audio::Play("data/sounds/walk.wav");
         m_walkSoundTimer.Restart();
     }
@@ -214,8 +306,8 @@ void PlayerController::HandleMovement(float delta)
 // Manage attack state and animation transitions
 void PlayerController::HandleAttacking(float delta)
 {
-    if (m_action == PlayerAction::IN_INVENTORY) {
-        // Disable attacking while in inventory
+    // Disable attacking when in inventory, picking up, or holding a throwable object
+    if (m_action == PlayerAction::IN_INVENTORY || m_action == PlayerAction::PICKING_UP || m_action == PlayerAction::THROWING) {
         return;
     }
 
@@ -692,6 +784,7 @@ void PlayerController::Render()
     ImGui::PopStyleVar(3); // Pop style variables (WindowRounding, FrameRounding, and FramePadding)
     ImGui::PopStyleColor(3); // Pop style colors (WindowBg, Border, and BorderShadow)
 }
+
 
 // !-- Aurora added this --!
 void PlayerController::HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event) {
