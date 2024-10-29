@@ -44,14 +44,12 @@ void ColliderManager::CheckCollisions(float p_delta)
 
     if(ColliderComponent::s_iComponentCount >= 2)
     {
-        for (auto&&[id1, object1, collider1] : this->m_scene->Each<wolf::GameObject, ColliderComponent>())
+        for (auto&&[id1, collider1] : this->m_scene->Each<ColliderComponent>())
         {
             i++;
-            VelocityComponent* velocityComponent1 = object1.GetComponent<VelocityComponent>();
 
-            for (auto&&[id2, object2, collider2] : this->m_scene->Each<wolf::GameObject, ColliderComponent>() | std::views::drop(i))
+            for (auto&&[id2, collider2] : this->m_scene->Each<ColliderComponent>() | std::views::drop(i))
             {
-                VelocityComponent* velocityComponent2 = object2.GetComponent<VelocityComponent>();
 
                 // Checking for collision
                 if
