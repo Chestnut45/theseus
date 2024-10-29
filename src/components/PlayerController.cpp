@@ -233,18 +233,18 @@ void PlayerController::DropObject() {
     }
 }
 
-void PlayerController::HandleThrowing(float delta)
-{
-    // Allow charging and throwing the object when holding it
+void PlayerController::HandleThrowing(float delta) {
+    // Charge the throw power while holding the button
     if (wolf::Input::IsLMBHeld() && m_isHoldingObject) {
+        m_throwPower += 75.0f * delta;
+        m_throwPower = std::min(m_throwPower, m_maxThrowPower); // Cap to max throw power
         SetAction(PlayerAction::THROWING);
-        m_chargeTime += delta;
     }
 
     // Release to throw the object
     if (wolf::Input::IsLMBReleased() && m_isHoldingObject) {
         ThrowHeldObject();
-        m_chargeTime = 0.0f;  // Reset charge time
+        m_throwPower = 0.0f;  // Reset power after throwing
         m_isHoldingObject = false;
         SetAction(PlayerAction::NONE);  // Reset action after throwing
     }
@@ -271,29 +271,30 @@ void PlayerController::ThrowHeldObject() {
         default:                           throwDirection = glm::vec2(1.0f, 0.0f); break; // Default to right
     }
 
-    // Get player’s velocity to add to the throw speed
+    // Get player velocity
     VelocityComponent* playerVelocityComponent = GetGameObject()->GetComponent<VelocityComponent>();
     glm::vec2 playerVelocity = playerVelocityComponent ? playerVelocityComponent->GetVelocity() : glm::vec2(0.0f);
 
-    // Set the object’s velocity using throw direction and player’s current speed
+    // Set the object's velocity based on throw direction, throw power, and player's velocity
     if (auto* throwableVelocity = m_pHeldObject->GetGameObject()->GetComponent<VelocityComponent>()) {
-        throwableVelocity->SetVelocity(throwDirection * m_throwSpeed + playerVelocity);
+        glm::vec2 finalVelocity = throwDirection * m_throwPower + playerVelocity;
+        throwableVelocity->SetVelocity(finalVelocity);
         std::cout << "[DEBUG] Object thrown with velocity: (" 
-                  << throwableVelocity->GetVelocity().x << ", " 
-                  << throwableVelocity->GetVelocity().y << ")" << std::endl;
+                  << finalVelocity.x << ", " << finalVelocity.y << ")" << std::endl;
     }
 
-    // Set the state of the object to THROWN and reset player’s hold state
+    // Set the state of the held object to THROWN and reset holding variables
     m_pHeldObject->SetState(ThrowableState::THROWN);
     m_isHoldingObject = false;
     m_pHeldObject = nullptr;
+    m_throwPower = 0.0f;  // Reset throw power after throw
     SetAction(PlayerAction::NONE);
 }
 
 // Handle player movement based on input
 void PlayerController::HandleMovement(float delta)
 {
-    if (m_action == PlayerAction::ROLLING || m_action == PlayerAction::THROWING) return;  // Skip movement if rolling or throwing
+    if (m_action == PlayerAction::ROLLING) return;  // Skip movement if rolling or throwing
 
     glm::vec2 direction(0.0f);
 
@@ -796,6 +797,10 @@ void PlayerController::Render()
     ImGui::PopStyleColor(); // Pop color for stamina bar
     ImGui::End();
 
+    if (m_isHoldingObject && wolf::Input::IsLMBHeld()) {
+        RenderThrowPowerBar();
+    }
+
     // Pop ImGui style variables and colors
     ImGui::PopStyleVar(3); // Pop style variables (WindowRounding, FrameRounding, and FramePadding)
     ImGui::PopStyleColor(3); // Pop style colors (WindowBg, Border, and BorderShadow)
@@ -818,4 +823,19 @@ void PlayerController::HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& 
 
 void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {
     printf("The player equipped a %s!\n", p_event.pArmour->GetName().c_str());
+}
+
+void PlayerController::RenderThrowPowerBar() {
+    // Position the power bar slightly above the player
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    ImVec2 basePos = ImVec2(displaySize.x / 2.0f - 90.0f / 2.0f, 80.0f); // Adjust position as needed
+
+    // Render the throw power bar
+    ImGui::SetNextWindowPos(basePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(90.0f, 10.0f));
+    ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.0f, 0.5f, 1.0f, 1.0f)); // Blue power bar color
+    ImGui::ProgressBar(m_throwPower / m_maxThrowPower, ImVec2(-1, 10.0f));
+    ImGui::PopStyleColor();
+    ImGui::End();
 }

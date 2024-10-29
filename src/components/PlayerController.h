@@ -70,15 +70,19 @@ public:
 
     // Overloaded << operator for printing directions
     friend std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction);
+    //set collidermanager
     void SetColliderManager(ColliderManager* pColliderManager);
+    //get the collider manager (verification)
     ColliderManager* GetColliderManager() const;
 
+    //set player action
     void SetAction(PlayerAction action);
+
+    // setting the holding object bool variable
     void SetHoldingObject(bool isHolding);
 
     
     //This getter simply returns the current value of m_lastFaceDirectionEnum, allowing ThrowableObjectComponent to access it.
-
      PlayerDirection GetLastFacingDirection() const { return m_lastFaceDirectionEnum; }
 
     // Weapon & Attack functions
@@ -116,6 +120,9 @@ private:
     // Utility functions
     void ApplyDamageToEnemy(); // Applies damage to enemies
     void RegenerateStamina(float delta); // Regenerates stamina over time
+
+    void RenderThrowPowerBar(); // rendering for the power bar
+
 
     // Animation utility functions
     std::string GetAttackAnimationForDirection(PlayerDirection direction) const;
@@ -172,6 +179,9 @@ private:
     bool m_isHoldingObject = false;
     float m_chargeTime = 0.0f;  // New variable to store charge time for throws
     float m_throwSpeed = 300.0f;  // Speed multiplier for the throw
+    float m_throwPower = 0.0f;       // Power for the throw
+    const float m_maxThrowPower = 100.0f; // Max limit for the throw power
+    const float m_powerChargeRate = 25.0f; // Rate at which power increases
 
     static float s_aAttackCooldown[(int)WeaponType::BOW + 1];
 
