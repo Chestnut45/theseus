@@ -173,19 +173,19 @@ void PlayerController::HandlePlayerInput(float delta)
         SetAction(PlayerAction::NONE);
     }
 
+    // Handle pick up and drop actions
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+        PickUpObject();
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
+        DropObject();
+    }
+
     // If holding an object, handle throw/drop actions
     if (m_isHoldingObject) {
         HandleThrowing(delta);  // Throw if needed
         HandleMovement(delta);  // Continue to allow movement
         return;  // Skip attack or other actions while holding an object
-    }
-
-    // Handle pick up and drop actions
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
-        PickUpObject();
-    }
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q) && m_isHoldingObject) {
-        DropObject();
     }
 
     // Handle regular player actions
