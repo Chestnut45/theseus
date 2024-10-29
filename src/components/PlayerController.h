@@ -94,6 +94,7 @@ private:
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
+    void HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event);
     void HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event);
 
     // Manage and transition different player states
@@ -108,7 +109,7 @@ private:
     void DropObject();
 
     // Utility functions
-    void ApplyDamageToEnemy(); // Applies damage to enemies in range
+    void ApplyDamageToEnemy(); // Applies damage to enemies
     void RegenerateStamina(float delta); // Regenerates stamina over time
 
     // Animation utility functions
@@ -126,7 +127,8 @@ private:
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
-    PlayerDirection m_lastDirectionEnum = PlayerDirection::SOUTH;
+    PlayerDirection m_lastMoveDirectionEnum = PlayerDirection::SOUTH;
+    PlayerDirection m_lastFaceDirectionEnum = PlayerDirection::SOUTH;
     std::vector<int> m_heldKeys;  // List of currently held keys
     float m_moveSpeed = 200.0f;
     float m_inventoryMoveSpeed = 100.0f;
@@ -176,6 +178,7 @@ private:
 
     ColliderManager* m_pColliderManager = nullptr;
 
-    // Weapons
-    WeaponType m_eCurrentWeapon = WeaponType::SWORD;
+    // Default weapon if no weapon equipped
+    WeaponItem* m_pDefaultWeapon = nullptr;
+    WeaponItem* m_pCurrentWeapon = nullptr;
 };
