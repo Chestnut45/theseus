@@ -17,29 +17,6 @@ MerchantInventoryComponent::~MerchantInventoryComponent() {
     wolf::EventManager::AddListener<BoughtItemFromMerchantEvent, MerchantInventoryComponent, &MerchantInventoryComponent::HandleBoughtItemFromMerchantEvent>(*this);
 }
 
-void MerchantInventoryComponent::Open() {
-    m_bIsOpen = true;
-
-    wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
-}
-
-void MerchantInventoryComponent::Close() {
-    m_bIsOpen = false;
-
-    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
-}
-
-void MerchantInventoryComponent::ToggleOpen() {
-    m_bIsOpen = !m_bIsOpen;
-
-    if (m_bIsOpen) {
-        wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
-    }
-    else {
-        wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
-    }
-}
-
 // This method uses the same exact structure as the base class AddItem(ItemBase* p_pItem) method, but
 // it does not add the item to the inventory, it only checks if the item *can* be added
 bool MerchantInventoryComponent::CanAddItem(ItemBase* p_pItem) {

@@ -144,31 +144,6 @@ void ChestInventoryComponent::ShowInventoryGUI() {
     }
 }
 
-void ChestInventoryComponent::Open() {
-    m_bIsOpen = true;
-
-    // Let anyone interested know which specific chest was opened
-    wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
-}
-
-void ChestInventoryComponent::Close() {
-    m_bIsOpen = false;
-
-    // Let anyone interested know which specific chest was closed
-    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
-}
-
-void ChestInventoryComponent::ToggleOpen() {
-    m_bIsOpen = !m_bIsOpen;
-
-    if (m_bIsOpen) {
-        wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
-    }
-    else {
-        wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
-    }
-}
-
 void ChestInventoryComponent::SendItemToPlayer(int p_iItemIndex) {
     // Retrieve the item from the inventory and send it to the player via an event.
     wolf::EventManager::TriggerEvent(SendItemToPlayerInventoryEvent(m_enType, m_iIdNum, this->GetItem(p_iItemIndex), p_iItemIndex));

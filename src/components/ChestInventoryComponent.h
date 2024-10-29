@@ -32,10 +32,6 @@ class ChestInventoryComponent : public InventoryComponent {
         ChestInventoryComponent(ChestInventoryComponent&& other) = delete;
         ChestInventoryComponent& operator=(ChestInventoryComponent&& other) = delete;
 
-        virtual void Open();
-        virtual void Close();
-        virtual void ToggleOpen();
-
         void HandleAddToChestEvent(const SendItemToChestEvent& p_event);
         void HandleRemoveFromChestEvent(const RemoveFromChestEvent& p_event);
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);

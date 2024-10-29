@@ -43,7 +43,7 @@ class InventoryComponent : public wolf::BaseComponent {
         InventoryComponent(InventoryComponent&& other) = delete;
         InventoryComponent& operator=(InventoryComponent&& other) = delete;
 
-        bool FillInventoryFromFile(const std::string& p_strFilePath);
+        virtual bool FillInventoryFromFile(const std::string& p_strFilePath);
 
         InventoryType GetType() {return m_enType;};
         int GetIdNum() {return m_iIdNum;};
@@ -52,13 +52,14 @@ class InventoryComponent : public wolf::BaseComponent {
         ItemBase* GetItem(ItemID p_enItemID);
         ItemBase* GetItem(int p_iItemIndex);
 
-        virtual void Open() {m_bIsOpen = true;};
-        virtual void Close() {m_bIsOpen = false;};
-        virtual void ToggleOpen() {m_bIsOpen = !m_bIsOpen;};
+        void Open();
+        void Close();
+        void ToggleOpen();
 
         bool IsOpen() {return m_bIsOpen;};
 
-        bool AddItem(ItemBase* p_pItem);
+        virtual bool AddItem(ItemBase* p_pItem);
+
         int GetLastUsedSlot() const {return m_iLastUsedSlot;};
 
         // Safe wrapper to delete items if they could not be added
@@ -69,9 +70,9 @@ class InventoryComponent : public wolf::BaseComponent {
             return success; 
         }
 
-        bool RemoveItem(const std::string& p_strItemName);
-        bool RemoveItem(ItemID p_enItemID);
-        bool RemoveItem(int p_iItemIndex);
+        virtual bool RemoveItem(const std::string& p_strItemName);
+        virtual bool RemoveItem(ItemID p_enItemID);
+        virtual bool RemoveItem(int p_iItemIndex);
 
         void EmptyInventory();
         virtual void ShowInventoryGUI();

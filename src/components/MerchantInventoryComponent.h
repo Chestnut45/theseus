@@ -40,10 +40,6 @@ class MerchantInventoryComponent : public InventoryComponent {
         MerchantInventoryComponent(MerchantInventoryComponent&& other) = delete;
         MerchantInventoryComponent& operator=(MerchantInventoryComponent&& other) = delete;
 
-        virtual void Open();
-        virtual void Close();
-        virtual void ToggleOpen();
-
         void SetMarkup(float p_fMarkup) {m_fPercentMarkup = p_fMarkup;};
         float GetMarkup() const {return m_fPercentMarkup;};
 

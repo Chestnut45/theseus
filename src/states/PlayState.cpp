@@ -10,6 +10,7 @@
 #include "../components/PlayerInventoryComponent.h"
 #include "../components/AttackDamageComponent.h"
 #include "../components/MerchantInventoryComponent.h"
+#include "../components/DispensaryInventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/TimedDestroyerComponent.h"
 #include "../components/VelocityComponent.h"
@@ -220,6 +221,18 @@ void PlayState::Update(float delta)
         merchant->ShowInventoryGUI();
     }
 
+    auto* dispensary = m_pPlayerObject->GetComponent<DispensaryInventoryComponent>();
+    if (dispensary) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_8)) {
+            dispensary->ToggleOpen();
+        }
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_9)) {
+            dispensary->FillInventoryFromFile("data/test_dispensary_contents.yaml");
+        }
+
+        dispensary->ShowInventoryGUI();
+    }
+
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
@@ -293,6 +306,7 @@ void PlayState::CreatePlayer()
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     m_pPlayerObject->AddComponent<ChestInventoryComponent>(4, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
     m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f), "Merchant Guy", 0.1f, 50);
+    m_pPlayerObject->AddComponent<DispensaryInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 }
 
 void PlayState::CreateMinitaurEnemy()

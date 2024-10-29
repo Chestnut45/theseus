@@ -464,3 +464,28 @@ bool InventoryComponent::FillInventoryFromFile(const std::string& p_strFilePath)
     // If we didn't encounter any issues, we return true
     return true;
 }
+
+void InventoryComponent::Open() {
+    m_bIsOpen = true;
+
+    // Let anyone interested know which specific chest was opened
+    wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
+}
+
+void InventoryComponent::Close() {
+    m_bIsOpen = false;
+
+    // Let anyone interested know which specific chest was closed
+    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+}
+
+void InventoryComponent::ToggleOpen() {
+    m_bIsOpen = !m_bIsOpen;
+
+    if (m_bIsOpen) {
+        wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
+    }
+    else {
+        wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+    }
+}
