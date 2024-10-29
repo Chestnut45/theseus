@@ -7,6 +7,7 @@
 #include <components/EnemyController.h>
 #include <components/ColliderComponent.h>
 #include <components/InventoryComponent.h>
+#include <components/PlayerInventoryComponent.h>
 #include <iostream>
 
 // !-- Aurora added this --!
@@ -29,7 +30,8 @@ public:
         WALKING,
         JUMPING,
         ROLLING,
-        ATTACKING
+        ATTACKING,
+        IN_INVENTORY
     };
 
     // Enum for player movement directions
@@ -114,6 +116,7 @@ private:
     PlayerDirection m_lastDirectionEnum = PlayerDirection::SOUTH;
     std::vector<int> m_heldKeys;  // List of currently held keys
     float m_moveSpeed = 200.0f;
+    float m_inventoryMoveSpeed = 100.0f;
 
     // Sound effect properties
     wolf::Timer m_walkSoundTimer;

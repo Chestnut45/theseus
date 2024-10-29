@@ -100,16 +100,21 @@ void PlayerController::Update(float delta)
     {
         m_moveSpeed *= 0.5f;
         m_rollSpeed *= 0.5f;
+        m_inventoryMoveSpeed *= 0.5f;
     }
+
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
     {
         m_moveSpeed *= 2;
         m_rollSpeed *= 2;
+        m_inventoryMoveSpeed *= 2;
     }
+    
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
     {
         m_moveSpeed = 200.0f;
         m_rollSpeed = 400.0f;
+        m_inventoryMoveSpeed = 100.0f;
     }
 
     HandlePlayerInput(delta);
@@ -126,12 +131,45 @@ void PlayerController::Update(float delta)
 
 
 // Handle all player inputs and manage states accordingly
-void PlayerController::HandlePlayerInput(float delta)
+void PlayerController::HandlePlayerInput(float delta) 
 {
+    auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
+
+    // Check for Left Alt key (hold) to manage the inventory state
+    if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) 
+    {
+        if (m_action != PlayerAction::IN_INVENTORY) 
+        {
+            playerInventory->Open();
+            m_action = PlayerAction::IN_INVENTORY;
+        }
+    } 
+    else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) 
+    {
+        playerInventory->Close();
+        m_action = PlayerAction::NONE;
+    }
+
+    // IN_INVENTORY state when inventory is toggled with 0 (handled in PlayState)
+    if (playerInventory && playerInventory->IsOpen()) 
+    {
+        m_action = PlayerAction::IN_INVENTORY;
+    }
+    else if (m_action == PlayerAction::IN_INVENTORY) 
+    {
+        m_action = PlayerAction::NONE;
+    }
+
+    // Skip input handling for attacks when in inventory
+    if (m_action != PlayerAction::IN_INVENTORY)
+    {
+        HandleAttacking(delta);
+        HandleRolling(delta);
+        HandleJumping(delta);
+    }
+
+    // Process movement input regardless of inventory state
     HandleMovement(delta);
-    HandleRolling(delta);
-    HandleJumping(delta);
-    HandleAttacking(delta);
 }
 
 // Handle player movement based on input
@@ -165,7 +203,8 @@ void PlayerController::HandleMovement(float delta)
 
     direction = glm::normalize(direction);
     m_lastDirectionEnum = GetDirectionFromVector(direction);
-    m_pVelocity->SetVelocity(direction * m_moveSpeed);
+    float currentSpeed = (m_action == PlayerAction::IN_INVENTORY) ? m_inventoryMoveSpeed : m_moveSpeed;
+    m_pVelocity->SetVelocity(direction * currentSpeed);
 
     if (!m_isRolling && !m_isJumping) m_action = PlayerAction::WALKING;
 }
@@ -173,6 +212,11 @@ void PlayerController::HandleMovement(float delta)
 // Manage attack state and animation transitions
 void PlayerController::HandleAttacking(float delta)
 {
+    if (m_action == PlayerAction::IN_INVENTORY) {
+        // Disable attacking while in inventory
+        return;
+    }
+
     // Start the attack if the left mouse button is pressed and the player is not currently attacking.
     if (wolf::Input::IsLMBJustDown() && !m_isAttacking)
     {
@@ -192,10 +236,12 @@ void PlayerController::HandleAttacking(float delta)
         UpdateAttackState(delta);
     }
 }
-
 // Handle rolling logic based on player input and stamina
 void PlayerController::HandleRolling(float delta)
 {
+    // Prevent rolling if the player is in the inventory state
+    if (m_action == PlayerAction::IN_INVENTORY) return;
+
     if (m_isRolling)
     {
         m_rollTimer -= delta;
@@ -203,12 +249,13 @@ void PlayerController::HandleRolling(float delta)
         return;
     }
 
-    // Only start roll if a direction is being held
+    // Only start roll if a direction is being held and sufficient stamina is available
     glm::vec2 direction(0.0f);
     direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
     direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
     direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
     direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
+
     if (direction != glm::vec2(0.0f) && wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
     {
         StartRoll();
@@ -233,8 +280,8 @@ void PlayerController::HandleJumping(float delta)
 
 void PlayerController::SetAnimationBasedOnState()
 {
-    // Skip if the player is performing an action that overrides animations like attacking, rolling, or jumping.
-    if (m_isAttacking || m_isRolling || m_isJumping) return;
+    // Skip if the player is performing an action that overrides animations like attacking, rolling, jumping, or inventory management.
+    if (m_isAttacking || m_isRolling || m_isJumping || m_action == PlayerAction::IN_INVENTORY) return;
 
     std::string animationName;
 
