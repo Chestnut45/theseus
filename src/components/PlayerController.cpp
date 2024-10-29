@@ -299,7 +299,7 @@ void PlayerController::ThrowHeldObject() {
 // Handle player movement based on input
 void PlayerController::HandleMovement(float delta)
 {
-    if (m_action == PlayerAction::ROLLING) return;  // Skip movement if rolling or throwing
+    if (m_action == PlayerAction::ROLLING) return;  // Skip movement if rolling 
 
     glm::vec2 direction(0.0f);
 
