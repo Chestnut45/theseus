@@ -208,6 +208,18 @@ void PlayState::Update(float delta)
         chest->ShowInventoryGUI();
     }
 
+    auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
+    if (merchant) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
+            merchant->ToggleOpen();
+        }
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
+            merchant->FillInventoryFromFile("data/test_chest_contents.yaml");
+        }
+
+        merchant->ShowInventoryGUI();
+    }
+
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
