@@ -114,7 +114,8 @@ private:
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
-    PlayerDirection m_lastDirectionEnum = PlayerDirection::SOUTH;
+    PlayerDirection m_lastMoveDirectionEnum = PlayerDirection::SOUTH;
+    PlayerDirection m_lastFaceDirectionEnum = PlayerDirection::SOUTH;
     std::vector<int> m_heldKeys;  // List of currently held keys
     float m_moveSpeed = 200.0f;
     float m_inventoryMoveSpeed = 100.0f;

@@ -132,11 +132,11 @@ void PlayerController::Update(float delta)
     RegenerateStamina(delta);
 
     // Call SetAnimationBasedOnState() only if the action or direction has changed
-    if (m_action != m_previousAction || m_lastDirectionEnum != m_previousDirection)
+    if (m_action != m_previousAction || m_lastMoveDirectionEnum != m_previousDirection)
     {
         SetAnimationBasedOnState();
         m_previousAction = m_action;
-        m_previousDirection = m_lastDirectionEnum;
+        m_previousDirection = m_lastMoveDirectionEnum;
     }
 }
 
@@ -213,7 +213,7 @@ void PlayerController::HandleMovement(float delta)
     }
 
     direction = glm::normalize(direction);
-    m_lastDirectionEnum = GetDirectionFromVector(direction);
+    m_lastMoveDirectionEnum = GetDirectionFromVector(direction);
     float currentSpeed = (m_action == PlayerAction::IN_INVENTORY) ? m_inventoryMoveSpeed : m_moveSpeed;
     m_pVelocity->SetVelocity(direction * currentSpeed);
 
@@ -300,16 +300,19 @@ void PlayerController::SetAnimationBasedOnState()
     switch (m_action)
     {
         case PlayerAction::WALKING:
-            animationName = GetWalkAnimationForDirection(m_lastDirectionEnum);
+            animationName = GetWalkAnimationForDirection(m_lastMoveDirectionEnum);
             break;
 
         case PlayerAction::NONE:  // Idle state.
-            animationName = GetIdleAnimationForDirection(m_lastDirectionEnum);
+            animationName = GetIdleAnimationForDirection(m_lastMoveDirectionEnum);
             break;
 
         default:
             return;  // No need to change animation for other states.
     }
+
+    // Set facing direction
+    m_lastFaceDirectionEnum = m_lastMoveDirectionEnum;
 
     // Check if the desired animation is different from the currently playing one.
     if (!animationName.empty() && animationName != m_currentAnimation)
@@ -412,7 +415,7 @@ void PlayerController::StartAttack()
         m_attackTimer.Restart();
 
         // Choose the correct animation based on the player's direction.
-        std::string attackAnimation = GetAttackAnimationForDirection(m_lastDirectionEnum);
+        std::string attackAnimation = GetAttackAnimationForDirection(m_lastMoveDirectionEnum);
 
         // Set the attacking animation.
         m_pAnimComponent->SetAnimation(attackAnimation);
@@ -467,7 +470,7 @@ void PlayerController::ApplyDamageToEnemy()
     glm::vec2 playerDirection;
     glm::vec2 spawnOffset;
 
-    switch (this->m_lastDirectionEnum)
+    switch (this->m_lastFaceDirectionEnum)
     {
         case PlayerDirection::NORTH:       
             playerDirection = glm::normalize(glm::vec2(0.0f, 1.0f));
