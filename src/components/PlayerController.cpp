@@ -224,14 +224,19 @@ void PlayerController::PickUpObject() {
 }
 
 void PlayerController::DropObject() {
-    if (m_isHoldingObject && m_pHeldObject) {  // Only drop if holding a specific object
+    if (m_isHoldingObject && m_pHeldObject) {
         m_pHeldObject->Drop();
         m_isHoldingObject = false;
-        m_pHeldObject = nullptr;  // Clear the reference after dropping
+        m_pHeldObject = nullptr;
+
+        // Reset throw power variables
+        m_throwPower = 0.0f;
+
         SetAction(PlayerAction::NONE);
         std::cout << "Dropped object!" << std::endl;
     }
 }
+
 
 void PlayerController::HandleThrowing(float delta) {
     // Charge the throw power while holding the button
@@ -826,16 +831,41 @@ void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_ev
 }
 
 void PlayerController::RenderThrowPowerBar() {
-    // Position the power bar slightly above the player
+    // Position the power bar on the right side of the screen
     ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-    ImVec2 basePos = ImVec2(displaySize.x / 2.0f - 90.0f / 2.0f, 80.0f); // Adjust position as needed
+    ImVec2 basePos = ImVec2(displaySize.x - 120.0f, displaySize.y / 2.0f - 50.0f); // Right side, centered vertically
+
+    // Push ImGui styles for a more vibrant look with background, rounded frame, and padding
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);           // Rounded corners for the frame
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.0f);          // Rounded corners for the window
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3.0f, 2.0f)); // Padding inside the bar for a thicker look
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f)); // Semi-transparent black background
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 1.0f, 1.0f, 0.5f));   // Soft white border
+
+    // Render background bar with a slightly larger size for a frame effect
+    ImGui::SetNextWindowPos(ImVec2(basePos.x - 5.0f, basePos.y - 5.0f));
+    ImGui::SetNextWindowSize(ImVec2(110.0f, 18.0f));
+    ImGui::Begin("##PowerBarBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+    ImGui::End();
 
     // Render the throw power bar
-    ImGui::SetNextWindowPos(basePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(90.0f, 10.0f));
+    ImGui::SetNextWindowPos(basePos);
+    ImGui::SetNextWindowSize(ImVec2(100.0f, 15.0f));
     ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.0f, 0.5f, 1.0f, 1.0f)); // Blue power bar color
+    ImVec4 barColor = ImVec4(1.0f - (m_throwPower / m_maxThrowPower), (m_throwPower / m_maxThrowPower), 0.0f, 1.0f); // Gradient from red to green
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
     ImGui::ProgressBar(m_throwPower / m_maxThrowPower, ImVec2(-1, 10.0f));
     ImGui::PopStyleColor();
     ImGui::End();
+
+    // Render label "Power" below the bar
+    ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y - 20.0f));
+    ImGui::SetNextWindowSize(ImVec2(100.0f, 10.0f));
+    ImGui::Begin("##PowerLabel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+    ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Power");
+    ImGui::End();
+
+    // Pop all the style vars and colors
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(2);
 }
