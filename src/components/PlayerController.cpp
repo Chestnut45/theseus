@@ -655,7 +655,7 @@ void PlayerController::HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_ev
 
 void PlayerController::HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event)
 {
-    if(this->m_pCurrentWeapon->GetID() == p_event.pWeapon->GetID())
+    if(this->m_pCurrentWeapon == p_event.pWeapon)
     {
         this->m_pCurrentWeapon = this->m_pDefaultWeapon;
     }
