@@ -1184,6 +1184,50 @@ void LabyrinthManager::GenerateChunks()
     const int walls[] = {Tile::WallBottom, Tile::WallBottomLeft, Tile::WallBottomRight, Tile::WallLeft, Tile::WallRight, Tile::WallTop, Tile::WallTopRight, Tile::WallTopLeft};
     const int specialWalls[] = {Tile::WallChest, Tile::WallHelmet, Tile::WallMaze, Tile::WallMinotaur, Tile::WallPillars, Tile::WallPot};
 
+    // Tile directional lookup table
+    // Maps from a bitmasked 4 bit unsigned int denoting directions of adjacent
+    // walls to the specific tile ID representing best fit.
+    // NOTE: Bitmask order is up, down, left, right (most-to-least significant bits).
+    Tile::type wallDirID[] =
+    {
+        Tile::WallMaze,
+        Tile::WallPillars,
+        Tile::WallPillars,
+        Tile::WallBottom,
+        Tile::WallPillars,
+        Tile::WallTopLeft,
+        Tile::WallTopRight,
+        Tile::WallMaze,
+        Tile::WallPillars,
+        Tile::WallBottomLeft,
+        Tile::WallBottomRight,
+        Tile::WallMaze,
+        Tile::WallRight,
+        Tile::WallMaze,
+        Tile::WallMaze,
+        Tile::WallMinotaur
+    };
+
+    Tile::type floorVarID[] =
+    {
+        Tile::WallMinotaur, // Should never happen! (enclosed floor is inaccessible)
+        Tile::FloorSmallSquares,
+        Tile::FloorSmallSquares,
+        Tile::FloorSmallSquares,
+        Tile::FloorSmallSquares,
+        Tile::FloorSmallSquares,
+        Tile::FloorSmallSquares,
+        Tile::FloorSpiral,
+        Tile::FloorSmallSquares,
+        Tile::FloorSmallSquares,
+        Tile::FloorSmallSquares,
+        Tile::FloorSpiral,
+        Tile::FloorSmallSquares,
+        Tile::FloorSpiral,
+        Tile::FloorSpiral,
+        Tile::FloorSquare,
+    };
+
     // Calculate number of chunks per axis
     const int numChunksX = m_width / CHUNK_SIZE + 1;
     const int numChunksY = m_height / CHUNK_SIZE + 1;
@@ -1232,6 +1276,11 @@ void LabyrinthManager::GenerateChunks()
 
                     // Convert from logical tile to specific tile ID
                     int tile = wolf::TileMap::EMPTY_TILE;
+                    unsigned char up = 0;
+                    unsigned char down = 0;
+                    unsigned char left = 0;
+                    unsigned char right = 0;
+                    unsigned char mask = 0;
                     switch (logicalTile)
                     {
                         case LogicalTile::Unvisited:
@@ -1248,7 +1297,19 @@ void LabyrinthManager::GenerateChunks()
                         case LogicalTile::Floor:
                             
                             // Choose a random non-gold floor tile
-                            tile = nonGoldFloors[m_rng.NextInt(0, sizeof(nonGoldFloors) / sizeof(int) - 1)];
+                            // tile = nonGoldFloors[m_rng.NextInt(0, sizeof(nonGoldFloors) / sizeof(int) - 1)];
+
+                            // Grab values for adjacent perpendicular floors
+                            up = worldPos.y == m_height ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y + 1) == LogicalTile::Floor ? 1 : 0;
+                            down = worldPos.y == 0 ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y - 1) == LogicalTile::Floor ? 1 : 0;
+                            left = worldPos.x == 0 ? 0 : m_labyrinthGrid.Get(worldPos.x - 1, worldPos.y) == LogicalTile::Floor ? 1 : 0;
+                            right = worldPos.x == m_width ? 0 : m_labyrinthGrid.Get(worldPos.x + 1, worldPos.y) == LogicalTile::Floor ? 1 : 0;
+
+                            // Combine and align into bitmasked index
+                            mask = (up << 3) | (down << 2) | (left << 1) | right;
+
+                            // Lookup tile for configuration
+                            tile = floorVarID[mask];
                             break;
                         
                         case LogicalTile::Grass:
@@ -1257,8 +1318,17 @@ void LabyrinthManager::GenerateChunks()
                         
                         case LogicalTile::Wall:
 
-                            // TODO: Determine correct wall type based on surrounding tiles
-                            tile = walls[m_rng.NextInt(0, sizeof(walls) / sizeof(int) - 1)];
+                            // Grab values for adjacent perpendicular walls
+                            up = worldPos.y == m_height ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y + 1) == LogicalTile::Wall ? 1 : 0;
+                            down = worldPos.y == 0 ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y - 1) == LogicalTile::Wall ? 1 : 0;
+                            left = worldPos.x == 0 ? 0 : m_labyrinthGrid.Get(worldPos.x - 1, worldPos.y) == LogicalTile::Wall ? 1 : 0;
+                            right = worldPos.x == m_width ? 0 : m_labyrinthGrid.Get(worldPos.x + 1, worldPos.y) == LogicalTile::Wall ? 1 : 0;
+
+                            // Combine and align into bitmasked index
+                            mask = (up << 3) | (down << 2) | (left << 1) | right;
+
+                            // Lookup tile for configuration
+                            tile = wallDirID[mask];
 
                             // TODO: Add wall tile to wall collider for this chunk?
                             break;
