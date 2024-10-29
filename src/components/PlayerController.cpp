@@ -101,22 +101,20 @@ void PlayerController::Update(float delta)
         m_moveSpeed *= 0.5f;
         m_rollSpeed *= 0.5f;
         m_inventoryMoveSpeed *= 0.5f;
-       
     }
+
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
     {
         m_moveSpeed *= 2;
         m_rollSpeed *= 2;
         m_inventoryMoveSpeed *= 2;
-
-
     }
+    
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
     {
         m_moveSpeed = 200.0f;
         m_rollSpeed = 400.0f;
-        m_inventoryMoveSpeed = 200.0f;
-
+        m_inventoryMoveSpeed = 100.0f;
     }
 
     HandlePlayerInput(delta);
