@@ -23,7 +23,8 @@ void ThrowableObjectComponent::Update(float delta) {
             break;
 
         case ThrowableState::THROWN:
-            // In THROWN state, no specific behavior here; PlayerController handles movement
+            HandleCollision();
+            CheckLifetime(delta);
             break;
     }
 }
@@ -95,4 +96,35 @@ void ThrowableObjectComponent::FollowPlayer() {
 
 void ThrowableObjectComponent::SetState(ThrowableState newState) {
     m_state = newState;
+}
+
+void ThrowableObjectComponent::HandleCollision() {
+    if (m_hasCollided) return; // Prevent double collision handling
+
+    for (auto&& [_, minitaurController] : GetGameObject()->GetScene().Each<MinitaurController>()) {
+        auto* minitaurObject = minitaurController.GetGameObject();
+        auto* minitaurCollider = minitaurObject->GetComponent<ColliderComponent>();
+
+        if (minitaurCollider && m_pCollider && m_pColliderManager->IsColliding(m_pCollider, minitaurCollider, 0.0f)) {
+            // Collision detected with Minitaur
+            auto* healthComponent = minitaurObject->GetComponent<HealthComponent>();
+            if (healthComponent) {
+                healthComponent->Damage(200.0f); // Apply damage to Minitaur's health
+                std::cout << "Collision with Minitaur! Damage dealt: 200" << std::endl;
+            }
+            m_hasCollided = true;
+            GetGameObject()->Delete(); // Mark object for deletion
+            return;
+        }
+    }
+}
+
+void ThrowableObjectComponent::CheckLifetime(float delta) {
+    if (m_hasCollided) return; // Skip if collision has already occurred
+
+    m_lifetime -= delta;
+    if (m_lifetime <= 0.0f) {
+        GetGameObject()->Delete(); // Destroy object after timeout
+        std::cout << "Throwable object destroyed due to timeout" << std::endl;
+    }
 }

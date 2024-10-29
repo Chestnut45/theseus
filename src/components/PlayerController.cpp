@@ -257,21 +257,34 @@ void PlayerController::ThrowHeldObject() {
         return;
     }
 
-    // Get player direction and velocity
-    glm::vec2 throwDirection = glm::normalize(glm::vec2(1.0f, 0.0f)); // Example direction
+    // Determine throw direction based on player’s facing direction
+    glm::vec2 throwDirection;
+    switch (m_lastFaceDirectionEnum) {
+        case PlayerDirection::NORTH:       throwDirection = glm::vec2(0.0f, 1.0f); break;
+        case PlayerDirection::EAST:        throwDirection = glm::vec2(1.0f, 0.0f); break;
+        case PlayerDirection::SOUTH:       throwDirection = glm::vec2(0.0f, -1.0f); break;
+        case PlayerDirection::WEST:        throwDirection = glm::vec2(-1.0f, 0.0f); break;
+        case PlayerDirection::NORTH_EAST:  throwDirection = glm::normalize(glm::vec2(1.0f, 1.0f)); break;
+        case PlayerDirection::NORTH_WEST:  throwDirection = glm::normalize(glm::vec2(-1.0f, 1.0f)); break;
+        case PlayerDirection::SOUTH_EAST:  throwDirection = glm::normalize(glm::vec2(1.0f, -1.0f)); break;
+        case PlayerDirection::SOUTH_WEST:  throwDirection = glm::normalize(glm::vec2(-1.0f, -1.0f)); break;
+        default:                           throwDirection = glm::vec2(1.0f, 0.0f); break; // Default to right
+    }
+
+    // Get player’s velocity to add to the throw speed
     VelocityComponent* playerVelocityComponent = GetGameObject()->GetComponent<VelocityComponent>();
     glm::vec2 playerVelocity = playerVelocityComponent ? playerVelocityComponent->GetVelocity() : glm::vec2(0.0f);
 
-    // Set the object's velocity to the throw direction with an added component of the player's velocity
+    // Set the object’s velocity using throw direction and player’s current speed
     if (auto* throwableVelocity = m_pHeldObject->GetGameObject()->GetComponent<VelocityComponent>()) {
         throwableVelocity->SetVelocity(throwDirection * m_throwSpeed + playerVelocity);
-        std::cout << "[DEBUG] Object thrown with velocity: (" << throwableVelocity->GetVelocity().x << ", " << throwableVelocity->GetVelocity().y << ")" << std::endl;
+        std::cout << "[DEBUG] Object thrown with velocity: (" 
+                  << throwableVelocity->GetVelocity().x << ", " 
+                  << throwableVelocity->GetVelocity().y << ")" << std::endl;
     }
 
-    // Set the state of the object to THROWN
+    // Set the state of the object to THROWN and reset player’s hold state
     m_pHeldObject->SetState(ThrowableState::THROWN);
-
-    // Reset the held object reference and state
     m_isHoldingObject = false;
     m_pHeldObject = nullptr;
     SetAction(PlayerAction::NONE);

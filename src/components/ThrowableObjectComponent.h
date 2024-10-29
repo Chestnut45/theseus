@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ColliderComponent.h"
+#include "MinitaurController.h"
+#include "HealthComponent.h"
 #include "wolf.h"
 #include <glm/glm.hpp>
 
@@ -36,6 +38,11 @@ public:
 private:
     void FollowPlayer(); // Makes the object follow the player when picked up
     void RenderPickupPrompt();
+    void HandleCollision();
+    void CheckLifetime(float delta);
+
+    float m_lifetime = 4.0f; // Timer for self-destruction
+    bool m_hasCollided = false; // Flag to check if collision has already occurred
 
     // Components and references
     ColliderComponent* m_pCollider = nullptr;
@@ -47,4 +54,5 @@ private:
     float m_damage;
 
     float m_hoverAnimationOffset = 0.0f; // Offset for floating prompt animation
+
 };

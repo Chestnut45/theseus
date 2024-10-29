@@ -28,7 +28,7 @@ void PlayState::Enter()
 
     // Initialize the player object
     CreatePlayer();
-    CreateThrowableObject();
+
 
 
     // Add the main camera as a child object of the player
@@ -44,6 +44,8 @@ void PlayState::Enter()
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
     m_pLabyrinthManager->GenerateLabyrinth();
+
+    CreateThrowableObject();
 
 
 
@@ -345,16 +347,19 @@ void PlayState::CreateHarpyEnemy()
 
 void PlayState::CreateThrowableObject()
 {
+    // Get the spawn location from the labyrinth manager
+    glm::vec2 spawnLocation = m_pLabyrinthManager->GetSpawnLocation();
+
     // Create a throwable object in the scene
     auto& throwableObj = m_pGameInstance->GetScene().CreateObject2D();
 
-    // Set the initial position (for testing purposes)
+    // Set the initial position based on the spawn location
     auto* transform = throwableObj.GetComponent<wolf::Transform2D>();
     if (transform) {
-        transform->SetPosition(glm::vec2(600.0f, 200.0f)); // Example position
+        transform->SetPosition(spawnLocation); // Set to labyrinth's spawn position
     } else {
         transform = &throwableObj.AddComponent<wolf::Transform2D>();
-        transform->SetPosition(glm::vec2(600.0f, 200.0f));
+        transform->SetPosition(spawnLocation);
     }
 
     // Add a sprite for visual representation (optional)
@@ -371,7 +376,6 @@ void PlayState::CreateThrowableObject()
 
     // Add the throwable component with parameters matching the constructor
     auto& throwable = throwableObj.AddComponent<ThrowableObjectComponent>(25.0f, m_pColliderManager);
-
 }
 
 
