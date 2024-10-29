@@ -157,14 +157,15 @@ void PlayState::Update(float delta)
     {
         attackDamageComponent.Update(delta);
     }
+
     // Update collisions
     this->m_pColliderManager->Update(delta);
 
-    // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
+    // Inflict status effects upon the player
+    for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
     {
-        transform.Translate(velocity.GetVelocity() * delta);
-    }   
+        status.Update();
+    }
 
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
@@ -207,38 +208,23 @@ void PlayState::Update(float delta)
         chest->ShowInventoryGUI();
     }
 
-    auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
-    if (merchant) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
-            merchant->ToggleOpen();
-        }
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
-            merchant->AddItemOrDelete(ItemCreator::CreateItem("Hurting Heart"));
-            merchant->AddItemOrDelete(ItemCreator::CreateItem("Healing Heart"));
-            merchant->AddItemOrDelete(ItemCreator::CreateItem("Dented Helmet"));
-        }
-
-        merchant->ShowInventoryGUI();
-    }
-
-    // Inflict status effects upon the player
-    for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
-    {
-        status.Update();
-    }
-
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
     }
 
-    wolf::EventManager::Dispatch<DialogueTriggerEvent>();
+    // Apply velocity to transforms for all objects with both components
+    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
+    {
+        transform.Translate(velocity.GetVelocity() * delta);
+    }
     
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
 
-    // Update managers
+    // Dispatch events
+    wolf::EventManager::Dispatch<DialogueTriggerEvent>();
     wolf::EventManager::Dispatch();
 }
 
