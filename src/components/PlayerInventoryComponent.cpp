@@ -58,8 +58,9 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     }
 
                     // Then construct the string that will be used to display all of the item's details
-                    strTooltipText = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + pConsumable->GetDescription() 
-                        + "\n\nValue: " + std::to_string(pConsumable->GetValue()) + "\nUses: " + std::to_string(pConsumable->GetNumUses());
+                    strTooltipText = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" 
+                        + pConsumable->GetDescription() + "\n\nValue: " + std::to_string(pConsumable->GetValue()) 
+                        + "\nUses: " + std::to_string(pConsumable->GetNumUses());
 
                 }
                 else if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
@@ -80,7 +81,8 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     }
 
                     // Add the rest of the item's details to the string
-                    strTooltipText += "\n\n" + pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue()) + "\nSlot: " + pEquipment->GetEquipmentSlotString();
+                    strTooltipText += "\n\n" + pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue()) 
+                        + "\nSlot: " + pEquipment->GetEquipmentSlotString();
                 }
                 else { // If for some reason this item isn't Consumable OR Equipment
                     strTooltipText = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + "\n\n" + pItem->GetDescription(); // We only show the name and the description
@@ -191,7 +193,21 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             }
         }
 
-        ImGui::Text("Gold: %d", m_iGold);
+        // Iterate through the schematic counters
+        ImGui::Text("Schematics:");
+        for (int p = 0; p < END_OF_RARITIES; p++) {
+            // Retrieve the color associated with this rarity
+            RGBIntColor color = RarityColors[p];
+
+            // And draw the counter's value in that color
+            ImGui::SameLine();
+            ImGui::TextColored(ImColor(color.r, color.g, color.b), "%d", m_iSchematics[p]);
+        }
+
+        // Draw the player's gold value
+        ImGui::Text("Gold:");
+        ImGui::SameLine();
+        ImGui::TextColored(ImColor(255, 215, 0), "%d", m_iGold); // in gold (ha)
 
         // End of window
         ImGui::End();
@@ -346,6 +362,41 @@ bool PlayerInventoryComponent::TakeGold(int p_iAmt) {
     return true;
 }
 
+void PlayerInventoryComponent::AddSchematics(Rarity p_enRarity, int p_iAmt) {
+    // Add the amount requested to the counter for that particular rarity level
+    m_iSchematics[p_enRarity] += p_iAmt;
+
+    // If that sends us over the limit
+    if (m_iSchematics[p_enRarity] > MAX_SCHEMATICS_PER_RARITY) {
+        // Pretend it didn't.
+        m_iSchematics[p_enRarity] = MAX_SCHEMATICS_PER_RARITY;
+    }
+}
+
+bool PlayerInventoryComponent::TakeSchematics(Rarity p_enRarity, int p_iAmt) {
+    // If taking away that number of schematics would send the rarity counter into the negative
+    if ((m_iSchematics[p_enRarity] - p_iAmt) < 0) {
+        // Then return false and don't take away the schematics
+        return false;
+    }
+
+    // Otherwise, take the amount away and return true
+    m_iSchematics[p_enRarity] -= p_iAmt;
+    return true;
+}
+
+int PlayerInventoryComponent::GetNumSchematics() {
+    int iCount = 0;
+
+    // Go through each of the rarity levels
+    for (int k = 0; k < END_OF_RARITIES; k++) {
+        iCount += m_iSchematics[k]; // And add the amount stored in each to the counter
+    }
+
+    // Then return the count
+    return iCount;
+}
+
 void PlayerInventoryComponent::Close() {
     // Close the inventory
     m_bIsOpen = false;
@@ -387,8 +438,15 @@ void PlayerInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEve
 void PlayerInventoryComponent::HandleSellItemToPlayerEvent(const SellItemToPlayerEvent& p_event) {
     // If we can afford this item
     if (this->TakeGold(p_event.iPrice)) {
-        // And we have space in our inventory for it
-        if (this->AddItem(p_event.pItem)) {
+        // If this is a schematic item
+        if (p_event.pItem->GetID() == SCHEMATIC) {
+            // It needs to be added to the schematic counter(s) rather than the inventory itself
+            this->AddSchematics(p_event.pItem->GetRarity(), 1);
+
+            // Then we need to let the merchant know we've processed our end of the sale so that they can process theirs
+            wolf::EventManager::TriggerEvent(BoughtItemFromMerchantEvent(p_event.iMerchantIdNum, p_event.pItem->GetName(), p_event.iPrice, p_event.iMerchantInventoryIndex));
+        }
+        else if (this->AddItem(p_event.pItem)) { // If this ISN'T a schematic and we have enough room to store it
             // Then we need to let the merchant know we've processed our end of the sale so that they can process theirs
             wolf::EventManager::TriggerEvent(BoughtItemFromMerchantEvent(p_event.iMerchantIdNum, p_event.pItem->GetName(), p_event.iPrice, p_event.iMerchantInventoryIndex));
         }
@@ -411,6 +469,13 @@ void PlayerInventoryComponent::HandleAddToPlayerInventoryEvent(const SendItemToP
     if (p_event.pItem->GetID() == GOLD) {
         // Then we don't add it to our inventory, we just add the gold to our wallet
         this->AddGold(p_event.pItem->GetValue());
+
+        // And let the chest know it no longer has the item
+        wolf::EventManager::TriggerEvent(RemoveFromChestEvent(p_event.iSenderIdNum, p_event.pItem->GetName(), p_event.iSenderInventoryIndex));
+    }
+    else if (p_event.pItem->GetID() == SCHEMATIC) { // If this is a schematic item
+        // Then we don't add it to our inventory either, we add it to our schematic counter(s)
+        this->AddSchematics(p_event.pItem->GetRarity(), 1);
 
         // And let the chest know it no longer has the item
         wolf::EventManager::TriggerEvent(RemoveFromChestEvent(p_event.iSenderIdNum, p_event.pItem->GetName(), p_event.iSenderInventoryIndex));

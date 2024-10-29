@@ -6,6 +6,46 @@ Gold Coin: {
   rarity: COMMON,
 }
 
+Common Schematic: {
+  id: SCHEMATIC,
+  description: One of Daedalus' old schematics. Can be traded at a dispensary for cheap equipment,
+  value: 25,
+  texture_frame: 3,
+  rarity: COMMON
+}
+
+Uncommon Schematic: {
+  id: SCHEMATIC,
+  description: One of Daedalus' old schematics. Can be traded at a dispensary for useful equipment,
+  value: 50,
+  texture_frame: 3,
+  rarity: UNCOMMON
+}
+
+Rare Schematic: {
+  id: SCHEMATIC,
+  description: One of Daedalus' old schematics. Can be traded at a dispensary for strong equipment,
+  value: 75,
+  texture_frame: 3,
+  rarity: RARE
+}
+
+Epic Schematic: {
+  id: SCHEMATIC,
+  description: One of Daedalus' old schematics. Can be traded at a dispensary for powerful equipment,
+  value: 100,
+  texture_frame: 3,
+  rarity: EPIC
+}
+
+Legendary Schematic: {
+  id: SCHEMATIC,
+  description: One of Daedalus' favourite schematics. Can be traded at a dispensary for impressive equipment,
+  value: 125,
+  texture_frame: 3,
+  rarity: LEGENDARY
+}
+
 Healing Heart: {
   id: CONSUMABLE,
   description: This heart will heal you!,

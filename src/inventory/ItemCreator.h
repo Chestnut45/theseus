@@ -16,7 +16,6 @@
 // by searching a .yaml directory for an entry with a given name
 //-----------------------------------------------------------------------------
 
-
 namespace ItemCreator {
     // The item directory that describes all of the items (index by names)
     const std::string ITEM_DIRECTORY_PATH = "data/item_directory.yaml";
@@ -64,6 +63,10 @@ namespace ItemCreator {
             if (strItemId == "GOLD") { // If this is a gold item
                 // Then we don't need anything else so we can just use an ItemBase to create the item
                 pCreatedItem = new ItemBase(GOLD, p_strItemName, strDesc, iValue, true, iTextureFrameIndex, enRarity);
+            }
+            else if (strItemId == "SCHEMATIC") { // If this is a schematic item
+                // Then we have everything we need so we can just use an ItemBase to create the item
+                pCreatedItem = new ItemBase(SCHEMATIC, p_strItemName, strDesc, iValue, false, iTextureFrameIndex, enRarity);
             }
             else if (strItemId == "CONSUMABLE") { // If it is a consumable
                 // All consumables will have these attributes so we look for them

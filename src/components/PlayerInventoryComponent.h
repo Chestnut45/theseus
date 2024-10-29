@@ -22,6 +22,11 @@ class PlayerInventoryComponent : public InventoryComponent {
                     m_iEquipmentSlots[i] = -1;
                 }
 
+                // We also need to fill the schematics array with zeros because we don't have any schematics, yet
+                for (int j = 0; j < END_OF_RARITIES; j++) {
+                    m_iSchematics[j] = 0;
+                }
+
                 // We also need to register for events related to the player's inventory
                 wolf::EventManager::AddListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
                 wolf::EventManager::AddListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
@@ -51,6 +56,12 @@ class PlayerInventoryComponent : public InventoryComponent {
 
         inline int GetGold() {return m_iGold;};
 
+        bool TakeSchematics(Rarity p_enRarity, int p_iAmt);
+        void AddSchematics(Rarity p_enRarity, int p_iAmt);
+        int GetNumSchematics();
+
+        inline int GetNumSchematicsOfRarity(Rarity p_enRarity) const {return m_iSchematics[p_enRarity];};
+
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
         void HandleCloseInventoryEvent(const CloseInventoryEvent& p_event);
         void HandleSellItemToPlayerEvent(const SellItemToPlayerEvent& p_event);
@@ -66,6 +77,8 @@ class PlayerInventoryComponent : public InventoryComponent {
         bool m_bShowFullInventoryPrompt = false;
         bool m_bShowTooExpensivePrompt = false;
 
+        const int MAX_SCHEMATICS_PER_RARITY = 99;
+
         const int MAX_GOLD = 999;
         int m_iGold = 0;
 
@@ -73,4 +86,5 @@ class PlayerInventoryComponent : public InventoryComponent {
         int m_iOpenMerchantIdNum = -1;
 
         int m_iEquipmentSlots[END_OF_EQUIPMENT - 1];
+        int m_iSchematics[END_OF_RARITIES - 1];
 };

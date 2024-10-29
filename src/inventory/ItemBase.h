@@ -20,12 +20,30 @@ enum ItemID {
     SCHEMATIC,
 };
 
+// Each of these should have a corresponding entry in the RarityColors array
 enum Rarity {
     COMMON,
     UNCOMMON,
     RARE,
     EPIC,
     LEGENDARY,
+    END_OF_RARITIES,
+};
+
+// For use with ImGui
+struct RGBIntColor {
+    int r;
+    int g;
+    int b;
+};
+
+// For use with ImGui
+const RGBIntColor RarityColors[] {
+    {255, 255, 255},   // COMMON
+    {30, 255, 0},      // UNCOMMON
+    {0, 112, 221},     // RARE
+    {163, 53, 238},    // EPIC
+    {255, 128, 0},     // LEGENDARY
 };
 
 class ItemBase {
