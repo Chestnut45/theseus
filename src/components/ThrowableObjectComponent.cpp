@@ -60,32 +60,30 @@ bool ThrowableObjectComponent::IsCloseToPlayer(float distanceThreshold) const {
 }
 
 void ThrowableObjectComponent::RenderPickupPrompt() {
-    if (m_pTransform) {
-        auto position = m_pTransform->GetGlobalPosition();
-        ImVec2 promptPosition = ImVec2(position.x, position.y - 40.0f + m_hoverAnimationOffset);
+    // Set screen-space position for the pickup prompt
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    ImVec2 promptPosition = ImVec2(displaySize.x * 0.5f, displaySize.y * 0.8f);  // Centered horizontally, lower portion vertically
 
-        ImGui::SetNextWindowPos(promptPosition);
-        ImGui::SetNextWindowBgAlpha(0.85f);
+    ImGui::SetNextWindowPos(promptPosition, ImGuiCond_Always, ImVec2(0.5f, 0.5f));  // Centered alignment
+    ImGui::SetNextWindowBgAlpha(0.85f);
 
-        // Pulse color and size animation
-        float alphaPulse = 0.6f + 0.4f * sin(ImGui::GetTime() * 3.0f);
-        ImVec4 glowColor = ImVec4(0.8f, 0.92f, 0.3f, alphaPulse); // Neon green glow
+    // Pulse color and size animation for visual feedback
+    float alphaPulse = 0.6f + 0.4f * sin(ImGui::GetTime() * 3.0f);
+    ImVec4 glowColor = ImVec4(0.8f, 0.92f, 0.3f, alphaPulse); // Neon green glow
 
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 5));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.9f));
-        ImGui::PushStyleColor(ImGuiCol_Text, glowColor);
-        ImGui::PushStyleColor(ImGuiCol_Border, glowColor);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 5));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.9f));
+    ImGui::PushStyleColor(ImGuiCol_Text, glowColor);
+    ImGui::PushStyleColor(ImGuiCol_Border, glowColor);
 
-        ImGui::Begin("PickUpPrompt", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
-        ImGui::Text("Press E to pick up");
-        ImGui::End();
+    ImGui::Begin("PickUpPrompt", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
+    ImGui::Text("Press E to pick up");
+    ImGui::End();
 
-        ImGui::PopStyleColor(3);
-        ImGui::PopStyleVar(2);
-    }
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar(2);
 }
-
 void ThrowableObjectComponent::FollowPlayer() {
     for (auto&& [_, playerController] : GetGameObject()->GetScene().Each<PlayerController>()) {
         auto* playerTransform = playerController.GetGameObject()->GetComponent<wolf::Transform2D>();

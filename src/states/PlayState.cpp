@@ -363,7 +363,7 @@ void PlayState::CreateThrowableObject()
 
     // Add a collider to enable interaction with enemies
     auto& collider = throwableObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 1, 0);
-    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));  // Adjusted size for the object
+    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));  // Adjusted size for the object
 
     // Add the velocity component with an initial zero velocity
     auto& velocity = throwableObj.AddComponent<VelocityComponent>();
