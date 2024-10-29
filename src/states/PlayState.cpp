@@ -3,11 +3,14 @@
 #include "DialogueState.h"
 #include <imgui/imgui.h>
 
+#include "../components/ChestInventoryComponent.h"
 #include "../components/ColliderComponent.h"
 #include "../components/HealthComponent.h"
+#include "../components/HomingComponent.h"
 #include "../components/PlayerInventoryComponent.h"
-#include "../components/ChestInventoryComponent.h"
+#include "../components/AttackDamageComponent.h"
 #include "../components/StatusComponent.h"
+#include "../components/TimedDestroyerComponent.h"
 #include "../components/VelocityComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
@@ -51,18 +54,23 @@ void PlayState::Enter()
     //testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
 
 
-    auto& testObj2 = scene.CreateObject2D();
-    testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(5120.0f, 0.0f));
+    // auto& testObj2 = scene.CreateObject2D();
+    // testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+    // testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(6000.0f, 0.0f));
 
-    auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    testSprite2.SetOriginToCenterOfTexture();
+    // auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    // testSprite2.SetOriginToCenterOfTexture();
 
-    auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-    testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
+    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
+    // testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
     
-    auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
-    // testVelocity2.SetVelocity(glm::vec2(64.0f, 0.0f));
+    // auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
+    // testVelocity2.SetVelocity(glm::vec2(0.0f, 128.0f));
+    
+    // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
+    
+    // this->CreateMinitaurEnemy();
+    // this->CreateHarpyEnemy();
 }
 
 void PlayState::Exit()
@@ -110,6 +118,12 @@ void PlayState::Update(float delta)
     //     m_pLabyrinthManager->SetTile(tilePos.x, tilePos.y, -1);
     // }
 
+    // Update timed destroyer components
+    for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
+    {
+        TimedDestroyerComponent.Update(delta);
+    }
+
     // Update all player controllers
     for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<PlayerController>())
     {
@@ -126,23 +140,6 @@ void PlayState::Update(float delta)
     {
         harpyController.Update(delta);  // Update logic for Harpies
     }
-
-    // // Debugging the final minitaur's position and state
-
-    // for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
-    // {
-    //     auto* pGameObject = minitaurController.GetGameObject();
-    //     if (pGameObject)
-    //     {
-    //         auto* transform = pGameObject->GetComponent<wolf::Transform2D>();
-    //         if (transform)
-    //         {
-    //             glm::vec2 pos = transform->GetGlobalPosition();
-    //             printf("Minitaur Render Position: (%f, %f)\n", pos.x, pos.y);  // Debug rendering position
-    //         }
-    //     }
-    // }
-
     
     // Update all animated sprites
     for (auto&&[_, anim] : m_pGameInstance->GetScene().Each<AnimatedSprite2D>())
@@ -150,6 +147,15 @@ void PlayState::Update(float delta)
         anim.Update(delta);
     }
 
+    for (auto&&[_, homing] : m_pGameInstance->GetScene().Each<HomingComponent>())
+    {
+        homing.Update(delta);
+    }
+
+    for(auto&& [_, attackDamageComponent] : m_pGameInstance->GetScene().Each<AttackDamageComponent>())
+    {
+        attackDamageComponent.Update(delta);
+    }
     // Update collisions
     this->m_pColliderManager->Update(delta);
 
@@ -262,7 +268,7 @@ void PlayState::CreatePlayer()
     auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
-    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
+    collider.AddColliderBox(glm::vec2(13.0f, 27.0f), glm::vec2(-7.0f, 13.0f));
 
     // Add health
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
