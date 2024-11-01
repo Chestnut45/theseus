@@ -173,6 +173,16 @@ void PlayerController::HandlePlayerInput(float delta)
         SetAction(PlayerAction::NONE);
     }
 
+    // IN_INVENTORY state when inventory is toggled with 0 (handled in PlayState)
+    if (playerInventory && playerInventory->IsOpen()) 
+    {
+        m_action = PlayerAction::IN_INVENTORY;
+    }
+    else if (m_action == PlayerAction::IN_INVENTORY) 
+    {
+        m_action = PlayerAction::NONE;
+    }
+
     // Handle pick up and drop actions
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
         PickUpObject();
