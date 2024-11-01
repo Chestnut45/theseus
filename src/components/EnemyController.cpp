@@ -50,4 +50,3 @@ void EnemyController::ChangeState(EnemyState newState)
 {
     m_state = newState;
 }
-

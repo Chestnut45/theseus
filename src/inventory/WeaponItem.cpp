@@ -9,6 +9,11 @@ void WeaponItem::SetEquipped(bool p_bEquip) {
         // We let anyone interested know what was just equipped
         wolf::EventManager::TriggerEvent(WeaponEquippedEvent(this));
     }
+    else
+    {
+        // We let anyone interested know what was just unequipped
+        wolf::EventManager::TriggerEvent(WeaponUnequippedEvent(this));
+    }
 };
 
 // The weapon's ProjectileProperties will only be set if the weapon HAS projectiles. It doesn't matter if the weapon is currently able to shoot them, though

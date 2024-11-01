@@ -1,9 +1,15 @@
-#include "PlayerController.h"
-#include "VelocityComponent.h"
-#include "HealthComponent.h"
+
+#include "AttackDamageComponent.h"
 #include "ColliderComponent.h"
-#include "MinitaurController.h"
+#include "HealthComponent.h"
+#include "VelocityComponent.h"
+#include "TimedDestroyerComponent.h"
 #include "HarpyController.h"
+#include "MinitaurController.h"
+#include "PlayerController.h"
+
+#include "../inventory/ItemCreator.h"
+
 #include <W_Input.h>
 #include <W_Logging.h>
 
@@ -20,6 +26,7 @@ PlayerController::PlayerController() = default;
 PlayerController::~PlayerController() {
     wolf::EventManager::RemoveListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
+    wolf::EventManager::RemoveListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
 }
 
 void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
@@ -47,10 +54,14 @@ void PlayerController::LateInitialize()
         return;
     }
 
+    this->m_pDefaultWeapon = dynamic_cast<WeaponItem*>(ItemCreator::CreateItem("Dull Blade"));
+    this->m_pCurrentWeapon = this->m_pDefaultWeapon;
+
     InitializeAnimations();
 
     // !-- Aurora added this --!
     wolf::EventManager::AddListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+    wolf::EventManager::AddListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
 }
 
@@ -100,38 +111,76 @@ void PlayerController::Update(float delta)
     {
         m_moveSpeed *= 0.5f;
         m_rollSpeed *= 0.5f;
+        m_inventoryMoveSpeed *= 0.5f;
     }
+
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
     {
         m_moveSpeed *= 2;
         m_rollSpeed *= 2;
+        m_inventoryMoveSpeed *= 2;
     }
+    
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
     {
         m_moveSpeed = 200.0f;
         m_rollSpeed = 400.0f;
+        m_inventoryMoveSpeed = 100.0f;
     }
 
     HandlePlayerInput(delta);
     RegenerateStamina(delta);
 
     // Call SetAnimationBasedOnState() only if the action or direction has changed
-    if (m_action != m_previousAction || m_lastDirectionEnum != m_previousDirection)
+    if (m_action != m_previousAction || m_lastMoveDirectionEnum != m_previousDirection)
     {
         SetAnimationBasedOnState();
         m_previousAction = m_action;
-        m_previousDirection = m_lastDirectionEnum;
+        m_previousDirection = m_lastMoveDirectionEnum;
     }
 }
 
 
 // Handle all player inputs and manage states accordingly
-void PlayerController::HandlePlayerInput(float delta)
+void PlayerController::HandlePlayerInput(float delta) 
 {
+    auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
+
+    // Check for Left Alt key (hold) to manage the inventory state
+    if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) 
+    {
+        if (m_action != PlayerAction::IN_INVENTORY) 
+        {
+            playerInventory->Open();
+            m_action = PlayerAction::IN_INVENTORY;
+        }
+    } 
+    else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) 
+    {
+        playerInventory->Close();
+        m_action = PlayerAction::NONE;
+    }
+
+    // IN_INVENTORY state when inventory is toggled with 0 (handled in PlayState)
+    if (playerInventory && playerInventory->IsOpen()) 
+    {
+        m_action = PlayerAction::IN_INVENTORY;
+    }
+    else if (m_action == PlayerAction::IN_INVENTORY) 
+    {
+        m_action = PlayerAction::NONE;
+    }
+
+    // Skip input handling for attacks when in inventory
+    if (m_action != PlayerAction::IN_INVENTORY)
+    {
+        HandleAttacking(delta);
+        HandleRolling(delta);
+        HandleJumping(delta);
+    }
+
+    // Process movement input regardless of inventory state
     HandleMovement(delta);
-    HandleRolling(delta);
-    HandleJumping(delta);
-    HandleAttacking(delta);
 }
 
 // Handle player movement based on input
@@ -164,8 +213,9 @@ void PlayerController::HandleMovement(float delta)
     }
 
     direction = glm::normalize(direction);
-    m_lastDirectionEnum = GetDirectionFromVector(direction);
-    m_pVelocity->SetVelocity(direction * m_moveSpeed);
+    m_lastMoveDirectionEnum = GetDirectionFromVector(direction);
+    float currentSpeed = (m_action == PlayerAction::IN_INVENTORY) ? m_inventoryMoveSpeed : m_moveSpeed;
+    m_pVelocity->SetVelocity(direction * currentSpeed);
 
     if (!m_isRolling && !m_isJumping) m_action = PlayerAction::WALKING;
 }
@@ -173,6 +223,11 @@ void PlayerController::HandleMovement(float delta)
 // Manage attack state and animation transitions
 void PlayerController::HandleAttacking(float delta)
 {
+    if (m_action == PlayerAction::IN_INVENTORY) {
+        // Disable attacking while in inventory
+        return;
+    }
+
     // Start the attack if the left mouse button is pressed and the player is not currently attacking.
     if (wolf::Input::IsLMBJustDown() && !m_isAttacking)
     {
@@ -180,7 +235,7 @@ void PlayerController::HandleAttacking(float delta)
     }
 
     // Check if enough time has elapsed since the last attack to allow for damage application.
-    if (m_attackTimer.Elapsed() >= s_aAttackCooldown[(int)m_eCurrentWeapon] && m_isAttacking)
+    if (m_attackTimer.Elapsed() >= s_aAttackCooldown[(int)m_pCurrentWeapon->GetWeaponType()] && m_isAttacking)
     {
         ApplyDamageToEnemy(); // Apply damage if there's a collision with an enemy.
         m_attackTimer.Restart(); // Restart the timer for future attacks.
@@ -192,10 +247,12 @@ void PlayerController::HandleAttacking(float delta)
         UpdateAttackState(delta);
     }
 }
-
 // Handle rolling logic based on player input and stamina
 void PlayerController::HandleRolling(float delta)
 {
+    // Prevent rolling if the player is in the inventory state
+    if (m_action == PlayerAction::IN_INVENTORY) return;
+
     if (m_isRolling)
     {
         m_rollTimer -= delta;
@@ -203,12 +260,13 @@ void PlayerController::HandleRolling(float delta)
         return;
     }
 
-    // Only start roll if a direction is being held
+    // Only start roll if a direction is being held and sufficient stamina is available
     glm::vec2 direction(0.0f);
     direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
     direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
     direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
     direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
+
     if (direction != glm::vec2(0.0f) && wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
     {
         StartRoll();
@@ -233,8 +291,8 @@ void PlayerController::HandleJumping(float delta)
 
 void PlayerController::SetAnimationBasedOnState()
 {
-    // Skip if the player is performing an action that overrides animations like attacking, rolling, or jumping.
-    if (m_isAttacking || m_isRolling || m_isJumping) return;
+    // Skip if the player is performing an action that overrides animations like attacking, rolling, jumping, or inventory management.
+    if (m_isAttacking || m_isRolling || m_isJumping || m_action == PlayerAction::IN_INVENTORY) return;
 
     std::string animationName;
 
@@ -242,16 +300,19 @@ void PlayerController::SetAnimationBasedOnState()
     switch (m_action)
     {
         case PlayerAction::WALKING:
-            animationName = GetWalkAnimationForDirection(m_lastDirectionEnum);
+            animationName = GetWalkAnimationForDirection(m_lastMoveDirectionEnum);
             break;
 
         case PlayerAction::NONE:  // Idle state.
-            animationName = GetIdleAnimationForDirection(m_lastDirectionEnum);
+            animationName = GetIdleAnimationForDirection(m_lastMoveDirectionEnum);
             break;
 
         default:
             return;  // No need to change animation for other states.
     }
+
+    // Set facing direction
+    m_lastFaceDirectionEnum = m_lastMoveDirectionEnum;
 
     // Check if the desired animation is different from the currently playing one.
     if (!animationName.empty() && animationName != m_currentAnimation)
@@ -354,92 +415,13 @@ void PlayerController::StartAttack()
         m_attackTimer.Restart();
 
         // Choose the correct animation based on the player's direction.
-        std::string attackAnimation = GetAttackAnimationForDirection(m_lastDirectionEnum);
+        std::string attackAnimation = GetAttackAnimationForDirection(m_lastMoveDirectionEnum);
 
         // Set the attacking animation.
         m_pAnimComponent->SetAnimation(attackAnimation);
 
         // Store the current animation to handle transitions later.
         m_currentAnimation = attackAnimation;
-
-        // Attack
-        glm::vec2 playerDirection;
-        switch (this->m_lastDirectionEnum)
-        {
-            case PlayerDirection::NORTH:       
-                playerDirection = glm::normalize(glm::vec2(0.0f, 1.0f));
-                break;
-
-            case PlayerDirection::NORTH_EAST:  
-                playerDirection = glm::normalize(glm::vec2(1.0f, 1.0f));
-                break;
-
-            case PlayerDirection::EAST:        
-                playerDirection = glm::normalize(glm::vec2(1.0f, 0.0f));
-                break;
-
-            case PlayerDirection::SOUTH_EAST:  
-                playerDirection = glm::normalize(glm::vec2(1.0f, -1.0f));
-                break;
-
-            case PlayerDirection::SOUTH:       
-                playerDirection = glm::normalize(glm::vec2(0.0f, -1.0f));
-                break;
-
-            case PlayerDirection::SOUTH_WEST:  
-                playerDirection = glm::normalize(glm::vec2(-1.0f, -1.0f));
-                break;
-            
-            case PlayerDirection::WEST:        
-                playerDirection = glm::normalize(glm::vec2(-1.0f, 0.0f));
-                break;
-
-            case PlayerDirection::NORTH_WEST:  
-                playerDirection = glm::normalize(glm::vec2(-1.0f, 1.0f));
-                break;
-
-            default:
-                playerDirection = glm::vec2(0.0f, 0.0f);
-                break;
-        }
-        glm::vec2 playerVelocity = glm::vec2(0.0f);
-
-
-        switch(this->m_eCurrentWeapon)
-        {
-            case WeaponType::BOW:
-            {
-                auto& scene = this->GetGameObject()->GetScene();
-                auto& projectile = scene.CreateObject2D();
-                
-                auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-                projectileSprite.SetOriginToCenterOfTexture();
-                
-                auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-                projectileCollider.SetDamage(10.0f);
-                projectileCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
-
-                
-                auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
-
-                projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-                projectile.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition()));
-
-                VelocityComponent* playerVelocityComponent = this->GetGameObject()->GetComponent<VelocityComponent>();
-
-                if(playerVelocityComponent != nullptr)
-                {
-                    playerVelocity = playerVelocityComponent->GetVelocity();
-                }
-                else
-                {
-                    playerVelocity = glm::vec2(0.0f, 0.0f);
-                }
-                projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
-            
-                break;
-            }
-        }
     }
 }
 
@@ -478,64 +460,134 @@ void PlayerController::UpdateAttackState(float delta)
 
 void PlayerController::ApplyDamageToEnemy()
 {
-    auto* pGameObject = GetGameObject();
-    if (!pGameObject || !m_pTransform) return;
+    // Attack
+    auto* player = this->GetGameObject();
+    if (!player || !m_pTransform) return;
 
-    // Iterate through all Minitaurs in the scene (MinitaurController)
-    for (auto&& [entity, minitaurController] : GetGameObject()->GetScene().Each<MinitaurController>())
+    glm::vec2 playerScale = player->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+    VelocityComponent* playerVelocityComponent = player->GetComponent<VelocityComponent>();
+    glm::vec2 playerVelocity = playerVelocityComponent == nullptr ? glm::vec2(0.0f) : playerVelocityComponent->GetVelocity();
+    glm::vec2 playerDirection;
+    glm::vec2 spawnOffset;
+
+    switch (this->m_lastFaceDirectionEnum)
     {
-        // Get the transform of the Minitaur
-        auto* minitaurTransform = minitaurController.GetGameObject()->GetComponent<wolf::Transform2D>();
-        auto* minitaurHealth = minitaurController.GetGameObject()->GetComponent<HealthComponent>();
+        case PlayerDirection::NORTH:       
+            playerDirection = glm::normalize(glm::vec2(0.0f, 1.0f));
+            break;
 
-        // Ensure the Minitaur has a HealthComponent and a Transform
-        if (!minitaurTransform || !minitaurHealth) continue;
+        case PlayerDirection::NORTH_EAST:  
+            playerDirection = glm::normalize(glm::vec2(1.0f, 1.0f));
+            break;
 
-        // Calculate the distance between the player and the Minitaur
-        const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
-        const glm::vec2 minitaurPosition = minitaurTransform->GetGlobalPosition();
-        const float distanceToMinitaur = glm::length(playerPosition - minitaurPosition);
+        case PlayerDirection::EAST:        
+            playerDirection = glm::normalize(glm::vec2(1.0f, 0.0f));
+            break;
 
-        // Check if the Minitaur is within attack range
-        if (distanceToMinitaur <= m_attackRange)
-        {
-            // Apply damage to the Minitaur
-            minitaurHealth->Damage(m_attackDamage);
-            std::cout << "Player attacked Minitaur! Damage: " << m_attackDamage << std::endl;
-            std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
+        case PlayerDirection::SOUTH_EAST:  
+            playerDirection = glm::normalize(glm::vec2(1.0f, -1.0f));
+            break;
 
-            wolf::Audio::Play("data/sounds/hit.wav");
+        case PlayerDirection::SOUTH:       
+            playerDirection = glm::normalize(glm::vec2(0.0f, -1.0f));
+            break;
 
-            // Optionally, break here if you're only targeting one Minitaur at a time
-            // break;
-        }
+        case PlayerDirection::SOUTH_WEST:  
+            playerDirection = glm::normalize(glm::vec2(-1.0f, -1.0f));
+            break;
+        
+        case PlayerDirection::WEST:        
+            playerDirection = glm::normalize(glm::vec2(-1.0f, 0.0f));
+            break;
+
+        case PlayerDirection::NORTH_WEST:  
+            playerDirection = glm::normalize(glm::vec2(-1.0f, 1.0f));
+            break;
+
+        default:
+            playerDirection = glm::vec2(0.0f, 0.0f);
+            break;
     }
 
-    // Iterate through all Harpies in the scene (HarpyController)
-    for (auto&& [entity, harpyController] : GetGameObject()->GetScene().Each<HarpyController>())
+    switch(this->m_pCurrentWeapon->GetWeaponType())
     {
-        // Get the transform of the Harpy
-        auto* harpyTransform = harpyController.GetGameObject()->GetComponent<wolf::Transform2D>();
-        auto* harpyHealth = harpyController.GetGameObject()->GetComponent<HealthComponent>();
-
-        // Ensure the Harpy has a HealthComponent and a Transform
-        if (!harpyTransform || !harpyHealth) continue;
-
-        // Calculate the distance between the player and the Harpy
-        const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
-        const glm::vec2 harpyPosition = harpyTransform->GetGlobalPosition();
-        const float distanceToHarpy = glm::length(playerPosition - harpyPosition);
-
-        // Check if the Harpy is within attack range
-        if (distanceToHarpy <= m_attackRange)
+        // Spawn projectile for bow
+        case WeaponType::BOW:
         {
-            // Apply damage to the Harpy
-            harpyHealth->Damage(m_attackDamage);
-            std::cout << "Player attacked Harpy! Damage: " << m_attackDamage << std::endl;
-            std::cout << "Harpy Health: " << harpyHealth->GetHealth() << std::endl;
+            // Set data for projectile collider
+            glm::vec2 projectileDimensions = glm::vec2(32.0f, 32.0f);
+            glm::vec2 hurtboxOffset = glm::vec2(-16.0f, 16.0f);
 
-            // Optionally, break here if you're only targeting one Harpy at a time
-            // break;
+            // Spawn projectile object & add components
+            auto& scene = player->GetScene();
+            auto& projectile = scene.CreateObject2D();
+
+            auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+            projectileSprite.SetOriginToCenterOfTexture();
+            
+            auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+            projectileCollider.SetIgnoreTag(player->GetID());
+
+            auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+
+            spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + projectileDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - projectileDimensions.x * 0.5f) : (spawnOffset.x));
+            spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + projectileDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - projectileDimensions.y * 0.5f) : (spawnOffset.y));
+                        
+            projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+           
+            auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+            projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
+        
+            break;
+        }
+        
+        // Spawn melee collider for sword
+        case WeaponType::SWORD:
+        {
+            // Set & calculate data for melee collider
+            glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
+            glm::vec2 offset = glm::vec2(0.0f, 0.0f);
+             
+            if(playerDirection.x != 0.0f)
+            {
+                offset.x = 9.0f;
+                meleeDimensions.y *= 2.0f;
+            }
+
+            if(playerDirection.y != 0.0f)
+            {
+                offset.y = 12.0f;
+                meleeDimensions.x *= 2.0f;
+            }
+
+            // Shift offset along player direction
+            offset.x = playerDirection.x * offset.x;
+            offset.y = playerDirection.y * offset.y;
+
+            // Scale offset by player scale
+            offset *= playerScale;
+
+            auto& scene = player->GetScene();
+
+            // Create melee object & add components
+            auto& melee = scene.CreateObject2D();
+            melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
+
+            auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f, meleeDimensions.y * 0.5f - 0.5f));
+            meleeCollider.SetIgnoreTag(player->GetID());
+
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+            
+            melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
+            melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
+            auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
+
+            auto& meleeVelocity = melee.AddComponent<VelocityComponent>();
+            meleeVelocity.SetVelocity(glm::vec2(0.0f, 0.0f));
+
+            break;
         }
     }
 }
@@ -647,6 +699,15 @@ void PlayerController::Render()
 // !-- Aurora added this --!
 void PlayerController::HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event) {
     printf("The player equipped a %s!\n", p_event.pWeapon->GetName().c_str());
+    this->m_pCurrentWeapon = p_event.pWeapon;
+}
+
+void PlayerController::HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event)
+{
+    if(this->m_pCurrentWeapon == p_event.pWeapon)
+    {
+        this->m_pCurrentWeapon = this->m_pDefaultWeapon;
+    }
 }
 
 void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {
