@@ -64,13 +64,11 @@ private:
     // Private helper methods
     void StartDialogue(const std::string& dialogueID);
     void OnTriggerEvent(const TriggerEvent& event);
-    void OnPressurePlateSteppedOn();
-
     // Creates the player object and all of its components
     // PRE: The player must not have been created yet
     // POST: m_pPlayerObject will be set to a pointer to the newly created player object
     void CreatePlayer();
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
-    void CreatePressurePlate();
+    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType, float trapDamage, float trapLifespan, const glm::vec2& trapOffset);
 };

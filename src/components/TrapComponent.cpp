@@ -2,8 +2,8 @@
 #include "PlayerController.h"
 #include "HealthComponent.h"
 
-TrapComponent::TrapComponent(float damage, float lifespan, ColliderManager* colliderManager)
-    : m_damage(damage), m_lifespan(lifespan), m_colliderManager(colliderManager), m_attackCooldown(1.0f) {
+TrapComponent::TrapComponent(float damage, float lifespan, ColliderManager* colliderManager, TriggerComponent* triggerComponent)
+    : m_damage(damage), m_lifespan(lifespan), m_colliderManager(colliderManager), m_triggerComponent(triggerComponent), m_attackCooldown(1.0f) {
     m_lifespanTimer.Start();
     m_attackCooldownTimer.Start();
 }
@@ -17,6 +17,7 @@ void TrapComponent::Update(float delta) {
     if (!m_isActive) return;
 
     if (m_lifespanTimer.Elapsed() >= m_lifespan) {
+        ResetTrigger();  // Reset the trigger before deletion
         GetGameObject()->Delete();
         return;
     }
@@ -43,4 +44,10 @@ bool TrapComponent::CheckForPlayerCollision(float delta) {
         }
     }
     return false;
+}
+
+void TrapComponent::ResetTrigger() {
+    if (m_triggerComponent) {
+        m_triggerComponent->SetTriggered(false);
+    }
 }
