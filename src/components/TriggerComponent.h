@@ -4,8 +4,6 @@
 #include "TrapComponent.h"
 #include "W_EventManager.h"
 #include "W_Timer.h"
-#include <events/TriggerEvent.h>
-
 class TrapComponent;
 
 enum class TriggerType {

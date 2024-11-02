@@ -16,7 +16,6 @@
 #include "../inventory/StatusEffectItem.h"
 #include "../inventory/ItemCreator.h"
 #include "../events/DialogueTriggerEvent.h"
-#include "../events/TriggerEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
 
