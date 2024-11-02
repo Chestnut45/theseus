@@ -122,7 +122,7 @@ private:
 
     // Sound effect properties
     wolf::Timer m_walkSoundTimer;
-    float m_walkSoundInterval = 0.34f;
+    float m_walkSoundInterval = 0.333333333f;
 
     // Stamina management
     bool m_isRolling = false;
