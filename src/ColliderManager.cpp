@@ -137,8 +137,8 @@ bool ColliderManager::CustomAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
     // If both hitboxes, respond accordingly
     if
     (
-        p_velocity_1->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox()    && 
-        p_velocity_2->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox()
+        p_velocity_1 && p_velocity_1->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox()    && 
+        p_velocity_2 && p_velocity_2->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox()
     )
     {
         glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;
@@ -342,8 +342,8 @@ bool ColliderManager::CustomAABBInternalUse(glm::vec2 p_translation_1, glm::vec2
     // If both hitboxes, respond accordingly
     if
     (
-        p_velocity_1->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox()    && 
-        p_velocity_2->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox()
+        p_velocity_1 && p_velocity_1->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox()    && 
+        p_velocity_2 && p_velocity_2->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox()
     )
     {
         glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;

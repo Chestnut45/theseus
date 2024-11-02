@@ -23,6 +23,7 @@
 // For parsing the labyrinth config file
 #include <yaml-cpp/yaml.h>
 
+#include <ColliderComponent.h>
 #include <EnemyDataLoader.h>
 #include <MinitaurBuilder.h>
 #include <PlayerController.h>
@@ -1260,6 +1261,9 @@ void LabyrinthManager::GenerateChunks()
             auto& tilemap = tilemapObj.AddComponent<wolf::TileMap>(CHUNK_SIZE, CHUNK_SIZE);
             tilemap.LoadTileSet("data/labyrinth.tileset");
 
+            // TESTING: Create collider component
+            auto& collider = tilemapObj.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
+
             // Iterate chunk's tilemap
             for (int y = 0; y < CHUNK_SIZE; ++y)
             {
@@ -1330,7 +1334,9 @@ void LabyrinthManager::GenerateChunks()
                             // Lookup tile for configuration
                             tile = wallDirID[mask];
 
-                            // TODO: Add wall tile to wall collider for this chunk?
+                            // Add wall tile collider
+                            collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE), glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
+
                             break;
                     }
 
