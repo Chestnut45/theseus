@@ -405,8 +405,8 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             auto& trap = trapObj.AddComponent<TrapComponent>(50.0f, 5.0f, m_pColliderManager);
             wolf::Log("Added TrapComponent with damage: 50.0 and lifespan: 5.0");
 
-            auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-            trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
+            auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+            trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
             wolf::Log("Added ColliderComponent to the trap.");
 
             trap.Activate();
@@ -437,8 +437,8 @@ void PlayState::CreatePressurePlate() {
     velocity.SetVelocity(glm::vec2(0.0f, 0.0f));
 
     // Add a collider for interaction
-    auto& collider = pressurePlateObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
-    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, -16.0f));
+    auto& collider = pressurePlateObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
 
     // Add TriggerComponent directly without TriggerManager
     pressurePlateObj.AddComponent<TriggerComponent>(m_pColliderManager);
