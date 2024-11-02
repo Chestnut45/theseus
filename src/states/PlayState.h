@@ -18,6 +18,7 @@
 #include "../events/DialogueTriggerEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
+#include "events/TriggerEvent.h"
 
 #include <TrapComponent.h>
 #include <EnemyController.h>
@@ -45,6 +46,8 @@ public:
     void BackgroundUpdate(float delta) override;
     void BackgroundRender() override;
     void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
+    void OnTriggerEvent(const TriggerEvent& event);
+
 
 private:
     
@@ -68,5 +71,6 @@ private:
     void CreatePlayer();
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
-    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType, float trapDamage, float trapLifespan, const glm::vec2& trapOffset);
+    // Creates a pressure plate with specified position, trigger type, trap damage, lifespan, and offset.
+    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType);
 };

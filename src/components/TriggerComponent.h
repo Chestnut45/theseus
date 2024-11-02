@@ -1,10 +1,10 @@
 #pragma once
 #include "W_BaseComponent.h"
 #include "ColliderComponent.h"
-#include "TrapComponent.h"
 #include "W_EventManager.h"
-#include "W_Timer.h"
-class TrapComponent;
+#include <events/TriggerEvent.h>
+#include <events/TrapDestroyedEvent.h>
+
 
 enum class TriggerType {
     SINGLE_USE,
@@ -13,23 +13,17 @@ enum class TriggerType {
 
 class TriggerComponent : public wolf::BaseComponent {
 public:
-    TriggerComponent(ColliderManager* colliderManager, TriggerType type, float trapDamage, float trapLifespan, glm::vec2 trapOffset);
+    TriggerComponent(ColliderManager* colliderManager, TriggerType type);
+    ~TriggerComponent();
+
 
     void Update(float delta);
-    void SetTriggered(bool triggered);
 
 private:
-    void SpawnTrap();
     bool CheckPlayerCollision(float delta);
-    bool IsTrapActive();
+    void OnTrapDestroyed(const TrapDestroyedEvent& event);  
 
     ColliderManager* m_colliderManager = nullptr;
-    TrapComponent* m_trapComponent = nullptr;
-
     bool m_triggered = false;
     TriggerType m_triggerType;
-
-    float m_trapDamage;
-    float m_trapLifespan;
-    glm::vec2 m_trapOffset;  // Offset for trap position
 };
