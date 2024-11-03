@@ -20,7 +20,8 @@ enum InventoryType {
     BASIC_INVENTORY,
     CHEST_INVENTORY,
     PLAYER_INVENTORY,
-    MERCHANT_INVENTORY
+    MERCHANT_INVENTORY,
+    DISPENSARY_INVENTORY
 };
 
 // Note that this struct is NOT a part of the ImGui library it just uses ImVec2s
@@ -56,7 +57,8 @@ class InventoryComponent : public wolf::BaseComponent {
         void Close();
         void ToggleOpen();
 
-        bool IsOpen() {return m_bIsOpen;};
+        bool IsOpen() const {return m_bIsOpen;};
+        bool IsEmpty() const {return m_iSlotsInUse == 0;};
 
         virtual bool AddItem(ItemBase* p_pItem);
 
@@ -74,7 +76,7 @@ class InventoryComponent : public wolf::BaseComponent {
         virtual bool RemoveItem(ItemID p_enItemID);
         virtual bool RemoveItem(int p_iItemIndex);
 
-        void EmptyInventory();
+        virtual void EmptyInventory();
         virtual void ShowInventoryGUI();
 
     protected:
@@ -161,4 +163,9 @@ struct BoughtItemFromMerchantEvent {
 
     // This is also an optional index that should be included whenever possible
     int iMerchantInventoryIndex = -1;
+};
+
+struct DispenseItemToPlayerEvent {
+    int iDispensaryIdNum;
+    ItemBase* pItem;
 };

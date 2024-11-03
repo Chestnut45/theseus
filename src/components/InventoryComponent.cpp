@@ -313,6 +313,9 @@ void InventoryComponent::EmptyInventory() {
             it->pop();
         }
     }
+
+    // Our inventory is empty now so we're not using any of the slots
+    m_iSlotsInUse = 0;
 }
 
 void InventoryComponent::ShowInventoryGUI() {
@@ -447,10 +450,7 @@ bool InventoryComponent::FillInventoryFromFile(const std::string& p_strFilePath)
                 this->AddItemOrDelete(pNextItem);
             }
             else {
-                // Otherwise, empty the inventory (delete whatever we've made so far)
-                this->EmptyInventory();
-
-                // And return false
+                // Otherwise return false
                 return false;
             }
         }

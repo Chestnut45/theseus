@@ -199,7 +199,7 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
                     strTooltipText += pEquipment->GetName() + "\n\n" + pEquipment->GetDescription()  + "\nSlot: " + pEquipment->GetEquipmentSlotString() + "\n\nPrice: " + std::to_string(iSalePrice);
                 }
                 else { // If for some reason this item isn't Consumable OR Equipment
-                    strTooltipText = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + "\n\n" + pItem->GetDescription() + "\n\nPrice: " + std::to_string(iSalePrice); // We only show the name, description, and cost
+                    strTooltipText = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + pItem->GetDescription() + "\n\nPrice: " + std::to_string(iSalePrice); // We only show the name, description, and cost
                 }
                 
                 // We're also going to store a string representation of the slot index that we're on

@@ -1,41 +1,82 @@
 #include "DispensaryInventoryComponent.h"
 
 DispensaryInventoryComponent::~DispensaryInventoryComponent() {
-    // Empty each of the stacks in the contents vector
+    // Deregister for events
+    wolf::EventManager::RemoveListener<OpenInventoryEvent, DispensaryInventoryComponent, &DispensaryInventoryComponent::HandleOpenInventoryEvent>(*this);
+    wolf::EventManager::RemoveListener<CloseInventoryEvent, DispensaryInventoryComponent, &DispensaryInventoryComponent::HandleCloseInventoryEvent>(*this);
+
+    // Dispensary inventories need to be emptied a bit differently than other inventories
+    // so we use an overloaded version of the EmptyInventory method
     this->EmptyInventory();
 
     // Then delete the contents vector itself
     m_vvpContents.clear();
 }
 
+// AVOID USING THIS METHOD WHEN POSSIBLE. Dispensary contents aren't really
+// meant to change once they've been initialized and FillInventoryFromFile
+// calls this method internally, so there shouldn't really be a reason to
+// manually empty a dispensary inventory.
+void DispensaryInventoryComponent::EmptyInventory() {
+    // Empty the inventory as usual
+    InventoryComponent::EmptyInventory();
+
+    // Then empty all of the rarity index vectors so that we
+    // aren't holding onto indices that don't have anything in 'em
+    for (int k = 0; k < END_OF_RARITIES; k++) {
+        m_arContentsByRarity[k].clear();
+    }
+}
+
+// AVOID USING THIS METHOD WHEN POSSIBLE. If you add an item to a dispensary inventory it
+// needs to be resorted which can take a bit of time. This method should only be used by
+// the FillInventoryFromFile method.
 bool DispensaryInventoryComponent::AddItem(ItemBase* p_pItem) {
     bool result = InventoryComponent::AddItem(p_pItem);
     m_bUnsorted = result;
     return result;
 }
 
+// AVOID USING THIS METHOD WHEN POSSIBLE. If you remove an item to a dispensary inventory it
+// needs to be resorted which can take a bit of time. Dispensary contents should NOT change
+// after intialization via the FillInventoryFromFile method.
 bool DispensaryInventoryComponent::RemoveItem(const std::string& p_strItemName) {
     bool result = InventoryComponent::RemoveItem(p_strItemName);
     m_bUnsorted = result;
     return result;
 }
 
+// AVOID USING THIS METHOD WHEN POSSIBLE. If you remove an item to a dispensary inventory it
+// needs to be resorted which can take a bit of time. Dispensary contents should NOT change
+// after intialization via the FillInventoryFromFile method.
 bool DispensaryInventoryComponent::RemoveItem(ItemID p_enItemID) {
     bool result = InventoryComponent::RemoveItem(p_enItemID);
     m_bUnsorted = result;
     return result;
 }
 
+// AVOID USING THIS METHOD WHEN POSSIBLE. If you remove an item to a dispensary inventory it
+// needs to be resorted which can take a bit of time. Dispensary contents should NOT change
+// after intialization via the FillInventoryFromFile method.
 bool DispensaryInventoryComponent::RemoveItem(int p_iItemIndex) {
     bool result = InventoryComponent::RemoveItem(p_iItemIndex);
     m_bUnsorted = result;
     return result;
 }
 
+
 bool DispensaryInventoryComponent::FillInventoryFromFile(const std::string& p_strFilePath) {
+    // If the inventory has things in it already
+    if (!this->IsEmpty()) {
+        // Empty it out
+        this->EmptyInventory();
+    }
+
+    // Then attempt to fill the inventory and sort its contents
     bool result = InventoryComponent::FillInventoryFromFile(p_strFilePath);
     this->SortByRarity();
 
+    // Return the result
     return result;
 }
 
@@ -74,11 +115,13 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
         // By default, the inventory appears close to the middle of the screen
-        ImGui::SetNextWindowPos({300, 200});
+        ImGui::SetNextWindowPos({200, 200});
         ImGui::SetNextWindowSize({0, 0});
         ImGui::Begin("~ Dispensary ~", nullptr, flags);
 
+        // Go through the list of rarities
         for (int i = 0; i < END_OF_RARITIES; i++) {
+            // Each time we start a new rarity, create a new UI section beneath the rarity
             switch(i) {
                 case COMMON:
                     ImGui::SeparatorText("COMMON");
@@ -97,60 +140,61 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 break;
             }
 
+            // This counter makes sure that we do not have rows of items that are larger than the maximum
             int counter = 0;
 
+            // For each of the rarity item index lists
             std::vector<int> viRarityIndices = m_arContentsByRarity[i];
             for (auto index : viRarityIndices) {
+                // Get the item at each index
                 ItemBase* pItem = this->GetItem(index);
 
+                // And create a tooltip out of the item's information
                 std::string strTooltipText;
 
-                if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
-                    // Try to cast it
-                    EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(pItem);
-                    if (!pEquipment) {
-                        // And throw an error if we couldn't
-                        wolf::Error("Failed to cast ItemBase to EquipmentItem!\n");
-                    }
+                // Every item in this inventory SHOULD be an equipment item, so we try to cast it
+                EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(pItem);
+                if (!pEquipment) {
+                    // And throw an error if we couldn't
+                    wolf::Error("Failed to cast ItemBase to EquipmentItem!\n");
+                }
                     
-                    // Then start constructing the string that will be used to display all of the item's details
-                    strTooltipText = pEquipment->GetName() + "\n\n" + pEquipment->GetDescription() + "\n\nValue: " 
-                        + std::to_string(pEquipment->GetValue()) + "\nSlot: " + pEquipment->GetEquipmentSlotString();
+                // Then start constructing the string that will be used to display all of the item's details
+                strTooltipText = pEquipment->GetName() + "\n\n" + pEquipment->GetDescription() + "\n\nValue: " 
+                    + std::to_string(pEquipment->GetValue()) + "\nSlot: " + pEquipment->GetEquipmentSlotString();
 
-                    std::string strIndex = std::to_string(index);
+                std::string strIndex = std::to_string(index);
 
-                    // Now we can start making the actual buttons
-                    if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
-                    }
+                // Then we make a button (UI inventory slot) for the item
+                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
+                }
                     
-                    // When we hover over an inventory slot
-                    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                        // We display the details string that we constructed earlier
-                        ImGui::BeginTooltip();
-                        ImGui::Text("%s", strTooltipText.c_str());
-                        ImGui::EndTooltip();
-                    }
+                // When we hover over an inventory slot
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    // We display the details string that we constructed earlier
+                    ImGui::BeginTooltip();
+                    ImGui::Text("%s", strTooltipText.c_str());
+                    ImGui::EndTooltip();
+                }
 
-                    // When we click on an inventory slot
-                    if (ImGui::IsItemClicked()) {
-                        // We open a little pop-up menu
-                        ImGui::OpenPopup(strIndex.c_str());
-                    }
+                // When we click on an inventory slot
+                if (ImGui::IsItemClicked()) {
+                    // We open a little pop-up menu
+                    ImGui::OpenPopup(strIndex.c_str());
+                }
                         
-                    // The pop-up menu has different buttons based on what the item is and what "state" it's in
-                    if (ImGui::BeginPopup(strIndex.c_str())) {
-                        if (ImGui::Button("Trade")) {
-                            DispenseItem(index);
-                            ImGui::CloseCurrentPopup();
-                        }
-
-                        // And we can close the pop-up menu whenever we like
-                        if (ImGui::Button("Close")) {
-                            ImGui::CloseCurrentPopup();
-                        }
-                        ImGui::EndPopup();
+                // The pop-up menu has different buttons based on what the item is and what "state" it's in
+                if (ImGui::BeginPopup(strIndex.c_str())) {
+                    if (ImGui::Button("Trade")) {
+                        DispenseItem(index);
+                        ImGui::CloseCurrentPopup();
                     }
 
+                    // And we can close the pop-up menu whenever we like
+                    if (ImGui::Button("Close")) {
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
                 }
 
                 // If we've drawn the maximum number of slots per row
@@ -165,6 +209,14 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 }
             }
 
+            // We want to make sure that the rows of items in the dispensary are uniform even if we have different numbers of items
+            // at each rarity level, so if a rarity level doesn't use an entire row we fill the remaining space with empty slots
+            for (int p = counter; p != m_iMaxPerRow; p++) {
+                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[NONE]->m_v2TopLeft, m_vv2TextureCoords[NONE]->m_v2BotRight)) {}
+                ImGui::SameLine();
+            }
+
+            // Then we start a new line for the next rarity level
             ImGui::NewLine();
         }
 
@@ -173,5 +225,28 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
 }
 
 void DispensaryInventoryComponent::DispenseItem(int p_iItemIndex) {
+    // Send the item to the player via event
+    wolf::EventManager::TriggerEvent(DispenseItemToPlayerEvent(m_iIdNum, this->GetItem(p_iItemIndex)));
+}
 
+void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
+    // If this dispensary is open
+    if (m_bIsOpen) {
+        // And a different dispensary was just opened
+        if (p_event.enType == DISPENSARY_INVENTORY && p_event.iIdNum != m_iIdNum) {
+            // Close this one
+            m_bIsOpen = false;
+        }
+    }
+}
+
+void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
+    // If this dispensary is open
+    if (m_bIsOpen) {
+        // And the player just closed their inventory
+        if (p_event.enType == PLAYER_INVENTORY) {
+            // Close the dispensary as well
+            m_bIsOpen = false;
+        }
+    }
 }

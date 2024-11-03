@@ -12,7 +12,13 @@
 class DispensaryInventoryComponent : public InventoryComponent {
     public:
         DispensaryInventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize)
-            : InventoryComponent(p_iSize, p_iSlotsPerRow, p_strTexture, p_v2TexFrameSize) {};
+            : InventoryComponent(p_iSize, p_iSlotsPerRow, p_strTexture, p_v2TexFrameSize)
+            {
+                m_enType = DISPENSARY_INVENTORY;
+
+                wolf::EventManager::AddListener<OpenInventoryEvent, DispensaryInventoryComponent, &DispensaryInventoryComponent::HandleOpenInventoryEvent>(*this);
+                wolf::EventManager::AddListener<CloseInventoryEvent, DispensaryInventoryComponent, &DispensaryInventoryComponent::HandleCloseInventoryEvent>(*this);
+            };
 
         ~DispensaryInventoryComponent();
 
@@ -24,6 +30,9 @@ class DispensaryInventoryComponent : public InventoryComponent {
         DispensaryInventoryComponent(DispensaryInventoryComponent&& other) = delete;
         DispensaryInventoryComponent& operator=(DispensaryInventoryComponent&& other) = delete;
 
+        // Dispensary inventories behave a bit differently than other inventories
+        // so we need to overload quite a bit of the base functionality
+
         virtual bool FillInventoryFromFile(const std::string& p_strFilePath);
 
         virtual bool AddItem(ItemBase* p_pItem);
@@ -32,7 +41,12 @@ class DispensaryInventoryComponent : public InventoryComponent {
         virtual bool RemoveItem(ItemID p_enItemID);
         virtual bool RemoveItem(int p_iItemIndex);
 
+        virtual void EmptyInventory();
+
         virtual void ShowInventoryGUI();
+
+        void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
+        void HandleCloseInventoryEvent(const CloseInventoryEvent& p_event);
 
     private:
         void DispenseItem(int p_iItemIndex);

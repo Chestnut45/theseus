@@ -31,6 +31,7 @@ class PlayerInventoryComponent : public InventoryComponent {
                 wolf::EventManager::AddListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
                 wolf::EventManager::AddListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
                 wolf::EventManager::AddListener<SellItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleSellItemToPlayerEvent>(*this);
+                wolf::EventManager::AddListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
                 wolf::EventManager::AddListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
                 wolf::EventManager::AddListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
             };
@@ -56,8 +57,8 @@ class PlayerInventoryComponent : public InventoryComponent {
 
         inline int GetGold() {return m_iGold;};
 
-        bool TakeSchematics(Rarity p_enRarity, int p_iAmt);
-        void AddSchematics(Rarity p_enRarity, int p_iAmt);
+        bool TakeSchematic(Rarity p_enRarity);
+        void AddSchematic(Rarity p_enRarity);
         int GetNumSchematics();
 
         inline int GetNumSchematicsOfRarity(Rarity p_enRarity) const {return m_iSchematics[p_enRarity];};
@@ -65,6 +66,7 @@ class PlayerInventoryComponent : public InventoryComponent {
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
         void HandleCloseInventoryEvent(const CloseInventoryEvent& p_event);
         void HandleSellItemToPlayerEvent(const SellItemToPlayerEvent& p_event);
+        void HandleDispenseItemToPlayerEvent(const DispenseItemToPlayerEvent& p_event);
         void HandleAddToPlayerInventoryEvent(const SendItemToPlayerInventoryEvent& p_event);
         void HandleRemoveFromPlayerInventoryEvent(const RemoveFromPlayerInventoryEvent& p_event);
 
@@ -76,6 +78,7 @@ class PlayerInventoryComponent : public InventoryComponent {
 
         bool m_bShowFullInventoryPrompt = false;
         bool m_bShowTooExpensivePrompt = false;
+        bool m_bShowMissingSchematicPrompt = false;
 
         const int MAX_SCHEMATICS_PER_RARITY = 99;
 

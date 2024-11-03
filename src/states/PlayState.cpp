@@ -214,20 +214,13 @@ void PlayState::Update(float delta)
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
             merchant->ToggleOpen();
         }
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
-            merchant->FillInventoryFromFile("data/test_chest_contents.yaml");
-        }
-
         merchant->ShowInventoryGUI();
     }
 
     auto* dispensary = m_pPlayerObject->GetComponent<DispensaryInventoryComponent>();
     if (dispensary) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_8)) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
             dispensary->ToggleOpen();
-        }
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
-            dispensary->FillInventoryFromFile("data/test_dispensary_contents.yaml");
         }
 
         dispensary->ShowInventoryGUI();
@@ -305,8 +298,10 @@ void PlayState::CreatePlayer()
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     m_pPlayerObject->AddComponent<ChestInventoryComponent>(4, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
-    m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f), "Merchant Guy", 0.1f, 50);
-    m_pPlayerObject->AddComponent<DispensaryInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
+    MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f), "Merchant Guy", 0.1f, 50);
+    pMerchant->FillInventoryFromFile("data/test_chest_contents.yaml");
+    DispensaryInventoryComponent* pDispensary = &m_pPlayerObject->AddComponent<DispensaryInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
+    pDispensary->FillInventoryFromFile("data/test_dispensary_contents.yaml");
 }
 
 void PlayState::CreateMinitaurEnemy()
