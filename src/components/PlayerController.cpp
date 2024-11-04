@@ -1,315 +1,715 @@
-#include "PlayerController.h"
-#include "VelocityComponent.h"
 
+#include "AttackDamageComponent.h"
+#include "ColliderComponent.h"
+#include "HealthComponent.h"
+#include "VelocityComponent.h"
+#include "TimedDestroyerComponent.h"
+#include "HarpyController.h"
+#include "MinitaurController.h"
+#include "PlayerController.h"
+
+#include "../inventory/ItemCreator.h"
+
+#include <W_Input.h>
 #include <W_Logging.h>
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
 // Original Author: Youssef Ashraf
-// Modifications: D'Anyil Landry, Aurora, Nguyễn Minh Nhật, Aurora Ryder
-// ver 1.8, updated to use member variables for components,
-// Player State Management, Velocity-Based Movement, Decoupled, Enum Direction, Direction Vector, Stamina
+// ver 2.0: Optimized and restructured for readability and performance.
 //-----------------------------------------------------------------------------
 
-// Constructor
-PlayerController::PlayerController()
-{
+float PlayerController::s_aAttackCooldown[(int)WeaponType::BOW + 1] = {0.25f, 1.0f, 0.5f};
+
+PlayerController::PlayerController() = default;
+
+PlayerController::~PlayerController() {
+    wolf::EventManager::RemoveListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+    wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
+    wolf::EventManager::RemoveListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
 }
 
-void PlayerController::Update(float delta)
+void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
 {
-    // Grab current transform and velocity components from the game object
+    m_pAnimComponent = animComponent;
+}
+
+void PlayerController::SetColliderManager(ColliderManager* pColliderManager)
+{
+    m_pColliderManager = pColliderManager;
+}
+
+ColliderManager* PlayerController::GetColliderManager() const
+{
+    return m_pColliderManager;
+}
+
+// Initialize components related to the player
+void PlayerController::LateInitialize()
+{
     auto* pGameObject = GetGameObject();
     if (!pGameObject)
     {
-        wolf::Error("PlayerController not attached to GameObject!");
+        wolf::Error("LateInitialize failed: PlayerController not attached to GameObject!");
         return;
     }
 
-    m_pTransform = pGameObject->GetComponent<wolf::Transform2D>();
-    m_pVelocity = pGameObject->GetComponent<VelocityComponent>();
-    m_pAnim = pGameObject->GetComponent<AnimatedSprite2D>();
+    this->m_pDefaultWeapon = dynamic_cast<WeaponItem*>(ItemCreator::CreateItem("Dull Blade"));
+    this->m_pCurrentWeapon = this->m_pDefaultWeapon;
 
-    // Camera zoom control
+    InitializeAnimations();
+
+    // !-- Aurora added this --!
+    wolf::EventManager::AddListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+    wolf::EventManager::AddListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
+    wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
+}
+
+// Add and initialize animations for the player character
+void PlayerController::InitializeAnimations()
+{
+    auto* pGameObject = GetGameObject();
+    
+    // Check if the AnimatedSprite2D component exists
+    if (pGameObject->HasAll<AnimatedSprite2D>())
+    {
+        pGameObject->DeleteComponent<AnimatedSprite2D>();  // Use DeleteComponent to remove the existing component
+        wolf::Warning("Removed existing anim component from player...");
+    }
+
+    // Initialize the AnimatedSprite2D component
+    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
+}
+
+// Main update loop for the player controller
+void PlayerController::Update(float delta)
+{
+    auto* pGameObject = GetGameObject();
+    if (!pGameObject) return;
+
+    // Retrieve the active camera through the game's scene using the game object
     auto* pCamera = pGameObject->GetScene().GetActiveCamera();
     if (pCamera)
     {
-        // Double zoom with plus key, half zoom with minus key
         float prevZoom = pCamera->GetZoom();
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_EQUAL)) pCamera->SetZoom(prevZoom * 2);
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_MINUS)) pCamera->SetZoom(prevZoom * 0.5f);
     }
 
-    // Only update if both components exist
-    if (m_pTransform && m_pVelocity)
+    if (!m_pTransform) m_pTransform = GetGameObject()->GetComponent<wolf::Transform2D>();
+    if (!m_pVelocity) m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
+    if (!m_pAnimComponent) LateInitialize();
+
+    if (!m_pTransform || !m_pVelocity || !m_pAnimComponent)
     {
-        // Handle player states based on current action
-        switch (m_action)
-        {
-            case PlayerAction::ROLLING:
-                HandleRolling(delta);
-                break;
-
-            case PlayerAction::JUMPING:
-                HandleJumping(delta);
-                HandleMovement(delta);  // Allow movement while jumping
-                break;
-
-            case PlayerAction::WALKING:
-                HandleMovement(delta);
-                HandleRolling(delta);   // Rolling can interrupt walking
-                HandleJumping(delta);   // Allow jumping while walking
-                break;
-            case PlayerAction::NONE:
-            default:
-                HandleMovement(delta);
-                HandleRolling(delta);   // Rolling can interrupt walking
-                HandleJumping(delta);   // Allow jumping while walking
-                break;
-        }
+        wolf::Error("PlayerController missing essential components!");
+        return;
     }
-    if (m_stamina < m_maxStamina)
+    
+    // Debug speed modifier hotkeys
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
     {
-        if (m_staminaRegenTimer.Elapsed() >= 2.0)
-        {
-            // Regenerate stamina
-            m_stamina += m_staminaRegenRate * delta;
-            if (m_stamina > m_maxStamina)
-                m_stamina = m_maxStamina;
-        }
+        m_moveSpeed *= 0.5f;
+        m_rollSpeed *= 0.5f;
+        m_inventoryMoveSpeed *= 0.5f;
+    }
+
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
+    {
+        m_moveSpeed *= 2;
+        m_rollSpeed *= 2;
+        m_inventoryMoveSpeed *= 2;
+    }
+    
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
+    {
+        m_moveSpeed = 200.0f;
+        m_rollSpeed = 400.0f;
+        m_inventoryMoveSpeed = 100.0f;
+    }
+
+    HandlePlayerInput(delta);
+    RegenerateStamina(delta);
+
+    // Call SetAnimationBasedOnState() only if the action or direction has changed
+    if (m_action != m_previousAction || m_lastMoveDirectionEnum != m_previousDirection)
+    {
+        SetAnimationBasedOnState();
+        m_previousAction = m_action;
+        m_previousDirection = m_lastMoveDirectionEnum;
     }
 }
 
-// Handle movement input (WASD)
+
+// Handle all player inputs and manage states accordingly
+void PlayerController::HandlePlayerInput(float delta) 
+{
+    auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
+
+    // Check for Left Alt key (hold) to manage the inventory state
+    if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) 
+    {
+        if (m_action != PlayerAction::IN_INVENTORY) 
+        {
+            playerInventory->Open();
+            m_action = PlayerAction::IN_INVENTORY;
+        }
+    } 
+    else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) 
+    {
+        playerInventory->Close();
+        m_action = PlayerAction::NONE;
+    }
+
+    // IN_INVENTORY state when inventory is toggled with 0 (handled in PlayState)
+    if (playerInventory && playerInventory->IsOpen()) 
+    {
+        m_action = PlayerAction::IN_INVENTORY;
+    }
+    else if (m_action == PlayerAction::IN_INVENTORY) 
+    {
+        m_action = PlayerAction::NONE;
+    }
+
+    // Skip input handling for attacks when in inventory
+    if (m_action != PlayerAction::IN_INVENTORY)
+    {
+        HandleAttacking(delta);
+        HandleRolling(delta);
+        HandleJumping(delta);
+    }
+
+    // Process movement input regardless of inventory state
+    HandleMovement(delta);
+}
+
+// Handle player movement based on input
 void PlayerController::HandleMovement(float delta)
 {
-    if (m_action == PlayerAction::ROLLING) return; // Disable movement during roll
+    if (m_action == PlayerAction::ROLLING) return;
 
-    PlayerDirection newDirection = GetRollDirection();
-    glm::vec2 direction = GetDirectionVector(newDirection);
+    glm::vec2 direction(0.0f);
 
-    // If the player is moving
-    if (direction != glm::vec2(0.0f))
+    // Track and update currently held keys for smooth directional input
+    direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
+    direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
+    direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
+    direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
+
+    if (glm::length(direction) == 0.0f)
     {
-        m_pVelocity->SetVelocity(direction * m_moveSpeed); // Set velocity 
-        m_lastDirectionEnum = newDirection;
-        m_action = PlayerAction::WALKING;
-        switch (newDirection) {
-            case PlayerDirection::SOUTH:
-                m_pAnim->SetAnimation("WalkSouth");
-                break;
-            case PlayerDirection::SOUTH_EAST:
-                m_pAnim->SetAnimation("WalkEast");
-                break;
-            case PlayerDirection::EAST:
-                m_pAnim->SetAnimation("WalkEast");
-                break;
-            case PlayerDirection::NORTH_EAST:
-                m_pAnim->SetAnimation("WalkEast");
-                break;
-            case PlayerDirection::NORTH:
-                m_pAnim->SetAnimation("WalkNorth");
-            break;
-            case PlayerDirection::NORTH_WEST:
-                m_pAnim->SetAnimation("WalkWest");
-                break;
-            case PlayerDirection::WEST:
-                m_pAnim->SetAnimation("WalkWest");
-                break;
-            case PlayerDirection::SOUTH_WEST:
-                m_pAnim->SetAnimation("WalkWest");
-                break;
-            default:
-                m_pAnim->SetAnimation("WalkSouth");
-                break;
-        }
+        if (!m_isAttacking && !m_isRolling) m_action = PlayerAction::NONE;
+        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        m_walkSoundTimer.Reset();
+        return;
     }
-    else
+
+    // Play walking sound effect
+    if (!m_walkSoundTimer.IsRunning()) m_walkSoundTimer.Start();
+    if (m_walkSoundTimer.Elapsed() > m_walkSoundInterval)
     {
-        // If the player is not moving
-        m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop movement
-        m_action = PlayerAction::NONE;
-        switch (m_lastDirectionEnum) {
-            case PlayerDirection::SOUTH:
-                m_pAnim->SetAnimation("StandSouth");
-                break;
-            case PlayerDirection::SOUTH_EAST:
-                m_pAnim->SetAnimation("StandEast");
-                break;
-            case PlayerDirection::EAST:
-                m_pAnim->SetAnimation("StandEast");
-                break;
-            case PlayerDirection::NORTH_EAST:
-                m_pAnim->SetAnimation("StandEast");
-                break;
-            case PlayerDirection::NORTH:
-                m_pAnim->SetAnimation("StandNorth");
-            break;
-            case PlayerDirection::NORTH_WEST:
-                m_pAnim->SetAnimation("StandWest");
-                break;
-            case PlayerDirection::WEST:
-                m_pAnim->SetAnimation("StandWest");
-                break;
-            case PlayerDirection::SOUTH_WEST:
-                m_pAnim->SetAnimation("StandWest");
-                break;
-            default:
-                m_pAnim->SetAnimation("StandSouth");
-                break;
-        }
+        wolf::Audio::Play("data/sounds/walk.wav");
+        m_walkSoundTimer.Restart();
     }
+
+    direction = glm::normalize(direction);
+    m_lastMoveDirectionEnum = GetDirectionFromVector(direction);
+    float currentSpeed = (m_action == PlayerAction::IN_INVENTORY) ? m_inventoryMoveSpeed : m_moveSpeed;
+    m_pVelocity->SetVelocity(direction * currentSpeed);
+
+    if (!m_isRolling && !m_isJumping) m_action = PlayerAction::WALKING;
 }
 
-// Handle rolling input (Spacebar)
+// Manage attack state and animation transitions
+void PlayerController::HandleAttacking(float delta)
+{
+    if (m_action == PlayerAction::IN_INVENTORY) {
+        // Disable attacking while in inventory
+        return;
+    }
+
+    // Start the attack if the left mouse button is pressed and the player is not currently attacking.
+    if (wolf::Input::IsLMBJustDown() && !m_isAttacking)
+    {
+        StartAttack();
+    }
+
+    // Check if enough time has elapsed since the last attack to allow for damage application.
+    if (m_attackTimer.Elapsed() >= s_aAttackCooldown[(int)m_pCurrentWeapon->GetWeaponType()] && m_isAttacking)
+    {
+        ApplyDamageToEnemy(); // Apply damage if there's a collision with an enemy.
+        m_attackTimer.Restart(); // Restart the timer for future attacks.
+    }
+
+    // Update the attack state and manage transitions.
+    if (m_isAttacking)
+    {
+        UpdateAttackState(delta);
+    }
+}
+// Handle rolling logic based on player input and stamina
 void PlayerController::HandleRolling(float delta)
 {
+    // Prevent rolling if the player is in the inventory state
+    if (m_action == PlayerAction::IN_INVENTORY) return;
+
     if (m_isRolling)
     {
-        glm::vec2 rollDirection = GetDirectionVector(m_lastDirectionEnum);
-        m_pVelocity->SetVelocity(rollDirection * m_rollSpeed); // Continue rolling in last known direction
-
         m_rollTimer -= delta;
-        if (m_rollTimer <= 0)
-        {
-            m_isRolling = false;
-            m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop rolling
-            m_action = PlayerAction::NONE;
-        }
+        if (m_rollTimer <= 0.0f) EndRoll();
+        return;
     }
-    else if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && !m_isRolling)
+
+    // Only start roll if a direction is being held and sufficient stamina is available
+    glm::vec2 direction(0.0f);
+    direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
+    direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
+    direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
+    direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
+
+    if (direction != glm::vec2(0.0f) && wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
     {
-        if (m_stamina >= 15.0f)
-        {
-            m_isRolling = true;
-            m_rollTimer = m_rollDuration;
-            m_action = PlayerAction::ROLLING;
-
-            // Use the last direction for the roll
-            glm::vec2 rollDirection = GetDirectionVector(m_lastDirectionEnum);
-
-            // Consume stamina
-            m_stamina -= 25.0f;
-            if (m_stamina < 0.0f)
-                m_stamina = 0.0f;
-
-            // Start/reset the stamina regeneration timer
-            m_staminaRegenTimer.Restart();
-        }
+        StartRoll();
     }
 }
 
-// Handle jumping input (J key)
+// Manage jumping state transitions
 void PlayerController::HandleJumping(float delta)
 {
-    if (m_action == PlayerAction::ROLLING) return; // Disable jumping during roll
-
     if (m_isJumping)
     {
-        m_pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed)); // Set upward velocity for jump
-
         m_jumpTimer -= delta;
-
-        if (m_jumpTimer <= 0)
-        {
-            m_isJumping = false;
-            m_action = PlayerAction::NONE;
-            m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop upward velocity
-        }
+        if (m_jumpTimer <= 0.0f) EndJump();
     }
-    else if (wolf::Input::IsKeyJustDown(GLFW_KEY_J) && !m_isJumping)
+    else if (wolf::Input::IsKeyJustDown(GLFW_KEY_J))
     {
-        m_isJumping = true;
-        m_jumpTimer = m_jumpHeight / m_jumpSpeed;
-        m_action = PlayerAction::JUMPING;
+        StartJump();
     }
 }
 
-// Get the direction enum based on movement input
-PlayerController::PlayerDirection PlayerController::GetRollDirection() const
+// Set appropriate animation based on player state and direction
+
+void PlayerController::SetAnimationBasedOnState()
 {
-    glm::vec2 direction(0.0f, 0.0f);
-    if (wolf::Input::IsKeyDown(GLFW_KEY_W)) direction.y += 1.0f;
-    if (wolf::Input::IsKeyDown(GLFW_KEY_S)) direction.y -= 1.0f;
-    if (wolf::Input::IsKeyDown(GLFW_KEY_A)) direction.x -= 1.0f;
-    if (wolf::Input::IsKeyDown(GLFW_KEY_D)) direction.x += 1.0f;
+    // Skip if the player is performing an action that overrides animations like attacking, rolling, jumping, or inventory management.
+    if (m_isAttacking || m_isRolling || m_isJumping || m_action == PlayerAction::IN_INVENTORY) return;
 
-    // Normalize the direction if there's movement
-    if (direction != glm::vec2(0.0f, 0.0f))
-        direction = glm::normalize(direction);
+    std::string animationName;
 
-    // Determine and return the correct enum based on direction
-    if (direction.x == 0.0f && direction.y > 0.0f) return PlayerDirection::NORTH;
-    if (direction.x > 0.0f && direction.y > 0.0f) return PlayerDirection::NORTH_EAST;
-    if (direction.x > 0.0f && direction.y == 0.0f) return PlayerDirection::EAST;
-    if (direction.x > 0.0f && direction.y < 0.0f) return PlayerDirection::SOUTH_EAST;
-    if (direction.x == 0.0f && direction.y < 0.0f) return PlayerDirection::SOUTH;
-    if (direction.x < 0.0f && direction.y < 0.0f) return PlayerDirection::SOUTH_WEST;
-    if (direction.x < 0.0f && direction.y == 0.0f) return PlayerDirection::WEST;
-    if (direction.x < 0.0f && direction.y > 0.0f) return PlayerDirection::NORTH_WEST;
-    
-    return PlayerDirection::NONE; // Default case
+    // Determine the correct animation based on state and direction.
+    switch (m_action)
+    {
+        case PlayerAction::WALKING:
+            animationName = GetWalkAnimationForDirection(m_lastMoveDirectionEnum);
+            break;
+
+        case PlayerAction::NONE:  // Idle state.
+            animationName = GetIdleAnimationForDirection(m_lastMoveDirectionEnum);
+            break;
+
+        default:
+            return;  // No need to change animation for other states.
+    }
+
+    // Set facing direction
+    m_lastFaceDirectionEnum = m_lastMoveDirectionEnum;
+
+    // Check if the desired animation is different from the currently playing one.
+    if (!animationName.empty() && animationName != m_currentAnimation)
+    {
+        // Set the new animation.
+        m_pAnimComponent->SetAnimation(animationName);
+
+        // Update the current animation name.
+        m_currentAnimation = animationName;
+    }
 }
 
-
-// Convert direction enum to glm::vec2 for movement
-glm::vec2 PlayerController::GetDirectionVector(PlayerDirection direction) const
+// Utility functions for getting animations based on direction
+std::string PlayerController::GetWalkAnimationForDirection(PlayerDirection direction) const
 {
     switch (direction)
     {
-        case PlayerDirection::NORTH:       return glm::vec2(0.0f, 1.0f);
-        case PlayerDirection::NORTH_EAST:  return glm::vec2(1.0f, 1.0f);
-        case PlayerDirection::EAST:        return glm::vec2(1.0f, 0.0f);
-        case PlayerDirection::SOUTH_EAST:  return glm::vec2(1.0f, -1.0f);
-        case PlayerDirection::SOUTH:       return glm::vec2(0.0f, -1.0f);
-        case PlayerDirection::SOUTH_WEST:  return glm::vec2(-1.0f, -1.0f);
-        case PlayerDirection::WEST:        return glm::vec2(-1.0f, 0.0f);
-        case PlayerDirection::NORTH_WEST:  return glm::vec2(-1.0f, 1.0f);
-        default:                           return glm::vec2(0.0f, 0.0f); 
+        case PlayerDirection::SOUTH:       return "WalkSouth";
+        case PlayerDirection::EAST:        return "WalkEast";
+        case PlayerDirection::NORTH:       return "WalkNorth";
+        case PlayerDirection::WEST:        return "WalkWest";
+        case PlayerDirection::NORTH_EAST:  return "WalkEast";
+        case PlayerDirection::NORTH_WEST:  return "WalkWest";
+        case PlayerDirection::SOUTH_EAST:  return "WalkEast";
+        case PlayerDirection::SOUTH_WEST:  return "WalkWest";
+        default:                           return "WalkSouth";
     }
 }
+
+std::string PlayerController::GetIdleAnimationForDirection(PlayerDirection direction) const
+{
+    switch (direction)
+    {
+        case PlayerDirection::SOUTH:       return "StandSouth";
+        case PlayerDirection::EAST:        return "StandEast";
+        case PlayerDirection::NORTH:       return "StandNorth";
+        case PlayerDirection::WEST:        return "StandWest";
+        case PlayerDirection::NORTH_EAST:  return "StandEast";
+        case PlayerDirection::NORTH_WEST:  return "StandWest";
+        case PlayerDirection::SOUTH_EAST:  return "StandEast";
+        case PlayerDirection::SOUTH_WEST:  return "StandWest";
+        default:                           return "StandSouth";
+    }
+}
+
+PlayerController::PlayerDirection PlayerController::GetDirectionFromVector(const glm::vec2& direction) const
+{
+    if (direction == glm::vec2(0.0f)) return PlayerDirection::NONE;
+
+    glm::vec2 normalized = glm::normalize(direction);
+
+    if (normalized.x > 0.0f && normalized.y > 0.0f) return PlayerDirection::NORTH_EAST;
+    if (normalized.x > 0.0f && normalized.y < 0.0f) return PlayerDirection::SOUTH_EAST;
+    if (normalized.x < 0.0f && normalized.y > 0.0f) return PlayerDirection::NORTH_WEST;
+    if (normalized.x < 0.0f && normalized.y < 0.0f) return PlayerDirection::SOUTH_WEST;
+    if (normalized.x > 0.0f) return PlayerDirection::EAST;
+    if (normalized.x < 0.0f) return PlayerDirection::WEST;
+    if (normalized.y > 0.0f) return PlayerDirection::NORTH;
+    if (normalized.y < 0.0f) return PlayerDirection::SOUTH;
+
+    return PlayerDirection::NONE;
+}
+
+std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection direction) const
+{
+    switch (direction)
+    {
+        case PlayerDirection::SOUTH:       return "SwordAttackSouth";
+        case PlayerDirection::EAST:        return "SwordAttackEast";
+        case PlayerDirection::NORTH:       return "SwordAttackNorth";
+        case PlayerDirection::WEST:        return "SwordAttackWest";
+        case PlayerDirection::NORTH_EAST:  return "SwordAttackEast";
+        case PlayerDirection::NORTH_WEST:  return "SwordAttackWest";
+        case PlayerDirection::SOUTH_EAST:  return "SwordAttackEast";
+        case PlayerDirection::SOUTH_WEST:  return "SwordAttackWest";
+        default:                           return "SwordAttackSouth";
+    }
+}
+
+void PlayerController::RegenerateStamina(float delta)
+{
+    if (m_stamina < m_maxStamina && m_staminaRegenTimer.Elapsed() >= m_staminaRegenDelay)
+    {
+        m_stamina += m_staminaRegenRate * delta;
+        m_stamina = std::min(m_stamina, m_maxStamina); // Clamp stamina to max limit
+    }
+}
+
+void PlayerController::StartAttack()
+{
+    // Check if the player is not already attacking to prevent re-triggering attacks mid-animation.
+    if (!m_isAttacking)
+    {
+        m_isAttacking = true;
+        m_animationFinished = false;
+        m_hasAppliedDamage = false;
+
+        // Set the player action to attacking and reset attack-related timers.
+        m_action = PlayerAction::ATTACKING;
+        m_attackTimer.Restart();
+
+        // Choose the correct animation based on the player's direction.
+        std::string attackAnimation = GetAttackAnimationForDirection(m_lastMoveDirectionEnum);
+
+        // Set the attacking animation.
+        m_pAnimComponent->SetAnimation(attackAnimation);
+
+        // Store the current animation to handle transitions later.
+        m_currentAnimation = attackAnimation;
+    }
+}
+
+void PlayerController::UpdateAttackState(float delta)
+{
+    // Check if the animation has finished playing all its frames
+    if (m_pAnimComponent->IsAnimationFinished())
+    {
+        m_animationFinished = true;
+    }
+
+    // If the animation has finished, transition out of the attacking state
+    if (m_animationFinished)
+    {
+
+        // Reset all attack-related flags
+        m_isAttacking = false;
+        m_animationFinished = false;
+        m_hasAppliedDamage = false;
+
+        // Determine the next action based on the player's velocity
+        if (glm::length(m_pVelocity->GetVelocity()) < 0.01f)
+        {
+            m_action = PlayerAction::NONE; // Set to idle state
+        }
+        else
+        {
+            m_action = PlayerAction::WALKING; // Set to walking state
+        }
+
+        // Clear the current animation and set a new one based on the updated state
+        m_currentAnimation = "";
+        SetAnimationBasedOnState();
+    }
+}
+
+void PlayerController::ApplyDamageToEnemy()
+{
+    // Attack
+    auto* player = this->GetGameObject();
+    if (!player || !m_pTransform) return;
+
+    glm::vec2 playerScale = player->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+    VelocityComponent* playerVelocityComponent = player->GetComponent<VelocityComponent>();
+    glm::vec2 playerVelocity = playerVelocityComponent == nullptr ? glm::vec2(0.0f) : playerVelocityComponent->GetVelocity();
+    glm::vec2 playerDirection;
+    glm::vec2 spawnOffset;
+
+    switch (this->m_lastFaceDirectionEnum)
+    {
+        case PlayerDirection::NORTH:       
+            playerDirection = glm::normalize(glm::vec2(0.0f, 1.0f));
+            break;
+
+        case PlayerDirection::NORTH_EAST:  
+            playerDirection = glm::normalize(glm::vec2(1.0f, 1.0f));
+            break;
+
+        case PlayerDirection::EAST:        
+            playerDirection = glm::normalize(glm::vec2(1.0f, 0.0f));
+            break;
+
+        case PlayerDirection::SOUTH_EAST:  
+            playerDirection = glm::normalize(glm::vec2(1.0f, -1.0f));
+            break;
+
+        case PlayerDirection::SOUTH:       
+            playerDirection = glm::normalize(glm::vec2(0.0f, -1.0f));
+            break;
+
+        case PlayerDirection::SOUTH_WEST:  
+            playerDirection = glm::normalize(glm::vec2(-1.0f, -1.0f));
+            break;
+        
+        case PlayerDirection::WEST:        
+            playerDirection = glm::normalize(glm::vec2(-1.0f, 0.0f));
+            break;
+
+        case PlayerDirection::NORTH_WEST:  
+            playerDirection = glm::normalize(glm::vec2(-1.0f, 1.0f));
+            break;
+
+        default:
+            playerDirection = glm::vec2(0.0f, 0.0f);
+            break;
+    }
+
+    switch(this->m_pCurrentWeapon->GetWeaponType())
+    {
+        // Spawn projectile for bow
+        case WeaponType::BOW:
+        {
+            // Set data for projectile collider
+            glm::vec2 projectileDimensions = glm::vec2(32.0f, 32.0f);
+            glm::vec2 hurtboxOffset = glm::vec2(-16.0f, 16.0f);
+
+            // Spawn projectile object & add components
+            auto& scene = player->GetScene();
+            auto& projectile = scene.CreateObject2D();
+
+            auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+            projectileSprite.SetOriginToCenterOfTexture();
+            
+            auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+            projectileCollider.SetIgnoreTag(player->GetID());
+
+            auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+
+            spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + projectileDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - projectileDimensions.x * 0.5f) : (spawnOffset.x));
+            spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + projectileDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - projectileDimensions.y * 0.5f) : (spawnOffset.y));
+                        
+            projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+           
+            auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+            projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
+        
+            break;
+        }
+        
+        // Spawn melee collider for sword
+        case WeaponType::SWORD:
+        {
+            // Set & calculate data for melee collider
+            glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
+            glm::vec2 offset = glm::vec2(0.0f, 0.0f);
+             
+            if(playerDirection.x != 0.0f)
+            {
+                offset.x = 9.0f;
+                meleeDimensions.y *= 2.0f;
+            }
+
+            if(playerDirection.y != 0.0f)
+            {
+                offset.y = 12.0f;
+                meleeDimensions.x *= 2.0f;
+            }
+
+            // Shift offset along player direction
+            offset.x = playerDirection.x * offset.x;
+            offset.y = playerDirection.y * offset.y;
+
+            // Scale offset by player scale
+            offset *= playerScale;
+
+            auto& scene = player->GetScene();
+
+            // Create melee object & add components
+            auto& melee = scene.CreateObject2D();
+            melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
+
+            auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f, meleeDimensions.y * 0.5f - 0.5f));
+            meleeCollider.SetIgnoreTag(player->GetID());
+
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+            
+            melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
+            melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
+            auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
+
+            auto& meleeVelocity = melee.AddComponent<VelocityComponent>();
+            meleeVelocity.SetVelocity(glm::vec2(0.0f, 0.0f));
+
+            break;
+        }
+    }
+}
+void PlayerController::StartRoll()
+{
+    m_isRolling = true;
+    m_rollTimer = m_rollDuration;
+    glm::vec2 rollDirection = m_pVelocity->GetVelocity(); // Get current movement direction
+    if (glm::length(rollDirection) > 0.0f)
+    {
+        rollDirection = glm::normalize(rollDirection) * m_rollSpeed; // Set velocity based on roll speed
+        m_pVelocity->SetVelocity(rollDirection);
+    }
+    m_action = PlayerAction::ROLLING;
+    m_stamina -= 25.0f;
+    m_staminaRegenTimer.Restart();
+}
+
+void PlayerController::EndRoll()
+{
+    m_isRolling = false;
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    m_action = PlayerAction::NONE;
+}
+
+void PlayerController::StartJump()
+{
+    m_isJumping = true;
+    m_jumpTimer = m_jumpHeight / m_jumpSpeed;
+    m_action = PlayerAction::JUMPING;
+    m_pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed));
+}
+
+void PlayerController::EndJump()
+{
+    m_isJumping = false;
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    m_action = PlayerAction::NONE;
+}
+
+std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction)
+{
+    switch (direction)
+    {
+        case PlayerController::PlayerDirection::NONE:        os << "NONE"; break;
+        case PlayerController::PlayerDirection::NORTH:       os << "NORTH"; break;
+        case PlayerController::PlayerDirection::NORTH_EAST:  os << "NORTH_EAST"; break;
+        case PlayerController::PlayerDirection::EAST:        os << "EAST"; break;
+        case PlayerController::PlayerDirection::SOUTH_EAST:  os << "SOUTH_EAST"; break;
+        case PlayerController::PlayerDirection::SOUTH:       os << "SOUTH"; break;
+        case PlayerController::PlayerDirection::SOUTH_WEST:  os << "SOUTH_WEST"; break;
+        case PlayerController::PlayerDirection::WEST:        os << "WEST"; break;
+        case PlayerController::PlayerDirection::NORTH_WEST:  os << "NORTH_WEST"; break;
+        default:                                             os << "UNKNOWN"; break;
+    }
+    return os;
+}
+
 void PlayerController::Render()
 {
     if (!m_pTransform) return;
 
-    // Get the player's position
-    glm::vec2 worldPos = m_pTransform->GetGlobalPosition();
+    float barWidth = 180.0f;
+    float barHeight = 18.0f;
+    float verticalOffset = 10.0f;  // Offset between health and stamina bars
 
-    // Get the active camera
-    wolf::Camera2D* camera = GetGameObject()->GetScene().GetActiveCamera();
-    if (!camera) return;
-
-    // Get the combined view-projection matrix
-    glm::mat4 viewProj = camera->GetMatrix();
-
-    // Convert world position to clip space
-    glm::vec4 worldPos4(worldPos.x, worldPos.y, 0.0f, 1.0f);
-    glm::vec4 clipSpacePos = viewProj * worldPos4;
-
-    // Normalize device coordinates
-    glm::vec3 ndcSpacePos = clipSpacePos / clipSpacePos.w;
-
-    // Convert to screen space
+    // Position both bars at the top-center of the screen
     ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-    glm::vec2 screenPos = glm::vec2(
-        (ndcSpacePos.x * 0.5f + 0.5f) * displaySize.x,
-        (1.0f - (ndcSpacePos.y * 0.5f + 0.5f)) * displaySize.y
-    );
+    ImVec2 basePos = ImVec2(displaySize.x / 2.0f - barWidth / 2.0f, 20.0f);
 
-    // Adjust position to be above the player
-    screenPos.y -= 60.0f;
+    // Push ImGui style variables for a more polished and "arty" look
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);          // Rounded corners
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);           // Rounded frame corners
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 2.0f)); // Inner padding
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.8f)); // Semi-transparent background
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));   // Border color
+    ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0.1f, 0.1f, 0.1f, 0.5f)); // Shadow effect
 
-    // Draw the stamina bar
-    ImGui::SetNextWindowPos(ImVec2(screenPos.x - 25.0f, screenPos.y)); // Center the bar above the player
-    ImGui::SetNextWindowSize(ImVec2(50.0f, 10.0f)); // Set window size
+    // Render the health bar at the top-center of the screen
+    auto* healthComponent = GetGameObject()->GetComponent<HealthComponent>();
+    if (healthComponent)
+    {
+        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for health bar
+        ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
+        ImGui::Begin("##HealthBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1.0f, 0.0f, 0.0f, 1.0f)); // Deep red health color
+        ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1, barHeight));
+        ImGui::PopStyleColor(); // Pop color for health bar
+        ImGui::End();
+    }
 
+    // Move the position down for the stamina bar
+    basePos.y += (barHeight + verticalOffset);
+
+    // Render the stamina bar below the health bar
+    ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for stamina bar
+    ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
     ImGui::Begin("##StaminaBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-
-    // Calculate stamina percentage
-    float staminaPercent = m_stamina / m_maxStamina;
-
-    // Draw the stamina bar
-    ImGui::ProgressBar(staminaPercent, ImVec2(-1, 0)); // Full width, default height
-
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.0f, 1.0f, 0.0f, 1.0f)); // Green stamina color
+    ImGui::ProgressBar(m_stamina / m_maxStamina, ImVec2(-1, barHeight)); // Full width, defined height
+    ImGui::PopStyleColor(); // Pop color for stamina bar
     ImGui::End();
+
+    // Pop ImGui style variables and colors
+    ImGui::PopStyleVar(3); // Pop style variables (WindowRounding, FrameRounding, and FramePadding)
+    ImGui::PopStyleColor(3); // Pop style colors (WindowBg, Border, and BorderShadow)
+}
+
+// !-- Aurora added this --!
+void PlayerController::HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event) {
+    printf("The player equipped a %s!\n", p_event.pWeapon->GetName().c_str());
+    this->m_pCurrentWeapon = p_event.pWeapon;
+}
+
+void PlayerController::HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event)
+{
+    if(this->m_pCurrentWeapon == p_event.pWeapon)
+    {
+        this->m_pCurrentWeapon = this->m_pDefaultWeapon;
+    }
+}
+
+void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {
+    printf("The player equipped a %s!\n", p_event.pArmour->GetName().c_str());
 }

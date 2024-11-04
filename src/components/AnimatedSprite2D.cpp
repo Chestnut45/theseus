@@ -8,7 +8,10 @@
 // 
 //-----------------------------------------------------------------------------
 
+#include "W_GameObject.h"
 #include "W_Logging.h"
+
+#include <yaml-cpp/yaml.h>
 
 // Initialize the counter
 int AnimatedSprite2D::s_iAnimSprite2DCount = 0;
@@ -21,40 +24,55 @@ const float AnimatedSprite2D::m_arBaseVertexData[] = {
     1.0f, 1.0f, 1.0f, 0.0f
 };
 
+AnimatedSprite2D::AnimatedSprite2D(const std::string& p_strPathToInit)
+{
+    // Keep track of how many instances of AnimatedSprite2D exist for resource management
+    IncreaseReferences();
+
+    try {
+        // Grab the file
+        YAML::Node node = YAML::LoadFile(p_strPathToInit);
+
+        // Get the frame size
+        glm::vec2 v2Size;
+        v2Size.x = node["frame_size"]["x"].as<float>();
+        v2Size.y = node["frame_size"]["y"].as<float>();
+
+        // Get the playback speed
+        float fSpeed = node["playback_speed"].as<float>();
+
+        // Figure out which animation we'll be starting with and grab it's texture path and name
+        std::string strTexture = node["start_animation"]["texture"].as<std::string>();
+        std::string strStartAnimName = node["start_animation"]["name"].as<std::string>();
+
+        // Because AnimatedSprite2Ds will be frequently changing the UV coordinates they use
+        // to render, we need to do a bit of processing when we create or change the texture.
+        SetTexture(strTexture, v2Size);
+
+        // We're going to want to save the playback speed for later
+        m_fPlaybackSpeed = fSpeed;
+
+        // Now we need to start processing the animation sets
+        YAML::Node animSets = node["animation_sets"];
+        for (int i = 0; i < animSets.size(); ++i) {
+            std::string strSetFilePath = animSets[i].as<std::string>();
+            AddAnimationSet(strSetFilePath);
+        }
+
+        // Once we've done that, we can set the start animation as active and setup the sprite origin
+        SetAnimation(strStartAnimName);
+        SetOriginToCenterOfFrame();
+    }
+    catch (YAML::Exception& e) {
+        // Throw an error if something goes wrong
+        wolf::Error("Error parsing file '", p_strPathToInit.c_str(), "': ", e.what());
+    }
+}
+
 AnimatedSprite2D::AnimatedSprite2D(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize, float p_fPlaybackSpeed)
 {
-    // If there are currently no AnimatedSprite2D instances then we need to create shader resources
-    if (s_iAnimSprite2DCount == 0) {
-        // *** The following code segment is taken directly from D'Anyil Landry's W_Sprite2D.cpp _IncreaseRefCount() ***
-        // *** some modifications have been made, but the majority of the code is the same                           ***
-
-        // Load shader program
-        s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d.fs");
-
-        // Create vertex buffer
-        s_pVertexBuffer = wolf::BufferManager::CreateVertexBuffer(m_arBaseVertexData, sizeof(m_arBaseVertexData));
-
-        // Generate index buffer data
-        unsigned short indexData[6] =
-        {
-            0, 2, 1, 1, 2, 3
-        };
-
-        // Create index buffer
-        s_pIndexBuffer = wolf::BufferManager::CreateIndexBuffer(indexData, 6);
-
-        // Create vertex declaration (VAO)
-        s_pVAO = new wolf::VertexDeclaration();
-
-        s_pVAO->Begin();
-        s_pVAO->SetVertexBuffer(s_pVertexBuffer);
-        s_pVAO->SetIndexBuffer(s_pIndexBuffer);
-        s_pVAO->AppendAttribute(wolf::Attribute::AT_Position, 2, wolf::ComponentType::CT_Float, 0);
-        s_pVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
-        s_pVAO->End();
-
-        // *** End of borrowed code segment ***
-    }
+    // Keep track of how many instances of AnimatedSprite2D exist for resource management
+    IncreaseReferences();
 
     // Because AnimatedSprite2Ds will be frequently changing the UV coordinates they use
     // to render, we need to do a bit of processing when we create or change the texture.
@@ -62,9 +80,6 @@ AnimatedSprite2D::AnimatedSprite2D(const std::string& p_strPathToAnimSheet, cons
 
     // We're going to want to save the playback speed for later
     m_fPlaybackSpeed = p_fPlaybackSpeed;
-
-    // And we need to keep track of how many instances of AnimatedSprite2D exist for resource management
-    s_iAnimSprite2DCount++;
 }
 
 bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize) {
@@ -209,7 +224,7 @@ AnimatedSprite2D::~AnimatedSprite2D() {
 
 bool AnimatedSprite2D::AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_vec2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop) {
     // Check that the start and end frames are valid
-    if (p_iStartFrame > p_iEndFrame || p_iStartFrame < 0 || p_iEndFrame < 0 || p_iStartFrame > m_vpFrameUVCoords.size() || p_iEndFrame > m_vpFrameUVCoords.size()) {
+    if (p_iStartFrame > p_iEndFrame || p_iStartFrame < 0 || p_iEndFrame < 0) {
         wolf::Error("Attempted to add animation to AnimatedSprite2D with invalid start and end frames.");
         return false;
     }
@@ -243,6 +258,8 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[m_pCurrentAnim->m_iStartFrame];
         m_bFrameChanged = true;
+        m_bIsAnimFinished = false;
+        m_iAnimLoopCount = 0;
     }
 }
 
@@ -265,6 +282,8 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame + p_iTargetAnimFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[iTargetFrame];
         m_bFrameChanged = true;
+        m_bIsAnimFinished = false;
+        m_iAnimLoopCount = 0;
     }
 }
 
@@ -282,8 +301,10 @@ void AnimatedSprite2D::Update(float p_fDelta) {
             if (m_pCurrentAnim->m_bLoop) {
                 // And if it is, restart the animation
                 m_fCurrentFrame = (float)m_pCurrentAnim->m_iStartFrame;
+                m_iAnimLoopCount++;
             }
             else {
+                m_bIsAnimFinished = true;
                 m_fCurrentFrame = (float)m_pCurrentAnim->m_iEndFrame;
             }
         }
@@ -345,10 +366,10 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
         m_arTempVertexData[15] = m_pCurrentFrameUVs->m_v2BotRight.y; // V
         
         // Once we've got our temporary array set up, we can copy the data to the buffer using glBufferSubData
-        glBufferSubData(GL_ARRAY_BUFFER, 0, 16 * sizeof(GLfloat), this->m_arTempVertexData);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(m_arTempVertexData), m_arTempVertexData);
 
         // Then we reset the flag
-        m_bFrameChanged = false;
+        
     }
 
     // And perform the rest of the draw call
@@ -379,4 +400,80 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
 
     // Unbind
     glBindVertexArray(0);
+}
+
+// Note that all animations in an animation set are assumed to have the SAME texture file and frame size,
+// If this is NOT the case, restructure your animation sets until it is.
+bool AnimatedSprite2D::AddAnimationSet(const std::string& p_strPathToSetFile) {
+    try {
+        // Grab the file
+        YAML::Node node = YAML::LoadFile(p_strPathToSetFile);
+
+        // Get the texture path
+        std::string strTexture = node["texture"].as<std::string>();
+
+        // Get the frame size
+        glm::vec2 v2Size;
+        v2Size.x = node["frame_size"]["x"].as<float>();
+        v2Size.y = node["frame_size"]["y"].as<float>();
+
+        // Then go through each of the animations in the set
+        YAML::Node animations = node["animations"];
+        for (int i = 0; i < animations.size(); ++i) {
+            // Get the node that represents each individual animation
+            YAML::Node anim = animations[i];
+
+            // And retrieve their unique information
+            std::string strName = anim["name"].as<std::string>();  // Name
+            int iStart = anim["start_frame"].as<int>(); // What frame it starts on (inclusive)
+            int iEnd = anim["end_frame"].as<int>(); // What frame it ends on (inclusive)
+            bool bLoops = anim["loops"].as<bool>(); // And whether the animation loops
+
+            // Then add the animation to the AnimatedSprite2D component
+            this->AddAnimation(strName, strTexture, v2Size, iStart, iEnd, bLoops);
+        }
+        return true;
+    }
+    catch (YAML::Exception& e) { // If something went wrong, we need to throw an error
+        wolf::Error("Error parsing file '", p_strPathToSetFile.c_str(), "': ", e.what());
+        return false;
+    }
+}
+
+void AnimatedSprite2D::IncreaseReferences()
+{
+    // If there are currently no AnimatedSprite2D instances then we need to create shader resources
+    if (s_iAnimSprite2DCount == 0) {
+        // *** The following code segment is taken directly from D'Anyil Landry's W_Sprite2D.cpp _IncreaseRefCount() ***
+        // *** some modifications have been made, but the majority of the code is the same                           ***
+
+        // Load shader program
+        s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d.fs");
+
+        // Create vertex buffer
+        s_pVertexBuffer = wolf::BufferManager::CreateVertexBuffer(m_arBaseVertexData, sizeof(m_arBaseVertexData));
+
+        // Generate index buffer data
+        unsigned short indexData[6] =
+        {
+            0, 2, 1, 1, 2, 3
+        };
+
+        // Create index buffer
+        s_pIndexBuffer = wolf::BufferManager::CreateIndexBuffer(indexData, 6);
+
+        // Create vertex declaration (VAO)
+        s_pVAO = new wolf::VertexDeclaration();
+
+        s_pVAO->Begin();
+        s_pVAO->SetVertexBuffer(s_pVertexBuffer);
+        s_pVAO->SetIndexBuffer(s_pIndexBuffer);
+        s_pVAO->AppendAttribute(wolf::Attribute::AT_Position, 2, wolf::ComponentType::CT_Float, 0);
+        s_pVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
+        s_pVAO->End();
+
+        // *** End of borrowed code segment ***
+    }
+
+    s_iAnimSprite2DCount++;
 }

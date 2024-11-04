@@ -59,16 +59,16 @@ public:
     int GetTile(int x, int y) const;
 
     // Sets the tile at the given location to the given ID.
-    // NOTE: Does nothing if position is out of bounds.
+    // NOTE: Logs an error if position is out of bounds.
     // NOTE: Does not validate tileID
     void SetTile(int x, int y, int tileID);
 
     // Deletes all tiles in the map.
-    void Clear();
+    void Clear(int tile = EMPTY_TILE);
 
     // Resizes the map to the given dimensions.
     // NOTE: Resizing will clear the map too!
-    void Resize(int width, int height);
+    void Resize(int width, int height, int clearTile = EMPTY_TILE);
 
     // TODO: Set origin to center of tilemap (including tile texture size)
 
@@ -76,6 +76,9 @@ public:
     // Multiplies final pixel color by provided tint color
     // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
     void Draw(const glm::vec2& position, float rotationRadians = 0.0f, const glm::vec2& scale = glm::vec2(1.0f), const glm::vec3& tint = glm::vec3(1.0f));
+
+    // TODO: Generate a collider component that lines up with collidable tiles
+    void GenerateCollider();
 
 // Implementation
 private:
@@ -115,7 +118,7 @@ private:
         glm::ivec2 m_tileSize{0};
     };
 
-    // Map from file path to refernece counted tile set array texture ID
+    // Map from file path to reference counted tile set array texture ID
     static inline std::unordered_map<std::string, TileSetEntry> s_tileSetIDMap;
 
     // Static rendering resources

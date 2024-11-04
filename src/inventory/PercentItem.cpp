@@ -4,7 +4,7 @@ void PercentItem::Use() {
     // Figure out which attribute this item is affecting and send the corresponding event
     switch(this->m_enAttrib) {
         case HEALTH:
-            wolf::EventManager::EnqueueEvent(PercentHealItemEvent(this->m_fAmt));
+            wolf::EventManager::EnqueueEvent(PercentHealthItemEvent(this->m_fAmt));
         break;
 
         case STAMINA:

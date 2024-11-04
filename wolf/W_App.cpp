@@ -99,13 +99,13 @@ App::App(const std::string& name, int width, int height)
 
     // Initialize audio system
     // NOTE: Commented out until we find a fix for soloud crashing
-    // Audio::_Setup();
+    Audio::_Setup();
 }
 
 App::~App()
 {
     // Shutdown audio system
-    // Audio::_Shutdown();
+    Audio::_Shutdown();
     
     // Shutdown ImGui
     ImGui_ImplOpenGL3_Shutdown();

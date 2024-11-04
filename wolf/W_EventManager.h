@@ -46,14 +46,14 @@ public:
         s_dispatcher.trigger(event);
     }
 
-    // Adds an event of the given type to the internal queue.
+    // Adds an event of the given type to the type's internal queue.
     template <typename EventType>
     static void EnqueueEvent(const EventType& event)
     {
         s_dispatcher.enqueue(event);
     }
 
-    // Dispatches all queued events of the given type immediately.
+    // Dispatches all queued events of the GIVEN TYPE immediately.
     // NOTE: Execution order of listeners is not guaranteed!
     template <typename EventType>
     static void Dispatch()
@@ -61,7 +61,7 @@ public:
         s_dispatcher.update<EventType>();
     }
 
-    // Dispatches all queued events of any type immediately.
+    // Dispatches all queued events of ALL TYPES immediately.
     // NOTE: Execution order of listeners is not guaranteed!
     static void Dispatch()
     {
