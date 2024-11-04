@@ -105,6 +105,8 @@ void PlayerController::Update(float delta)
         wolf::Error("PlayerController missing essential components!");
         return;
     }
+    // check and convert tile to gold
+    CheckAndConvertTileToGold();
     
     // Debug speed modifier hotkeys
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
@@ -713,3 +715,53 @@ void PlayerController::HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& 
 void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {
     printf("The player equipped a %s!\n", p_event.pArmour->GetName().c_str());
 }
+
+// setting the labyrinth manager
+void PlayerController::SetLabyrinthManager(LabyrinthManager* labyrinthManager) {
+    m_labyrinthManager = labyrinthManager;
+}
+
+// getting gold variant 
+int GetGoldVariant(int tileID) {
+    switch (tileID) {
+        case Tile::FloorSquare:
+        case Tile::FloorSmallSquares:
+            return Tile::FloorSquareGold;
+        case Tile::FloorSpiral:
+            return Tile::FloorSpiralGold;
+        default:
+            return -1; // No gold variant
+    }
+}
+
+//implementation of checking and converting current tile to gold
+
+void PlayerController::CheckAndConvertTileToGold() {
+    if (!m_labyrinthManager) {
+        wolf::Log("PlayerController: LabyrinthManager is not set.");
+        return;
+    }
+
+    // Calculate the bottom-center position of the player
+    glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
+    glm::vec2 playerScale = m_pTransform->GetGlobalScale();
+    glm::vec2 bottomCenterPosition = playerPosition + glm::vec2(0.0f, -playerScale.y * 0.5f);
+
+    // Round the bottom center position to avoid floating-point precision issues
+    glm::vec2 roundedPosition = glm::round(bottomCenterPosition);
+
+    // Get the tile position corresponding to the player's rounded bottom-center
+    glm::ivec2 tilePos = m_labyrinthManager->GetTilePosition(roundedPosition);
+
+    // Get the current tile ID
+    int currentTileID = m_labyrinthManager->GetTile(tilePos.x, tilePos.y);
+
+    // Get the gold variant of the current tile
+    int goldTileID = GetGoldVariant(currentTileID);
+    
+    // If there's a gold variant, set the tile to its gold version
+    if (goldTileID != -1) {
+        m_labyrinthManager->SetTile(tilePos.x, tilePos.y, goldTileID);
+    } 
+}
+

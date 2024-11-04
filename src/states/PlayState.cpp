@@ -41,6 +41,13 @@ void PlayState::Enter()
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
     m_pLabyrinthManager->GenerateLabyrinth();
+    
+    //set the labyrinth manager in the player controller
+    auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
+    if (playerController) {
+        playerController->SetLabyrinthManager(m_pLabyrinthManager);
+    }
+
 
     // Testing: Create a test projectile object
     // auto& testObj = scene.CreateObject2D();
@@ -256,7 +263,6 @@ void PlayState::CreatePlayer()
     // NOTE: This manages all player animations and the animated sprite component for the player
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
-
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));
