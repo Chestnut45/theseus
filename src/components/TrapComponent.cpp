@@ -15,7 +15,7 @@ void TrapComponent::Update(float delta) {
     // Check if the lifespan has expired
     if (m_lifespanTimer.Elapsed() >= m_lifespan) {
         // Send event before deleting the trap
-        wolf::Log("Triggering TrapDestroyedEvent for GameObject " + std::to_string(GetGameObject()->GetID()));
+        // wolf::Log("Triggering TrapDestroyedEvent for GameObject " + std::to_string(GetGameObject()->GetID()));
         wolf::EventManager::TriggerEvent(TrapDestroyedEvent(GetGameObject()));
         GetGameObject()->Delete();
         return;

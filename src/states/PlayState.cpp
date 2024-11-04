@@ -389,7 +389,7 @@ void PlayState::CreatePressurePlate(const glm::vec2& position, TriggerType trigg
     pressurePlateObj.AddComponent<TriggerComponent>(m_pColliderManager, triggerType);
 
     // Log to confirm creation
-    wolf::Log("Created pressure plate with TriggerComponent at position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
+    // wolf::Log("Created pressure plate with TriggerComponent at position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
 }
 
 void PlayState::OnTriggerEvent(const TriggerEvent& event) {
@@ -407,7 +407,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             glm::vec2 trapPosition = plateTransform->GetGlobalPosition() + glm::vec2(0.0f, -64.0f); // Adjust as necessary
 
             // Create the trap object
-            wolf::Log("Creating trap at position: (" + std::to_string(trapPosition.x) + ", " + std::to_string(trapPosition.y) + ")");
+            // wolf::Log("Creating trap at position: (" + std::to_string(trapPosition.x) + ", " + std::to_string(trapPosition.y) + ")");
             auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
 
             // Add trap sprite
@@ -432,7 +432,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             // Add TrapComponent with some parameters (e.g., 50 damage, 5 seconds lifespan)
             trapObj.AddComponent<TrapComponent>(50.0f, 5.0f, m_pColliderManager);
             
-            wolf::Log("Trap created and activated.");
+            // wolf::Log("Trap created and activated.");
         }
     }
 }
