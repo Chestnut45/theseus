@@ -31,21 +31,21 @@ void ThrowableObjectComponent::Update(float delta) {
 void ThrowableObjectComponent::PickUp() {
     if (m_state == ThrowableState::IDLE) {
         m_state = ThrowableState::PICKED_UP;
-        std::cout << "Throwable object picked up!" << std::endl;
+        // std::cout << "Throwable object picked up!" << std::endl;
     }
 }
 
 void ThrowableObjectComponent::Drop() {
     if (m_state == ThrowableState::PICKED_UP) {
         m_state = ThrowableState::IDLE;
-        std::cout << "Throwable object dropped!" << std::endl;
+        // std::cout << "Throwable object dropped!" << std::endl;
     }
 }
 
 void ThrowableObjectComponent::SetThrown() {
     if (m_state == ThrowableState::PICKED_UP) {
         m_state = ThrowableState::THROWN;
-        std::cout << "Throwable object thrown!" << std::endl;
+        // std::cout << "Throwable object thrown!" << std::endl;
     }
 }
 
@@ -130,7 +130,7 @@ void ThrowableObjectComponent::HandleCollision() {
             auto* healthComponent = minitaurObject->GetComponent<HealthComponent>();
             if (healthComponent) {
                 healthComponent->Damage(200.0f); // Apply damage to Minitaur's health
-                std::cout << "Collision with Minitaur! Damage dealt: 200" << std::endl;
+                // std::cout << "Collision with Minitaur! Damage dealt: 200" << std::endl;
             }
             m_hasCollided = true;
             GetGameObject()->Delete(); // Mark object for deletion
@@ -145,6 +145,6 @@ void ThrowableObjectComponent::CheckLifetime(float delta) {
     m_lifetime -= delta;
     if (m_lifetime <= 0.0f) {
         GetGameObject()->Delete(); // Destroy object after timeout
-        std::cout << "Throwable object destroyed due to timeout" << std::endl;
+        // std::cout << "Throwable object destroyed due to timeout" << std::endl;
     }
 }

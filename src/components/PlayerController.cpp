@@ -227,7 +227,7 @@ void PlayerController::PickUpObject() {
             m_pHeldObject = &throwable;           // Store reference to the held object
             m_isHoldingObject = true;
             SetAction(PlayerAction::PICKING_UP);  // Temporary state while picking up
-            std::cout << "Picked up object!" << std::endl;
+            // std::cout << "Picked up object!" << std::endl;
             return;
         }
     }
@@ -243,7 +243,7 @@ void PlayerController::DropObject() {
         m_throwPower = 0.0f;
 
         SetAction(PlayerAction::NONE);
-        std::cout << "Dropped object!" << std::endl;
+        // std::cout << "Dropped object!" << std::endl;
     }
 }
 
@@ -268,7 +268,7 @@ void PlayerController::HandleThrowing(float delta) {
 
 void PlayerController::ThrowHeldObject() {
     if (!m_isHoldingObject || !m_pHeldObject) {
-        std::cout << "No object is being held to throw!" << std::endl;
+        // std::cout << "No object is being held to throw!" << std::endl;
         return;
     }
 
@@ -294,8 +294,8 @@ void PlayerController::ThrowHeldObject() {
     if (auto* throwableVelocity = m_pHeldObject->GetGameObject()->GetComponent<VelocityComponent>()) {
         glm::vec2 finalVelocity = throwDirection * m_throwPower + playerVelocity;
         throwableVelocity->SetVelocity(finalVelocity);
-        std::cout << "[DEBUG] Object thrown with velocity: (" 
-                  << finalVelocity.x << ", " << finalVelocity.y << ")" << std::endl;
+        // std::cout << "[DEBUG] Object thrown with velocity: (" 
+                //   << finalVelocity.x << ", " << finalVelocity.y << ")" << std::endl;
     }
 
     // Set the state of the held object to THROWN and reset holding variables
