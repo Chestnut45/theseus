@@ -8,8 +8,6 @@
 #include <components/ColliderComponent.h>
 #include <components/InventoryComponent.h>
 #include <components/PlayerInventoryComponent.h>
-#include "LabyrinthManager.h"
-#include <LabyrinthTiles.h>
 #include <iostream>
 
 // !-- Aurora added this --!
@@ -71,8 +69,7 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction);
     void SetColliderManager(ColliderManager* pColliderManager);
     ColliderManager* GetColliderManager() const;
-    //setter for the labyrinth manager
-    void SetLabyrinthManager(LabyrinthManager* labyrinthManager);
+
 
     // Weapon & Attack functions
 
@@ -103,8 +100,6 @@ private:
     // Utility functions
     void ApplyDamageToEnemy(); // Applies damage to enemies
     void RegenerateStamina(float delta); // Regenerates stamina over time
-    void CheckAndConvertTileToGold(); // function to be implemented to handle checking and converting the tile to gold
-
 
     // Animation utility functions
     std::string GetAttackAnimationForDirection(PlayerDirection direction) const;
@@ -165,8 +160,6 @@ private:
     PlayerDirection m_previousDirection = PlayerDirection::NONE;
 
     ColliderManager* m_pColliderManager = nullptr;
-    //reference that will be assigned when labrytinthmanager is created in the playstate
-    LabyrinthManager* m_labyrinthManager = nullptr; 
 
     // Default weapon if no weapon equipped
     WeaponItem* m_pDefaultWeapon = nullptr;

@@ -60,6 +60,7 @@ private:
 
     // Private helper methods
     void StartDialogue(const std::string& dialogueID);
+    void ConvertPlayerTileToGold();
 
     // Creates the player object and all of its components
     // PRE: The player must not have been created yet
