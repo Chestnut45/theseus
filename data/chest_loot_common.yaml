@@ -1,0 +1,5 @@
+items: 1
+loot_table: [
+  {name: Common Schematic, probability: 2},
+  {name: Dull Blade, probability: 1}
+]
