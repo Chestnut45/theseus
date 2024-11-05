@@ -74,4 +74,7 @@ private:
     // Creates a pressure plate with specified position, trigger type, trap damage, lifespan, and offset.
     void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType);
     void CreateThrowableObject();
+
+    // Displays the open chest tooltip
+    void ShowTooltip(const std::string& text);
 };

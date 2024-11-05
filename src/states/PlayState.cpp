@@ -219,9 +219,35 @@ void PlayState::Update(float delta)
     }
 
     // Display all open chest GUIs
-    for (auto&&[_, chestInventory] : m_pGameInstance->GetScene().Each<ChestInventoryComponent>())
+    const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    for (auto&&[_, chestInventory, transform] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D>())
     {
+        // Show GUI
         chestInventory.ShowInventoryGUI();
+
+        // Distance checking
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+        {
+            // Player is in range of the chest, display tooltip
+            std::string tooltip = chestInventory.IsOpen() ? "Press E to Close Chest" : "Press E to Open Chest";
+            ShowTooltip(tooltip);
+
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+            {
+                chestInventory.ToggleOpen();
+                if (!chestInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                break;
+            }
+        }
+        else
+        {
+            // Close chest if the player walks away
+            if (chestInventory.IsOpen())
+            {
+                chestInventory.Close();
+                m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+            }
+        }
     }
 
     auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
@@ -531,4 +557,33 @@ void PlayState::ConvertPlayerTileToGold() {
     if (goldTileID != -1) {
         m_pLabyrinthManager->SetTile(tilePos.x, tilePos.y, goldTileID);
     }
+}
+
+void PlayState::ShowTooltip(const std::string& text)
+{
+    // Tooltip window code taken from Youssef's ThrowableObjectComponent
+            
+    // Set screen-space position for the pickup prompt
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    ImVec2 promptPosition = ImVec2(displaySize.x * 0.5f, displaySize.y * 0.8f);  // Centered horizontally, lower portion vertically
+
+    ImGui::SetNextWindowPos(promptPosition, ImGuiCond_Always, ImVec2(0.5f, 0.5f));  // Centered alignment
+    ImGui::SetNextWindowBgAlpha(0.85f);
+
+    // Pulse color and size animation for visual feedback
+    float alphaPulse = 0.6f + 0.4f * sin(ImGui::GetTime() * 3.0f);
+    ImVec4 glowColor = ImVec4(0.8f, 0.92f, 0.3f, alphaPulse); // Neon green glow
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 5));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.9f));
+    ImGui::PushStyleColor(ImGuiCol_Text, glowColor);
+    ImGui::PushStyleColor(ImGuiCol_Border, glowColor);
+
+    ImGui::Begin("Tooltip###", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
+    ImGui::Text("%s", text.c_str());
+    ImGui::End();
+
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar(2);
 }
