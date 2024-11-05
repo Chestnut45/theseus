@@ -23,6 +23,7 @@
 // For parsing the labyrinth config file
 #include <yaml-cpp/yaml.h>
 
+#include <ChestInventoryComponent.h>
 #include <EnemyDataLoader.h>
 #include <MinitaurBuilder.h>
 #include <PlayerController.h>
@@ -114,8 +115,6 @@ void LabyrinthManager::GenerateLabyrinth()
 
     // Generate entrance room
     GenerateEntrance();
-
-    DeleteChunk({1, 1});
 
     // Update flag
     m_isGenerated = true;
@@ -1392,6 +1391,38 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     break;
                 
                 case Room::EntityType::CommonChest:
+                case Room::EntityType::UncommonChest:
+                case Room::EntityType::RareChest:
+                case Room::EntityType::EpicChest:
+                case Room::EntityType::LegendaryChest:
+
+                    std::string lootTablePath;
+                    std::string frameName;
+                    if (entity.m_type == Room::EntityType::CommonChest)
+                    {
+                        lootTablePath = "data/chest_loot_common.yaml";
+                        frameName = "CommonClosed";
+                    }
+                    if (entity.m_type == Room::EntityType::UncommonChest)
+                    {
+                        lootTablePath = "data/chest_loot_uncommon.yaml";
+                        frameName = "UncommonClosed";
+                    }
+                    if (entity.m_type == Room::EntityType::RareChest)
+                    {
+                        lootTablePath = "data/chest_loot_rare.yaml";
+                        frameName = "RareClosed";
+                    }
+                    if (entity.m_type == Room::EntityType::EpicChest)
+                    {
+                        lootTablePath = "data/chest_loot_epic.yaml";
+                        frameName = "EpicClosed";
+                    }
+                    if (entity.m_type == Room::EntityType::LegendaryChest)
+                    {
+                        lootTablePath = "data/chest_loot_legendary.yaml";
+                        frameName = "LegendaryClosed";
+                    }
 
                     // Iterate each instance to spawn
                     for (int i = 0; i < entity.m_amount; ++i)
@@ -1406,27 +1437,23 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& chest = pObject->GetScene().CreateObject2D();
 
                         // Scale the chest
-                        chest.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
+                        auto& transform = *chest.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
 
-                        // TODO: Add as a child object of the correct chunk
-                        pObject->AddChild(chest);
+                        // Add the sprite
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        sprite.SetAnimation(frameName);
+
+                        // Add the chest inventory
+                        auto& chestInv = chest.AddComponent<ChestInventoryComponent>(16, 4);
+                        chestInv.FillFromLootTable(lootTablePath, m_rng);
+
+                        chestInv.Open();
+
+                        // Add chest as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(chest);
                     }
-                    break;
-                
-                case Room::EntityType::UncommonChest:
-
-                    break;
-                
-                case Room::EntityType::RareChest:
-
-                    break;
-                
-                case Room::EntityType::EpicChest:
-
-                    break;
-                
-                case Room::EntityType::LegendaryChest:
-
                     break;
             }
         }

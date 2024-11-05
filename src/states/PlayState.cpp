@@ -217,17 +217,11 @@ void PlayState::Update(float delta)
 
         playerInventory->ShowInventoryGUI();
     }
-    
-    auto* chest = m_pPlayerObject->GetComponent<ChestInventoryComponent>();
-    if (chest) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            chest->ToggleOpen();
-        }
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            chest->FillInventoryFromFile("data/test_chest_contents.yaml");
-        }
-        
-        chest->ShowInventoryGUI();
+
+    // Display all open chest GUIs
+    for (auto&&[_, chestInventory] : m_pGameInstance->GetScene().Each<ChestInventoryComponent>())
+    {
+        chestInventory.ShowInventoryGUI();
     }
 
     auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
@@ -317,7 +311,6 @@ void PlayState::CreatePlayer()
     // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
-    m_pPlayerObject->AddComponent<ChestInventoryComponent>(4, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
     MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f), "Merchant Guy", 0.1f, 50);
     pMerchant->FillInventoryFromFile("data/test_chest_contents.yaml");
     DispensaryInventoryComponent* pDispensary = &m_pPlayerObject->AddComponent<DispensaryInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
