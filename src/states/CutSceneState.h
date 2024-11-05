@@ -5,6 +5,7 @@
 #include "theseus.h"
 #include "GameStateManager.h"
 #include <vector>
+#include <yaml-cpp/yaml.h>
 #include <string>
 
 class CutSceneState : public GameState {

@@ -1,13 +1,9 @@
 #include "CutSceneState.h"
-#include <yaml-cpp/yaml.h>
-#include <iostream>
 
 void CutSceneState::Enter() {
-    std::cout << "Entering CutSceneState" << std::endl;
 
     auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
     if (!camera) {
-        std::cerr << "Error: No active camera found in the scene." << std::endl;
         return;
     }
 
@@ -20,7 +16,6 @@ void CutSceneState::Enter() {
         YAML::Node cutsceneNode = script["cutscenes"][m_cutsceneID];
 
         if (!cutsceneNode) {
-            std::cerr << "Cutscene ID '" << m_cutsceneID << "' not found in cutscenes.yaml." << std::endl;
             return;
         }
 
@@ -36,7 +31,6 @@ void CutSceneState::Enter() {
         }
 
         if (m_cameraKeyframes.empty()) {
-            std::cerr << "No keyframes found for cutscene ID '" << m_cutsceneID << "'." << std::endl;
             return;
         }
 
@@ -49,7 +43,6 @@ void CutSceneState::Enter() {
 }
 
 void CutSceneState::Exit() {
-    std::cout << "Exiting CutSceneState" << std::endl;
     m_cameraKeyframes.clear();
 
     // Re-enable camera follow and restore the initial zoom level
