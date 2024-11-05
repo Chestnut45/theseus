@@ -239,6 +239,7 @@ void PlayState::Update(float delta)
     {
         transform.Translate(velocity.GetVelocity() * delta);
     }
+    ConvertPlayerTileToGold();
     
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
@@ -276,7 +277,6 @@ void PlayState::CreatePlayer()
     // NOTE: This manages all player animations and the animated sprite component for the player
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
-
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));
@@ -474,5 +474,44 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             
             // wolf::Log("Trap created and activated.");
         }
+    }
+}
+
+int GetGoldVariant(int tileID) {
+    switch (tileID) {
+        case Tile::FloorSquare:
+        case Tile::FloorSmallSquares:
+            return Tile::FloorSquareGold;
+        case Tile::FloorSpiral:
+            return Tile::FloorSpiralGold;
+        default:
+            return -1; // No gold variant
+    }
+}
+
+
+void PlayState::ConvertPlayerTileToGold() {
+    if (!m_pLabyrinthManager || !m_pPlayerObject) {
+        wolf::Log("PlayState: LabyrinthManager or PlayerObject is not set.");
+        return;
+    }
+
+    auto* playerTransform = m_pPlayerObject->GetComponent<wolf::Transform2D>();
+    if (!playerTransform) return;
+
+    // Calculate the bottom-center position of the player
+    glm::vec2 playerPosition = playerTransform->GetGlobalPosition();
+    glm::vec2 playerScale = playerTransform->GetGlobalScale();
+    glm::vec2 bottomCenterPosition = playerPosition + glm::vec2(0.0f, -playerScale.y * 0.5f);
+    glm::vec2 roundedPosition = glm::round(bottomCenterPosition);
+
+    // Get tile position and ID
+    glm::ivec2 tilePos = m_pLabyrinthManager->GetTilePosition(roundedPosition);
+    int currentTileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+
+    // Check for a gold variant
+    int goldTileID = GetGoldVariant(currentTileID);
+    if (goldTileID != -1) {
+        m_pLabyrinthManager->SetTile(tilePos.x, tilePos.y, goldTileID);
     }
 }
