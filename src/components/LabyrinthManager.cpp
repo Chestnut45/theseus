@@ -115,6 +115,8 @@ void LabyrinthManager::GenerateLabyrinth()
     // Generate entrance room
     GenerateEntrance();
 
+    DeleteChunk({1, 1});
+
     // Update flag
     m_isGenerated = true;
 
@@ -626,6 +628,16 @@ wolf::GameObject* LabyrinthManager::GetChunk(const glm::ivec2& chunkID) const
     const auto it = m_chunkMap.find(chunkID);
     if (it == m_chunkMap.end()) return nullptr;
     return it->second;
+}
+
+void LabyrinthManager::DeleteChunk(const glm::ivec2& chunkID)
+{
+    auto* pChunk = GetChunk(chunkID);
+    if (pChunk)
+    {
+        pChunk->Delete();
+        m_chunkMap.erase(chunkID);
+    }
 }
 
 glm::ivec2 LabyrinthManager::GetTilePosition(const glm::vec2& worldPosition) const
@@ -1362,7 +1374,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     // Iterate each instance to spawn
                     for (int i = 0; i < entity.m_amount; ++i)
                     {
-                        // TODO: Calculate position
+                        // TODO: Calculate position for empty tile
                         glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
                                       room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
                         
@@ -1374,9 +1386,47 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Scale the minitaur
                         minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
 
-                        // TODO: Add as a child object of the correct chunk
-                        pObject->AddChild(minitaur);
+                        // Add minitaur as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(minitaur);
                     }
+                    break;
+                
+                case Room::EntityType::CommonChest:
+
+                    // Iterate each instance to spawn
+                    for (int i = 0; i < entity.m_amount; ++i)
+                    {
+                        // TODO: Calculate position
+                        glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
+                                      room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
+                        
+                        pos *= TILE_SIZE * SCALE;
+
+                        // Create the chest object
+                        auto& chest = pObject->GetScene().CreateObject2D();
+
+                        // Scale the chest
+                        chest.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
+
+                        // TODO: Add as a child object of the correct chunk
+                        pObject->AddChild(chest);
+                    }
+                    break;
+                
+                case Room::EntityType::UncommonChest:
+
+                    break;
+                
+                case Room::EntityType::RareChest:
+
+                    break;
+                
+                case Room::EntityType::EpicChest:
+
+                    break;
+                
+                case Room::EntityType::LegendaryChest:
+
                     break;
             }
         }
