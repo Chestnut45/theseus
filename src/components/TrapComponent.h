@@ -6,7 +6,7 @@
 
 class TrapComponent : public wolf::BaseComponent {
 public:
-    TrapComponent(float damage, float lifespan, ColliderManager* colliderManager);
+    TrapComponent(float damage, float lifespan, ColliderManager* colliderManager, float initialDelay = 0.0f);
     void Update(float delta);
 
 private:
@@ -15,6 +15,8 @@ private:
     float m_damage;
     float m_lifespan;
     float m_attackCooldown;
+    float m_initialDelay;
+    bool m_triggered = false;
 
     bool m_isActive = true; // Trap is active upon creation
     wolf::Timer m_lifespanTimer;

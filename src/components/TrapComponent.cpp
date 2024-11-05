@@ -2,8 +2,8 @@
 #include "PlayerController.h"
 #include "HealthComponent.h"
 
-TrapComponent::TrapComponent(float damage, float lifespan, ColliderManager* colliderManager)
-    : m_damage(damage), m_lifespan(lifespan), m_colliderManager(colliderManager), m_attackCooldown(1.0f) {
+TrapComponent::TrapComponent(float damage, float lifespan, ColliderManager* colliderManager, float initialDelay)
+    : m_damage(damage), m_lifespan(lifespan), m_colliderManager(colliderManager), m_attackCooldown(1.0f), m_initialDelay(initialDelay) {
     // Start timers immediately, making the trap active upon creation
     m_lifespanTimer.Start();
     m_attackCooldownTimer.Start();
@@ -19,6 +19,14 @@ void TrapComponent::Update(float delta) {
         wolf::EventManager::TriggerEvent(TrapDestroyedEvent(GetGameObject()));
         GetGameObject()->Delete();
         return;
+    }
+
+    // Handle initial attack
+    if (!m_triggered && m_lifespanTimer.Elapsed() > m_initialDelay) {
+        if (CheckForPlayerCollision(delta)) {
+            m_attackCooldownTimer.Restart();
+            m_triggered = true;
+        }
     }
 
     // Handle player collision and attack cooldown

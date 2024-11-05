@@ -39,10 +39,6 @@ void PlayState::Enter()
     camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
-    
-    CreatePressurePlate(glm::vec2(100.0f, 200.0f), TriggerType::SINGLE_USE);
-    CreatePressurePlate(glm::vec2(200.0f, 300.0f), TriggerType::REUSABLE);
-
 
     // Add the labyrinth manager and generate the default labyrinth config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
@@ -51,8 +47,9 @@ void PlayState::Enter()
     m_pLabyrinthManager->GenerateLabyrinth();
 
     CreateThrowableObject();
-
-
+    
+    CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(96.0f, 96.0f), TriggerType::SINGLE_USE);
+    CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f), TriggerType::REUSABLE);
 
     // Testing: Create a test projectile object
     // auto& testObj = scene.CreateObject2D();
@@ -389,12 +386,6 @@ void PlayState::CreateThrowableObject()
     auto& throwable = throwableObj.AddComponent<ThrowableObjectComponent>(25.0f, m_pColliderManager);
 }
 
-
-
-
-
-
-
 void PlayState::StartDialogue(const std::string& dialogueID)
 {
     // Create a new DialogueState and push it onto the state stack
@@ -409,8 +400,6 @@ void PlayState::OnDialogueTriggerEvent(const DialogueTriggerEvent& event)
 {
     StartDialogue(event.dialogueID);
 }
-
-
 
 void PlayState::CreatePressurePlate(const glm::vec2& position, TriggerType triggerType) {
     // Create the pressure plate object

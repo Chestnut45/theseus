@@ -42,7 +42,8 @@ void HealthComponent::Damage(float p_damage)
     {
         
         this->m_health -= p_damage;
-        
+
+        if (m_health < 0) m_health = 0;
 
         // std::cout << "HealthComponent - Health: " << this->m_health << std::endl;
 
@@ -53,7 +54,7 @@ void HealthComponent::Damage(float p_damage)
             // SEND EVENT TO INDICATE ENTITY IS DEAD //
             //                                       //
             //---------------------------------------//
-        }  
+        }
     }
 }
 
