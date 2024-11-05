@@ -18,10 +18,12 @@
 #include "../events/DialogueTriggerEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
-
+#include "events/TriggerEvent.h"
+#include <TrapComponent.h>
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
 #include <HarpyBuilder.h>
+#include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
 
 
@@ -43,6 +45,8 @@ public:
     void BackgroundUpdate(float delta) override;
     void BackgroundRender() override;
     void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
+    void OnTriggerEvent(const TriggerEvent& event);
+
 
 private:
     
@@ -61,11 +65,13 @@ private:
     // Private helper methods
     void StartDialogue(const std::string& dialogueID);
     void ConvertPlayerTileToGold();
-
     // Creates the player object and all of its components
     // PRE: The player must not have been created yet
     // POST: m_pPlayerObject will be set to a pointer to the newly created player object
     void CreatePlayer();
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
+    // Creates a pressure plate with specified position, trigger type, trap damage, lifespan, and offset.
+    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType);
+    void CreateThrowableObject();
 };
