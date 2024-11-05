@@ -274,7 +274,6 @@ void MinitaurController::HandleAttackingState(float delta)
             if (playerHealth)
             {
                 playerHealth->Damage(m_baseDamage);  // Apply damage to the player
-                std::cout << "Player Health: " << playerHealth->GetHealth() << "\n";
                 wolf::Audio::Play("data/sounds/hurt.wav");
             }        
         }
@@ -289,7 +288,6 @@ void MinitaurController::HandleAttackingState(float delta)
     else
     {
         m_attackTimer -= delta;
-        std::cout << "MinitaurController - attack timer: " << m_attackTimer << std::endl;
     }
 }
 
