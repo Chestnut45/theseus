@@ -179,30 +179,39 @@ void MinitaurController::HandleProspectState(float delta)
     // else, prospect
     else
     {
-        if(m_prospectCounter == 0)
+        if (m_prospectStandingCounter <= 0.0f)
         {
-            // Roll for prospect
-            float rng = m_RNG.NextInt(1, 100);
-            
-            // Begin prospecting
-            if(rng > 20)
-            {
-                
-                m_prospectCounter = m_RNG.NextInt(1, 100);
-                glm::vec2 direction = glm::normalize(glm::vec2(m_RNG.NextInt(-100, 100), m_RNG.NextInt(-100, 100)));
-                m_pVelocity->SetVelocity(direction * m_chaseSpeed);
-            }
+            if(m_prospectCounter <= 0)
+            {        
+                    
+                    // Roll for prospect
+                    float rng = m_RNG.NextInt(1, 100);
+                    // Begin prospecting
+                    if(rng > 20)
+                    {
+                        
+                        m_prospectCounter = m_RNG.NextInt(100, 200);
+                        glm::vec2 direction = glm::normalize(glm::vec2(m_RNG.NextInt(-100, 100), m_RNG.NextInt(-100, 100)));
+                        m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+                    }
 
-            // Change to idle
+                    // Change to idle
+                    else
+                    {
+                        ChangeState(EnemyState::IDLE);
+                        m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Reset velocity when returning to idle
+                    }
+                    m_prospectStandingCounter = m_RNG.NextInt(1, 3);                  
+            }
             else
             {
-                ChangeState(EnemyState::IDLE);
-                m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Reset velocity when returning to idle
+                m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+                m_prospectCounter--;
             }
         }
         else
         {
-            m_prospectCounter--;
+        m_prospectStandingCounter -= delta;
         }
     }
 }

@@ -47,6 +47,7 @@ private:
     wolf::RNG m_RNG; 
 
     float m_prospectCounter = 0.0f;
+    float m_prospectStandingCounter = 2.0f;
     
     float m_fallDeadTimer = 0.0f;
     float m_lieDeadTimer = 0.0f;
