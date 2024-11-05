@@ -10,6 +10,8 @@
 #include "../components/HomingComponent.h"
 #include "../components/PlayerInventoryComponent.h"
 #include "../components/AttackDamageComponent.h"
+#include "../components/MerchantInventoryComponent.h"
+#include "../components/DispensaryInventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/TimedDestroyerComponent.h"
 #include "../components/VelocityComponent.h"
@@ -228,10 +230,27 @@ void PlayState::Update(float delta)
             chest->ToggleOpen();
         }
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            chest->FillChestFromFile("data/test_chest_contents.yaml");
+            chest->FillInventoryFromFile("data/test_chest_contents.yaml");
         }
         
         chest->ShowInventoryGUI();
+    }
+
+    auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
+    if (merchant) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
+            merchant->ToggleOpen();
+        }
+        merchant->ShowInventoryGUI();
+    }
+
+    auto* dispensary = m_pPlayerObject->GetComponent<DispensaryInventoryComponent>();
+    if (dispensary) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
+            dispensary->ToggleOpen();
+        }
+
+        dispensary->ShowInventoryGUI();
     }
 
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
@@ -303,7 +322,12 @@ void PlayState::CreatePlayer()
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
     // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
 
+    // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     m_pPlayerObject->AddComponent<ChestInventoryComponent>(4, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
+    MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f), "Merchant Guy", 0.1f, 50);
+    pMerchant->FillInventoryFromFile("data/test_chest_contents.yaml");
+    DispensaryInventoryComponent* pDispensary = &m_pPlayerObject->AddComponent<DispensaryInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
+    pDispensary->FillInventoryFromFile("data/test_dispensary_contents.yaml");
 }
 
 void PlayState::CreateMinitaurEnemy()

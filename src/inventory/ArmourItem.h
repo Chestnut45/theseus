@@ -18,8 +18,8 @@ struct ArmourStatusEffect {
 
 class ArmourItem : public EquipmentItem {
     public:
-        ArmourItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, int p_iTextureFrameIndex, EquipmentSlot p_enSlot, float p_fDamageReduction, const std::vector<ArmourStatusEffect>& p_vStatusEffects)
-            : EquipmentItem(p_enID, p_strName, p_strDesc, p_iValue, p_iTextureFrameIndex, p_enSlot), m_fDamageReduction(p_fDamageReduction), m_vStatusEffects(p_vStatusEffects) {};
+        ArmourItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, int p_iTextureFrameIndex, Rarity p_enRarity, EquipmentSlot p_enSlot, float p_fDamageReduction, const std::vector<ArmourStatusEffect>& p_vStatusEffects)
+            : EquipmentItem(p_enID, p_strName, p_strDesc, p_iValue, p_iTextureFrameIndex, p_enRarity, p_enSlot), m_fDamageReduction(p_fDamageReduction), m_vStatusEffects(p_vStatusEffects) {};
         
         // Overload the SetEquipped method to send off an ArmourEquippedEvent
         virtual void SetEquipped(bool p_bEquip);
