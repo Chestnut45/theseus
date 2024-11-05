@@ -19,7 +19,6 @@
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
 #include "events/TriggerEvent.h"
-
 #include <TrapComponent.h>
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
@@ -73,4 +72,5 @@ private:
     void CreateHarpyEnemy();
     // Creates a pressure plate with specified position, trigger type, trap damage, lifespan, and offset.
     void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType);
+    void CreateThrowableObject();
 };
