@@ -1,8 +1,5 @@
 #include "ChestInventoryComponent.h"
 
-#include <yaml-cpp/yaml.h>
-#include "inventory/ItemCreator.h"
-
 ChestInventoryComponent::~ChestInventoryComponent() {
     // Empty each of the stacks in the contents vector
     this->EmptyInventory();
@@ -14,73 +11,17 @@ ChestInventoryComponent::~ChestInventoryComponent() {
     wolf::EventManager::RemoveListener<SendItemToChestEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleAddToChestEvent>(*this);
     wolf::EventManager::RemoveListener<RemoveFromChestEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleRemoveFromChestEvent>(*this);
     wolf::EventManager::RemoveListener<OpenInventoryEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleOpenInventoryEvent>(*this);
-}
-
-bool ChestInventoryComponent::FillChestFromFile(const std::string& p_strFilePath) {
-    try {
-        // Load the file
-        YAML::Node node = YAML::LoadFile(p_strFilePath);
-
-        // Go through the list of items
-        YAML::Node itemList = node["item_list"];
-        for (int i = 0; i < itemList.size(); ++i) {
-            std::string strItemName = itemList[i].as<std::string>();
-            
-            // Try to create one
-            ItemBase* pNextItem = ItemCreator::CreateItem(strItemName);
-
-            // If it works,
-            if (pNextItem) {
-
-                // Add it to the inventory
-                this->AddItemOrDelete(pNextItem);
-            }
-            else {
-                // Otherwise, empty the inventory (delete whatever we've made so far)
-                this->EmptyInventory();
-
-                // And return false
-                return false;
-            }
-        }
-    }
-    catch (YAML::Exception& e) {
-        // If we run into an error, then we should print it and return false
-        wolf::Error("Error using '", p_strFilePath.c_str(), ": ", e.what());
-        return false;
-    }
-
-    // If we didn't encounter any issues, we return true
-    return true;
+    wolf::EventManager::RemoveListener<CloseInventoryEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleCloseInventoryEvent>(*this);
 }
 
 void ChestInventoryComponent::ShowInventoryGUI() {
     if (m_bIsOpen) {
-        float fNumRows = m_vvpContents.size() / m_iMaxPerRow;
-        float fOffset = 18.25f;
-
-        // For some silly reason, if the inventory can be shown on
-        // a single row the inventory padding is a bit too small
-        if (fNumRows == 1) {
-            // So we add a little bit extra
-            fNumRows += 0.4f;
-        }
-        else if (fNumRows == 2) {
-            fNumRows += 0.2f;
-        }
-        
-        // We run into a similar issue when we're only showing one item
-        // on the X axis, so we add an extra offset to accomodate that
-        if (m_iMaxPerRow == 1) {
-            fOffset += 6.0f;
-        }
-
         // You can't resize the inventory or move it
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
         // By default, the inventory appears close to the middle of the screen
-        ImGui::SetNextWindowPos({800, 200});
-        ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + fOffset) * m_iMaxPerRow, (m_v2TexFrameSize.y + 25) * fNumRows});
+        ImGui::SetNextWindowPos({800, 450});
+        ImGui::SetNextWindowSize({0,0});
         ImGui::Begin("\t~ Chest ~", &m_bIsOpen, flags);
 
         // If we've closed the window using the ImGui button
@@ -203,31 +144,6 @@ void ChestInventoryComponent::ShowInventoryGUI() {
     }
 }
 
-void ChestInventoryComponent::Open() {
-    m_bIsOpen = true;
-
-    // Let anyone interested know which specific chest was opened
-    wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
-}
-
-void ChestInventoryComponent::Close() {
-    m_bIsOpen = false;
-
-    // Let anyone interested know which specific chest was closed
-    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
-}
-
-void ChestInventoryComponent::ToggleOpen() {
-    m_bIsOpen = !m_bIsOpen;
-
-    if (m_bIsOpen) {
-        wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
-    }
-    else {
-        wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
-    }
-}
-
 void ChestInventoryComponent::SendItemToPlayer(int p_iItemIndex) {
     // Retrieve the item from the inventory and send it to the player via an event.
     wolf::EventManager::TriggerEvent(SendItemToPlayerInventoryEvent(m_enType, m_iIdNum, this->GetItem(p_iItemIndex), p_iItemIndex));
@@ -243,6 +159,17 @@ void ChestInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent&
         // And a different chest is opening
         if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
+            m_bIsOpen = false;
+        }
+    }
+}
+
+void ChestInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
+    // If the player just closed their inventory
+    if (p_event.enType == PLAYER_INVENTORY) {
+        // And this chest is open
+        if (m_bIsOpen) {
+            // Close it
             m_bIsOpen = false;
         }
     }

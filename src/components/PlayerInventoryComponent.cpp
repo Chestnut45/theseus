@@ -10,35 +10,27 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
     // And deregister the chest's listeners
     wolf::EventManager::RemoveListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
+    wolf::EventManager::RemoveListener<SellItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleSellItemToPlayerEvent>(*this);
+    wolf::EventManager::RemoveListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
     wolf::EventManager::RemoveListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
 }
 
 void PlayerInventoryComponent::ShowInventoryGUI() {
     if (m_bIsOpen) {
-        float iNumRows = m_vvpContents.size() / m_iMaxPerRow;
-        float fOffset = 18.25f;
-
-        // For some silly reason, if the inventory can be shown on
-        // a single row the inventory padding is a bit too small
-        if (iNumRows == 1) {
-            // So we add a little bit extra
-            iNumRows += 0.4f;
-        }
-
-        // We run into a similar issue when we're only showing one item
-        // on the X axis, so we add an extra offset to accomodate that
-        if (m_iMaxPerRow == 1) {
-            fOffset += 6.0f;
-        }
-
         // You can't resize the inventory or move it
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos({500, 200});
-        ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + fOffset) * m_iMaxPerRow, (m_v2TexFrameSize.y + 22) * iNumRows});
+        ImGui::SetNextWindowSize({0,0});
         ImGui::Begin("\t~ Inventory ~", &m_bIsOpen, flags);
+
+        // If we closed the inventory
+        if (!m_bIsOpen) {
+            // Let anyone interested know
+            wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+        }
 
         // This counter lets us control how many items are drawn in a row
         int counter = 0;
@@ -67,8 +59,9 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     }
 
                     // Then construct the string that will be used to display all of the item's details
-                    strTooltipText = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + pConsumable->GetDescription() 
-                        + "\n\nValue: " + std::to_string(pConsumable->GetValue()) + "\nUses: " + std::to_string(pConsumable->GetNumUses());
+                    strTooltipText = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" 
+                        + pConsumable->GetDescription() + "\n\nValue: " + std::to_string(pConsumable->GetValue()) 
+                        + "\nUses: " + std::to_string(pConsumable->GetNumUses());
 
                 }
                 else if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
@@ -89,7 +82,8 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     }
 
                     // Add the rest of the item's details to the string
-                    strTooltipText += "\n\n" + pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue()) + "\nSlot: " + pEquipment->GetEquipmentSlotString();
+                    strTooltipText += "\n\n" + pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue()) 
+                        + "\nSlot: " + pEquipment->GetEquipmentSlotString();
                 }
                 else { // If for some reason this item isn't Consumable OR Equipment
                     strTooltipText = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + "\n\n" + pItem->GetDescription(); // We only show the name and the description
@@ -156,6 +150,19 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                         }
                     }
 
+                    // If we are currently talking to a merchant
+                    if (m_iOpenMerchantIdNum != -1) {
+                        // The we need to be able to sell items to them
+                        if (ImGui::Button("Sell")) {
+                            // We sell an item by sending an event to the merchant we're talking to
+                            // !-- Note that we send along the index that we're storing the item at in the player's inventory so that
+                            // when the merchant sends a return message telling us that the item has been purchased we can remove the
+                            // specific item that we sent rather than the first instance of it in our inventory --!
+                            wolf::EventManager::TriggerEvent(SellItemToMerchantEvent(m_iOpenMerchantIdNum, this->GetItem(k), k));
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+
                     // We can discard any item we like
                     if (ImGui::Button("Discard")) {
                         this->DiscardItem(k);
@@ -170,9 +177,9 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 }
             }
             else { // Otherwise, this is an empty inventory slot
-            if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[NONE]->m_v2TopLeft, m_vv2TextureCoords[NONE]->m_v2BotRight)) {
+                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[NONE]->m_v2TopLeft, m_vv2TextureCoords[NONE]->m_v2BotRight)) {
 
-            }
+                }
             }
 
             // If we've drawn the maximum number of slots per row
@@ -187,10 +194,96 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             }
         }
 
-        ImGui::Text("Gold: %d", m_iGold);
+        // Iterate through the schematic counters
+        ImGui::Text("Schematics:");
+        for (int p = 0; p < END_OF_RARITIES; p++) {
+            // Retrieve the color associated with this rarity
+            RGBIntColor color = RarityColors[p];
+
+            // And draw the counter's value in that color
+            ImGui::SameLine();
+            ImGui::TextColored(ImColor(color.r, color.g, color.b), "%d", m_iSchematics[p]);
+        }
+
+        // Draw the player's gold value
+        ImGui::Text("Gold:");
+        ImGui::SameLine();
+        ImGui::TextColored(ImColor(255, 215, 0), "%d", m_iGold); // in gold (ha)
 
         // End of window
         ImGui::End();
+
+        // If our pockets are full and we tried to add an item to 'em
+        if (m_bShowFullInventoryPrompt) {
+            // You can't resize the window or move it
+            ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+
+            // By default, the prompt appears close to the middle of the screen
+            ImGui::SetNextWindowPos({600, 300});
+            ImGui::SetNextWindowSize({0, 0});
+            ImGui::Begin("Inventory Is Full Prompt", nullptr, flags);
+
+            // Show a message asking the player if they are okay with selling the item for less than its value
+            ImGui::Text("Your inventory is full.");
+            ImGui::NewLine();
+            ImGui::Text("\t   ");
+            ImGui::SameLine();
+            
+            // If they are
+            if (ImGui::Button("Close")) {
+                // Close this prompt and process the sale
+                m_bShowFullInventoryPrompt = false;
+            }
+            ImGui::End();
+        }
+
+        // If we tried to sell something to a merchant but they can't afford it
+        if (m_bShowTooExpensivePrompt) {
+            // You can't resize the window or move it
+            ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+
+            // By default, the prompt appears close to the middle of the screen
+            ImGui::SetNextWindowPos({600, 300});
+            ImGui::SetNextWindowSize({0, 0});
+            ImGui::Begin("Too Expensive Prompt", nullptr, flags);
+
+            // Show a message asking the player if they are okay with selling the item for less than its value
+            ImGui::Text("You don't have enough gold to buy that.");
+            ImGui::NewLine();
+            ImGui::Text("\t\t\t\t");
+            ImGui::SameLine();
+            
+            // If they are
+            if (ImGui::Button("Close")) {
+                // Close this prompt and process the sale
+                m_bShowTooExpensivePrompt = false;
+            }
+            ImGui::End();
+        }
+
+        // If we tried to get an item that we don't have a schematic for from a dispensary
+        if (m_bShowMissingSchematicPrompt) {
+            // You can't resize the window or move it
+            ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+
+            // By default, the prompt appears close to the middle of the screen
+            ImGui::SetNextWindowPos({600, 300});
+            ImGui::SetNextWindowSize({0, 0});
+            ImGui::Begin("Missing Schematic Prompt", nullptr, flags);
+
+            // Show a message asking the player if they are okay with selling the item for less than its value
+            ImGui::Text("You don't have a schematic to trade for that.");
+            ImGui::NewLine();
+            ImGui::Text("\t\t\t\t");
+            ImGui::SameLine();
+            
+            // If they are
+            if (ImGui::Button("Close")) {
+                // Close this prompt and process the sale
+                m_bShowMissingSchematicPrompt = false;
+            }
+            ImGui::End();
+        }
     }
 }
 
@@ -296,12 +389,62 @@ bool PlayerInventoryComponent::TakeGold(int p_iAmt) {
     return true;
 }
 
+void PlayerInventoryComponent::AddSchematic(Rarity p_enRarity) {
+    // Add the schematic to the counter for that particular rarity level
+    m_iSchematics[p_enRarity] += 1;
+
+    // If that sends us over the limit
+    if (m_iSchematics[p_enRarity] > MAX_SCHEMATICS_PER_RARITY) {
+        // Pretend it didn't.
+        m_iSchematics[p_enRarity] = MAX_SCHEMATICS_PER_RARITY;
+    }
+}
+
+bool PlayerInventoryComponent::TakeSchematic(Rarity p_enRarity) {
+    // If taking away a schematic would send the rarity counter into the negative
+    if ((m_iSchematics[p_enRarity] - 1) < 0) {
+        // Then return false and don't take it away
+        return false;
+    }
+
+    // Otherwise, take the schematic and return true
+    m_iSchematics[p_enRarity] -= 1;
+    return true;
+}
+
+int PlayerInventoryComponent::GetNumSchematics() {
+    int iCount = 0;
+
+    // Go through each of the rarity levels
+    for (int k = 0; k < END_OF_RARITIES; k++) {
+        iCount += m_iSchematics[k]; // And add the amount stored in each to the counter
+    }
+
+    // Then return the count
+    return iCount;
+}
+
+void PlayerInventoryComponent::Close() {
+    // Close the inventory
+    m_bIsOpen = false;
+
+    // Then let anyone interested know it happened
+    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+}
+
 void PlayerInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
     // If we have opened a chest (and it's not the chest we already have open)
     if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum != m_iOpenChestIdNum) {
         // Then we need to keep track of its id number so we can move items between the two inventories
         m_iOpenChestIdNum = p_event.iIdNum;
     }
+    else if (p_event.enType == MERCHANT_INVENTORY && p_event.iIdNum != m_iOpenChestIdNum) {
+        // We do the same with merchant inventories
+        m_iOpenMerchantIdNum = p_event.iIdNum;
+    }
+
+    // In any case, we want to open the player's inventory, too
+    m_bIsOpen = true;
 }
 
 void PlayerInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
@@ -310,6 +453,39 @@ void PlayerInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEve
         // Then we can safely discard the id number because we're done moving items between the two inventories
         m_iOpenChestIdNum = -1;
     }
+    else if (p_event.enType == MERCHANT_INVENTORY && p_event.iIdNum == m_iOpenMerchantIdNum) {
+        // We do the same with merchant inventories
+        m_iOpenMerchantIdNum = -1;
+    }
+}
+
+void PlayerInventoryComponent::HandleSellItemToPlayerEvent(const SellItemToPlayerEvent& p_event) {
+    // If we can afford this item
+    if (this->TakeGold(p_event.iPrice)) {
+        // If this is a schematic item
+        if (p_event.pItem->GetID() == SCHEMATIC) {
+            // It needs to be added to the schematic counter(s) rather than the inventory itself
+            this->AddSchematic(p_event.pItem->GetRarity());
+
+            // Then we need to let the merchant know we've processed our end of the sale so that they can process theirs
+            wolf::EventManager::TriggerEvent(BoughtItemFromMerchantEvent(p_event.iMerchantIdNum, p_event.pItem->GetName(), p_event.iPrice, p_event.iMerchantInventoryIndex));
+        }
+        else if (this->AddItem(p_event.pItem)) { // If this ISN'T a schematic and we have enough room to store it
+            // Then we need to let the merchant know we've processed our end of the sale so that they can process theirs
+            wolf::EventManager::TriggerEvent(BoughtItemFromMerchantEvent(p_event.iMerchantIdNum, p_event.pItem->GetName(), p_event.iPrice, p_event.iMerchantInventoryIndex));
+        }
+        else { // If we didn't have room for the item but we did have enough money for it,
+            // Then we need to add the money we "spent" back into the player's inventory
+            this->AddGold(p_event.iPrice);
+
+            // And let the player know we didn't have room for the item
+            m_bShowFullInventoryPrompt = true;
+        }
+    }
+    else {
+        // If we can't afford the item we're trying to buy, we should let the player know
+        m_bShowTooExpensivePrompt = true;
+    }
 }
 
 void PlayerInventoryComponent::HandleAddToPlayerInventoryEvent(const SendItemToPlayerInventoryEvent& p_event) {
@@ -317,6 +493,13 @@ void PlayerInventoryComponent::HandleAddToPlayerInventoryEvent(const SendItemToP
     if (p_event.pItem->GetID() == GOLD) {
         // Then we don't add it to our inventory, we just add the gold to our wallet
         this->AddGold(p_event.pItem->GetValue());
+
+        // And let the chest know it no longer has the item
+        wolf::EventManager::TriggerEvent(RemoveFromChestEvent(p_event.iSenderIdNum, p_event.pItem->GetName(), p_event.iSenderInventoryIndex));
+    }
+    else if (p_event.pItem->GetID() == SCHEMATIC) { // If this is a schematic item
+        // Then we don't add it to our inventory either, we add it to our schematic counter(s)
+        this->AddSchematic(p_event.pItem->GetRarity());
 
         // And let the chest know it no longer has the item
         wolf::EventManager::TriggerEvent(RemoveFromChestEvent(p_event.iSenderIdNum, p_event.pItem->GetName(), p_event.iSenderInventoryIndex));
@@ -330,6 +513,10 @@ void PlayerInventoryComponent::HandleAddToPlayerInventoryEvent(const SendItemToP
                 wolf::EventManager::TriggerEvent(RemoveFromChestEvent(p_event.iSenderIdNum, p_event.pItem->GetName(), p_event.iSenderInventoryIndex));
             }
         }
+        else {
+            // If we can't fit it in our inventory, then we should let the player know
+            m_bShowFullInventoryPrompt = true;
+        }
     }
 }
 
@@ -342,5 +529,27 @@ void PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent(const Remove
     else {
         // Otherwise, we remove the item by name (so we remove the first instance of it that we find)
         this->RemoveItem(p_event.strItemName);
+    }
+
+    // If we were removing the item because we sold it to someone, then we'll want to add the amount we sold it for
+    // to our wallet. (If we didn't sell the item this is technically a pointless function call)
+    this->AddGold(p_event.iItemSoldFor);
+}
+
+void PlayerInventoryComponent::HandleDispenseItemToPlayerEvent(const DispenseItemToPlayerEvent& p_event) {
+    // Check if we have a schematic with the same rarity level of the item we're receiving
+    if (this->TakeSchematic(p_event.pItem->GetRarity())) {
+        // If we do, try to add the item to our inventory
+        if (!this->AddItem(p_event.pItem)) {
+            // If the item doesn't fit in our inventory, we need to "unspend" the schematic we used to pay for it
+            this->AddSchematic(p_event.pItem->GetRarity());
+
+            // We also need to let the player know that they couldn't fit the item in their inventory
+            m_bShowFullInventoryPrompt = true;
+        }
+    }
+    else {
+        // If we didn't have a matching schematic we need to let the player know
+        m_bShowMissingSchematicPrompt = true;
     }
 }
