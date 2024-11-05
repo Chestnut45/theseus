@@ -122,7 +122,7 @@ void PlayerController::Update(float delta)
         wolf::Error("PlayerController missing essential components!");
         return;
     }
-    
+
     // Debug speed modifier hotkeys
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
     {

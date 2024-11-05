@@ -75,6 +75,8 @@ public:
     //get the collider manager (verification)
     ColliderManager* GetColliderManager() const;
 
+
+
     //set player action
     void SetAction(PlayerAction action);
 
@@ -82,8 +84,8 @@ public:
     void SetHoldingObject(bool isHolding);
 
     
-    //This getter simply returns the current value of m_lastFaceDirectionEnum, allowing ThrowableObjectComponent to access it.
-     PlayerDirection GetLastFacingDirection() const { return m_lastFaceDirectionEnum; }
+    // This getter simply returns the current value of m_lastFaceDirectionEnum, allowing ThrowableObjectComponent to access it.
+    PlayerDirection GetLastFacingDirection() const { return m_lastFaceDirectionEnum; }
 
     // Weapon & Attack functions
 

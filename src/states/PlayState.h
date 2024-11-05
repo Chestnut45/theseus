@@ -64,6 +64,7 @@ private:
 
     // Private helper methods
     void StartDialogue(const std::string& dialogueID);
+    void ConvertPlayerTileToGold();
     // Creates the player object and all of its components
     // PRE: The player must not have been created yet
     // POST: m_pPlayerObject will be set to a pointer to the newly created player object
