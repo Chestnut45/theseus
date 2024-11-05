@@ -18,7 +18,6 @@
 #include "../events/DialogueTriggerEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
-
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
 #include <HarpyBuilder.h>
@@ -67,4 +66,5 @@ private:
     void CreatePlayer();
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
+    void CreateThrowableObject();
 };
