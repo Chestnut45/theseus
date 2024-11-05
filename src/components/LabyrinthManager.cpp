@@ -469,10 +469,12 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
                 std::string eType = entity["type"].as<std::string>();
 
                 // Parse data
-                if (eType == "minitaur")
-                {
-                    data.m_type = Room::EntityType::Minitaur;
-                }
+                if (eType == "minitaur") data.m_type = Room::EntityType::Minitaur;
+                if (eType == "common_chest") data.m_type = Room::EntityType::CommonChest;
+                if (eType == "uncommon_chest") data.m_type = Room::EntityType::UncommonChest;
+                if (eType == "rare_chest") data.m_type = Room::EntityType::RareChest;
+                if (eType == "epic_chest") data.m_type = Room::EntityType::EpicChest;
+                if (eType == "legendary_chest") data.m_type = Room::EntityType::LegendaryChest;
                 
                 data.m_amount = entity["amount"].as<int>();
 
@@ -592,6 +594,21 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
             {
                 case Room::EntityType::Minitaur:
                     file << "minitaur, amount: ";
+                    break;
+                case Room::EntityType::CommonChest:
+                    file << "common_chest, amount: ";
+                    break;
+                case Room::EntityType::UncommonChest:
+                    file << "uncommon_chest, amount: ";
+                    break;
+                case Room::EntityType::RareChest:
+                    file << "rare_chest, amount: ";
+                    break;
+                case Room::EntityType::EpicChest:
+                    file << "epic_chest, amount: ";
+                    break;
+                case Room::EntityType::LegendaryChest:
+                    file << "legendary_chest, amount: ";
                     break;
             }
             file << std::to_string(data.m_amount).c_str();
