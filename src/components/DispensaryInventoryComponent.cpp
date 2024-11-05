@@ -82,7 +82,7 @@ bool DispensaryInventoryComponent::FillInventoryFromFile(const std::string& p_st
 
 void DispensaryInventoryComponent::SortByRarity() {
     // Clear out the rarity vectors
-    for (int i = 0; i < m_arContentsByRarity->size(); i++) {
+    for (int i = 0; i < END_OF_RARITIES; i++) {
         m_arContentsByRarity[i].clear();
     }
 

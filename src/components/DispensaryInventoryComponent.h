@@ -54,5 +54,5 @@ class DispensaryInventoryComponent : public InventoryComponent {
 
         bool m_bUnsorted = true;
 
-        std::vector<int> m_arContentsByRarity[END_OF_RARITIES - 1];
+        std::vector<int> m_arContentsByRarity[END_OF_RARITIES];
 };
