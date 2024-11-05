@@ -3,13 +3,55 @@ Gold Coin: {
   description: A shiny gold coin!,
   value: 1,
   texture_frame: 2,
+  rarity: COMMON,
+}
+
+Common Schematic: {
+  id: SCHEMATIC,
+  description: One of Daedalus' old schematics. Can be traded at a dispensary for cheap equipment,
+  value: 25,
+  texture_frame: 3,
+  rarity: COMMON
+}
+
+Uncommon Schematic: {
+  id: SCHEMATIC,
+  description: One of Daedalus' old schematics. Can be traded at a dispensary for useful equipment,
+  value: 50,
+  texture_frame: 3,
+  rarity: UNCOMMON
+}
+
+Rare Schematic: {
+  id: SCHEMATIC,
+  description: One of Daedalus' old schematics. Can be traded at a dispensary for strong equipment,
+  value: 75,
+  texture_frame: 3,
+  rarity: RARE
+}
+
+Epic Schematic: {
+  id: SCHEMATIC,
+  description: One of Daedalus' old schematics. Can be traded at a dispensary for powerful equipment,
+  value: 100,
+  texture_frame: 3,
+  rarity: EPIC
+}
+
+Legendary Schematic: {
+  id: SCHEMATIC,
+  description: One of Daedalus' favourite schematics. Can be traded at a dispensary for impressive equipment,
+  value: 125,
+  texture_frame: 3,
+  rarity: LEGENDARY
 }
 
 Healing Heart: {
   id: CONSUMABLE,
   description: This heart will heal you!,
-  value: 100,
+  value: 10,
   texture_frame: 2,
+  rarity: COMMON,
   is_stackable: true,
   num_uses: 1,
   type: FLAT_AMT,
@@ -20,8 +62,9 @@ Healing Heart: {
 Hurting Heart: {
   id: CONSUMABLE,
   description: This will hurt.,
-  value: 0,
+  value: 5,
   texture_frame: 2,
+  rarity: COMMON,
   is_stackable: false,
   num_uses: 1,
   type: PERCENT_AMT,
@@ -35,6 +78,7 @@ Burning Heart: {
   description: A love so hot it BURNS.,
   value: 5,
   texture_frame: 2,
+  rarity: COMMON,
   is_stackable: false,
   num_uses: 3,
   type: STATUS_EFFECT,
@@ -45,8 +89,9 @@ Burning Heart: {
 Dull Blade: {
   id: EQUIPMENT,
   description: A blade so dull butter could cut through it,
-  value: 5,
+  value: 10,
   texture_frame: 3,
+  rarity: COMMON,
   slot: WEAPON,
   type: SWORD,
   delay: 0.2,
@@ -58,8 +103,9 @@ Dull Blade: {
 Old Bow: {
   id: EQUIPMENT,
   description: This bow smells very musty,
-  value: 2,
+  value: 5,
   texture_frame: 3,
+  rarity: COMMON,
   slot: WEAPON,
   type: BOW,
   delay: 0.2,
@@ -77,8 +123,9 @@ Old Bow: {
 Dented Helmet: {
   id: EQUIPMENT,
   description: Someone definitely died in this helmet,
-  value: 1,
+  value: 10,
   texture_frame: 3,
+  rarity: COMMON,
   slot: HEAD,
   damage_reduction: 0.02,
   has_status_effects: false,
@@ -89,6 +136,7 @@ The Floor is Lava Boots: {
   description: Guaranteed to make you feel like you're walking in lava!,
   value: 25,
   texture_frame: 3,
+  rarity: UNCOMMON,
   slot: FEET,
   damage_reduction: 0.05,
   has_status_effects: true,

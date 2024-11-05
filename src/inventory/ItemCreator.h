@@ -16,7 +16,6 @@
 // by searching a .yaml directory for an entry with a given name
 //-----------------------------------------------------------------------------
 
-
 namespace ItemCreator {
     // The item directory that describes all of the items (index by names)
     const std::string ITEM_DIRECTORY_PATH = "data/item_directory.yaml";
@@ -37,10 +36,37 @@ namespace ItemCreator {
             int iValue = itemEntry["value"].as<int>();
             int iTextureFrameIndex = itemEntry["texture_frame"].as<int>();
 
+            std::string strRarity = itemEntry["rarity"].as<std::string>();
+            Rarity enRarity;
+
+            if (strRarity == "COMMON") {
+                enRarity = COMMON;
+            }
+            else if (strRarity == "UNCOMMON") {
+                enRarity = UNCOMMON;
+            }
+            else if (strRarity == "RARE") {
+                enRarity = RARE;
+            }
+            else if (strRarity == "EPIC") {
+                enRarity = EPIC;
+            }
+            else if (strRarity == "LEGENDARY") {
+                enRarity = LEGENDARY;
+            }
+            else {
+                wolf::Error("ItemCreator Error: Invalid rarity level ", strRarity.c_str(), " for ", p_strItemName.c_str());
+                return nullptr;
+            }
+
             // Then figure out what kind of item it is
             if (strItemId == "GOLD") { // If this is a gold item
                 // Then we don't need anything else so we can just use an ItemBase to create the item
-                pCreatedItem = new ItemBase(GOLD, p_strItemName, strDesc, iValue, true, iTextureFrameIndex);
+                pCreatedItem = new ItemBase(GOLD, p_strItemName, strDesc, iValue, true, iTextureFrameIndex, enRarity);
+            }
+            else if (strItemId == "SCHEMATIC") { // If this is a schematic item
+                // Then we have everything we need so we can just use an ItemBase to create the item
+                pCreatedItem = new ItemBase(SCHEMATIC, p_strItemName, strDesc, iValue, false, iTextureFrameIndex, enRarity);
             }
             else if (strItemId == "CONSUMABLE") { // If it is a consumable
                 // All consumables will have these attributes so we look for them
@@ -69,7 +95,7 @@ namespace ItemCreator {
                     }
 
                     // We now have everything we need to create and return the item, so we do so
-                    pCreatedItem = new FlatAmtItem(CONSUMABLE, p_strItemName, strDesc, iValue, bStackable, iTextureFrameIndex, iNumUses, enTargetAttribute, fAmount);
+                    pCreatedItem = new FlatAmtItem(CONSUMABLE, p_strItemName, strDesc, iValue, bStackable, iTextureFrameIndex, enRarity, iNumUses, enTargetAttribute, fAmount);
 
                 }
                 else if (strType == "PERCENT_AMT") {
@@ -92,7 +118,7 @@ namespace ItemCreator {
                     }
 
                     // We now have everything we need to create and return the item, so we do so
-                    pCreatedItem = new PercentItem(CONSUMABLE, p_strItemName, strDesc, iValue, bStackable, iTextureFrameIndex, iNumUses, enTargetAttribute, fAmount);
+                    pCreatedItem = new PercentItem(CONSUMABLE, p_strItemName, strDesc, iValue, bStackable, iTextureFrameIndex, enRarity, iNumUses, enTargetAttribute, fAmount);
                 }
                 else if (strType == "STATUS_EFFECT") {
                     // Status Effect items have a target status effect and a duration
@@ -117,7 +143,7 @@ namespace ItemCreator {
                     }
 
                     // We now have everything we need to create and return the item, so we do so
-                    pCreatedItem = new StatusEffectItem(CONSUMABLE, p_strItemName, strDesc, iValue, bStackable, iTextureFrameIndex, iNumUses, enStatusEffectType, fDuration);
+                    pCreatedItem = new StatusEffectItem(CONSUMABLE, p_strItemName, strDesc, iValue, bStackable, iTextureFrameIndex, enRarity, iNumUses, enStatusEffectType, fDuration);
                 }
                 else {
                     // If the item type does not match any of the consumable item enums that we use then we can't create the item
@@ -161,7 +187,7 @@ namespace ItemCreator {
                     bool bHasProjectiles = itemEntry["has_projectiles"].as<bool>();
 
                     // Once we have all that, we can create the item
-                    WeaponItem* pWeapon = new WeaponItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enWeaponType, fDelay, fDamage, v2HurtboxSize, bHasProjectiles);
+                    WeaponItem* pWeapon = new WeaponItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enRarity, enWeaponType, fDelay, fDamage, v2HurtboxSize, bHasProjectiles);
                     
                     // If the weapon has projectiles
                     if (bHasProjectiles) {
@@ -262,7 +288,7 @@ namespace ItemCreator {
                     }
 
                     // Then we can create the armour item!
-                    pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enSlot, fDamageReduction, vStatusEffects);
+                    pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enRarity, enSlot, fDamageReduction, vStatusEffects);
 
                 }
             }
