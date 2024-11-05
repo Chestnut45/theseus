@@ -543,7 +543,7 @@ void PlayerController::ApplyDamageToEnemy()
         }
         
         // Spawn melee collider for sword
-        case WeaponType::SWORD:
+        case WeaponType::SPEAR:
         {
             // Set & calculate data for melee collider
             glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
@@ -588,6 +588,56 @@ void PlayerController::ApplyDamageToEnemy()
             meleeVelocity.SetVelocity(glm::vec2(0.0f, 0.0f));
 
             break;
+        }
+
+        // Spawn melee collider for sword
+        case WeaponType::SWORD:
+        {
+            // Set & calculate data for melee collider
+            glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
+            glm::vec2 offset = glm::vec2(0.0f, 0.0f);
+            glm::vec2 colliderBoxOffset1 = glm::vec2(-meleeDimensions.x * 0.5f - 0.75f, meleeDimensions.y * 0.5);
+            glm::vec2 colliderBoxOffset2 = colliderBoxOffset1;
+            
+            
+            if(playerDirection.x != 0.0f)
+            {
+                offset.x = 9.0f;
+                colliderBoxOffset2.x += playerDirection.x > 0.0f ? meleeDimensions.x : -meleeDimensions.x;
+            }
+
+            if(playerDirection.y != 0.0f)
+            {
+                offset.y = 13.0f;
+                colliderBoxOffset2.y += playerDirection.y > 0.0f ? meleeDimensions.y : -meleeDimensions.y;
+            }
+
+            // Shift offset along player direction
+            offset.x = playerDirection.x * offset.x;
+            offset.y = playerDirection.y * offset.y;
+
+            // Scale offset by player scale
+            offset *= playerScale;
+
+            auto& scene = player->GetScene();
+
+            // Create melee object & add components
+            auto& melee = scene.CreateObject2D();
+            melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
+
+            auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            meleeCollider.AddColliderBox(meleeDimensions, colliderBoxOffset1);
+            meleeCollider.AddColliderBox(meleeDimensions, colliderBoxOffset2);
+            meleeCollider.SetIgnoreTag(player->GetID());
+
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+            
+            melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
+            melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
+            auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
+
+            auto& meleeVelocity = melee.AddComponent<VelocityComponent>();
+            meleeVelocity.SetVelocity(glm::vec2(0.0f, 0.0f));
         }
     }
 }
