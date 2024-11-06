@@ -24,8 +24,6 @@ void DialogueState::Enter()
 
 void DialogueState::Exit()
 {
-    std::cout << "Exiting Dialogue State." << std::endl;
-
     // Reset state variables and active dialogue flag on exit
     m_isDialogueActive = false;
     m_currentLineIndex = 0;
@@ -94,6 +92,10 @@ void DialogueState::Render()
     // Smooth fade-in effect for the dialogue box
     static float fadeOpacity = 0.0f;
     fadeOpacity = std::min(fadeOpacity + 0.05f, 1.0f);  // Gradually increase opacity
+
+    // Check if we're on the last line of the dialogue
+    const auto& lines = m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID);
+    bool isLastLine = (m_currentLineIndex >= lines.size() - 1);
 
     // Screen dimensions
     ImVec2 screenSize = ImGui::GetIO().DisplaySize;
@@ -205,40 +207,51 @@ void DialogueState::Render()
     }
 
     // Centered button layout
-    ImGui::SetCursorPosX((ImGui::GetWindowWidth() - 280) / 2);
+    bool showContinueButton = !isLastLine || !m_isLineFinished;
+    float buttonWidth = showContinueButton ? 130.0f : 180.0f;  // Increase width when only two buttons are shown
+    ImVec2 buttonSize(buttonWidth, 35);
 
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.3f, 0.4f, fadeOpacity));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.35f, 0.5f, fadeOpacity));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.25f, 0.35f, fadeOpacity));
+    float totalButtonWidth = showContinueButton ? 420.0f : 2 * buttonWidth;
+    ImGui::SetCursorPosX((ImGui::GetWindowWidth() - totalButtonWidth) / 2);  // Center buttons
 
-    if (ImGui::Button(m_autoplay ? "Autoplay: ON" : "Autoplay: OFF", ImVec2(130, 35)))
+    // Button styling for a polished look
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.4f, 0.45f, fadeOpacity));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.3f, 0.35f, fadeOpacity));
+
+    // Autoplay button
+    if (ImGui::Button(m_autoplay ? "Autoplay: ON" : "Autoplay: OFF", buttonSize))
     {
         m_autoplay = !m_autoplay;
     }
-    ImGui::PopStyleColor(3);
 
+    ImGui::PopStyleColor(3);
     ImGui::SameLine();
 
-    const auto& lines = m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID);
-    bool isLastLine = (m_currentLineIndex >= lines.size() - 1);
-
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.45f, 0.6f, fadeOpacity));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f, 0.55f, 0.7f, fadeOpacity));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.35f, 0.4f, 0.55f, fadeOpacity));
-
-    if (!isLastLine || !m_isLineFinished)
+    // Continue button (if not last line or line is not finished)
+    if (showContinueButton)
     {
-        if (ImGui::Button("Continue", ImVec2(130, 35)))
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.45f, 0.5f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f, 0.55f, 0.6f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
+
+        if (ImGui::Button("Continue", buttonSize))
         {
             OnContinueButtonPressed();
         }
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine();
     }
-    else if (isLastLine && m_isLineFinished)
+
+    // Exit button (always visible)
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.4f, 0.45f, fadeOpacity));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.3f, 0.35f, fadeOpacity));
+
+    if (ImGui::Button("Exit", buttonSize))
     {
-        if (ImGui::Button("Exit", ImVec2(130, 35)))
-        {
-            EndDialogue();
-        }
+        EndDialogue();
     }
     ImGui::PopStyleColor(3);
 
@@ -249,14 +262,13 @@ void DialogueState::Render()
 
 
 
+
 void DialogueState::Pause()
 {
-    std::cout << "Dialogue State Paused." << std::endl;
 }
 
 void DialogueState::Resume()
 {
-    std::cout << "Dialogue State Resumed." << std::endl;
 }
 
 void DialogueState::BackgroundUpdate(float delta)
@@ -271,12 +283,11 @@ void DialogueState::BackgroundRender()
 
 void DialogueState::StartDialogue(const std::string& dialogueID)
 {
-    std::cout << "Starting dialogue with ID: " << dialogueID << std::endl;
+    // std::cout << "Starting dialogue with ID: " << dialogueID << std::endl;
 
     // Load the dialogue using the ID from the DialogueManager
     DialogueData* dialogue = m_pDialogueManager->GetDialogue(dialogueID);
     if (!dialogue) {
-        std::cerr << "Dialogue with ID " << dialogueID << " not found!" << std::endl;
         m_isDialogueActive = false;
         return;
     }
@@ -296,7 +307,6 @@ void DialogueState::AdvanceDialogue()
 {
     if (!m_isDialogueActive)
     {
-        std::cout << "DialogueState::AdvanceDialogue() called when dialogue is inactive or exiting. Ignoring." << std::endl;
         return;
     }
 
@@ -307,13 +317,11 @@ void DialogueState::AdvanceDialogue()
     {
         // Move to the next line in the dialogue
         m_currentLineIndex++;
-        std::cout << "Advancing to next line. Current line index: " << m_currentLineIndex << std::endl;
         m_showFullText = false;  // Reset the display for the next line
     }
     else
     {
         // If no more lines are left, set exit flag and request state pop
-        std::cout << "Reached the end of dialogue. Exiting dialogue state." << std::endl;
         m_shouldExit = true;
     }
 }
@@ -336,14 +344,12 @@ std::string DialogueState::GetCurrentCharacterName() const
     // Get the dialogue associated with the current ID from the DialogueManager
     auto it = m_dialogueData.find(m_currentDialogueID);
     if (it == m_dialogueData.end()) {
-        std::cerr << "Dialogue ID " << m_currentDialogueID << " not found in m_dialogueData!" << std::endl;
         return "";
     }
 
     // Check if the current line index is valid
     const DialogueData& dialogue = it->second;
     if (m_currentLineIndex >= dialogue.lines.size()) {
-        std::cerr << "Line index " << m_currentLineIndex << " out of bounds for dialogue ID " << m_currentDialogueID << std::endl;
         return "";
     }
 
