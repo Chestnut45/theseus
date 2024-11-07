@@ -21,12 +21,18 @@
 
 float PlayerController::s_aAttackCooldown[(int)WeaponType::BOW + 1] = {0.25f, 1.0f, 0.5f};
 
+
+
 PlayerController::PlayerController() = default;
 
 PlayerController::~PlayerController() {
     wolf::EventManager::RemoveListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
+    if (m_deathScreenTexture) {
+        wolf::TextureManager::DestroyTexture(m_deathScreenTexture);
+        m_deathScreenTexture = nullptr;
+    }
 }
 
 void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
@@ -70,6 +76,7 @@ void PlayerController::LateInitialize()
         wolf::Error("LateInitialize failed: PlayerController not attached to GameObject!");
         return;
     }
+    m_runtimeTimer.Start(); // Start runtime timer 
 
     this->m_pDefaultWeapon = dynamic_cast<WeaponItem*>(ItemCreator::CreateItem("Dull Blade"));
     this->m_pCurrentWeapon = this->m_pDefaultWeapon;
@@ -122,6 +129,8 @@ void PlayerController::Update(float delta)
         wolf::Error("PlayerController missing essential components!");
         return;
     }
+    CheckHealth();
+    if (m_action == PlayerAction::DEAD) return;
 
     // Debug speed modifier hotkeys
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
@@ -770,6 +779,10 @@ std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirecti
 void PlayerController::Render()
 {
     if (!m_pTransform) return;
+     if (m_action == PlayerAction::DEAD) {
+        RenderDeathScreen();
+        return;
+    }
 
     float barWidth = 180.0f;
     float barHeight = 18.0f;
@@ -878,4 +891,150 @@ void PlayerController::RenderThrowPowerBar() {
     // Pop all the style vars and colors
     ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(2);
+}
+
+void PlayerController::CheckHealth() {
+    auto* healthComponent = GetGameObject()->GetComponent<HealthComponent>();
+    if (healthComponent && healthComponent->GetHealth() <= 0) {
+        EnterDeathState();
+    }
+}
+
+void PlayerController::EnterDeathState() {
+    SetAction(PlayerAction::DEAD);
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    m_isAttacking = m_isRolling = m_isJumping = false;
+
+    m_runtimeTimer.Stop(); // Stop the timer
+    m_deathRuntime = m_runtimeTimer.Elapsed(); // Capture elapsed time once
+}
+
+void PlayerController::RenderDeathScreen() {
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+
+
+    // Step 1: Fade to Black
+    static float fadeOpacity = 0.0f;
+    static bool fadeComplete = false;
+    if (!fadeComplete) {
+        fadeOpacity += 0.01f; // Adjust fade speed if needed
+        if (fadeOpacity >= 1.0f) {
+            fadeOpacity = 1.0f;
+            fadeComplete = true;
+        }
+    }
+
+    // Render the fade overlay only if the fade is not yet complete
+    if (!fadeComplete) {
+        ImGui::GetForegroundDrawList()->AddRectFilled(ImVec2(0, 0), displaySize, IM_COL32(0, 0, 0, static_cast<int>(fadeOpacity * 255)));
+    }
+
+    // Step 2: Render Static Black Background Once Fade is Complete
+    static bool blackBackgroundLoaded = false;
+    if (fadeComplete && !blackBackgroundLoaded) {
+        blackBackgroundLoaded = true;
+    }
+
+    // Step 2: Render Static Black Background After Fade to Black
+    static ImTextureID blackTextureID = nullptr;
+
+    if (!blackTextureID) {
+        // Load the texture only once
+        blackTextureID = reinterpret_cast<void*>(wolf::TextureManager::CreateTexture("data/textures/black_background_1920x1080.png")->GetID());
+    }
+
+    // Calculate a slightly larger size to fully cover the screen
+    ImVec2 overscaleSize(displaySize.x * 1.5f, displaySize.y * 1.25f); // Adjust as needed
+
+    if (fadeComplete) {
+        // Offset position slightly to the left and up to cover borders
+        ImGui::SetNextWindowPos(ImVec2(-10, -10)); // Adjust negative values as needed
+        ImGui::SetNextWindowSize(overscaleSize);
+        ImGui::Begin("##BlackBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
+
+        // Stretch the texture to the overscaled size
+        ImGui::Image(blackTextureID, overscaleSize);
+
+        ImGui::End();
+    }
+
+    // Step 3: Render UI Elements in Sequence on Top of Static Black Background
+
+    // Fade-in "You Died" message
+    static float messageOpacity = 0.0f;
+    static bool messageFadeComplete = false;
+    if (blackBackgroundLoaded && !messageFadeComplete) {
+        messageOpacity += 0.01f;
+        if (messageOpacity >= 1.0f) {
+            messageOpacity = 1.0f;
+            messageFadeComplete = true;
+        }
+    }
+
+    if (messageFadeComplete || messageOpacity > 0.0f) {
+        ImGui::SetNextWindowPos(ImVec2(displaySize.x * 0.5f - 150, displaySize.y * 0.4f - 50));
+        ImGui::SetNextWindowSize(ImVec2(300, 100));
+        ImGui::Begin("##GameOverMessage", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, messageOpacity));
+        ImGui::SetWindowFontScale(1.8f);
+        ImGui::Text("You Died");
+        ImGui::PopStyleColor();
+        ImGui::End();
+    }
+
+    // Fade-in runtime text after "You Died" message
+    static float runtimeOpacity = 0.0f;
+    static bool runtimeFadeComplete = false;
+    if (messageFadeComplete && !runtimeFadeComplete) {
+        runtimeOpacity += 0.01f;
+        if (runtimeOpacity >= 1.0f) {
+            runtimeOpacity = 1.0f;
+            runtimeFadeComplete = true;
+        }
+    }
+
+    if (runtimeFadeComplete || runtimeOpacity > 0.0f) {
+        ImGui::SetNextWindowPos(ImVec2(displaySize.x * 0.5f - 150, displaySize.y * 0.5f));
+        ImGui::SetNextWindowSize(ImVec2(300, 100));
+        ImGui::Begin("##RuntimeInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, runtimeOpacity));
+        ImGui::Text("Run Time: %.2f seconds", m_deathRuntime);
+        ImGui::PopStyleColor();
+        ImGui::End();
+    }
+
+    // Fade-in display options after runtime text
+    static float optionsOpacity = 0.0f;
+    if (runtimeFadeComplete) {
+        optionsOpacity += 0.01f;
+        if (optionsOpacity > 1.0f) {
+            optionsOpacity = 1.0f;
+        }
+    }
+
+    if (optionsOpacity > 0.0f) {
+        ImGui::SetNextWindowPos(ImVec2(displaySize.x * 0.5f - 100, displaySize.y * 0.7f));
+        ImGui::SetNextWindowSize(ImVec2(200, 100));
+        ImGui::Begin("##DeathScreenOptions", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 5.0f));
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.7f, optionsOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4f, 0.4f, 0.9f, optionsOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.2f, 0.5f, optionsOpacity));
+
+        if (ImGui::Button("Return to Main Menu", ImVec2(180, 30))) {
+            wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::MAIN_MENU));
+        }
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Exit Game", ImVec2(180, 30))) {
+            wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::EXIT));
+        }
+
+        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar(2);
+        ImGui::End();
+    }
 }

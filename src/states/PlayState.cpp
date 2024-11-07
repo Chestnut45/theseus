@@ -26,6 +26,8 @@ void PlayState::Enter()
     // Initialize the dialogue listener
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
+    wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+
     
     this->m_pColliderManager = new ColliderManager(&scene);
 
@@ -91,6 +93,7 @@ void PlayState::Exit()
 
     wolf::EventManager::RemoveListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
+    wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
 
     // Delete managers
     delete this->m_pColliderManager;
@@ -539,3 +542,15 @@ void PlayState::ConvertPlayerTileToGold() {
         m_pLabyrinthManager->SetTile(tilePos.x, tilePos.y, goldTileID);
     }
 }
+
+void PlayState::OnGameOverEvent(const GameOverEvent& event) {
+    switch (event.type) {
+        case GameOverType::MAIN_MENU:
+            m_pStateManager->ClearAndPushState(new MainMenuState(m_pStateManager, m_pGameInstance));
+            break;
+        case GameOverType::EXIT:
+            m_pGameInstance->Shutdown();
+            break;
+    }
+}
+

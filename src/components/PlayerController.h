@@ -15,6 +15,9 @@
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
 
+// !-- Death Screen Handling --!
+#include "../events/GameOverEvent.h"
+
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
 // Original Author: Youssef Ashraf
@@ -34,7 +37,8 @@ public:
         ATTACKING,
         IN_INVENTORY,
         PICKING_UP,
-        THROWING
+        THROWING,
+        DEAD
     };
 
     // Enum for player movement directions
@@ -118,12 +122,14 @@ private:
     void ThrowHeldObject();
     void PickUpObject();
     void DropObject();
+    void EnterDeathState();
 
     // Utility functions
     void ApplyDamageToEnemy(); // Applies damage to enemies
     void RegenerateStamina(float delta); // Regenerates stamina over time
-
+    void CheckHealth();
     void RenderThrowPowerBar(); // rendering for the power bar
+    void RenderDeathScreen();
 
 
     // Animation utility functions
@@ -198,4 +204,9 @@ private:
     // Default weapon if no weapon equipped
     WeaponItem* m_pDefaultWeapon = nullptr;
     WeaponItem* m_pCurrentWeapon = nullptr;
+
+    // Death screen related variables
+    wolf::Timer m_runtimeTimer;
+    double m_deathRuntime = 0.0; // Store the runtime once when player dies
+    wolf::Texture* m_deathScreenTexture = nullptr;
 };
