@@ -1,6 +1,9 @@
 #include "InventoryComponent.h"
 #include "W_Logging.h"
 
+#include <yaml-cpp/yaml.h>
+#include "../inventory/ItemCreator.h"
+
 int InventoryComponent::m_iNextIdNum = 0;
 
 InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow), m_iIdNum(m_iNextIdNum){
@@ -161,6 +164,7 @@ bool InventoryComponent::AddItem(ItemBase* p_pItem) {
         if (pItem->GetID() == p_pItem->GetID() && p_pItem->IsStackable() && pItem->IsStackable()) {
             // Then we push the item to the stack
             m_vvpContents[i].push(p_pItem);
+            m_iLastUsedSlot = i; // Save what index we added the item to
             return true;
         }
     }
@@ -169,6 +173,7 @@ bool InventoryComponent::AddItem(ItemBase* p_pItem) {
     if (m_iSlotsInUse < m_iSize) {
         // Push the item to the next open slot
         m_vvpContents[m_iSlotsInUse].push(p_pItem);
+        m_iLastUsedSlot = m_iSlotsInUse; // Save what index we added the item to
 
         // Update the number of slots we're using
         m_iSlotsInUse++;
@@ -177,7 +182,8 @@ bool InventoryComponent::AddItem(ItemBase* p_pItem) {
         return true;
     }
 
-    // And if all that fails, we return false
+    // And if all that fails, we keep track of the failed attempt and return false
+    m_iLastUsedSlot = -1;
     return false;
 }
 
@@ -307,6 +313,9 @@ void InventoryComponent::EmptyInventory() {
             it->pop();
         }
     }
+
+    // Our inventory is empty now so we're not using any of the slots
+    m_iSlotsInUse = 0;
 }
 
 void InventoryComponent::ShowInventoryGUI() {
@@ -418,4 +427,65 @@ void InventoryComponent::ShowInventoryGUI() {
 
     // End of window
     ImGui::End();
+}
+
+
+bool InventoryComponent::FillInventoryFromFile(const std::string& p_strFilePath) {
+    try {
+        // Load the file
+        YAML::Node node = YAML::LoadFile(p_strFilePath);
+
+        // Go through the list of items
+        YAML::Node itemList = node["item_list"];
+        for (int i = 0; i < itemList.size(); ++i) {
+            std::string strItemName = itemList[i].as<std::string>();
+            
+            // Try to create one
+            ItemBase* pNextItem = ItemCreator::CreateItem(strItemName);
+
+            // If it works,
+            if (pNextItem) {
+
+                // Add it to the inventory
+                this->AddItemOrDelete(pNextItem);
+            }
+            else {
+                // Otherwise return false
+                return false;
+            }
+        }
+    }
+    catch (YAML::Exception& e) {
+        // If we run into an error, then we should print it and return false
+        wolf::Error("Error using '", p_strFilePath.c_str(), ": ", e.what());
+        return false;
+    }
+
+    // If we didn't encounter any issues, we return true
+    return true;
+}
+
+void InventoryComponent::Open() {
+    m_bIsOpen = true;
+
+    // Let anyone interested know which specific chest was opened
+    wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
+}
+
+void InventoryComponent::Close() {
+    m_bIsOpen = false;
+
+    // Let anyone interested know which specific chest was closed
+    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+}
+
+void InventoryComponent::ToggleOpen() {
+    m_bIsOpen = !m_bIsOpen;
+
+    if (m_bIsOpen) {
+        wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
+    }
+    else {
+        wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+    }
 }

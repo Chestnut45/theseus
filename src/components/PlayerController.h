@@ -8,6 +8,7 @@
 #include <components/ColliderComponent.h>
 #include <components/InventoryComponent.h>
 #include <components/PlayerInventoryComponent.h>
+#include <components/ThrowableObjectComponent.h>
 #include <iostream>
 
 // !-- Aurora added this --!
@@ -31,7 +32,9 @@ public:
         JUMPING,
         ROLLING,
         ATTACKING,
-        IN_INVENTORY
+        IN_INVENTORY,
+        PICKING_UP,
+        THROWING
     };
 
     // Enum for player movement directions
@@ -67,8 +70,22 @@ public:
 
     // Overloaded << operator for printing directions
     friend std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction);
+    //set collidermanager
     void SetColliderManager(ColliderManager* pColliderManager);
+    //get the collider manager (verification)
     ColliderManager* GetColliderManager() const;
+
+
+
+    //set player action
+    void SetAction(PlayerAction action);
+
+    // setting the holding object bool variable
+    void SetHoldingObject(bool isHolding);
+
+    
+    // This getter simply returns the current value of m_lastFaceDirectionEnum, allowing ThrowableObjectComponent to access it.
+    PlayerDirection GetLastFacingDirection() const { return m_lastFaceDirectionEnum; }
 
     // Weapon & Attack functions
 
@@ -82,6 +99,9 @@ private:
     void HandleRolling(float delta);     // Declaration for HandleRolling
     void HandleJumping(float delta);     // Declaration for HandleJumping
     void HandleAttacking(float delta);   // Declaration for HandleAttacking
+    void HandleThrowing(float delta);  // New method to handle throwing
+    
+
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
@@ -95,10 +115,16 @@ private:
     void EndRoll();         // Ends a rolling action
     void StartJump();       // Starts a jumping action
     void EndJump();         // Ends a jumping action
+    void ThrowHeldObject();
+    void PickUpObject();
+    void DropObject();
 
     // Utility functions
     void ApplyDamageToEnemy(); // Applies damage to enemies
     void RegenerateStamina(float delta); // Regenerates stamina over time
+
+    void RenderThrowPowerBar(); // rendering for the power bar
+
 
     // Animation utility functions
     std::string GetAttackAnimationForDirection(PlayerDirection direction) const;
@@ -111,6 +137,7 @@ private:
     wolf::Transform2D* m_pTransform = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
     AnimatedSprite2D* m_pAnimComponent = nullptr;
+    ThrowableObjectComponent* m_pHeldObject = nullptr;
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
@@ -149,6 +176,14 @@ private:
     float m_attackRange = 100.0f;
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
+
+    //picking up management
+    bool m_isHoldingObject = false;
+    float m_chargeTime = 0.0f;  // New variable to store charge time for throws
+    float m_throwSpeed = 300.0f;  // Speed multiplier for the throw
+    float m_throwPower = 0.0f;       // Power for the throw
+    const float m_maxThrowPower = 100.0f; // Max limit for the throw power
+    const float m_powerChargeRate = 25.0f; // Rate at which power increases
 
     static float s_aAttackCooldown[(int)WeaponType::BOW + 1];
 
