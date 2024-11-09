@@ -43,8 +43,8 @@ private:
     void SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);    
    
    // InternalUse methods for hitbox sliding response
-    bool IsCollidingInternalUse(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta);
-    bool CustomAABBInternalUse(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);
+    bool IsCollidingInternalUse(ColliderComponent& p_colliderComponent1, ColliderComponent& p_colliderComponent2, float p_delta);
+    bool CustomAABBInternalUse(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);
 
     std::vector<wolf::GameObjectID> m_vToBeDestroyed;
 };

@@ -88,7 +88,7 @@ void LabyrinthManager::Update(float delta)
             if (!queued) m_chunkActivateQueue.push_back(id);
 
             // Ensure it's not on the deactivate queue
-            for (int i = m_chunkDeactivateQueue.size() - 1; i >= 0; ++i)
+            for (int i = m_chunkDeactivateQueue.size() - 1; i >= 0; --i)
             {
                 if (m_chunkDeactivateQueue[i] == id)
                 {
