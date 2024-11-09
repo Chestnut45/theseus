@@ -70,7 +70,7 @@ void PlayState::Enter()
     // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
     
     // this->CreateMinitaurEnemy();
-    // this->CreateHarpyEnemy();
+    this->CreateHarpyEnemy();
 }
 
 void PlayState::Exit()
@@ -225,6 +225,8 @@ void PlayState::Update(float delta)
     // Dispatch events
     wolf::EventManager::Dispatch<DialogueTriggerEvent>();
     wolf::EventManager::Dispatch();
+
+    // ImGui::ShowDemoWindow();
 }
 
 void PlayState::Render()
@@ -234,6 +236,12 @@ void PlayState::Render()
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
         playerController->Render();
+
+    // Render status effect icons
+    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
+    {
+        status.RenderPlayerSEIcons();
+    }
 }
 
 void PlayState::BackgroundUpdate(float delta)
@@ -275,7 +283,8 @@ void PlayState::CreatePlayer()
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
+    status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+    status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
 
     m_pPlayerObject->AddComponent<ChestInventoryComponent>(4, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 }
@@ -314,9 +323,10 @@ void PlayState::CreateHarpyEnemy()
     HarpyBuilder harpyBuilder(m_pGameInstance->GetScene());
 
     glm::vec2 positions[] = {
-        glm::vec2(-300.0f, -300.0f),
-        glm::vec2(-400.0f, -400.0f),
-        glm::vec2(-500.0f, -500.0f)
+        // glm::vec2(-300.0f, -300.0f),
+        // glm::vec2(-400.0f, -400.0f),
+        // glm::vec2(-500.0f, -500.0f)
+        glm::vec2(6000.0f, 0.0f)
     };
 
     for (const auto& position : positions)

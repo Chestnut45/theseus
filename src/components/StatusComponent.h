@@ -33,6 +33,7 @@ public:
     bool IsStatusEffectActive(StatusEffectType p_se_type) const;
 
     void Update();
+    void RenderPlayerSEIcons();
 
 private:
     struct StatusEffect
@@ -47,6 +48,11 @@ private:
     };
 
     StatusEffect m_aStatusEffects [StatusEffectType::NONE];
+
+    static int s_iComponentCounter;
+    
+    static ImVec2 s_vTextureSize;
+    static wolf::Texture* s_pTextures[StatusEffectType::NONE];
 
     void RemoveStatusEffect(StatusEffectType p_se_type);
     

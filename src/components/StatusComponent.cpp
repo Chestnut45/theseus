@@ -9,10 +9,26 @@
 #include "StatusComponent.h"
 
 #include "AnimatedSprite2D.h"
+#include "PlayerController.h"
 #include "VelocityComponent.h"
+
+int StatusComponent::s_iComponentCounter = 0;
+wolf::Texture* StatusComponent::s_pTextures[StatusComponent::StatusEffectType::NONE];
+ImVec2 StatusComponent::s_vTextureSize = ImVec2(64.0f, 64.0f);
 
 StatusComponent::StatusComponent()
 {
+    if(s_iComponentCounter == 0)
+    {
+        s_pTextures[StatusComponent::StatusEffectType::BURNING] = wolf::TextureManager::CreateTexture("data/textures/SEBurning.png");
+        s_pTextures[StatusComponent::StatusEffectType::BURNING]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+        s_pTextures[StatusComponent::StatusEffectType::PETRIFIED] = wolf::TextureManager::CreateTexture("data/textures/SEPetrified.png");
+        s_pTextures[StatusComponent::StatusEffectType::PETRIFIED]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+        s_pTextures[StatusComponent::StatusEffectType::POISONED] = wolf::TextureManager::CreateTexture("data/textures/SEPoisoned.png");
+        s_pTextures[StatusComponent::StatusEffectType::POISONED]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+    }
+    s_iComponentCounter++;
+
     for(int i = 0; i < StatusEffectType::NONE; i++)
     {
         this->m_aStatusEffects[i].m_OwnerComponent = this;
@@ -25,6 +41,11 @@ StatusComponent::StatusComponent()
 StatusComponent::~StatusComponent()
 {
     wolf::EventManager::RemoveListener<ApplyStatusEffectEvent, StatusComponent, &StatusComponent::HandleApplyStatusEffectEvent>(*this);
+    s_iComponentCounter--;
+    if(s_iComponentCounter == 0)
+    {
+        
+    }
 }
 
 // If status effect already present, reset timer
@@ -48,6 +69,7 @@ void StatusComponent::Update()
     {
         StatusComponent::StatusEffect& statusEffect = this->m_aStatusEffects[i];
         
+        // Apply status effect
         if(statusEffect.m_isActive)
         {
             statusEffect.ApplyStatusEffect();
@@ -68,11 +90,50 @@ void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 
     if(p_se_type == StatusEffectType::PETRIFIED)
     {
-    AnimatedSprite2D* animatedSprite2DComponent = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+        AnimatedSprite2D* animatedSprite2DComponent = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
         if(animatedSprite2DComponent != nullptr)
         {
             animatedSprite2DComponent->SetTint(glm::vec3(1.0f));
         }
+    }
+}
+
+void StatusComponent::RenderPlayerSEIcons()
+{
+    if(this->GetGameObject()->HasAny<PlayerController>())
+    {
+        int activeSECount = 0;
+        if(this->IsStatusEffectActive(StatusEffectType::BURNING)) activeSECount++;
+        if(this->IsStatusEffectActive(StatusEffectType::PETRIFIED)) activeSECount++;
+        if(this->IsStatusEffectActive(StatusEffectType::POISONED)) activeSECount++;
+
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar |  ImGuiWindowFlags_NoBackground;
+        ImVec2 windowSize = activeSECount == 0 ? ImVec2(0.0f, 0.0f) : ImVec2((s_vTextureSize.x + 16) * activeSECount + 8, s_vTextureSize.y + 24);
+        ImGui::SetNextWindowPos({10, 10});
+        ImGui::SetNextWindowSize(windowSize);
+        ImGui::Begin("\t", nullptr, flags);
+
+        if(m_aStatusEffects[StatusEffectType::BURNING].m_isActive)
+        {
+            if (ImGui::ImageButton("SE", (void*)(intptr_t)s_pTextures[StatusEffectType::BURNING]->GetID(), s_vTextureSize)) {
+            }
+            ImGui::SameLine();
+        }
+        if(m_aStatusEffects[StatusEffectType::PETRIFIED].m_isActive)
+        {
+            if (ImGui::ImageButton("SE", (void*)(intptr_t)s_pTextures[StatusEffectType::PETRIFIED]->GetID(), s_vTextureSize)) {
+            }
+            ImGui::SameLine();
+        } 
+        if(m_aStatusEffects[StatusEffectType::POISONED].m_isActive)
+        {
+            if (ImGui::ImageButton("SE", (void*)(intptr_t)s_pTextures[StatusEffectType::POISONED]->GetID(), s_vTextureSize)) {
+            }
+            ImGui::SameLine();
+        }   
+        
+        
+        ImGui::End();
     }
 }
 
@@ -82,11 +143,10 @@ void StatusComponent::StatusEffect::ApplyStatusEffect()
     {
         case StatusEffectType::BURNING:
         {
-            float damage = 0.1f;
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
-                health->Damage(damage);
+                health->Damage(0.1f);
             }
             else
             {
