@@ -358,10 +358,10 @@ bool ColliderManager::CustomAABBInternalUse(const glm::vec2& p_translation_1, co
     glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;
         
     bool newResult = !(
-    newTranslation1.x + p_dimensions_1.x < p_translation_2.x                        ||
-    newTranslation1.x                    > p_translation_2.x + p_dimensions_2.x     ||
-    newTranslation1.y - p_dimensions_1.y > p_translation_2.y                        ||
-    newTranslation1.y                    < p_translation_2.y - p_dimensions_2.y
+        newTranslation1.x + p_dimensions_1.x < p_translation_2.x                        ||
+        newTranslation1.x                    > p_translation_2.x + p_dimensions_2.x     ||
+        newTranslation1.y - p_dimensions_1.y > p_translation_2.y                        ||
+        newTranslation1.y                    < p_translation_2.y - p_dimensions_2.y
     );
 
     if(p_velocity_1 && p_velocity_2 && result && newResult)
