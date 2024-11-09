@@ -499,17 +499,23 @@ PlayerController::PlayerDirection PlayerController::GetDirectionFromVector(const
 
 std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection direction) const
 {
+    std::string weaponType = "Sword";
+    WeaponType type = this->m_pCurrentWeapon->GetWeaponType();
+    if(type == WeaponType::BOW) weaponType = "Bow";
+    else if(type == WeaponType::SPEAR) weaponType = "Spear";
+    else if(type == WeaponType::SWORD) weaponType = "Sword";
+
     switch (direction)
     {
-        case PlayerDirection::SOUTH:       return "SwordAttackSouth";
-        case PlayerDirection::EAST:        return "SwordAttackEast";
-        case PlayerDirection::NORTH:       return "SwordAttackNorth";
-        case PlayerDirection::WEST:        return "SwordAttackWest";
-        case PlayerDirection::NORTH_EAST:  return "SwordAttackEast";
-        case PlayerDirection::NORTH_WEST:  return "SwordAttackWest";
-        case PlayerDirection::SOUTH_EAST:  return "SwordAttackEast";
-        case PlayerDirection::SOUTH_WEST:  return "SwordAttackWest";
-        default:                           return "SwordAttackSouth";
+        case PlayerDirection::SOUTH:       return weaponType + "AttackSouth";
+        case PlayerDirection::EAST:        return weaponType + "AttackEast";
+        case PlayerDirection::NORTH:       return weaponType + "AttackNorth";
+        case PlayerDirection::WEST:        return weaponType + "AttackWest";
+        case PlayerDirection::NORTH_EAST:  return weaponType + "AttackEast";
+        case PlayerDirection::NORTH_WEST:  return weaponType + "AttackWest";
+        case PlayerDirection::SOUTH_EAST:  return weaponType + "AttackEast";
+        case PlayerDirection::SOUTH_WEST:  return weaponType + "AttackWest";
+        default:                           return weaponType + "AttackSouth";
     }
 }
 

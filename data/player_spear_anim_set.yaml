@@ -1,0 +1,29 @@
+texture: data/textures/TheseusSword-Sheet.png
+frame_size: {x: 32.0, y: 32.0}
+
+animations: [
+  {
+    name: SpearAttackSouth,
+    start_frame: 1,
+    end_frame: 7,
+    loops: false
+  },
+  {
+    name: SpearAttackEast,
+    start_frame: 8,
+    end_frame: 14,
+    loops: false
+  },
+  {
+    name: SpearAttackNorth,
+    start_frame: 15,
+    end_frame: 21,
+    loops: false
+  },
+  {
+    name: SpearAttackWest,
+    start_frame: 22,
+    end_frame: 28,
+    loops: false
+  }
+]
