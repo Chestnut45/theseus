@@ -152,7 +152,10 @@ void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
 
         // TODO: Make sprites visible
 
-        // TODO: Wake up colliders
+        // Activate collider
+        // TODO: Only do this for walls? Or Move enemies to different chunks...
+        auto* pCollider = pObject->GetComponent<ColliderComponent>();
+        if (pCollider) pCollider->SetActive(true);
 
         // Recursively activate all child objects and compatible components
         for (auto* pChild : pObject->GetChildren())
@@ -183,7 +186,10 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
 
         // TODO: Make sprites invisible
 
-        // TODO: Sleep colliders
+        // Deactivate collider
+        // TODO: Only do this for walls? Or Move enemies to different chunks...
+        auto* pCollider = pObject->GetComponent<ColliderComponent>();
+        if (pCollider) pCollider->SetActive(false);
 
         // Recursively deactivate all child objects and compatible components
         for (auto* pChild : pObject->GetChildren())
@@ -1427,9 +1433,11 @@ void LabyrinthManager::GenerateChunks()
             // Create tilemap
             auto& tilemap = tilemapObj.AddComponent<wolf::TileMap>(CHUNK_SIZE, CHUNK_SIZE);
             tilemap.LoadTileSet("data/labyrinth.tileset");
+            tilemap.SetVisibility(false);
 
             // TESTING: Create collider component
-            // auto& collider = tilemapObj.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
+            auto& collider = tilemapObj.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
+            collider.SetActive(false);
 
             // Iterate chunk's tilemap
             for (int y = 0; y < CHUNK_SIZE; ++y)
@@ -1502,7 +1510,7 @@ void LabyrinthManager::GenerateChunks()
                             tile = wallDirID[mask];
 
                             // Add wall tile collider
-                            // collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE), glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
+                            collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE), glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
 
                             break;
                     }

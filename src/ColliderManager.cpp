@@ -47,9 +47,11 @@ void ColliderManager::CheckCollisions(float p_delta)
         for (auto&&[id1, collider1] : this->m_scene->Each<ColliderComponent>())
         {
             i++;
+            if (!collider1.IsActive()) continue;
 
             for (auto&&[id2, collider2] : this->m_scene->Each<ColliderComponent>() | std::views::drop(i))
             {
+                if (!collider2.IsActive()) continue;
 
                 // Checking for collision
                 if

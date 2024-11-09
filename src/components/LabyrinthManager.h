@@ -256,7 +256,7 @@ private:
     struct ChunkData
     {
         wolf::GameObject* m_pObject = nullptr;
-        bool active = true;
+        bool active = false;
     };
 
     // Map of chunk IDs to chunk game object pointers
