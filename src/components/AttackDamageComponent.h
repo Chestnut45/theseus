@@ -26,6 +26,4 @@ private:
     float m_fDamage = 0.0f;
     ColliderManager * m_pColliderManager = nullptr;
     float m_aStatusEffectsLifespans[StatusComponent::StatusEffectType::NONE];
-    int m_fSize = 0;
-
 };

@@ -59,10 +59,6 @@ void HomingComponent::Update(float p_delta)
                 }
                 else
                 {
-                    // printf("HomingComponent - Turning Cap Hit\n");    
-                    // std::cout <<"HomingComponent - Turning cap: " << this->m_fTurningCapRad << std::endl;
-                    // std::cout <<"HomingComponent - turning angle: " << radAngle << std::endl;
-
                     float side = glm::cross(glm::vec3(ownerVelocity.x, ownerVelocity.y, 0), glm::vec3(toNewTarget.x, toNewTarget.y, 0)).z;
                     glm::vec2 toNewPos = glm::vec2(0.0f, 0.0f);
                     // Left

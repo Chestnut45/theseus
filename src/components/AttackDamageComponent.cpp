@@ -18,7 +18,7 @@ AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_
         m_aStatusEffectsLifespans[i] = 0.0f;
     }
 
-    // Set default lifespans to 0
+    // Set lifespans
     if(p_status_effects.size() > 0)
     {
         for(int i = 0; i < p_status_effects.size(); i++)
@@ -60,17 +60,20 @@ void AttackDamageComponent::Update(float p_dt)
                     }
 
                     // Apply status effects to the target
-                    // StatusComponent* thatStatus = thatObject.GetComponent<StatusComponent>();
-                    // if(thatStatus != nullptr && this->m_fSize > 0)
-                    // {
-                    //     for(auto info : this->m_StatusEffects)
-                    //     {
-                    //         StatusComponent::StatusEffectType seType = info.first;
-                    //         float lifespan = info.second;
+                    StatusComponent* thatStatus = thatObject.GetComponent<StatusComponent>();
+                    if(thatStatus != nullptr)
+                    {
+                        for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
+                        {
+                            float lifespan = this->m_aStatusEffectsLifespans[i];
+                            if(lifespan != 0.0f)
+                            {
+                                StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
+                                thatStatus->AddStatusEffect(seType, lifespan);
+                            }
 
-                    //         thatStatus->AddStatusEffect(seType, lifespan);
-                    //     }
-                    // }
+                        }
+                    }
                 }
             }
         }

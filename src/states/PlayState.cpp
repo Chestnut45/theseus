@@ -283,8 +283,8 @@ void PlayState::CreatePlayer()
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
-    status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
-    status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
 
     m_pPlayerObject->AddComponent<ChestInventoryComponent>(4, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 }
