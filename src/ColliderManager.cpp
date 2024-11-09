@@ -81,14 +81,22 @@ void ColliderManager::CheckCollisions(float p_delta)
 // Iterate through collider boxes of collider components to check for collision
 bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta)
 {
-    if(
-        (p_colliderComponent1->GetGameObject()->GetID() == p_colliderComponent2->GetGameObject()->GetID())  ||
-        (p_colliderComponent1->m_IgnoreID == p_colliderComponent2->GetGameObject()->GetID())                || 
+    // Early exit if either collider is inactive
+    if (!p_colliderComponent1->IsActive() || !p_colliderComponent2->IsActive())
+    {
+        return false;
+    }
+
+    // Skip self-collision and ignored IDs
+    if (
+        (p_colliderComponent1->GetGameObject()->GetID() == p_colliderComponent2->GetGameObject()->GetID()) ||
+        (p_colliderComponent1->m_IgnoreID == p_colliderComponent2->GetGameObject()->GetID()) ||
         (p_colliderComponent2->m_IgnoreID == p_colliderComponent1->GetGameObject()->GetID())
     )
     {
         return false;
     }
+
     VelocityComponent* velocity1 = p_colliderComponent1->GetGameObject()->GetComponent<VelocityComponent>();
     VelocityComponent* velocity2 = p_colliderComponent2->GetGameObject()->GetComponent<VelocityComponent>();
     
@@ -285,15 +293,22 @@ void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translati
 
 bool ColliderManager::IsCollidingInternalUse(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta)
 {
-    if
-    (
-        (p_colliderComponent1->GetGameObject()->GetID() == p_colliderComponent2->GetGameObject()->GetID())  ||
-        (p_colliderComponent1->m_IgnoreID == p_colliderComponent2->GetGameObject()->GetID())                || 
+    // Early exit if either collider is inactive
+    if (!p_colliderComponent1->IsActive() || !p_colliderComponent2->IsActive())
+    {
+        return false;
+    }
+
+    // Skip self-collision and ignored IDs
+    if (
+        (p_colliderComponent1->GetGameObject()->GetID() == p_colliderComponent2->GetGameObject()->GetID()) ||
+        (p_colliderComponent1->m_IgnoreID == p_colliderComponent2->GetGameObject()->GetID()) ||
         (p_colliderComponent2->m_IgnoreID == p_colliderComponent1->GetGameObject()->GetID())
     )
     {
         return false;
     }
+
     VelocityComponent* velocity1 = p_colliderComponent1->GetGameObject()->GetComponent<VelocityComponent>();
     VelocityComponent* velocity2 = p_colliderComponent2->GetGameObject()->GetComponent<VelocityComponent>();
     
