@@ -161,6 +161,7 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
             if (!m_vvpContents[k].empty()) {
                 // We grab a reference to the top item and create a variable to hold the item's details
                 ItemBase* pItem = m_vvpContents[k].top();
+                std::string strTooltipName;
                 std::string strTooltipText;
 
                 // Compute how much this merchant is selling the item for
@@ -183,8 +184,8 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
                     }
 
                     // Then construct the string that will be used to display all of the item's details
-                    strTooltipText = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + pConsumable->GetDescription() 
-                        + "\nUses: " + std::to_string(pConsumable->GetNumUses()) + "\n\nPrice: " + std::to_string(iSalePrice);
+                    strTooltipName = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")";
+                    strTooltipText = pConsumable->GetDescription() + "\nUses: " + std::to_string(pConsumable->GetNumUses()) + "\n\nPrice: " + std::to_string(iSalePrice);
 
                 }
                 else if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
@@ -196,10 +197,13 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
                     }
                     
                     // Then construct the string that will be used to display all of the item's details
-                    strTooltipText += pEquipment->GetName() + "\n\n" + pEquipment->GetDescription()  + "\nSlot: " + pEquipment->GetEquipmentSlotString() + "\n\nPrice: " + std::to_string(iSalePrice);
+                    strTooltipName = pEquipment->GetName();
+                    strTooltipText = pEquipment->GetDescription() + "\nSlot: " + pEquipment->GetEquipmentSlotString()
+                        + "\n\nPrice: " + std::to_string(iSalePrice);
                 }
                 else { // If for some reason this item isn't Consumable OR Equipment
-                    strTooltipText = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + pItem->GetDescription() + "\n\nPrice: " + std::to_string(iSalePrice); // We only show the name, description, and cost
+                    strTooltipName = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")";
+                    strTooltipText = pItem->GetDescription() + "\n\nPrice: " + std::to_string(iSalePrice);
                 }
                 
                 // We're also going to store a string representation of the slot index that we're on
@@ -214,6 +218,8 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     // We display the details string that we constructed earlier
                     ImGui::BeginTooltip();
+                    RGBIntColor nameColor = RarityColors[pItem->GetRarity()];
+                    ImGui::TextColored(ImColor(nameColor.r, nameColor.g, nameColor.b), "%s", strTooltipName.c_str());
                     ImGui::Text("%s", strTooltipText.c_str());
                     ImGui::EndTooltip();
                 }

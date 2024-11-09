@@ -150,6 +150,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 ItemBase* pItem = this->GetItem(index);
 
                 // And create a tooltip out of the item's information
+                std::string strTooltipName;
                 std::string strTooltipText;
 
                 // Every item in this inventory SHOULD be an equipment item, so we try to cast it
@@ -160,8 +161,9 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 }
                     
                 // Then start constructing the string that will be used to display all of the item's details
-                strTooltipText = pEquipment->GetName() + "\n\n" + pEquipment->GetDescription() + "\n\nValue: " 
-                    + std::to_string(pEquipment->GetValue()) + "\nSlot: " + pEquipment->GetEquipmentSlotString();
+                strTooltipName = pEquipment->GetName();
+                strTooltipText = pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue())
+                    + "\nSlot: " + pEquipment->GetEquipmentSlotString();
 
                 std::string strIndex = std::to_string(index);
 
@@ -173,6 +175,8 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     // We display the details string that we constructed earlier
                     ImGui::BeginTooltip();
+                    RGBIntColor nameColor = RarityColors[pEquipment->GetRarity()];
+                    ImGui::TextColored(ImColor(nameColor.r, nameColor.g, nameColor.b), "%s", strTooltipName.c_str());
                     ImGui::Text("%s", strTooltipText.c_str());
                     ImGui::EndTooltip();
                 }
