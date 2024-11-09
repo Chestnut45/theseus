@@ -5,6 +5,8 @@
 //-----------------------------------------------------------------------------
 
 #include "HealthComponent.h"
+#include "PlayerInventoryComponent.h"
+#include "../inventory/ArmourItem.h"
 
 // Constructor for custom health
 HealthComponent::HealthComponent(int p_health)
@@ -40,12 +42,39 @@ void HealthComponent::Damage(float p_damage)
 {
     if(this->m_health > 0)
     {
-        
-        this->m_health -= p_damage;
+        float finalDamage = p_damage;
+        float damageReduction = 0.0f;
+
+        // Get armour for damage reduction
+        PlayerInventoryComponent* pic = this->GetGameObject()->GetComponent<PlayerInventoryComponent>();
+        if(pic != nullptr)
+        {
+            ArmourItem* headgear = static_cast<ArmourItem*>(pic->GetEquippedItem(EquipmentSlot::HEAD));
+            damageReduction += headgear != nullptr ? headgear->GetDamageReduction() : 0;
+
+            ArmourItem* bodygear = static_cast<ArmourItem*>(pic->GetEquippedItem(EquipmentSlot::BODY));
+            damageReduction += bodygear != nullptr ? bodygear->GetDamageReduction() : 0;
+
+            ArmourItem* armsgear = static_cast<ArmourItem*>(pic->GetEquippedItem(EquipmentSlot::ARMS));
+            damageReduction += armsgear != nullptr ? armsgear->GetDamageReduction() : 0;
+
+            ArmourItem* glovesgear = static_cast<ArmourItem*>(pic->GetEquippedItem(EquipmentSlot::GLOVES));
+            damageReduction += glovesgear != nullptr ? glovesgear->GetDamageReduction() : 0;
+
+            ArmourItem* legsgear = static_cast<ArmourItem*>(pic->GetEquippedItem(EquipmentSlot::LEGS));
+            damageReduction += legsgear != nullptr ? legsgear->GetDamageReduction() : 0;
+
+            ArmourItem* feetgear = static_cast<ArmourItem*>(pic->GetEquippedItem(EquipmentSlot::FEET));
+            damageReduction += feetgear != nullptr ? feetgear->GetDamageReduction() : 0;
+
+            std::cout << "HealthComponent - damred: " << damageReduction << std::endl;
+        }
+
+
+        this->m_health -= p_damage * (1.0f - damageReduction);
 
         if (m_health < 0) m_health = 0;
 
-        // std::cout << "HealthComponent - Health: " << this->m_health << std::endl;
 
         if(this->m_health <= 0)
         {
@@ -55,6 +84,16 @@ void HealthComponent::Damage(float p_damage)
             //                                       //
             //---------------------------------------//
         }
+    }
+}
+
+// Reduce health & ignore armour
+void HealthComponent::Pierce(float p_damage)
+{
+    if(this->m_health > 0)
+    {
+        this->m_health -= p_damage;
+        if (m_health < 0) m_health = 0;
     }
 }
 

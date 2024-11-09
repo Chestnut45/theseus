@@ -146,7 +146,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect()
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
-                health->Damage(0.1f);
+                health->Pierce(0.1f);
             }
             else
             {
@@ -174,7 +174,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect()
         
         case StatusEffectType::POISONED:
         {
-            this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>()->Damage(0.2f);
+            this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>()->Pierce(0.2f);
             break;
         }
     }
