@@ -38,7 +38,163 @@ LabyrinthManager::~LabyrinthManager()
 
 void LabyrinthManager::Update(float delta)
 {
-    // TODO: Update active chunks based on active camera
+    auto* pObject = GetGameObject();
+    auto* pPlayer = GetPlayer();
+
+    // If player is not in scene, no need to update
+    if (!pPlayer) return;
+
+    // Grab global position of the player and get current chunk
+    auto* pPlayerTransform = pPlayer->GetComponent<wolf::Transform2D>();
+    auto worldPos = pPlayerTransform->GetGlobalPosition();
+    auto chunkID = GetChunkID(worldPos);
+
+    if (chunkID != m_prevChunk)
+    {
+        // Chunk has changed
+        glm::ivec2 chunksToLoad[] =
+        {
+            chunkID,
+            chunkID + glm::ivec2(0, 1),
+            chunkID + glm::ivec2(1, 0),
+            chunkID + glm::ivec2(1, 1),
+            chunkID + glm::ivec2(0, -1),
+            chunkID + glm::ivec2(-1, 0),
+            chunkID + glm::ivec2(-1, -1),
+            chunkID + glm::ivec2(1, -1),
+            chunkID + glm::ivec2(-1, 1),
+        };
+
+        // Update queues
+        for (const auto& id : chunksToLoad)
+        {
+            // Don't bother processing a chunk that doesn't exist
+            if (!m_chunkMap.contains(id)) continue;
+
+            // Check if already active
+            const auto& chunkData = m_chunkMap[id];
+            if (chunkData.active) continue;
+
+            // Not active, add to queue if not already there
+            bool queued = false;
+            for (const auto& c : m_chunkActivateQueue)
+            {
+                if (id == c)
+                {
+                    queued = true;
+                    break;
+                }
+            }
+            if (!queued) m_chunkActivateQueue.push_back(id);
+
+            // Ensure it's not on the deactivate queue
+            for (int i = m_chunkDeactivateQueue.size() - 1; i >= 0; ++i)
+            {
+                if (m_chunkDeactivateQueue[i] == id)
+                {
+                    m_chunkDeactivateQueue.erase(m_chunkDeactivateQueue.begin() + i);
+                    break;
+                }
+            }
+        }
+
+        for (const auto& chunk : m_chunkMap)
+        {
+            if (chunk.second.active)
+            {
+                bool shouldBeActive = false;
+                for (const auto& id : chunksToLoad)
+                {
+                    if (id == chunk.first)
+                    {
+                        shouldBeActive = true;
+                        break;
+                    }
+                }
+                if (!shouldBeActive) m_chunkDeactivateQueue.push_back(chunk.first);
+            }
+        }
+    }
+
+    // Process one chunk per frame from each queue
+    int next = m_chunkActivateQueue.size() - 1;
+    if (next >= 0)
+    {
+        ActivateChunk(m_chunkActivateQueue[next]);
+        m_chunkActivateQueue.pop_back();
+    }
+
+    next = m_chunkDeactivateQueue.size() - 1;
+    if (next >= 0)
+    {
+        DeactivateChunk(m_chunkDeactivateQueue[next]);
+        m_chunkDeactivateQueue.pop_back();
+    }
+
+    // Update cached chunk ID
+    m_prevChunk = chunkID;
+}
+
+void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
+{
+    const auto& it = m_chunkMap.find(chunkID);
+    if (it == m_chunkMap.end()) return;
+
+    // Return if chunk already active
+    auto& chunk = it->second;
+    if (chunk.active) return;
+
+    std::function<void(wolf::GameObject*)> Activate = [&](wolf::GameObject* pObject) -> void
+    {
+        // Make tilemaps visible
+        auto* pTileMap = pObject->GetComponent<wolf::TileMap>();
+        if (pTileMap) pTileMap->SetVisibility(true);
+
+        // TODO: Make sprites visible
+
+        // TODO: Wake up colliders
+
+        // Recursively activate all child objects and compatible components
+        for (auto* pChild : pObject->GetChildren())
+        {
+            Activate(pChild);
+        }
+    };
+    
+    // Activate the object hierarchy
+    Activate(chunk.m_pObject);
+    chunk.active = true;
+}
+
+void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
+{
+    const auto& it = m_chunkMap.find(chunkID);
+    if (it == m_chunkMap.end()) return;
+
+    // Return if chunk already inactive
+    auto& chunk = it->second;
+    if (!chunk.active) return;
+
+    std::function<void(wolf::GameObject*)> Deactivate = [&](wolf::GameObject* pObject) -> void
+    {
+        // Make tilemaps invisible
+        auto* pTileMap = pObject->GetComponent<wolf::TileMap>();
+        if (pTileMap) pTileMap->SetVisibility(false);
+
+        // TODO: Make sprites invisible
+
+        // TODO: Sleep colliders
+
+        // Recursively deactivate all child objects and compatible components
+        for (auto* pChild : pObject->GetChildren())
+        {
+            Deactivate(pChild);
+        }
+    };
+    
+    // Deactivate the object hierarchy
+    Deactivate(chunk.m_pObject);
+    chunk.active = false;
 }
 
 void LabyrinthManager::GenerateLabyrinth()
@@ -626,7 +782,7 @@ wolf::GameObject* LabyrinthManager::GetChunk(const glm::ivec2& chunkID) const
 {
     const auto it = m_chunkMap.find(chunkID);
     if (it == m_chunkMap.end()) return nullptr;
-    return it->second;
+    return it->second.m_pObject;
 }
 
 glm::ivec2 LabyrinthManager::GetTilePosition(const glm::vec2& worldPosition) const
@@ -699,6 +855,15 @@ void LabyrinthManager::Reset()
     m_width = 125;
     m_height = 125;
     m_rooms.clear();
+}
+
+wolf::GameObject* LabyrinthManager::GetPlayer() const
+{
+    for (auto&&[_, playercontroller] : GetGameObject()->GetScene().Each<PlayerController>())
+    {
+        return playercontroller.GetGameObject();
+    }
+    return nullptr;
 }
 
 std::vector<LabyrinthManager::Room> LabyrinthManager::PlaceRooms()
@@ -1244,7 +1409,9 @@ void LabyrinthManager::GenerateChunks()
             pObject->AddChild(chunkObj);
 
             // Add the chunk object to the map
-            m_chunkMap[chunkID] = &chunkObj;
+            ChunkData cd;
+            cd.m_pObject = &chunkObj;
+            m_chunkMap[chunkID] = cd;
 
             // Create the tilemap object
             auto& tilemapObj = scene.CreateObject2D();
@@ -1262,7 +1429,7 @@ void LabyrinthManager::GenerateChunks()
             tilemap.LoadTileSet("data/labyrinth.tileset");
 
             // TESTING: Create collider component
-            auto& collider = tilemapObj.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
+            // auto& collider = tilemapObj.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
 
             // Iterate chunk's tilemap
             for (int y = 0; y < CHUNK_SIZE; ++y)
@@ -1335,7 +1502,7 @@ void LabyrinthManager::GenerateChunks()
                             tile = wallDirID[mask];
 
                             // Add wall tile collider
-                            collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE), glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
+                            // collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE), glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
 
                             break;
                     }

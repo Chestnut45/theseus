@@ -100,11 +100,17 @@ public:
     // Resets all properties to their defaults
     void Reset();
 
+    // Helper methods
+
+    // Gets a pointer to the first player object in the scene
+    // NOTE: Returns nullptr if no player is found
+    wolf::GameObject* GetPlayer() const;
+
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 16'383;
     static const inline int TILE_SIZE = 32;
-    static const inline int CHUNK_SIZE = 64;
+    static const inline int CHUNK_SIZE = 8;
     static const inline int SCALE = 3;
 
 // Implementation
@@ -247,10 +253,29 @@ private:
 
     // Chunk management
 
+    struct ChunkData
+    {
+        wolf::GameObject* m_pObject = nullptr;
+        bool active = true;
+    };
+
     // Map of chunk IDs to chunk game object pointers
-    std::unordered_map<glm::ivec2, wolf::GameObject*> m_chunkMap;
+    std::unordered_map<glm::ivec2, ChunkData> m_chunkMap;
+
+    // Queues
+    std::vector<glm::ivec2> m_chunkActivateQueue;
+    std::vector<glm::ivec2> m_chunkDeactivateQueue;
+
+    // Cached ID of chunk player was in last frame
+    glm::ivec2 m_prevChunk = glm::ivec2(0);
 
     // Helper methods
+
+    // Activates a chunk, recursively updating all child objects' flags.
+    void ActivateChunk(const glm::ivec2& chunkID);
+
+    // Deactivates a chunk, recursively updating all child objects' flags.
+    void DeactivateChunk(const glm::ivec2& chunkID);
 
     // Attempts to place all rooms and returns a vector of those successfully placed
     std::vector<Room> PlaceRooms();

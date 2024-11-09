@@ -120,6 +120,9 @@ void PlayState::Update(float delta)
     // Show the Labyrinth Manager debug GUI
     if (m_showLabyrinthManager) 
         m_pLabyrinthManager->ShowGUI();
+    
+    // Update the labyrinth manager
+    m_pLabyrinthManager->Update(delta);
 
     // TESTING: Delete all tiles the player steps on
     // TODO: Check for floor tiles, change them to gold variant
