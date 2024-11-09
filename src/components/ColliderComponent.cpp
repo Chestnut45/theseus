@@ -200,3 +200,13 @@ int ColliderComponent::GetComponentCount()
 {
     return ColliderComponent::s_iComponentCount;
 }
+
+//setter, sets for m_active
+void ColliderComponent::SetActive(bool active) {
+    m_active = active;
+}
+
+//getter, returns m_active
+bool ColliderComponent::IsActive() const {
+    return m_active;
+}

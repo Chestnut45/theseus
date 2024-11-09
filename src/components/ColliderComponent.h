@@ -66,6 +66,9 @@ public:
 
     static void DebugDrawAndFlush();
     static int GetComponentCount();
+
+    void SetActive(bool active); //set m_active to true
+    bool IsActive() const; //check if m_active, just a getter. 
     
 private:
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
@@ -85,4 +88,9 @@ private:
     static wolf::VertexBuffer *s_pVB;
 
     static std::vector<Vertex2D> s_vVerticesVector;
+
+    //optimization cool stuff
+    bool m_active = true; // New flag to indicate if the collider is active
+
+
 };
