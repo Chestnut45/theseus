@@ -40,45 +40,72 @@ void ColliderManager::RemoveFlagged()
 // Iterate through collider components to check for collisions
 void ColliderManager::CheckCollisions(float p_delta)
 {
+    const int componentCount = ColliderComponent::s_iComponentCount;
+
+    // Early exit if not enough colliders
+    if (componentCount < 2) return;
+
     int i = 0;
 
-    if(ColliderComponent::s_iComponentCount >= 2)
+    // Iterate through all collider components
+    for (auto&& [id1, collider1] : this->m_scene->Each<ColliderComponent>())
     {
-        for (auto&&[id1, collider1] : this->m_scene->Each<ColliderComponent>())
+        i++;
+
+        // Cache properties for collider1
+        const bool isActive1 = collider1.IsActive();
+        const bool isHitbox1 = collider1.IsHitbox();
+        const bool isHurtboxDealer1 = collider1.IsHurtboxDamageDealer();
+        const bool isHurtboxReceiver1 = collider1.IsHurtboxDamageReceiver();
+        const bool isDestroyedOnCollision1 = collider1.IsDestroyedOnCollision();
+        const bool isFlaggedForDestruction1 = collider1.m_bIsFlaggedForDestruction;
+
+        // Skip inactive or flagged colliders
+        if (!isActive1 || isFlaggedForDestruction1) continue;
+
+        // Iterate through remaining colliders after i
+        for (auto&& [id2, collider2] : this->m_scene->Each<ColliderComponent>() | std::views::drop(i))
         {
-            i++;
-            if (!collider1.IsActive()) continue;
+            // Cache properties for collider2
+            const bool isActive2 = collider2.IsActive();
+            const bool isHitbox2 = collider2.IsHitbox();
+            const bool isHurtboxDealer2 = collider2.IsHurtboxDamageDealer();
+            const bool isHurtboxReceiver2 = collider2.IsHurtboxDamageReceiver();
+            const bool isDestroyedOnCollision2 = collider2.IsDestroyedOnCollision();
+            const bool isFlaggedForDestruction2 = collider2.m_bIsFlaggedForDestruction;
 
-            for (auto&&[id2, collider2] : this->m_scene->Each<ColliderComponent>() | std::views::drop(i))
+            // Skip inactive or flagged colliders
+            if (!isActive2 || isFlaggedForDestruction2) continue;
+
+            // Collision check conditions
+            bool isCollisionCheckRequired =
+                (isHitbox1 && isHitbox2) ||
+                (isHurtboxDealer1 && isHurtboxReceiver2) ||
+                (isHurtboxReceiver1 && isHurtboxDealer2);
+
+            if (!isCollisionCheckRequired) continue;
+
+            // Perform collision check
+            if (this->IsCollidingInternalUse(collider1, collider2, p_delta))
             {
-                if (!collider2.IsActive()) continue;
-
-                // Checking for collision
-                if
-                (   (collider1.IsHitbox() && collider2.IsHitbox())                              ||
-                    (collider1.IsHurtboxDamageDealer() && collider2.IsHurtboxDamageReceiver())  ||
-                    (collider1.IsHurtboxDamageReceiver() && collider2.IsHurtboxDamageDealer())
-                )
+                // Flag collider1 for destruction if needed
+                if (isDestroyedOnCollision1 && !collider1.m_bIsFlaggedForDestruction)
                 {
-                    if(this->IsCollidingInternalUse(collider1, collider2, p_delta))
-                    {
-                        if(!collider1.m_bIsFlaggedForDestruction && collider1.IsDestroyedOnCollision())
-                        {
-                            collider1.m_bIsFlaggedForDestruction = true;
-                            this->m_vToBeDestroyed.push_back(id1);
-                        }
+                    collider1.m_bIsFlaggedForDestruction = true;
+                    this->m_vToBeDestroyed.push_back(id1);
+                }
 
-                        if(!collider2.m_bIsFlaggedForDestruction && collider2.IsDestroyedOnCollision())
-                        {
-                            collider2.m_bIsFlaggedForDestruction = true;
-                            this->m_vToBeDestroyed.push_back(id2);
-                        }
-                    }
+                // Flag collider2 for destruction if needed
+                if (isDestroyedOnCollision2 && !collider2.m_bIsFlaggedForDestruction)
+                {
+                    collider2.m_bIsFlaggedForDestruction = true;
+                    this->m_vToBeDestroyed.push_back(id2);
                 }
             }
         }
     }
 }
+
 
 // Iterate through collider boxes of collider components to check for collision
 bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta)
