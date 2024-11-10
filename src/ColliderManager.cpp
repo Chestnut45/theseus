@@ -40,42 +40,36 @@ void ColliderManager::RemoveFlagged()
 // Iterate through collider components to check for collisions
 void ColliderManager::CheckCollisions(float p_delta)
 {
-    const int componentCount = ColliderComponent::s_iComponentCount;
-
     // Early exit if not enough colliders
-    if (componentCount < 2) return;
-
-    int i = 0;
+    if (ColliderComponent::s_iComponentCount < 2) return;
 
     // Iterate through all collider components
+    int i = 0;
     for (auto&& [id1, collider1] : this->m_scene->Each<ColliderComponent>())
     {
         i++;
 
+        // Skip inactive or flagged colliders
+        if (!collider1.IsActive()) continue;
+
         // Cache properties for collider1
-        const bool isActive1 = collider1.IsActive();
         const bool isHitbox1 = collider1.IsHitbox();
         const bool isHurtboxDealer1 = collider1.IsHurtboxDamageDealer();
         const bool isHurtboxReceiver1 = collider1.IsHurtboxDamageReceiver();
         const bool isDestroyedOnCollision1 = collider1.IsDestroyedOnCollision();
-        const bool isFlaggedForDestruction1 = collider1.m_bIsFlaggedForDestruction;
-
-        // Skip inactive or flagged colliders
-        if (!isActive1 || isFlaggedForDestruction1) continue;
 
         // Iterate through remaining colliders after i
         for (auto&& [id2, collider2] : this->m_scene->Each<ColliderComponent>() | std::views::drop(i))
         {
+
+            // Skip inactive or flagged colliders
+            if (!collider2.IsActive()) continue;
+
             // Cache properties for collider2
-            const bool isActive2 = collider2.IsActive();
             const bool isHitbox2 = collider2.IsHitbox();
             const bool isHurtboxDealer2 = collider2.IsHurtboxDamageDealer();
             const bool isHurtboxReceiver2 = collider2.IsHurtboxDamageReceiver();
             const bool isDestroyedOnCollision2 = collider2.IsDestroyedOnCollision();
-            const bool isFlaggedForDestruction2 = collider2.m_bIsFlaggedForDestruction;
-
-            // Skip inactive or flagged colliders
-            if (!isActive2 || isFlaggedForDestruction2) continue;
 
             // Collision check conditions
             bool isCollisionCheckRequired =
@@ -382,10 +376,10 @@ bool ColliderManager::CustomAABBInternalUse(const glm::vec2& p_translation_1, co
         newTranslation1.y                    < p_translation_2.y - p_dimensions_2.y
     );
 
-    if(p_velocity_1 && p_velocity_2 && result && newResult)
+    if(result && newResult)
     {
-        p_velocity_1->SetVelocity(glm::vec2(0.0f, 0.0f));
-        p_velocity_2->SetVelocity(glm::vec2(0.0f, 0.0f));
+        if (p_velocity_1) p_velocity_1->SetVelocity(glm::vec2(0.0f, 0.0f));
+        if (p_velocity_2) p_velocity_2->SetVelocity(glm::vec2(0.0f, 0.0f));
         return true;
     }
 
