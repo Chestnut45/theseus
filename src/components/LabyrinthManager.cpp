@@ -150,7 +150,9 @@ void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
         auto* pTileMap = pObject->GetComponent<wolf::TileMap>();
         if (pTileMap) pTileMap->SetVisibility(true);
 
-        // TODO: Make sprites visible
+        // Make sprites visible
+        auto* pSprite = pObject->GetComponent<AnimatedSprite2D>();
+        if (pSprite) pSprite->SetVisibility(true);
 
         // Activate collider
         // TODO: Only do this for walls? Or Move enemies to different chunks...
@@ -184,7 +186,9 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
         auto* pTileMap = pObject->GetComponent<wolf::TileMap>();
         if (pTileMap) pTileMap->SetVisibility(false);
 
-        // TODO: Make sprites invisible
+        // Make sprites invisible
+        auto* pSprite = pObject->GetComponent<AnimatedSprite2D>();
+        if (pSprite) pSprite->SetVisibility(false);
 
         // Deactivate collider
         // TODO: Only do this for walls? Or Move enemies to different chunks...
@@ -1603,8 +1607,27 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Scale the minitaur
                         minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
 
-                        // TODO: Add as a child object of the correct chunk
-                        pObject->AddChild(minitaur);
+                        // Deactivate the collider
+                        minitaur.GetComponent<ColliderComponent>()->SetActive(false);
+
+                        // Make the sprite invisible
+                        minitaur.GetComponent<AnimatedSprite2D>()->SetVisibility(false);
+
+                        // Add as a child object of the correct chunk
+                        auto chunkID = GetChunkID(pos);
+                        auto* pChunk = GetChunk(chunkID);
+
+                        if (!pChunk)
+                        {
+                            // Warn if chunk doesn't exist
+                            wolf::Warning("Enemy spawned in non-existant chunk, pls fix!");
+
+                            // Fall back on adding to main labyrinth object
+                            pObject->AddChild(minitaur);
+                            break;
+                        }
+                        
+                        pChunk->AddChild(minitaur);
                     }
                     break;
             }
