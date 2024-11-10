@@ -1,6 +1,18 @@
 #include "DialogueManager.h"
 #include <iostream>
 
+DialogueManager::~DialogueManager() {
+    // Clean up textures (if needed)
+    for (auto& dialoguePair : m_dialogues) {
+        for (auto& character : dialoguePair.second.characters) {
+            if (character.portraitTexture) {
+                wolf::TextureManager::DestroyTexture(character.portraitTexture);
+            }
+        }
+    }
+}
+
+
 // Function to load dialogue data from a YAML file
 void DialogueManager::LoadDialogueFromYAML(const std::string& filePath)
 {
@@ -17,8 +29,12 @@ void DialogueManager::LoadDialogueFromYAML(const std::string& filePath)
             {
                 CharacterData character;
                 character.name = characterNode["name"].as<std::string>();
-                character.portraitPath = characterNode["portrait"].as<std::string>();
+                character.portraitPath = characterNode["portraitPath"].as<std::string>();
                 character.expression = characterNode["expression"].as<std::string>();
+
+                // Load the texture for the portrait
+                character.portraitTexture = wolf::TextureManager::CreateTexture(character.portraitPath);
+                
                 dialogueData.characters.push_back(character);
             }
 
@@ -65,4 +81,15 @@ const std::vector<DialogueLine>& DialogueManager::GetDialogueLinesById(const std
 
     std::cerr << "Dialogue ID " << id << " not found!" << std::endl;
     return emptyLines;
+}
+
+wolf::Texture* DialogueManager::GetCharacterPortraitTexture(const std::string& characterName) {
+    for (const auto& dialogue : m_dialogues) {
+        for (const auto& character : dialogue.second.characters) {
+            if (character.name == characterName) {
+                return character.portraitTexture;
+            }
+        }
+    }
+    return nullptr;  // Return nullptr if texture not found
 }
