@@ -20,11 +20,11 @@ void TriggerComponent::Update(float delta) {
     if (!m_triggered && CheckPlayerCollision(delta)) {
         m_triggered = true;
 
-        // Fire a general trigger event
+        // Dispatch the TriggerEvent
         wolf::EventManager::TriggerEvent(TriggerEvent(GetGameObject(), m_triggerType));
 
-        // If single-use, delete the trigger
-        if (m_triggerType == TriggerType::SINGLE_USE) {
+        // Delete the object if it's a single-use trigger
+        if (m_triggerType == TriggerType::SINGLE_USE || m_triggerType == TriggerType::CUTSCENE_SINGLE) {
             GetGameObject()->Delete();
         }
     }
