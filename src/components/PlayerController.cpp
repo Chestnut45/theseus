@@ -503,7 +503,12 @@ std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection dir
     WeaponType type = this->m_pCurrentWeapon->GetWeaponType();
     if(type == WeaponType::BOW) weaponType = "Bow";
     else if(type == WeaponType::SPEAR) weaponType = "Spear";
-    else if(type == WeaponType::SWORD) weaponType = "Sword";
+    //------------------------//
+    //                        //
+    //  CHANGE TYPE TO SWORD  //
+    //                        //
+    //------------------------//
+    else if(type == WeaponType::SWORD) weaponType = "Spear";
 
     switch (direction)
     {
@@ -717,26 +722,26 @@ void PlayerController::ApplyDamageToEnemy()
             break;
         }
 
-        // Spawn melee collider for sword
+        // Spawn melee collider for spear
         case WeaponType::SWORD:
         {
             // Set & calculate data for melee collider
             glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
-            glm::vec2 colliderBoxOffset1 = glm::vec2(-meleeDimensions.x * 0.5f - 0.75f, meleeDimensions.y * 0.5);
-            glm::vec2 colliderBoxOffset2 = colliderBoxOffset1;
-            
+            glm::vec2 colliderBoxOffset2 = glm::vec2(0.0f, 0.0f);
             
             if(playerDirection.x != 0.0f)
             {
                 offset.x = 9.0f;
-                colliderBoxOffset2.x += playerDirection.x > 0.0f ? meleeDimensions.x : -meleeDimensions.x;
+                meleeDimensions.y *= 2.5f;
+                colliderBoxOffset2.x = playerDirection.x > 0.0f ? meleeDimensions.x : -meleeDimensions.x;
             }
 
             if(playerDirection.y != 0.0f)
             {
                 offset.y = 13.0f;
-                colliderBoxOffset2.y += playerDirection.y > 0.0f ? meleeDimensions.y : -meleeDimensions.y;
+                meleeDimensions.x *= 3.0f;
+                colliderBoxOffset2.y = playerDirection.y > 0.0f ? meleeDimensions.y : -meleeDimensions.y;
             }
 
             // Shift offset along player direction
@@ -753,8 +758,8 @@ void PlayerController::ApplyDamageToEnemy()
             melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
 
             auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-            meleeCollider.AddColliderBox(meleeDimensions, colliderBoxOffset1);
-            meleeCollider.AddColliderBox(meleeDimensions, colliderBoxOffset2);
+            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f, meleeDimensions.y * 0.5 - 0.5f));
+            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f, meleeDimensions.y * 0.5 - 0.5f) + colliderBoxOffset2);
             meleeCollider.SetIgnoreTag(player->GetID());
 
             auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);

@@ -1,17 +1,17 @@
-texture: data/textures/TheseusSword-Sheet.png
-frame_size: {x: 32.0, y: 32.0}
+texture: data/textures/TheseusSpearAlt-Sheet.png
+frame_size: {x: 64.0, y: 64.0}
 
 animations: [
   {
     name: SpearAttackSouth,
-    start_frame: 1,
-    end_frame: 7,
+    start_frame: 22,
+    end_frame: 28,
     loops: false
   },
   {
     name: SpearAttackEast,
-    start_frame: 8,
-    end_frame: 14,
+    start_frame: 1,
+    end_frame: 7,
     loops: false
   },
   {
@@ -22,8 +22,8 @@ animations: [
   },
   {
     name: SpearAttackWest,
-    start_frame: 22,
-    end_frame: 28,
+    start_frame: 8,
+    end_frame: 14,
     loops: false
   }
 ]
