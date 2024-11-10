@@ -263,6 +263,13 @@ bool ColliderManager::IsCollidingInternalUse(ColliderComponent& p_colliderCompon
     auto* pObj1 = p_colliderComponent1.GetGameObject();
     auto* pObj2 = p_colliderComponent2.GetGameObject();
 
+    // Grab velocity pointers
+    auto* pVel1 = pObj1->GetComponent<VelocityComponent>();
+    auto* pVel2 = pObj2->GetComponent<VelocityComponent>();
+
+    // Early out if neither have velocity
+    if (!pVel1 && !pVel2) return false;
+
     // Skip ignored IDs
     if ((p_colliderComponent1.m_IgnoreID == pObj2->GetID()) ||
         (p_colliderComponent2.m_IgnoreID == pObj1->GetID()))
@@ -273,10 +280,6 @@ bool ColliderManager::IsCollidingInternalUse(ColliderComponent& p_colliderCompon
     // Grab transform pointers
     auto* pTrans1 = pObj1->GetComponent<wolf::Transform2D>();
     auto* pTrans2 = pObj2->GetComponent<wolf::Transform2D>();
-
-    // Grab velocity pointers
-    auto* pVel1 = pObj1->GetComponent<VelocityComponent>();
-    auto* pVel2 = pObj2->GetComponent<VelocityComponent>();
     
     glm::vec2 scale1 = p_colliderComponent1.IsRelative() ? pTrans1->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
     glm::vec2 scale2 = p_colliderComponent2.IsRelative() ? pTrans2->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
@@ -307,18 +310,18 @@ bool ColliderManager::IsCollidingInternalUse(ColliderComponent& p_colliderCompon
 
 bool ColliderManager::CustomAABBInternalUse(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
 {
-    glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
-    glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
-
-    glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
-
+    // Initial AABB check
     bool result = !(
-        p_translation_1.x + p_dimensions_1.x < p_translation_2.x                        ||
-        p_translation_1.x                    > p_translation_2.x + p_dimensions_2.x     ||
-        p_translation_1.y - p_dimensions_1.y > p_translation_2.y                        ||
-        p_translation_1.y                    < p_translation_2.y - p_dimensions_2.y
+        p_translation_1.x + p_dimensions_1.x < p_translation_2.x ||
+        p_translation_1.x > p_translation_2.x + p_dimensions_2.x ||
+        p_translation_1.y - p_dimensions_1.y > p_translation_2.y ||
+        p_translation_1.y < p_translation_2.y - p_dimensions_2.y
     );
 
+    // Calculate relative velocity
+    glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
+    glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
+    glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
     glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;
         
     bool newResult = !(
