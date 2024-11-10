@@ -24,8 +24,6 @@ void DialogueState::Enter()
 
 void DialogueState::Exit()
 {
-    std::cout << "Exiting Dialogue State." << std::endl;
-
     // Reset state variables and active dialogue flag on exit
     m_isDialogueActive = false;
     m_currentLineIndex = 0;
@@ -46,22 +44,19 @@ void DialogueState::Update(float delta)
     const std::string& currentLine = GetCurrentDialogueLine();
     m_isLineFinished = m_timeSinceLastKeyframe >= currentLine.length() * 0.05f || m_showFullText;
 
-    // Check if any interactive element like buttons is hovered/clicked
-    bool isAnyButtonHovered = ImGui::IsAnyItemHovered();  // This checks if the mouse is over a UI element like buttons
-    bool isDialogueWindowHovered = ImGui::IsWindowHovered();  // This checks if the mouse is over the dialogue window itself
-
     // Handle user input or autoplay for dialogue progression
     bool isInputPressed = wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE);
 
-    // Skip text or advance dialogue only if the click is not on the `Autoplay` button or any other UI element
-    if (isInputPressed && !isAnyButtonHovered && !isDialogueWindowHovered)
+    // Check if any UI elements like buttons are hovered/clicked
+    bool isAnyButtonHovered = ImGui::IsAnyItemHovered();
+    if (isInputPressed && !isAnyButtonHovered)
     {
         if (!m_showFullText && !m_isLineFinished)
         {
             // Show the full text if not already fully displayed
             m_showFullText = true;
         }
-        else
+        else if (m_isLineFinished && m_currentLineIndex < m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID).size() - 1)
         {
             // If line is fully displayed, advance to the next line or handle end of dialogue
             AdvanceDialogue();
@@ -72,7 +67,7 @@ void DialogueState::Update(float delta)
     }
 
     // Handle autoplay progression based on a timer, but stop at the last line
-    if (m_autoplay && m_timeSinceLastKeyframe > m_autoPlayDelay)
+    if (m_autoplay && m_timeSinceLastKeyframe > m_autoPlayDelay && m_isLineFinished)
     {
         const auto& dialogueLines = m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID);
         if (m_currentLineIndex < dialogueLines.size() - 1)
@@ -85,41 +80,117 @@ void DialogueState::Update(float delta)
     }
 }
 
+ImVec2 addImVec2(const ImVec2& a, const ImVec2& b) {
+    return ImVec2(a.x + b.x, a.y + b.y);
+}
+
+
 void DialogueState::Render()
 {
-    if (!m_isDialogueActive) return;  // No rendering if dialogue is not active
+    if (!m_isDialogueActive) return;  // Skip rendering if dialogue is inactive
 
-    // Get the screen dimensions to position the dialogue box
+    // Smooth fade-in effect for the dialogue box
+    static float fadeOpacity = 0.0f;
+    fadeOpacity = std::min(fadeOpacity + 0.05f, 1.0f);  // Gradually increase opacity
+
+    // Check if we're on the last line of the dialogue
+    const auto& lines = m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID);
+    bool isLastLine = (m_currentLineIndex >= lines.size() - 1);
+
+    // Screen dimensions
     ImVec2 screenSize = ImGui::GetIO().DisplaySize;
-    ImVec2 windowSize = ImVec2(screenSize.x * 0.7f, screenSize.y * 0.3f); // 70% width and 30% height of the screen
-    ImVec2 windowPos = ImVec2((screenSize.x - windowSize.x) / 2, screenSize.y - windowSize.y - 50); // Centered horizontally, slightly above the bottom
+    float dialogueWidth = screenSize.x * 0.75f;  // Set width to 75% of screen
+    float baseHeight = 100.0f;  // Base height for window padding and controls
 
-    // Set up style variables for a more visually appealing dialogue box
-    ImGui::SetNextWindowPos(windowPos);
-    ImGui::SetNextWindowSize(windowSize);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);  // Rounded corners
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20, 20)); // Padding around the content
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10, 10));   // Spacing between items
+    // Calculate text height
+    const std::string& currentLine = GetCurrentDialogueLine();
+    float textHeight = ImGui::CalcTextSize(currentLine.c_str(), nullptr, true, dialogueWidth - 100).y;
 
-    // Colors
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.2f, 0.2f, 0.2f, 0.8f));  // Slightly transparent dark background
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.9f, 0.7f, 0.1f, 1.0f));    // Gold border color for a premium look
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.95f, 0.95f, 1.0f));   // Light text color
+    // Add extra height if there's a portrait
+    bool hasPortrait = false;
+    float portraitHeight = 0.0f;
+    wolf::Texture* portraitTexture = nullptr;
 
-    // Start the ImGui window
-    ImGui::Begin("Dialogue", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
-
-    // Display the current dialogue line
     if (!m_currentDialogueID.empty())
     {
-        const std::string& currentLine = GetCurrentDialogueLine();
-
-        // Display character name with color styling
         const std::string& characterName = GetCurrentCharacterName();
-        ImGui::TextColored(ImVec4(0.9f, 0.5f, 0.1f, 1.0f), "%s:", characterName.c_str());
+        for (auto& character : m_dialogueData[m_currentDialogueID].characters)
+        {
+            if (character.name == characterName)
+            {
+                portraitTexture = character.portraitTexture; // Retrieve the portrait texture
+                hasPortrait = (portraitTexture != nullptr);
+                portraitHeight = 64.0f;  // Set portrait height (adjust as needed)
+                break;
+            }
+        }
+    }
 
-        // Display the dialogue text with a typewriter effect or full text
-        ImGui::Separator(); // Separator between name and text
+    // Calculate total window height
+    float windowHeight = baseHeight + std::max(textHeight, portraitHeight) + 80.0f;  // Add padding for buttons and controls
+
+    // Calculate window position
+    ImVec2 windowSize = ImVec2(dialogueWidth, windowHeight);
+    ImVec2 windowPos = ImVec2((screenSize.x - windowSize.x) / 2, screenSize.y - windowSize.y - 50);
+
+    // Enhanced Layered Shadow Effect
+    auto* drawList = ImGui::GetBackgroundDrawList();
+    for (int i = 0; i < 5; i++) {
+        float shadowOpacity = 0.05f * (i + 1) * fadeOpacity;
+        float shadowOffset = 10.0f + (i * 2.0f);
+        drawList->AddRectFilled(
+            addImVec2(windowPos, ImVec2(-shadowOffset, -shadowOffset)),
+            addImVec2(addImVec2(windowPos, windowSize), ImVec2(shadowOffset, shadowOffset)),
+            ImColor(0.0f, 0.0f, 0.0f, shadowOpacity),
+            20.0f
+        );
+    }
+
+    // Gradient Background
+    drawList->AddRectFilledMultiColor(
+        windowPos,
+        addImVec2(windowPos, windowSize),
+        ImColor(30, 34, 42, static_cast<int>(fadeOpacity * 255)),
+        ImColor(30, 34, 42, static_cast<int>(fadeOpacity * 255)),
+        ImColor(24, 26, 32, static_cast<int>(fadeOpacity * 255)),
+        ImColor(24, 26, 32, static_cast<int>(fadeOpacity * 255))
+    );
+
+    // ImGui window styling
+    ImGui::SetNextWindowPos(windowPos);
+    ImGui::SetNextWindowSize(windowSize);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 15.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(30, 25));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10, 15));
+
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.4f, 0.5f, 0.7f, fadeOpacity));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.95f, fadeOpacity));
+
+    ImGui::Begin("EnhancedDialogue", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+
+    // Display character name and portrait if available
+    if (!m_currentDialogueID.empty())
+    {
+        const std::string& characterName = GetCurrentCharacterName();
+        if (hasPortrait && portraitTexture)
+        {
+            // Display the character portrait
+            ImGui::Image((void*)(intptr_t)portraitTexture->GetID(), ImVec2(64, 64));
+            ImGui::SameLine();
+        }
+        ImGui::TextColored(ImVec4(0.8f, 0.85f, 1.0f, 1.0f), "%s:", characterName.c_str());
+
+        // Accent line above text
+        ImVec2 start = addImVec2(ImGui::GetCursorScreenPos(), ImVec2(0, -10));
+        ImVec2 end = addImVec2(ImGui::GetCursorScreenPos(), ImVec2(windowSize.x * 0.25f, -10));
+        drawList->AddLine(start, end, ImColor(0.5f, 0.7f, 1.0f, 0.6f), 2.0f);
+
+        // Display dialogue text
+        static float lineFade = 0.0f;
+        lineFade = std::min(lineFade + 0.02f, 1.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, lineFade * fadeOpacity);
+
         if (m_showFullText)
         {
             ImGui::TextWrapped("%s", currentLine.c_str());
@@ -127,45 +198,77 @@ void DialogueState::Render()
         else
         {
             std::string partialText = currentLine.substr(0, static_cast<int>(m_timeSinceLastKeyframe / 0.05f));
+            partialText += "|";
             ImGui::TextWrapped("%s", partialText.c_str());
         }
+        ImGui::PopStyleVar();
 
-        // Add padding below the text for separation
-        ImGui::Dummy(ImVec2(0.0f, 20.0f));  // Dummy widget for spacing
+        ImGui::Dummy(ImVec2(0.0f, 20.0f));  // Whitespace below text
     }
 
-    // Draw the autoplay toggle button centered below the dialogue text
-    ImGui::SetCursorPosX((ImGui::GetWindowWidth() - 150) / 2);
-    if (ImGui::Button(m_autoplay ? "Autoplay: ON" : "Autoplay: OFF", ImVec2(150, 30)))
+    // Centered button layout
+    bool showContinueButton = !isLastLine || !m_isLineFinished;
+    float buttonWidth = showContinueButton ? 130.0f : 180.0f;  // Increase width when only two buttons are shown
+    ImVec2 buttonSize(buttonWidth, 35);
+
+    float totalButtonWidth = showContinueButton ? 420.0f : 2 * buttonWidth;
+    ImGui::SetCursorPosX((ImGui::GetWindowWidth() - totalButtonWidth) / 2);  // Center buttons
+
+    // Button styling for a polished look
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.4f, 0.45f, fadeOpacity));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.3f, 0.35f, fadeOpacity));
+
+    // Autoplay button
+    if (ImGui::Button(m_autoplay ? "Autoplay: ON" : "Autoplay: OFF", buttonSize))
     {
         m_autoplay = !m_autoplay;
     }
 
-    // If on the last dialogue line, show the Continue button to exit the dialogue
-    const auto& lines = m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID);
-    if (m_currentLineIndex >= lines.size() - 1)
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+
+    // Continue button (if not last line or line is not finished)
+    if (showContinueButton)
     {
-        ImGui::SetCursorPosX((ImGui::GetWindowWidth() - 150) / 2);
-        if (ImGui::Button("Continue", ImVec2(150, 30)))
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.45f, 0.5f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f, 0.55f, 0.6f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
+
+        if (ImGui::Button("Continue", buttonSize))
         {
-            OnContinueButtonPressed();  // Trigger dialogue end
+            OnContinueButtonPressed();
         }
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine();
     }
 
-    // End the ImGui window and revert style variables/colors
+    // Exit button (always visible)
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.4f, 0.45f, fadeOpacity));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.3f, 0.35f, fadeOpacity));
+
+    if (ImGui::Button("Exit", buttonSize))
+    {
+        EndDialogue();
+    }
+    ImGui::PopStyleColor(3);
+
     ImGui::End();
-    ImGui::PopStyleVar(3);  // Revert style variables we pushed
-    ImGui::PopStyleColor(3);  // Revert style colors we pushed
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(3);
 }
+
+
+
 
 void DialogueState::Pause()
 {
-    std::cout << "Dialogue State Paused." << std::endl;
 }
 
 void DialogueState::Resume()
 {
-    std::cout << "Dialogue State Resumed." << std::endl;
 }
 
 void DialogueState::BackgroundUpdate(float delta)
@@ -180,12 +283,11 @@ void DialogueState::BackgroundRender()
 
 void DialogueState::StartDialogue(const std::string& dialogueID)
 {
-    std::cout << "Starting dialogue with ID: " << dialogueID << std::endl;
+    // std::cout << "Starting dialogue with ID: " << dialogueID << std::endl;
 
     // Load the dialogue using the ID from the DialogueManager
     DialogueData* dialogue = m_pDialogueManager->GetDialogue(dialogueID);
     if (!dialogue) {
-        std::cerr << "Dialogue with ID " << dialogueID << " not found!" << std::endl;
         m_isDialogueActive = false;
         return;
     }
@@ -205,7 +307,6 @@ void DialogueState::AdvanceDialogue()
 {
     if (!m_isDialogueActive)
     {
-        std::cout << "DialogueState::AdvanceDialogue() called when dialogue is inactive or exiting. Ignoring." << std::endl;
         return;
     }
 
@@ -216,13 +317,11 @@ void DialogueState::AdvanceDialogue()
     {
         // Move to the next line in the dialogue
         m_currentLineIndex++;
-        std::cout << "Advancing to next line. Current line index: " << m_currentLineIndex << std::endl;
         m_showFullText = false;  // Reset the display for the next line
     }
     else
     {
         // If no more lines are left, set exit flag and request state pop
-        std::cout << "Reached the end of dialogue. Exiting dialogue state." << std::endl;
         m_shouldExit = true;
     }
 }
@@ -245,14 +344,12 @@ std::string DialogueState::GetCurrentCharacterName() const
     // Get the dialogue associated with the current ID from the DialogueManager
     auto it = m_dialogueData.find(m_currentDialogueID);
     if (it == m_dialogueData.end()) {
-        std::cerr << "Dialogue ID " << m_currentDialogueID << " not found in m_dialogueData!" << std::endl;
         return "";
     }
 
     // Check if the current line index is valid
     const DialogueData& dialogue = it->second;
     if (m_currentLineIndex >= dialogue.lines.size()) {
-        std::cerr << "Line index " << m_currentLineIndex << " out of bounds for dialogue ID " << m_currentDialogueID << std::endl;
         return "";
     }
 
@@ -262,22 +359,27 @@ std::string DialogueState::GetCurrentCharacterName() const
 
 void DialogueState::OnContinueButtonPressed()
 {
-    if (m_currentDialogueID.empty()) return;
-
     // Get the current dialogue lines
     const auto& lines = m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID);
 
-    // Check if there are more lines to show
-    if (m_currentLineIndex < lines.size() - 1)
+    // Check if we are on the last line
+    bool isLastLine = (m_currentLineIndex >= lines.size() - 1);
+
+    if (!m_showFullText && !m_isLineFinished)
     {
-        // Move to the next line
+        // If the text is not fully displayed, show the full text
+        m_showFullText = true;
+    }
+    else if (!isLastLine)
+    {
+        // If it's not the last line, advance to the next line
         m_currentLineIndex++;
         m_showFullText = false;  // Reset to partial text display
         m_timeSinceLastKeyframe = 0.0f;  // Reset keyframe timer
     }
-    else
+    else if (isLastLine && m_isLineFinished)
     {
-        // If no more lines, end the dialogue
+        // If it's the last line and the text is fully displayed, end the dialogue
         EndDialogue();
     }
 }
