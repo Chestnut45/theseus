@@ -55,7 +55,7 @@ ColliderComponent::ColliderComponent(ColliderType p_collider_type, bool p_doc, b
 
 ColliderComponent::~ColliderComponent()
 {
-    std::cout << "ColliderComponent - Delete id: " << this->GetGameObject()->GetID() << std::endl;
+    // std::cout << "ColliderComponent - Delete id: " << this->GetGameObject()->GetID() << std::endl;
     ColliderComponent::s_iComponentCount--;
     if(ColliderComponent::s_iComponentCount == 0)
     {

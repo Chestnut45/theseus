@@ -46,7 +46,7 @@ bool TriggerComponent::CheckPlayerCollision(float delta) {
     // Check for collision with any player in the scene
     for (auto&& [_, playerController] : GetGameObject()->GetScene().Each<PlayerController>()) {
         auto* playerCollider = playerController.GetGameObject()->GetComponent<ColliderComponent>();
-        if (playerCollider && m_colliderManager->IsColliding(plateCollider, playerCollider, delta)) {
+        if (playerCollider && m_colliderManager->IsColliding(*plateCollider, *playerCollider, delta)) {
             // wolf::Log("Player is colliding with the pressure plate!");
             return true;
         }

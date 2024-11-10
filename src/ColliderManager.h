@@ -30,7 +30,7 @@ public:
     virtual ~ColliderManager();
 
     void Update(float p_delta);
-    bool IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta);
+    bool IsColliding(ColliderComponent& p_colliderComponent1, ColliderComponent& p_colliderComponent2, float p_delta);
 
 private:
     wolf::Scene* m_scene = nullptr;
@@ -39,8 +39,8 @@ private:
     void CheckCollisions(float p_delta);
 
     // CustomAABB() does not have hitbox sliding response
-    bool CustomAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);
-    void SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);    
+    bool CustomAABB(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);
+    void SlideAABB(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);    
    
    // InternalUse methods for hitbox sliding response
     bool IsCollidingInternalUse(ColliderComponent& p_colliderComponent1, ColliderComponent& p_colliderComponent2, float p_delta);

@@ -61,6 +61,9 @@ public:
     void SetColliderType(ColliderComponent::ColliderType p_collider_type);    
 
     void SetIgnoreTag(wolf::GameObjectID p_id);
+    
+    inline float GetDamage() const { return m_fDamage; }
+    void SetDamage(float p_damage) {m_fDamage = p_damage; }
 
     void FillVertexArray();
 
@@ -74,6 +77,7 @@ private:
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
     bool m_bIsRelative = false; // Hitbox scales relative to object
     bool m_bIsFlaggedForDestruction = false;
+    float m_fDamage = 0.0f;
     wolf::GameObjectID m_IgnoreID = -1; // Projectiles bypass collision check with firer
 
 

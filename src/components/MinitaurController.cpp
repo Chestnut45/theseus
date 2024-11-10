@@ -14,9 +14,6 @@ void MinitaurController::Init(const EnemyData& data)
         return;
     }
 
-    // Log that initialization has started
-    wolf::Log("Initializing Minitaur with GameObject ID " + std::to_string(pGameObject->GetID()));
-
     // Call base initialization
     EnemyController::Init();
 
@@ -27,34 +24,21 @@ void MinitaurController::Init(const EnemyData& data)
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
-    // Log initialized values
-    wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " initialized with melee range " + std::to_string(m_meleeRange) + 
-              ", attack cooldown " + std::to_string(m_attackCooldown) + 
-              ", detection range " + std::to_string(m_detectionRange) + 
-              ", base damage " + std::to_string(m_baseDamage) + 
-              ", and chase speed " + std::to_string(m_chaseSpeed));
-
     // Get required components and log their initialization
     m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
-    if (m_pVelocity)
-    {
-        wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " VelocityComponent initialized.");
-    }
-    else
+    if (!m_pVelocity)
     {
         wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " could not find VelocityComponent!");
     }
 
     // Set up Minitaur-specific animations
     SetUpAnimations(data.animationInitFile);
-    wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " animation initialized using file " + data.animationInitFile);
 
     // Find and set the player as the target
     bool targetFound = false;
     for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
     {
         m_pTarget = playerController.GetGameObject();
-        wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " found player target with GameObject ID " + std::to_string(m_pTarget->GetID()));
         targetFound = true;
         break;  // Assume there's only one player
     }
@@ -62,10 +46,6 @@ void MinitaurController::Init(const EnemyData& data)
     if (!targetFound)
     {
         wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
-    }
-    else
-    {
-        wolf::Log("Minitaur " + std::to_string(pGameObject->GetID()) + " successfully set the target to player.");
     }
 }
 
@@ -217,7 +197,7 @@ void MinitaurController::HandleAttackingState(float delta)
         if (playerHealth)
         {
             playerHealth->Damage(m_baseDamage);  // Apply damage to the player
-            std::cout << "Player Health: " << playerHealth->GetHealth() << "\n";
+            // std::cout << "Player Health: " << playerHealth->GetHealth() << "\n";
             wolf::Audio::Play("data/sounds/hurt.wav");
 
             // Reset attack cooldown timer

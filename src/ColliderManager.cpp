@@ -22,8 +22,8 @@ ColliderManager::~ColliderManager()
 
 void ColliderManager::Update(float p_delta)
 {
-    this->RemoveFlagged();
     this->CheckCollisions(p_delta);
+    this->RemoveFlagged();
 }
 
 // Remove objects flagged for destruction
@@ -31,7 +31,7 @@ void ColliderManager::RemoveFlagged()
 {
     for (int i = 0; i < this->m_vToBeDestroyed.size(); i++)
     {
-        std::cout << "ColliderManager - Remove id:" << this->m_vToBeDestroyed.at(i) << std::endl;
+        // std::cout << "ColliderManager - Remove id:" << this->m_vToBeDestroyed.at(i) << std::endl;
         this->m_scene->DeleteObject(this->m_vToBeDestroyed.at(i));
     }
     this->m_vToBeDestroyed.clear();
@@ -54,8 +54,6 @@ void ColliderManager::CheckCollisions(float p_delta)
 
         // Cache properties for collider1
         const bool isHitbox1 = collider1.IsHitbox();
-        const bool isHurtboxDealer1 = collider1.IsHurtboxDamageDealer();
-        const bool isHurtboxReceiver1 = collider1.IsHurtboxDamageReceiver();
         const bool isDestroyedOnCollision1 = collider1.IsDestroyedOnCollision();
 
         // Iterate through remaining colliders after i
@@ -67,15 +65,13 @@ void ColliderManager::CheckCollisions(float p_delta)
 
             // Cache properties for collider2
             const bool isHitbox2 = collider2.IsHitbox();
-            const bool isHurtboxDealer2 = collider2.IsHurtboxDamageDealer();
-            const bool isHurtboxReceiver2 = collider2.IsHurtboxDamageReceiver();
             const bool isDestroyedOnCollision2 = collider2.IsDestroyedOnCollision();
 
             // Collision check conditions
             bool isCollisionCheckRequired =
                 (isHitbox1 && isHitbox2) ||
-                (isHurtboxDealer1 && isHurtboxReceiver2) ||
-                (isHurtboxReceiver1 && isHurtboxDealer2);
+                isDestroyedOnCollision1 ||
+                isDestroyedOnCollision2;
 
             if (!isCollisionCheckRequired) continue;
 
@@ -101,74 +97,56 @@ void ColliderManager::CheckCollisions(float p_delta)
 }
 
 
-bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta)
+bool ColliderManager::IsColliding(ColliderComponent& p_colliderComponent1, ColliderComponent& p_colliderComponent2, float p_delta)
 {
-    // Early exit if either collider is inactive
-    if (!p_colliderComponent1->IsActive() || !p_colliderComponent2->IsActive())
+    // Grab object pointers
+    auto* pObj1 = p_colliderComponent1.GetGameObject();
+    auto* pObj2 = p_colliderComponent2.GetGameObject();
+
+    // Skip ignored IDs
+    if ((p_colliderComponent1.m_IgnoreID == pObj2->GetID()) ||
+        (p_colliderComponent2.m_IgnoreID == pObj1->GetID()))
     {
         return false;
     }
+    
+    // Grab transform pointers
+    auto* pTrans1 = pObj1->GetComponent<wolf::Transform2D>();
+    auto* pTrans2 = pObj2->GetComponent<wolf::Transform2D>();
 
-    // Cache game objects
-    auto* pObj1 = p_colliderComponent1->GetGameObject();
-    auto* pObj2 = p_colliderComponent2->GetGameObject();
-
-    // Skip self-collision and ignored IDs
-    if ((pObj1->GetID() == pObj2->GetID()) ||
-        (p_colliderComponent1->m_IgnoreID == pObj2->GetID()) ||
-        (p_colliderComponent2->m_IgnoreID == pObj1->GetID()))
-    {
-        return false;
-    }
-
-    // Cache components
-    auto* velocity1 = pObj1->GetComponent<VelocityComponent>();
-    auto* velocity2 = pObj2->GetComponent<VelocityComponent>();
-    auto* transform1 = pObj1->GetComponent<wolf::Transform2D>();
-    auto* transform2 = pObj2->GetComponent<wolf::Transform2D>();
-
-    // Cache scale and position
-    const glm::vec2 scale1 = p_colliderComponent1->IsRelative() ? transform1->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
-    const glm::vec2 scale2 = p_colliderComponent2->IsRelative() ? transform2->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
-
-    const glm::vec2 objTranslation1 = transform1->GetGlobalPosition();
-    const glm::vec2 objTranslation2 = transform2->GetGlobalPosition();
-
-    // Iterate through collider boxes of both components
-    const auto& colliderBoxes1 = p_colliderComponent1->GetColliderBoxes();
-    const auto& colliderBoxes2 = p_colliderComponent2->GetColliderBoxes();
-
-    for (const wolf::Rectangle& collider1 : colliderBoxes1)
-    {
+    // Grab velocity pointers
+    auto* pVel1 = pObj1->GetComponent<VelocityComponent>();
+    auto* pVel2 = pObj2->GetComponent<VelocityComponent>();
+    
+    glm::vec2 scale1 = p_colliderComponent1.IsRelative() ? pTrans1->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
+    glm::vec2 scale2 = p_colliderComponent2.IsRelative() ? pTrans2->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
+    
+    glm::vec2 objTranslation1 = pTrans1->GetGlobalPosition();
+    glm::vec2 objTranslation2 = pTrans2->GetGlobalPosition();
+    
+    for(const wolf::Rectangle& collider1 : p_colliderComponent1.GetColliderBoxes())
+    { 
         glm::vec2 dimensions1 = glm::vec2(collider1.GetWidth(), collider1.GetHeight()) * scale1;
-        glm::vec2 offset1 = collider1.GetPosition() * scale1;
+        glm::vec2 offset1 = collider1.GetPosition() * scale1;            
         glm::vec2 translation1 = objTranslation1 + offset1;
 
-        for (const wolf::Rectangle& collider2 : colliderBoxes2)
-        {
+        for(const wolf::Rectangle& collider2 : p_colliderComponent2.GetColliderBoxes())
+        {                
             glm::vec2 dimensions2 = glm::vec2(collider2.GetWidth(), collider2.GetHeight()) * scale2;
-            glm::vec2 offset2 = collider2.GetPosition() * scale2;
+            glm::vec2 offset2 = collider2.GetPosition() * scale2;        
             glm::vec2 translation2 = objTranslation2 + offset2;
 
-            // Check collision using CustomAABB
-            if (this->CustomAABB(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta) > 0)
+            if(this->CustomAABB(translation1, translation2, dimensions1, dimensions2, pVel1, pVel2, p_delta) > 0)
             {
                 return true;
             }
         }
     }
-
     return false;
 }
 
-bool ColliderManager::CustomAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
+bool ColliderManager::CustomAABB(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
 {
-    // Cache velocities
-    glm::vec2 velocity1 = p_velocity_1 ? p_velocity_1->GetVelocity() : glm::vec2(0.0f, 0.0f);
-    glm::vec2 velocity2 = p_velocity_2 ? p_velocity_2->GetVelocity() : glm::vec2(0.0f, 0.0f);
-
-    glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
-
     // Initial AABB check
     bool result = !(
         p_translation_1.x + p_dimensions_1.x < p_translation_2.x ||
@@ -177,53 +155,27 @@ bool ColliderManager::CustomAABB(glm::vec2 p_translation_1, glm::vec2 p_translat
         p_translation_1.y < p_translation_2.y - p_dimensions_2.y
     );
 
-    // If no velocity component, return the result of the initial AABB check
-    if (!p_velocity_1 && !p_velocity_2)
-    {
-        return result;
-    }
+    // If neither has velocity, return the result of the initial AABB check
+    if (!p_velocity_1 && !p_velocity_2) return result;
 
-    // Cache hitbox status to avoid repeated component access
-    bool isHitbox1 = p_velocity_1 && p_velocity_1->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox();
-    bool isHitbox2 = p_velocity_2 && p_velocity_2->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox();
+    // Calculate relative velocity
+    glm::vec2 velocity1 = p_velocity_1 ? p_velocity_1->GetVelocity() : glm::vec2(0.0f, 0.0f);
+    glm::vec2 velocity2 = p_velocity_2 ? p_velocity_2->GetVelocity() : glm::vec2(0.0f, 0.0f);
+    glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
+    glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;
 
-    // If both are hitboxes, perform additional checks
-    if (isHitbox1 && isHitbox2)
-    {
-        glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;
+    bool newResult = !(
+        newTranslation1.x + p_dimensions_1.x < p_translation_2.x ||
+        newTranslation1.x > p_translation_2.x + p_dimensions_2.x ||
+        newTranslation1.y - p_dimensions_1.y > p_translation_2.y ||
+        newTranslation1.y < p_translation_2.y - p_dimensions_2.y
+    );
 
-        bool newResult = !(
-            newTranslation1.x + p_dimensions_1.x < p_translation_2.x ||
-            newTranslation1.x > p_translation_2.x + p_dimensions_2.x ||
-            newTranslation1.y - p_dimensions_1.y > p_translation_2.y ||
-            newTranslation1.y < p_translation_2.y - p_dimensions_2.y
-        );
-
-        // Check collision cases based on the initial and new AABB results
-        if (result || newResult)
-        {
-            if (result && newResult)
-            {
-                printf("ColliderManager - 11\n");
-            }
-            else if (!result && newResult)
-            {
-                printf("ColliderManager - 01\n");
-            }
-            else if (result && !newResult)
-            {
-                printf("ColliderManager - 10\n");
-            }
-            return true;
-        }
-        return false;
-    }
-
-    // If not both hitboxes, return the standard AABB result
-    return result;
+    // Return true if either are true
+    return (result || newResult);
 }
 
-void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
+void ColliderManager::SlideAABB(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
 {
     // Cache velocities
     glm::vec2 velocity1 = p_velocity_1 ? p_velocity_1->GetVelocity() : glm::vec2(0.0f, 0.0f);
@@ -310,19 +262,19 @@ bool ColliderManager::IsCollidingInternalUse(ColliderComponent& p_colliderCompon
     // Grab object pointers
     auto* pObj1 = p_colliderComponent1.GetGameObject();
     auto* pObj2 = p_colliderComponent2.GetGameObject();
+
+    // Skip ignored IDs
+    if ((p_colliderComponent1.m_IgnoreID == pObj2->GetID()) ||
+        (p_colliderComponent2.m_IgnoreID == pObj1->GetID()))
+    {
+        return false;
+    }
     
     // Grab transform pointers
     auto* pTrans1 = pObj1->GetComponent<wolf::Transform2D>();
     auto* pTrans2 = pObj2->GetComponent<wolf::Transform2D>();
 
-    // Skip ignored IDs
-    if ((p_colliderComponent1.m_IgnoreID == pObj1->GetID()) ||
-        (p_colliderComponent2.m_IgnoreID == pObj2->GetID())
-    )
-    {
-        return false;
-    }
-
+    // Grab velocity pointers
     auto* pVel1 = pObj1->GetComponent<VelocityComponent>();
     auto* pVel2 = pObj2->GetComponent<VelocityComponent>();
     
@@ -376,29 +328,22 @@ bool ColliderManager::CustomAABBInternalUse(const glm::vec2& p_translation_1, co
         newTranslation1.y                    < p_translation_2.y - p_dimensions_2.y
     );
 
-    if(result && newResult)
+    // If both were colliding and will continue colliding
+    if (result && newResult)
     {
+        // TODO: Push overlapping colliders away from each other
         if (p_velocity_1) p_velocity_1->SetVelocity(glm::vec2(0.0f, 0.0f));
         if (p_velocity_2) p_velocity_2->SetVelocity(glm::vec2(0.0f, 0.0f));
         return true;
     }
 
-    else if (!result && newResult)
+    // If one is true but the other isn't
+    else if (result != newResult)
     {
         this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
+        return true;
     }
 
-    else if(result && !newResult)
-    {
-        this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
-    }
-
-    // If not, return standard AABB
-    else
-    {
-        return result;
-    }
-
-    // No collision
+    // Both results must be false
     return false;
 }
