@@ -17,11 +17,7 @@ wolf::GameObject& GorgonBuilder::BuildGorgon(const EnemyData& data, const glm::v
     GorgonObject->AddComponent<HealthComponent>(data.health);
     GorgonObject->AddComponent<VelocityComponent>();
     auto& collider = GorgonObject->AddComponent<ColliderComponent>(ColliderComponent::HITHURTBOXDD, false, true);
-    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
-
-    // Add ArmourComponent
-    auto& armourComponent = GorgonObject->AddComponent<ArmourComponent>();
-    armourComponent.CollectArmour(data.armour);
+    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, 14.0f));
 
     // Add GorgonController and initialize it with data
     auto& controller = GorgonObject->AddComponent<GorgonController>();

@@ -82,6 +82,7 @@ void PlayState::Enter()
     
     // this->CreateMinitaurEnemy();
     // this->CreateHarpyEnemy();
+    this->CreateGorgonEnemy();
 }
 
 void PlayState::Exit()
@@ -151,6 +152,10 @@ void PlayState::Update(float delta)
     for (auto&& [_, harpyController] : m_pGameInstance->GetScene().Each<HarpyController>())
     {
         harpyController.Update(delta);  // Update logic for Harpies
+    }
+    for (auto&& [_, gorgonController] : m_pGameInstance->GetScene().Each<GorgonController>())
+    {
+        gorgonController.Update(delta);  // Update logic for Harpies
     }
     for (auto&& [_, trigger] : m_pGameInstance->GetScene().Each<TriggerComponent>()) {
         trigger.Update(delta);
@@ -332,9 +337,10 @@ void PlayState::CreateMinitaurEnemy()
     MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
 
     glm::vec2 positions[] = {
-        glm::vec2(300.0f, 200.0f),
-        glm::vec2(400.0f, 200.0f),
-        glm::vec2(500.0f, 200.0f)
+        // glm::vec2(-300.0f, -300.0f),
+        // glm::vec2(-400.0f, -400.0f),
+        // glm::vec2(-500.0f, -500.0f)
+        glm::vec2(6100.0f, 0.0f)
     };
 
     for (const auto& position : positions)
@@ -358,9 +364,10 @@ void PlayState::CreateHarpyEnemy()
     HarpyBuilder harpyBuilder(m_pGameInstance->GetScene());
 
     glm::vec2 positions[] = {
-        glm::vec2(-300.0f, -300.0f),
-        glm::vec2(-400.0f, -400.0f),
-        glm::vec2(-500.0f, -500.0f)
+        // glm::vec2(-300.0f, -300.0f),
+        // glm::vec2(-400.0f, -400.0f),
+        // glm::vec2(-500.0f, -500.0f)
+        glm::vec2(6100.0f, 0.0f)
     };
 
     for (const auto& position : positions)
@@ -368,12 +375,43 @@ void PlayState::CreateHarpyEnemy()
         EnemyData harpyData = loader.LoadEnemyData("harpy");
         auto& harpy = harpyBuilder.BuildHarpy(harpyData, position, m_pColliderManager);
         
-        // Set the scale of each Minitaur to 3
+        // Set the scale of each Harpy to 3
         auto* transform = harpy.GetComponent<wolf::Transform2D>();
         if (transform)
         {
             transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
         }
+    }
+}
+
+
+void PlayState::CreateGorgonEnemy()
+{
+    EnemyDataLoader loader;
+    loader.LoadAllEnemyData("data/enemies.yaml");
+
+    GorgonBuilder gorgonBuilder(m_pGameInstance->GetScene());
+
+    glm::vec2 positions[] = {
+        // glm::vec2(-300.0f, -300.0f),
+        // glm::vec2(-400.0f, -400.0f),
+        // glm::vec2(-500.0f, -500.0f)
+        glm::vec2(6000.0f, 0.0f)
+    };
+
+    for (const auto& position : positions)
+    {
+        EnemyData gorgonData = loader.LoadEnemyData("minitaur");
+        auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position, m_pColliderManager);
+        
+        // Set the scale of each Gorgon to 3
+        auto* transform = gorgon.GetComponent<wolf::Transform2D>();
+        if (transform)
+        {
+            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
+        }
+
+        gorgon.GetComponent<AnimatedSprite2D>()->SetTint(glm::vec3(0.0f, 0.0f, 1.0f));
     }
 }
 

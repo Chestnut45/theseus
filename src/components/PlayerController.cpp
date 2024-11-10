@@ -5,9 +5,7 @@
 #include "VelocityComponent.h"
 #include "TimedDestroyerComponent.h"
 #include "HarpyController.h"
-<<<<<<< HEAD
 #include "GorgonController.h"
-=======
 #include "MinitaurController.h"
 #include "PlayerController.h"
 
