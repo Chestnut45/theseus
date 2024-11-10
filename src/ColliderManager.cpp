@@ -107,7 +107,6 @@ void ColliderManager::CheckCollisions(float p_delta)
 }
 
 
-// Iterate through collider boxes of collider components to check for collision
 bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta)
 {
     // Early exit if either collider is inactive
@@ -116,206 +115,198 @@ bool ColliderManager::IsColliding(ColliderComponent* p_colliderComponent1, Colli
         return false;
     }
 
+    // Cache game objects
+    auto* pObj1 = p_colliderComponent1->GetGameObject();
+    auto* pObj2 = p_colliderComponent2->GetGameObject();
+
     // Skip self-collision and ignored IDs
-    if (
-        (p_colliderComponent1->GetGameObject()->GetID() == p_colliderComponent2->GetGameObject()->GetID()) ||
-        (p_colliderComponent1->m_IgnoreID == p_colliderComponent2->GetGameObject()->GetID()) ||
-        (p_colliderComponent2->m_IgnoreID == p_colliderComponent1->GetGameObject()->GetID())
-    )
+    if ((pObj1->GetID() == pObj2->GetID()) ||
+        (p_colliderComponent1->m_IgnoreID == pObj2->GetID()) ||
+        (p_colliderComponent2->m_IgnoreID == pObj1->GetID()))
     {
         return false;
     }
 
-    VelocityComponent* velocity1 = p_colliderComponent1->GetGameObject()->GetComponent<VelocityComponent>();
-    VelocityComponent* velocity2 = p_colliderComponent2->GetGameObject()->GetComponent<VelocityComponent>();
-    
-    glm::vec2 scale1 = p_colliderComponent1->IsRelative() ? p_colliderComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
-    glm::vec2 scale2 = p_colliderComponent2->IsRelative() ? p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
-    
-    glm::vec2 objTranslation1 = p_colliderComponent1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 objTranslation2 = p_colliderComponent2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-   
-    
-    for(const wolf::Rectangle& collider1 : p_colliderComponent1->GetColliderBoxes())
-    { 
+    // Cache components
+    auto* velocity1 = pObj1->GetComponent<VelocityComponent>();
+    auto* velocity2 = pObj2->GetComponent<VelocityComponent>();
+    auto* transform1 = pObj1->GetComponent<wolf::Transform2D>();
+    auto* transform2 = pObj2->GetComponent<wolf::Transform2D>();
+
+    // Cache scale and position
+    const glm::vec2 scale1 = p_colliderComponent1->IsRelative() ? transform1->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
+    const glm::vec2 scale2 = p_colliderComponent2->IsRelative() ? transform2->GetGlobalScale() : glm::vec2(1.0f, 1.0f);
+
+    const glm::vec2 objTranslation1 = transform1->GetGlobalPosition();
+    const glm::vec2 objTranslation2 = transform2->GetGlobalPosition();
+
+    // Iterate through collider boxes of both components
+    const auto& colliderBoxes1 = p_colliderComponent1->GetColliderBoxes();
+    const auto& colliderBoxes2 = p_colliderComponent2->GetColliderBoxes();
+
+    for (const wolf::Rectangle& collider1 : colliderBoxes1)
+    {
         glm::vec2 dimensions1 = glm::vec2(collider1.GetWidth(), collider1.GetHeight()) * scale1;
-        glm::vec2 offset1 = collider1.GetPosition() * scale1;            
+        glm::vec2 offset1 = collider1.GetPosition() * scale1;
         glm::vec2 translation1 = objTranslation1 + offset1;
 
-        for(const wolf::Rectangle& collider2 : p_colliderComponent2->GetColliderBoxes())
-        {                
+        for (const wolf::Rectangle& collider2 : colliderBoxes2)
+        {
             glm::vec2 dimensions2 = glm::vec2(collider2.GetWidth(), collider2.GetHeight()) * scale2;
-            glm::vec2 offset2 = collider2.GetPosition() * scale2;        
+            glm::vec2 offset2 = collider2.GetPosition() * scale2;
             glm::vec2 translation2 = objTranslation2 + offset2;
 
-            if(this->CustomAABB(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta) > 0)
+            // Check collision using CustomAABB
+            if (this->CustomAABB(translation1, translation2, dimensions1, dimensions2, velocity1, velocity2, p_delta) > 0)
             {
                 return true;
             }
         }
     }
+
     return false;
 }
 
 bool ColliderManager::CustomAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
 {
-    glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
-    glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
+    // Cache velocities
+    glm::vec2 velocity1 = p_velocity_1 ? p_velocity_1->GetVelocity() : glm::vec2(0.0f, 0.0f);
+    glm::vec2 velocity2 = p_velocity_2 ? p_velocity_2->GetVelocity() : glm::vec2(0.0f, 0.0f);
 
     glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
 
+    // Initial AABB check
     bool result = !(
-        p_translation_1.x + p_dimensions_1.x < p_translation_2.x                        ||
-        p_translation_1.x                    > p_translation_2.x + p_dimensions_2.x     ||
-        p_translation_1.y - p_dimensions_1.y > p_translation_2.y                        ||
-        p_translation_1.y                    < p_translation_2.y - p_dimensions_2.y
-    );    
+        p_translation_1.x + p_dimensions_1.x < p_translation_2.x ||
+        p_translation_1.x > p_translation_2.x + p_dimensions_2.x ||
+        p_translation_1.y - p_dimensions_1.y > p_translation_2.y ||
+        p_translation_1.y < p_translation_2.y - p_dimensions_2.y
+    );
 
-    // If both hitboxes, respond accordingly
-    if
-    (
-        p_velocity_1 && p_velocity_1->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox()    && 
-        p_velocity_2 && p_velocity_2->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox()
-    )
-    {
-        glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;
-        
-        bool newResult = !(
-        newTranslation1.x + p_dimensions_1.x < p_translation_2.x                        ||
-        newTranslation1.x                    > p_translation_2.x + p_dimensions_2.x     ||
-        newTranslation1.y - p_dimensions_1.y > p_translation_2.y                        ||
-        newTranslation1.y                    < p_translation_2.y - p_dimensions_2.y
-        );
-
-        // Collision cases
-        if(result || newResult)
-        {
-            // Respond only if a VelocityComponent is available
-            if
-            (
-                p_velocity_1 != nullptr ||
-                p_velocity_2 != nullptr
-            )
-            {
-                if(result && newResult)
-                {
-                    printf("ColliderManager - 11\n");  
-                }
-
-                else if (!result && newResult)
-                {
-                    printf("ColliderManager - 01\n");
-                }
-
-                else if(result && !newResult)
-                {
-                    printf("ColliderManager - 10\n");
-
-                }
-            }
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    // If not, return standard AABB
-    else
+    // If no velocity component, return the result of the initial AABB check
+    if (!p_velocity_1 && !p_velocity_2)
     {
         return result;
     }
 
-    // No collision
-    return false;
+    // Cache hitbox status to avoid repeated component access
+    bool isHitbox1 = p_velocity_1 && p_velocity_1->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox();
+    bool isHitbox2 = p_velocity_2 && p_velocity_2->GetGameObject()->GetComponent<ColliderComponent>()->IsHitbox();
+
+    // If both are hitboxes, perform additional checks
+    if (isHitbox1 && isHitbox2)
+    {
+        glm::vec2 newTranslation1 = p_translation_1 + relativeVelocity;
+
+        bool newResult = !(
+            newTranslation1.x + p_dimensions_1.x < p_translation_2.x ||
+            newTranslation1.x > p_translation_2.x + p_dimensions_2.x ||
+            newTranslation1.y - p_dimensions_1.y > p_translation_2.y ||
+            newTranslation1.y < p_translation_2.y - p_dimensions_2.y
+        );
+
+        // Check collision cases based on the initial and new AABB results
+        if (result || newResult)
+        {
+            if (result && newResult)
+            {
+                printf("ColliderManager - 11\n");
+            }
+            else if (!result && newResult)
+            {
+                printf("ColliderManager - 01\n");
+            }
+            else if (result && !newResult)
+            {
+                printf("ColliderManager - 10\n");
+            }
+            return true;
+        }
+        return false;
+    }
+
+    // If not both hitboxes, return the standard AABB result
+    return result;
 }
 
 void ColliderManager::SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
 {
-    glm::vec2 velocity1 = p_velocity_1 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_1->GetVelocity();
-    glm::vec2 velocity2 = p_velocity_2 == nullptr ? glm::vec2(0.0f, 0.0f) : p_velocity_2->GetVelocity();
-    
+    // Cache velocities
+    glm::vec2 velocity1 = p_velocity_1 ? p_velocity_1->GetVelocity() : glm::vec2(0.0f, 0.0f);
+    glm::vec2 velocity2 = p_velocity_2 ? p_velocity_2->GetVelocity() : glm::vec2(0.0f, 0.0f);
+
+    // Early exit if both velocities are zero
+    if (velocity1 == glm::vec2(0.0f) && velocity2 == glm::vec2(0.0f))
+    {
+        return;
+    }
+
     glm::vec2 relativeVelocity = (velocity1 - velocity2) * p_delta;
-    
-    float   newLeft1, newRight1,newTop1, newBottom1,
-            left1, right1, top1, bottom1,
-            left2, right2, top2, bottom2;
 
-    left1 = p_translation_1.x;
-    right1 = p_translation_1.x + p_dimensions_1.x;
-    top1 = p_translation_1.y;
-    bottom1 = p_translation_1.y - p_dimensions_1.y;
+    // Cache the bounds of both objects
+    float left1 = p_translation_1.x;
+    float right1 = p_translation_1.x + p_dimensions_1.x;
+    float top1 = p_translation_1.y;
+    float bottom1 = p_translation_1.y - p_dimensions_1.y;
 
-    newLeft1 = left1 + relativeVelocity.x;
-    newRight1 = right1 + relativeVelocity.x;
-    newTop1 = top1 + relativeVelocity.y;
-    newBottom1 = bottom1 + relativeVelocity.y;
+    float left2 = p_translation_2.x;
+    float right2 = p_translation_2.x + p_dimensions_2.x;
+    float top2 = p_translation_2.y;
+    float bottom2 = p_translation_2.y - p_dimensions_2.y;
 
-    left2 = p_translation_2.x;
-    right2 = p_translation_2.x + p_dimensions_2.x;
-    top2 = p_translation_2.y;
-    bottom2 = p_translation_2.y - p_dimensions_2.y;
+    // Calculate new positions after applying relative velocity
+    float newLeft1 = left1 + relativeVelocity.x;
+    float newRight1 = right1 + relativeVelocity.x;
+    float newTop1 = top1 + relativeVelocity.y;
+    float newBottom1 = bottom1 + relativeVelocity.y;
 
-    glm::vec2 collisionNormal1 = glm::vec2(0.0f, 0.0f);
-    glm::vec2 collisionNormal2 = glm::vec2(0.0f, 0.0f);
+    glm::vec2 collisionNormal1(0.0f);
+    glm::vec2 collisionNormal2(0.0f);
 
-    // obj1 left collision
-    if(newLeft1 <= right2 && left1 > right2)
+    // Determine the collision normal based on new bounds
+    if (newLeft1 <= right2 && left1 > right2)
     {
-        collisionNormal2 = glm::normalize(glm::vec2(1.0f, 0.0f));
-        // printf("ColliderManager - C1\n");
+        collisionNormal2 = glm::vec2(1.0f, 0.0f);  // Left collision
+    }
+    else if (newRight1 >= left2 && right1 < left2)
+    {
+        collisionNormal2 = glm::vec2(-1.0f, 0.0f); // Right collision
+    }
+    else if (newTop1 >= bottom2 && top1 < bottom2)
+    {
+        collisionNormal2 = glm::vec2(0.0f, -1.0f); // Top collision
+    }
+    else if (newBottom1 <= top2 && bottom1 > top2)
+    {
+        collisionNormal2 = glm::vec2(0.0f, 1.0f);  // Bottom collision
     }
 
-    // obj1 right collision
-    else if(newRight1 >= left2 && right1 < left2)
+    // If no collision normal was determined, exit early
+    if (collisionNormal2 == glm::vec2(0.0f))
     {
-        collisionNormal2 = glm::normalize(glm::vec2(-1.0f, 0.0f));
-        // printf("ColliderManager - C2\n");
+        return;
     }
 
-    // obj1 top collision
-    else if(newTop1 >= bottom2 && top1 < bottom2)
-    {
-        collisionNormal2 = glm::normalize(glm::vec2(0.0f, -1.0f));
-        // printf("ColliderManager - C3\n");
-    }
+    // Calculate the opposite normal for the other object
+    collisionNormal1 = -collisionNormal2;
 
-    // obj1 bottom collision
-    else if(newBottom1 <= top2 && bottom1 > top2)
-    {
-        collisionNormal2 = glm::normalize(glm::vec2(0.0f, 1.0f));
-        // printf("ColliderManager - C4\n");
-
-    }
-    else
-    {
-        collisionNormal2 = glm::vec2(0.0f, 0.0f);
-        printf("ColliderManager - C5\n");
-    }
-
-    collisionNormal1 = collisionNormal2 == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(-collisionNormal2);
-
-    if(p_velocity_1 != nullptr)
+    // Resolve velocities for object 1
+    if (p_velocity_1)
     {
         float dotProduct1 = glm::dot(velocity1, collisionNormal2);
-
-        if(dotProduct1 <= 0.0f)
+        if (dotProduct1 <= 0.0f)
         {
-            glm::vec2 newVelocity1 = velocity1 - collisionNormal2 * dotProduct1;
-        
-            p_velocity_1->SetVelocity(newVelocity1);
+            p_velocity_1->SetVelocity(velocity1 - collisionNormal2 * dotProduct1);
         }
     }
 
-    if(p_velocity_2 != nullptr)
+    // Resolve velocities for object 2
+    if (p_velocity_2)
     {
         float dotProduct2 = glm::dot(velocity2, collisionNormal1);
-        
-        if(dotProduct2 <= 0.0f)
+        if (dotProduct2 <= 0.0f)
         {
-            glm::vec2 newVelocity2 = velocity2 - collisionNormal1 * dotProduct2;
-    
-            p_velocity_2->SetVelocity(newVelocity2);
+            p_velocity_2->SetVelocity(velocity2 - collisionNormal1 * dotProduct2);
         }
     }
 }
