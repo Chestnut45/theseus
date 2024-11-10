@@ -37,7 +37,7 @@ struct Tile
         WallRight,
         WallSpiral,
         WallSquare,
-        WalTopLeft,
+        WallTopLeft,
         WallTopRight,
         WallTop
     };

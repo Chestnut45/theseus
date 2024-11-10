@@ -16,12 +16,12 @@ wolf::GameObject& HarpyBuilder::BuildHarpy(const EnemyData& data, const glm::vec
     // Add components using the data
     harpyObject->AddComponent<HealthComponent>(data.health);
     harpyObject->AddComponent<VelocityComponent>();
-    auto& collider = harpyObject->AddComponent<ColliderComponent>(ColliderComponent::HITHURTBOXDD, false, true);
-    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
+    auto& collider = harpyObject->AddComponent<ColliderComponent>(ColliderComponent::HURTBOXDR, false, true);
+    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, 14.0f));
 
     // Add ArmourComponent
-    auto& armourComponent = harpyObject->AddComponent<ArmourComponent>();
-    armourComponent.CollectArmour(data.armour);
+    // auto& armourComponent = harpyObject->AddComponent<ArmourComponent>();
+    // armourComponent.CollectArmour(data.armour);
 
     // Add HarpyController and initialize it with data
     auto& controller = harpyObject->AddComponent<HarpyController>();

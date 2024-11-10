@@ -32,7 +32,7 @@ public:
         NONE
     };
 
-    ColliderComponent(ColliderType p_collider_type, bool p_doc , bool p_relativity);   
+    ColliderComponent(ColliderType p_collider_type, bool p_doc , bool p_relativity, wolf::GameObjectID p_ignore_id = -1);   
     virtual ~ColliderComponent();
 
     // Delete copy constructor/assignment
@@ -56,10 +56,11 @@ public:
     bool IsDestroyedOnCollision() const;
     bool IsRelative() const;
 
-    float GetDamage() const;
-    void SetDamage(float p_damage);
     ColliderType GetColliderType() const;
 
+    void SetColliderType(ColliderComponent::ColliderType p_collider_type);    
+
+    void SetIgnoreTag(wolf::GameObjectID p_id);
 
     void FillVertexArray();
 
@@ -67,11 +68,13 @@ public:
     static int GetComponentCount();
     
 private:
-    float m_fDamage = 1.0f; // Amount of Damage to Deal (only for Damage Dealer hurtboxes) 
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
     bool m_bIsRelative = false; // Hitbox scales relative to object
+    bool m_bIsFlaggedForDestruction = false;
+    wolf::GameObjectID m_IgnoreID = -1; // Projectiles bypass collision check with firer
 
-    ColliderType m_ColliderType = ColliderType::NONE;
+
+    ColliderType m_eColliderType = ColliderType::NONE;
 
     std::vector<wolf::Rectangle> m_vColliderBoxes;
 

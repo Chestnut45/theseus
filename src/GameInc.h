@@ -5,7 +5,6 @@
 #include "GameStateManager.h"
 
 // Component includes
-#include <components/ArmourComponent.h>
 #include <components/HealthComponent.h>
 #include <components/ColliderComponent.h>
 #include <components/LabyrinthManager.h>

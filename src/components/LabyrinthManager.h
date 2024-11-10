@@ -9,9 +9,6 @@
 // When attached to a game object, calling Generate() will create all the
 // necessary objects and components to represent the labyrinth and add them
 // all as child objects of the object the manager is attached to.
-// 
-// For now, it will only generate a test tilemap, but later it will manage the
-// chunk loading system as well as enemy spawns, items, etc.
 //-----------------------------------------------------------------------------
 
 #include <cstdint>
@@ -24,10 +21,13 @@
 #include <glm/gtx/hash.hpp>
 
 #include <W_GameObject.h>
+#include <W_Grid2D.h>
 #include <W_RNG.h>
 #include <W_Shapes.h>
 
-#include "../LabyrinthTiles.h"
+#include <LabyrinthTiles.h>
+
+#include <ColliderManager.h>
 
 class LabyrinthManager : public wolf::BaseComponent
 {
@@ -72,14 +72,40 @@ public:
     // Saves the current config to a YAML file
     void SaveConfig(const std::string& filepath);
 
+    // Gets the spawn position of the labyrinth in world space
+    // NOTE: Returns (0, 0) if the labyrinth is not yet generated
+    glm::vec2 GetSpawnLocation() const;
+
+    // Gets the chunk ID for the chunk containing a given world space position
+    glm::ivec2 GetChunkID(const glm::vec2& worldPosition) const;
+
+    // Gets a pointer to the chunk object with the given ID
+    // NOTE: Returns nullptr if no chunk exists with the given ID
+    wolf::GameObject* GetChunk(const glm::ivec2& chunkID) const;
+
+    // Converts a world space position to tile coordinates
+    // NOTE: Returns (-1, -1) if the position is not on a valid tile
+    glm::ivec2 GetTilePosition(const glm::vec2& worldPosition) const;
+
+    // Gets the tile ID at the given tile position of the labyrinth
+    // NOTE: Returns -1 if the tile is empty
+    // NOTE: Returns -2 if out of bounds or not yet generated
+    int GetTile(int x, int y) const;
+
+    // Sets the tile at the given tile position of the labyrinth
+    // NOTE: Does nothing if out of bounds
+    // NOTE: Does not validate tileID
+    void SetTile(int x, int y, int tileID);
+
     // Resets all properties to their defaults
     void Reset();
 
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 16'383;
-    static const inline int LABYRINTH_TILE_SIZE = 32;
+    static const inline int TILE_SIZE = 32;
     static const inline int CHUNK_SIZE = 64;
+    static const inline int SCALE = 3;
 
 // Implementation
 private:
@@ -91,10 +117,29 @@ private:
     int m_width = 125;
     int m_height = 125;
 
-    // TODO: Tweakable progression / difficulty parameters (connectivity, spawn rates, etc.)
+    // Spawn area settings
+    glm::ivec2 m_spawnPatchSize = glm::ivec2(25);
+    glm::ivec2 m_spawnRoomSize = glm::ivec2(5);
 
     // Flags
     bool m_randomizeSeed = false;
+    bool m_isGenerated = false;
+
+    // Tile data
+
+    // Logical tile types (not including visual variations)
+    enum class LogicalTile
+    {
+        Unvisited,
+        Door,
+        Floor,
+        OccupiedFloor,
+        Grass,
+        Wall,
+    };
+
+    // Grid of logical tiles
+    wolf::Grid2D<LogicalTile> m_labyrinthGrid{m_width, m_height, LogicalTile::Unvisited};
 
     // Room data
 
@@ -173,8 +218,55 @@ private:
     // List of all rooms to be generated in the labyrinth
     std::vector<Room> m_rooms;
 
+    // Non-owning pointer to collider manager. Necessary for building minitaurs
+    ColliderManager* m_pColliderManager = nullptr;
+    friend class PlayState;
+
+    // Map of tile positions to section numbers
+    std::unordered_map<glm::ivec2, int> m_tileSectionMap;
+
+    // Data structure for a connector
+    struct Connector
+    {
+        glm::ivec2 m_pos;
+        int m_connection;
+    };
+
+    // Data structure for a section
+    struct Section
+    {
+        // Map of connected sections
+        std::unordered_map<int, bool> m_connected;
+
+        // List of connectors to other sections
+        std::vector<Connector> m_connectors;
+    };
+
+    // List of sections
+    std::vector<Section> m_sections;
+
     // Chunk management
 
     // Map of chunk IDs to chunk game object pointers
     std::unordered_map<glm::ivec2, wolf::GameObject*> m_chunkMap;
+
+    // Helper methods
+
+    // Attempts to place all rooms and returns a vector of those successfully placed
+    std::vector<Room> PlaceRooms();
+
+    // Carves the maze into the labyrinth using the current settings
+    void CarveMaze();
+
+    // Guarantees connectivity between all rooms and the entrance of the maze
+    void ConnectRooms(const std::vector<Room>& placedRooms);
+
+    // Generates all chunk objects into the scene for the current maze
+    void GenerateChunks();
+
+    // Spawns all the entities from placed rooms into the chunks
+    void PopulateEntities(const std::vector<Room>& placedRooms);
+
+    // Generates the entrance room to the maze
+    void GenerateEntrance();
 };

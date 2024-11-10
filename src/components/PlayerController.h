@@ -6,7 +6,14 @@
 #include <components/HealthComponent.h>
 #include <components/EnemyController.h>
 #include <components/ColliderComponent.h>
+#include <components/InventoryComponent.h>
+#include <components/PlayerInventoryComponent.h>
+#include <components/ThrowableObjectComponent.h>
 #include <iostream>
+
+// !-- Aurora added this --!
+#include "../inventory/WeaponItem.h"
+#include "../inventory/ArmourItem.h"
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
@@ -24,7 +31,10 @@ public:
         WALKING,
         JUMPING,
         ROLLING,
-        ATTACKING
+        ATTACKING,
+        IN_INVENTORY,
+        PICKING_UP,
+        THROWING
     };
 
     // Enum for player movement directions
@@ -43,6 +53,16 @@ public:
 
     // Constructor and initialization methods
     PlayerController();
+    ~PlayerController();
+
+    // Delete copy constructor/assignment
+    PlayerController(const PlayerController&) = delete;
+    PlayerController& operator=(const PlayerController&) = delete;
+
+    // Delete move constructor/assignment
+    PlayerController(PlayerController&& other) = delete;
+    PlayerController& operator=(PlayerController&& other) = delete;
+
     void LateInitialize();
     void Update(float delta);
     void Render();
@@ -50,8 +70,25 @@ public:
 
     // Overloaded << operator for printing directions
     friend std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction);
+    //set collidermanager
     void SetColliderManager(ColliderManager* pColliderManager);
+    //get the collider manager (verification)
     ColliderManager* GetColliderManager() const;
+
+
+
+    //set player action
+    void SetAction(PlayerAction action);
+
+    // setting the holding object bool variable
+    void SetHoldingObject(bool isHolding);
+
+    
+    // This getter simply returns the current value of m_lastFaceDirectionEnum, allowing ThrowableObjectComponent to access it.
+    PlayerDirection GetLastFacingDirection() const { return m_lastFaceDirectionEnum; }
+
+    // Weapon & Attack functions
+
 private:
     // Initialization and animation management
     void InitializeAnimations();
@@ -62,6 +99,14 @@ private:
     void HandleRolling(float delta);     // Declaration for HandleRolling
     void HandleJumping(float delta);     // Declaration for HandleJumping
     void HandleAttacking(float delta);   // Declaration for HandleAttacking
+    void HandleThrowing(float delta);  // New method to handle throwing
+    
+
+
+    // !-- Aurora added this --!
+    void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
+    void HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event);
+    void HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event);
 
     // Manage and transition different player states
     void StartAttack();
@@ -70,10 +115,16 @@ private:
     void EndRoll();         // Ends a rolling action
     void StartJump();       // Starts a jumping action
     void EndJump();         // Ends a jumping action
+    void ThrowHeldObject();
+    void PickUpObject();
+    void DropObject();
 
     // Utility functions
-    void ApplyDamageToEnemy(); // Applies damage to enemies in range
+    void ApplyDamageToEnemy(); // Applies damage to enemies
     void RegenerateStamina(float delta); // Regenerates stamina over time
+
+    void RenderThrowPowerBar(); // rendering for the power bar
+
 
     // Animation utility functions
     std::string GetAttackAnimationForDirection(PlayerDirection direction) const;
@@ -86,12 +137,19 @@ private:
     wolf::Transform2D* m_pTransform = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
     AnimatedSprite2D* m_pAnimComponent = nullptr;
+    ThrowableObjectComponent* m_pHeldObject = nullptr;
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
-    PlayerDirection m_lastDirectionEnum = PlayerDirection::NONE;
+    PlayerDirection m_lastMoveDirectionEnum = PlayerDirection::SOUTH;
+    PlayerDirection m_lastFaceDirectionEnum = PlayerDirection::SOUTH;
     std::vector<int> m_heldKeys;  // List of currently held keys
     float m_moveSpeed = 200.0f;
+    float m_inventoryMoveSpeed = 100.0f;
+
+    // Sound effect properties
+    wolf::Timer m_walkSoundTimer;
+    float m_walkSoundInterval = 0.34f;
 
     // Stamina management
     bool m_isRolling = false;
@@ -101,7 +159,7 @@ private:
     float m_stamina = 100.0f;
     const float m_maxStamina = 100.0f;
     const float m_staminaRegenRate = 20.0f;
-    const float m_staminaRegenDelay = 1.0f;
+    const float m_staminaRegenDelay = 0.5f;
     wolf::Timer m_staminaRegenTimer;
 
     // Jumping management
@@ -115,9 +173,19 @@ private:
     bool m_isAttacking = false;
     float m_attackCooldown = 0.5f;
     float m_attackDamage = 50.0f;
-    float m_attackRange = 50.0f;
+    float m_attackRange = 100.0f;
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
+
+    //picking up management
+    bool m_isHoldingObject = false;
+    float m_chargeTime = 0.0f;  // New variable to store charge time for throws
+    float m_throwSpeed = 300.0f;  // Speed multiplier for the throw
+    float m_throwPower = 0.0f;       // Power for the throw
+    const float m_maxThrowPower = 100.0f; // Max limit for the throw power
+    const float m_powerChargeRate = 25.0f; // Rate at which power increases
+
+    static float s_aAttackCooldown[(int)WeaponType::BOW + 1];
 
     // Animation and state tracking flags
     bool m_animationFinished = false;
@@ -126,4 +194,8 @@ private:
     PlayerDirection m_previousDirection = PlayerDirection::NONE;
 
     ColliderManager* m_pColliderManager = nullptr;
+
+    // Default weapon if no weapon equipped
+    WeaponItem* m_pDefaultWeapon = nullptr;
+    WeaponItem* m_pCurrentWeapon = nullptr;
 };

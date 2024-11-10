@@ -11,20 +11,22 @@
 #include "ConsumableItem.h"
 #include "W_EventManager.h"
 
-struct FlatHealItemEvent {
-    float fHealAmt;
-};
-
-struct FlatStaminaItemEvent {
-    float fStaminaAmt;
-};
-
 class FlatAmtItem : public ConsumableItem {
     public:
-        FlatAmtItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, int p_iNumUses, Attribute p_enAttrib, float p_fAmt)
-            : ConsumableItem(p_enID, p_strName, p_strDesc, p_iValue, p_bStackable, p_iNumUses), m_enAttrib(p_enAttrib), m_fAmt(p_fAmt) {};
+        FlatAmtItem(ItemID p_enID, const std::string& p_strName, const std::string& p_strDesc, int p_iValue, bool p_bStackable, int p_iTextureFrameIndex, Rarity p_enRarity, int p_iNumUses, Attribute p_enAttrib, float p_fAmt)
+            : ConsumableItem(p_enID, p_strName, p_strDesc, p_iValue, p_bStackable, p_iTextureFrameIndex, p_enRarity, p_iNumUses), m_enAttrib(p_enAttrib), m_fAmt(p_fAmt) {
+                this->SetConsumableType(FLAT_AMT);
+            };
 
         ~FlatAmtItem() {};
+
+        // Delete copy constructor/assignment
+        FlatAmtItem(const FlatAmtItem&) = delete;
+        FlatAmtItem& operator=(const FlatAmtItem&) = delete;
+
+        // Delete move constructor/assignment
+        FlatAmtItem(FlatAmtItem&& other) = delete;
+        FlatAmtItem& operator=(FlatAmtItem&& other) = delete;
 
         Attribute GetAttribute() const {return m_enAttrib;};
         void SetAttribute(Attribute p_enAttrib) {m_enAttrib = p_enAttrib;};
@@ -32,7 +34,7 @@ class FlatAmtItem : public ConsumableItem {
         float GetAmount() const {return m_fAmt;};
         void SetAmount(float p_fAmt) {m_fAmt = p_fAmt;};
 
-        void Use();
+        virtual void Use();
 
     private:
         Attribute m_enAttrib;

@@ -3,70 +3,85 @@
 #include "DialogueState.h"
 #include <imgui/imgui.h>
 
-#include "../components/ArmourComponent.h"
+#include "../components/ChestInventoryComponent.h"
 #include "../components/ColliderComponent.h"
 #include "../components/HealthComponent.h"
-#include "../components/InventoryComponent.h"
+#include "../components/HomingComponent.h"
+#include "../components/PlayerInventoryComponent.h"
+#include "../components/AttackDamageComponent.h"
+#include "../components/MerchantInventoryComponent.h"
+#include "../components/DispensaryInventoryComponent.h"
 #include "../components/StatusComponent.h"
+#include "../components/TimedDestroyerComponent.h"
 #include "../components/VelocityComponent.h"
-
+#include "../components/ThrowableObjectComponent.h"
+#include "../inventory/WeaponItem.h"
+#include "../inventory/ArmourItem.h"
 
 void PlayState::Enter()
 {
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
 
-    // Initialize the listener
+    // Initialize the dialogue listener
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
-
-    // Initialize the listener
-    wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
+    wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
+    
     this->m_pColliderManager = new ColliderManager(&scene);
 
-    // Initialize the player object first
-     CreatePlayer();
-
-
-    // Initialize the Minitaur enemy object second
-    CreateMinitaurEnemy();
-
-    // Initialize the Harpy enemy object Third
-    CreateHarpyEnemy();
+    // Initialize the player object
+    CreatePlayer();
 
 
 
-    // Add the main camera as a component of the player object
-    auto& camera = m_pPlayerObject->AddComponent<wolf::Camera2D>(1280, 720);
+    // Add the main camera as a child object of the player
+    auto& cameraObj = scene.CreateObject2D();
+    auto& camera = cameraObj.AddComponent<wolf::Camera2D>(1280, 720);
+    m_pPlayerObject->AddChild(cameraObj);
+    camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
 
-    // Initialise managers
-
-    // Add the labyrinth manager component to an empty object and load default config
+    // Add the labyrinth manager and generate the default labyrinth config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
+    m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    m_pLabyrinthManager->GenerateLabyrinth();
+
+    CreateThrowableObject();
+    
+    CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(96.0f, 96.0f), TriggerType::SINGLE_USE);
+    CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f), TriggerType::REUSABLE);
 
     // Testing: Create a test projectile object
-    auto& testObj = scene.CreateObject2D();
-    testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
-    auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-    testCollider.SetDamage(10.0f);
-    testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    auto& testVelocity = testObj.AddComponent<VelocityComponent>();
+    // auto& testObj = scene.CreateObject2D();
+    // testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+    // testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
+    // auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    // auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
+    // testCollider.SetDamage(10.0f);
+    // testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
+    // auto& testVelocity = testObj.AddComponent<VelocityComponent>();
     //testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
 
 
     // auto& testObj2 = scene.CreateObject2D();
     // testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    // testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(256.0f, 0.0f));
-    // auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDD, 1, 1);
-    // testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    // auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
-    // testVelocity2.SetVelocity(glm::vec2(64.0f, 0.0f));
+    // testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(6000.0f, 0.0f));
 
+    // auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    // testSprite2.SetOriginToCenterOfTexture();
+
+    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
+    // testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+    
+    // auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
+    // testVelocity2.SetVelocity(glm::vec2(0.0f, 128.0f));
+    
+    // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
+    
+    // this->CreateMinitaurEnemy();
+    // this->CreateHarpyEnemy();
 }
 
 void PlayState::Exit()
@@ -75,6 +90,7 @@ void PlayState::Exit()
     m_pGameInstance->GetScene().Clear();
 
     wolf::EventManager::RemoveListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
+    wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
 
     // Delete managers
     delete this->m_pColliderManager;
@@ -105,6 +121,21 @@ void PlayState::Update(float delta)
     if (m_showLabyrinthManager) 
         m_pLabyrinthManager->ShowGUI();
 
+    // TESTING: Delete all tiles the player steps on
+    // TODO: Check for floor tiles, change them to gold variant
+    // const auto& pos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    // const auto& tilePos = m_pLabyrinthManager->GetTilePosition(pos);
+    // if (m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y) >= 0)
+    // {
+    //     m_pLabyrinthManager->SetTile(tilePos.x, tilePos.y, -1);
+    // }
+
+    // Update timed destroyer components
+    for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
+    {
+        TimedDestroyerComponent.Update(delta);
+    }
+
     // Update all player controllers
     for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<PlayerController>())
     {
@@ -121,27 +152,17 @@ void PlayState::Update(float delta)
     {
         harpyController.Update(delta);  // Update logic for Harpies
     }
-    for (auto&& [_, gorgonController] : m_pGameInstance->GetScene().Each<GorgonController>())
-    {
-        gorgonController.Update(delta);  // Update logic for Harpies
+    for (auto&& [_, trigger] : m_pGameInstance->GetScene().Each<TriggerComponent>()) {
+        trigger.Update(delta);
     }
-
-    // // Debugging the final minitaur's position and state
-
-    // for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
-    // {
-    //     auto* pGameObject = minitaurController.GetGameObject();
-    //     if (pGameObject)
-    //     {
-    //         auto* transform = pGameObject->GetComponent<wolf::Transform2D>();
-    //         if (transform)
-    //         {
-    //             glm::vec2 pos = transform->GetGlobalPosition();
-    //             printf("Minitaur Render Position: (%f, %f)\n", pos.x, pos.y);  // Debug rendering position
-    //         }
-    //     }
-    // }
-
+    for (auto&& [_, trap] : m_pGameInstance->GetScene().Each<TrapComponent>()) {
+        trap.Update(delta);
+    }
+        
+    for (auto&& [_, throwable] : m_pGameInstance->GetScene().Each<ThrowableObjectComponent>()) 
+    {
+        throwable.Update(delta);  // Update logic for throwable objects
+    }
     
     // Update all animated sprites
     for (auto&&[_, anim] : m_pGameInstance->GetScene().Each<AnimatedSprite2D>())
@@ -149,58 +170,81 @@ void PlayState::Update(float delta)
         anim.Update(delta);
     }
 
+    for (auto&&[_, homing] : m_pGameInstance->GetScene().Each<HomingComponent>())
+    {
+        homing.Update(delta);
+    }
+
+    for(auto&& [_, attackDamageComponent] : m_pGameInstance->GetScene().Each<AttackDamageComponent>())
+    {
+        attackDamageComponent.Update(delta);
+    }
+
     // Update collisions
     this->m_pColliderManager->Update(delta);
 
-    // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
+    // Inflict status effects upon the player
+    for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
     {
-        transform.Translate(velocity.GetVelocity() * delta);
-    }   
+        status.Update();
+    }
 
     // INVENTORY TESTING
-    auto* playerInventory = m_pPlayerObject->GetComponent<InventoryComponent>();
+    auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
     if (playerInventory) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) m_showInventoryGUI = !m_showInventoryGUI;
-        if (m_showInventoryGUI) playerInventory->ShowInventoryGUI();
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Helmet", "This is a test equipment item", 5, HEAD);
-            playerInventory->AddItem(pAddItem);
+            ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
+            ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
+            ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
+            ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
+            ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
+            playerInventory->AddItemOrDelete(pBoots);
+            playerInventory->AddItemOrDelete(pBow);
+            playerInventory->AddItemOrDelete(pHealHeart);
+            playerInventory->AddItemOrDelete(pHurtHeart);
+            playerInventory->AddItemOrDelete(pBurnHeart);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
-            ItemBase* pAddItem = new EquipmentItem(EQUIPMENT, "Test Sword", "This is a different test equipment item", 10, WEAPON);
-            playerInventory->AddItem(pAddItem);
+            playerInventory->AddGold(10);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Stacking Heart", "This is a test consumable item that stacks", 10, true, 1);
-            playerInventory->AddItem(pAddItem);
+            playerInventory->TakeGold(5);
         }
 
+        playerInventory->ShowInventoryGUI();
+    }
+    
+    auto* chest = m_pPlayerObject->GetComponent<ChestInventoryComponent>();
+    if (chest) {
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            ItemBase* pAddItem = new ConsumableItem(CONSUMABLE, "Multi-Use Heart", "This is a test consumable item with multiple uses", 25, false, 3);
-            playerInventory->AddItem(pAddItem);
+            chest->ToggleOpen();
         }
-
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            ItemBase* pHeadItem = playerInventory->GetEquippedItem(HEAD);
-            ItemBase* pWeaponItem = playerInventory->GetEquippedItem(WEAPON);
-            if (pHeadItem) {
-                printf("%s is equipped in the HEAD slot!\n", pHeadItem->GetName().c_str());
-            }
-            else {
-                printf("Nothing is equipped in the HEAD slot!\n");
-            }
-
-            if (pWeaponItem) {
-                printf("%s is equipped in the WEAPON slot!\n", pWeaponItem->GetName().c_str());
-            }
-            else {
-                printf("Nothing is equipped in the WEAPON slot!\n");
-            }
+            chest->FillInventoryFromFile("data/test_chest_contents.yaml");
         }
+        
+        chest->ShowInventoryGUI();
+    }
+
+    auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
+    if (merchant) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
+            merchant->ToggleOpen();
+        }
+        merchant->ShowInventoryGUI();
+    }
+
+    auto* dispensary = m_pPlayerObject->GetComponent<DispensaryInventoryComponent>();
+    if (dispensary) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
+            dispensary->ToggleOpen();
+        }
+
+        dispensary->ShowInventoryGUI();
     }
 
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
@@ -208,67 +252,19 @@ void PlayState::Update(float delta)
         // Broadcast the DialogueTriggerEvent with a specific dialogue ID
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
     }
-    wolf::EventManager::Dispatch<DialogueTriggerEvent>();
 
-     // Second pass: Reverse iteration to safely handle deletions
-    auto& scene = m_pGameInstance->GetScene();
-    auto view = scene.Each<MinitaurController>();
-    auto viewSize = std::distance(view.begin(), view.end());
-
-    for (int i = viewSize - 1; i >= 0; --i)
+    // Apply velocity to transforms for all objects with both components
+    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
     {
-        auto it = view.begin();
-        std::advance(it, i); // Move the iterator to the correct position
-
-        // Access the MinitaurController from the tuple
-        MinitaurController& minitaurController = std::get<1>(*it);
-
-        // Check for deletion condition (if health <= 0, call Delete)
-        auto* pGameObject = minitaurController.GetGameObject();
-        if (pGameObject && pGameObject->GetComponent<HealthComponent>()->GetHealth() <= 0)
-        {
-            pGameObject->Delete();  // Immediate deletion
-        }
+        transform.Translate(velocity.GetVelocity() * delta);
     }
-
-     // Reverse iteration for HarpyController deletion
-    auto harpyView = scene.Each<HarpyController>();
-    auto harpyViewSize = std::distance(harpyView.begin(), harpyView.end());
-
-    for (int i = harpyViewSize - 1; i >= 0; --i)
-    {
-        auto it = harpyView.begin();
-        std::advance(it, i);
-
-        // Access the HarpyController from the tuple
-        HarpyController& harpyController = std::get<1>(*it);
-        auto* pGameObject = harpyController.GetGameObject();
-        if (pGameObject && pGameObject->GetComponent<HealthComponent>()->GetHealth() <= 0)
-        {
-            pGameObject->Delete();
-        }
-    }
-    auto gorgonView = scene.Each<GorgonController>();
-    auto gorgonViewSize = std::distance(gorgonView.begin(), gorgonView.end());
-
-    for (int i = gorgonViewSize - 1; i >= 0; --i)
-    {
-        auto it = gorgonView.begin();
-        std::advance(it, i);
-
-        // Access the HarpyController from the tuple
-        GorgonController& GorgonController = std::get<1>(*it);
-        auto* pGameObject = GorgonController.GetGameObject();
-        if (pGameObject && pGameObject->GetComponent<HealthComponent>()->GetHealth() <= 0)
-        {
-            pGameObject->Delete();
-        }
-    }
+    ConvertPlayerTileToGold();
+    
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
 
-    // Update managers
-    wolf::EventManager::Dispatch<DialogueTriggerEvent>();
+    // Dispatch events
+    wolf::EventManager::Dispatch();
 }
 
 void PlayState::Render()
@@ -300,23 +296,32 @@ void PlayState::CreatePlayer()
     // NOTE: This manages all player animations and the animated sprite component for the player
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
-
-    // Scale player
-    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3));
+    // Start player at the labyrinth spawn location and scale appropriately
+    auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
+    transform.SetScale(glm::vec2(3));
 
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
     // Add inventory
-    auto& inventory = m_pPlayerObject->AddComponent<InventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
+    auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
-    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, -14.0f));
+    collider.AddColliderBox(glm::vec2(13.0f, 27.0f), glm::vec2(-7.0f, 13.0f));
 
-    // Add health / armor
+    // Add health
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
-    auto& armour = m_pPlayerObject->AddComponent<ArmourComponent>();
-    armour.CollectArmour(50, {{ArmourComponent::SpecialProperty::FIRERESISTANCE, 50}});
+
+    // Add status component and status effect
+    auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
+
+    // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
+    m_pPlayerObject->AddComponent<ChestInventoryComponent>(4, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
+    MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f), "Merchant Guy", 0.1f, 50);
+    pMerchant->FillInventoryFromFile("data/test_chest_contents.yaml");
+    DispensaryInventoryComponent* pDispensary = &m_pPlayerObject->AddComponent<DispensaryInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
+    pDispensary->FillInventoryFromFile("data/test_dispensary_contents.yaml");
 }
 
 void PlayState::CreateMinitaurEnemy()
@@ -372,31 +377,37 @@ void PlayState::CreateHarpyEnemy()
     }
 }
 
-void PlayState::CreateGorgonEnemy()
+void PlayState::CreateThrowableObject()
 {
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
+    // Get the spawn location from the labyrinth manager
+    glm::vec2 spawnLocation = m_pLabyrinthManager->GetSpawnLocation();
 
-    GorgonBuilder gorgonBuilder(m_pGameInstance->GetScene());
+    // Create a throwable object in the scene
+    auto& throwableObj = m_pGameInstance->GetScene().CreateObject2D();
 
-    glm::vec2 positions[] = {
-        glm::vec2(-600.0f, 500.0f),
-        glm::vec2(-700.0f, 600.0f),
-        glm::vec2(-800.0f, 700.0f)
-    };
-
-    for (const auto& position : positions)
-    {
-        EnemyData gorgonData = loader.LoadEnemyData("gorgon");
-        auto& harpy = gorgonBuilder.BuildGorgon(gorgonData, position, m_pColliderManager);
-        
-        // Set the scale of each Minitaur to 3
-        auto* transform = harpy.GetComponent<wolf::Transform2D>();
-        if (transform)
-        {
-            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
-        }
+    // Set the initial position based on the spawn location
+    auto* transform = throwableObj.GetComponent<wolf::Transform2D>();
+    if (transform) {
+        transform->SetPosition(spawnLocation); // Set to labyrinth's spawn position
+    } else {
+        transform = &throwableObj.AddComponent<wolf::Transform2D>();
+        transform->SetPosition(spawnLocation);
     }
+
+    // Add a sprite for visual representation (optional)
+    auto& sprite = throwableObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    sprite.SetOriginToCenterOfTexture();
+
+    // Add a collider to enable interaction with enemies
+    auto& collider = throwableObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 1, 0);
+    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));  // Adjusted size for the object
+
+    // Add the velocity component with an initial zero velocity
+    auto& velocity = throwableObj.AddComponent<VelocityComponent>();
+    velocity.SetVelocity(glm::vec2(0.0f, 0.0f)); // Will be updated upon throwing
+
+    // Add the throwable component with parameters matching the constructor
+    auto& throwable = throwableObj.AddComponent<ThrowableObjectComponent>(25.0f, m_pColliderManager);
 }
 
 void PlayState::StartDialogue(const std::string& dialogueID)
@@ -412,4 +423,119 @@ void PlayState::StartDialogue(const std::string& dialogueID)
 void PlayState::OnDialogueTriggerEvent(const DialogueTriggerEvent& event)
 {
     StartDialogue(event.dialogueID);
+}
+
+void PlayState::CreatePressurePlate(const glm::vec2& position, TriggerType triggerType) {
+    // Create the pressure plate object
+    auto& pressurePlateObj = m_pGameInstance->GetScene().CreateObject2D();
+
+    // Add a sprite for visualization
+    auto& sprite = pressurePlateObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/pressureplate.png");
+    sprite.SetOriginToCenterOfTexture();
+
+    // Set up the transform and position
+    if (!pressurePlateObj.HasAll<wolf::Transform2D>()) {
+        pressurePlateObj.AddComponent<wolf::Transform2D>();
+    }
+    auto* transform = pressurePlateObj.GetComponent<wolf::Transform2D>();
+    transform->SetPosition(position);
+    transform->SetScale(glm::vec2(3.0f));
+
+    // Add velocity component (optional if no movement is needed)
+    auto& velocity = pressurePlateObj.AddComponent<VelocityComponent>();
+    velocity.SetVelocity(glm::vec2(0.0f, 0.0f));
+
+    // Add a collider for interaction
+    auto& collider = pressurePlateObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+
+    // Add the TriggerComponent
+    pressurePlateObj.AddComponent<TriggerComponent>(m_pColliderManager, triggerType);
+
+    // Log to confirm creation
+    // wolf::Log("Created pressure plate with TriggerComponent at position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
+}
+
+void PlayState::OnTriggerEvent(const TriggerEvent& event) {
+    if (event.m_triggerType == TriggerType::SINGLE_USE || event.m_triggerType == TriggerType::REUSABLE) {
+        auto* pressurePlateObject = event.m_pTriggerObject;
+
+        if (pressurePlateObject) {
+            // Position the trap relative to the pressure plate's position
+            auto* plateTransform = pressurePlateObject->GetComponent<wolf::Transform2D>();
+            if (!plateTransform) {
+                wolf::Error("PressurePlate has no Transform2D component!");
+                return;
+            }
+
+            glm::vec2 trapPosition = plateTransform->GetGlobalPosition() + glm::vec2(0.0f, -64.0f); // Adjust as necessary
+
+            // Create the trap object
+            // wolf::Log("Creating trap at position: (" + std::to_string(trapPosition.x) + ", " + std::to_string(trapPosition.y) + ")");
+            auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
+
+            // Add trap sprite
+            auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/spiketrap.png");
+            trapSprite.SetOriginToCenterOfTexture();
+
+            // Add transform and set position
+            auto* trapTransform = trapObj.GetComponent<wolf::Transform2D>();
+            if (!trapTransform) {
+                trapTransform = &trapObj.AddComponent<wolf::Transform2D>();
+            }
+            trapTransform->SetPosition(trapPosition);
+            trapTransform->SetScale(glm::vec2(3.0f));
+
+            // Add velocity (optional)
+            auto& velocity = trapObj.AddComponent<VelocityComponent>();
+            velocity.SetVelocity(glm::vec2(0.0f, 0.0f));
+
+            // Add collider for the trap
+            auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+            trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+            // Add TrapComponent with some parameters (e.g., 50 damage, 5 seconds lifespan)
+            trapObj.AddComponent<TrapComponent>(50.0f, 5.0f, m_pColliderManager);
+            
+            // wolf::Log("Trap created and activated.");
+        }
+    }
+}
+
+int GetGoldVariant(int tileID) {
+    switch (tileID) {
+        case Tile::FloorSquare:
+        case Tile::FloorSmallSquares:
+            return Tile::FloorSquareGold;
+        case Tile::FloorSpiral:
+            return Tile::FloorSpiralGold;
+        default:
+            return -1; // No gold variant
+    }
+}
+
+
+void PlayState::ConvertPlayerTileToGold() {
+    if (!m_pLabyrinthManager || !m_pPlayerObject) {
+        wolf::Log("PlayState: LabyrinthManager or PlayerObject is not set.");
+        return;
+    }
+
+    auto* playerTransform = m_pPlayerObject->GetComponent<wolf::Transform2D>();
+    if (!playerTransform) return;
+
+    // Calculate the bottom-center position of the player
+    glm::vec2 playerPosition = playerTransform->GetGlobalPosition();
+    glm::vec2 playerScale = playerTransform->GetGlobalScale();
+    glm::vec2 bottomCenterPosition = playerPosition + glm::vec2(0.0f, -playerScale.y * 0.5f);
+    glm::vec2 roundedPosition = glm::round(bottomCenterPosition);
+
+    // Get tile position and ID
+    glm::ivec2 tilePos = m_pLabyrinthManager->GetTilePosition(roundedPosition);
+    int currentTileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+
+    // Check for a gold variant
+    int goldTileID = GetGoldVariant(currentTileID);
+    if (goldTileID != -1) {
+        m_pLabyrinthManager->SetTile(tilePos.x, tilePos.y, goldTileID);
+    }
 }

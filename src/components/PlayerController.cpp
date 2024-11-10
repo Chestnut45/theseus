@@ -1,10 +1,18 @@
-#include "PlayerController.h"
-#include "VelocityComponent.h"
-#include "HealthComponent.h"
+
+#include "AttackDamageComponent.h"
 #include "ColliderComponent.h"
-#include "MinitaurController.h"
+#include "HealthComponent.h"
+#include "VelocityComponent.h"
+#include "TimedDestroyerComponent.h"
 #include "HarpyController.h"
+<<<<<<< HEAD
 #include "GorgonController.h"
+=======
+#include "MinitaurController.h"
+#include "PlayerController.h"
+
+#include "../inventory/ItemCreator.h"
+
 #include <W_Input.h>
 #include <W_Logging.h>
 
@@ -14,7 +22,15 @@
 // ver 2.0: Optimized and restructured for readability and performance.
 //-----------------------------------------------------------------------------
 
+float PlayerController::s_aAttackCooldown[(int)WeaponType::BOW + 1] = {0.25f, 1.0f, 0.5f};
+
 PlayerController::PlayerController() = default;
+
+PlayerController::~PlayerController() {
+    wolf::EventManager::RemoveListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+    wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
+    wolf::EventManager::RemoveListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
+}
 
 void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
 {
@@ -30,6 +46,24 @@ ColliderManager* PlayerController::GetColliderManager() const
 {
     return m_pColliderManager;
 }
+
+void PlayerController::SetAction(PlayerAction action)
+{
+    // If transitioning to THROWING or PICKING_UP state, reset any active attack
+    if ((action == PlayerAction::THROWING || action == PlayerAction::PICKING_UP) && m_isAttacking)
+    {
+        m_isAttacking = false;
+        m_action = PlayerAction::NONE; // Reset to NONE to avoid conflict
+    }
+
+    m_action = action;
+}
+
+void PlayerController::SetHoldingObject(bool isHolding) {
+    m_isHoldingObject = isHolding;
+}
+
+
 // Initialize components related to the player
 void PlayerController::LateInitialize()
 {
@@ -40,7 +74,15 @@ void PlayerController::LateInitialize()
         return;
     }
 
+    this->m_pDefaultWeapon = dynamic_cast<WeaponItem*>(ItemCreator::CreateItem("Dull Blade"));
+    this->m_pCurrentWeapon = this->m_pDefaultWeapon;
+
     InitializeAnimations();
+
+    // !-- Aurora added this --!
+    wolf::EventManager::AddListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
+    wolf::EventManager::AddListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
+    wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
 }
 
 // Add and initialize animations for the player character
@@ -56,7 +98,7 @@ void PlayerController::InitializeAnimations()
     }
 
     // Initialize the AnimatedSprite2D component
-    m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
+    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
 }
 
 // Main update loop for the player controller
@@ -83,34 +125,194 @@ void PlayerController::Update(float delta)
         wolf::Error("PlayerController missing essential components!");
         return;
     }
+
+    // Debug speed modifier hotkeys
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
+    {
+        m_moveSpeed *= 0.5f;
+        m_rollSpeed *= 0.5f;
+        m_inventoryMoveSpeed *= 0.5f;
+    }
+
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
+    {
+        m_moveSpeed *= 2;
+        m_rollSpeed *= 2;
+        m_inventoryMoveSpeed *= 2;
+    }
     
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
+    {
+        m_moveSpeed = 200.0f;
+        m_rollSpeed = 400.0f;
+        m_inventoryMoveSpeed = 100.0f;
+    }
 
     HandlePlayerInput(delta);
     RegenerateStamina(delta);
 
     // Call SetAnimationBasedOnState() only if the action or direction has changed
-    if (m_action != m_previousAction || m_lastDirectionEnum != m_previousDirection)
+    if (m_action != m_previousAction || m_lastMoveDirectionEnum != m_previousDirection)
     {
         SetAnimationBasedOnState();
         m_previousAction = m_action;
-        m_previousDirection = m_lastDirectionEnum;
+        m_previousDirection = m_lastMoveDirectionEnum;
     }
 }
 
 
-// Handle all player inputs and manage states accordingly
 void PlayerController::HandlePlayerInput(float delta)
 {
-    HandleMovement(delta);
-    HandleRolling(delta);
-    HandleJumping(delta);
-    HandleAttacking(delta);
+    auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
+
+    // Handle inventory management with left alt
+    if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) {
+        if (m_action != PlayerAction::IN_INVENTORY) {
+            playerInventory->Open();
+            SetAction(PlayerAction::IN_INVENTORY);
+        }
+    } else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) {
+        playerInventory->Close();
+        SetAction(PlayerAction::NONE);
+    }
+
+    // IN_INVENTORY state when inventory is toggled with 0 (handled in PlayState)
+    if (playerInventory && playerInventory->IsOpen()) 
+    {
+        m_action = PlayerAction::IN_INVENTORY;
+    }
+    else if (m_action == PlayerAction::IN_INVENTORY) 
+    {
+        m_action = PlayerAction::NONE;
+    }
+
+    // Handle pick up and drop actions
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+        PickUpObject();
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
+        DropObject();
+    }
+
+    // If holding an object, handle throw/drop actions
+    if (m_isHoldingObject) {
+        HandleThrowing(delta);  // Throw if needed
+        HandleMovement(delta);  // Continue to allow movement
+        return;  // Skip attack or other actions while holding an object
+    }
+
+    // Handle regular player actions
+    switch (m_action) {
+        case PlayerAction::IN_INVENTORY:
+            HandleMovement(delta);  // Allow movement while in inventory
+            break;
+        case PlayerAction::PICKING_UP:
+            SetAction(PlayerAction::NONE);  // Transition to NONE after picking up
+            break;
+        case PlayerAction::THROWING:
+            HandleThrowing(delta);  // Handle throw logic
+            HandleMovement(delta);
+            break;
+        default:
+            HandleAttacking(delta);
+            HandleRolling(delta);
+            HandleJumping(delta);
+            HandleMovement(delta);
+            break;
+    }
+}
+
+void PlayerController::PickUpObject() {
+    // Attempt to pick up a nearby throwable object
+    for (auto&& [entity, throwable] : GetGameObject()->GetScene().Each<ThrowableObjectComponent>()) {
+        if (throwable.IsCloseToPlayer(150.0f)) {  // Check proximity
+            throwable.PickUp();
+            m_pHeldObject = &throwable;           // Store reference to the held object
+            m_isHoldingObject = true;
+            SetAction(PlayerAction::PICKING_UP);  // Temporary state while picking up
+            // std::cout << "Picked up object!" << std::endl;
+            return;
+        }
+    }
+}
+
+void PlayerController::DropObject() {
+    if (m_isHoldingObject && m_pHeldObject) {
+        m_pHeldObject->Drop();
+        m_isHoldingObject = false;
+        m_pHeldObject = nullptr;
+
+        // Reset throw power variables
+        m_throwPower = 0.0f;
+
+        SetAction(PlayerAction::NONE);
+        // std::cout << "Dropped object!" << std::endl;
+    }
+}
+
+
+void PlayerController::HandleThrowing(float delta) {
+    // Charge the throw power while holding the button
+    if (wolf::Input::IsLMBHeld() && m_isHoldingObject) {
+        m_throwPower += 75.0f * delta;
+        m_throwPower = std::min(m_throwPower, m_maxThrowPower); // Cap to max throw power
+        SetAction(PlayerAction::THROWING);
+    }
+
+    // Release to throw the object
+    if (wolf::Input::IsLMBReleased() && m_isHoldingObject) {
+        ThrowHeldObject();
+        m_throwPower = 0.0f;  // Reset power after throwing
+        m_isHoldingObject = false;
+        SetAction(PlayerAction::NONE);  // Reset action after throwing
+    }
+}
+
+
+void PlayerController::ThrowHeldObject() {
+    if (!m_isHoldingObject || !m_pHeldObject) {
+        // std::cout << "No object is being held to throw!" << std::endl;
+        return;
+    }
+
+    // Determine throw direction based on player’s facing direction
+    glm::vec2 throwDirection;
+    switch (m_lastFaceDirectionEnum) {
+        case PlayerDirection::NORTH:       throwDirection = glm::vec2(0.0f, 1.0f); break;
+        case PlayerDirection::EAST:        throwDirection = glm::vec2(1.0f, 0.0f); break;
+        case PlayerDirection::SOUTH:       throwDirection = glm::vec2(0.0f, -1.0f); break;
+        case PlayerDirection::WEST:        throwDirection = glm::vec2(-1.0f, 0.0f); break;
+        case PlayerDirection::NORTH_EAST:  throwDirection = glm::normalize(glm::vec2(1.0f, 1.0f)); break;
+        case PlayerDirection::NORTH_WEST:  throwDirection = glm::normalize(glm::vec2(-1.0f, 1.0f)); break;
+        case PlayerDirection::SOUTH_EAST:  throwDirection = glm::normalize(glm::vec2(1.0f, -1.0f)); break;
+        case PlayerDirection::SOUTH_WEST:  throwDirection = glm::normalize(glm::vec2(-1.0f, -1.0f)); break;
+        default:                           throwDirection = glm::vec2(1.0f, 0.0f); break; // Default to right
+    }
+
+    // Get player velocity
+    VelocityComponent* playerVelocityComponent = GetGameObject()->GetComponent<VelocityComponent>();
+    glm::vec2 playerVelocity = playerVelocityComponent ? playerVelocityComponent->GetVelocity() : glm::vec2(0.0f);
+
+    // Set the object's velocity based on throw direction, throw power, and player's velocity
+    if (auto* throwableVelocity = m_pHeldObject->GetGameObject()->GetComponent<VelocityComponent>()) {
+        glm::vec2 finalVelocity = throwDirection * m_throwPower + playerVelocity;
+        throwableVelocity->SetVelocity(finalVelocity);
+        // std::cout << "[DEBUG] Object thrown with velocity: (" 
+                //   << finalVelocity.x << ", " << finalVelocity.y << ")" << std::endl;
+    }
+
+    // Set the state of the held object to THROWN and reset holding variables
+    m_pHeldObject->SetState(ThrowableState::THROWN);
+    m_isHoldingObject = false;
+    m_pHeldObject = nullptr;
+    m_throwPower = 0.0f;  // Reset throw power after throw
+    SetAction(PlayerAction::NONE);
 }
 
 // Handle player movement based on input
 void PlayerController::HandleMovement(float delta)
 {
-    if (m_action == PlayerAction::ROLLING) return;
+    if (m_action == PlayerAction::ROLLING) return;  // Skip movement if rolling 
 
     glm::vec2 direction(0.0f);
 
@@ -120,23 +322,36 @@ void PlayerController::HandleMovement(float delta)
     direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
     direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
 
-    if (glm::length(direction) == 0.0f)
-    {
+    if (glm::length(direction) == 0.0f) {
         if (!m_isAttacking && !m_isRolling) m_action = PlayerAction::NONE;
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        m_walkSoundTimer.Reset();
         return;
     }
 
+    // Play walking sound effect
+    if (!m_walkSoundTimer.IsRunning()) m_walkSoundTimer.Start();
+    if (m_walkSoundTimer.Elapsed() > m_walkSoundInterval) {
+        wolf::Audio::Play("data/sounds/walk.wav");
+        m_walkSoundTimer.Restart();
+    }
+
     direction = glm::normalize(direction);
-    m_lastDirectionEnum = GetDirectionFromVector(direction);
-    m_pVelocity->SetVelocity(direction * m_moveSpeed);
+    m_lastMoveDirectionEnum = GetDirectionFromVector(direction);
+    float currentSpeed = (m_action == PlayerAction::IN_INVENTORY) ? m_inventoryMoveSpeed : m_moveSpeed;
+    m_pVelocity->SetVelocity(direction * currentSpeed);
 
     if (!m_isRolling && !m_isJumping) m_action = PlayerAction::WALKING;
 }
 
 // Manage attack state and animation transitions
-void PlayerController:: HandleAttacking(float delta)
+void PlayerController::HandleAttacking(float delta)
 {
+    // Disable attacking when in inventory, picking up, or holding a throwable object
+    if (m_action == PlayerAction::IN_INVENTORY || m_action == PlayerAction::PICKING_UP || m_action == PlayerAction::THROWING) {
+        return;
+    }
+
     // Start the attack if the left mouse button is pressed and the player is not currently attacking.
     if (wolf::Input::IsLMBJustDown() && !m_isAttacking)
     {
@@ -144,7 +359,7 @@ void PlayerController:: HandleAttacking(float delta)
     }
 
     // Check if enough time has elapsed since the last attack to allow for damage application.
-    if (m_attackTimer.Elapsed() >= m_attackCooldown && m_isAttacking)
+    if (m_attackTimer.Elapsed() >= s_aAttackCooldown[(int)m_pCurrentWeapon->GetWeaponType()] && m_isAttacking)
     {
         ApplyDamageToEnemy(); // Apply damage if there's a collision with an enemy.
         m_attackTimer.Restart(); // Restart the timer for future attacks.
@@ -156,10 +371,12 @@ void PlayerController:: HandleAttacking(float delta)
         UpdateAttackState(delta);
     }
 }
-
 // Handle rolling logic based on player input and stamina
 void PlayerController::HandleRolling(float delta)
 {
+    // Prevent rolling if the player is in the inventory state
+    if (m_action == PlayerAction::IN_INVENTORY) return;
+
     if (m_isRolling)
     {
         m_rollTimer -= delta;
@@ -167,7 +384,7 @@ void PlayerController::HandleRolling(float delta)
         return;
     }
 
-    // Only start roll if a direction is being held
+    // Only start roll if a direction is being held and sufficient stamina is available
     glm::vec2 direction(0.0f);
     direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
     direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
@@ -198,8 +415,8 @@ void PlayerController::HandleJumping(float delta)
 
 void PlayerController::SetAnimationBasedOnState()
 {
-    // Skip if the player is performing an action that overrides animations like attacking, rolling, or jumping.
-    if (m_isAttacking || m_isRolling || m_isJumping) return;
+    // Skip if the player is performing an action that overrides animations like attacking, rolling, jumping, or inventory management.
+    if (m_isAttacking || m_isRolling || m_isJumping || m_action == PlayerAction::IN_INVENTORY) return;
 
     std::string animationName;
 
@@ -207,16 +424,19 @@ void PlayerController::SetAnimationBasedOnState()
     switch (m_action)
     {
         case PlayerAction::WALKING:
-            animationName = GetWalkAnimationForDirection(m_lastDirectionEnum);
+            animationName = GetWalkAnimationForDirection(m_lastMoveDirectionEnum);
             break;
 
         case PlayerAction::NONE:  // Idle state.
-            animationName = GetIdleAnimationForDirection(m_lastDirectionEnum);
+            animationName = GetIdleAnimationForDirection(m_lastMoveDirectionEnum);
             break;
 
         default:
             return;  // No need to change animation for other states.
     }
+
+    // Set facing direction
+    m_lastFaceDirectionEnum = m_lastMoveDirectionEnum;
 
     // Check if the desired animation is different from the currently playing one.
     if (!animationName.empty() && animationName != m_currentAnimation)
@@ -319,7 +539,7 @@ void PlayerController::StartAttack()
         m_attackTimer.Restart();
 
         // Choose the correct animation based on the player's direction.
-        std::string attackAnimation = GetAttackAnimationForDirection(m_lastDirectionEnum);
+        std::string attackAnimation = GetAttackAnimationForDirection(m_lastMoveDirectionEnum);
 
         // Set the attacking animation.
         m_pAnimComponent->SetAnimation(attackAnimation);
@@ -364,8 +584,9 @@ void PlayerController::UpdateAttackState(float delta)
 
 void PlayerController::ApplyDamageToEnemy()
 {
-    auto* pGameObject = GetGameObject();
-    if (!pGameObject || !m_pTransform) return;
+    // Attack
+    auto* player = this->GetGameObject();
+    if (!player || !m_pTransform) return;
 
     // Iterate through all Minitaurs in the scene (MinitaurController)
     for (auto&& [entity, minitaurController] : GetGameObject()->GetScene().Each<MinitaurController>())
@@ -419,33 +640,6 @@ void PlayerController::ApplyDamageToEnemy()
             std::cout << "Harpy Health: " << harpyHealth->GetHealth() << std::endl;
 
             // Optionally, break here if you're only targeting one Harpy at a time
-            // break;
-        }
-    }
-    // Iterate through all Harpies in the scene (GorgonController)
-    for (auto&& [entity, gorgonController] : GetGameObject()->GetScene().Each<GorgonController>())
-    {
-        // Get the transform of the Gorgon
-        auto* gorgonTransform = gorgonController.GetGameObject()->GetComponent<wolf::Transform2D>();
-        auto* gorgonHealth = gorgonController.GetGameObject()->GetComponent<HealthComponent>();
-
-        // Ensure the Harpy has a HealthComponent and a Transform
-        if (!gorgonTransform || !gorgonHealth) continue;
-
-        // Calculate the distance between the player and the Gorgon
-        const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
-        const glm::vec2 gorgonPosition = gorgonTransform->GetGlobalPosition();
-        const float distancetoGorgon = glm::length(playerPosition - gorgonPosition);
-
-        // Check if the Gorgon is within attack range
-        if (distancetoGorgon <= m_attackRange)
-        {
-            // Apply damage to the Gorgon
-            gorgonHealth->Damage(m_attackDamage);
-            std::cout << "Player attacked Gorgon! Damage: " << m_attackDamage << std::endl;
-            std::cout << "Gorgon Health: " << gorgonHealth->GetHealth() << std::endl;
-
-            // Optionally, break here if you're only targeting one Gorgon at a time
             // break;
         }
     }
@@ -550,7 +744,70 @@ void PlayerController::Render()
     ImGui::PopStyleColor(); // Pop color for stamina bar
     ImGui::End();
 
+    if (m_isHoldingObject && wolf::Input::IsLMBHeld()) {
+        RenderThrowPowerBar();
+    }
+
     // Pop ImGui style variables and colors
     ImGui::PopStyleVar(3); // Pop style variables (WindowRounding, FrameRounding, and FramePadding)
     ImGui::PopStyleColor(3); // Pop style colors (WindowBg, Border, and BorderShadow)
+}
+
+
+// !-- Aurora added this --!
+void PlayerController::HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event) {
+    printf("The player equipped a %s!\n", p_event.pWeapon->GetName().c_str());
+    this->m_pCurrentWeapon = p_event.pWeapon;
+}
+
+void PlayerController::HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event)
+{
+    if(this->m_pCurrentWeapon == p_event.pWeapon)
+    {
+        this->m_pCurrentWeapon = this->m_pDefaultWeapon;
+    }
+}
+
+void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {
+    printf("The player equipped a %s!\n", p_event.pArmour->GetName().c_str());
+}
+
+void PlayerController::RenderThrowPowerBar() {
+    // Position the power bar on the right side of the screen
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    ImVec2 basePos = ImVec2(displaySize.x - 120.0f, displaySize.y / 2.0f - 50.0f); // Right side, centered vertically
+
+    // Push ImGui styles for a more vibrant look with background, rounded frame, and padding
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);           // Rounded corners for the frame
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.0f);          // Rounded corners for the window
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3.0f, 2.0f)); // Padding inside the bar for a thicker look
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f)); // Semi-transparent black background
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 1.0f, 1.0f, 0.5f));   // Soft white border
+
+    // Render background bar with a slightly larger size for a frame effect
+    ImGui::SetNextWindowPos(ImVec2(basePos.x - 5.0f, basePos.y - 5.0f));
+    ImGui::SetNextWindowSize(ImVec2(110.0f, 18.0f));
+    ImGui::Begin("##PowerBarBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+    ImGui::End();
+
+    // Render the throw power bar
+    ImGui::SetNextWindowPos(basePos);
+    ImGui::SetNextWindowSize(ImVec2(100.0f, 15.0f));
+    ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+    ImVec4 barColor = ImVec4(1.0f - (m_throwPower / m_maxThrowPower), (m_throwPower / m_maxThrowPower), 0.0f, 1.0f); // Gradient from red to green
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
+    ImGui::ProgressBar(m_throwPower / m_maxThrowPower, ImVec2(-1, 10.0f));
+    ImGui::PopStyleColor();
+    ImGui::End();
+
+    // Render label "Power" below the bar
+    ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y - 20.0f));
+    ImGui::SetNextWindowSize(ImVec2(100.0f, 10.0f));
+    ImGui::Begin("##PowerLabel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+    ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Power");
+    ImGui::End();
+
+    // Pop all the style vars and colors
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(2);
 }
