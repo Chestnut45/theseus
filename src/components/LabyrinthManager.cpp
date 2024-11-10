@@ -222,6 +222,7 @@ void LabyrinthManager::GenerateLabyrinth()
     // Clear all data structures
     m_tileSectionMap.clear();
     m_sections.clear();
+    m_prevChunk = glm::ivec2(0);
 
     // Ensure width and height are odd
     m_width = m_width % 2 == 0 ? m_width - 1 : m_width;
@@ -1509,8 +1510,55 @@ void LabyrinthManager::GenerateChunks()
                             // Lookup tile for configuration
                             tile = wallDirID[mask];
 
-                            // Add wall tile collider
-                            collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE), glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
+                            // Must be a bottom edge tile
+                            if (!down || y == 0)
+                            {
+                                if (up)
+                                {
+                                    int numAdjacent = 1;
+                                    glm::ivec2 nextPos = worldPos + glm::ivec2(0, numAdjacent + 1);
+                                    while (nextPos.y - yoffset < CHUNK_SIZE)
+                                    {
+                                        if (m_labyrinthGrid.Get(nextPos.x, nextPos.y) != LogicalTile::Wall) break;
+                                        numAdjacent++;
+                                        nextPos.y++;
+                                    }
+                                    
+                                    // Add wall tile collider
+                                    collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE, TILE_SIZE * SCALE * (numAdjacent + 1)),
+                                                            glm::vec2(x * SCALE * TILE_SIZE, (y + numAdjacent + 1) * SCALE * TILE_SIZE));
+                                }
+                                else if ((!left || !right) && y == 0)
+                                {
+                                    collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE),
+                                                            glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
+                                }
+                            }
+
+                            // Must be a left edge tile
+                            if (!left || x == 0)
+                            {
+                                if (right)
+                                {
+                                    int numAdjacent = 1;
+                                    glm::ivec2 nextPos = worldPos + glm::ivec2(numAdjacent + 1, 0);
+                                    while (nextPos.x - xoffset < CHUNK_SIZE)
+                                    {
+                                        if (m_labyrinthGrid.Get(nextPos.x, nextPos.y) != LogicalTile::Wall) break;
+                                        numAdjacent++;
+                                        nextPos.x++;
+                                    }
+                                    
+                                    // Add wall tile collider
+                                    collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE * (numAdjacent + 1), TILE_SIZE * SCALE),
+                                                            glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
+                                }
+                                else if ((!up || !down) && x == 0)
+                                {
+                                    collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE),
+                                                            glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
+                                }
+                            }
 
                             break;
                     }
