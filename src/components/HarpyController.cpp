@@ -246,7 +246,7 @@ void HarpyController::HandleAttackingState(float delta)
         };
         auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager, statusEffects);
 
-        auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/Fireball.png");
+        auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
         projectileSprite.SetOriginToCenterOfTexture();
         
         auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
