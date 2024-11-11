@@ -119,10 +119,9 @@ void Scene::Render()
     }
 
     // Queue all colliders for debug rendering
-    // TODO: Toggle?
     for (auto&&[_, collider] : Each<ColliderComponent>())
     {
-        collider.FillVertexArray();
+        if (collider.IsActive()) collider.FillVertexArray();
     }
 
     // Flush debug drawing (disable depth testing so it always renders on top)

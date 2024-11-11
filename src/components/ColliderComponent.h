@@ -61,16 +61,23 @@ public:
     void SetColliderType(ColliderComponent::ColliderType p_collider_type);    
 
     void SetIgnoreTag(wolf::GameObjectID p_id);
+    
+    inline float GetDamage() const { return m_fDamage; }
+    void SetDamage(float p_damage) {m_fDamage = p_damage; }
 
     void FillVertexArray();
 
     static void DebugDrawAndFlush();
     static int GetComponentCount();
+
+    void SetActive(bool active); //set m_active to true
+    bool IsActive() const; //check if m_active, just a getter. 
     
 private:
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision
     bool m_bIsRelative = false; // Hitbox scales relative to object
     bool m_bIsFlaggedForDestruction = false;
+    float m_fDamage = 0.0f;
     wolf::GameObjectID m_IgnoreID = -1; // Projectiles bypass collision check with firer
 
 
@@ -85,4 +92,9 @@ private:
     static wolf::VertexBuffer *s_pVB;
 
     static std::vector<Vertex2D> s_vVerticesVector;
+
+    //optimization cool stuff
+    bool m_active = true; // New flag to indicate if the collider is active
+
+
 };

@@ -32,6 +32,8 @@ class ChestInventoryComponent : public InventoryComponent {
         ChestInventoryComponent(ChestInventoryComponent&& other) = delete;
         ChestInventoryComponent& operator=(ChestInventoryComponent&& other) = delete;
 
+        bool FillFromLootTable(const std::string& filepath, wolf::RNG& rng);
+
         void HandleAddToChestEvent(const SendItemToChestEvent& p_event);
         void HandleRemoveFromChestEvent(const RemoveFromChestEvent& p_event);
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
