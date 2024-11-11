@@ -8,7 +8,8 @@
 
 enum class TriggerType {
     SINGLE_USE,
-    REUSABLE
+    REUSABLE,
+    CUTSCENE_SINGLE
 };
 
 class TriggerComponent : public wolf::BaseComponent {

@@ -1,5 +1,6 @@
 #include "PlayState.h"
 #include "PauseState.h"
+#include "CutSceneState.h"
 #include "DialogueState.h"
 #include <imgui/imgui.h>
 
@@ -26,6 +27,8 @@ void PlayState::Enter()
     // Initialize the dialogue listener
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
+    wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
+
     
     this->m_pColliderManager = new ColliderManager(&scene);
 
@@ -52,6 +55,8 @@ void PlayState::Enter()
     
     CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(96.0f, 96.0f), TriggerType::SINGLE_USE);
     CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f), TriggerType::REUSABLE);
+    CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(-192.0f, -192.0f), TriggerType::CUTSCENE_SINGLE);  // Position as needed
+
 
     // Testing: Create a test projectile object
     // auto& testObj = scene.CreateObject2D();
@@ -80,7 +85,7 @@ void PlayState::Enter()
     
     // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
     
-    // this->CreateMinitaurEnemy();
+    this->CreateMinitaurEnemy();
     // this->CreateHarpyEnemy();
     this->CreateGorgonEnemy();
 }
@@ -92,6 +97,7 @@ void PlayState::Exit()
 
     wolf::EventManager::RemoveListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
+    wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
 
     // Delete managers
     delete this->m_pColliderManager;
@@ -337,10 +343,10 @@ void PlayState::CreateMinitaurEnemy()
     MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
 
     glm::vec2 positions[] = {
-        // glm::vec2(-300.0f, -300.0f),
-        // glm::vec2(-400.0f, -400.0f),
-        // glm::vec2(-500.0f, -500.0f)
-        glm::vec2(6100.0f, 0.0f)
+        // glm::vec2(300.0f, 200.0f),
+        // glm::vec2(400.0f, 200.0f),
+        // glm::vec2(500.0f, 200.0f)
+        glm::vec2(6000.0f, 0.0f)
     };
 
     for (const auto& position : positions)
@@ -576,4 +582,14 @@ void PlayState::ConvertPlayerTileToGold() {
     if (goldTileID != -1) {
         m_pLabyrinthManager->SetTile(tilePos.x, tilePos.y, goldTileID);
     }
+}
+
+void PlayState::OnCutsceneTriggerEvent(const TriggerEvent& event) {
+    if (event.m_triggerType == TriggerType::CUTSCENE_SINGLE) {
+        StartCutscene("intro");  // Specify cutscene ID as needed
+    }
+}
+
+void PlayState::StartCutscene(const std::string& cutsceneID) {
+    m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", cutsceneID));
 }

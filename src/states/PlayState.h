@@ -47,6 +47,8 @@ public:
     void BackgroundRender() override;
     void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
+    void OnCutsceneTriggerEvent(const TriggerEvent& event);  // Listener for cutscene trigger
+
 
 
 private:
@@ -76,4 +78,5 @@ private:
     // Creates a pressure plate with specified position, trigger type, trap damage, lifespan, and offset.
     void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType);
     void CreateThrowableObject();
+    void StartCutscene(const std::string& cutsceneID);
 };
