@@ -338,9 +338,10 @@ void PlayState::CreateMinitaurEnemy()
     MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
 
     glm::vec2 positions[] = {
-        glm::vec2(300.0f, 200.0f),
-        glm::vec2(400.0f, 200.0f),
-        glm::vec2(500.0f, 200.0f)
+        // glm::vec2(300.0f, 200.0f),
+        // glm::vec2(400.0f, 200.0f),
+        // glm::vec2(500.0f, 200.0f)
+        glm::vec2(6000.0f, 0.0f)
     };
 
     for (const auto& position : positions)
