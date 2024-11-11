@@ -141,14 +141,17 @@ void MerchantInventoryComponent::SellItemToPlayer(int p_iItemIndex, int p_iItemP
 
 void MerchantInventoryComponent::ShowInventoryGUI() {
     if (m_bIsOpen) {
+        ImGuiStyle* pStyle = &ImGui::GetStyle();
+        pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
+
         // We want to show the merchant's name as part of the window title so we build a string with it real quick
-        std::string strTitle = "  ~ " + m_strMerchantName + " ~";
+        std::string strTitle = " ~ " + m_strMerchantName + " ~";
 
         // You can't resize the inventory or move it
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
         // By default, the inventory appears close to the middle of the screen
-        ImGui::SetNextWindowPos({800, 200});
+        ImGui::SetNextWindowPos(m_v2DrawPos);
         ImGui::SetNextWindowSize({0,0});
         ImGui::Begin(strTitle.c_str(), &m_bIsOpen, flags);
 
@@ -218,9 +221,16 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     // We display the details string that we constructed earlier
                     ImGui::BeginTooltip();
+
+                    // Display the item name in the color that corresponds to its rarity level
                     RGBIntColor nameColor = RarityColors[pItem->GetRarity()];
                     ImGui::TextColored(ImColor(nameColor.r, nameColor.g, nameColor.b), "%s", strTooltipName.c_str());
-                    ImGui::Text("%s", strTooltipText.c_str());
+
+                    // Display the item's description
+                    ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + TOOLTIP_WRAP_POS);
+                    ImGui::TextWrapped("%s", strTooltipText.c_str());
+                    ImGui::PopTextWrapPos();
+
                     ImGui::EndTooltip();
                 }
 

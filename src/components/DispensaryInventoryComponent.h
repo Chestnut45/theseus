@@ -11,8 +11,8 @@
 
 class DispensaryInventoryComponent : public InventoryComponent {
     public:
-        DispensaryInventoryComponent(int p_iSize, int p_iSlotsPerRow)
-            : InventoryComponent(p_iSize, p_iSlotsPerRow)
+        DispensaryInventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos)
+            : InventoryComponent(p_iSize, p_iSlotsPerRow, p_v2DrawPos)
             {
                 m_enType = DISPENSARY_INVENTORY;
 

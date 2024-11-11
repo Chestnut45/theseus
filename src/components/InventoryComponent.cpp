@@ -6,13 +6,15 @@
 
 int InventoryComponent::m_iNextIdNum = 0;
 
+const float InventoryComponent::TOOLTIP_WRAP_POS = 176.0f;
+
 // Shared texture resources
 const std::string InventoryComponent::m_strTexturePath = "data/textures/ItemIcons-Sheet.png";
 const ImVec2 InventoryComponent::m_v2TexFrameSize = {32.0f, 32.0f};
 const int InventoryComponent::m_iEmptySlotIndex = 22;
 std::vector<ImGuiUVSet*> InventoryComponent::m_vv2TextureCoords;
 
-InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow), m_iIdNum(m_iNextIdNum){
+InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow), m_iIdNum(m_iNextIdNum), m_v2DrawPos(p_v2DrawPos){
     // Reserve the amount of space we've been asked for
     m_vvpContents.reserve(p_iSize);
 
@@ -327,115 +329,123 @@ void InventoryComponent::EmptyInventory() {
     m_iSlotsInUse = 0;
 }
 
-void InventoryComponent::ShowInventoryGUI() {
-    float iNumRows = m_vvpContents.size() / m_iMaxPerRow;
+void InventoryComponent::ShowInventoryGUI() {  
+    if (m_bIsOpen) {
+        ImGuiStyle* pStyle = &ImGui::GetStyle();
+        pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
 
-    // For some silly reason, if the inventory can be shown on
-    // a single row the inventory padding is a bit too small
-    if (iNumRows == 1) {
-        // So we add a little bit extra
-        iNumRows += 0.4f;
-    }
-    
-    // You can't resize the inventory but you can move it around!
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        // You can't resize the inventory but you can move it around!
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
-    // By default, the inventory appears close to the middle of the screen
-    ImGui::SetNextWindowPos({500, 200});
-    ImGui::SetNextWindowSize({(m_v2TexFrameSize.x + 18.25f) * m_iMaxPerRow, (m_v2TexFrameSize.y + 22) * m_iMaxPerRow});
-    ImGui::Begin("\t~ Inventory ~", nullptr, flags);
+        // By default, the inventory appears close to the middle of the screen
+        ImGui::SetNextWindowPos(m_v2DrawPos);
+        ImGui::SetNextWindowSize({0,0});
+        ImGui::Begin("~ Inventory ~", nullptr, flags);
 
-    // This counter lets us control how many items are drawn in a row
-    int counter = 0;
+        // This counter lets us control how many items are drawn in a row
+        int counter = 0;
 
-    // We need to draw m_iSize number of slots
-    for (int k = 0; k < m_iSize; k++) {
-        // If there is an item (or stack of items as it were) in this slot
-        if (!m_vvpContents[k].empty()) {
-            // We grab a reference to the top item and create a variable to hold the item's details
-            ItemBase* pItem = m_vvpContents[k].top();
-            std::string strTooltipText;
+        // We need to draw m_iSize number of slots
+        for (int k = 0; k < m_iSize; k++) {
+            // If there is an item (or stack of items as it were) in this slot
+            if (!m_vvpContents[k].empty()) {
+                // We grab a reference to the top item and create a variable to hold the item's details
+                ItemBase* pItem = m_vvpContents[k].top();
+                std::string strTooltipName;
+                std::string strTooltipText;
 
-            // There are different rules for drawing Consumables and Equipment Items so we need to figure out
-            // what this particular item is before we go any further
+                // There are different rules for drawing Consumables and Equipment Items so we need to figure out
+                // what this particular item is before we go any further
 
-            // There's a chance we won't need this value but if we do then we need it to survive the if ID == EQUIPMENT scope
-            bool bIsEquipped = false;
+                // There's a chance we won't need this value but if we do then we need it to survive the if ID == EQUIPMENT scope
+                bool bIsEquipped = false;
 
-            // If this is a consumable item
-            if (pItem->GetID() == CONSUMABLE) {
-                // Try to cast it
-                ConsumableItem* pConsumable = dynamic_cast<ConsumableItem*>(pItem);
-                if (!pConsumable) {
-                    // And throw an error if we couldn't
-                    wolf::Error("Failed to cast ItemBase to ConsumableItem!\n");
+                // If this is a consumable item
+                if (pItem->GetID() == CONSUMABLE) {
+                    // Try to cast it
+                    ConsumableItem* pConsumable = dynamic_cast<ConsumableItem*>(pItem);
+                    if (!pConsumable) {
+                        // And throw an error if we couldn't
+                        wolf::Error("Failed to cast ItemBase to ConsumableItem!\n");
+                    }
+
+                    // Then construct the string that will be used to display all of the item's details
+                    strTooltipName = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")";
+                    strTooltipText = pConsumable->GetDescription() + "\n\nValue: " + std::to_string(pConsumable->GetValue())
+                        + "\nUses: " + std::to_string(pConsumable->GetNumUses());
+
                 }
+                else if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
+                    // Try to cast it
+                    EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(pItem);
+                    if (!pEquipment) {
+                        // And throw an error if we couldn't
+                        wolf::Error("Failed to cast ItemBase to EquipmentItem!\n");
+                    }
+                    
+                    // Then start constructing the string that will be used to display all of the item's details
+                    strTooltipName = pEquipment->GetName();
 
-                // Then construct the string that will be used to display all of the item's details
-                strTooltipText = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + pConsumable->GetDescription() 
-                    + "\n\nValue: " + std::to_string(pConsumable->GetValue()) + "\nUses: " + std::to_string(pConsumable->GetNumUses());
+                    // If this item is equipped then we want to show that in the details string
+                    if (pEquipment->IsEquipped()) {
+                        strTooltipName += " (E)";
+                        bIsEquipped = true; // (And we'll need to remember that it's equipped later on)
+                    }
 
-            }
-            else if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
-                // Try to cast it
-                EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(pItem);
-                if (!pEquipment) {
-                    // And throw an error if we couldn't
-                    wolf::Error("Failed to cast ItemBase to EquipmentItem!\n");
+                    // Add the rest of the item's details to the string
+                    strTooltipText = pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue()) + "\nSlot: " + pEquipment->GetEquipmentSlotString();
+                }
+                else { // If for some reason this item isn't Consumable OR Equipment
+                    strTooltipName = pItem->GetName();
+                    strTooltipText = pItem->GetDescription(); // We only show the name and the description
                 }
                 
-                // Then start constructing the string that will be used to display all of the item's details
-                strTooltipText = pEquipment->GetName();
+                // We're also going to store a string representation of the slot index that we're on
+                // so that we can create unique tooltips for each slot later
+                std::string strIndex = std::to_string(k);
 
-                // If this item is equipped then we want to show that in the details string
-                if (pEquipment->IsEquipped()) {
-                    strTooltipText += " (E)";
-                    bIsEquipped = true; // (And we'll need to remember that it's equipped later on)
+                // Now we can start making the actual buttons
+                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
                 }
+                
+                // When we hover over an inventory slot
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    // We display the details string that we constructed earlier
+                    ImGui::BeginTooltip();
 
-                // Add the rest of the item's details to the string
-                strTooltipText += "\n\n" + pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue()) + "\nSlot: " + pEquipment->GetEquipmentSlotString();
-            }
-            else { // If for some reason this item isn't Consumable OR Equipment
-                strTooltipText = pItem->GetName() + "\n\n" + pItem->GetDescription(); // We only show the name and the description
-            }
-            
-            // We're also going to store a string representation of the slot index that we're on
-            // so that we can create unique tooltips for each slot later
-            std::string strIndex = std::to_string(k);
+                    // Display the item name in the color that corresponds to its rarity level
+                    RGBIntColor nameColor = RarityColors[pItem->GetRarity()];
+                    ImGui::TextColored(ImColor(nameColor.r, nameColor.g, nameColor.b), "%s", strTooltipName.c_str());
 
-            // Now we can start making the actual buttons
-            if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
+                    // Display the item's description
+                    ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + TOOLTIP_WRAP_POS);
+                    ImGui::TextWrapped("%s", strTooltipText.c_str());
+                    ImGui::PopTextWrapPos();
+
+                    ImGui::EndTooltip();
+                }
             }
-            
-            // When we hover over an inventory slot
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                // We display the details string that we constructed earlier
-                ImGui::BeginTooltip();
-                ImGui::Text("%s", strTooltipText.c_str());
-                ImGui::EndTooltip();
+            else { // Otherwise, this is an empty inventory slot
+            if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
+
+            }
+            }
+
+            // If we've drawn the maximum number of slots per row
+            if (counter == m_iMaxPerRow - 1) {
+                // Reset the counter
+                counter = 0;
+            }
+            else {
+                // Otherwise, this slot needs to be drawn on the same line as the last one
+                ImGui::SameLine();
+                counter++;
             }
         }
-        else { // Otherwise, this is an empty inventory slot
-           if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
 
-           }
-        }
-
-        // If we've drawn the maximum number of slots per row
-        if (counter == m_iMaxPerRow - 1) {
-            // Reset the counter
-            counter = 0;
-        }
-        else {
-            // Otherwise, this slot needs to be drawn on the same line as the last one
-            ImGui::SameLine();
-            counter++;
-        }
+        // End of window
+        ImGui::End();
     }
-
-    // End of window
-    ImGui::End();
 }
 
 

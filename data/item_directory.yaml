@@ -133,7 +133,7 @@ Dented Helmet: {
 
 The Floor is Lava Boots: {
   id: EQUIPMENT,
-  description: Guaranteed to make you feel like you're walking in lava!,
+  description: Guaranteed to make you feel like you're walking in lava! (Super extra long description text that is irrelevant and should be removed afterwards),
   value: 25,
   texture_frame: 13,
   rarity: UNCOMMON,

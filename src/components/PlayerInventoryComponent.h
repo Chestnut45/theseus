@@ -11,8 +11,8 @@
 
 class PlayerInventoryComponent : public InventoryComponent {
     public:
-        PlayerInventoryComponent(int p_iSize, int p_iSlotsPerRow)
-            : InventoryComponent(p_iSize, p_iSlotsPerRow)
+        PlayerInventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos)
+            : InventoryComponent(p_iSize, p_iSlotsPerRow, p_v2DrawPos)
             {
                 m_enType = PLAYER_INVENTORY;
 

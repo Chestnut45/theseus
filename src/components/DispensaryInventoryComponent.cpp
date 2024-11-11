@@ -105,6 +105,9 @@ void DispensaryInventoryComponent::SortByRarity() {
 void DispensaryInventoryComponent::ShowInventoryGUI() {
     // If the dispensary is open
     if (m_bIsOpen) {
+        ImGuiStyle* pStyle = &ImGui::GetStyle();
+        pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
+        
         // If the inventory contents need to be sorted again
         if (m_bUnsorted) {
             // Do that
@@ -115,7 +118,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
         // By default, the inventory appears close to the middle of the screen
-        ImGui::SetNextWindowPos({200, 200});
+        ImGui::SetNextWindowPos(m_v2DrawPos);
         ImGui::SetNextWindowSize({0, 0});
         ImGui::Begin("~ Dispensary ~", nullptr, flags);
 
@@ -175,9 +178,16 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     // We display the details string that we constructed earlier
                     ImGui::BeginTooltip();
-                    RGBIntColor nameColor = RarityColors[pEquipment->GetRarity()];
+
+                    // Display the item name in the color that corresponds to its rarity level
+                    RGBIntColor nameColor = RarityColors[pItem->GetRarity()];
                     ImGui::TextColored(ImColor(nameColor.r, nameColor.g, nameColor.b), "%s", strTooltipName.c_str());
-                    ImGui::Text("%s", strTooltipText.c_str());
+
+                    // Display the item's description
+                    ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + TOOLTIP_WRAP_POS);
+                    ImGui::TextWrapped("%s", strTooltipText.c_str());
+                    ImGui::PopTextWrapPos();
+
                     ImGui::EndTooltip();
                 }
 

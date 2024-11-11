@@ -33,7 +33,7 @@ struct ImGuiUVSet {
 
 class InventoryComponent : public wolf::BaseComponent {
     public:
-        InventoryComponent(int p_iSize, int p_iSlotsPerRow);
+        InventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos);
         ~InventoryComponent();
 
         // Delete copy constructor/assignment
@@ -79,7 +79,12 @@ class InventoryComponent : public wolf::BaseComponent {
         virtual void EmptyInventory();
         virtual void ShowInventoryGUI();
 
+        void SetDrawPosition(ImVec2 p_v2Pos) {m_v2DrawPos = p_v2Pos;};
+        ImVec2 GetDrawPosition() const {return m_v2DrawPos;};
+
     protected:
+        static const float TOOLTIP_WRAP_POS;
+
         static int m_iNextIdNum;
         const int m_iIdNum;
 
@@ -89,6 +94,8 @@ class InventoryComponent : public wolf::BaseComponent {
         int m_iLastUsedSlot = 0;
 
         bool m_bIsOpen = false;
+
+        ImVec2 m_v2DrawPos = {0.0f, 0.0f};
 
         InventoryType m_enType = BASIC_INVENTORY;
 
