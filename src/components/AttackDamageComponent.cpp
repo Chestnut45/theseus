@@ -24,19 +24,17 @@ void AttackDamageComponent::Update(float p_dt)
     wolf::GameObject* thisObject = this->GetGameObject();
     ColliderComponent* thisCollider = thisObject->GetComponent<ColliderComponent>();
 
-    if(thisCollider != nullptr && thisCollider->IsHurtboxDamageDealer())
+    if (thisCollider != nullptr && thisCollider->IsHurtboxDamageDealer())
     {
-        for (auto&&[thatID, thatObject, thatCollider] : this->GetGameObject()->GetScene().Each<wolf::GameObject, ColliderComponent>())
+        for (auto&&[thatID, thatHealth, thatCollider] : this->GetGameObject()->GetScene().Each<HealthComponent, ColliderComponent>())
         {
-            if(thatCollider.IsHurtboxDamageReceiver())
+            if (thatCollider.IsActive() && thatCollider.IsHurtboxDamageReceiver())
             {
-                if(this->m_pColliderManager->IsColliding(thisCollider, &thatCollider, p_dt))
+                if (this->m_pColliderManager->IsColliding(*thisCollider, thatCollider, p_dt))
                 {
-                    HealthComponent* thatHealth = thatObject.GetComponent<HealthComponent>();
-                    if(thatHealth != nullptr)
-                    {
-                        thatHealth->Damage(m_fDamage);
-                    }
+                    // std::cout << "DAMAGE: " << thatHealth.GetHealth() << " - " << m_fDamage << " = ";
+                    thatHealth.Damage(m_fDamage);
+                    // std::cout << thatHealth.GetHealth() << std::endl;
                 }
             }
         }

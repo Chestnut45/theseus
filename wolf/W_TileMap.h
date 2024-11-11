@@ -69,6 +69,10 @@ public:
     // Resizes the map to the given dimensions.
     // NOTE: Resizing will clear the map too!
     void Resize(int width, int height, int clearTile = EMPTY_TILE);
+    
+    // Visibility access / control
+    inline bool IsVisible() const { return m_visible; }
+    inline void SetVisibility(bool visible) { m_visible = visible; }
 
     // TODO: Set origin to center of tilemap (including tile texture size)
 
@@ -101,8 +105,9 @@ private:
     GLuint m_VBO = 0;
     GLuint m_VAO = 0;
 
-    // Update flags
+    // Flags
     bool m_VBODirty = true;
+    bool m_visible = true;
 
     // Helper methods
     void _UpdateVBO();

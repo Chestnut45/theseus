@@ -102,6 +102,9 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         // using multiple animations, instead and checking they have finished.
         int GetCurrentFrame() const {return (int) m_fCurrentFrame;};
 
+        bool IsVisible() const { return m_visible; }
+        inline void SetVisibility(bool visible) { m_visible = visible; }
+
         // Draw the sprite at the given position, rotation, and scale in world space
         // Multiplies final pixel color by provided tint color
         // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
@@ -136,6 +139,9 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         // a dirty flag to keep track of when the UV coordinates have changed
         bool m_bFrameChanged = true;
         bool m_bIsAnimFinished = false;
+
+        // Visibility flag for culling
+        bool m_visible = true;
 
         int m_iAnimLoopCount = 0;
 

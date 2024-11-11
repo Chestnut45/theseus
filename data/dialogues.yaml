@@ -19,7 +19,7 @@ dialogue:
     event: "minotaur_defeated"
     characters:
       - name: "Theseus"
-        portraitPath: "data/textures/theseus_victorious.png"
+        portraitPath: "data/textures/sPlayerTest.png"
         expression: "smile"
     lines:
       - character: "Theseus"

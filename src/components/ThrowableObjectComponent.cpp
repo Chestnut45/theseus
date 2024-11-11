@@ -125,7 +125,7 @@ void ThrowableObjectComponent::HandleCollision() {
         auto* minitaurObject = minitaurController.GetGameObject();
         auto* minitaurCollider = minitaurObject->GetComponent<ColliderComponent>();
 
-        if (minitaurCollider && m_pCollider && m_pColliderManager->IsColliding(m_pCollider, minitaurCollider, 0.0f)) {
+        if (minitaurCollider && m_pCollider && m_pColliderManager->IsColliding(*m_pCollider, *minitaurCollider, 0.0f)) {
             // Collision detected with Minitaur
             auto* healthComponent = minitaurObject->GetComponent<HealthComponent>();
             if (healthComponent) {
