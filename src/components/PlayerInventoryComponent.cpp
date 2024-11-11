@@ -1,5 +1,7 @@
 #include "PlayerInventoryComponent.h"
 
+#include "../inventory/ArmourItem.h"
+
 PlayerInventoryComponent::~PlayerInventoryComponent() {
     // Empty each of the stacks in the contents vector
     this->EmptyInventory();
@@ -324,6 +326,37 @@ void PlayerInventoryComponent::EquipItem(ItemBase* p_pItem, int p_iItemIndex) {
 
         // And let the item know it has been equipped
         pEquipment->SetEquipped(true);
+
+
+        //-----------------//
+        //                 //
+        //  Added by Nhat  //
+        //                 //
+        //-----------------//
+        // If equipment is armour, trigger status effects
+        EquipmentSlot slot = pEquipment->GetEquipmentSlot();
+        if(
+            slot == EquipmentSlot::ARMS     || 
+            slot == EquipmentSlot::BODY     ||
+            slot == EquipmentSlot::FEET     ||
+            slot == EquipmentSlot::GLOVES   ||
+            slot == EquipmentSlot::HEAD     ||
+            slot == EquipmentSlot::LEGS
+            )
+        {
+            StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+            if(statusComponent != nullptr)
+            {
+                ArmourItem* armour = dynamic_cast<ArmourItem*>(pEquipment);
+                auto seList = armour->GetStatusEffectList();
+                for(int i = 0; i < seList->size(); i++)
+                {
+                    StatusComponent::StatusEffectType type = seList->at(i).enType;
+                    float lifespan = seList->at(i).fDuration;
+                    statusComponent->AddStatusEffect(type, lifespan);
+                }
+            }
+        }
     }
 }
 

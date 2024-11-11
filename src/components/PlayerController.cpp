@@ -756,7 +756,7 @@ void PlayerController::ApplyDamageToEnemy()
                 }
                 else
                 {
-                    meleeDimensions.y *= 1.5f;
+                    meleeDimensions.y *= 2.0f;
                 }
                 colliderBoxOffset2.x = playerDirection.x > 0.0f ? meleeDimensions.x : -meleeDimensions.x;
             }
@@ -794,7 +794,7 @@ void PlayerController::ApplyDamageToEnemy()
             auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);  
             if(isDiagonalAttack)
             {
-                meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f, meleeDimensions.y * 0.5f - 0.5f));
+                meleeCollider.AddColliderBox(meleeDimensions, glm::vec2((-meleeDimensions.x - 2.0f) * 0.5f, meleeDimensions.y * 0.5f - 1.0f));
             }
             else
             {
@@ -807,7 +807,7 @@ void PlayerController::ApplyDamageToEnemy()
             
             melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
             melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
-            //auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
+            auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
 
             auto& meleeVelocity = melee.AddComponent<VelocityComponent>();
             meleeVelocity.SetVelocity(glm::vec2(0.0f, 0.0f));
