@@ -228,8 +228,8 @@ void HarpyController::HandleAttackingState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
-    glm::vec2 projectileDimensions = glm::vec2(32.0f, 32.0f);
-    glm::vec2 hurtboxOffset = glm::vec2(-16.0f, 16.0f);
+    glm::vec2 projectileDimensions = glm::vec2(10.0f, 10.0f);
+    glm::vec2 hurtboxOffset = glm::vec2(-5.0f, 5.0f);
     glm::vec2 harpyDirection = targetPosition - currentPosition == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(targetPosition - currentPosition);
     glm::vec2 perpendicularVector = harpyDirection == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(glm::vec2(harpyDirection.y, -harpyDirection.x));
     glm::vec2 projectileDefaultVelocity = harpyDirection * 168.0f;
@@ -242,7 +242,7 @@ void HarpyController::HandleAttackingState(float delta)
 
         auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
 
-        auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+        auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
         projectileSprite.SetOriginToCenterOfTexture();
         
         auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
@@ -261,6 +261,7 @@ void HarpyController::HandleAttackingState(float delta)
 
         glm::vec2 offset = perpendicularVector * (30.0f * i);
         projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset);
+        projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
     }
     
     
