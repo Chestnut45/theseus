@@ -224,6 +224,8 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
         ImGui::SameLine();
         ImGui::TextColored(ImColor(255, 215, 0), "%d", m_iGold); // in gold (ha)
 
+        ImVec2 v2MainWindowSize = ImGui::GetWindowSize();
+
         // End of window
         ImGui::End();
 
@@ -233,7 +235,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({600, 300});
+            ImGui::SetNextWindowPos({m_v2DrawPos.x - v2MainWindowSize.x / 2.0f, m_v2DrawPos.y + v2MainWindowSize.y / 2.0f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Inventory Is Full Prompt", nullptr, flags);
 
@@ -257,7 +259,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({600, 300});
+            ImGui::SetNextWindowPos({m_v2DrawPos.x - v2MainWindowSize.x / 4.0f, m_v2DrawPos.y + v2MainWindowSize.y / 4.0f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Too Expensive Prompt", nullptr, flags);
 
@@ -281,7 +283,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({600, 300});
+            ImGui::SetNextWindowPos({m_v2DrawPos.x - v2MainWindowSize.x / 4.0f, m_v2DrawPos.y + v2MainWindowSize.y / 4.0f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Missing Schematic Prompt", nullptr, flags);
 
