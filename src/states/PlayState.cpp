@@ -385,26 +385,16 @@ void PlayState::CreateHarpyEnemy()
     loader.LoadAllEnemyData("data/enemies.yaml");
 
     HarpyBuilder harpyBuilder(m_pGameInstance->GetScene());
+    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 360.0f);
 
-    glm::vec2 positions[] = {
-        // glm::vec2(-300.0f, -300.0f),
-        // glm::vec2(-400.0f, -400.0f),
-        // glm::vec2(-500.0f, -500.0f)
-
-        glm::vec2(6100.0f, 0.0f)
-    };
-
-    for (const auto& position : positions)
+    EnemyData harpyData = loader.LoadEnemyData("harpy");
+    auto& harpy = harpyBuilder.BuildHarpy(harpyData, position, m_pColliderManager);
+    
+    // Set the scale of each Minitaur to 3
+    auto* transform = harpy.GetComponent<wolf::Transform2D>();
+    if (transform)
     {
-        EnemyData harpyData = loader.LoadEnemyData("harpy");
-        auto& harpy = harpyBuilder.BuildHarpy(harpyData, position, m_pColliderManager);
-        
-        // Set the scale of each Minitaur to 3
-        auto* transform = harpy.GetComponent<wolf::Transform2D>();
-        if (transform)
-        {
-            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
-        }
+        transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
     }
 }
 

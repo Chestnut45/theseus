@@ -824,16 +824,6 @@ void LabyrinthManager::DeleteChunk(const glm::ivec2& chunkID)
     }
 }
 
-void LabyrinthManager::DeleteChunk(const glm::ivec2& chunkID)
-{
-    auto* pChunk = GetChunk(chunkID);
-    if (pChunk)
-    {
-        pChunk->Delete();
-        m_chunkMap.erase(chunkID);
-    }
-}
-
 glm::ivec2 LabyrinthManager::GetTilePosition(const glm::vec2& worldPosition) const
 {
     if (worldPosition.x < 0 || worldPosition.y < 0 || worldPosition.x >= m_width * SCALE * TILE_SIZE || worldPosition.y >= m_height * SCALE * TILE_SIZE)

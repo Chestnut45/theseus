@@ -70,8 +70,8 @@ void ColliderManager::CheckCollisions(float p_delta)
             // Collision check conditions
             bool isCollisionCheckRequired =
                 (isHitbox1 && isHitbox2) ||
-                isDestroyedOnCollision1 ||
-                isDestroyedOnCollision2;
+                (isDestroyedOnCollision1 && isHitbox2) ||
+                (isDestroyedOnCollision2 && isHitbox1);
 
             if (!isCollisionCheckRequired) continue;
 
