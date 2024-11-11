@@ -3,10 +3,10 @@ dialogue:
     event: "player_meets_npc"
     characters:
       - name: "Theseus"
-        portrait: "theseus_happy.png"
+        portraitPath: "data/textures/sPlayerTest.png"
         expression: "neutral"
       - name: "Minotaur"
-        portrait: "minotaur_angry.png"
+        portraitPath: "data/textures/minitaur.png"
         expression: "angry"
     lines:
       - character: "Theseus"
@@ -19,7 +19,7 @@ dialogue:
     event: "minotaur_defeated"
     characters:
       - name: "Theseus"
-        portrait: "theseus_victorious.png"
+        portraitPath: "data/textures/theseus_victorious.png"
         expression: "smile"
     lines:
       - character: "Theseus"
