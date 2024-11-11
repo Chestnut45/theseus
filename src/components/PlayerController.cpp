@@ -675,6 +675,11 @@ void PlayerController::ApplyDamageToEnemy()
         }
         
         // Spawn melee collider for sword
+        //------------------------//
+        //                        //
+        //  CHANGE TYPE TO SPEAR  //
+        //                        //
+        //------------------------//
         case WeaponType::SPEAR:
         {
             // Set & calculate data for melee collider
@@ -723,6 +728,11 @@ void PlayerController::ApplyDamageToEnemy()
         }
 
         // Spawn melee collider for spear
+        //------------------------//
+        //                        //
+        //  CHANGE TYPE TO SPEAR  //
+        //                        //
+        //------------------------//
         case WeaponType::SWORD:
         {
             // Set & calculate data for melee collider
@@ -743,6 +753,8 @@ void PlayerController::ApplyDamageToEnemy()
                 meleeDimensions.x *= 3.0f;
                 colliderBoxOffset2.y = playerDirection.y > 0.0f ? meleeDimensions.y : -meleeDimensions.y;
             }
+
+            bool isDiagonalAttack = (playerDirection.x != 0.0f) && (playerDirection.y != 0.0f);
 
             // Shift offset along player direction
             offset.x = playerDirection.x * offset.x;

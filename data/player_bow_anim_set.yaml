@@ -1,0 +1,29 @@
+texture: data/textures/TheseusBow-Sheet.png
+frame_size: {x: 32.0, y: 32.0}
+
+animations: [
+  {
+    name: BowAttackSouth,
+    start_frame: 1,
+    end_frame: 6,
+    loops: false
+  },
+  {
+    name: BowAttackEast,
+    start_frame: 7,
+    end_frame: 12,
+    loops: false
+  },
+  {
+    name: BowAttackNorth,
+    start_frame: 13,
+    end_frame: 18,
+    loops: false
+  },
+  {
+    name: BowAttackWest,
+    start_frame: 19,
+    end_frame: 24,
+    loops: false
+  }
+]
