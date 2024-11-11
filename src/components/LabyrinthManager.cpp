@@ -23,6 +23,7 @@
 // For parsing the labyrinth config file
 #include <yaml-cpp/yaml.h>
 
+#include <ChestInventoryComponent.h>
 #include <ColliderComponent.h>
 #include <EnemyDataLoader.h>
 #include <MinitaurBuilder.h>
@@ -636,10 +637,12 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
                 std::string eType = entity["type"].as<std::string>();
 
                 // Parse data
-                if (eType == "minitaur")
-                {
-                    data.m_type = Room::EntityType::Minitaur;
-                }
+                if (eType == "minitaur") data.m_type = Room::EntityType::Minitaur;
+                if (eType == "common_chest") data.m_type = Room::EntityType::CommonChest;
+                if (eType == "uncommon_chest") data.m_type = Room::EntityType::UncommonChest;
+                if (eType == "rare_chest") data.m_type = Room::EntityType::RareChest;
+                if (eType == "epic_chest") data.m_type = Room::EntityType::EpicChest;
+                if (eType == "legendary_chest") data.m_type = Room::EntityType::LegendaryChest;
                 
                 data.m_amount = entity["amount"].as<int>();
 
@@ -760,6 +763,21 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
                 case Room::EntityType::Minitaur:
                     file << "minitaur, amount: ";
                     break;
+                case Room::EntityType::CommonChest:
+                    file << "common_chest, amount: ";
+                    break;
+                case Room::EntityType::UncommonChest:
+                    file << "uncommon_chest, amount: ";
+                    break;
+                case Room::EntityType::RareChest:
+                    file << "rare_chest, amount: ";
+                    break;
+                case Room::EntityType::EpicChest:
+                    file << "epic_chest, amount: ";
+                    break;
+                case Room::EntityType::LegendaryChest:
+                    file << "legendary_chest, amount: ";
+                    break;
             }
             file << std::to_string(data.m_amount).c_str();
             file << "}\n";
@@ -794,6 +812,26 @@ wolf::GameObject* LabyrinthManager::GetChunk(const glm::ivec2& chunkID) const
     const auto it = m_chunkMap.find(chunkID);
     if (it == m_chunkMap.end()) return nullptr;
     return it->second.m_pObject;
+}
+
+void LabyrinthManager::DeleteChunk(const glm::ivec2& chunkID)
+{
+    auto* pChunk = GetChunk(chunkID);
+    if (pChunk)
+    {
+        pChunk->Delete();
+        m_chunkMap.erase(chunkID);
+    }
+}
+
+void LabyrinthManager::DeleteChunk(const glm::ivec2& chunkID)
+{
+    auto* pChunk = GetChunk(chunkID);
+    if (pChunk)
+    {
+        pChunk->Delete();
+        m_chunkMap.erase(chunkID);
+    }
 }
 
 glm::ivec2 LabyrinthManager::GetTilePosition(const glm::vec2& worldPosition) const
@@ -1595,7 +1633,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     // Iterate each instance to spawn
                     for (int i = 0; i < entity.m_amount; ++i)
                     {
-                        // TODO: Calculate position
+                        // TODO: Calculate position for empty tile
                         glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
                                       room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
                         
@@ -1628,6 +1666,70 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         }
                         
                         pChunk->AddChild(minitaur);
+                    }
+                    break;
+                
+                case Room::EntityType::CommonChest:
+                case Room::EntityType::UncommonChest:
+                case Room::EntityType::RareChest:
+                case Room::EntityType::EpicChest:
+                case Room::EntityType::LegendaryChest:
+
+                    std::string lootTablePath;
+                    std::string frameName;
+                    if (entity.m_type == Room::EntityType::CommonChest)
+                    {
+                        lootTablePath = "data/chest_loot_common.yaml";
+                        frameName = "CommonClosed";
+                    }
+                    if (entity.m_type == Room::EntityType::UncommonChest)
+                    {
+                        lootTablePath = "data/chest_loot_uncommon.yaml";
+                        frameName = "UncommonClosed";
+                    }
+                    if (entity.m_type == Room::EntityType::RareChest)
+                    {
+                        lootTablePath = "data/chest_loot_rare.yaml";
+                        frameName = "RareClosed";
+                    }
+                    if (entity.m_type == Room::EntityType::EpicChest)
+                    {
+                        lootTablePath = "data/chest_loot_epic.yaml";
+                        frameName = "EpicClosed";
+                    }
+                    if (entity.m_type == Room::EntityType::LegendaryChest)
+                    {
+                        lootTablePath = "data/chest_loot_legendary.yaml";
+                        frameName = "LegendaryClosed";
+                    }
+
+                    // Iterate each instance to spawn
+                    for (int i = 0; i < entity.m_amount; ++i)
+                    {
+                        // TODO: Calculate position
+                        glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
+                                      room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
+                        
+                        pos *= TILE_SIZE * SCALE;
+
+                        // Create the chest object
+                        auto& chest = pObject->GetScene().CreateObject2D();
+
+                        // Scale the chest
+                        auto& transform = *chest.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add the sprite
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        sprite.SetAnimation(frameName);
+
+                        // Add the chest inventory
+                        auto& chestInv = chest.AddComponent<ChestInventoryComponent>(16, 4);
+                        chestInv.FillFromLootTable(lootTablePath, m_rng);
+
+                        // Add chest as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(chest);
                     }
                     break;
             }

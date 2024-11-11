@@ -24,6 +24,12 @@ void MinitaurController::Init(const EnemyData& data)
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
+    // Set attack timer
+    m_attackTimer = m_attackCooldown;
+
+    // Set attack timer
+    m_attackTimer = m_attackCooldown;
+
     // Get required components and log their initialization
     m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
     if (!m_pVelocity)
@@ -68,6 +74,9 @@ void MinitaurController::Update(float delta)
     {
         case EnemyState::IDLE:
             HandleIdleState();
+            break;
+        case EnemyState::PROSPECT:
+            HandleProspectState(delta);
             break;
         case EnemyState::CHASING:
             HandleChasingState(delta);
@@ -139,6 +148,57 @@ void MinitaurController::HandleIdleState()
     }
 }
 
+void MinitaurController::HandleProspectState(float delta)
+{
+
+    // Chase player if in range
+    float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
+    if (distanceToPlayer <= m_detectionRange)
+    {
+        ChangeState(EnemyState::CHASING); 
+        m_prospectCounter = 0;
+    }
+
+    // else, prospect
+    else
+    {
+        if (m_prospectStandingCounter <= 0.0f)
+        {
+            if(m_prospectCounter <= 0)
+            {        
+                    
+                    // Roll for prospect
+                    float rng = m_RNG.NextInt(1, 100);
+                    // Begin prospecting
+                    if(rng > 20)
+                    {
+                        
+                        m_prospectCounter = m_RNG.NextInt(100, 200);
+                        glm::vec2 direction = glm::normalize(glm::vec2(m_RNG.NextInt(-100, 100), m_RNG.NextInt(-100, 100)));
+                        m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+                    }
+
+                    // Change to idle
+                    else
+                    {
+                        ChangeState(EnemyState::IDLE);
+                        m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Reset velocity when returning to idle
+                    }
+                    m_prospectStandingCounter = m_RNG.NextInt(1, 3);                  
+            }
+            else
+            {
+                m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+                m_prospectCounter--;
+            }
+        }
+        else
+        {
+        m_prospectStandingCounter -= delta;
+        }
+    }
+}
+
 void MinitaurController::HandleChasingState(float delta)
 {
     MoveTowardsTarget(delta);
@@ -149,11 +209,10 @@ void MinitaurController::HandleChasingState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
-    // Check if the player has moved out of the detection range and transition to IDLE
+    // Check if the player has moved out of the detection range and transition to PROSPECT
     if (distanceToPlayer > m_detectionRange)
     {
-        ChangeState(EnemyState::IDLE);
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));  // Reset velocity when returning to idle
+        ChangeState(EnemyState::PROSPECT);      
         return;
     }
 
@@ -183,35 +242,35 @@ void MinitaurController::HandleAttackingState(float delta)
 
     // Stop Minitaur's movement during attack
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-
-    // Check distance to player
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
-
-    // Apply damage if player is within melee range and attack cooldown is over
-    if (distanceToPlayer <= m_meleeRange && m_attackTimer <= 0.0f)
+    if(m_attackTimer <= 0.0f)
     {
-        // Simulate applying damage to the player
-        auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
-        if (playerHealth)
+        // Check distance to player
+        const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+        const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+
+        // Apply damage if player is within melee range and attack cooldown is over
+        if (distanceToPlayer <= m_meleeRange)
         {
-            playerHealth->Damage(m_baseDamage);  // Apply damage to the player
-            // std::cout << "Player Health: " << playerHealth->GetHealth() << "\n";
-            wolf::Audio::Play("data/sounds/hurt.wav");
-
-            // Reset attack cooldown timer
-            m_attackTimer = m_attackCooldown;
+            // // Simulate applying damage to the player
+            auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
+            if (playerHealth)
+            {
+                playerHealth->Damage(m_baseDamage);  // Apply damage to the player
+                wolf::Audio::Play("data/sounds/hurt.wav");
+            }        
         }
+        else 
+        {
+            // Return to chasing if player moves out of range
+            ChangeState(EnemyState::CHASING);
+        }
+        // Reset attack cooldown timer
+        m_attackTimer = m_attackCooldown;
     }
-
-    // Cooldown timer for next attack
-    m_attackTimer -= delta;
-
-    // Return to chasing if player moves out of range
-    if (distanceToPlayer > m_meleeRange)
+    else
     {
-        ChangeState(EnemyState::CHASING);
+        m_attackTimer -= delta;
     }
 }
 
@@ -260,7 +319,6 @@ void MinitaurController::HandleDeathState(float delta)
     // Fall over
     if(m_fallDeadTimer <= m_timeToFallDead)
     {
-        // If just dead, set velocity to (0,0) and tint red
         if(m_fallDeadTimer == 0.0f)
         {
             if (m_pVelocity)
@@ -286,13 +344,12 @@ void MinitaurController::HandleDeathState(float delta)
     // Lie dead
     else
     {
-        // If timer expired, delete
         if(m_lieDeadTimer >= m_timeToLieDead)
         {
             GetGameObject()->Delete();
         }
         m_lieDeadTimer += delta;
-    }
+    }  
 }
 
 void MinitaurController::ChangeState(EnemyState newState)
