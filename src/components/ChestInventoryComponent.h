@@ -11,8 +11,8 @@
 
 class ChestInventoryComponent : public InventoryComponent {
     public:
-        ChestInventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize)
-            : InventoryComponent(p_iSize, p_iSlotsPerRow, p_strTexture, p_v2TexFrameSize)
+        ChestInventoryComponent(int p_iSize, int p_iSlotsPerRow)
+            : InventoryComponent(p_iSize, p_iSlotsPerRow)
             {
                 m_enType = CHEST_INVENTORY;
 

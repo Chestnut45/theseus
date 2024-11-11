@@ -33,7 +33,7 @@ struct ImGuiUVSet {
 
 class InventoryComponent : public wolf::BaseComponent {
     public:
-        InventoryComponent(int p_iSize, int p_iSlotsPerRow, const std::string& p_strTexture, const glm::vec2& p_v2TexFrameSize);
+        InventoryComponent(int p_iSize, int p_iSlotsPerRow);
         ~InventoryComponent();
 
         // Delete copy constructor/assignment
@@ -93,10 +93,13 @@ class InventoryComponent : public wolf::BaseComponent {
         InventoryType m_enType = BASIC_INVENTORY;
 
         std::vector<std::stack<ItemBase*>> m_vvpContents;
-        std::vector<ImGuiUVSet*> m_vv2TextureCoords;
 
-        wolf::Texture* m_pTexture;
-        ImVec2 m_v2TexFrameSize;
+        // Shared texture resources
+        static std::vector<ImGuiUVSet*> m_vv2TextureCoords;
+        static const int m_iEmptySlotIndex;
+        static const std::string m_strTexturePath;
+        static const ImVec2 m_v2TexFrameSize;
+        static inline wolf::Texture* m_pTexture = nullptr;
 };
 
 struct OpenInventoryEvent {
