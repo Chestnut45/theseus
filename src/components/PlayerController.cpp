@@ -5,7 +5,6 @@
 #include "VelocityComponent.h"
 #include "TimedDestroyerComponent.h"
 #include "HarpyController.h"
-#include "GorgonController.h"
 #include "MinitaurController.h"
 #include "PlayerController.h"
 
@@ -586,59 +585,130 @@ void PlayerController::ApplyDamageToEnemy()
     auto* player = this->GetGameObject();
     if (!player || !m_pTransform) return;
 
-    // Iterate through all Minitaurs in the scene (MinitaurController)
-    for (auto&& [entity, minitaurController] : GetGameObject()->GetScene().Each<MinitaurController>())
+    glm::vec2 playerScale = player->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+    VelocityComponent* playerVelocityComponent = player->GetComponent<VelocityComponent>();
+    glm::vec2 playerVelocity = playerVelocityComponent == nullptr ? glm::vec2(0.0f) : playerVelocityComponent->GetVelocity();
+    glm::vec2 playerDirection;
+    glm::vec2 spawnOffset;
+
+    switch (this->m_lastFaceDirectionEnum)
     {
-        // Get the transform of the Minitaur
-        auto* minitaurTransform = minitaurController.GetGameObject()->GetComponent<wolf::Transform2D>();
-        auto* minitaurHealth = minitaurController.GetGameObject()->GetComponent<HealthComponent>();
+        case PlayerDirection::NORTH:       
+            playerDirection = glm::normalize(glm::vec2(0.0f, 1.0f));
+            break;
 
-        // Ensure the Minitaur has a HealthComponent and a Transform
-        if (!minitaurTransform || !minitaurHealth) continue;
+        case PlayerDirection::NORTH_EAST:  
+            playerDirection = glm::normalize(glm::vec2(1.0f, 1.0f));
+            break;
 
-        // Calculate the distance between the player and the Minitaur
-        const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
-        const glm::vec2 minitaurPosition = minitaurTransform->GetGlobalPosition();
-        const float distanceToMinitaur = glm::length(playerPosition - minitaurPosition);
+        case PlayerDirection::EAST:        
+            playerDirection = glm::normalize(glm::vec2(1.0f, 0.0f));
+            break;
 
-        // Check if the Minitaur is within attack range
-        if (distanceToMinitaur <= m_attackRange)
-        {
-            // Apply damage to the Minitaur
-            minitaurHealth->Damage(m_attackDamage);
-            std::cout << "Player attacked Minitaur! Damage: " << m_attackDamage << std::endl;
-            std::cout << "Minitaur Health: " << minitaurHealth->GetHealth() << std::endl;
+        case PlayerDirection::SOUTH_EAST:  
+            playerDirection = glm::normalize(glm::vec2(1.0f, -1.0f));
+            break;
 
-            // Optionally, break here if you're only targeting one Minitaur at a time
-            // break;
-        }
+        case PlayerDirection::SOUTH:       
+            playerDirection = glm::normalize(glm::vec2(0.0f, -1.0f));
+            break;
+
+        case PlayerDirection::SOUTH_WEST:  
+            playerDirection = glm::normalize(glm::vec2(-1.0f, -1.0f));
+            break;
+        
+        case PlayerDirection::WEST:        
+            playerDirection = glm::normalize(glm::vec2(-1.0f, 0.0f));
+            break;
+
+        case PlayerDirection::NORTH_WEST:  
+            playerDirection = glm::normalize(glm::vec2(-1.0f, 1.0f));
+            break;
+
+        default:
+            playerDirection = glm::vec2(0.0f, 0.0f);
+            break;
     }
 
-    // Iterate through all Harpies in the scene (HarpyController)
-    for (auto&& [entity, harpyController] : GetGameObject()->GetScene().Each<HarpyController>())
+    switch(this->m_pCurrentWeapon->GetWeaponType())
     {
-        // Get the transform of the Harpy
-        auto* harpyTransform = harpyController.GetGameObject()->GetComponent<wolf::Transform2D>();
-        auto* harpyHealth = harpyController.GetGameObject()->GetComponent<HealthComponent>();
-
-        // Ensure the Harpy has a HealthComponent and a Transform
-        if (!harpyTransform || !harpyHealth) continue;
-
-        // Calculate the distance between the player and the Harpy
-        const glm::vec2 playerPosition = m_pTransform->GetGlobalPosition();
-        const glm::vec2 harpyPosition = harpyTransform->GetGlobalPosition();
-        const float distanceToHarpy = glm::length(playerPosition - harpyPosition);
-
-        // Check if the Harpy is within attack range
-        if (distanceToHarpy <= m_attackRange)
+        // Spawn projectile for bow
+        case WeaponType::BOW:
         {
-            // Apply damage to the Harpy
-            harpyHealth->Damage(m_attackDamage);
-            std::cout << "Player attacked Harpy! Damage: " << m_attackDamage << std::endl;
-            std::cout << "Harpy Health: " << harpyHealth->GetHealth() << std::endl;
+            // Set data for projectile collider
+            glm::vec2 projectileDimensions = glm::vec2(32.0f, 32.0f);
+            glm::vec2 hurtboxOffset = glm::vec2(-16.0f, 16.0f);
 
-            // Optionally, break here if you're only targeting one Harpy at a time
-            // break;
+            // Spawn projectile object & add components
+            auto& scene = player->GetScene();
+            auto& projectile = scene.CreateObject2D();
+
+            auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+            projectileSprite.SetOriginToCenterOfTexture();
+            
+            auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+            projectileCollider.SetIgnoreTag(player->GetID());
+
+            auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+
+            spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + projectileDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - projectileDimensions.x * 0.5f) : (spawnOffset.x));
+            spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + projectileDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - projectileDimensions.y * 0.5f) : (spawnOffset.y));
+                        
+            projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+           
+            auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+            projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
+        
+            break;
+        }
+        
+        // Spawn melee collider for sword
+        case WeaponType::SWORD:
+        {
+            // Set & calculate data for melee collider
+            glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
+            glm::vec2 offset = glm::vec2(0.0f, 0.0f);
+             
+            if(playerDirection.x != 0.0f)
+            {
+                offset.x = 9.0f;
+                meleeDimensions.y *= 2.0f;
+            }
+
+            if(playerDirection.y != 0.0f)
+            {
+                offset.y = 12.0f;
+                meleeDimensions.x *= 2.0f;
+            }
+
+            // Shift offset along player direction
+            offset.x = playerDirection.x * offset.x;
+            offset.y = playerDirection.y * offset.y;
+
+            // Scale offset by player scale
+            offset *= playerScale;
+
+            auto& scene = player->GetScene();
+
+            // Create melee object & add components
+            auto& melee = scene.CreateObject2D();
+            melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
+
+            auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f, meleeDimensions.y * 0.5f - 0.5f));
+            meleeCollider.SetIgnoreTag(player->GetID());
+
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+            
+            melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
+            melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
+            auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
+
+            auto& meleeVelocity = melee.AddComponent<VelocityComponent>();
+            meleeVelocity.SetVelocity(glm::vec2(0.0f, 0.0f));
+
+            break;
         }
     }
 }

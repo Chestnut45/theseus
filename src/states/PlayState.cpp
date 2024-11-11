@@ -85,7 +85,7 @@ void PlayState::Enter()
     
     // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
     
-    this->CreateMinitaurEnemy();
+    // this->CreateMinitaurEnemy();
     // this->CreateHarpyEnemy();
     this->CreateGorgonEnemy();
 }
