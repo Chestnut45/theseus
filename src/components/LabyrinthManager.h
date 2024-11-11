@@ -83,6 +83,9 @@ public:
     // NOTE: Returns nullptr if no chunk exists with the given ID
     wolf::GameObject* GetChunk(const glm::ivec2& chunkID) const;
 
+    // Deletes the chunk at the given ID if it exists
+    void DeleteChunk(const glm::ivec2& chunkID);
+
     // Converts a world space position to tile coordinates
     // NOTE: Returns (-1, -1) if the position is not on a valid tile
     glm::ivec2 GetTilePosition(const glm::vec2& worldPosition) const;
@@ -200,9 +203,13 @@ private:
         enum class EntityType
         {
             Minitaur,
-            // ...
+            CommonChest,
+            UncommonChest,
+            RareChest,
+            EpicChest,
+            LegendaryChest,
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest"};
 
         // Entity spawn data structure
         struct EntitySpawnData

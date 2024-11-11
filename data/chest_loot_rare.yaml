@@ -1,0 +1,7 @@
+min_items: 2
+max_items: 6
+loot_table: [
+  {name: Rare Schematic, probability: 2},
+  {name: Healing Heart, probability: 3},
+  {name: Dented Helmet, probability: 2},
+]
