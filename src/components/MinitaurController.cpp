@@ -2,7 +2,8 @@
 #include "PlayerController.h"
 #include <cassert>
 
-
+// !- Aurora added this --!
+#include "inventory/ItemDropCreator.h"
 
 
 void MinitaurController::Init(const EnemyData& data)
@@ -346,9 +347,12 @@ void MinitaurController::HandleDeathState(float delta)
     {
         if(m_lieDeadTimer >= m_timeToLieDead)
         {
+            // !-- Aurora added this --!
+            ItemDropCreator::Instance()->CreateItemDropFromDirectory("Gold Coin", m_pTransform->GetGlobalPosition());
             GetGameObject()->Delete();
         }
         m_lieDeadTimer += delta;
+
     }  
 }
 
