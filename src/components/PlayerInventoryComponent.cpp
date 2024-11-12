@@ -11,6 +11,7 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
     wolf::EventManager::RemoveListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<SellItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleSellItemToPlayerEvent>(*this);
+    wolf::EventManager::RemoveListener<PickupDroppedItemEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandlePickupDroppedItemEvent>(*this);
     wolf::EventManager::RemoveListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
     wolf::EventManager::RemoveListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
@@ -551,5 +552,30 @@ void PlayerInventoryComponent::HandleDispenseItemToPlayerEvent(const DispenseIte
     else {
         // If we didn't have a matching schematic we need to let the player know
         m_bShowMissingSchematicPrompt = true;
+    }
+}
+
+void PlayerInventoryComponent::HandlePickupDroppedItemEvent(const PickupDroppedItemEvent& p_event) {
+    // If this is a gold item
+    if (p_event.pItem->GetID() == GOLD) {
+        // Then we don't add it to our inventory, we just add the gold to our wallet
+        this->AddGold(p_event.pItem->GetValue());
+
+        // And let the dropped item know it has been picked up
+        wolf::EventManager::TriggerEvent(DestroyDroppedItemEvent(p_event.iDroppedItemId));
+    }
+    else if (p_event.pItem->GetID() == SCHEMATIC) { // If this is a schematic item
+        // Then we don't add it to our inventory either, we add it to our schematic counter(s)
+        this->AddSchematic(p_event.pItem->GetRarity());
+
+        // And let the dropped item know it has been picked up
+        wolf::EventManager::TriggerEvent(DestroyDroppedItemEvent(p_event.iDroppedItemId));
+    }
+    else {
+        // If we have space in our inventory for the item
+        if (this->AddItem(p_event.pItem)) {
+            // Let the dropped item know it has been picked up
+            wolf::EventManager::TriggerEvent(DestroyDroppedItemEvent(p_event.iDroppedItemId));
+        }
     }
 }

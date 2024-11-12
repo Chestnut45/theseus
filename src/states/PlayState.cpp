@@ -31,6 +31,7 @@ void PlayState::Enter()
 
     
     this->m_pColliderManager = new ColliderManager(&scene);
+    ItemDropCreator::CreateInstance(&scene);
 
     // Initialize the player object
     CreatePlayer();
@@ -101,6 +102,8 @@ void PlayState::Exit()
     // Delete managers
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
+
+    ItemDropCreator::DestroyInstance();
 }
 
 void PlayState::Pause()
@@ -274,6 +277,27 @@ void PlayState::Update(float delta)
         }
 
         dispensary->ShowInventoryGUI();
+    }
+
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_8)) {
+        ItemDropCreator::Instance()->CreateItemDropFromDirectory("Dull Blade", playerPos);
+    }
+    
+    for (auto&&[_, droppedItem, transform] : m_pGameInstance->GetScene().Each<DroppedItemComponent, wolf::Transform2D>())
+    {
+        // Distance checking
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+        {
+            // Player is in range of the chest, display tooltip
+            std::string tooltip = "Press E to pickup";
+            ShowTooltip(tooltip);
+
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+            {
+                droppedItem.PickUpItem();
+                break;
+            }
+        }
     }
 
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
