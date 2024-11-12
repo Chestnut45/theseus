@@ -912,129 +912,160 @@ void PlayerController::EnterDeathState() {
 void PlayerController::RenderDeathScreen() {
     ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 
-
     // Step 1: Fade to Black
-    static float fadeOpacity = 0.0f;
-    static bool fadeComplete = false;
-    if (!fadeComplete) {
-        fadeOpacity += 0.01f; // Adjust fade speed if needed
-        if (fadeOpacity >= 1.0f) {
-            fadeOpacity = 1.0f;
-            fadeComplete = true;
+    if (!m_fadeComplete) {
+        m_fadeOpacity += 0.01f;
+        if (m_fadeOpacity >= 1.0f) {
+            m_fadeOpacity = 1.0f;
+            m_fadeComplete = true;
         }
     }
 
-    // Render the fade overlay only if the fade is not yet complete
-    if (!fadeComplete) {
-        ImGui::GetForegroundDrawList()->AddRectFilled(ImVec2(0, 0), displaySize, IM_COL32(0, 0, 0, static_cast<int>(fadeOpacity * 255)));
+    // Render the fade overlay
+    if (!m_fadeComplete) {
+        ImGui::GetForegroundDrawList()->AddRectFilled(ImVec2(0, 0), displaySize, IM_COL32(0, 0, 0, static_cast<int>(m_fadeOpacity * 255)));
     }
 
-    // Step 2: Render Static Black Background Once Fade is Complete
-    static bool blackBackgroundLoaded = false;
-    if (fadeComplete && !blackBackgroundLoaded) {
-        blackBackgroundLoaded = true;
-    }
-
-    // Step 2: Render Static Black Background After Fade to Black
+    // Load the black background image once
     static ImTextureID blackTextureID = nullptr;
-
     if (!blackTextureID) {
-        // Load the texture only once
         blackTextureID = reinterpret_cast<void*>(wolf::TextureManager::CreateTexture("data/textures/black_background_1920x1080.png")->GetID());
     }
 
-    // Calculate a slightly larger size to fully cover the screen
-    ImVec2 overscaleSize(displaySize.x * 1.5f, displaySize.y * 1.25f); // Adjust as needed
-
-    if (fadeComplete) {
-        // Offset position slightly to the left and up to cover borders
-        ImGui::SetNextWindowPos(ImVec2(-10, -10)); // Adjust negative values as needed
+    // Display a scaled black background image
+    ImVec2 overscaleSize(displaySize.x * 1.5f, displaySize.y * 1.25f);
+    if (m_fadeComplete) {
+        ImGui::SetNextWindowPos(ImVec2(-10, -10));
         ImGui::SetNextWindowSize(overscaleSize);
         ImGui::Begin("##BlackBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
-
-        // Stretch the texture to the overscaled size
         ImGui::Image(blackTextureID, overscaleSize);
-
         ImGui::End();
     }
 
-    // Step 3: Render UI Elements in Sequence on Top of Static Black Background
-
-    // Fade-in "You Died" message
-    static float messageOpacity = 0.0f;
-    static bool messageFadeComplete = false;
-    if (blackBackgroundLoaded && !messageFadeComplete) {
-        messageOpacity += 0.01f;
-        if (messageOpacity >= 1.0f) {
-            messageOpacity = 1.0f;
-            messageFadeComplete = true;
+    // Step 2: "You Died" message
+    if (m_fadeComplete && !m_messageFadeComplete) {
+        m_messageOpacity += 0.01f;
+        if (m_messageOpacity >= 1.0f) {
+            m_messageOpacity = 1.0f;
+            m_messageFadeComplete = true;
         }
     }
 
-    if (messageFadeComplete || messageOpacity > 0.0f) {
-        ImGui::SetNextWindowPos(ImVec2(displaySize.x * 0.5f - 150, displaySize.y * 0.4f - 50));
+    // Step 2: Enhanced "You Died" message
+    if (m_messageFadeComplete || m_messageOpacity > 0.0f) {
+        ImVec2 textPos(displaySize.x * 0.5f, displaySize.y * 0.4f);
+        ImGui::SetNextWindowPos(textPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(ImVec2(300, 100));
         ImGui::Begin("##GameOverMessage", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, messageOpacity));
-        ImGui::SetWindowFontScale(1.8f);
+        
+        // Add a glow effect using shadow text
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, m_messageOpacity * 0.5f));
+        ImGui::SetWindowFontScale(2.8f);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.0f);  // Offset shadow vertically
         ImGui::Text("You Died");
-        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3.0f);  // Reset position
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, m_messageOpacity)); // Bright red
+        ImGui::Text("You Died");
+        ImGui::PopStyleColor(2);
         ImGui::End();
     }
 
-    // Fade-in runtime text after "You Died" message
-    static float runtimeOpacity = 0.0f;
-    static bool runtimeFadeComplete = false;
-    if (messageFadeComplete && !runtimeFadeComplete) {
-        runtimeOpacity += 0.01f;
-        if (runtimeOpacity >= 1.0f) {
-            runtimeOpacity = 1.0f;
-            runtimeFadeComplete = true;
+    // Step 3: Runtime display
+    if (m_messageFadeComplete && !m_runtimeFadeComplete) {
+        m_runtimeOpacity += 0.01f;
+        if (m_runtimeOpacity >= 1.0f) {
+            m_runtimeOpacity = 1.0f;
+            m_runtimeFadeComplete = true;
         }
     }
 
-    if (runtimeFadeComplete || runtimeOpacity > 0.0f) {
-        ImGui::SetNextWindowPos(ImVec2(displaySize.x * 0.5f - 150, displaySize.y * 0.5f));
+    // Step 3: Enhanced runtime display
+    if (m_runtimeFadeComplete || m_runtimeOpacity > 0.0f) {
+        ImVec2 runtimePos(displaySize.x * 0.5f, displaySize.y * 0.5f);
+        ImGui::SetNextWindowPos(runtimePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(ImVec2(300, 100));
         ImGui::Begin("##RuntimeInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, runtimeOpacity));
+
+        // Add shadow text for a glowing effect
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, m_runtimeOpacity * 0.5f));
+        ImGui::SetWindowFontScale(1.8f);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.0f);
         ImGui::Text("Run Time: %.2f seconds", m_deathRuntime);
-        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, m_runtimeOpacity)); // White text
+        ImGui::Text("Run Time: %.2f seconds", m_deathRuntime);
+        ImGui::PopStyleColor(2);
         ImGui::End();
     }
 
-    // Fade-in display options after runtime text
-    static float optionsOpacity = 0.0f;
-    if (runtimeFadeComplete) {
-        optionsOpacity += 0.01f;
-        if (optionsOpacity > 1.0f) {
-            optionsOpacity = 1.0f;
+    // Step 4: Options (Buttons)
+    if (m_runtimeFadeComplete) {
+        m_optionsOpacity += 0.01f;
+        if (m_optionsOpacity > 1.0f) {
+            m_optionsOpacity = 1.0f;
         }
     }
 
-    if (optionsOpacity > 0.0f) {
-        ImGui::SetNextWindowPos(ImVec2(displaySize.x * 0.5f - 100, displaySize.y * 0.7f));
-        ImGui::SetNextWindowSize(ImVec2(200, 100));
+    if (m_optionsOpacity > 0.0f) {
+        ImVec2 optionsPos(displaySize.x * 0.5f, displaySize.y * 0.7f);
+        ImGui::SetNextWindowPos(optionsPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowSize(ImVec2(320, 160));
         ImGui::Begin("##DeathScreenOptions", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 5.0f));
 
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.7f, optionsOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4f, 0.4f, 0.9f, optionsOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.2f, 0.5f, optionsOpacity));
+        // Style adjustments for the buttons
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 16.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(16.0f, 10.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 15.0f));
 
-        if (ImGui::Button("Return to Main Menu", ImVec2(180, 30))) {
+        // Button colors with gradient effect
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.5f, m_optionsOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.3f, 0.8f, m_optionsOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.0f, 0.6f, m_optionsOpacity));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.3f, 0.3f, 1.0f, m_optionsOpacity));
+        ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0.0f, 0.0f, 0.0f, m_optionsOpacity * 0.6f));
+
+        // Enable border and shadow for a polished look
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+
+        // "Return to Main Menu" button
+        if (ImGui::Button("Return to Main Menu", ImVec2(240, 50))) {
             wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::MAIN_MENU));
+            ResetDeathScreenState();
         }
 
         ImGui::Spacing();
 
-        if (ImGui::Button("Exit Game", ImVec2(180, 30))) {
+        // "Exit Game" button
+        if (ImGui::Button("Exit Game", ImVec2(240, 50))) {
             wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::EXIT));
+            ResetDeathScreenState();
         }
 
-        ImGui::PopStyleColor(3);
-        ImGui::PopStyleVar(2);
+        // Pop all style changes
+        ImGui::PopStyleVar(4); // Pop FrameRounding, FramePadding, ItemSpacing, and FrameBorderSize
+        ImGui::PopStyleColor(5); // Pop Button, ButtonHovered, ButtonActive, Border, and BorderShadow
         ImGui::End();
     }
+}
+
+void PlayerController::ResetDeathScreenState() {
+    // Reset fade animation variables
+    m_fadeOpacity = 0.0f;
+    m_fadeComplete = false;
+
+    // Reset static black background flag
+    m_blackBackgroundLoaded = false;
+
+    // Reset "You Died" message fade variables
+    m_messageOpacity = 0.0f;
+    m_messageFadeComplete = false;
+
+    // Reset runtime display fade variables
+    m_runtimeOpacity = 0.0f;
+    m_runtimeFadeComplete = false;
+
+    // Reset options (buttons) fade variables
+    m_optionsOpacity = 0.0f;
 }

@@ -130,6 +130,8 @@ private:
     void CheckHealth();
     void RenderThrowPowerBar(); // rendering for the power bar
     void RenderDeathScreen();
+    void ResetDeathScreenState(); // cool function to reset vars
+
 
 
     // Animation utility functions
@@ -208,5 +210,15 @@ private:
     // Death screen related variables
     wolf::Timer m_runtimeTimer;
     double m_deathRuntime = 0.0; // Store the runtime once when player dies
-    wolf::Texture* m_deathScreenTexture = nullptr;
+    wolf::Texture* m_deathScreenTexture = nullptr; //death screen texture
+    // fade transitions
+    float m_fadeOpacity = 0.0f; 
+    bool m_fadeComplete = false;
+    bool m_blackBackgroundLoaded = false;
+    float m_messageOpacity = 0.0f;
+    bool m_messageFadeComplete = false;
+    float m_runtimeOpacity = 0.0f;
+    bool m_runtimeFadeComplete = false;
+    float m_optionsOpacity = 0.0f;
 };
+
