@@ -235,7 +235,7 @@ void HarpyController::HandleAttackingState(float delta)
         projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
         projectileCollider.SetIgnoreTag(this->GetGameObject()->GetID());
 
-        auto& projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 12.0f, 16);
+        auto& projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 6.0f, 0.1f);
         auto& projectileTimedDestroyer = projectile.AddComponent<TimedDestroyerComponent>(10);
 
         auto& projectileVelocityComponent = projectile.AddComponent<VelocityComponent>();

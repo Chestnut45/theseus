@@ -7,12 +7,12 @@
 
 #include "VelocityComponent.h"
 
-HomingComponent::HomingComponent(wolf::GameObject * p_target, float p_turning_cap, int p_delay)
+HomingComponent::HomingComponent(wolf::GameObject * p_target, float p_turning_cap, float p_delay)
 {
     this->m_pTarget = p_target;
     this->m_fTurningCapRad = p_turning_cap * (MATH_PI / 180.0f);
     this->m_iUpdateDelay = p_delay;
-    this->m_iUpdateDelayCounter = 0;
+    this->m_iUpdateDelayCounter = 0.0f;
 }
 
 HomingComponent::~HomingComponent()
@@ -24,7 +24,7 @@ void HomingComponent::Update(float p_delta)
 {
     if(this->m_iUpdateDelayCounter >= this->m_iUpdateDelay)
     {
-        this->m_iUpdateDelayCounter = 0;
+        this->m_iUpdateDelayCounter = 0.0f;
         VelocityComponent* ownerVelocityComponent = this->GetGameObject()->GetComponent<VelocityComponent>();
     
         if(ownerVelocityComponent != nullptr && ownerVelocityComponent->GetVelocity() != glm::vec2(0.0f, 0.0f))
@@ -81,7 +81,7 @@ void HomingComponent::Update(float p_delta)
     }
     else
     {
-        this->m_iUpdateDelayCounter++;
+        this->m_iUpdateDelayCounter += p_delta;
     }
     
 }

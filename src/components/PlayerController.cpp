@@ -19,7 +19,7 @@
 // ver 2.0: Optimized and restructured for readability and performance.
 //-----------------------------------------------------------------------------
 
-float PlayerController::s_aAttackCooldown[(int)WeaponType::BOW + 1] = {0.25f, 1.0f, 0.5f};
+float PlayerController::s_aAttackCooldown[(int)WeaponType::BOW + 1] = {0.25f, 0.5f, 0.5f};
 
 PlayerController::PlayerController() = default;
 
@@ -587,6 +587,7 @@ void PlayerController::UpdateAttackState(float delta)
 
 void PlayerController::ApplyDamageToEnemy()
 {
+
     // Attack
     auto* player = this->GetGameObject();
     if (!player || !m_pTransform) return;
@@ -727,7 +728,6 @@ void PlayerController::ApplyDamageToEnemy()
         // Spawn melee collider for spear
         case WeaponType::SPEAR:
         {
-            std::cout << "PlayerController - Spear Attack" << std::endl;
             // Set & calculate data for melee collider
             glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
