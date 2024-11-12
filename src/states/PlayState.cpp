@@ -550,7 +550,7 @@ void PlayState::ConvertPlayerTileToGold() {
     // Calculate the bottom-center position of the player
     glm::vec2 playerPosition = playerTransform->GetGlobalPosition();
     glm::vec2 playerScale = playerTransform->GetGlobalScale();
-    glm::vec2 bottomCenterPosition = playerPosition + glm::vec2(0.0f, -playerScale.y * 0.5f);
+    glm::vec2 bottomCenterPosition = playerPosition + glm::vec2(0.0f, -22.0f);
     glm::vec2 roundedPosition = glm::round(bottomCenterPosition);
 
     // Get tile position and ID

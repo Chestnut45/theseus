@@ -938,7 +938,7 @@ void PlayerController::RenderDeathScreen() {
         ImGui::SetNextWindowPos(ImVec2(-10, -10));
         ImGui::SetNextWindowSize(overscaleSize);
         ImGui::Begin("##BlackBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
-        ImGui::Image(blackTextureID, overscaleSize);
+        ImGui::Image(blackTextureID, overscaleSize, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 0.75f));
         ImGui::End();
     }
 
@@ -953,7 +953,7 @@ void PlayerController::RenderDeathScreen() {
 
     // Step 2: Enhanced "You Died" message
     if (m_messageFadeComplete || m_messageOpacity > 0.0f) {
-        ImVec2 textPos(displaySize.x * 0.5f, displaySize.y * 0.4f);
+        ImVec2 textPos((displaySize.x + 150.0f - (ImGui::CalcTextSize("You Died").x * 0.5f)) * 0.5f, displaySize.y * 0.4f);
         ImGui::SetNextWindowPos(textPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(ImVec2(300, 100));
         ImGui::Begin("##GameOverMessage", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
@@ -982,7 +982,7 @@ void PlayerController::RenderDeathScreen() {
 
     // Step 3: Enhanced runtime display
     if (m_runtimeFadeComplete || m_runtimeOpacity > 0.0f) {
-        ImVec2 runtimePos(displaySize.x * 0.5f, displaySize.y * 0.5f);
+        ImVec2 runtimePos((displaySize.x) * 0.5f, displaySize.y * 0.5f);
         ImGui::SetNextWindowPos(runtimePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(ImVec2(300, 100));
         ImGui::Begin("##RuntimeInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
@@ -1009,7 +1009,7 @@ void PlayerController::RenderDeathScreen() {
     }
 
     if (m_optionsOpacity > 0.0f) {
-        ImVec2 optionsPos(displaySize.x * 0.5f, displaySize.y * 0.7f);
+        ImVec2 optionsPos((displaySize.x + 48.0f) * 0.5f, displaySize.y * 0.7f);
         ImGui::SetNextWindowPos(optionsPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(ImVec2(320, 160));
         ImGui::Begin("##DeathScreenOptions", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
