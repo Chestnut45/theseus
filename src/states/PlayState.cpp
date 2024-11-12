@@ -429,8 +429,6 @@ void PlayState::CreateGorgonEnemy()
         {
             transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
         }
-
-        gorgon.GetComponent<AnimatedSprite2D>()->SetTint(glm::vec3(0.0f, 0.0f, 1.0f));
     }
 }
 
