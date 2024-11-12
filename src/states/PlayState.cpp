@@ -420,7 +420,7 @@ void PlayState::CreateGorgonEnemy()
 
     for (const auto& position : positions)
     {
-        EnemyData gorgonData = loader.LoadEnemyData("minitaur");
+        EnemyData gorgonData = loader.LoadEnemyData("gorgon");
         auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position, m_pColliderManager);
         
         // Set the scale of each Gorgon to 3
