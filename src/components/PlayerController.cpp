@@ -669,7 +669,7 @@ void PlayerController::ApplyDamageToEnemy()
             projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
            
             auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
-            projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
+            projectileVelocity.SetVelocity(playerDirection * 1024.0f + playerVelocity);
 
             // Calculate how to rotate arrow sprite
             glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);
@@ -794,7 +794,10 @@ void PlayerController::ApplyDamageToEnemy()
             auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);  
             if(isDiagonalAttack)
             {
-                meleeCollider.AddColliderBox(meleeDimensions, glm::vec2((-meleeDimensions.x - 2.0f) * 0.5f, meleeDimensions.y * 0.5f - 1.0f));
+                glm::vec2 shift = glm::vec2(0.0f, 0.0f);
+                shift.x = playerDirection.x > 0.0f ? 2.0f : -2.0f;
+                shift.y = playerDirection.y > 0.0f ? 2.0f : -2.0f;
+                meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f + shift.x, meleeDimensions.y * 0.5f + shift.y));
             }
             else
             {

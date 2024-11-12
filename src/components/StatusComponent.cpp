@@ -112,10 +112,17 @@ void StatusComponent::RenderPlayerSEIcons()
         ImGui::SetNextWindowPos({10, 10});
         ImGui::SetNextWindowSize(windowSize);
         ImGui::Begin("\t", nullptr, flags);
-
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
         if(m_aStatusEffects[StatusEffectType::BURNING].m_isActive)
         {
             if (ImGui::ImageButton("SE", (void*)(intptr_t)s_pTextures[StatusEffectType::BURNING]->GetID(), s_vTextureSize)) {
+            }
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) 
+            {
+                // We display the details string that we constructed earlier
+                ImGui::BeginTooltip();
+                ImGui::Text("%s", "You Are Burning");
+                ImGui::EndTooltip();
             }
             ImGui::SameLine();
         }
@@ -123,14 +130,29 @@ void StatusComponent::RenderPlayerSEIcons()
         {
             if (ImGui::ImageButton("SE", (void*)(intptr_t)s_pTextures[StatusEffectType::PETRIFIED]->GetID(), s_vTextureSize)) {
             }
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) 
+            {
+                // We display the details string that we constructed earlier
+                ImGui::BeginTooltip();
+                ImGui::Text("%s", "You Are Petrified");
+                ImGui::EndTooltip();
+            }
             ImGui::SameLine();
         } 
         if(m_aStatusEffects[StatusEffectType::POISONED].m_isActive)
         {
             if (ImGui::ImageButton("SE", (void*)(intptr_t)s_pTextures[StatusEffectType::POISONED]->GetID(), s_vTextureSize)) {
             }
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) 
+            {
+                // We display the details string that we constructed earlier
+                ImGui::BeginTooltip();
+                ImGui::Text("%s", "You Are Poisoned");
+                ImGui::EndTooltip();
+            }
             ImGui::SameLine();
-        }   
+        }
+        ImGui::PopStyleColor(1);
         
         
         ImGui::End();
