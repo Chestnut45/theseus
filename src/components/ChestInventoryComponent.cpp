@@ -1,5 +1,8 @@
 #include "ChestInventoryComponent.h"
 
+#include <yaml-cpp/yaml.h>
+#include "../inventory/ItemCreator.h"
+
 ChestInventoryComponent::~ChestInventoryComponent() {
     // Empty each of the stacks in the contents vector
     this->EmptyInventory();
@@ -12,6 +15,78 @@ ChestInventoryComponent::~ChestInventoryComponent() {
     wolf::EventManager::RemoveListener<RemoveFromChestEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleRemoveFromChestEvent>(*this);
     wolf::EventManager::RemoveListener<OpenInventoryEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleOpenInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<CloseInventoryEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleCloseInventoryEvent>(*this);
+}
+
+bool ChestInventoryComponent::FillFromLootTable(const std::string& filepath, wolf::RNG& rng)
+{
+    try
+    {
+        // Load the file
+        YAML::Node node = YAML::LoadFile(filepath);
+
+        // Get the number of items if it exists
+        int numItems = node["items"] ? node["items"].as<int>() : 0;
+
+        // If it doesn't exist, calculate it from min and max
+        if (numItems == 0)
+        {
+            numItems = rng.NextInt(node["min_items"].as<int>(), node["max_items"].as<int>());
+        }
+
+        // Grab the loot table node
+        YAML::Node lootTable = node["loot_table"];
+        int numEntries = lootTable.size();
+
+        // Initialize an array of entries
+        YAML::Node entries[numEntries];
+
+        // Count the number of items in the loot table
+        float sumWeights = 0;
+        for (int i = 0; i < numEntries; ++i)
+        {
+            entries[i] = lootTable[i];
+            const YAML::Node& entry = entries[i];
+            sumWeights += entry["probability"].as<float>();
+        }
+
+        for (int i = 0; i < numItems; ++i)
+        {
+            // Generate a random number
+            float value = rng.NextFloat(0.0f, sumWeights);
+            std::string chosenItem;
+            for (int j = 0; j < numEntries; ++j)
+            {
+                float probability = entries[j]["probability"].as<float>();
+                
+                if (value < probability)
+                {
+                    chosenItem = entries[j]["name"].as<std::string>();
+                    break;
+                }
+                value -= probability;
+            }
+
+            // Create the item
+            ItemBase* pItem = ItemCreator::CreateItem(chosenItem);
+            if (!pItem)
+            {
+                wolf::Error("Item name invalid: ", chosenItem);
+                continue;
+            }
+
+            // Add the item
+            AddItemOrDelete(pItem);
+        }
+    }
+    catch (YAML::Exception& e)
+    {
+        // If we run into an error, then we should print it and return false
+        wolf::Error("YAML: Issue with ", filepath.c_str(), ": ", e.what());
+        return false;
+    }
+
+    // If we didn't encounter any issues, we return true
+    return true;
 }
 
 void ChestInventoryComponent::ShowInventoryGUI() {
