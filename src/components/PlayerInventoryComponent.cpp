@@ -164,6 +164,15 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                         }
                     }
 
+                    if (ImGui::Button("Drop")) {
+                        wolf::Transform2D* pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
+                        if (pTransform) {
+                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pItem, pTransform->GetGlobalPosition());
+                        }
+                        this->RemoveItem(k);
+                        ImGui::CloseCurrentPopup();
+                    }
+
                     // We can discard any item we like
                     if (ImGui::Button("Discard")) {
                         this->DiscardItem(k);

@@ -29,6 +29,7 @@ class ItemDropCreator {
 
         void SetScene(wolf::Scene* m_pScene);
 
+        wolf::GameObject* CreateItemDropFromExistingItem(ItemBase* p_pItem, const glm::vec2& p_v2SpawnPos);
         wolf::GameObject* CreateItemDropFromDirectory(const std::string& p_strItemName, const glm::vec2& p_v2SpawnPos);
         wolf::GameObject* CreateItemDropFromLootTable(const std::string& p_strLootTable, const glm::vec2& p_v2SpawnPos);
 

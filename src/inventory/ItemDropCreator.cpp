@@ -45,6 +45,27 @@ void ItemDropCreator::SetScene(wolf::Scene* p_pScene) {
     m_pScene = p_pScene;
 }
 
+// Create a single drop item using a pointer to an existing item (use when you are dropping an item from an inventory)
+wolf::GameObject* ItemDropCreator::CreateItemDropFromExistingItem(ItemBase* p_pItem, const glm::vec2& p_v2SpawnPos) {
+    // Create the item's gameobject
+    wolf::GameObject* pItemDropGO = &m_pScene->CreateObject2D();
+
+    // Add the dropped item component and the sprite
+    pItemDropGO->AddComponent<DroppedItemComponent>(p_pItem);
+
+    // Add the animated sprite component and rig up the default animation (literally just show the item's sprite forever)
+    auto pItemDropAnim = &pItemDropGO->AddComponent<AnimatedSprite2D>(ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), 1.0f);
+    pItemDropAnim->AddAnimation("Display", ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), p_pItem->GetTextureFrameIndex(), p_pItem->GetTextureFrameIndex(), false);
+    pItemDropAnim->SetAnimation("Display");
+
+    // Move the gameobject to the spawn location
+    auto pItemDropTransform = pItemDropGO->GetComponent<wolf::Transform2D>();
+    pItemDropTransform->SetPosition(p_v2SpawnPos + glm::vec2(m_pRNG->NextFloat(-1.5f, 1.5f), m_pRNG->NextFloat(-1.5f, 1.5f)));
+
+    // Then return a reference to the gameobject we created
+    return pItemDropGO;
+}
+
 // Create a single drop item using the .yaml item directory (use when you want to drop a specific item)
 wolf::GameObject* ItemDropCreator::CreateItemDropFromDirectory(const std::string& p_strItemName, const glm::vec2& p_v2SpawnPos) {
     // Attempt to create the item requested

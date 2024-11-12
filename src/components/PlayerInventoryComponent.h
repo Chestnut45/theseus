@@ -9,6 +9,7 @@
 
 #include "InventoryComponent.h"
 #include "events/DroppedItemEvents.h"
+#include "inventory/ItemDropCreator.h"
 
 class PlayerInventoryComponent : public InventoryComponent {
     public:
