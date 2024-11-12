@@ -51,16 +51,13 @@ void AttackDamageComponent::Update(float p_dt)
             if (thatCollider.IsActive() && thatCollider.IsHurtboxDamageReceiver())
             {
                 if (this->m_pColliderManager->IsColliding(*thisCollider, thatCollider, p_dt))
-                {
-                    // Deal damage to the target
-                    HealthComponent* thatHealth = thatObject.GetComponent<HealthComponent>();
-                    if(thatHealth != nullptr)
-                    {
-                        thatHealth->Damage(m_fDamage);
-                    }
+                { 
+                    thatHealth.Damage(m_fDamage);
+                    
+                    wolf::GameObject* thatObject = thatHealth.GetGameObject();
 
                     // Apply status effects to the target
-                    StatusComponent* thatStatus = thatObject.GetComponent<StatusComponent>();
+                    StatusComponent* thatStatus = thatObject->GetComponent<StatusComponent>();
                     if(thatStatus != nullptr)
                     {
                         for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)

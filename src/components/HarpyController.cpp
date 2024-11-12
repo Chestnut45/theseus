@@ -220,7 +220,13 @@ void HarpyController::HandleAttackingState(float delta)
     {
         auto& projectile = scene.CreateObject2D();
 
-        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
+        //
+        std::vector<std::pair<StatusComponent::StatusEffectType, float>> statusEffects = 
+        {
+            std::pair<StatusComponent::StatusEffectType, float>(StatusComponent::StatusEffectType::BURNING, 5.0f)
+        };
+
+        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager, statusEffects);
 
         auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
         projectileSprite.SetOriginToCenterOfTexture();

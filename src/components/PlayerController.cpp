@@ -669,7 +669,7 @@ void PlayerController::ApplyDamageToEnemy()
             projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
            
             auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
-            //projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
+            projectileVelocity.SetVelocity(playerDirection * 256.0f + playerVelocity);
 
             // Calculate how to rotate arrow sprite
             glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);

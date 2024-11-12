@@ -155,7 +155,7 @@ bool ColliderManager::StandardAABB(float left1, float right1, float top1, float 
     ); 
 }
 
-bool ColliderManager::CustomAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
+bool ColliderManager::CustomAABB(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
 {
     // Initial AABB check
     bool result = !(
