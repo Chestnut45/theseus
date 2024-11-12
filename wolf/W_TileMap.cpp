@@ -279,7 +279,7 @@ void TileMap::Resize(int width, int height, int clearTile)
 void TileMap::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint)
 {
     // Early out if no tile set is loaded
-    if (m_arrayTexture == 0) return;
+    if (m_arrayTexture == 0 || !m_visible) return;
 
     // Ensure VBO data is up-to-date
     if (m_VBODirty) _UpdateVBO();

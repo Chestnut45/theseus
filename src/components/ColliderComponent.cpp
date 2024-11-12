@@ -55,7 +55,7 @@ ColliderComponent::ColliderComponent(ColliderType p_collider_type, bool p_doc, b
 
 ColliderComponent::~ColliderComponent()
 {
-    std::cout << "ColliderComponent - Delete id: " << this->GetGameObject()->GetID() << std::endl;
+    // std::cout << "ColliderComponent - Delete id: " << this->GetGameObject()->GetID() << std::endl;
     ColliderComponent::s_iComponentCount--;
     if(ColliderComponent::s_iComponentCount == 0)
     {
@@ -199,4 +199,14 @@ void ColliderComponent::DebugDrawAndFlush()
 int ColliderComponent::GetComponentCount()
 {
     return ColliderComponent::s_iComponentCount;
+}
+
+//setter, sets for m_active
+void ColliderComponent::SetActive(bool active) {
+    m_active = active;
+}
+
+//getter, returns m_active
+bool ColliderComponent::IsActive() const {
+    return m_active;
 }

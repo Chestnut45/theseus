@@ -43,7 +43,7 @@ bool TrapComponent::CheckForPlayerCollision(float delta) {
 
     for (auto&& [_, playerController] : GetGameObject()->GetScene().Each<PlayerController>()) {
         auto* playerCollider = playerController.GetGameObject()->GetComponent<ColliderComponent>();
-        if (playerCollider && m_colliderManager->IsColliding(trapCollider, playerCollider, delta)) {
+        if (playerCollider && m_colliderManager->IsColliding(*trapCollider, *playerCollider, delta)) {
             auto* playerHealth = playerController.GetGameObject()->GetComponent<HealthComponent>();
             if (playerHealth) {
                 playerHealth->Damage(m_damage);

@@ -47,6 +47,8 @@ public:
     void BackgroundRender() override;
     void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
+    void OnCutsceneTriggerEvent(const TriggerEvent& event);  // Listener for cutscene trigger
+
 
 
 private:
@@ -77,4 +79,8 @@ private:
     void CreateThrowableObject();
 
     void OnGameOverEvent(const GameOverEvent& event);
+
+    // Displays the open chest tooltip
+    void ShowTooltip(const std::string& text);
+    void StartCutscene(const std::string& cutsceneID);
 };

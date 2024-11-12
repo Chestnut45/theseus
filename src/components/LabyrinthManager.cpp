@@ -23,6 +23,8 @@
 // For parsing the labyrinth config file
 #include <yaml-cpp/yaml.h>
 
+#include <ChestInventoryComponent.h>
+#include <ColliderComponent.h>
 #include <EnemyDataLoader.h>
 #include <MinitaurBuilder.h>
 #include <PlayerController.h>
@@ -37,7 +39,173 @@ LabyrinthManager::~LabyrinthManager()
 
 void LabyrinthManager::Update(float delta)
 {
-    // TODO: Update active chunks based on active camera
+    auto* pObject = GetGameObject();
+    auto* pPlayer = GetPlayer();
+
+    // If player is not in scene, no need to update
+    if (!pPlayer) return;
+
+    // Grab global position of the player and get current chunk
+    auto* pPlayerTransform = pPlayer->GetComponent<wolf::Transform2D>();
+    auto worldPos = pPlayerTransform->GetGlobalPosition();
+    auto chunkID = GetChunkID(worldPos);
+
+    if (chunkID != m_prevChunk)
+    {
+        // Chunk has changed
+        glm::ivec2 chunksToLoad[] =
+        {
+            chunkID,
+            chunkID + glm::ivec2(0, 1),
+            chunkID + glm::ivec2(1, 0),
+            chunkID + glm::ivec2(1, 1),
+            chunkID + glm::ivec2(0, -1),
+            chunkID + glm::ivec2(-1, 0),
+            chunkID + glm::ivec2(-1, -1),
+            chunkID + glm::ivec2(1, -1),
+            chunkID + glm::ivec2(-1, 1),
+        };
+
+        // Update queues
+        for (const auto& id : chunksToLoad)
+        {
+            // Don't bother processing a chunk that doesn't exist
+            if (!m_chunkMap.contains(id)) continue;
+
+            // Check if already active
+            const auto& chunkData = m_chunkMap[id];
+            if (chunkData.active) continue;
+
+            // Not active, add to queue if not already there
+            bool queued = false;
+            for (const auto& c : m_chunkActivateQueue)
+            {
+                if (id == c)
+                {
+                    queued = true;
+                    break;
+                }
+            }
+            if (!queued) m_chunkActivateQueue.push_back(id);
+
+            // Ensure it's not on the deactivate queue
+            for (int i = m_chunkDeactivateQueue.size() - 1; i >= 0; --i)
+            {
+                if (m_chunkDeactivateQueue[i] == id)
+                {
+                    m_chunkDeactivateQueue.erase(m_chunkDeactivateQueue.begin() + i);
+                    break;
+                }
+            }
+        }
+
+        for (const auto& chunk : m_chunkMap)
+        {
+            if (chunk.second.active)
+            {
+                bool shouldBeActive = false;
+                for (const auto& id : chunksToLoad)
+                {
+                    if (id == chunk.first)
+                    {
+                        shouldBeActive = true;
+                        break;
+                    }
+                }
+                if (!shouldBeActive) m_chunkDeactivateQueue.push_back(chunk.first);
+            }
+        }
+    }
+
+    // Process one chunk per frame from each queue
+    int next = m_chunkActivateQueue.size() - 1;
+    if (next >= 0)
+    {
+        ActivateChunk(m_chunkActivateQueue[next]);
+        m_chunkActivateQueue.pop_back();
+    }
+
+    next = m_chunkDeactivateQueue.size() - 1;
+    if (next >= 0)
+    {
+        DeactivateChunk(m_chunkDeactivateQueue[next]);
+        m_chunkDeactivateQueue.pop_back();
+    }
+
+    // Update cached chunk ID
+    m_prevChunk = chunkID;
+}
+
+void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
+{
+    const auto& it = m_chunkMap.find(chunkID);
+    if (it == m_chunkMap.end()) return;
+
+    // Return if chunk already active
+    auto& chunk = it->second;
+    if (chunk.active) return;
+
+    std::function<void(wolf::GameObject*)> Activate = [&](wolf::GameObject* pObject) -> void
+    {
+        // Make tilemaps visible
+        auto* pTileMap = pObject->GetComponent<wolf::TileMap>();
+        if (pTileMap) pTileMap->SetVisibility(true);
+
+        // Make sprites visible
+        auto* pSprite = pObject->GetComponent<AnimatedSprite2D>();
+        if (pSprite) pSprite->SetVisibility(true);
+
+        // Activate collider
+        // TODO: Only do this for walls? Or Move enemies to different chunks...
+        auto* pCollider = pObject->GetComponent<ColliderComponent>();
+        if (pCollider) pCollider->SetActive(true);
+
+        // Recursively activate all child objects and compatible components
+        for (auto* pChild : pObject->GetChildren())
+        {
+            Activate(pChild);
+        }
+    };
+    
+    // Activate the object hierarchy
+    Activate(chunk.m_pObject);
+    chunk.active = true;
+}
+
+void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
+{
+    const auto& it = m_chunkMap.find(chunkID);
+    if (it == m_chunkMap.end()) return;
+
+    // Return if chunk already inactive
+    auto& chunk = it->second;
+    if (!chunk.active) return;
+
+    std::function<void(wolf::GameObject*)> Deactivate = [&](wolf::GameObject* pObject) -> void
+    {
+        // Make tilemaps invisible
+        auto* pTileMap = pObject->GetComponent<wolf::TileMap>();
+        if (pTileMap) pTileMap->SetVisibility(false);
+
+        // Make sprites invisible
+        auto* pSprite = pObject->GetComponent<AnimatedSprite2D>();
+        if (pSprite) pSprite->SetVisibility(false);
+
+        // Deactivate collider
+        // TODO: Only do this for walls? Or Move enemies to different chunks...
+        auto* pCollider = pObject->GetComponent<ColliderComponent>();
+        if (pCollider) pCollider->SetActive(false);
+
+        // Recursively deactivate all child objects and compatible components
+        for (auto* pChild : pObject->GetChildren())
+        {
+            Deactivate(pChild);
+        }
+    };
+    
+    // Deactivate the object hierarchy
+    Deactivate(chunk.m_pObject);
+    chunk.active = false;
 }
 
 void LabyrinthManager::GenerateLabyrinth()
@@ -59,6 +227,7 @@ void LabyrinthManager::GenerateLabyrinth()
     // Clear all data structures
     m_tileSectionMap.clear();
     m_sections.clear();
+    m_prevChunk = glm::ivec2(0);
 
     // Ensure width and height are odd
     m_width = m_width % 2 == 0 ? m_width - 1 : m_width;
@@ -468,10 +637,12 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
                 std::string eType = entity["type"].as<std::string>();
 
                 // Parse data
-                if (eType == "minitaur")
-                {
-                    data.m_type = Room::EntityType::Minitaur;
-                }
+                if (eType == "minitaur") data.m_type = Room::EntityType::Minitaur;
+                if (eType == "common_chest") data.m_type = Room::EntityType::CommonChest;
+                if (eType == "uncommon_chest") data.m_type = Room::EntityType::UncommonChest;
+                if (eType == "rare_chest") data.m_type = Room::EntityType::RareChest;
+                if (eType == "epic_chest") data.m_type = Room::EntityType::EpicChest;
+                if (eType == "legendary_chest") data.m_type = Room::EntityType::LegendaryChest;
                 
                 data.m_amount = entity["amount"].as<int>();
 
@@ -592,6 +763,21 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
                 case Room::EntityType::Minitaur:
                     file << "minitaur, amount: ";
                     break;
+                case Room::EntityType::CommonChest:
+                    file << "common_chest, amount: ";
+                    break;
+                case Room::EntityType::UncommonChest:
+                    file << "uncommon_chest, amount: ";
+                    break;
+                case Room::EntityType::RareChest:
+                    file << "rare_chest, amount: ";
+                    break;
+                case Room::EntityType::EpicChest:
+                    file << "epic_chest, amount: ";
+                    break;
+                case Room::EntityType::LegendaryChest:
+                    file << "legendary_chest, amount: ";
+                    break;
             }
             file << std::to_string(data.m_amount).c_str();
             file << "}\n";
@@ -625,7 +811,17 @@ wolf::GameObject* LabyrinthManager::GetChunk(const glm::ivec2& chunkID) const
 {
     const auto it = m_chunkMap.find(chunkID);
     if (it == m_chunkMap.end()) return nullptr;
-    return it->second;
+    return it->second.m_pObject;
+}
+
+void LabyrinthManager::DeleteChunk(const glm::ivec2& chunkID)
+{
+    auto* pChunk = GetChunk(chunkID);
+    if (pChunk)
+    {
+        pChunk->Delete();
+        m_chunkMap.erase(chunkID);
+    }
 }
 
 glm::ivec2 LabyrinthManager::GetTilePosition(const glm::vec2& worldPosition) const
@@ -698,6 +894,15 @@ void LabyrinthManager::Reset()
     m_width = 125;
     m_height = 125;
     m_rooms.clear();
+}
+
+wolf::GameObject* LabyrinthManager::GetPlayer() const
+{
+    for (auto&&[_, playercontroller] : GetGameObject()->GetScene().Each<PlayerController>())
+    {
+        return playercontroller.GetGameObject();
+    }
+    return nullptr;
 }
 
 std::vector<LabyrinthManager::Room> LabyrinthManager::PlaceRooms()
@@ -1243,7 +1448,9 @@ void LabyrinthManager::GenerateChunks()
             pObject->AddChild(chunkObj);
 
             // Add the chunk object to the map
-            m_chunkMap[chunkID] = &chunkObj;
+            ChunkData cd;
+            cd.m_pObject = &chunkObj;
+            m_chunkMap[chunkID] = cd;
 
             // Create the tilemap object
             auto& tilemapObj = scene.CreateObject2D();
@@ -1259,6 +1466,11 @@ void LabyrinthManager::GenerateChunks()
             // Create tilemap
             auto& tilemap = tilemapObj.AddComponent<wolf::TileMap>(CHUNK_SIZE, CHUNK_SIZE);
             tilemap.LoadTileSet("data/labyrinth.tileset");
+            tilemap.SetVisibility(false);
+
+            // TESTING: Create collider component
+            auto& collider = tilemapObj.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
+            collider.SetActive(false);
 
             // Iterate chunk's tilemap
             for (int y = 0; y < CHUNK_SIZE; ++y)
@@ -1330,7 +1542,56 @@ void LabyrinthManager::GenerateChunks()
                             // Lookup tile for configuration
                             tile = wallDirID[mask];
 
-                            // TODO: Add wall tile to wall collider for this chunk?
+                            // Must be a bottom edge tile
+                            if (!down || y == 0)
+                            {
+                                if (up)
+                                {
+                                    int numAdjacent = 1;
+                                    glm::ivec2 nextPos = worldPos + glm::ivec2(0, numAdjacent + 1);
+                                    while (nextPos.y - yoffset < CHUNK_SIZE)
+                                    {
+                                        if (m_labyrinthGrid.Get(nextPos.x, nextPos.y) != LogicalTile::Wall) break;
+                                        numAdjacent++;
+                                        nextPos.y++;
+                                    }
+                                    
+                                    // Add wall tile collider
+                                    collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE, TILE_SIZE * SCALE * (numAdjacent + 1)),
+                                                            glm::vec2(x * SCALE * TILE_SIZE, (y + numAdjacent + 1) * SCALE * TILE_SIZE));
+                                }
+                                else if ((!left || !right) && y == 0)
+                                {
+                                    collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE),
+                                                            glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
+                                }
+                            }
+
+                            // Must be a left edge tile
+                            if (!left || x == 0)
+                            {
+                                if (right)
+                                {
+                                    int numAdjacent = 1;
+                                    glm::ivec2 nextPos = worldPos + glm::ivec2(numAdjacent + 1, 0);
+                                    while (nextPos.x - xoffset < CHUNK_SIZE)
+                                    {
+                                        if (m_labyrinthGrid.Get(nextPos.x, nextPos.y) != LogicalTile::Wall) break;
+                                        numAdjacent++;
+                                        nextPos.x++;
+                                    }
+                                    
+                                    // Add wall tile collider
+                                    collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE * (numAdjacent + 1), TILE_SIZE * SCALE),
+                                                            glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
+                                }
+                                else if ((!up || !down) && x == 0)
+                                {
+                                    collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE),
+                                                            glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
+                                }
+                            }
+
                             break;
                     }
 
@@ -1362,7 +1623,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     // Iterate each instance to spawn
                     for (int i = 0; i < entity.m_amount; ++i)
                     {
-                        // TODO: Calculate position
+                        // TODO: Calculate position for empty tile
                         glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
                                       room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
                         
@@ -1374,8 +1635,91 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Scale the minitaur
                         minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
 
-                        // TODO: Add as a child object of the correct chunk
-                        pObject->AddChild(minitaur);
+                        // Deactivate the collider
+                        minitaur.GetComponent<ColliderComponent>()->SetActive(false);
+
+                        // Make the sprite invisible
+                        minitaur.GetComponent<AnimatedSprite2D>()->SetVisibility(false);
+
+                        // Add as a child object of the correct chunk
+                        auto chunkID = GetChunkID(pos);
+                        auto* pChunk = GetChunk(chunkID);
+
+                        if (!pChunk)
+                        {
+                            // Warn if chunk doesn't exist
+                            wolf::Warning("Enemy spawned in non-existant chunk, pls fix!");
+
+                            // Fall back on adding to main labyrinth object
+                            pObject->AddChild(minitaur);
+                            break;
+                        }
+                        
+                        pChunk->AddChild(minitaur);
+                    }
+                    break;
+                
+                case Room::EntityType::CommonChest:
+                case Room::EntityType::UncommonChest:
+                case Room::EntityType::RareChest:
+                case Room::EntityType::EpicChest:
+                case Room::EntityType::LegendaryChest:
+
+                    std::string lootTablePath;
+                    std::string frameName;
+                    if (entity.m_type == Room::EntityType::CommonChest)
+                    {
+                        lootTablePath = "data/chest_loot_common.yaml";
+                        frameName = "CommonClosed";
+                    }
+                    if (entity.m_type == Room::EntityType::UncommonChest)
+                    {
+                        lootTablePath = "data/chest_loot_uncommon.yaml";
+                        frameName = "UncommonClosed";
+                    }
+                    if (entity.m_type == Room::EntityType::RareChest)
+                    {
+                        lootTablePath = "data/chest_loot_rare.yaml";
+                        frameName = "RareClosed";
+                    }
+                    if (entity.m_type == Room::EntityType::EpicChest)
+                    {
+                        lootTablePath = "data/chest_loot_epic.yaml";
+                        frameName = "EpicClosed";
+                    }
+                    if (entity.m_type == Room::EntityType::LegendaryChest)
+                    {
+                        lootTablePath = "data/chest_loot_legendary.yaml";
+                        frameName = "LegendaryClosed";
+                    }
+
+                    // Iterate each instance to spawn
+                    for (int i = 0; i < entity.m_amount; ++i)
+                    {
+                        // TODO: Calculate position
+                        glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
+                                      room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
+                        
+                        pos *= TILE_SIZE * SCALE;
+
+                        // Create the chest object
+                        auto& chest = pObject->GetScene().CreateObject2D();
+
+                        // Scale the chest
+                        auto& transform = *chest.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add the sprite
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        sprite.SetAnimation(frameName);
+
+                        // Add the chest inventory
+                        auto& chestInv = chest.AddComponent<ChestInventoryComponent>(16, 4);
+                        chestInv.FillFromLootTable(lootTablePath, m_rng);
+
+                        // Add chest as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(chest);
                     }
                     break;
             }
