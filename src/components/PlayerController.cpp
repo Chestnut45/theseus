@@ -667,18 +667,18 @@ void PlayerController::ApplyDamageToEnemy()
         case WeaponType::SWORD:
         {
             // Set & calculate data for melee collider
-            glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
+            glm::vec2 meleeDimensions = glm::vec2(16.0f, 16.0f);
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
              
             if(playerDirection.x != 0.0f)
             {
-                offset.x = 9.0f;
+                offset.x = 14.0f;
                 meleeDimensions.y *= 2.0f;
             }
 
             if(playerDirection.y != 0.0f)
             {
-                offset.y = 12.0f;
+                offset.y = 16.0f;
                 meleeDimensions.x *= 2.0f;
             }
 
