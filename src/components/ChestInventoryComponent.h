@@ -43,4 +43,5 @@ class ChestInventoryComponent : public InventoryComponent {
 
     private:
         void SendItemToPlayer(int p_iItemIndex);
+        
 };

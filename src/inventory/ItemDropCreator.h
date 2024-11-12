@@ -11,7 +11,10 @@
 
 #include <W_GameObject.h>
 #include <W_Scene.h>
+#include <W_RNG.h>
 #include <glm/glm.hpp>
+#include <yaml-cpp/yaml.h>
+#include <map>
 
 #include "ItemCreator.h"
 
@@ -45,5 +48,7 @@ class ItemDropCreator {
 
         static ItemDropCreator* m_pInstance;
         static wolf::Scene* m_pScene;
+        static wolf::RNG* m_pRNG;
 
+        static std::map<std::string, YAML::Node> m_mLootTables;
 };
