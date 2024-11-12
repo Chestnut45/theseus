@@ -681,14 +681,14 @@ void PlayerController::ApplyDamageToEnemy()
              
             if(playerDirection.x != 0.0f)
             {
-                offset.x = 14.0f;
-                meleeDimensions.y *= 2.0f;
+                offset.x = 10.0f;
+                meleeDimensions.y += 10.0f;
             }
 
             if(playerDirection.y != 0.0f)
             {
-                offset.y = 16.0f;
-                meleeDimensions.x *= 2.0f;
+                offset.y = 10.0f;
+                meleeDimensions.x += 10.0f;
             }
 
             // Shift offset along player direction
