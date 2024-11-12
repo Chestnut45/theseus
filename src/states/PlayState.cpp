@@ -206,11 +206,14 @@ void PlayState::Update(float delta)
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
             ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
             ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
+            ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
+
             ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
             ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
             ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
             playerInventory->AddItemOrDelete(pBoots);
             playerInventory->AddItemOrDelete(pBow);
+            playerInventory->AddItemOrDelete(pSpear);
             playerInventory->AddItemOrDelete(pHealHeart);
             playerInventory->AddItemOrDelete(pHurtHeart);
             playerInventory->AddItemOrDelete(pBurnHeart);
@@ -353,6 +356,7 @@ void PlayState::CreatePlayer()
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
     // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
     // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f), "Merchant Guy", 0.1f, 50);

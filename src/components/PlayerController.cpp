@@ -503,12 +503,7 @@ std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection dir
     WeaponType type = this->m_pCurrentWeapon->GetWeaponType();
     if(type == WeaponType::BOW) weaponType = "Bow";
     else if(type == WeaponType::SPEAR) weaponType = "Spear";
-    //------------------------//
-    //                        //
-    //  CHANGE TYPE TO SWORD  //
-    //                        //
-    //------------------------//
-    else if(type == WeaponType::SWORD) weaponType = "Spear";
+    else if(type == WeaponType::SWORD) weaponType = "Sword";
 
     switch (direction)
     {
@@ -682,12 +677,7 @@ void PlayerController::ApplyDamageToEnemy()
         }
         
         // Spawn melee collider for sword
-        //------------------------//
-        //                        //
-        //  CHANGE TYPE TO SPEAR  //
-        //                        //
-        //------------------------//
-        case WeaponType::SPEAR:
+        case WeaponType::SWORD:
         {
             // Set & calculate data for melee collider
             glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
@@ -735,13 +725,9 @@ void PlayerController::ApplyDamageToEnemy()
         }
 
         // Spawn melee collider for spear
-        //------------------------//
-        //                        //
-        //  CHANGE TYPE TO SPEAR  //
-        //                        //
-        //------------------------//
-        case WeaponType::SWORD:
+        case WeaponType::SPEAR:
         {
+            std::cout << "PlayerController - Spear Attack" << std::endl;
             // Set & calculate data for melee collider
             glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
@@ -943,6 +929,21 @@ void PlayerController::HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& 
 
 void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {
     printf("The player equipped a %s!\n", p_event.pArmour->GetName().c_str());
+
+        //-----------------//
+        //                 //
+        //  Added by Nhat  //
+        //                 //
+        //-----------------//
+        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+        if(statusComponent != nullptr)
+        {
+            for (auto info : *p_event.pArmour->GetStatusEffectList())
+            {
+                statusComponent->AddStatusEffect(info.enType, info.fDuration);
+            }
+        }
+
 }
 
 void PlayerController::RenderThrowPowerBar() {
