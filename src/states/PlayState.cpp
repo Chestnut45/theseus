@@ -261,7 +261,7 @@ void PlayState::Update(float delta)
 
     auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
     if (merchant) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_6)) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
             merchant->ToggleOpen();
         }
         merchant->ShowInventoryGUI();
@@ -269,7 +269,7 @@ void PlayState::Update(float delta)
 
     auto* dispensary = m_pPlayerObject->GetComponent<DispensaryInventoryComponent>();
     if (dispensary) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_7)) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
             dispensary->ToggleOpen();
         }
 
@@ -333,7 +333,7 @@ void PlayState::CreatePlayer()
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
     // Add inventory
-    auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
+    auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, ImVec2(500, 200));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
     collider.AddColliderBox(glm::vec2(7.0f, 8.0f), glm::vec2(-4.0f, -4.0f));
@@ -346,9 +346,9 @@ void PlayState::CreatePlayer()
     // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
-    MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f), "Merchant Guy", 0.1f, 50);
+    MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, ImVec2(800, 200), "Merchant Guy", 0.1f, 50);
     pMerchant->FillInventoryFromFile("data/test_chest_contents.yaml");
-    DispensaryInventoryComponent* pDispensary = &m_pPlayerObject->AddComponent<DispensaryInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
+    DispensaryInventoryComponent* pDispensary = &m_pPlayerObject->AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(200, 200));
     pDispensary->FillInventoryFromFile("data/test_dispensary_contents.yaml");
 }
 

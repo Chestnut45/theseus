@@ -18,13 +18,16 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
 
 void PlayerInventoryComponent::ShowInventoryGUI() {
     if (m_bIsOpen) {
+        ImGuiStyle* pStyle = &ImGui::GetStyle();
+        pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
+
         // You can't resize the inventory or move it
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
         // By default, the inventory appears close to the middle of the screen
-        ImGui::SetNextWindowPos({500, 200});
+        ImGui::SetNextWindowPos(m_v2DrawPos);
         ImGui::SetNextWindowSize({0,0});
-        ImGui::Begin("\t~ Inventory ~", &m_bIsOpen, flags);
+        ImGui::Begin("~ Inventory ~", &m_bIsOpen, flags);
 
         // If we closed the inventory
         if (!m_bIsOpen) {
@@ -42,6 +45,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 // We grab a reference to the top item and create a variable to hold the item's details
                 ItemBase* pItem = m_vvpContents[k].top();
                 std::string strTooltipText;
+                std::string strTooltipName;
 
                 // There are different rules for drawing Consumables and Equipment Items so we need to figure out
                 // what this particular item is before we go any further
@@ -59,8 +63,8 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     }
 
                     // Then construct the string that will be used to display all of the item's details
-                    strTooltipText = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" 
-                        + pConsumable->GetDescription() + "\n\nValue: " + std::to_string(pConsumable->GetValue()) 
+                    strTooltipName = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")";
+                    strTooltipText = pConsumable->GetDescription() + "\n\nValue: " + std::to_string(pConsumable->GetValue()) 
                         + "\nUses: " + std::to_string(pConsumable->GetNumUses());
 
                 }
@@ -73,20 +77,21 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     }
                     
                     // Then start constructing the string that will be used to display all of the item's details
-                    strTooltipText = pEquipment->GetName();
+                    strTooltipName = pEquipment->GetName();
 
                     // If this item is equipped then we want to show that in the details string
                     if (pEquipment->IsEquipped()) {
-                        strTooltipText += " (E)";
+                        strTooltipName += " (E)";
                         bIsEquipped = true; // (And we'll need to remember that it's equipped later on)
                     }
 
                     // Add the rest of the item's details to the string
-                    strTooltipText += "\n\n" + pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue()) 
+                    strTooltipText = pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue()) 
                         + "\nSlot: " + pEquipment->GetEquipmentSlotString();
                 }
                 else { // If for some reason this item isn't Consumable OR Equipment
-                    strTooltipText = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + "\n\n" + pItem->GetDescription(); // We only show the name and the description
+                    strTooltipName = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")";
+                    strTooltipText = pItem->GetDescription();
                 }
                 
                 // We're also going to store a string representation of the slot index that we're on
@@ -101,7 +106,16 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     // We display the details string that we constructed earlier
                     ImGui::BeginTooltip();
-                    ImGui::Text("%s", strTooltipText.c_str());
+
+                    // Display the item name in the color that corresponds to its rarity level
+                    RGBIntColor nameColor = RarityColors[pItem->GetRarity()];
+                    ImGui::TextColored(ImColor(nameColor.r, nameColor.g, nameColor.b), "%s", strTooltipName.c_str());
+
+                    // Display the item's description
+                    ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + TOOLTIP_WRAP_POS);
+                    ImGui::TextWrapped("%s", strTooltipText.c_str());
+                    ImGui::PopTextWrapPos();
+
                     ImGui::EndTooltip();
                 }
 
@@ -177,7 +191,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 }
             }
             else { // Otherwise, this is an empty inventory slot
-                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[NONE]->m_v2TopLeft, m_vv2TextureCoords[NONE]->m_v2BotRight)) {
+                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
 
                 }
             }
@@ -210,6 +224,8 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
         ImGui::SameLine();
         ImGui::TextColored(ImColor(255, 215, 0), "%d", m_iGold); // in gold (ha)
 
+        ImVec2 v2MainWindowSize = ImGui::GetWindowSize();
+
         // End of window
         ImGui::End();
 
@@ -219,7 +235,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({600, 300});
+            ImGui::SetNextWindowPos({m_v2DrawPos.x - v2MainWindowSize.x / 2.0f, m_v2DrawPos.y + v2MainWindowSize.y / 2.0f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Inventory Is Full Prompt", nullptr, flags);
 
@@ -243,7 +259,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({600, 300});
+            ImGui::SetNextWindowPos({m_v2DrawPos.x - v2MainWindowSize.x / 4.0f, m_v2DrawPos.y + v2MainWindowSize.y / 4.0f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Too Expensive Prompt", nullptr, flags);
 
@@ -267,7 +283,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({600, 300});
+            ImGui::SetNextWindowPos({m_v2DrawPos.x - v2MainWindowSize.x / 4.0f, m_v2DrawPos.y + v2MainWindowSize.y / 4.0f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Missing Schematic Prompt", nullptr, flags);
 
