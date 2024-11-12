@@ -29,6 +29,8 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
 
+    wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+
     
     this->m_pColliderManager = new ColliderManager(&scene);
 
@@ -97,6 +99,7 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
+    wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
 
     // Delete managers
     delete this->m_pColliderManager;
@@ -547,7 +550,7 @@ void PlayState::ConvertPlayerTileToGold() {
     // Calculate the bottom-center position of the player
     glm::vec2 playerPosition = playerTransform->GetGlobalPosition();
     glm::vec2 playerScale = playerTransform->GetGlobalScale();
-    glm::vec2 bottomCenterPosition = playerPosition + glm::vec2(0.0f, -playerScale.y * 0.5f);
+    glm::vec2 bottomCenterPosition = playerPosition + glm::vec2(0.0f, -22.0f);
     glm::vec2 roundedPosition = glm::round(bottomCenterPosition);
 
     // Get tile position and ID
@@ -558,6 +561,17 @@ void PlayState::ConvertPlayerTileToGold() {
     int goldTileID = GetGoldVariant(currentTileID);
     if (goldTileID != -1) {
         m_pLabyrinthManager->SetTile(tilePos.x, tilePos.y, goldTileID);
+    }
+}
+
+void PlayState::OnGameOverEvent(const GameOverEvent& event) {
+    switch (event.type) {
+        case GameOverType::MAIN_MENU:
+            m_pStateManager->ClearAndPushState(new MainMenuState(m_pStateManager, m_pGameInstance));
+            break;
+        case GameOverType::EXIT:
+            m_pGameInstance->Shutdown();
+            break;
     }
 }
 
