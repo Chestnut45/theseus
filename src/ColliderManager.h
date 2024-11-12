@@ -30,7 +30,7 @@ public:
     virtual ~ColliderManager();
 
     void Update(float p_delta);
-    bool IsColliding(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta);
+    bool IsColliding(ColliderComponent& p_colliderComponent1, ColliderComponent& p_colliderComponent2, float p_delta);
 
 private:
     wolf::Scene* m_scene = nullptr;
@@ -41,12 +41,12 @@ private:
     bool StandardAABB(float left1, float right1, float top1, float bottom1, float left2, float right2, float top2, float bottom2);
     
     // CustomAABB() does not have hitbox sliding response
-    bool CustomAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);
-    void SlideAABB(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);    
-    
+    bool CustomAABB(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);
+    void SlideAABB(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);    
+   
    // InternalUse methods for hitbox sliding response
-    bool IsCollidingInternalUse(ColliderComponent* p_colliderComponent1, ColliderComponent* p_colliderComponent2, float p_delta);
-    bool CustomAABBInternalUse(glm::vec2 p_translation_1, glm::vec2 p_translation_2, glm::vec2 p_dimensions_1, glm::vec2 p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);
+    bool IsCollidingInternalUse(ColliderComponent& p_colliderComponent1, ColliderComponent& p_colliderComponent2, float p_delta);
+    bool CustomAABBInternalUse(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);
 
     std::vector<wolf::GameObjectID> m_vToBeDestroyed;
 };

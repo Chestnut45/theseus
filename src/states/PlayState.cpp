@@ -1,5 +1,6 @@
 #include "PlayState.h"
 #include "PauseState.h"
+#include "CutSceneState.h"
 #include "DialogueState.h"
 #include <imgui/imgui.h>
 
@@ -26,6 +27,8 @@ void PlayState::Enter()
     // Initialize the dialogue listener
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
+    wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
+
     
     this->m_pColliderManager = new ColliderManager(&scene);
 
@@ -52,6 +55,8 @@ void PlayState::Enter()
     
     CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(96.0f, 96.0f), TriggerType::SINGLE_USE);
     CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f), TriggerType::REUSABLE);
+    CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(-192.0f, -192.0f), TriggerType::CUTSCENE_SINGLE);  // Position as needed
+
 
     // Testing: Create a test projectile object
     // auto& testObj = scene.CreateObject2D();
@@ -91,6 +96,7 @@ void PlayState::Exit()
 
     wolf::EventManager::RemoveListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
+    wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
 
     // Delete managers
     delete this->m_pColliderManager;
@@ -120,6 +126,9 @@ void PlayState::Update(float delta)
     // Show the Labyrinth Manager debug GUI
     if (m_showLabyrinthManager) 
         m_pLabyrinthManager->ShowGUI();
+    
+    // Update the labyrinth manager
+    m_pLabyrinthManager->Update(delta);
 
     // TESTING: Delete all tiles the player steps on
     // TODO: Check for floor tiles, change them to gold variant
@@ -217,17 +226,37 @@ void PlayState::Update(float delta)
 
         playerInventory->ShowInventoryGUI();
     }
-    
-    auto* chest = m_pPlayerObject->GetComponent<ChestInventoryComponent>();
-    if (chest) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            chest->ToggleOpen();
+
+    // Display all open chest GUIs
+    const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    for (auto&&[_, chestInventory, transform] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D>())
+    {
+        // Show GUI
+        chestInventory.ShowInventoryGUI();
+
+        // Distance checking
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+        {
+            // Player is in range of the chest, display tooltip
+            std::string tooltip = chestInventory.IsOpen() ? "Press E to Close Chest" : "Press E to Open Chest";
+            ShowTooltip(tooltip);
+
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+            {
+                chestInventory.ToggleOpen();
+                if (!chestInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                break;
+            }
         }
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            chest->FillInventoryFromFile("data/test_chest_contents.yaml");
+        else
+        {
+            // Close chest if the player walks away
+            if (chestInventory.IsOpen())
+            {
+                chestInventory.Close();
+                m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+            }
         }
-        
-        chest->ShowInventoryGUI();
     }
 
     auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
@@ -326,7 +355,6 @@ void PlayState::CreatePlayer()
     // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
-    m_pPlayerObject->AddComponent<ChestInventoryComponent>(4, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
     MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f), "Merchant Guy", 0.1f, 50);
     pMerchant->FillInventoryFromFile("data/test_chest_contents.yaml");
     DispensaryInventoryComponent* pDispensary = &m_pPlayerObject->AddComponent<DispensaryInventoryComponent>(16, 4, "data/textures/DebugSprites/TestItems.png", glm::vec2(32.0f, 32.0f));
@@ -341,9 +369,10 @@ void PlayState::CreateMinitaurEnemy()
     MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
 
     glm::vec2 positions[] = {
-        glm::vec2(300.0f, 200.0f),
-        glm::vec2(400.0f, 200.0f),
-        glm::vec2(500.0f, 200.0f)
+        // glm::vec2(300.0f, 200.0f),
+        // glm::vec2(400.0f, 200.0f),
+        // glm::vec2(500.0f, 200.0f)
+        glm::vec2(6000.0f, 0.0f)
     };
 
     for (const auto& position : positions)
@@ -365,25 +394,16 @@ void PlayState::CreateHarpyEnemy()
     loader.LoadAllEnemyData("data/enemies.yaml");
 
     HarpyBuilder harpyBuilder(m_pGameInstance->GetScene());
+    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 360.0f);
 
-    glm::vec2 positions[] = {
-        // glm::vec2(-300.0f, -300.0f),
-        // glm::vec2(-400.0f, -400.0f),
-        // glm::vec2(-500.0f, -500.0f)
-        glm::vec2(6000.0f, 0.0f)
-    };
-
-    for (const auto& position : positions)
+    EnemyData harpyData = loader.LoadEnemyData("harpy");
+    auto& harpy = harpyBuilder.BuildHarpy(harpyData, position, m_pColliderManager);
+    
+    // Set the scale of each Minitaur to 3
+    auto* transform = harpy.GetComponent<wolf::Transform2D>();
+    if (transform)
     {
-        EnemyData harpyData = loader.LoadEnemyData("harpy");
-        auto& harpy = harpyBuilder.BuildHarpy(harpyData, position, m_pColliderManager);
-        
-        // Set the scale of each Minitaur to 3
-        auto* transform = harpy.GetComponent<wolf::Transform2D>();
-        if (transform)
-        {
-            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
-        }
+        transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
     }
 }
 
@@ -548,4 +568,42 @@ void PlayState::ConvertPlayerTileToGold() {
     if (goldTileID != -1) {
         m_pLabyrinthManager->SetTile(tilePos.x, tilePos.y, goldTileID);
     }
+}
+
+void PlayState::ShowTooltip(const std::string& text)
+{
+    // Tooltip window code taken from Youssef's ThrowableObjectComponent
+            
+    // Set screen-space position for the pickup prompt
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    ImVec2 promptPosition = ImVec2(displaySize.x * 0.5f, displaySize.y * 0.8f);  // Centered horizontally, lower portion vertically
+
+    ImGui::SetNextWindowPos(promptPosition, ImGuiCond_Always, ImVec2(0.5f, 0.5f));  // Centered alignment
+    ImGui::SetNextWindowBgAlpha(0.85f);
+
+    // Pulse color and size animation for visual feedback
+    float alphaPulse = 0.6f + 0.4f * sin(ImGui::GetTime() * 3.0f);
+    ImVec4 glowColor = ImVec4(0.8f, 0.92f, 0.3f, alphaPulse); // Neon green glow
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 5));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.9f));
+    ImGui::PushStyleColor(ImGuiCol_Text, glowColor);
+    ImGui::PushStyleColor(ImGuiCol_Border, glowColor);
+
+    ImGui::Begin("Tooltip###", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
+    ImGui::Text("%s", text.c_str());
+    ImGui::End();
+
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar(2);
+}
+void PlayState::OnCutsceneTriggerEvent(const TriggerEvent& event) {
+    if (event.m_triggerType == TriggerType::CUTSCENE_SINGLE) {
+        StartCutscene("intro");  // Specify cutscene ID as needed
+    }
+}
+
+void PlayState::StartCutscene(const std::string& cutsceneID) {
+    m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", cutsceneID));
 }

@@ -18,9 +18,6 @@ void HarpyController::Init(const EnemyData& data)
         return;
     }
 
-    // Log that initialization has started
-    wolf::Log("Initializing Harpy with GameObject ID " + std::to_string(pGameObject->GetID()));
-
     // Call base initialization
     EnemyController::Init();
 
@@ -31,34 +28,21 @@ void HarpyController::Init(const EnemyData& data)
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
-    // Log initialized values
-    wolf::Log("Harpy " + std::to_string(pGameObject->GetID()) + " initialized with melee range " + std::to_string(m_meleeRange) + 
-              ", attack cooldown " + std::to_string(m_attackCooldown) + 
-              ", detection range " + std::to_string(m_detectionRange) + 
-              ", base damage " + std::to_string(m_baseDamage) + 
-              ", and chase speed " + std::to_string(m_chaseSpeed));
-
     // Get required components and log their initialization
     m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
-    if (m_pVelocity)
-    {
-        wolf::Log("Harpy " + std::to_string(pGameObject->GetID()) + " VelocityComponent initialized.");
-    }
-    else
+    if (!m_pVelocity)
     {
         wolf::Warning("Harpy " + std::to_string(pGameObject->GetID()) + " could not find VelocityComponent!");
     }
 
     // Set up Harpy-specific animations
     SetUpAnimations(data.animationInitFile);
-    wolf::Log("Harpy " + std::to_string(pGameObject->GetID()) + " animation initialized using file " + data.animationInitFile);
 
     // Find and set the player as the target
     bool targetFound = false;
     for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
     {
         m_pTarget = playerController.GetGameObject();
-        wolf::Log("Harpy " + std::to_string(pGameObject->GetID()) + " found player target with GameObject ID " + std::to_string(m_pTarget->GetID()));
         targetFound = true;
         break;  // Assume there's only one player
     }
@@ -66,10 +50,6 @@ void HarpyController::Init(const EnemyData& data)
     if (!targetFound)
     {
         wolf::Warning("Harpy " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
-    }
-    else
-    {
-        wolf::Log("Harpy " + std::to_string(pGameObject->GetID()) + " successfully set the target to player.");
     }
 }
 
@@ -240,11 +220,7 @@ void HarpyController::HandleAttackingState(float delta)
     {
         auto& projectile = scene.CreateObject2D();
 
-        std::vector<std::pair<StatusComponent::StatusEffectType, float>> statusEffects = 
-        {
-            std::pair<StatusComponent::StatusEffectType, float>(StatusComponent::StatusEffectType::BURNING, 5.0f)
-        };
-        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager, statusEffects);
+        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
 
         auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
         projectileSprite.SetOriginToCenterOfTexture();
@@ -257,12 +233,14 @@ void HarpyController::HandleAttackingState(float delta)
         auto& projectileTimedDestroyer = projectile.AddComponent<TimedDestroyerComponent>(10);
 
         auto& projectileVelocityComponent = projectile.AddComponent<VelocityComponent>();
-
+        // float angle = (60 * -i) / (MATH_PI * 180.0f);
+        // glm::vec2 projectileVelocity = glm::vec2(0.0f, 0.0f);
+        // projectileVelocity.x = projectileDefaultVelocity.x * glm::cos(angle) - projectileDefaultVelocity.y * glm::sin(angle);
+        // projectileVelocity.y = projectileDefaultVelocity.x * glm::sin(angle) + projectileDefaultVelocity.y * glm::cos(angle);
         projectileVelocityComponent.SetVelocity(projectileDefaultVelocity);
 
         glm::vec2 offset = perpendicularVector * (30.0f * i);
         projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset);
-
         projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
     }
     

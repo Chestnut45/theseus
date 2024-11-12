@@ -83,6 +83,9 @@ public:
     // NOTE: Returns nullptr if no chunk exists with the given ID
     wolf::GameObject* GetChunk(const glm::ivec2& chunkID) const;
 
+    // Deletes the chunk at the given ID if it exists
+    void DeleteChunk(const glm::ivec2& chunkID);
+
     // Converts a world space position to tile coordinates
     // NOTE: Returns (-1, -1) if the position is not on a valid tile
     glm::ivec2 GetTilePosition(const glm::vec2& worldPosition) const;
@@ -100,11 +103,17 @@ public:
     // Resets all properties to their defaults
     void Reset();
 
+    // Helper methods
+
+    // Gets a pointer to the first player object in the scene
+    // NOTE: Returns nullptr if no player is found
+    wolf::GameObject* GetPlayer() const;
+
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 16'383;
     static const inline int TILE_SIZE = 32;
-    static const inline int CHUNK_SIZE = 64;
+    static const inline int CHUNK_SIZE = 16;
     static const inline int SCALE = 3;
 
 // Implementation
@@ -200,9 +209,13 @@ private:
         enum class EntityType
         {
             Minitaur,
-            // ...
+            CommonChest,
+            UncommonChest,
+            RareChest,
+            EpicChest,
+            LegendaryChest,
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest"};
 
         // Entity spawn data structure
         struct EntitySpawnData
@@ -247,10 +260,29 @@ private:
 
     // Chunk management
 
+    struct ChunkData
+    {
+        wolf::GameObject* m_pObject = nullptr;
+        bool active = false;
+    };
+
     // Map of chunk IDs to chunk game object pointers
-    std::unordered_map<glm::ivec2, wolf::GameObject*> m_chunkMap;
+    std::unordered_map<glm::ivec2, ChunkData> m_chunkMap;
+
+    // Queues
+    std::vector<glm::ivec2> m_chunkActivateQueue;
+    std::vector<glm::ivec2> m_chunkDeactivateQueue;
+
+    // Cached ID of chunk player was in last frame
+    glm::ivec2 m_prevChunk = glm::ivec2(0);
 
     // Helper methods
+
+    // Activates a chunk, recursively updating all child objects' flags.
+    void ActivateChunk(const glm::ivec2& chunkID);
+
+    // Deactivates a chunk, recursively updating all child objects' flags.
+    void DeactivateChunk(const glm::ivec2& chunkID);
 
     // Attempts to place all rooms and returns a vector of those successfully placed
     std::vector<Room> PlaceRooms();

@@ -11,6 +11,7 @@ rooms: [
 		position: {type: manual, origin: {x: 51, y: 51}},
 		size: {type: manual, value: {x: 23, y: 23}},
 		entities: [
+			{type: legendary_chest, amount: 1}
 		]
 	},
 	{
