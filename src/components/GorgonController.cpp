@@ -95,7 +95,7 @@ void GorgonController::Update(float delta)
             HandleAttackingState(delta);
             break;
         case EnemyState::DEATH:
-            HandleDeathState();
+            HandleDeathState(delta);
             return;  // After calling HandleDeathState(), return immediately since the object is now deleted
     }
 
@@ -155,6 +155,56 @@ void GorgonController::HandleIdleState()
     if (distanceToPlayer <= m_detectionRange)
     {
         ChangeState(EnemyState::CHASING);  // Transition to CHASING when the player is in range
+    }
+}
+
+void GorgonController::HandleProspectState(float delta)
+{
+    // Chase player if in range
+    float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
+    if (distanceToPlayer <= m_detectionRange)
+    {
+        ChangeState(EnemyState::CHASING); 
+        m_prospectCounter = 0;
+    }
+
+    // else, prospect
+    else
+    {
+        if (m_prospectStandingCounter <= 0.0f)
+        {
+            if(m_prospectCounter <= 0)
+            {        
+                    
+                    // Roll for prospect
+                    float rng = m_RNG.NextInt(1, 100);
+                    // Begin prospecting
+                    if(rng > 20)
+                    {
+                        
+                        m_prospectCounter = m_RNG.NextInt(100, 200);
+                        glm::vec2 direction = glm::normalize(glm::vec2(m_RNG.NextInt(-100, 100), m_RNG.NextInt(-100, 100)));
+                        m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+                    }
+
+                    // Change to idle
+                    else
+                    {
+                        ChangeState(EnemyState::IDLE);
+                        m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Reset velocity when returning to idle
+                    }
+                    m_prospectStandingCounter = m_RNG.NextInt(1, 3);                  
+            }
+            else
+            {
+                m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+                m_prospectCounter--;
+            }
+        }
+        else
+        {
+        m_prospectStandingCounter -= delta;
+        }
     }
 }
 
@@ -272,16 +322,42 @@ void GorgonController::UpdateAnimationBasedOnDirection()
     }
 }
 
-void GorgonController::HandleDeathState()
+void GorgonController::HandleDeathState(float delta)
 {
-    // Stop Gorgon's movement
-    if (m_pVelocity)
+    // Fall over
+    if(m_fallDeadTimer <= m_timeToFallDead)
     {
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        if(m_fallDeadTimer == 0.0f)
+        {
+            if (m_pVelocity)
+            {
+                m_pVelocity->SetVelocity(glm::vec2(0.0f));
+            }
+
+            ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
+            if(collider != nullptr)
+            {
+                collider->SetColliderType(ColliderComponent::ColliderType::NONE);
+            }
+            
+            m_pAnimComponent->SetTint(glm::vec3(1,0,0));
+        }
+
+        float angle = (90.0f / m_timeToFallDead) * delta;
+        m_pTransform->RotateDegrees(angle);
+        
+        m_fallDeadTimer += delta;
     }
 
-    // Destroy the GameObject when the Gorgon dies
-    //will be implemented later
+    // Lie dead
+    else
+    {
+        if(m_lieDeadTimer >= m_timeToLieDead)
+        {
+            GetGameObject()->Delete();
+        }
+        m_lieDeadTimer += delta;
+    }
 }
 
 void GorgonController::ChangeState(EnemyState newState)
