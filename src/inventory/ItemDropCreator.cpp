@@ -2,6 +2,7 @@
 
 ItemDropCreator* ItemDropCreator::m_pInstance = nullptr;
 wolf::Scene* ItemDropCreator::m_pScene = nullptr;
+const std::string ItemDropCreator::ITEM_TEXTURE_PATH = "data/textures/ItemIcons-Sheet.png";
 
 void ItemDropCreator::CreateInstance(wolf::Scene* p_pScene) {
     // If there is not already an existing instance
@@ -45,8 +46,11 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromDirectory(const std::string
 
         // Add the dropped item component and the sprite
         pItemDropGO->AddComponent<DroppedItemComponent>(pItem);
-        // !-- Need to talk to D'Anyil about Sprite2D using frame indices as textures --!
-        pItemDropGO->AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+
+        // Add the animated sprite component and rig up the default animation (literally just show the item's sprite forever)
+        auto pItemDropAnim = &pItemDropGO->AddComponent<AnimatedSprite2D>(ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), 1.0f);
+        pItemDropAnim->AddAnimation("Display", ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), pItem->GetTextureFrameIndex(), pItem->GetTextureFrameIndex(), false);
+        pItemDropAnim->SetAnimation("Display");
 
         // Move the gameobject to the spawn location
         auto pItemDropTransform = pItemDropGO->GetComponent<wolf::Transform2D>();

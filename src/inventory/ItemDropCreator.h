@@ -11,12 +11,12 @@
 
 #include <W_GameObject.h>
 #include <W_Scene.h>
-#include <W_Sprite2D.h>
 #include <glm/glm.hpp>
 
 #include "ItemCreator.h"
 
 #include "../components/DroppedItemComponent.h"
+#include "../components/AnimatedSprite2D.h"
 
 class ItemDropCreator {
     public:
@@ -41,6 +41,9 @@ class ItemDropCreator {
         ItemDropCreator(ItemDropCreator&& other) = delete;
         ItemDropCreator& operator=(ItemDropCreator&& other) = delete;
 
+        static const std::string ITEM_TEXTURE_PATH;
+
         static ItemDropCreator* m_pInstance;
         static wolf::Scene* m_pScene;
+
 };
