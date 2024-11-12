@@ -31,7 +31,6 @@ void PlayState::Enter()
 
     
     this->m_pColliderManager = new ColliderManager(&scene);
-    ItemDropCreator::CreateInstance(&scene);
 
     // Initialize the player object
     CreatePlayer();
@@ -51,6 +50,8 @@ void PlayState::Enter()
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
     m_pLabyrinthManager->GenerateLabyrinth();
+
+    ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
 
     CreateThrowableObject();
     

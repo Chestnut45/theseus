@@ -3,18 +3,21 @@
 ItemDropCreator* ItemDropCreator::m_pInstance = nullptr;
 wolf::Scene* ItemDropCreator::m_pScene = nullptr;
 wolf::RNG* ItemDropCreator::m_pRNG = nullptr;
+
+int ItemDropCreator::m_iRNGSeed;
 std::map<std::string, YAML::Node> ItemDropCreator::m_mLootTables;
 
 const std::string ItemDropCreator::ITEM_TEXTURE_PATH = "data/textures/ItemIcons-Sheet.png";
 
-void ItemDropCreator::CreateInstance(wolf::Scene* p_pScene) {
+void ItemDropCreator::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
     // If there is not already an existing instance
     assert(m_pInstance == nullptr);
 
     // Create one
     m_pInstance = new ItemDropCreator();
-    m_pRNG = new wolf::RNG(7); // This seed value is completely arbitrary
+    m_pRNG = new wolf::RNG(p_iRNGSeed); // This seed value is completely arbitrary
     m_pScene = p_pScene;
+    m_iRNGSeed = p_iRNGSeed;
 }
 
 void ItemDropCreator::DestroyInstance() {
