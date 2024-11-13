@@ -19,10 +19,6 @@
 // ver 2.0: Optimized and restructured for readability and performance.
 //-----------------------------------------------------------------------------
 
-float PlayerController::s_aAttackCooldown[(int)WeaponType::BOW + 1] = {0.25f, 0.5f, 0.5f};
-
-
-
 PlayerController::PlayerController() = default;
 
 PlayerController::~PlayerController() {
@@ -365,7 +361,7 @@ void PlayerController::HandleAttacking(float delta)
     }
 
     // Check if enough time has elapsed since the last attack to allow for damage application.
-    if (m_attackTimer.Elapsed() >= s_aAttackCooldown[(int)m_pCurrentWeapon->GetWeaponType()] && m_isAttacking)
+    if (m_attackTimer.Elapsed() >= m_pCurrentWeapon->GetDelay() && m_isAttacking)
     {
         ApplyDamageToEnemy(); // Apply damage if there's a collision with an enemy.
         m_attackTimer.Restart(); // Restart the timer for future attacks.
@@ -747,6 +743,7 @@ void PlayerController::ApplyDamageToEnemy()
                 offset.x = 9.0f;
                 if(playerDirection.y == 0.0f)
                 {
+                    meleeDimensions.x += 24.0f;
                     meleeDimensions.y *= 2.5f;
                 }
                 else
@@ -761,6 +758,8 @@ void PlayerController::ApplyDamageToEnemy()
                 offset.y = 13.0f;
                 if(playerDirection.x == 0.0f)
                 {
+                    
+                    meleeDimensions.y += 8.0f;
                     meleeDimensions.x *= 3.0f;
                 }
                 else
@@ -787,17 +786,19 @@ void PlayerController::ApplyDamageToEnemy()
             melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
 
             auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);  
+            glm::vec2 shift = glm::vec2(0.0f, 0.0f);
+                
             if(isDiagonalAttack)
             {
-                glm::vec2 shift = glm::vec2(0.0f, 0.0f);
                 shift.x = playerDirection.x > 0.0f ? 2.0f : -2.0f;
                 shift.y = playerDirection.y > 0.0f ? 2.0f : -2.0f;
                 meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f + shift.x, meleeDimensions.y * 0.5f + shift.y));
             }
             else
             {
-                meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f, meleeDimensions.y * 0.5 - 0.5f));
-                meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f, meleeDimensions.y * 0.5 - 0.5f) + colliderBoxOffset2);
+                shift.x = playerDirection.x > 0.0f ? 5.0f : playerDirection.x < 0.0f ? -6.0f : 0.0f;
+                shift.y = playerDirection.y > 0.0f ? 1.5f : playerDirection.y < 0.0f ? -1.0f : 0.0f;
+                meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f + shift.x, meleeDimensions.y * 0.5 + shift.y));
             } 
             meleeCollider.SetIgnoreTag(player->GetID());
 

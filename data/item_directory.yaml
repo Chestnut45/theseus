@@ -94,7 +94,7 @@ Dull Blade: {
   rarity: COMMON,
   slot: WEAPON,
   type: SWORD,
-  delay: 0.2,
+  delay: 0.25,
   damage: 50.0,
   hurtbox_size: {x: 1.0, y: 1.0},
   has_projectiles: false
@@ -104,11 +104,11 @@ Shaky Spear: {
   id: EQUIPMENT,
   description: The pen is mightier than the sword, and this is a very large pen indeed,
   value: 10,
-  texture_frame: 3,
+  texture_frame: 1,
   rarity: COMMON,
   slot: WEAPON,
   type: SPEAR,
-  delay: 0.2,
+  delay: 0.25,
   damage: 50.0,
   hurtbox_size: {x: 1.0, y: 1.0},
   has_projectiles: false
