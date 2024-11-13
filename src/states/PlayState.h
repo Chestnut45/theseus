@@ -19,6 +19,7 @@
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
 #include "events/TriggerEvent.h"
+#include "events/GameOverEvent.h"
 #include <TrapComponent.h>
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
@@ -76,6 +77,8 @@ private:
     // Creates a pressure plate with specified position, trigger type, trap damage, lifespan, and offset.
     void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType);
     void CreateThrowableObject();
+
+    void OnGameOverEvent(const GameOverEvent& event);
 
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);

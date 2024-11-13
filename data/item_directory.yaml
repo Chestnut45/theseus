@@ -2,7 +2,7 @@ Gold Coin: {
   id: GOLD,
   description: A shiny gold coin!,
   value: 1,
-  texture_frame: 2,
+  texture_frame: 5,
   rarity: COMMON,
 }
 
@@ -10,7 +10,7 @@ Common Schematic: {
   id: SCHEMATIC,
   description: One of Daedalus' old schematics. Can be traded at a dispensary for cheap equipment,
   value: 25,
-  texture_frame: 3,
+  texture_frame: 16,
   rarity: COMMON
 }
 
@@ -18,7 +18,7 @@ Uncommon Schematic: {
   id: SCHEMATIC,
   description: One of Daedalus' old schematics. Can be traded at a dispensary for useful equipment,
   value: 50,
-  texture_frame: 3,
+  texture_frame: 17,
   rarity: UNCOMMON
 }
 
@@ -26,7 +26,7 @@ Rare Schematic: {
   id: SCHEMATIC,
   description: One of Daedalus' old schematics. Can be traded at a dispensary for strong equipment,
   value: 75,
-  texture_frame: 3,
+  texture_frame: 18,
   rarity: RARE
 }
 
@@ -34,7 +34,7 @@ Epic Schematic: {
   id: SCHEMATIC,
   description: One of Daedalus' old schematics. Can be traded at a dispensary for powerful equipment,
   value: 100,
-  texture_frame: 3,
+  texture_frame: 19,
   rarity: EPIC
 }
 
@@ -42,7 +42,7 @@ Legendary Schematic: {
   id: SCHEMATIC,
   description: One of Daedalus' favourite schematics. Can be traded at a dispensary for impressive equipment,
   value: 125,
-  texture_frame: 3,
+  texture_frame: 20,
   rarity: LEGENDARY
 }
 
@@ -50,7 +50,7 @@ Healing Heart: {
   id: CONSUMABLE,
   description: This heart will heal you!,
   value: 10,
-  texture_frame: 2,
+  texture_frame: 21,
   rarity: COMMON,
   is_stackable: true,
   num_uses: 1,
@@ -63,7 +63,7 @@ Hurting Heart: {
   id: CONSUMABLE,
   description: This will hurt.,
   value: 5,
-  texture_frame: 2,
+  texture_frame: 21,
   rarity: COMMON,
   is_stackable: false,
   num_uses: 1,
@@ -77,7 +77,7 @@ Burning Heart: {
   type: STATUS_EFFECT,
   description: A love so hot it BURNS.,
   value: 5,
-  texture_frame: 2,
+  texture_frame: 21,
   rarity: COMMON,
   is_stackable: false,
   num_uses: 3,
@@ -90,7 +90,7 @@ Dull Blade: {
   id: EQUIPMENT,
   description: A blade so dull butter could cut through it,
   value: 10,
-  texture_frame: 3,
+  texture_frame: 1,
   rarity: COMMON,
   slot: WEAPON,
   type: SWORD,
@@ -138,7 +138,7 @@ Dented Helmet: {
   id: EQUIPMENT,
   description: Someone definitely died in this helmet,
   value: 10,
-  texture_frame: 3,
+  texture_frame: 9,
   rarity: COMMON,
   slot: HEAD,
   damage_reduction: 0.02,
@@ -147,9 +147,9 @@ Dented Helmet: {
 
 The Floor is Lava Boots: {
   id: EQUIPMENT,
-  description: Guaranteed to make you feel like you're walking in lava!,
+  description: Guaranteed to make you feel like you're walking in lava! (Super extra long description text that is irrelevant and should be removed afterwards),
   value: 25,
-  texture_frame: 3,
+  texture_frame: 13,
   rarity: UNCOMMON,
   slot: FEET,
   damage_reduction: 0.05,
