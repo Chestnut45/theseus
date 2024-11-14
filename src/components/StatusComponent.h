@@ -32,13 +32,13 @@ public:
     void AddStatusEffect(StatusEffectType p_se_type, float p_lifespan);
     bool IsStatusEffectActive(StatusEffectType p_se_type) const;
 
-    void Update();
+    void Update(float p_delta);
     void RenderPlayerSEIcons();
 
 private:
     struct StatusEffect
     {
-        void ApplyStatusEffect();
+        void ApplyStatusEffect(float p_delta);
 
         bool m_isActive = false;
         float m_fLifespan = 1.0f;

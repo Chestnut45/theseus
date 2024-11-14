@@ -63,7 +63,7 @@ bool StatusComponent::IsStatusEffectActive(StatusEffectType p_se_type) const
     return this->m_aStatusEffects[p_se_type].m_isActive;
 }
 
-void StatusComponent::Update()
+void StatusComponent::Update(float p_delta)
 {
     for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
     {
@@ -72,7 +72,7 @@ void StatusComponent::Update()
         // Apply status effect
         if(statusEffect.m_isActive)
         {
-            statusEffect.ApplyStatusEffect();
+            statusEffect.ApplyStatusEffect(p_delta);
 
             if(statusEffect.m_fLifespan >= 0 && statusEffect.m_timer.Elapsed() >= statusEffect.m_fLifespan)
             {
@@ -112,7 +112,9 @@ void StatusComponent::RenderPlayerSEIcons()
         ImGui::SetNextWindowPos({10, 10});
         ImGui::SetNextWindowSize(windowSize);
         ImGui::Begin("\t", nullptr, flags);
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
 
         if(m_aStatusEffects[StatusEffectType::BURNING].m_isActive)
         {
@@ -124,7 +126,8 @@ void StatusComponent::RenderPlayerSEIcons()
             {
                 // We display the details string that we constructed earlier
                 ImGui::BeginTooltip();
-                ImGui::Text("%s\n%f", "You Are Burning" , lifespan - lifetime);
+                if(lifespan > lifetime) ImGui::Text("%s\n%f", "You Are Burning" , lifespan - lifetime);
+                else ImGui::Text("%s\n%s","You Are Burning","inf");
                 ImGui::EndTooltip();
             }
             ImGui::SameLine();
@@ -140,7 +143,8 @@ void StatusComponent::RenderPlayerSEIcons()
             {
                 // We display the details string that we constructed earlier
                 ImGui::BeginTooltip();
-                ImGui::Text("%s\n%f", "You Are Petrified" , lifespan - lifetime);
+                if(lifespan > lifetime) ImGui::Text("%s\n%f", "You Are Petrified" , lifespan - lifetime);
+                else ImGui::Text("%s\n%s","You Are Petrified","inf");
                 ImGui::EndTooltip();
             }
             ImGui::SameLine();
@@ -156,19 +160,20 @@ void StatusComponent::RenderPlayerSEIcons()
             {
                 // We display the details string that we constructed earlier
                 ImGui::BeginTooltip();
-                ImGui::Text("%s\n%f", "You Are Poisoned" , lifespan - lifetime);
+                if(lifespan > lifetime) ImGui::Text("%s\n%f", "You Are Poisoned" , lifespan - lifetime);
+                else ImGui::Text("%s\n%s","You Are Poisoned","inf");
                 ImGui::EndTooltip();
             }
             ImGui::SameLine();
         }
-        ImGui::PopStyleColor(1);
+        ImGui::PopStyleColor(3);
         
         
         ImGui::End();
     }
 }
 
-void StatusComponent::StatusEffect::ApplyStatusEffect()
+void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
 {
     switch (this->m_StatusEffectType)
     {
@@ -177,7 +182,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect()
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
-                health->Pierce(0.1f);
+                health->Pierce(100.0f * p_delta);
             }
             else
             {
@@ -205,7 +210,15 @@ void StatusComponent::StatusEffect::ApplyStatusEffect()
         
         case StatusEffectType::POISONED:
         {
-            this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>()->Pierce(0.2f);
+            HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
+            if(health != nullptr)
+            {
+                health->Pierce(50.0f * p_delta);
+            }
+            else
+            {
+                std::cout << "StatusComponent - ERROR: HealthComponent not found." << std::endl;
+            }
             break;
         }
     }

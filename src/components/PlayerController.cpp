@@ -649,7 +649,7 @@ void PlayerController::ApplyDamageToEnemy()
         {
             // Set data for projectile collider
             glm::vec2 projectileDimensions = glm::vec2(8.0f, 8.0f);
-            glm::vec2 hurtboxOffset = glm::vec2(-4.0f, 4.0f);
+            glm::vec2 hurtboxOffset = glm::vec2(-projectileDimensions.x, projectileDimensions.y) * 0.5f;
 
             // Spawn projectile object & add components
             auto& scene = player->GetScene();

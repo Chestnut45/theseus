@@ -88,7 +88,7 @@ void PlayState::Enter()
     // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
     
     // this->CreateMinitaurEnemy();
-    this->CreateHarpyEnemy();
+    // this->CreateHarpyEnemy();
 }
 
 void PlayState::Exit()
@@ -198,7 +198,7 @@ void PlayState::Update(float delta)
     // Inflict status effects upon the player
     for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
     {
-        status.Update();
+        status.Update(delta);
     }
 
     // INVENTORY TESTING
@@ -357,9 +357,9 @@ void PlayState::CreatePlayer()
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
+    status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 2.0f);
+    status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 2.0f);
+    status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -2.0f);
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, ImVec2(800, 200), "Merchant Guy", 0.1f, 50);
