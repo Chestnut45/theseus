@@ -91,13 +91,16 @@ bool ChestInventoryComponent::FillFromLootTable(const std::string& filepath, wol
 
 void ChestInventoryComponent::ShowInventoryGUI() {
     if (m_bIsOpen) {
+        ImGuiStyle* pStyle = &ImGui::GetStyle();
+        pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
+
         // You can't resize the inventory or move it
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
         // By default, the inventory appears close to the middle of the screen
-        ImGui::SetNextWindowPos({800, 450});
+        ImGui::SetNextWindowPos(m_v2DrawPos);
         ImGui::SetNextWindowSize({0,0});
-        ImGui::Begin("\t~ Chest ~", &m_bIsOpen, flags);
+        ImGui::Begin("~ Chest ~", &m_bIsOpen, flags);
 
         // If we've closed the window using the ImGui button
         if (!m_bIsOpen) {
@@ -115,6 +118,7 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                 // We grab a reference to the top item and create a variable to hold the item's details
                 ItemBase* pItem = m_vvpContents[k].top();
                 std::string strTooltipText;
+                std::string strTooltipName;
 
                 // There are different rules for drawing Consumables and Equipment Items so we need to figure out
                 // what this particular item is before we go any further
@@ -132,8 +136,9 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                     }
 
                     // Then construct the string that will be used to display all of the item's details
-                    strTooltipText = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")\n\n" + pConsumable->GetDescription() 
-                        + "\n\nValue: " + std::to_string(pConsumable->GetValue()) + "\nUses: " + std::to_string(pConsumable->GetNumUses());
+                    strTooltipName = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")";
+                    strTooltipText = pConsumable->GetDescription() + "\n\nValue: " + std::to_string(pConsumable->GetValue())
+                        + "\nUses: " + std::to_string(pConsumable->GetNumUses());
 
                 }
                 else if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
@@ -145,19 +150,21 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                     }
                     
                     // Then start constructing the string that will be used to display all of the item's details
-                    strTooltipText = pEquipment->GetName();
+                    strTooltipName = pEquipment->GetName();
 
                     // If this item is equipped then we want to show that in the details string
                     if (pEquipment->IsEquipped()) {
-                        strTooltipText += " (E)";
+                        strTooltipName += " (E)";
                         bIsEquipped = true; // (And we'll need to remember that it's equipped later on)
                     }
 
                     // Add the rest of the item's details to the string
-                    strTooltipText += "\n\n" + pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue()) + "\nSlot: " + pEquipment->GetEquipmentSlotString();
+                    strTooltipText = pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue())
+                        + "\nSlot: " + pEquipment->GetEquipmentSlotString();
                 }
                 else { // If for some reason this item isn't Consumable OR Equipment
-                    strTooltipText = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")" + "\n\n" + pItem->GetDescription(); // We only show the name and the description
+                    strTooltipName = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")";
+                    strTooltipText = pItem->GetDescription();
                 }
                 
                 // We're also going to store a string representation of the slot index that we're on
@@ -172,7 +179,16 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     // We display the details string that we constructed earlier
                     ImGui::BeginTooltip();
-                    ImGui::Text("%s", strTooltipText.c_str());
+
+                    // Display the item name in the color that corresponds to its rarity level
+                    RGBIntColor nameColor = RarityColors[pItem->GetRarity()];
+                    ImGui::TextColored(ImColor(nameColor.r, nameColor.g, nameColor.b), "%s", strTooltipName.c_str());
+
+                    // Display the item's description
+                    ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + TOOLTIP_WRAP_POS);
+                    ImGui::TextWrapped("%s", strTooltipText.c_str());
+                    ImGui::PopTextWrapPos();
+
                     ImGui::EndTooltip();
                 }
 
@@ -197,9 +213,9 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                 }
             }
             else { // Otherwise, this is an empty inventory slot
-            if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[NONE]->m_v2TopLeft, m_vv2TextureCoords[NONE]->m_v2BotRight)) {
+                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
 
-            }
+                }
             }
 
             // If we've drawn the maximum number of slots per row

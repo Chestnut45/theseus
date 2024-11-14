@@ -1715,7 +1715,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         sprite.SetAnimation(frameName);
 
                         // Add the chest inventory
-                        auto& chestInv = chest.AddComponent<ChestInventoryComponent>(16, 4);
+                        auto& chestInv = chest.AddComponent<ChestInventoryComponent>(16, 4, ImVec2(800, 450));
                         chestInv.FillFromLootTable(lootTablePath, m_rng);
 
                         // Add chest as a child object of the correct chunk

@@ -105,6 +105,9 @@ void DispensaryInventoryComponent::SortByRarity() {
 void DispensaryInventoryComponent::ShowInventoryGUI() {
     // If the dispensary is open
     if (m_bIsOpen) {
+        ImGuiStyle* pStyle = &ImGui::GetStyle();
+        pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
+        
         // If the inventory contents need to be sorted again
         if (m_bUnsorted) {
             // Do that
@@ -115,7 +118,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
         // By default, the inventory appears close to the middle of the screen
-        ImGui::SetNextWindowPos({200, 200});
+        ImGui::SetNextWindowPos(m_v2DrawPos);
         ImGui::SetNextWindowSize({0, 0});
         ImGui::Begin("~ Dispensary ~", nullptr, flags);
 
@@ -150,6 +153,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 ItemBase* pItem = this->GetItem(index);
 
                 // And create a tooltip out of the item's information
+                std::string strTooltipName;
                 std::string strTooltipText;
 
                 // Every item in this inventory SHOULD be an equipment item, so we try to cast it
@@ -160,8 +164,9 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 }
                     
                 // Then start constructing the string that will be used to display all of the item's details
-                strTooltipText = pEquipment->GetName() + "\n\n" + pEquipment->GetDescription() + "\n\nValue: " 
-                    + std::to_string(pEquipment->GetValue()) + "\nSlot: " + pEquipment->GetEquipmentSlotString();
+                strTooltipName = pEquipment->GetName();
+                strTooltipText = pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue())
+                    + "\nSlot: " + pEquipment->GetEquipmentSlotString();
 
                 std::string strIndex = std::to_string(index);
 
@@ -173,7 +178,16 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     // We display the details string that we constructed earlier
                     ImGui::BeginTooltip();
-                    ImGui::Text("%s", strTooltipText.c_str());
+
+                    // Display the item name in the color that corresponds to its rarity level
+                    RGBIntColor nameColor = RarityColors[pItem->GetRarity()];
+                    ImGui::TextColored(ImColor(nameColor.r, nameColor.g, nameColor.b), "%s", strTooltipName.c_str());
+
+                    // Display the item's description
+                    ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + TOOLTIP_WRAP_POS);
+                    ImGui::TextWrapped("%s", strTooltipText.c_str());
+                    ImGui::PopTextWrapPos();
+
                     ImGui::EndTooltip();
                 }
 
@@ -212,7 +226,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
             // We want to make sure that the rows of items in the dispensary are uniform even if we have different numbers of items
             // at each rarity level, so if a rarity level doesn't use an entire row we fill the remaining space with empty slots
             for (int p = counter; p != m_iMaxPerRow; p++) {
-                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[NONE]->m_v2TopLeft, m_vv2TextureCoords[NONE]->m_v2BotRight)) {}
+                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {}
                 ImGui::SameLine();
             }
 
