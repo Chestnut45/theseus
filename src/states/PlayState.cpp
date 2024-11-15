@@ -527,8 +527,9 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
 int GetGoldVariant(int tileID) {
     switch (tileID) {
-        case Tile::FloorSquare:
         case Tile::FloorSmallSquares:
+            return Tile::FloorSmallSquaresGold;
+        case Tile::FloorSquare:
             return Tile::FloorSquareGold;
         case Tile::FloorSpiral:
             return Tile::FloorSpiralGold;
