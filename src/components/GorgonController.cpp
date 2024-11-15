@@ -26,6 +26,9 @@ void GorgonController::Init(const EnemyData& data)
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
+    // Set attack timer
+    m_attackTimer = m_attackCooldown;
+
     // Log initialized values
     wolf::Log("Gorgon " + std::to_string(pGameObject->GetID()) + " initialized with melee range " + std::to_string(m_meleeRange) + 
               ", attack cooldown " + std::to_string(m_attackCooldown) + 
@@ -54,6 +57,7 @@ void GorgonController::Init(const EnemyData& data)
     {
         m_pTarget = playerController.GetGameObject();
         wolf::Log("Gorgon " + std::to_string(pGameObject->GetID()) + " found player target with GameObject ID " + std::to_string(m_pTarget->GetID()));
+        m_pTargetStatusComponent = m_pTarget->GetComponent<StatusComponent>();
         targetFound = true;
         break;  // Assume there's only one player
     }
@@ -90,6 +94,9 @@ void GorgonController::Update(float delta)
             break;
         case EnemyState::CHASING:
             HandleChasingState(delta);
+            break;
+        case EnemyState::PROSPECT:
+            HandleProspectState(delta);
             break;
         case EnemyState::ATTACKING:
             HandleAttackingState(delta);
@@ -152,7 +159,7 @@ void GorgonController::HandleIdleState()
     float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
 
     // If the player comes into detection range, start chasing
-    if (distanceToPlayer <= m_detectionRange)
+    if (distanceToPlayer <= m_detectionRange && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
         ChangeState(EnemyState::CHASING);  // Transition to CHASING when the player is in range
     }
@@ -160,9 +167,9 @@ void GorgonController::HandleIdleState()
 
 void GorgonController::HandleProspectState(float delta)
 {
-    // Chase player if in range
+    // Chase player if in range and not already petrified
     float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
-    if (distanceToPlayer <= m_detectionRange)
+    if (distanceToPlayer <= m_detectionRange && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
         ChangeState(EnemyState::CHASING); 
         m_prospectCounter = 0;
@@ -179,10 +186,10 @@ void GorgonController::HandleProspectState(float delta)
                     // Roll for prospect
                     float rng = m_RNG.NextInt(1, 100);
                     // Begin prospecting
-                    if(rng > 20)
+                    if(rng > 10)
                     {
                         
-                        m_prospectCounter = m_RNG.NextInt(100, 200);
+                        m_prospectCounter = m_RNG.NextInt(1, 3);
                         glm::vec2 direction = glm::normalize(glm::vec2(m_RNG.NextInt(-100, 100), m_RNG.NextInt(-100, 100)));
                         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
                     }
@@ -198,7 +205,7 @@ void GorgonController::HandleProspectState(float delta)
             else
             {
                 m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
-                m_prospectCounter--;
+                m_prospectCounter -= delta;
             }
         }
         else
@@ -216,13 +223,16 @@ void GorgonController::HandleChasingState(float delta)
 
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+    const float distanceToTarget = glm::length(targetPosition - currentPosition);
 
-    // Check if the player has moved out of the detection range and transition to IDLE
-    if (distanceToPlayer > m_detectionRange)
+    // Check if the player has moved out of the detection range and transition to PROSPECT
+    if 
+    (
+        distanceToTarget > m_detectionRange ||
+        (distanceToTarget <= m_detectionRange && m_pTargetStatusComponent != nullptr && m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    )
     {
-        ChangeState(EnemyState::IDLE);
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));  // Reset velocity when returning to idle
+        ChangeState(EnemyState::PROSPECT);
         return;
     }
 
@@ -231,10 +241,12 @@ void GorgonController::HandleChasingState(float delta)
         m_transitionTimer.Start();
     }
 
-    if (distanceToPlayer <= m_meleeRange)
+    // If target is within attack range and not already petrified, attack
+    if (distanceToTarget <= m_meleeRange && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
         if (m_transitionTimer.Elapsed() >= m_transitionDelay)
         {
+            printf("GorgonController - ATTACK\n");
             ChangeState(EnemyState::ATTACKING);
             m_transitionTimer.Reset();
         }
@@ -252,33 +264,29 @@ void GorgonController::HandleAttackingState(float delta)
 
     // Stop Gorgon's movement during attack
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-
-    // Check distance to player
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
-
-    // Apply damage if player is within melee range and attack cooldown is over
-    if (distanceToPlayer <= m_meleeRange && m_attackTimer <= 0.0f)
+    if(m_attackTimer <= 0.0f)
     {
-        // Simulate applying damage to the player
-        auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
-        if (playerHealth)
+        // Check distance to player
+        const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+        const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+
+        // Petrify target if target is within melee range and attack cooldown is over
+        if (m_attackTimer <= 0.0f)
         {
-            playerHealth->Damage(m_baseDamage);
-
-            // Reset attack cooldown timer
-            m_attackTimer = m_attackCooldown;
+            if(m_pTargetStatusComponent != nullptr)
+            {
+                m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 10.0f);
+                ChangeState(EnemyState::PROSPECT);
+            }
         }
+        // Reset attack cooldown timer
+        m_attackTimer = m_attackCooldown;        
     }
-
-    // Cooldown timer for next attack
-    m_attackTimer -= delta;
-
-    // Return to chasing if player moves out of range
-    if (distanceToPlayer > m_meleeRange)
+    else
     {
-        ChangeState(EnemyState::CHASING);
+        // Cooldown timer for next attack
+        m_attackTimer -= delta;
     }
 }
 

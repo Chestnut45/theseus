@@ -7,6 +7,7 @@
 #include <components/HealthComponent.h>
 #include <components/ColliderComponent.h>
 #include <components/AnimatedSprite2D.h>
+#include <components/StatusComponent.h>
 #include <EnemyDataLoader.h>
 
 class GorgonController : public EnemyController
@@ -34,7 +35,8 @@ private:
     // Gorgon-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;
-    VelocityComponent* m_pVelocity = nullptr;;
+    StatusComponent * m_pTargetStatusComponent = nullptr;
+    VelocityComponent* m_pVelocity = nullptr;
     float m_meleeRange;
     float m_attackCooldown;
     float m_attackTimer = 0.0f;

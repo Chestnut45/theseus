@@ -27,9 +27,6 @@ void MinitaurController::Init(const EnemyData& data)
     // Set attack timer
     m_attackTimer = m_attackCooldown;
 
-    // Set attack timer
-    m_attackTimer = m_attackCooldown;
-
     // Get required components and log their initialization
     m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
     if (!m_pVelocity)
