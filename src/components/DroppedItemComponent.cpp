@@ -6,6 +6,20 @@ DroppedItemComponent::~DroppedItemComponent() {
     wolf::EventManager::RemoveListener<DestroyDroppedItemEvent, DroppedItemComponent, &DroppedItemComponent::HandleDestroyDroppedItemEvent>(*this);
 }
 
+void DroppedItemComponent::Update(float p_fDelta) {
+    // If this drop item can despawn
+    if (m_fLifeSpan > 0) {
+        // And it has reached the end of its lifespan
+        if (m_fTimeSpentAlive > m_fLifeSpan) {
+            // Kill it
+            this->GetGameObject()->Delete();
+        }
+
+        // Otherwise, just update the timer
+        m_fTimeSpentAlive += p_fDelta;
+    }
+}
+
 // Attempt to add this item to the player's inventory
 void DroppedItemComponent::PickUpItem() {
     wolf::EventManager::TriggerEvent(PickupDroppedItemEvent(m_iId, m_pItem));

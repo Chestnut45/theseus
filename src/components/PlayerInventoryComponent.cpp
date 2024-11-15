@@ -181,7 +181,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     if (ImGui::Button("Drop")) {
                         wolf::Transform2D* pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
                         if (pTransform) {
-                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pItem, pTransform->GetGlobalPosition());
+                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pItem, pTransform->GetGlobalPosition(), 5.0f);
                         }
                         this->RemoveItem(k);
                         ImGui::CloseCurrentPopup();

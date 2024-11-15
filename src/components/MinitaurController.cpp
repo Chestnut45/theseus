@@ -348,7 +348,7 @@ void MinitaurController::HandleDeathState(float delta)
         if(m_lieDeadTimer >= m_timeToLieDead)
         {
             // !-- Aurora added this --!
-            ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition());
+            ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), 5.0f);
             GetGameObject()->Delete();
         }
         m_lieDeadTimer += delta;

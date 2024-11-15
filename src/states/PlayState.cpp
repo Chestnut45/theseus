@@ -196,6 +196,12 @@ void PlayState::Update(float delta)
         attackDamageComponent.Update(delta);
     }
 
+    // Update all dropped items
+    for (auto&&[_, itemDrop] : m_pGameInstance->GetScene().Each<DroppedItemComponent>())
+    {
+        itemDrop.Update(delta);
+    }
+
     // Update collisions
     this->m_pColliderManager->Update(delta);
 
