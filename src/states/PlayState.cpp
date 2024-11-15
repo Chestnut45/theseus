@@ -359,7 +359,7 @@ void PlayState::CreatePlayer()
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
     status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 2.0f);
     status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 2.0f);
-    status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -2.0f);
+    status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 2.0f);
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, ImVec2(800, 200), "Merchant Guy", 0.1f, 50);

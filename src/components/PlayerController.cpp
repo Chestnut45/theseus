@@ -686,24 +686,33 @@ void PlayerController::ApplyDamageToEnemy()
         case WeaponType::SWORD:
         {
             // Set & calculate data for melee collider
-            glm::vec2 meleeDimensions = glm::vec2(16.0f, 16.0f);
+            glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
-             
-            if(playerDirection.x != 0.0f)
-            {
-                offset.x = 10.0f;
-                meleeDimensions.y += 10.0f;
+            glm::vec2 multiplier = glm::vec2(8.0f, 8.0f);
+            
+            // Horizontal attack
+            if(playerDirection.x != 0.0f && playerDirection.y == 0.0f)
+            {  
+                offset.x = playerDirection.x > 0.0f ? playerDirection.x * multiplier.x : playerDirection.x * multiplier.x - meleeDimensions.x;
+                offset.y = meleeDimensions.y * 0.5f;
             }
 
-            if(playerDirection.y != 0.0f)
+            // Vertical attack
+            else if(playerDirection.x == 0.0f && playerDirection.y != 0.0f)
             {
-                offset.y = 10.0f;
-                meleeDimensions.x += 10.0f;
+                offset.x = -meleeDimensions.x * 0.5f;
+                offset.y = playerDirection.y > 0.0f ? playerDirection.y * multiplier.y + meleeDimensions.y : playerDirection.y * multiplier.y;
             }
-
-            // Shift offset along player direction
-            offset.x = playerDirection.x * offset.x;
-            offset.y = playerDirection.y * offset.y;
+            
+            // Diagonal attack
+            else if(playerDirection.x != 0.0f && playerDirection.y != 0.0f)
+            {
+                meleeDimensions *= 0.9f;
+                offset.x = -meleeDimensions.x * 0.5f;
+                offset.x = playerDirection.x > 0.0f ? playerDirection.x * multiplier.x : playerDirection.x * multiplier.x - meleeDimensions.x;
+                offset.y = meleeDimensions.y * 0.5f;
+                offset.y = playerDirection.y > 0.0f ? playerDirection.y * multiplier.y + meleeDimensions.y : playerDirection.y * multiplier.y;
+            }
 
             // Scale offset by player scale
             offset *= playerScale;
@@ -715,7 +724,7 @@ void PlayerController::ApplyDamageToEnemy()
             melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
 
             auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f, meleeDimensions.y * 0.5f - 0.5f));
+            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(0.0f));
             meleeCollider.SetIgnoreTag(player->GetID());
 
             auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
@@ -723,10 +732,6 @@ void PlayerController::ApplyDamageToEnemy()
             melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
             melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
             auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
-
-            auto& meleeVelocity = melee.AddComponent<VelocityComponent>();
-            meleeVelocity.SetVelocity(glm::vec2(0.0f, 0.0f));
-
             break;
         }
 
@@ -734,47 +739,36 @@ void PlayerController::ApplyDamageToEnemy()
         case WeaponType::SPEAR:
         {
             // Set & calculate data for melee collider
-            glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
+            glm::vec2 meleeDimensions = glm::vec2(16.0f, 16.0f);
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
-            glm::vec2 colliderBoxOffset2 = glm::vec2(0.0f, 0.0f);
+            glm::vec2 multiplier = glm::vec2(8.0f, 8.0f);
             
-            if(playerDirection.x != 0.0f)
+            // Horizontal attack
+            if(playerDirection.x != 0.0f && playerDirection.y == 0.0f)
             {
-                offset.x = 9.0f;
-                if(playerDirection.y == 0.0f)
-                {
-                    meleeDimensions.x += 24.0f;
-                    meleeDimensions.y *= 2.5f;
-                }
-                else
-                {
-                    meleeDimensions.y *= 2.0f;
-                }
-                colliderBoxOffset2.x = playerDirection.x > 0.0f ? meleeDimensions.x : -meleeDimensions.x;
+                meleeDimensions.x *= 1.5f;
+                meleeDimensions.y *= 1.2f;
+                offset.x = playerDirection.x > 0.0f ? playerDirection.x * multiplier.x : playerDirection.x * multiplier.x - meleeDimensions.x;
+                offset.y = meleeDimensions.y * 0.5f;
             }
 
-            if(playerDirection.y != 0.0f)
+            // Vertical attack
+            else if(playerDirection.x == 0.0f && playerDirection.y != 0.0f)
             {
-                offset.y = 13.0f;
-                if(playerDirection.x == 0.0f)
-                {
-                    
-                    meleeDimensions.y += 8.0f;
-                    meleeDimensions.x *= 3.0f;
-                }
-                else
-                {
-                    meleeDimensions.x *= 2.0f;
-                }
-
-                colliderBoxOffset2.y = playerDirection.y > 0.0f ? meleeDimensions.y : -meleeDimensions.y;
+                meleeDimensions.x *= 1.2f;
+                meleeDimensions.y *= 1.5f;
+                offset.x = -meleeDimensions.x * 0.5f;
+                offset.y = playerDirection.y > 0.0f ? playerDirection.y * multiplier.y + meleeDimensions.y : playerDirection.y * multiplier.y;
             }
 
-            bool isDiagonalAttack = (playerDirection.x != 0.0f) && (playerDirection.y != 0.0f);
-
-            // Shift offset along player direction
-            offset.x = playerDirection.x * offset.x;
-            offset.y = playerDirection.y * offset.y;
+            // Diagonal attack
+            else if(playerDirection.x != 0.0f && playerDirection.y != 0.0f)
+            {
+                offset.x = -meleeDimensions.x * 0.5f;
+                offset.x = playerDirection.x > 0.0f ? playerDirection.x * multiplier.x : playerDirection.x * multiplier.x - meleeDimensions.x;
+                offset.y = meleeDimensions.y * 0.5f;
+                offset.y = playerDirection.y > 0.0f ? playerDirection.y * multiplier.y + meleeDimensions.y : playerDirection.y * multiplier.y;
+            }
 
             // Scale offset by player scale
             offset *= playerScale;
@@ -786,20 +780,9 @@ void PlayerController::ApplyDamageToEnemy()
             melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
 
             auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);  
-            glm::vec2 shift = glm::vec2(0.0f, 0.0f);
-                
-            if(isDiagonalAttack)
-            {
-                shift.x = playerDirection.x > 0.0f ? 2.0f : -2.0f;
-                shift.y = playerDirection.y > 0.0f ? 2.0f : -2.0f;
-                meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f + shift.x, meleeDimensions.y * 0.5f + shift.y));
-            }
-            else
-            {
-                shift.x = playerDirection.x > 0.0f ? 5.0f : playerDirection.x < 0.0f ? -6.0f : 0.0f;
-                shift.y = playerDirection.y > 0.0f ? 1.5f : playerDirection.y < 0.0f ? -1.0f : 0.0f;
-                meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(-meleeDimensions.x * 0.5f + shift.x, meleeDimensions.y * 0.5 + shift.y));
-            } 
+            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(0.0f, 0.0f));
+
+                 
             meleeCollider.SetIgnoreTag(player->GetID());
 
             auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
@@ -807,9 +790,6 @@ void PlayerController::ApplyDamageToEnemy()
             melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
             melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
             auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
-
-            auto& meleeVelocity = melee.AddComponent<VelocityComponent>();
-            meleeVelocity.SetVelocity(glm::vec2(0.0f, 0.0f));
         }
     }
 }
