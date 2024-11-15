@@ -266,20 +266,27 @@ void GorgonController::HandleAttackingState(float delta)
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
     if(m_attackTimer <= 0.0f)
     {
-        // Check distance to player
-        const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-        const float distanceToPlayer = glm::length(targetPosition - currentPosition);
-
-        // Petrify target if target is within melee range and attack cooldown is over
-        if (m_attackTimer <= 0.0f)
+        //---------------------------//
+        //                           //
+        //  TODO: ADD HITSCAN CHECK  //
+        //                           //
+        //---------------------------//
+        if(true)
         {
+            // Petrify target and switch to prospect
             if(m_pTargetStatusComponent != nullptr)
             {
                 m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 10.0f);
                 ChangeState(EnemyState::PROSPECT);
+                AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+                if(sprite != nullptr)
+                {
+                    sprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+                }
             }
         }
+        
+        
         // Reset attack cooldown timer
         m_attackTimer = m_attackCooldown;        
     }
@@ -287,6 +294,11 @@ void GorgonController::HandleAttackingState(float delta)
     {
         // Cooldown timer for next attack
         m_attackTimer -= delta;
+        AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+        if(sprite != nullptr)
+        {
+            sprite->SetTint(sprite->GetTint() + delta / (m_attackCooldown * 0.5f));
+        }
     }
 }
 
