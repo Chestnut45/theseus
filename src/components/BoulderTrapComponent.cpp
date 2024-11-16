@@ -2,8 +2,8 @@
 #include "W_GameObject.h"
 #include "W_EventManager.h"
 
-BoulderTrapComponent::BoulderTrapComponent(ColliderManager* colliderManager, BoulderDirection direction, float speed, float damage, float lifespan)
-    : m_colliderManager(colliderManager), m_direction(direction), m_speed(speed), m_damage(damage), m_lifespan(lifespan), m_timerStarted(false) {}
+BoulderTrapComponent::BoulderTrapComponent(ColliderManager* colliderManager, BoulderDirection direction, float speed, float lifespan)
+    : m_colliderManager(colliderManager), m_direction(direction), m_speed(speed), m_lifespan(lifespan), m_timerStarted(false) {}
 
 void BoulderTrapComponent::Update(float delta) {
     // Start the lifespan timer only when the boulder starts moving

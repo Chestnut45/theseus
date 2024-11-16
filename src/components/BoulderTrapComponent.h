@@ -1,6 +1,7 @@
 #pragma once
 #include "W_BaseComponent.h"
-#include "ColliderComponent.h"
+#include "ColliderManager.h"
+#include "AttackDamageComponent.h"
 #include "W_Timer.h"
 
 enum class BoulderDirection {
@@ -12,17 +13,17 @@ enum class BoulderDirection {
 
 class BoulderTrapComponent : public wolf::BaseComponent {
 public:
-    BoulderTrapComponent(ColliderManager* colliderManager, BoulderDirection direction, float speed, float damage, float lifespan);
+    BoulderTrapComponent(ColliderManager* colliderManager, BoulderDirection direction, float speed, float lifespan);
     void Update(float delta);
 
 private:
     void MoveBoulder(float delta);
 
     ColliderManager* m_colliderManager = nullptr;
+    AttackDamageComponent* m_attackDamageComponent = nullptr; // Pointer to AttackDamageComponent
     BoulderDirection m_direction;
     float m_speed;
-    float m_damage;
     float m_lifespan;
+    bool m_timerStarted = false;
     wolf::Timer m_lifespanTimer;
-    bool m_timerStarted = false; 
 };
