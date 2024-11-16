@@ -915,8 +915,8 @@ void PlayerController::RenderDeathScreen() {
     // Step 1: Fade to Black
     if (!m_fadeComplete) {
         m_fadeOpacity += 0.01f;
-        if (m_fadeOpacity >= 1.0f) {
-            m_fadeOpacity = 1.0f;
+        if (m_fadeOpacity >= 0.75f) {
+            m_fadeOpacity = 0.75f;
             m_fadeComplete = true;
         }
     }
@@ -951,23 +951,17 @@ void PlayerController::RenderDeathScreen() {
         }
     }
 
-    // Step 2: Enhanced "You Died" message
+    // Display "You Died" message
     if (m_messageFadeComplete || m_messageOpacity > 0.0f) {
         ImVec2 textPos((displaySize.x + 150.0f - (ImGui::CalcTextSize("You Died").x * 0.5f)) * 0.5f, displaySize.y * 0.4f);
         ImGui::SetNextWindowPos(textPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(ImVec2(300, 100));
         ImGui::Begin("##GameOverMessage", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        
-        // Add a glow effect using shadow text
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, m_messageOpacity * 0.5f));
-        ImGui::SetWindowFontScale(2.8f);
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.0f);  // Offset shadow vertically
-        ImGui::Text("You Died");
 
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3.0f);  // Reset position
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, m_messageOpacity)); // Bright red
+        ImGui::SetWindowFontScale(2.8f);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.1f, 0.1f, m_messageOpacity)); // Brighter red color
         ImGui::Text("You Died");
-        ImGui::PopStyleColor(2);
+        ImGui::PopStyleColor();
         ImGui::End();
     }
 
@@ -980,30 +974,24 @@ void PlayerController::RenderDeathScreen() {
         }
     }
 
-    // Step 3: Enhanced runtime display
+// Display runtime information
     if (m_runtimeFadeComplete || m_runtimeOpacity > 0.0f) {
         ImVec2 runtimePos((displaySize.x) * 0.5f, displaySize.y * 0.5f);
         ImGui::SetNextWindowPos(runtimePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(ImVec2(300, 100));
         ImGui::Begin("##RuntimeInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
 
-        // Add shadow text for a glowing effect
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, m_runtimeOpacity * 0.5f));
         ImGui::SetWindowFontScale(1.8f);
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.0f);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.2f, 1.2f, 1.2f, m_runtimeOpacity)); // Brighter white color
         ImGui::Text("Run Time: %.2f seconds", m_deathRuntime);
-
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f);
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, m_runtimeOpacity)); // White text
-        ImGui::Text("Run Time: %.2f seconds", m_deathRuntime);
-        ImGui::PopStyleColor(2);
+        ImGui::PopStyleColor();
         ImGui::End();
     }
 
     // Step 4: Options (Buttons)
     if (m_runtimeFadeComplete) {
         m_optionsOpacity += 0.01f;
-        if (m_optionsOpacity > 1.0f) {
+        if (m_optionsOpacity >= 1.0f) {
             m_optionsOpacity = 1.0f;
         }
     }
@@ -1014,22 +1002,14 @@ void PlayerController::RenderDeathScreen() {
         ImGui::SetNextWindowSize(ImVec2(320, 160));
         ImGui::Begin("##DeathScreenOptions", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
 
-        // Style adjustments for the buttons
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 16.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(16.0f, 10.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 15.0f));
 
-        // Button colors with gradient effect
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.5f, m_optionsOpacity));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.3f, 0.8f, m_optionsOpacity));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.0f, 0.6f, m_optionsOpacity));
-        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.3f, 0.3f, 1.0f, m_optionsOpacity));
-        ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0.0f, 0.0f, 0.0f, m_optionsOpacity * 0.6f));
 
-        // Enable border and shadow for a polished look
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
-
-        // "Return to Main Menu" button
         if (ImGui::Button("Return to Main Menu", ImVec2(240, 50))) {
             wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::MAIN_MENU));
             ResetDeathScreenState();
@@ -1037,15 +1017,13 @@ void PlayerController::RenderDeathScreen() {
 
         ImGui::Spacing();
 
-        // "Exit Game" button
         if (ImGui::Button("Exit Game", ImVec2(240, 50))) {
             wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::EXIT));
             ResetDeathScreenState();
         }
 
-        // Pop all style changes
-        ImGui::PopStyleVar(4); // Pop FrameRounding, FramePadding, ItemSpacing, and FrameBorderSize
-        ImGui::PopStyleColor(5); // Pop Button, ButtonHovered, ButtonActive, Border, and BorderShadow
+        ImGui::PopStyleVar(3);
+        ImGui::PopStyleColor(3);
         ImGui::End();
     }
 }
