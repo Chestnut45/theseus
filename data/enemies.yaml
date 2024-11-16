@@ -20,10 +20,11 @@ enemies:
     animation_init_file: "data/minitaur_anim_init.yaml"
 
   - type: gorgon
-    health: 125
+    health: 450
     armour: 1
-    melee_range: 300
+    ranged_range: 300
     attack_cooldown: 3
+    ranged_cooldown: 2
     detection_range: 600
     base_damage: 50
     chase_speed: 120

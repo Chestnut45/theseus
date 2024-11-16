@@ -38,8 +38,9 @@ private:
     StatusComponent * m_pTargetStatusComponent = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
     float m_meleeRange;
-    float m_attackCooldown;
-    float m_attackTimer = 0.0f;
+    float m_rangedRange;
+    float m_rangedCooldown;
+    float m_rangedTimer = 0.0f;
     float m_detectionRange;
     float m_baseDamage;
     float m_chaseSpeed;
@@ -61,4 +62,6 @@ private:
     float m_lieDeadTimer = 0.0f;
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
+
+    float m_targetDist = 0.0f;
 };

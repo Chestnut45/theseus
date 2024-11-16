@@ -18,20 +18,22 @@ void GorgonController::Init(const EnemyData& data)
 
     // Call base initialization
     EnemyController::Init();
+    m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
 
     // Assign enemy data
     m_meleeRange = data.meleeRange;
-    m_attackCooldown = data.attackCooldown;
+    m_rangedRange = data.rangedRange;
+    m_rangedCooldown = data.rangedCooldown;
     m_detectionRange = data.detectionRange;
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
     // Set attack timer
-    m_attackTimer = m_attackCooldown;
+    m_rangedTimer = m_rangedCooldown;
 
     // Log initialized values
     wolf::Log("Gorgon " + std::to_string(pGameObject->GetID()) + " initialized with melee range " + std::to_string(m_meleeRange) + 
-              ", attack cooldown " + std::to_string(m_attackCooldown) + 
+              ", ranged cooldown " + std::to_string(m_rangedCooldown) + 
               ", detection range " + std::to_string(m_detectionRange) + 
               ", base damage " + std::to_string(m_baseDamage) + 
               ", and chase speed " + std::to_string(m_chaseSpeed));
@@ -200,7 +202,7 @@ void GorgonController::HandleProspectState(float delta)
                         ChangeState(EnemyState::IDLE);
                         m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Reset velocity when returning to idle
                     }
-                    m_prospectStandingCounter = m_RNG.NextInt(1, 3);                  
+                    m_prospectStandingCounter = m_RNG.NextFloat(0.5f, 2.0f);                  
             }
             else
             {
@@ -225,7 +227,7 @@ void GorgonController::HandleChasingState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToTarget = glm::length(targetPosition - currentPosition);
 
-    // Check if the player has moved out of the detection range and transition to PROSPECT
+    // If player is out of detection range or within detection range but already petrified, switch to prospect
     if 
     (
         distanceToTarget > m_detectionRange ||
@@ -241,20 +243,22 @@ void GorgonController::HandleChasingState(float delta)
         m_transitionTimer.Start();
     }
 
-    // If target is within attack range and not already petrified, attack
-    if (distanceToTarget <= m_meleeRange && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    // If target is within ranged range
+    if (distanceToTarget <= m_rangedRange)
     {
-        if (m_transitionTimer.Elapsed() >= m_transitionDelay)
+        // If transition delay is expired and target is not already petrified, attack
+        if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
         {
-            printf("GorgonController - ATTACK\n");
+            m_targetDist = distanceToTarget;
             ChangeState(EnemyState::ATTACKING);
             m_transitionTimer.Reset();
         }
     }
+    // If target is out of range, set timer to 0 & set transition delay to random value
     else
     {
-        // Ensure the timer is reset if the player is not in range
         m_transitionTimer.Reset();
+        m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
     }
 }
 
@@ -264,7 +268,8 @@ void GorgonController::HandleAttackingState(float delta)
 
     // Stop Gorgon's movement during attack
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    if(m_attackTimer <= 0.0f)
+
+    if(m_rangedTimer <= 0.0f)
     {
         //---------------------------//
         //                           //
@@ -276,7 +281,7 @@ void GorgonController::HandleAttackingState(float delta)
             // Petrify target and switch to prospect
             if(m_pTargetStatusComponent != nullptr)
             {
-                m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 10.0f);
+                m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
                 ChangeState(EnemyState::PROSPECT);
                 AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
                 if(sprite != nullptr)
@@ -288,16 +293,18 @@ void GorgonController::HandleAttackingState(float delta)
         
         
         // Reset attack cooldown timer
-        m_attackTimer = m_attackCooldown;        
+        m_rangedTimer = m_rangedCooldown;        
     }
     else
     {
         // Cooldown timer for next attack
-        m_attackTimer -= delta;
+        m_rangedTimer -= delta;
+
+        // Brighten sprite to indicate attack
         AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
         if(sprite != nullptr)
         {
-            sprite->SetTint(sprite->GetTint() + delta / (m_attackCooldown * 0.5f));
+            sprite->SetTint(sprite->GetTint() + delta / (m_rangedCooldown * 0.5f));
         }
     }
 }
@@ -331,7 +338,24 @@ void GorgonController::UpdateAnimationBasedOnDirection()
     else
     {
         // If not moving, default to idle state based on the last direction
-        animationName = "StandSouth";  // Modify as needed
+        if(m_state == EnemyState::ATTACKING)
+        {
+            const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+            const glm::vec2 vectorToTarget = targetPosition - currentPosition;
+            const float distanceToTarget = glm::length(vectorToTarget);
+
+            if (fabs(vectorToTarget.x) > fabs(vectorToTarget.y))
+            {
+                // Moving left or right
+                animationName = (vectorToTarget.x > 0.0f) ? "StandEast" : "StandWest";
+            }
+            else
+            {
+                // Moving up or down
+                animationName = (vectorToTarget.y > 0.0f) ? "StandNorth" : "StandSouth";
+            }
+        }
     }
 
     // Check if the animation needs to be changed
