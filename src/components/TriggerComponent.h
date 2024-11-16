@@ -5,26 +5,31 @@
 #include <events/TriggerEvent.h>
 #include <events/TrapDestroyedEvent.h>
 
-
 enum class TriggerType {
     SINGLE_USE,
     REUSABLE,
     CUTSCENE_SINGLE
 };
 
+enum class TrapType {
+    NONE,
+    SPIKE_TRAP,
+    BOULDER_TRAP
+};
+
 class TriggerComponent : public wolf::BaseComponent {
 public:
-    TriggerComponent(ColliderManager* colliderManager, TriggerType type);
+    TriggerComponent(ColliderManager* colliderManager, TriggerType type, TrapType trapType);
     ~TriggerComponent();
-
 
     void Update(float delta);
 
 private:
     bool CheckPlayerCollision(float delta);
-    void OnTrapDestroyed(const TrapDestroyedEvent& event);  
+    void OnTrapDestroyed(const TrapDestroyedEvent& event);
 
     ColliderManager* m_colliderManager = nullptr;
     bool m_triggered = false;
     TriggerType m_triggerType;
+    TrapType m_trapType;
 };

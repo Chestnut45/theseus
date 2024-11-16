@@ -21,6 +21,7 @@
 #include "events/TriggerEvent.h"
 #include "events/GameOverEvent.h"
 #include <TrapComponent.h>
+#include <BoulderTrapComponent.h>
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
 #include <HarpyBuilder.h>
@@ -45,10 +46,12 @@ public:
     void Render() override;
     void BackgroundUpdate(float delta) override;
     void BackgroundRender() override;
+
+    // Event Handlers
     void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
-    void OnCutsceneTriggerEvent(const TriggerEvent& event);  // Listener for cutscene trigger
-
+    void OnCutsceneTriggerEvent(const TriggerEvent& event);
+    void OnGameOverEvent(const GameOverEvent& event);
 
 
 private:
@@ -74,11 +77,15 @@ private:
     void CreatePlayer();
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
-    // Creates a pressure plate with specified position, trigger type, trap damage, lifespan, and offset.
-    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType);
+    // Creates a pressure plate
+    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType, TrapType trapType = TrapType::NONE);
     void CreateThrowableObject();
 
-    void OnGameOverEvent(const GameOverEvent& event);
+    // New Helper Methods for Traps
+    void CreateSpikeTrap(const glm::vec2& position);
+    void CreateBoulderTrap(const glm::vec2& position);
+
+
 
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);
