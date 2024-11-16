@@ -639,7 +639,7 @@ void PlayState::CreateBoulderTrap(const glm::vec2& position) {
 
     // Check if the sprite component exists, and add if not
     if (!boulderObj.HasAll<wolf::Sprite2D>()) {
-        boulderObj.AddComponent<wolf::Sprite2D>("data/textures/boulder.png");
+        boulderObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
     }
     auto* sprite = boulderObj.GetComponent<wolf::Sprite2D>();
     sprite->SetOriginToCenterOfTexture();
