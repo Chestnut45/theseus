@@ -1,10 +1,7 @@
 #pragma once
 #include "W_BaseComponent.h"
 #include "ColliderComponent.h"
-#include "W_EventManager.h"
-#include "W_GameObject.h"
-#include <events/TriggerEvent.h>
-#include <events/TrapDestroyedEvent.h>
+#include "W_Timer.h"
 
 enum class BoulderDirection {
     UP,
@@ -15,22 +12,17 @@ enum class BoulderDirection {
 
 class BoulderTrapComponent : public wolf::BaseComponent {
 public:
-    BoulderTrapComponent(ColliderManager* colliderManager, BoulderDirection direction, float speed, float damage);
-    ~BoulderTrapComponent();
-
+    BoulderTrapComponent(ColliderManager* colliderManager, BoulderDirection direction, float speed, float damage, float lifespan);
     void Update(float delta);
 
 private:
-    void OnTriggerEvent(const TriggerEvent& event);
     void MoveBoulder(float delta);
-    bool CheckCollision(float delta);
-    bool CheckForPlayerCollision(float delta);
-    bool CheckForEnemyCollision(float delta);
-    bool CheckForWallCollision();
 
     ColliderManager* m_colliderManager = nullptr;
     BoulderDirection m_direction;
     float m_speed;
     float m_damage;
-    bool m_activated = false;
+    float m_lifespan;
+    wolf::Timer m_lifespanTimer;
+    bool m_timerStarted = false; 
 };

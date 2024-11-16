@@ -55,9 +55,10 @@ void PlayState::Enter()
 
     CreateThrowableObject();
     
-CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(96.0f, 96.0f), TriggerType::SINGLE_USE, TrapType::SPIKE_TRAP);
-CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f), TriggerType::REUSABLE, TrapType::BOULDER_TRAP);
+// CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(96.0f, 96.0f), TriggerType::REUSABLE, TrapType::SPIKE_TRAP);
 CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(-192.0f, -192.0f), TriggerType::CUTSCENE_SINGLE);
+CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(128.0f, 128.0f), TriggerType::SINGLE_USE, TrapType::BOULDER_TRAP);
+
 
 
     // Testing: Create a test projectile object
@@ -169,6 +170,9 @@ void PlayState::Update(float delta)
     }
     for (auto&& [_, trap] : m_pGameInstance->GetScene().Each<TrapComponent>()) {
         trap.Update(delta);
+    }
+      for (auto&& [_, bouldertrap] : m_pGameInstance->GetScene().Each<BoulderTrapComponent>()) {
+        bouldertrap.Update(delta);
     }
         
     for (auto&& [_, throwable] : m_pGameInstance->GetScene().Each<ThrowableObjectComponent>()) 
@@ -485,6 +489,7 @@ void PlayState::CreatePressurePlate(const glm::vec2& position, TriggerType trigg
     // Log the creation of the pressure plate
     // wolf::Log("Created pressure plate with TriggerComponent at position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
 }
+
 void PlayState::OnTriggerEvent(const TriggerEvent& event) {
     auto* triggerObject = event.m_pTriggerObject;
     if (!triggerObject) return;
@@ -634,17 +639,16 @@ void PlayState::CreateSpikeTrap(const glm::vec2& position) {
 }
 
 void PlayState::CreateBoulderTrap(const glm::vec2& position) {
-    // Create the boulder object
     auto& boulderObj = m_pGameInstance->GetScene().CreateObject2D();
 
-    // Check if the sprite component exists, and add if not
+    // Add sprite component for the boulder using the debug sprite
     if (!boulderObj.HasAll<wolf::Sprite2D>()) {
         boulderObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
     }
     auto* sprite = boulderObj.GetComponent<wolf::Sprite2D>();
     sprite->SetOriginToCenterOfTexture();
 
-    // Check if the Transform2D component exists, and add if not
+    // Add transform component
     if (!boulderObj.HasAll<wolf::Transform2D>()) {
         boulderObj.AddComponent<wolf::Transform2D>();
     }
@@ -652,18 +656,15 @@ void PlayState::CreateBoulderTrap(const glm::vec2& position) {
     transform->SetPosition(position);
     transform->SetScale(glm::vec2(3.0f));
 
-    // Check if the ColliderComponent exists, and add if not
+    // Add collider component (for collision detection)
     if (!boulderObj.HasAll<ColliderComponent>()) {
-        boulderObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 1, 0);
+        boulderObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
     }
     auto* collider = boulderObj.GetComponent<ColliderComponent>();
-    collider->AddColliderBox(glm::vec2(64.0f, 64.0f), glm::vec2(-32.0f, 32.0f));
+    collider->AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
 
-    // Check if the BoulderTrapComponent exists, and add if not
+    // Add BoulderTrapComponent with default values
     if (!boulderObj.HasAll<BoulderTrapComponent>()) {
-        boulderObj.AddComponent<BoulderTrapComponent>(m_pColliderManager, BoulderDirection::RIGHT, 200.0f, 100.0f);
+        boulderObj.AddComponent<BoulderTrapComponent>(m_pColliderManager, BoulderDirection::LEFT, 200.0f, 100.0f, 10.0f);
     }
-
-    // Log the creation of the boulder trap
-    // wolf::Log("Boulder trap created at position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
 }
