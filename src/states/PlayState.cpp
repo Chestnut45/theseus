@@ -232,7 +232,7 @@ void PlayState::Update(float delta)
 
     // Display all open chest GUIs
     const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    for (auto&&[_, chestInventory, transform] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D>())
+    for (auto&&[_, chestInventory, transform, sprite] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
     {
         // Show GUI
         chestInventory.ShowInventoryGUI();
@@ -246,7 +246,14 @@ void PlayState::Update(float delta)
 
             if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
             {
+                auto name = sprite.GetCurrentAnimation()->m_strName;
+                if (chestInventory.IsOpen())
+                    sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
+                else
+                    sprite.SetAnimation(name.replace(name.find("Closed"), 6, "Open"));
+                
                 chestInventory.ToggleOpen();
+                
                 if (!chestInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
                 break;
             }
@@ -257,6 +264,8 @@ void PlayState::Update(float delta)
             if (chestInventory.IsOpen())
             {
                 chestInventory.Close();
+                auto name = sprite.GetCurrentAnimation()->m_strName;
+                sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
                 m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
             }
         }
