@@ -96,7 +96,7 @@ Dull Blade: {
   type: SWORD,
   delay: 0.25,
   damage: 50.0,
-  hurtbox_size: {x: 16.0, y: 16.0},
+  hurtbox_size: {x: 18.0, y: 18.0},
   has_projectiles: false
 }
 

@@ -691,30 +691,30 @@ void PlayerController::ApplyDamageToEnemy()
             // Set & calculate data for melee collider
             glm::vec2 meleeDimensions = m_pCurrentWeapon->GetHurtBoxSize();
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
-            glm::vec2 multiplier = glm::vec2(2.0f, 2.0f);
             
             // Horizontal attack
             if(playerDirection.x != 0.0f && playerDirection.y == 0.0f)
             {  
-                offset.x = playerDirection.x > 0.0f ? playerDirection.x * multiplier.x : playerDirection.x * multiplier.x - meleeDimensions.x;
+                meleeDimensions.y *= 1.25f;
+                offset.x = playerDirection.x > 0.0f ? 0.0f : -meleeDimensions.x;
                 offset.y = meleeDimensions.y * 0.5f;
             }
 
             // Vertical attack
             else if(playerDirection.x == 0.0f && playerDirection.y != 0.0f)
             {
+                meleeDimensions.x *= 1.25f;
                 offset.x = -meleeDimensions.x * 0.5f;
-                offset.y = playerDirection.y > 0.0f ? playerDirection.y * multiplier.y + meleeDimensions.y : playerDirection.y * multiplier.y;
+                offset.y = playerDirection.y > 0.0f ? meleeDimensions.y : 0.0f;
             }
             
             // Diagonal attack
             else if(playerDirection.x != 0.0f && playerDirection.y != 0.0f)
             {
-                meleeDimensions *= 0.9f;
                 offset.x = -meleeDimensions.x * 0.5f;
-                offset.x = playerDirection.x > 0.0f ? playerDirection.x * multiplier.x : playerDirection.x * multiplier.x - meleeDimensions.x;
+                offset.x = playerDirection.x > 0.0f ? 0.0f : -meleeDimensions.x;
                 offset.y = meleeDimensions.y * 0.5f;
-                offset.y = playerDirection.y > 0.0f ? playerDirection.y * multiplier.y + meleeDimensions.y : playerDirection.y * multiplier.y;
+                offset.y = playerDirection.y > 0.0f ? meleeDimensions.y : 0.0f;
             }
 
             // Scale offset by player scale
@@ -744,31 +744,30 @@ void PlayerController::ApplyDamageToEnemy()
             // Set & calculate data for melee collider
             glm::vec2 meleeDimensions = m_pCurrentWeapon->GetHurtBoxSize();
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
-            glm::vec2 multiplier = glm::vec2(2.0f, 2.0f);
             
             // Horizontal attack
             if(playerDirection.x != 0.0f && playerDirection.y == 0.0f)
             {
-                meleeDimensions.x *= 1.2f;
-                offset.x = playerDirection.x > 0.0f ? playerDirection.x * multiplier.x : playerDirection.x * multiplier.x - meleeDimensions.x;
+                meleeDimensions.x *= 1.25f;
+                offset.x = playerDirection.x > 0.0f ? 0.0f : -meleeDimensions.x;
                 offset.y = meleeDimensions.y * 0.5f;
             }
 
             // Vertical attack
             else if(playerDirection.x == 0.0f && playerDirection.y != 0.0f)
             {
-                meleeDimensions.y *= 1.2f;
+                meleeDimensions.y *= 1.25f;
                 offset.x = -meleeDimensions.x * 0.5f;
-                offset.y = playerDirection.y > 0.0f ? playerDirection.y * multiplier.y + meleeDimensions.y : playerDirection.y * multiplier.y;
+                offset.y = playerDirection.y > 0.0f ? meleeDimensions.y : 0.0f;
             }
 
             // Diagonal attack
             else if(playerDirection.x != 0.0f && playerDirection.y != 0.0f)
             {
                 offset.x = -meleeDimensions.x * 0.5f;
-                offset.x = playerDirection.x > 0.0f ? playerDirection.x * multiplier.x : playerDirection.x * multiplier.x - meleeDimensions.x;
+                offset.x = playerDirection.x > 0.0f ? 0.0f : -meleeDimensions.x;
                 offset.y = meleeDimensions.y * 0.5f;
-                offset.y = playerDirection.y > 0.0f ? playerDirection.y * multiplier.y + meleeDimensions.y : playerDirection.y * multiplier.y;
+                offset.y = playerDirection.y > 0.0f ? meleeDimensions.y : 0.0f;
             }
 
             // Scale offset by player scale
