@@ -62,6 +62,4 @@ private:
     float m_lieDeadTimer = 0.0f;
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
-
-    float m_targetDist = 0.0f;
 };

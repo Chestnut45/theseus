@@ -249,7 +249,6 @@ void GorgonController::HandleChasingState(float delta)
         // If transition delay is expired and target is not already petrified, attack
         if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
         {
-            m_targetDist = distanceToTarget;
             ChangeState(EnemyState::ATTACKING);
             m_transitionTimer.Reset();
         }
