@@ -19,6 +19,7 @@
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
 #include "events/TriggerEvent.h"
+#include "events/KnockbackEvent.h"
 #include "events/GameOverEvent.h"
 #include <TrapComponent.h>
 #include <EnemyController.h>
@@ -26,6 +27,7 @@
 #include <HarpyBuilder.h>
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
+
 
 
 class LabyrinthManager;
@@ -48,6 +50,7 @@ public:
     void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
     void OnCutsceneTriggerEvent(const TriggerEvent& event);  // Listener for cutscene trigger
+    void OnKnockbackEvent(const KnockbackEvent& event);
 
 
 

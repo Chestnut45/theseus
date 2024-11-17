@@ -28,8 +28,9 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
-
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+    wolf::EventManager::AddListener<KnockbackEvent, PlayState, &PlayState::OnKnockbackEvent>(*this);
+
 
     
     this->m_pColliderManager = new ColliderManager(&scene);
@@ -100,6 +101,8 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+    wolf::EventManager::RemoveListener<KnockbackEvent, PlayState, &PlayState::OnKnockbackEvent>(*this);
+
 
     // Delete managers
     delete this->m_pColliderManager;
@@ -611,4 +614,18 @@ void PlayState::OnCutsceneTriggerEvent(const TriggerEvent& event) {
 
 void PlayState::StartCutscene(const std::string& cutsceneID) {
     m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", cutsceneID));
+}
+
+void PlayState::OnKnockbackEvent(const KnockbackEvent& event) {
+    auto* targetObject = event.targetObject;
+    auto knockbackDirection = event.knockbackDirection;
+    float knockbackForce = event.knockbackForce;
+    
+    if (!targetObject) return;
+
+    // Apply knockback using the VelocityComponent
+    auto* velocity = targetObject->GetComponent<VelocityComponent>();
+    if (velocity) {
+        velocity->SetVelocity(knockbackDirection * knockbackForce);
+    }
 }

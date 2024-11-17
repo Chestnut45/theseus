@@ -3,6 +3,7 @@
 #include "AttackDamageComponent.h"
 #include "HomingComponent.h"
 #include "TimedDestroyerComponent.h"
+#include "AttackSourceType.h"
 
 #include <math.h>
 #include <cassert>
@@ -220,8 +221,12 @@ void HarpyController::HandleAttackingState(float delta)
     {
         auto& projectile = scene.CreateObject2D();
 
-        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
-
+        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(
+            100.0f,              // Damage value
+            m_pColliderManager,  // Collider manager
+            AttackSourceType::HARPY_PROJECTILE  // Specify the source type
+        );
+        
         auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
         projectileSprite.SetOriginToCenterOfTexture();
         
