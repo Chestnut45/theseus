@@ -288,9 +288,12 @@ void PlayState::Update(float delta)
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
     }
 
-    // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
-    {
+    // Apply velocity and update knockback in a single loop for all objects with Transform2D and VelocityComponent
+    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
+        // Update knockback effect
+        velocity.UpdateKnockback(delta);
+
+        // Apply the current velocity (includes knockback if active)
         transform.Translate(velocity.GetVelocity() * delta);
     }
     ConvertPlayerTileToGold();
@@ -620,12 +623,12 @@ void PlayState::OnKnockbackEvent(const KnockbackEvent& event) {
     auto* targetObject = event.targetObject;
     auto knockbackDirection = event.knockbackDirection;
     float knockbackForce = event.knockbackForce;
-    
+
     if (!targetObject) return;
 
     // Apply knockback using the VelocityComponent
     auto* velocity = targetObject->GetComponent<VelocityComponent>();
     if (velocity) {
-        velocity->SetVelocity(knockbackDirection * knockbackForce);
+        velocity->ApplyKnockback(knockbackDirection, knockbackForce);
     }
 }
