@@ -12,7 +12,10 @@ struct EnemyData
     glm::vec2 position{0.0f};
     float scale = 1.0f;
     float meleeRange = 1.0f;
+    float rangedRange = -1.0f;
     float attackCooldown = 1.0f;
+    float meleeCooldown = 1.0f;
+    float rangedCooldown = 1.0f;
     float detectionRange = 1.0f;
     float baseDamage = 0.0f;
     float chaseSpeed = 1.0f;
