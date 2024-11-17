@@ -27,7 +27,7 @@ void EnemyDataLoader::LoadAllEnemyData(const std::string& filepath) {
             // Store the data in the map with the type as the key
             m_enemyCache[data.type] = data;
 
-            std::cout << "EnemyDataLoader - type: " << data.type << std::endl;
+            // std::cout << "EnemyDataLoader - type: " << data.type << std::endl;
         }
     }
     catch (YAML::Exception& e)
