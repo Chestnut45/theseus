@@ -14,6 +14,7 @@
 
 int StatusComponent::s_iComponentCounter = 0;
 wolf::Texture* StatusComponent::s_pTextures[StatusComponent::StatusEffectType::NONE];
+std::string StatusComponent::s_aStatusEffectDescriptions[StatusEffectType::NONE];
 ImVec2 StatusComponent::s_vTextureSize = ImVec2(64.0f, 64.0f);
 
 StatusComponent::StatusComponent()
@@ -26,6 +27,10 @@ StatusComponent::StatusComponent()
         s_pTextures[StatusComponent::StatusEffectType::PETRIFIED]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
         s_pTextures[StatusComponent::StatusEffectType::POISONED] = wolf::TextureManager::CreateTexture("data/textures/SEPoisoned.png");
         s_pTextures[StatusComponent::StatusEffectType::POISONED]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+
+        s_aStatusEffectDescriptions[StatusEffectType::BURNING] = "You Are Burning!";
+        s_aStatusEffectDescriptions[StatusEffectType::PETRIFIED] = "You Are Petrified!";
+        s_aStatusEffectDescriptions[StatusEffectType::POISONED] = "You Are Poisoned!";
     }
     s_iComponentCounter++;
 
@@ -44,7 +49,11 @@ StatusComponent::~StatusComponent()
     s_iComponentCounter--;
     if(s_iComponentCounter == 0)
     {
-        
+        for (int i = 0; i < StatusEffectType::NONE; i++)
+        {
+            wolf::TextureManager::DestroyTexture(s_pTextures[i]);
+            s_pTextures[i] = nullptr;
+        }
     }
 }
 
@@ -102,13 +111,9 @@ void StatusComponent::RenderPlayerSEIcons()
 {
     if(this->GetGameObject()->HasAny<PlayerController>())
     {
-        int activeSECount = 0;
-        if(this->IsStatusEffectActive(StatusEffectType::BURNING)) activeSECount++;
-        if(this->IsStatusEffectActive(StatusEffectType::PETRIFIED)) activeSECount++;
-        if(this->IsStatusEffectActive(StatusEffectType::POISONED)) activeSECount++;
-
+        // Setup
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar |  ImGuiWindowFlags_NoBackground;
-        ImVec2 windowSize = activeSECount == 0 ? ImVec2(0.0f, 0.0f) : ImVec2((s_vTextureSize.x + 16) * activeSECount + 8, s_vTextureSize.y + 24);
+        ImVec2 windowSize = ImVec2((s_vTextureSize.x + 16) * StatusEffectType::NONE + 8, s_vTextureSize.y + 24);
         ImGui::SetNextWindowPos({10, 10});
         ImGui::SetNextWindowSize(windowSize);
         ImGui::Begin("\t", nullptr, flags);
@@ -116,59 +121,29 @@ void StatusComponent::RenderPlayerSEIcons()
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
 
-        if(m_aStatusEffects[StatusEffectType::BURNING].m_isActive)
+        // Render icons
+        for (int i = 0; i < StatusEffectType::NONE; i++)
         {
-            float lifetime = m_aStatusEffects[StatusEffectType::BURNING].m_timer.Elapsed();
-            float lifespan = m_aStatusEffects[StatusEffectType::BURNING].m_fLifespan;
-            if (ImGui::ImageButton("SE", (void*)(intptr_t)s_pTextures[StatusEffectType::BURNING]->GetID(), s_vTextureSize)) {
-            }
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) 
+            StatusEffectType seType = static_cast<StatusEffectType>(i);
+            if(this->IsStatusEffectActive(seType))
             {
-                // We display the details string that we constructed earlier
-                ImGui::BeginTooltip();
-                if(lifespan > lifetime) ImGui::Text("%s\n%f", "You Are Burning" , lifespan - lifetime);
-                else ImGui::Text("%s\n%s","You Are Burning","inf");
-                ImGui::EndTooltip();
+                if (ImGui::ImageButton(std::to_string(seType).c_str(), (void*)(intptr_t)s_pTextures[seType]->GetID(), s_vTextureSize)) {
+                }
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) 
+                {
+                    float lifetime = m_aStatusEffects[seType].m_timer.Elapsed();
+                    float lifespan = m_aStatusEffects[seType].m_fLifespan;
+                    ImGui::BeginTooltip();
+                    if(lifespan > lifetime) ImGui::Text("%s\n%.1f", s_aStatusEffectDescriptions[seType].c_str(), lifespan - lifetime);
+                    else ImGui::Text("%s\n%s", s_aStatusEffectDescriptions[seType].c_str(),"inf");
+                    ImGui::EndTooltip();
+                }
             }
             ImGui::SameLine();
         }
 
-        if(m_aStatusEffects[StatusEffectType::PETRIFIED].m_isActive)
-        {
-            float lifetime = m_aStatusEffects[StatusEffectType::PETRIFIED].m_timer.Elapsed();
-            float lifespan = m_aStatusEffects[StatusEffectType::PETRIFIED].m_fLifespan;
-            if (ImGui::ImageButton("SE", (void*)(intptr_t)s_pTextures[StatusEffectType::PETRIFIED]->GetID(), s_vTextureSize)) {
-            }
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) 
-            {
-                // We display the details string that we constructed earlier
-                ImGui::BeginTooltip();
-                if(lifespan > lifetime) ImGui::Text("%s\n%f", "You Are Petrified" , lifespan - lifetime);
-                else ImGui::Text("%s\n%s","You Are Petrified","inf");
-                ImGui::EndTooltip();
-            }
-            ImGui::SameLine();
-        } 
-
-        if(m_aStatusEffects[StatusEffectType::POISONED].m_isActive)
-        {
-            float lifetime = m_aStatusEffects[StatusEffectType::POISONED].m_timer.Elapsed();
-            float lifespan = m_aStatusEffects[StatusEffectType::POISONED].m_fLifespan;
-            if (ImGui::ImageButton("SE", (void*)(intptr_t)s_pTextures[StatusEffectType::POISONED]->GetID(), s_vTextureSize)) {
-            }
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) 
-            {
-                // We display the details string that we constructed earlier
-                ImGui::BeginTooltip();
-                if(lifespan > lifetime) ImGui::Text("%s\n%f", "You Are Poisoned" , lifespan - lifetime);
-                else ImGui::Text("%s\n%s","You Are Poisoned","inf");
-                ImGui::EndTooltip();
-            }
-            ImGui::SameLine();
-        }
-        ImGui::PopStyleColor(3);
-        
-        
+        // End rendering
+        ImGui::PopStyleColor(3);  
         ImGui::End();
     }
 }

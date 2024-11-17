@@ -96,7 +96,7 @@ Dull Blade: {
   type: SWORD,
   delay: 0.25,
   damage: 50.0,
-  hurtbox_size: {x: 1.0, y: 1.0},
+  hurtbox_size: {x: 16.0, y: 16.0},
   has_projectiles: false
 }
 
@@ -110,7 +110,7 @@ Shaky Spear: {
   type: SPEAR,
   delay: 0.25,
   damage: 50.0,
-  hurtbox_size: {x: 1.0, y: 1.0},
+  hurtbox_size: {x: 24.0, y: 24.0},
   has_projectiles: false
 }
 
@@ -128,9 +128,9 @@ Old Bow: {
   has_projectiles: true,
   projectile: {
     damage: 1.0,
-    hurtbox_size: {x: 1.0, y: 1.0},
-    initial_velocity: {x: 1.0, y: 1.0},
-    sprite_path: data/textures/DebugSprites/debug_sprite.png
+    hurtbox_size: {x: 8.0, y: 8.0},
+    initial_velocity: {x: 768.0, y: 768.0},
+    sprite_path: data/textures/Arrow.png
   }
 }
 

@@ -52,6 +52,7 @@ private:
     static int s_iComponentCounter;
     
     static ImVec2 s_vTextureSize;
+    static std::string s_aStatusEffectDescriptions[StatusEffectType::NONE];
     static wolf::Texture* s_pTextures[StatusEffectType::NONE];
 
     void RemoveStatusEffect(StatusEffectType p_se_type);

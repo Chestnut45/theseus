@@ -648,14 +648,16 @@ void PlayerController::ApplyDamageToEnemy()
         case WeaponType::BOW:
         {
             // Set data for projectile collider
-            glm::vec2 projectileDimensions = glm::vec2(8.0f, 8.0f);
+            ProjectileProperties projprop = m_pCurrentWeapon->GetProjectileProperties();
+
+            glm::vec2 projectileDimensions = projprop.v2HurtboxSize;
             glm::vec2 hurtboxOffset = glm::vec2(-projectileDimensions.x, projectileDimensions.y) * 0.5f;
 
             // Spawn projectile object & add components
             auto& scene = player->GetScene();
             auto& projectile = scene.CreateObject2D();
 
-            auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Arrow.png");
+            auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>(projprop.strPathToSprite);
             projectileSprite.SetOriginToCenterOfTexture();
             
             auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
@@ -670,7 +672,8 @@ void PlayerController::ApplyDamageToEnemy()
             projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
            
             auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
-            projectileVelocity.SetVelocity(playerDirection * 1024.0f + playerVelocity);
+            
+            projectileVelocity.SetVelocity(playerDirection * glm::length(projprop.v2Velocity) + playerVelocity);
 
             // Calculate how to rotate arrow sprite
             glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);
@@ -686,9 +689,9 @@ void PlayerController::ApplyDamageToEnemy()
         case WeaponType::SWORD:
         {
             // Set & calculate data for melee collider
-            glm::vec2 meleeDimensions = glm::vec2(12.0f, 12.0f);
+            glm::vec2 meleeDimensions = m_pCurrentWeapon->GetHurtBoxSize();
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
-            glm::vec2 multiplier = glm::vec2(8.0f, 8.0f);
+            glm::vec2 multiplier = glm::vec2(2.0f, 2.0f);
             
             // Horizontal attack
             if(playerDirection.x != 0.0f && playerDirection.y == 0.0f)
@@ -739,15 +742,14 @@ void PlayerController::ApplyDamageToEnemy()
         case WeaponType::SPEAR:
         {
             // Set & calculate data for melee collider
-            glm::vec2 meleeDimensions = glm::vec2(16.0f, 16.0f);
+            glm::vec2 meleeDimensions = m_pCurrentWeapon->GetHurtBoxSize();
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
-            glm::vec2 multiplier = glm::vec2(8.0f, 8.0f);
+            glm::vec2 multiplier = glm::vec2(2.0f, 2.0f);
             
             // Horizontal attack
             if(playerDirection.x != 0.0f && playerDirection.y == 0.0f)
             {
-                meleeDimensions.x *= 1.5f;
-                meleeDimensions.y *= 1.2f;
+                meleeDimensions.x *= 1.2f;
                 offset.x = playerDirection.x > 0.0f ? playerDirection.x * multiplier.x : playerDirection.x * multiplier.x - meleeDimensions.x;
                 offset.y = meleeDimensions.y * 0.5f;
             }
@@ -755,8 +757,7 @@ void PlayerController::ApplyDamageToEnemy()
             // Vertical attack
             else if(playerDirection.x == 0.0f && playerDirection.y != 0.0f)
             {
-                meleeDimensions.x *= 1.2f;
-                meleeDimensions.y *= 1.5f;
+                meleeDimensions.y *= 1.2f;
                 offset.x = -meleeDimensions.x * 0.5f;
                 offset.y = playerDirection.y > 0.0f ? playerDirection.y * multiplier.y + meleeDimensions.y : playerDirection.y * multiplier.y;
             }
