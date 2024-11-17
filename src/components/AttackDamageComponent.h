@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// File: ProjectileComponent.h
+// Original Author: Nguyễn Minh Nhật
+// Checks for collision with HURTBOXDRs if owner object has HURTBOXDD.
+//-----------------------------------------------------------------------------
 #pragma once
 
 #include <wolf.h>
