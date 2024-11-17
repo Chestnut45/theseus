@@ -13,9 +13,6 @@ void GorgonController::Init(const EnemyData& data)
         return;
     }
 
-    // Log that initialization has started
-    wolf::Log("Initializing Gorgon with GameObject ID " + std::to_string(pGameObject->GetID()));
-
     // Call base initialization
     EnemyController::Init();
     m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
@@ -31,34 +28,21 @@ void GorgonController::Init(const EnemyData& data)
     // Set attack timer
     m_rangedTimer = m_rangedCooldown;
 
-    // Log initialized values
-    wolf::Log("Gorgon " + std::to_string(pGameObject->GetID()) + " initialized with melee range " + std::to_string(m_meleeRange) + 
-              ", ranged cooldown " + std::to_string(m_rangedCooldown) + 
-              ", detection range " + std::to_string(m_detectionRange) + 
-              ", base damage " + std::to_string(m_baseDamage) + 
-              ", and chase speed " + std::to_string(m_chaseSpeed));
-
     // Get required components and log their initialization
     m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
-    if (m_pVelocity)
-    {
-        wolf::Log("Gorgon " + std::to_string(pGameObject->GetID()) + " VelocityComponent initialized.");
-    }
-    else
+    if (!m_pVelocity)
     {
         wolf::Warning("Gorgon " + std::to_string(pGameObject->GetID()) + " could not find VelocityComponent!");
     }
 
     // Set up Gorgon-specific animations
     SetUpAnimations(data.animationInitFile);
-    wolf::Log("Gorgon " + std::to_string(pGameObject->GetID()) + " animation initialized using file " + data.animationInitFile);
 
     // Find and set the player as the target
     bool targetFound = false;
     for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
     {
         m_pTarget = playerController.GetGameObject();
-        wolf::Log("Gorgon " + std::to_string(pGameObject->GetID()) + " found player target with GameObject ID " + std::to_string(m_pTarget->GetID()));
         m_pTargetStatusComponent = m_pTarget->GetComponent<StatusComponent>();
         targetFound = true;
         break;  // Assume there's only one player
@@ -67,10 +51,6 @@ void GorgonController::Init(const EnemyData& data)
     if (!targetFound)
     {
         wolf::Warning("Gorgon " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
-    }
-    else
-    {
-        wolf::Log("Gorgon " + std::to_string(pGameObject->GetID()) + " successfully set the target to player.");
     }
 }
 
