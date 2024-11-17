@@ -160,16 +160,16 @@ void GorgonController::HandleIdleState()
     // Check if the player is within detection range
     float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
 
-    // If the player comes into detection range, start chasing
+    // If the player comes into detection range and not petrified, start chasing
     if (distanceToPlayer <= m_detectionRange && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
-        ChangeState(EnemyState::CHASING);  // Transition to CHASING when the player is in range
+        ChangeState(EnemyState::CHASING); 
     }
 }
 
 void GorgonController::HandleProspectState(float delta)
 {
-    // Chase player if in range and not already petrified
+    // Chase player if in range and not petrified
     float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
     if (distanceToPlayer <= m_detectionRange && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
