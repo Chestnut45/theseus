@@ -1,7 +1,6 @@
 #pragma once
 #include "W_BaseComponent.h"
 #include "ColliderManager.h"
-#include "AttackDamageComponent.h"
 #include "W_Timer.h"
 
 enum class BoulderDirection {
@@ -20,7 +19,6 @@ private:
     void MoveBoulder(float delta);
 
     ColliderManager* m_colliderManager = nullptr;
-    AttackDamageComponent* m_attackDamageComponent = nullptr; // Pointer to AttackDamageComponent
     BoulderDirection m_direction;
     float m_speed;
     float m_lifespan;
