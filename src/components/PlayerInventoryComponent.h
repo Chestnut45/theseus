@@ -8,6 +8,8 @@
 //-----------------------------------------------------------------------------
 
 #include "InventoryComponent.h"
+#include "events/DroppedItemEvents.h"
+#include "inventory/ItemDropCreator.h"
 
 class PlayerInventoryComponent : public InventoryComponent {
     public:
@@ -31,6 +33,7 @@ class PlayerInventoryComponent : public InventoryComponent {
                 wolf::EventManager::AddListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
                 wolf::EventManager::AddListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
                 wolf::EventManager::AddListener<SellItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleSellItemToPlayerEvent>(*this);
+                wolf::EventManager::AddListener<PickupDroppedItemEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandlePickupDroppedItemEvent>(*this);
                 wolf::EventManager::AddListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
                 wolf::EventManager::AddListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
                 wolf::EventManager::AddListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
@@ -66,6 +69,7 @@ class PlayerInventoryComponent : public InventoryComponent {
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
         void HandleCloseInventoryEvent(const CloseInventoryEvent& p_event);
         void HandleSellItemToPlayerEvent(const SellItemToPlayerEvent& p_event);
+        void HandlePickupDroppedItemEvent(const PickupDroppedItemEvent& p_event);
         void HandleDispenseItemToPlayerEvent(const DispenseItemToPlayerEvent& p_event);
         void HandleAddToPlayerInventoryEvent(const SendItemToPlayerInventoryEvent& p_event);
         void HandleRemoveFromPlayerInventoryEvent(const RemoveFromPlayerInventoryEvent& p_event);

@@ -20,6 +20,9 @@ namespace ItemCreator {
     // The item directory that describes all of the items (index by names)
     const std::string ITEM_DIRECTORY_PATH = "data/item_directory.yaml";
 
+    // This function attempts to create an ItemBase by parsing the .yaml item directory
+    // and constructing an item from the entry corresponding to the given name.
+    // Returns nullptr on failed creation.
     inline ItemBase* CreateItem(const std::string& p_strItemName) {
         ItemBase* pCreatedItem = nullptr;
 

@@ -53,6 +53,8 @@ void PlayState::Enter()
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
     m_pLabyrinthManager->GenerateLabyrinth();
 
+    ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+
     CreateThrowableObject();
     
     CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(96.0f, 96.0f), TriggerType::SINGLE_USE);
@@ -87,7 +89,7 @@ void PlayState::Enter()
     
     // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
     
-    // this->CreateMinitaurEnemy();
+    //this->CreateMinitaurEnemy();
     this->CreateHarpyEnemy();
 }
 
@@ -104,6 +106,8 @@ void PlayState::Exit()
     // Delete managers
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
+
+    ItemDropCreator::DestroyInstance();
 }
 
 void PlayState::Pause()
@@ -192,6 +196,12 @@ void PlayState::Update(float delta)
         attackDamageComponent.Update(delta);
     }
 
+    // Update all dropped items
+    for (auto&&[_, itemDrop] : m_pGameInstance->GetScene().Each<DroppedItemComponent>())
+    {
+        itemDrop.Update(delta);
+    }
+
     // Update collisions
     this->m_pColliderManager->Update(delta);
 
@@ -277,6 +287,23 @@ void PlayState::Update(float delta)
         }
 
         dispensary->ShowInventoryGUI();
+    }
+    
+    for (auto&&[_, droppedItem, transform] : m_pGameInstance->GetScene().Each<DroppedItemComponent, wolf::Transform2D>())
+    {
+        // Distance checking
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+        {
+            // Player is in range of the chest, display tooltip
+            std::string tooltip = "Press E to pickup";
+            ShowTooltip(tooltip);
+
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+            {
+                droppedItem.PickUpItem();
+                break;
+            }
+        }
     }
 
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
