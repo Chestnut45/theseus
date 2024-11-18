@@ -82,8 +82,7 @@ private:
     void CreateHarpyEnemy();
     void CreateGorgonEnemy();
 
-    // Creates a pressure plate with specified position, trigger type, trap damage, lifespan, and offset.
-    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType);
+    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType, TrapType trapType = TrapType::NONE);
     void CreateThrowableObject();
 
     // New Helper Methods for Traps
