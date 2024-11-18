@@ -85,8 +85,6 @@ void StatusComponent::Update(float p_delta)
 
             if(statusEffect.m_fLifespan >= 0 && statusEffect.m_timer.Elapsed() >= statusEffect.m_fLifespan)
             {
-                std::cout << "StatusComponent - Delete status effect: " << statusEffect.m_StatusEffectType << std::endl;
-                
                 this->RemoveStatusEffect(statusEffect.m_StatusEffectType);
             }
         }
