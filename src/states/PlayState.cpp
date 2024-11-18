@@ -270,13 +270,36 @@ void PlayState::Update(float delta)
         merchant->ShowInventoryGUI();
     }
 
-    auto* dispensary = m_pPlayerObject->GetComponent<DispensaryInventoryComponent>();
-    if (dispensary) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            dispensary->ToggleOpen();
-        }
+    // Display all open dispensary GUIs
+    const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    for (auto&&[_, dispensaryInventory, transform] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent, wolf::Transform2D>())
+    {
+        // Show GUI
+        dispensaryInventory.ShowInventoryGUI();
 
-        dispensary->ShowInventoryGUI();
+        // Distance checking
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+        {
+            // Player is in range of the chest, display tooltip
+            std::string tooltip = dispensaryInventory.IsOpen() ? "Press E to Close Daedalus Dispensary" : "Press E to Open Daedalus Dispensary";
+            ShowTooltip(tooltip);
+
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+            {
+                dispensaryInventory.ToggleOpen();
+                if (!dispensaryInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                break;
+            }
+        }
+        else
+        {
+            // Close chest if the player walks away
+            if (dispensaryInventory.IsOpen())
+            {
+                dispensaryInventory.Close();
+                m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+            }
+        }
     }
 
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
@@ -351,8 +374,6 @@ void PlayState::CreatePlayer()
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, ImVec2(800, 200), "Merchant Guy", 0.1f, 50);
     pMerchant->FillInventoryFromFile("data/test_chest_contents.yaml");
-    DispensaryInventoryComponent* pDispensary = &m_pPlayerObject->AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(200, 200));
-    pDispensary->FillInventoryFromFile("data/test_dispensary_contents.yaml");
 }
 
 void PlayState::CreateMinitaurEnemy()

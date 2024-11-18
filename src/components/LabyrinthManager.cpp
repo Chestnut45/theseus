@@ -24,6 +24,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <ChestInventoryComponent.h>
+#include <DispensaryInventoryComponent.h>
 #include <ColliderComponent.h>
 #include <EnemyDataLoader.h>
 #include <MinitaurBuilder.h>
@@ -1720,6 +1721,41 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add chest as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(chest);
+                    }
+                    break;
+                
+                // !-- Aurora added this --!
+                case Room::EntityType::DaedalusDispensary:
+                    // ?-- It would be nice to choose the loot table randomly or based on where the dispensary is spawned
+                    //     could use an RNG to index an array or use numbered filenames e.g. "dispensary_loot_N.yaml" --?
+                    std::string strLootTablePath = "data/test_dispensary_contents.yaml";
+
+                    for (int k = 0; k < entity.m_amount; k++) {
+                        // TODO: Calculate position
+                        glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
+                                      room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
+                        
+                        pos *= TILE_SIZE * SCALE;
+
+                        // Create the dispensary object
+                        auto& dispensary = pObject->GetScene().CreateObject2D();
+
+                        // Place and scale the dispensary
+                        auto& transform = *dispensary.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Set up the animated sprite
+                        auto& animSprite = dispensary.AddComponent<AnimatedSprite2D>("data/dispensary_anim_init.yaml");
+
+                        // Add the dispensary inventory
+                        auto& inventory = dispensary.AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(200,200));
+                        inventory.FillInventoryFromFile(strLootTablePath);
+
+                        // ?-- Dispensaries should probably have a collider --?
+
+                        // Add dispensary as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(dispensary);
                     }
                     break;
             }
