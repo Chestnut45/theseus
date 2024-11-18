@@ -663,15 +663,15 @@ void PlayState::CreateBoulderTrap(const glm::vec2& position) {
     auto* collider = boulderObj.GetComponent<ColliderComponent>();
     collider->AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
 
-    // Add AttackDamageComponent with specified damage value
-    if (!boulderObj.HasAll<AttackDamageComponent>()) {
-        boulderObj.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
-    }
+    // // Add AttackDamageComponent with specified damage value
+    // if (!boulderObj.HasAll<AttackDamageComponent>()) {
+    //     boulderObj.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
+    // }
 
     // Add BoulderTrapComponent with movement and lifespan settings
     if (!boulderObj.HasAll<BoulderTrapComponent>()) {
         boulderObj.AddComponent<BoulderTrapComponent>(m_pColliderManager, BoulderDirection::LEFT, 200.0f, 10.0f);
     }
 
-    wolf::Log("Boulder trap created with damage component, position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
+    // wolf::Log("Boulder trap created with damage component, position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
 }
