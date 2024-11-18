@@ -19,6 +19,7 @@ struct Tile
         BorderedGrass = 0,
         Bricks,
         FloorSmallSquares,
+        FloorSmallSquaresGold,
         FloorSpiralGold,
         FloorSpiral,
         FloorSquareGold,
