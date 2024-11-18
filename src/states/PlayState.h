@@ -15,6 +15,7 @@
 #include "../inventory/PercentItem.h"
 #include "../inventory/StatusEffectItem.h"
 #include "../inventory/ItemCreator.h"
+#include "../inventory/ItemDropCreator.h"
 #include "../events/DialogueTriggerEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
@@ -24,6 +25,7 @@
 #include <BoulderTrapComponent.h>
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
+#include <GorgonBuilder.h>
 #include <HarpyBuilder.h>
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
@@ -71,14 +73,17 @@ private:
     // Private helper methods
     void StartDialogue(const std::string& dialogueID);
     void ConvertPlayerTileToGold();
+
     // Creates the player object and all of its components
     // PRE: The player must not have been created yet
     // POST: m_pPlayerObject will be set to a pointer to the newly created player object
     void CreatePlayer();
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
-    // Creates a pressure plate
-    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType, TrapType trapType = TrapType::NONE);
+    void CreateGorgonEnemy();
+
+    // Creates a pressure plate with specified position, trigger type, trap damage, lifespan, and offset.
+    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType);
     void CreateThrowableObject();
 
     // New Helper Methods for Traps

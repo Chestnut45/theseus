@@ -53,6 +53,8 @@ void PlayState::Enter()
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
     m_pLabyrinthManager->GenerateLabyrinth();
 
+    ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+
     CreateThrowableObject();
     
 // CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(96.0f, 96.0f), TriggerType::REUSABLE, TrapType::SPIKE_TRAP);
@@ -89,7 +91,8 @@ CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(128.0f, 
     // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
     
     // this->CreateMinitaurEnemy();
-    this->CreateHarpyEnemy();
+    // this->CreateHarpyEnemy();
+    this->CreateGorgonEnemy();
 }
 
 void PlayState::Exit()
@@ -105,6 +108,8 @@ void PlayState::Exit()
     // Delete managers
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
+
+    ItemDropCreator::DestroyInstance();
 }
 
 void PlayState::Pause()
@@ -165,6 +170,10 @@ void PlayState::Update(float delta)
     {
         harpyController.Update(delta);  // Update logic for Harpies
     }
+    for (auto&& [_, gorgonController] : m_pGameInstance->GetScene().Each<GorgonController>())
+    {
+        gorgonController.Update(delta);  // Update logic for Harpies
+    }
     for (auto&& [_, trigger] : m_pGameInstance->GetScene().Each<TriggerComponent>()) {
         trigger.Update(delta);
     }
@@ -194,6 +203,12 @@ void PlayState::Update(float delta)
     for(auto&& [_, attackDamageComponent] : m_pGameInstance->GetScene().Each<AttackDamageComponent>())
     {
         attackDamageComponent.Update(delta);
+    }
+
+    // Update all dropped items
+    for (auto&&[_, itemDrop] : m_pGameInstance->GetScene().Each<DroppedItemComponent>())
+    {
+        itemDrop.Update(delta);
     }
 
     // Update collisions
@@ -236,7 +251,7 @@ void PlayState::Update(float delta)
 
     // Display all open chest GUIs
     const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    for (auto&&[_, chestInventory, transform] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D>())
+    for (auto&&[_, chestInventory, transform, sprite] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
     {
         // Show GUI
         chestInventory.ShowInventoryGUI();
@@ -250,7 +265,14 @@ void PlayState::Update(float delta)
 
             if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
             {
+                auto name = sprite.GetCurrentAnimation()->m_strName;
+                if (chestInventory.IsOpen())
+                    sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
+                else
+                    sprite.SetAnimation(name.replace(name.find("Closed"), 6, "Open"));
+                
                 chestInventory.ToggleOpen();
+                
                 if (!chestInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
                 break;
             }
@@ -261,6 +283,8 @@ void PlayState::Update(float delta)
             if (chestInventory.IsOpen())
             {
                 chestInventory.Close();
+                auto name = sprite.GetCurrentAnimation()->m_strName;
+                sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
                 m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
             }
         }
@@ -281,6 +305,23 @@ void PlayState::Update(float delta)
         }
 
         dispensary->ShowInventoryGUI();
+    }
+    
+    for (auto&&[_, droppedItem, transform] : m_pGameInstance->GetScene().Each<DroppedItemComponent, wolf::Transform2D>())
+    {
+        // Distance checking
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+        {
+            // Player is in range of the chest, display tooltip
+            std::string tooltip = "Press E to pickup";
+            ShowTooltip(tooltip);
+
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+            {
+                droppedItem.PickUpItem();
+                break;
+            }
+        }
     }
 
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
@@ -405,6 +446,35 @@ void PlayState::CreateHarpyEnemy()
     }
 }
 
+
+void PlayState::CreateGorgonEnemy()
+{
+    EnemyDataLoader loader;
+    loader.LoadAllEnemyData("data/enemies.yaml");
+
+    GorgonBuilder gorgonBuilder(m_pGameInstance->GetScene());
+
+    glm::vec2 positions[] = {
+        // glm::vec2(-300.0f, -300.0f),
+        // glm::vec2(-400.0f, -400.0f),
+        // glm::vec2(-500.0f, -500.0f)
+        glm::vec2(6000.0f, 0.0f)
+    };
+
+    for (const auto& position : positions)
+    {
+        EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+        auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position, m_pColliderManager);
+        
+        // Set the scale of each Gorgon to 3
+        auto* transform = gorgon.GetComponent<wolf::Transform2D>();
+        if (transform)
+        {
+            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
+        }
+    }
+}
+
 void PlayState::CreateThrowableObject()
 {
     // Get the spawn location from the labyrinth manager
@@ -517,8 +587,9 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
 int GetGoldVariant(int tileID) {
     switch (tileID) {
-        case Tile::FloorSquare:
         case Tile::FloorSmallSquares:
+            return Tile::FloorSmallSquaresGold;
+        case Tile::FloorSquare:
             return Tile::FloorSquareGold;
         case Tile::FloorSpiral:
             return Tile::FloorSpiralGold;
@@ -663,15 +734,15 @@ void PlayState::CreateBoulderTrap(const glm::vec2& position) {
     auto* collider = boulderObj.GetComponent<ColliderComponent>();
     collider->AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
 
-    // Add AttackDamageComponent with specified damage value
-    if (!boulderObj.HasAll<AttackDamageComponent>()) {
-        boulderObj.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
-    }
+    // // Add AttackDamageComponent with specified damage value
+    // if (!boulderObj.HasAll<AttackDamageComponent>()) {
+    //     boulderObj.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
+    // }
 
     // Add BoulderTrapComponent with movement and lifespan settings
     if (!boulderObj.HasAll<BoulderTrapComponent>()) {
         boulderObj.AddComponent<BoulderTrapComponent>(m_pColliderManager, BoulderDirection::LEFT, 200.0f, 10.0f);
     }
 
-    wolf::Log("Boulder trap created with damage component, position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
+    // wolf::Log("Boulder trap created with damage component, position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
 }

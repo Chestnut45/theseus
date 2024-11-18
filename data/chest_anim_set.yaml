@@ -32,4 +32,34 @@ animations: [
     end_frame: 5,
     loops: false
   },
+  {
+    name: CommonOpen,
+    start_frame: 6,
+    end_frame: 6,
+    loops: false
+  },
+  {
+    name: UncommonOpen,
+    start_frame: 7,
+    end_frame: 7,
+    loops: false
+  },
+  {
+    name: RareOpen,
+    start_frame: 8,
+    end_frame: 8,
+    loops: false
+  },
+  {
+    name: EpicOpen,
+    start_frame: 9,
+    end_frame: 9,
+    loops: false
+  },
+  {
+    name: LegendaryOpen,
+    start_frame: 10,
+    end_frame: 10,
+    loops: false
+  },
 ]
