@@ -327,6 +327,10 @@ void PlayState::Update(float delta)
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
     }
 
+        // Update velocity components to apply friction and decelerate objects
+    for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
+        velocity.Update(delta);  // Update velocity with friction and other forces
+    }
     // Apply velocity for all objects with Transform2D and VelocityComponent
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
         transform.Translate(velocity.GetVelocity() * delta);
