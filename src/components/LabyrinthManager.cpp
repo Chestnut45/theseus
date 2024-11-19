@@ -1728,7 +1728,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                 {
                     // ?-- It would be nice to choose the loot table randomly or based on where the dispensary is spawned
                     //     could use an RNG to index an array or use numbered filenames e.g. "dispensary_loot_N.yaml" --?
-                    std::string strLootTablePath = "data/test_dispensary_contents.yaml";
+                    std::string strLootTablePath = "data/dispensary_contents" + std::to_string(m_rng.NextInt(1, 2)) + ".yaml";
 
                     for (int k = 0; k < entity.m_amount; k++) {
                         // TODO: Calculate position
@@ -1749,7 +1749,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& animSprite = dispensary.AddComponent<AnimatedSprite2D>("data/dispensary_anim_init.yaml");
 
                         // Add the dispensary inventory
-                        auto& inventory = dispensary.AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(200,200));
+                        auto& inventory = dispensary.AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(50, 300));
                         inventory.FillInventoryFromFile(strLootTablePath);
 
                         // Add the collider

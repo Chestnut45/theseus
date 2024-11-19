@@ -416,7 +416,7 @@ void PlayState::CreatePlayer()
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
     // Add inventory
-    auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, ImVec2(500, 200));
+    auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, ImVec2(50, 50));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
     collider.AddColliderBox(glm::vec2(7.0f, 8.0f), glm::vec2(-4.0f, -4.0f));
