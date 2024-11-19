@@ -5,22 +5,37 @@
 //-----------------------------------------------------------------------------
 
 #include "AttackDamageComponent.h"
-
 #include "ColliderComponent.h"
 
-AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager)
-{
-    this->m_fDamage = p_damage;
-    this->m_pColliderManager = p_collider_manager;
-}
-
-// Overloaded constructor for knockback
-AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude)
+AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects)
 {
     this->m_fDamage = p_damage;
     this->m_pColliderManager = p_collider_manager;
     this->m_knockbackMagnitude = knockbackMagnitude;
+
+    // Set default lifespans to 0
+    for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
+    {
+        m_aStatusEffectsLifespans[i] = 0.0f;
+    }
+
+    // Set lifespans
+    if(p_status_effects.size() > 0)
+    {
+        for(int i = 0; i < p_status_effects.size(); i++)
+        {
+            StatusComponent::StatusEffectType seType = p_status_effects.at(i).first;
+            float lifespan = p_status_effects.at(i).second;
+
+            if(seType != StatusComponent::StatusEffectType::NONE)
+            {
+                m_aStatusEffectsLifespans[seType] = lifespan;
+            }
+        }
+    }
 }
+
+
 
 AttackDamageComponent::~AttackDamageComponent()
 {
@@ -41,16 +56,32 @@ void AttackDamageComponent::Update(float p_dt)
             if (thatCollider.IsActive() && thatCollider.IsHurtboxDamageReceiver())
             {
                 if (this->m_pColliderManager->IsColliding(*thisCollider, thatCollider, p_dt))
-                {
-                    // std::cout << "DAMAGE: " << thatHealth.GetHealth() << " - " << m_fDamage << " = ";
+                { 
                     thatHealth.Damage(m_fDamage);
-                    // std::cout << thatHealth.GetHealth() << std::endl;
-                    // Apply knockback if magnitude > 0
+                    
+                    wolf::GameObject* thatObject = thatHealth.GetGameObject();
+
+                    // Apply status effects to the target
+                    StatusComponent* thatStatus = thatObject->GetComponent<StatusComponent>();
+                    if(thatStatus != nullptr)
+                    {
+                        for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
+                        {
+                            float lifespan = this->m_aStatusEffectsLifespans[i];
+                            if(lifespan != 0.0f)
+                            {
+                                StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
+                                thatStatus->AddStatusEffect(seType, lifespan);
+                            }
+
+                        }
+                    }
+
                     // Apply knockback if magnitude > 0
                     if (m_knockbackMagnitude > 0.0f)
                     {
-                        auto* thatTransform = thatCollider.GetGameObject()->GetComponent<wolf::Transform2D>();
-                        auto* velocityComponent = thatCollider.GetGameObject()->GetComponent<VelocityComponent>();
+                        auto* thatTransform = thatObject->GetComponent<wolf::Transform2D>();
+                        auto* velocityComponent = thatObject->GetComponent<VelocityComponent>();
                         if (thatTransform && velocityComponent)
                         {
                             glm::vec2 knockbackDirection = glm::normalize(

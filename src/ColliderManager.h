@@ -36,8 +36,10 @@ private:
     wolf::Scene* m_scene = nullptr;
 
     void RemoveFlagged();
-    void CheckCollisions(float p_delta);
+    void CheckCollisions(float p_delta); // Applies velocities from m_mNewVelocities after all collision responses considered
 
+    bool StandardAABB(float left1, float right1, float top1, float bottom1, float left2, float right2, float top2, float bottom2);
+    
     // CustomAABB() does not have hitbox sliding response
     bool CustomAABB(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);
     void SlideAABB(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);    
