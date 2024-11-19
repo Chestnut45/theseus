@@ -116,7 +116,6 @@ void CutSceneState::Update(float delta) {
         camera->SetZoom(m_currentZoomLevel);
     }
 }
-
 void CutSceneState::Render() {
     // No specific rendering required for camera-only cutscenes
 }

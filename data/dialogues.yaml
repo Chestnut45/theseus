@@ -18,6 +18,8 @@ dialogue:
       - character: "Gorgon"
         text: "You should have never come here, this'll be the end of you!"
         duration: 3.5
+      - action: "cutscene"
+        cutsceneID: "theseus_cutscene"
       - character: "Theseus"
         text: "Not in a million years."
         duration: 3.0

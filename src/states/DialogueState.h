@@ -54,7 +54,7 @@ private:
     bool m_autoplay = false;                   // Whether autoplay mode is enabled
     bool m_shouldExit = false;
     bool m_isLineFinished = false;
-
+    bool m_isCutsceneActive = false;
     // Keyframe and animation variables
     bool m_showFullText = false;               // Whether the full line text is displayed
     float m_timeSinceLastKeyframe = 0.0f;      // Time elapsed since the last keyframe

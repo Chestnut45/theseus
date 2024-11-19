@@ -318,16 +318,19 @@ void DialogueState::AdvanceDialogue() {
         const auto& currentLine = dialogueLines[m_currentLineIndex];
 
         if (currentLine.action == "cutscene") {
-            // Trigger the cutscene
-            m_shouldExit = true;  // Exit DialogueState
-            wolf::EventManager::TriggerEvent(CutsceneTriggerEvent(currentLine.cutsceneID));  // Event-driven transition
+            // Trigger the cutscene and temporarily exit dialogue
+            m_shouldExit = true;
+            wolf::EventManager::TriggerEvent(CutsceneTriggerEvent(currentLine.cutsceneID));
             return;
         }
 
-        m_showFullText = false;  // Reset for the next line
+        // Prepare for the next dialogue line
+        m_showFullText = false;
         m_timeSinceLastKeyframe = 0.0f;
+
     } else {
-        m_shouldExit = true;  // Exit after the last line
+        // Only set m_shouldExit when reaching the **final** dialogue line
+        m_shouldExit = true;
     }
 }
 
@@ -421,19 +424,19 @@ void DialogueState::OnCutsceneTriggerEvent(const CutsceneTriggerEvent& event)
 
         // Push the CutSceneState with the provided cutsceneID
         m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", event.cutsceneID));
-
-        // After cutscene, ensure we start dialogue if applicable
-        // Continue dialogue once the cutscene ends
-        if (!m_currentDialogueID.empty())
-        {
-            AdvanceDialogue();  // Trigger the next valid dialogue line after cutscene
-        }
     }
 }
 
 void DialogueState::OnDialogueResumeEvent(const DialogueResumeEvent& event) {
     if (!m_currentDialogueID.empty()) {
-        // Resume the dialogue from the point after the cutscene
-        AdvanceDialogue();  // Ensure it progresses to the next line
+        wolf::Log("Resuming dialogue with ID: " + m_currentDialogueID + " after cutscene: " + event.m_cutsceneID);
+
+        // Reset the exit flag
+        m_shouldExit = false; // Prevent premature exit
+
+        // Resume dialogue from where it left off
+        AdvanceDialogue();
+    } else {
+        wolf::Log("No dialogue to resume after cutscene: " + event.m_cutsceneID);
     }
 }
