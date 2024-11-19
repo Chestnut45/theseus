@@ -1752,7 +1752,9 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& inventory = dispensary.AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(200,200));
                         inventory.FillInventoryFromFile(strLootTablePath);
 
-                        // ?-- Dispensaries should probably have a collider --?
+                        // Add the collider
+                        auto& collider = dispensary.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+                        collider.AddColliderBox(glm::vec2(22.0f, 29.0f), glm::vec2(-11.0f, 16.0f));
 
                         // Add dispensary as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(dispensary);
