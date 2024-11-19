@@ -7,6 +7,20 @@
 #include "AttackDamageComponent.h"
 #include "ColliderComponent.h"
 
+
+AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager)
+{
+    this->m_fDamage = p_damage;
+    this->m_pColliderManager = p_collider_manager;
+
+    // Set default lifespans to 0
+    for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
+    {
+        m_aStatusEffectsLifespans[i] = 0.0f;
+    }
+
+}
+
 AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects)
 {
     this->m_fDamage = p_damage;

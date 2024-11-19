@@ -14,7 +14,8 @@
 class AttackDamageComponent : public wolf::BaseComponent
 {
 public:
-    AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects = {});
+    AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager);
+    AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects);
     virtual ~AttackDamageComponent();
 
     void Update(float p_dt);
