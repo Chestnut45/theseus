@@ -145,6 +145,16 @@ bool ColliderManager::IsColliding(ColliderComponent& p_colliderComponent1, Colli
     return false;
 }
 
+bool ColliderManager::StandardAABB(float left1, float right1, float top1, float bottom1, float left2, float right2, float top2, float bottom2)
+{
+    return !(
+        right1  < left2     ||
+        left1   > right2    ||
+        bottom1 > top2      ||
+        top1    < bottom2
+    ); 
+}
+
 bool ColliderManager::CustomAABB(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
 {
     // Initial AABB check

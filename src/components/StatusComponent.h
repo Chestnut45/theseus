@@ -32,12 +32,13 @@ public:
     void AddStatusEffect(StatusEffectType p_se_type, float p_lifespan);
     bool IsStatusEffectActive(StatusEffectType p_se_type) const;
 
-    void Update();
+    void Update(float p_delta);
+    void RenderPlayerSEIcons();
 
 private:
     struct StatusEffect
     {
-        void ApplyStatusEffect();
+        void ApplyStatusEffect(float p_delta);
 
         bool m_isActive = false;
         float m_fLifespan = 1.0f;
@@ -47,6 +48,12 @@ private:
     };
 
     StatusEffect m_aStatusEffects [StatusEffectType::NONE];
+
+    static int s_iComponentCounter;
+    
+    static ImVec2 s_vTextureSize;
+    static std::string s_aStatusEffectDescriptions[StatusEffectType::NONE];
+    static wolf::Texture* s_pTextures[StatusEffectType::NONE];
 
     void RemoveStatusEffect(StatusEffectType p_se_type);
     

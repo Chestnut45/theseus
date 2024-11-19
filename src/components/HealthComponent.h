@@ -30,6 +30,7 @@ public:
     float GetHealth() const;
 
     void Damage(float p_damage);
+    void Pierce(float p_damage);
     void Heal(float p_heal);
     void Supercharge(float p_supercharge);
 
