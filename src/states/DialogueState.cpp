@@ -279,6 +279,8 @@ void DialogueState::BackgroundUpdate(float delta)
 void DialogueState::BackgroundRender()
 {
     // Implement any background rendering for the dialogue state (optional)
+    m_pGameInstance->GetScene().Render();  // Render the current scene (including CutScene effects)
+
 }
 
 void DialogueState::StartDialogue(const std::string& dialogueID)
@@ -310,19 +312,31 @@ void DialogueState::AdvanceDialogue()
         return;
     }
 
-    // Get the list of dialogue lines from the manager
     const auto& dialogueLines = m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID);
 
     if (m_currentLineIndex < dialogueLines.size() - 1)
     {
-        // Move to the next line in the dialogue
         m_currentLineIndex++;
-        m_showFullText = false;  // Reset the display for the next line
+        const auto& currentLine = dialogueLines[m_currentLineIndex];
+
+        if (currentLine.text.empty() && currentLine.characterName.empty())
+        {
+            // Handle actions like cutscene or camera movements
+            if (currentLine.action == "cutscene")
+            {
+                // Trigger cutscene with specified cutsceneID
+                wolf::EventManager::TriggerEvent(CutsceneDialogueEvent(currentLine.cutsceneID, ""));
+            }
+        }
+        else
+        {
+            m_showFullText = false;  // Reset the display for the next line
+            m_timeSinceLastKeyframe = 0.0f;
+        }
     }
     else
     {
-        // If no more lines are left, set exit flag and request state pop
-        m_shouldExit = true;
+        m_shouldExit = true;  // Exit the dialogue state if no more lines
     }
 }
 

@@ -85,3 +85,15 @@ void CutSceneState::Update(float delta) {
 void CutSceneState::Render() {
     // No specific rendering required for camera-only cutscenes
 }
+
+void CutSceneState::BackgroundRender(){
+    // Render the cutscene (e.g., camera effects) in the background
+    auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
+    if (camera) {
+        m_pGameInstance->GetScene().Render();  // Ensure the scene reflects current camera state
+    }
+}
+void CutSceneState::BackgroundUpdate(float delta){
+    // Continue camera keyframe updates
+    Update(delta);
+}

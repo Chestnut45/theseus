@@ -21,6 +21,7 @@
 #include "../DialogueManager.h"
 #include "events/TriggerEvent.h"
 #include "events/GameOverEvent.h"
+#include "events/CutsceneDialogueEvent.h"
 #include <TrapComponent.h>
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
@@ -50,7 +51,7 @@ public:
     void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
     void OnCutsceneTriggerEvent(const TriggerEvent& event);  // Listener for cutscene trigger
-
+    void OnCutsceneWithDialogueEvent(const CutsceneDialogueEvent& event);
 
 
 private:

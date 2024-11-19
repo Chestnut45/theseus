@@ -1,27 +1,23 @@
 dialogue:
   - id: "intro_1"
-    event: "player_meets_npc"
+    event: "player_enters_labyrinth"
     characters:
       - name: "Theseus"
         portraitPath: "data/textures/sPlayerTest.png"
-        expression: "neutral"
-      - name: "Minotaur"
-        portraitPath: "data/textures/minitaur.png"
-        expression: "angry"
+      - name: "Gorgon"
+        portraitPath: "data/textures/gorgon.png"
     lines:
       - character: "Theseus"
-        text: "I finally found you, Minotaur!"
-        duration: 2.0
-      - character: "Minotaur"
-        text: "You won't leave this labyrinth alive!"
-        duration: 3.0
-  - id: "victory"
-    event: "minotaur_defeated"
-    characters:
-      - name: "Theseus"
-        portraitPath: "data/textures/sPlayerTest.png"
-        expression: "smile"
-    lines:
-      - character: "Theseus"
-        text: "It's over, Minotaur. The Labyrinth is free!"
+        text: "Where am I? No way... Is this Daedalus' Labyrinth?"
         duration: 4.0
+      - action: "cutscene"  # Cutscene begins
+        cutsceneID: "gorgon_cutscene"
+      - character: "Theseus"
+        text: "What is that?"
+        duration: 2.5
+      - character: "Gorgon"
+        text: "You should have never come here, this'll be the end of you!"
+        duration: 3.5
+      - character: "Theseus"
+        text: "Not in a million years."
+        duration: 3.0

@@ -2,6 +2,8 @@
 #include <imgui.h>
 #include "GameState.h"
 #include "DialogueManager.h"
+#include "Theseus.h"
+
 
 // DialogueState class to manage displaying dialogue and transitions
 class DialogueState : public GameState
@@ -39,6 +41,7 @@ private:
 
     // DialogueManager reference to access dialogues
     DialogueManager* m_pDialogueManager = nullptr;
+    
 
     // State variables for managing dialogue
     std::string m_currentDialogueID;          // The ID of the current dialogue

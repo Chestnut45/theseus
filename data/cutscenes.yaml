@@ -1,24 +1,12 @@
 cutscenes:
-  intro:
+  gorgon_cutscene:
     camera_keyframes:
-      - position: [6000, 6000]   # Start at the center of the labyrinth
-        zoom: 1.0                # Initial zoom level
-        duration: 4.0
-      - position: [9000, 3000]   # Move to the top-right quadrant
-        zoom: 0.75               # Zoom out slightly
-        duration: 5.0
-      - position: [12000, 0]     # Move to the top-right corner
-        zoom: 0.5                # Further zoom out
-        duration: 6.0
-      - position: [6000, 12000]  # Move to the bottom-center edge
-        zoom: 0.5                # Maintain the zoom level
-        duration: 6.0
-      - position: [0, 0]         # Move to the bottom-left corner
-        zoom: 0.4                # Zoom out even more
-        duration: 7.0
-      - position: [6000, 6000]   # Return to the center, fully zoomed out
-        zoom: 0.35               # Final zoom level for a broad overview
-        duration: 5.0
+      - position: [6000, 6000]  # Start at Theseus' position
+        zoom: 1.0
+        duration: 2.0
+      - position: [9000, 3000]  # Move to Gorgon's position
+        zoom: 0.8
+        duration: 3.0
 
   outro:
     camera_keyframes:

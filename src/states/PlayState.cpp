@@ -28,7 +28,7 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
-
+    wolf::EventManager::AddListener<CutsceneDialogueEvent, PlayState, &PlayState::OnCutsceneWithDialogueEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
 
     
@@ -103,6 +103,8 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+    wolf::EventManager::RemoveListener<CutsceneDialogueEvent, PlayState, &PlayState::OnCutsceneWithDialogueEvent>(*this);
+
 
     // Delete managers
     delete this->m_pColliderManager;
@@ -320,10 +322,11 @@ void PlayState::Update(float delta)
         }
     }
 
+    // Trigger CutsceneDialogueEvent when pressing 9
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
-        // Broadcast the DialogueTriggerEvent with a specific dialogue ID
-        wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
+        // Trigger both cutscene and dialogue with IDs
+        wolf::EventManager::TriggerEvent(CutsceneDialogueEvent("intro_1", "intro_cutscene"));
     }
 
     // Apply velocity to transforms for all objects with both components
@@ -682,4 +685,30 @@ void PlayState::OnCutsceneTriggerEvent(const TriggerEvent& event) {
 
 void PlayState::StartCutscene(const std::string& cutsceneID) {
     m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", cutsceneID));
+}
+
+void PlayState::OnCutsceneWithDialogueEvent(const CutsceneDialogueEvent& event)
+{
+    // Validate the event data
+    if (event.cutsceneID.empty() && event.dialogueID.empty())
+    {
+        wolf::Log("CutsceneDialogueEvent: Both CutsceneID and DialogueID are empty!");
+        return;
+    }
+
+    // Push the CutSceneState if cutsceneID is provided
+    if (!event.cutsceneID.empty())
+    {
+        m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", event.cutsceneID));
+
+    }
+
+    // Push the DialogueState if dialogueID is provided
+    if (!event.dialogueID.empty())
+    {
+        // Push the DialogueState if a dialogue is specified
+        auto* dialogueState = new DialogueState(m_pStateManager, m_pGameInstance, m_pDialogueManager);
+        m_pStateManager->PushState(dialogueState);
+        dialogueState->StartDialogue(event.dialogueID);
+    }
 }
