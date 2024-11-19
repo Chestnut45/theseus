@@ -422,7 +422,6 @@ void DialogueState::EndDialogue()
 
     std::cout << "Dialogue has ended. Transitioning back to PlayState." << std::endl;
 }
-
 void DialogueState::OnCutsceneTriggerEvent(const CutsceneTriggerEvent& event)
 {
     // Ensure the event contains a valid cutsceneID
@@ -432,5 +431,12 @@ void DialogueState::OnCutsceneTriggerEvent(const CutsceneTriggerEvent& event)
 
         // Push the CutSceneState with the provided cutsceneID
         m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", event.cutsceneID));
+
+        // After cutscene, ensure we start dialogue if applicable
+        // Continue dialogue once the cutscene ends
+        if (!m_currentDialogueID.empty())
+        {
+            AdvanceDialogue();  // Trigger the next valid dialogue line after cutscene
+        }
     }
 }

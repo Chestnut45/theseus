@@ -7,12 +7,3 @@ cutscenes:
       - target: "Gorgon"   # Move camera to the Gorgon's position
         zoom: 0.8
         duration: 3.0
-
-  outro:
-    camera_keyframes:
-      - position: [30, 15]
-        duration: 2.5
-      - position: [40, 20]
-        duration: 3.0
-      - position: [50, 25]
-        duration: 1.5
