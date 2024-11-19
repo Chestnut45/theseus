@@ -27,25 +27,46 @@ void VelocityComponent::ApplyKnockback(const glm::vec2& direction, float magnitu
     // Ensure the direction is normalized
     glm::vec2 normalizedDirection = glm::dot(direction, direction) > 0.0f ? glm::normalize(direction) : glm::vec2(0.0f);
 
-    // Apply knockback
-    m_velocity += normalizedDirection * magnitude;
+    // Apply knockback and set recovery parameters
+    m_knockbackStartVelocity = normalizedDirection * magnitude;
+    m_velocity = m_knockbackStartVelocity;
+    m_knockbackRecoveryTime = 1.0f; // Recovery duration in seconds (adjust as needed)
 }
+
 
 void VelocityComponent::Update(float deltaTime)
 {
-    // Apply friction to gradually bring velocity to zero
-    if (glm::length(m_velocity) > 0.0f)
+    // Handle knockback fade-out effect
+    if (m_knockbackRecoveryTime > 0.0f)
     {
-        glm::vec2 frictionForce = -glm::normalize(m_velocity) * m_friction * deltaTime;
-        
-        // Ensure we don't overshoot zero velocity
-        if (glm::length(frictionForce) > glm::length(m_velocity))
+        // Use damping to simulate recovery
+        float dampingFactor = glm::exp(-5.0f * (1.0f - m_knockbackRecoveryTime)); // Adjust exponential factor if too much/too little
+        m_velocity = m_knockbackStartVelocity * dampingFactor;
+
+        // Reduce recovery time
+        m_knockbackRecoveryTime -= deltaTime;
+        if (m_knockbackRecoveryTime <= 0.0f)
         {
-            m_velocity = glm::vec2(0.0f);
+            m_velocity = glm::vec2(0.0f); // Stop movement completely
+            m_knockbackRecoveryTime = 0.0f;
         }
-        else
+    }
+    else
+    {
+        // Regular friction-based deceleration
+        if (glm::length(m_velocity) > 0.0f)
         {
-            m_velocity += frictionForce;
+            glm::vec2 frictionForce = -glm::normalize(m_velocity) * m_friction * deltaTime;
+
+            // Ensure we don't overshoot zero velocity
+            if (glm::length(frictionForce) > glm::length(m_velocity))
+            {
+                m_velocity = glm::vec2(0.0f);
+            }
+            else
+            {
+                m_velocity += frictionForce;
+            }
         }
     }
 }

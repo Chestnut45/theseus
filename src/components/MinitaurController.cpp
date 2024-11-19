@@ -260,14 +260,16 @@ void MinitaurController::HandleAttackingState(float delta)
 
             }
 
-            // Apply knockback to the player
+            // Apply strong knockback to the player
             auto* playerVelocity = m_pTarget->GetComponent<VelocityComponent>();
             if (playerVelocity)
             {
+                // Calculate knockback direction and amplify the push
                 glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
-                playerVelocity->ApplyKnockback(knockbackDirection, 300.0f); // Knockback magnitude = 300
+                float knockbackStrength = 800.0f; // Amplified knockback strength
+                playerVelocity->ApplyKnockback(knockbackDirection, knockbackStrength);
             }
-            
+
         }
         else
         {
