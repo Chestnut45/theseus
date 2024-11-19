@@ -29,7 +29,6 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
-    wolf::EventManager::AddListener<KnockbackEvent, PlayState, &PlayState::OnKnockbackEvent>(*this);
 
 
     
@@ -104,7 +103,6 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
-    wolf::EventManager::RemoveListener<KnockbackEvent, PlayState, &PlayState::OnKnockbackEvent>(*this);
 
 
     // Delete managers
@@ -329,12 +327,8 @@ void PlayState::Update(float delta)
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
     }
 
-    // Apply velocity and update knockback in a single loop for all objects with Transform2D and VelocityComponent
+    // Apply velocity for all objects with Transform2D and VelocityComponent
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
-        // Update knockback effect
-        velocity.UpdateKnockback(delta);
-
-        // Apply the current velocity (includes knockback if active)
         transform.Translate(velocity.GetVelocity() * delta);
     }
     ConvertPlayerTileToGold();
@@ -690,16 +684,3 @@ void PlayState::StartCutscene(const std::string& cutsceneID) {
     m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", cutsceneID));
 }
 
-void PlayState::OnKnockbackEvent(const KnockbackEvent& event) {
-    auto* targetObject = event.targetObject;
-    auto knockbackDirection = event.knockbackDirection;
-    float knockbackForce = event.knockbackForce;
-
-    if (!targetObject) return;
-
-    // Apply knockback using the VelocityComponent
-    auto* velocity = targetObject->GetComponent<VelocityComponent>();
-    if (velocity) {
-        velocity->ApplyKnockback(knockbackDirection, knockbackForce);
-    }
-}
