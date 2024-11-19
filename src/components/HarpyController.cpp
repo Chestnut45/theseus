@@ -223,9 +223,9 @@ void HarpyController::HandleAttackingState(float delta)
     {
         auto& projectile = scene.CreateObject2D();
 
-        // auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
+        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
         // Add AttackDamageComponent with knockback
-        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager, 200.0f); // 200.0f is knockback magnitude
+        // auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager, 200.0f); // 200.0f is knockback magnitude
 
         auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
         projectileSprite.SetOriginToCenterOfTexture();

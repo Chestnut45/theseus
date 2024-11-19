@@ -259,6 +259,15 @@ void MinitaurController::HandleAttackingState(float delta)
                 wolf::Audio::Play("data/sounds/hurt.wav");
 
             }
+
+            // Apply knockback to the player
+            auto* playerVelocity = m_pTarget->GetComponent<VelocityComponent>();
+            if (playerVelocity)
+            {
+                glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
+                playerVelocity->ApplyKnockback(knockbackDirection, 300.0f); // Knockback magnitude = 300
+            }
+            
         }
         else
         {
