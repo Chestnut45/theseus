@@ -1,6 +1,7 @@
 data/textures/tile_bordered_grass.png
 data/textures/tile_bricks.png
 data/textures/tile_floor_small_squares.png
+data/textures/tile_floor_small_squares_gold.png
 data/textures/tile_floor_spiral_gold.png
 data/textures/tile_floor_spiral.png
 data/textures/tile_floor_square_gold.png

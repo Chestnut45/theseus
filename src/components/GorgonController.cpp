@@ -1,42 +1,41 @@
-#include "MinitaurController.h"
+#include "GorgonController.h"
 #include "PlayerController.h"
-#include "events/KnockbackEvent.h"
 #include <cassert>
 
-// !- Aurora added this --!
-#include "inventory/ItemDropCreator.h"
 
 
-void MinitaurController::Init(const EnemyData& data)
+void GorgonController::Init(const EnemyData& data)
 {
     auto* pGameObject = GetGameObject();
     if (!pGameObject)
     {
-        wolf::Error("LateInitialize failed: MinitaurController not attached to GameObject!");
+        wolf::Error("LateInitialize failed: GorgonController not attached to GameObject!");
         return;
     }
 
     // Call base initialization
     EnemyController::Init();
+    m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
 
     // Assign enemy data
     m_meleeRange = data.meleeRange;
-    m_attackCooldown = data.attackCooldown;
+    m_rangedRange = data.rangedRange;
+    m_rangedCooldown = data.rangedCooldown;
     m_detectionRange = data.detectionRange;
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
     // Set attack timer
-    m_attackTimer = m_attackCooldown;
+    m_rangedTimer = m_rangedCooldown;
 
     // Get required components and log their initialization
     m_pVelocity = GetGameObject()->GetComponent<VelocityComponent>();
     if (!m_pVelocity)
     {
-        wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " could not find VelocityComponent!");
+        wolf::Warning("Gorgon " + std::to_string(pGameObject->GetID()) + " could not find VelocityComponent!");
     }
 
-    // Set up Minitaur-specific animations
+    // Set up Gorgon-specific animations
     SetUpAnimations(data.animationInitFile);
 
     // Find and set the player as the target
@@ -44,18 +43,19 @@ void MinitaurController::Init(const EnemyData& data)
     for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
     {
         m_pTarget = playerController.GetGameObject();
+        m_pTargetStatusComponent = m_pTarget->GetComponent<StatusComponent>();
         targetFound = true;
         break;  // Assume there's only one player
     }
 
     if (!targetFound)
     {
-        wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
+        wolf::Warning("Gorgon " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
     }
 }
 
 
-void MinitaurController::Update(float delta)
+void GorgonController::Update(float delta)
 {
     // Ensure components and target are initialized before performing any updates
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
@@ -74,11 +74,11 @@ void MinitaurController::Update(float delta)
         case EnemyState::IDLE:
             HandleIdleState();
             break;
-        case EnemyState::PROSPECT:
-            HandleProspectState(delta);
-            break;
         case EnemyState::CHASING:
             HandleChasingState(delta);
+            break;
+        case EnemyState::PROSPECT:
+            HandleProspectState(delta);
             break;
         case EnemyState::ATTACKING:
             HandleAttackingState(delta);
@@ -93,7 +93,7 @@ void MinitaurController::Update(float delta)
 }
 
 
-void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
+void GorgonController::SetUpAnimations(const std::string& animationInitPath)
 {
     auto* pGameObject = GetGameObject();
     
@@ -101,18 +101,18 @@ void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
     if (pGameObject->HasAll<AnimatedSprite2D>())
     {
         pGameObject->DeleteComponent<AnimatedSprite2D>();  // Use DeleteComponent to remove the existing component
-        wolf::Warning("Removed existing anim component from minitaur...");
+        wolf::Warning("Removed existing anim component from Gorgon...");
     }
 
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
 }
 
-void MinitaurController::MoveTowardsTarget(float delta)
+void GorgonController::MoveTowardsTarget(float delta)
 {
     if (!m_pTarget || !m_pVelocity || !m_pTransform) return;
 
-    // Calculate the direction towards the player and move the Minitaur
+    // Calculate the direction towards the player and move the Gorgon
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
 
@@ -120,7 +120,7 @@ void MinitaurController::MoveTowardsTarget(float delta)
     glm::vec2 direction = targetPosition - currentPosition;
 
     // Log for debugging current position, target position, and distance
-    // printf("Minitaur MoveTowardsTarget: Current Pos: (%f, %f), Target Pos: (%f, %f)\n", 
+    // printf("Gorgon MoveTowardsTarget: Current Pos: (%f, %f), Target Pos: (%f, %f)\n", 
     //        currentPosition.x, currentPosition.y, targetPosition.x, targetPosition.y);
 
     if (glm::length(direction) > 0.01f) {
@@ -135,24 +135,23 @@ void MinitaurController::MoveTowardsTarget(float delta)
     }
 }
 
-void MinitaurController::HandleIdleState()
+void GorgonController::HandleIdleState()
 {
     // Check if the player is within detection range
     float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
 
-    // If the player comes into detection range, start chasing
-    if (distanceToPlayer <= m_detectionRange)
+    // If the player comes into detection range and not petrified, start chasing
+    if (distanceToPlayer <= m_detectionRange && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
-        ChangeState(EnemyState::CHASING);  // Transition to CHASING when the player is in range
+        ChangeState(EnemyState::CHASING); 
     }
 }
 
-void MinitaurController::HandleProspectState(float delta)
+void GorgonController::HandleProspectState(float delta)
 {
-
-    // Chase player if in range
+    // Chase player if in range and not petrified
     float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
-    if (distanceToPlayer <= m_detectionRange)
+    if (distanceToPlayer <= m_detectionRange && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
         ChangeState(EnemyState::CHASING); 
         m_prospectCounter = 0;
@@ -169,10 +168,10 @@ void MinitaurController::HandleProspectState(float delta)
                     // Roll for prospect
                     float rng = m_RNG.NextInt(1, 100);
                     // Begin prospecting
-                    if(rng > 20)
+                    if(rng > 10)
                     {
                         
-                        m_prospectCounter = m_RNG.NextInt(100, 200);
+                        m_prospectCounter = m_RNG.NextInt(1, 3);
                         glm::vec2 direction = glm::normalize(glm::vec2(m_RNG.NextInt(-100, 100), m_RNG.NextInt(-100, 100)));
                         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
                     }
@@ -183,12 +182,12 @@ void MinitaurController::HandleProspectState(float delta)
                         ChangeState(EnemyState::IDLE);
                         m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Reset velocity when returning to idle
                     }
-                    m_prospectStandingCounter = m_RNG.NextInt(1, 3);                  
+                    m_prospectStandingCounter = m_RNG.NextFloat(0.5f, 2.0f);                  
             }
             else
             {
                 m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
-                m_prospectCounter--;
+                m_prospectCounter -= delta;
             }
         }
         else
@@ -198,7 +197,7 @@ void MinitaurController::HandleProspectState(float delta)
     }
 }
 
-void MinitaurController::HandleChasingState(float delta)
+void GorgonController::HandleChasingState(float delta)
 {
     MoveTowardsTarget(delta);
     // glm::vec2 currentVelocity = m_pVelocity->GetVelocity();
@@ -206,12 +205,16 @@ void MinitaurController::HandleChasingState(float delta)
 
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+    const float distanceToTarget = glm::length(targetPosition - currentPosition);
 
-    // Check if the player has moved out of the detection range and transition to PROSPECT
-    if (distanceToPlayer > m_detectionRange)
+    // If player is out of detection range or within detection range but already petrified, switch to prospect
+    if 
+    (
+        distanceToTarget > m_detectionRange ||
+        (distanceToTarget <= m_detectionRange && m_pTargetStatusComponent != nullptr && m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    )
     {
-        ChangeState(EnemyState::PROSPECT);      
+        ChangeState(EnemyState::PROSPECT);
         return;
     }
 
@@ -220,69 +223,74 @@ void MinitaurController::HandleChasingState(float delta)
         m_transitionTimer.Start();
     }
 
-    if (distanceToPlayer <= m_meleeRange)
+    // If target is within ranged range
+    if (distanceToTarget <= m_rangedRange)
     {
-        if (m_transitionTimer.Elapsed() >= m_transitionDelay)
+        // If transition delay is expired and target is not already petrified, attack
+        if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
         {
             ChangeState(EnemyState::ATTACKING);
             m_transitionTimer.Reset();
         }
     }
+    // If target is out of range, set timer to 0 & set transition delay to random value
     else
     {
-        // Ensure the timer is reset if the player is not in range
         m_transitionTimer.Reset();
+        m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
     }
 }
 
-void MinitaurController::HandleAttackingState(float delta)
+void GorgonController::HandleAttackingState(float delta)
 {
     if (!m_pTarget) return;
 
-    // Stop Minitaur's movement during attack
+    // Stop Gorgon's movement during attack
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
-    if (m_attackTimer <= 0.0f)
+    if(m_rangedTimer <= 0.0f)
     {
-        // Check distance to player
-        const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-        const float distanceToPlayer = glm::length(targetPosition - currentPosition);
-
-        // Apply damage if player is within melee range and attack cooldown is over
-        if (distanceToPlayer <= m_meleeRange)
+        //---------------------------//
+        //                           //
+        //  TODO: ADD HITSCAN CHECK  //
+        //                           //
+        //---------------------------//
+        if(true)
         {
-            // Apply damage to the player
-            auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
-            if (playerHealth)
+            // Petrify target and switch to prospect
+            if(m_pTargetStatusComponent != nullptr)
             {
-                playerHealth->Damage(m_baseDamage);
-                wolf::Audio::Play("data/sounds/hurt.wav");
-
-                // Trigger knockback event
-                glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
-                float knockbackForce = 300.0f;  // Adjust the force as needed
-                wolf::EventManager::TriggerEvent(KnockbackEvent(m_pTarget, knockbackDirection, knockbackForce));
+                m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
+                ChangeState(EnemyState::PROSPECT);
+                AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+                if(sprite != nullptr)
+                {
+                    sprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+                }
             }
         }
-        else
-        {
-            // Return to chasing if player moves out of range
-            ChangeState(EnemyState::CHASING);
-        }
-
+        
+        
         // Reset attack cooldown timer
-        m_attackTimer = m_attackCooldown;
+        m_rangedTimer = m_rangedCooldown;        
     }
     else
     {
-        m_attackTimer -= delta;
+        // Cooldown timer for next attack
+        m_rangedTimer -= delta;
+
+        // Brighten sprite to indicate attack
+        AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+        if(sprite != nullptr)
+        {
+            sprite->SetTint(sprite->GetTint() + delta / (m_rangedCooldown * 0.5f));
+        }
     }
 }
 
 
 
-void MinitaurController::UpdateAnimationBasedOnDirection()
+void GorgonController::UpdateAnimationBasedOnDirection()
 {
     if (!m_pAnimComponent || !m_pVelocity) return;
 
@@ -291,7 +299,7 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
     // Get the current velocity to determine direction
     glm::vec2 velocity = m_pVelocity->GetVelocity();
 
-    // Only update animation if the Minitaur is moving
+    // Only update animation if the Gorgon is moving
     if (glm::length(velocity) > 0.01f)  // Ensure the velocity is not zero
     {
         // Check if the movement is more along the X or Y axis
@@ -309,7 +317,24 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
     else
     {
         // If not moving, default to idle state based on the last direction
-        animationName = "StandSouth";  // Modify as needed
+        if(m_state == EnemyState::ATTACKING)
+        {
+            const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+            const glm::vec2 vectorToTarget = targetPosition - currentPosition;
+            const float distanceToTarget = glm::length(vectorToTarget);
+
+            if (fabs(vectorToTarget.x) > fabs(vectorToTarget.y))
+            {
+                // Moving left or right
+                animationName = (vectorToTarget.x > 0.0f) ? "StandEast" : "StandWest";
+            }
+            else
+            {
+                // Moving up or down
+                animationName = (vectorToTarget.y > 0.0f) ? "StandNorth" : "StandSouth";
+            }
+        }
     }
 
     // Check if the animation needs to be changed
@@ -320,7 +345,7 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
     }
 }
 
-void MinitaurController::HandleDeathState(float delta)
+void GorgonController::HandleDeathState(float delta)
 {
     // Fall over
     if(m_fallDeadTimer <= m_timeToFallDead)
@@ -352,16 +377,13 @@ void MinitaurController::HandleDeathState(float delta)
     {
         if(m_lieDeadTimer >= m_timeToLieDead)
         {
-            // !-- Aurora added this --!
-            ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), 5.0f);
             GetGameObject()->Delete();
         }
         m_lieDeadTimer += delta;
-
-    }  
+    }
 }
 
-void MinitaurController::ChangeState(EnemyState newState)
+void GorgonController::ChangeState(EnemyState newState)
 {
     m_state = newState;
 }

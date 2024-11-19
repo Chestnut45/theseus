@@ -109,6 +109,9 @@ public:
     // NOTE: Returns nullptr if no player is found
     wolf::GameObject* GetPlayer() const;
 
+    // Gets the current seed used to generate the labyrinth
+    inline int GetSeed() const { return m_rng.GetSeed(); };
+
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 16'383;
