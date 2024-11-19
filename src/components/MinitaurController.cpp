@@ -1,6 +1,5 @@
 #include "MinitaurController.h"
 #include "PlayerController.h"
-#include "events/KnockbackEvent.h"
 #include <cassert>
 
 // !- Aurora added this --!
@@ -259,10 +258,6 @@ void MinitaurController::HandleAttackingState(float delta)
                 playerHealth->Damage(m_baseDamage);
                 wolf::Audio::Play("data/sounds/hurt.wav");
 
-                // Trigger knockback event
-                glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
-                float knockbackForce = 300.0f;  // Adjust the force as needed
-                wolf::EventManager::TriggerEvent(KnockbackEvent(m_pTarget, knockbackDirection, knockbackForce));
             }
         }
         else
