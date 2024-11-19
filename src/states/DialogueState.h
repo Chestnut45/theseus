@@ -3,6 +3,8 @@
 #include "GameState.h"
 #include "DialogueManager.h"
 #include "Theseus.h"
+#include "CutSceneState.h"
+
 
 
 // DialogueState class to manage displaying dialogue and transitions
@@ -26,7 +28,7 @@ public:
 
     // Start a dialogue with a specific ID
     void StartDialogue(const std::string& dialogueID);
-
+    void OnCutsceneTriggerEvent(const CutsceneTriggerEvent& event);
 private:
     std::string GetCurrentCharacterName() const;
     void OnContinueButtonPressed();

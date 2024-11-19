@@ -28,6 +28,7 @@ private:
         glm::vec2 position;
         float zoom;
         float duration;
+        std::string target;  // Store the target name, like "Gorgon" or "Theseus"
     };
 
     std::string m_scriptPath;
@@ -39,4 +40,7 @@ private:
     float m_currentZoomLevel;
     glm::vec2 m_initialPosition;
     float m_initialZoom;
+
+    std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;  // Store entity IDs here
+
 };

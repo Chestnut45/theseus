@@ -1,7 +1,6 @@
 #include "CutSceneState.h"
 
 void CutSceneState::Enter() {
-
     auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
     if (!camera) {
         return;
@@ -24,10 +23,33 @@ void CutSceneState::Enter() {
 
         // Load additional keyframes from YAML
         for (const auto& frame : cutsceneNode["camera_keyframes"]) {
-            glm::vec2 position(frame["position"][0].as<float>(), frame["position"][1].as<float>());
-            float zoom = frame["zoom"] ? frame["zoom"].as<float>() : m_initialZoom;  // Use initial zoom if not specified
-            float duration = frame["duration"].as<float>();
-            m_cameraKeyframes.push_back({position, zoom, duration});
+            glm::vec2 position = glm::vec2(0.0f, 0.0f);  // Default position
+            std::string target;
+            float zoom = m_initialZoom;  // Default zoom value
+            float duration = 0.0f;  // Default duration
+
+            // Check if position is defined as an array
+            if (frame["position"]) {
+                position = glm::vec2(frame["position"][0].as<float>(), frame["position"][1].as<float>());
+            }
+
+            // Check for the target value (e.g., Theseus, Gorgon)
+            if (frame["target"]) {
+                target = frame["target"].as<std::string>();
+            }
+
+            // Check if zoom is provided, otherwise, use the default
+            if (frame["zoom"]) {
+                zoom = frame["zoom"].as<float>();
+            }
+
+            // Get the duration of this frame
+            if (frame["duration"]) {
+                duration = frame["duration"].as<float>();
+            }
+
+            // Store the keyframe information
+            m_cameraKeyframes.push_back({position, zoom, duration, target});
         }
 
         if (m_cameraKeyframes.empty()) {
@@ -75,9 +97,23 @@ void CutSceneState::Update(float delta) {
         m_currentZoomLevel = targetKeyframe.zoom;
     }
 
-    // Update the active camera's position and zoom level in the scene
+    // Check if the target is a GameObject (e.g., Gorgon, Theseus)
     auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
     if (camera) {
+        if (targetKeyframe.position == glm::vec2(0, 0)) { // Some default value, handle otherwise
+            // Handle default case (e.g., specific position)
+        } else {
+            // If it's a GameObject like Gorgon or Theseus, fetch their position
+            auto objectID = m_entityIDs[targetKeyframe.target];
+            auto* targetObject = m_pGameInstance->GetScene().GetObject(objectID);
+            if (targetObject) {
+                auto* transform = targetObject->GetComponent<wolf::Transform2D>();
+                if (transform) {
+                    m_currentCameraPosition = transform->GetGlobalPosition();
+                }
+            }
+        }
+
         camera->SetPosition(m_currentCameraPosition);
         camera->SetZoom(m_currentZoomLevel);
     }

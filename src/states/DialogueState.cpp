@@ -13,6 +13,7 @@ DialogueState::DialogueState(GameStateManager* manager, Theseus* gameInstance, D
 void DialogueState::Enter()
 {
     std::cout << "Entering Dialogue State." << std::endl;
+    wolf::EventManager::AddListener<CutsceneTriggerEvent, DialogueState, &DialogueState::OnCutsceneTriggerEvent>(*this);
 
     // Reset state variables on entering the dialogue state
     m_currentLineIndex = 0;
@@ -325,7 +326,7 @@ void DialogueState::AdvanceDialogue()
             if (currentLine.action == "cutscene")
             {
                 // Trigger cutscene with specified cutsceneID
-                wolf::EventManager::TriggerEvent(CutsceneDialogueEvent(currentLine.cutsceneID, ""));
+                wolf::EventManager::TriggerEvent(CutsceneTriggerEvent(currentLine.cutsceneID)); // Trigger the cutscene event
             }
         }
         else
@@ -420,4 +421,16 @@ void DialogueState::EndDialogue()
     m_shouldExit = true;
 
     std::cout << "Dialogue has ended. Transitioning back to PlayState." << std::endl;
+}
+
+void DialogueState::OnCutsceneTriggerEvent(const CutsceneTriggerEvent& event)
+{
+    // Ensure the event contains a valid cutsceneID
+    if (!event.cutsceneID.empty())
+    {
+        std::cout << "Starting cutscene: " << event.cutsceneID << std::endl;
+
+        // Push the CutSceneState with the provided cutsceneID
+        m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", event.cutsceneID));
+    }
 }
