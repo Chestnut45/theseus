@@ -27,10 +27,15 @@ void VelocityComponent::ApplyKnockback(const glm::vec2& direction, float magnitu
     // Ensure the direction is normalized
     glm::vec2 normalizedDirection = glm::dot(direction, direction) > 0.0f ? glm::normalize(direction) : glm::vec2(0.0f);
 
-    // Apply knockback and set recovery parameters
-    m_knockbackStartVelocity = normalizedDirection * magnitude;
+    // Compute the knockback velocity
+    glm::vec2 knockbackVelocity = normalizedDirection * magnitude;
+
+    // Combine knockback with current velocity
+    m_knockbackStartVelocity = m_velocity + knockbackVelocity; // Add the knockback to the current velocity
     m_velocity = m_knockbackStartVelocity;
-    m_knockbackRecoveryTime = 1.0f; // Recovery duration in seconds (adjust as needed)
+
+    // Set recovery parameters
+    m_knockbackRecoveryTime = 1.0f; // Recovery duration in seconds
 }
 
 
