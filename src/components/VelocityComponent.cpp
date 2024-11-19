@@ -46,7 +46,12 @@ void VelocityComponent::Update(float deltaTime)
     {
         // Use damping to simulate recovery
         float dampingFactor = glm::exp(-5.0f * (1.0f - m_knockbackRecoveryTime)); // Adjust exponential factor if too much/too little
-        m_velocity = m_knockbackStartVelocity * dampingFactor;
+        glm::vec2 knockbackEffect = m_knockbackStartVelocity * dampingFactor;
+
+        // Blend knockback with current velocity (set externally)
+        m_velocity = glm::mix(knockbackEffect, m_velocity, 0.5f); // Adjust blending factor for responsiveness
+        
+        m_knockbackRecoveryTime -= deltaTime;
 
         // Reduce recovery time
         m_knockbackRecoveryTime -= deltaTime;
