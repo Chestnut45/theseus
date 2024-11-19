@@ -1620,7 +1620,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
             switch (entity.m_type)
             {
                 case Room::EntityType::Minitaur:
-
+                {
                     // Iterate each instance to spawn
                     for (int i = 0; i < entity.m_amount; ++i)
                     {
@@ -1659,13 +1659,13 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         pChunk->AddChild(minitaur);
                     }
                     break;
-                
+                }
                 case Room::EntityType::CommonChest:
                 case Room::EntityType::UncommonChest:
                 case Room::EntityType::RareChest:
                 case Room::EntityType::EpicChest:
                 case Room::EntityType::LegendaryChest:
-
+                {
                     std::string lootTablePath;
                     std::string frameName;
                     if (entity.m_type == Room::EntityType::CommonChest)
@@ -1713,7 +1713,6 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add the sprite
                         auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
-                        sprite.SetAnimation(frameName);
 
                         // Add the chest inventory
                         auto& chestInv = chest.AddComponent<ChestInventoryComponent>(16, 4, ImVec2(800, 450));
@@ -1723,9 +1722,10 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         GetChunk(GetChunkID(pos))->AddChild(chest);
                     }
                     break;
-                
+                }
                 // !-- Aurora added this --!
                 case Room::EntityType::DaedalusDispensary:
+                {
                     // ?-- It would be nice to choose the loot table randomly or based on where the dispensary is spawned
                     //     could use an RNG to index an array or use numbered filenames e.g. "dispensary_loot_N.yaml" --?
                     std::string strLootTablePath = "data/test_dispensary_contents.yaml";
@@ -1758,6 +1758,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         GetChunk(GetChunkID(pos))->AddChild(dispensary);
                     }
                     break;
+                }
             }
         }
     }

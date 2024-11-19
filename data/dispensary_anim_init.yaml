@@ -1,0 +1,11 @@
+frame_size: {x: 32.0, y: 64.0}
+playback_speed: 12.0
+
+start_animation: {
+  texture: data/textures/Dispensary-Sheet.png,
+  name: Inactive
+}
+
+animation_sets: [
+  data/dispensary_anim_set.yaml
+]

@@ -295,7 +295,6 @@ void PlayState::Update(float delta)
     }
 
     // Display all open dispensary GUIs
-    const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     for (auto&&[_, dispensaryInventory, transform] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent, wolf::Transform2D>())
     {
         // Show GUI
@@ -308,9 +307,26 @@ void PlayState::Update(float delta)
             std::string tooltip = dispensaryInventory.IsOpen() ? "Press E to Close Daedalus Dispensary" : "Press E to Open Daedalus Dispensary";
             ShowTooltip(tooltip);
 
+            // When you interact with the dispensary
             if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
             {
+                // Either open or close it
                 dispensaryInventory.ToggleOpen();
+
+                // If the dispensary has an animated sprite
+                AnimatedSprite2D* dispensarySprite = dispensaryInventory.GetGameObject()->GetComponent<AnimatedSprite2D>();
+                if (dispensarySprite) {
+                    // Play the activation animation when we open it
+                    if (dispensaryInventory.IsOpen()) {
+                        dispensarySprite->SetAnimation("Activate");
+                    }
+                    else {
+                        // And set it back to inactive when we close it
+                        dispensarySprite->SetAnimation("Inactive");
+                    }
+                }
+
+                // Also, if we close it, close the player inventory as well
                 if (!dispensaryInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
                 break;
             }
