@@ -1,5 +1,7 @@
 #include "PlayerInventoryComponent.h"
 
+#include "../inventory/ArmourItem.h"
+
 PlayerInventoryComponent::~PlayerInventoryComponent() {
     // Empty each of the stacks in the contents vector
     this->EmptyInventory();
