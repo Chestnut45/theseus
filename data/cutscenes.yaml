@@ -1,9 +1,9 @@
 cutscenes:
   gorgon_cutscene:
     camera_keyframes:
-      - target: "Theseus"  # Move camera to Theseus' position
+      - target: "Theseus"
         zoom: 1.0
         duration: 2.0
-      - target: "Gorgon"   # Move camera to the Gorgon's position
-        zoom: 0.8
+      - target: "Gorgon"
+        zoom: 1.0
         duration: 3.0

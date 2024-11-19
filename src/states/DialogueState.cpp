@@ -14,6 +14,8 @@ void DialogueState::Enter()
 {
     std::cout << "Entering Dialogue State." << std::endl;
     wolf::EventManager::AddListener<CutsceneTriggerEvent, DialogueState, &DialogueState::OnCutsceneTriggerEvent>(*this);
+    wolf::EventManager::AddListener<DialogueResumeEvent, DialogueState, &DialogueState::OnDialogueResumeEvent>(*this);
+
 
     // Reset state variables on entering the dialogue state
     m_currentLineIndex = 0;
@@ -28,6 +30,8 @@ void DialogueState::Exit()
     // Reset state variables and active dialogue flag on exit
     m_isDialogueActive = false;
     m_currentLineIndex = 0;
+    wolf::EventManager::RemoveListener<DialogueResumeEvent, DialogueState, &DialogueState::OnDialogueResumeEvent>(*this);
+
 }
 
 void DialogueState::Update(float delta)
@@ -306,38 +310,24 @@ void DialogueState::StartDialogue(const std::string& dialogueID)
     m_dialogueData[m_currentDialogueID] = *dialogue;
 }
 
-void DialogueState::AdvanceDialogue()
-{
-    if (!m_isDialogueActive)
-    {
-        return;
-    }
-
+void DialogueState::AdvanceDialogue() {
     const auto& dialogueLines = m_pDialogueManager->GetDialogueLinesById(m_currentDialogueID);
 
-    if (m_currentLineIndex < dialogueLines.size() - 1)
-    {
+    if (m_currentLineIndex < dialogueLines.size() - 1) {
         m_currentLineIndex++;
         const auto& currentLine = dialogueLines[m_currentLineIndex];
 
-        if (currentLine.text.empty() && currentLine.characterName.empty())
-        {
-            // Handle actions like cutscene or camera movements
-            if (currentLine.action == "cutscene")
-            {
-                // Trigger cutscene with specified cutsceneID
-                wolf::EventManager::TriggerEvent(CutsceneTriggerEvent(currentLine.cutsceneID)); // Trigger the cutscene event
-            }
+        if (currentLine.action == "cutscene") {
+            // Trigger the cutscene
+            m_shouldExit = true;  // Exit DialogueState
+            wolf::EventManager::TriggerEvent(CutsceneTriggerEvent(currentLine.cutsceneID));  // Event-driven transition
+            return;
         }
-        else
-        {
-            m_showFullText = false;  // Reset the display for the next line
-            m_timeSinceLastKeyframe = 0.0f;
-        }
-    }
-    else
-    {
-        m_shouldExit = true;  // Exit the dialogue state if no more lines
+
+        m_showFullText = false;  // Reset for the next line
+        m_timeSinceLastKeyframe = 0.0f;
+    } else {
+        m_shouldExit = true;  // Exit after the last line
     }
 }
 
@@ -438,5 +428,12 @@ void DialogueState::OnCutsceneTriggerEvent(const CutsceneTriggerEvent& event)
         {
             AdvanceDialogue();  // Trigger the next valid dialogue line after cutscene
         }
+    }
+}
+
+void DialogueState::OnDialogueResumeEvent(const DialogueResumeEvent& event) {
+    if (!m_currentDialogueID.empty()) {
+        // Resume the dialogue from the point after the cutscene
+        AdvanceDialogue();  // Ensure it progresses to the next line
     }
 }

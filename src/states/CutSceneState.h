@@ -7,6 +7,7 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 #include <string>
+#include "events/DialogueResumeEvent.h"
 
 class CutSceneState : public GameState {
 public:

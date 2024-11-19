@@ -4,6 +4,7 @@
 #include "DialogueManager.h"
 #include "Theseus.h"
 #include "CutSceneState.h"
+#include "events/DialogueResumeEvent.h"
 
 
 
@@ -29,6 +30,7 @@ public:
     // Start a dialogue with a specific ID
     void StartDialogue(const std::string& dialogueID);
     void OnCutsceneTriggerEvent(const CutsceneTriggerEvent& event);
+    void OnDialogueResumeEvent(const DialogueResumeEvent& event);
 private:
     std::string GetCurrentCharacterName() const;
     void OnContinueButtonPressed();

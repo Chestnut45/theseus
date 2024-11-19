@@ -366,7 +366,8 @@ void PlayState::CreatePlayer()
     // Create player object with transform
     m_pPlayerObject = &m_pGameInstance->GetScene().CreateObject2D();
     
-    m_entityIDs["Theseus"] = m_pPlayerObject->GetID();
+    // Register the player (Theseus) in the shared context
+    m_pGameInstance->GetSharedContext().RegisterEntity("Theseus", m_pPlayerObject->GetID());
 
     // Add player controller and initialize
     // NOTE: This manages all player animations and the animated sprite component for the player
@@ -471,7 +472,7 @@ void PlayState::CreateGorgonEnemy()
         {
             transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
         }
-        m_entityIDs["Gorgon"] = gorgon.GetID();  // Use "Gorgon" as the key
+        m_pGameInstance->GetSharedContext().RegisterEntity("Gorgon", gorgon.GetID());
     }
 }
 

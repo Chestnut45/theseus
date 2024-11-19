@@ -1,8 +1,11 @@
 #include "CutSceneState.h"
 
 void CutSceneState::Enter() {
+    auto& sharedContext = m_pGameInstance->GetSharedContext();  // Access shared context from Theseus
+
     auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
     if (!camera) {
+        std::cerr << "Error: No active camera found!" << std::endl;
         return;
     }
 
@@ -11,51 +14,60 @@ void CutSceneState::Enter() {
     m_initialZoom = camera->GetZoom();
 
     try {
+        // Load cutscene data from YAML file
         YAML::Node script = YAML::LoadFile(m_scriptPath);
         YAML::Node cutsceneNode = script["cutscenes"][m_cutsceneID];
 
         if (!cutsceneNode) {
+            std::cerr << "Error: Cutscene with ID '" << m_cutsceneID << "' not found in the script!" << std::endl;
             return;
         }
 
         // Add the initial camera position and zoom as the first keyframe
-        m_cameraKeyframes.push_back({m_initialPosition, m_initialZoom, 0.0f});
+        m_cameraKeyframes.push_back({m_initialPosition, m_initialZoom, 0.0f, ""});
 
-        // Load additional keyframes from YAML
+        // Process camera keyframes from YAML
         for (const auto& frame : cutsceneNode["camera_keyframes"]) {
             glm::vec2 position = glm::vec2(0.0f, 0.0f);  // Default position
             std::string target;
-            float zoom = m_initialZoom;  // Default zoom value
-            float duration = 0.0f;  // Default duration
+            float zoom = m_initialZoom;  // Default zoom
+            float duration = 0.0f;       // Default duration
 
-            // Check if position is defined as an array
-            if (frame["position"]) {
-                position = glm::vec2(frame["position"][0].as<float>(), frame["position"][1].as<float>());
-            }
-
-            // Check for the target value (e.g., Theseus, Gorgon)
+            // Check for a target entity (e.g., "Theseus", "Gorgon")
             if (frame["target"]) {
                 target = frame["target"].as<std::string>();
+                if (sharedContext.HasEntity(target)) {
+                    auto targetID = sharedContext.GetEntityID(target);
+                    auto* targetObject = m_pGameInstance->GetScene().GetObject(targetID);
+                    if (targetObject) {
+                        auto* transform = targetObject->GetComponent<wolf::Transform2D>();
+                        if (transform) {
+                            position = transform->GetGlobalPosition();  // Use entity's global position
+                        }
+                    }
+                } else {
+                    std::cerr << "Warning: Entity '" << target << "' not found in shared context!" << std::endl;
+                }
             }
 
-            // Check if zoom is provided, otherwise, use the default
+            // Load zoom and duration if provided
             if (frame["zoom"]) {
                 zoom = frame["zoom"].as<float>();
             }
-
-            // Get the duration of this frame
             if (frame["duration"]) {
                 duration = frame["duration"].as<float>();
             }
 
-            // Store the keyframe information
+            // Store the keyframe
             m_cameraKeyframes.push_back({position, zoom, duration, target});
         }
 
         if (m_cameraKeyframes.empty()) {
+            std::cerr << "Warning: No valid keyframes found for cutscene '" << m_cutsceneID << "'!" << std::endl;
             return;
         }
 
+        // Initialize camera position and zoom to the first keyframe
         m_currentCameraPosition = m_cameraKeyframes[0].position;
         m_currentZoomLevel = m_cameraKeyframes[0].zoom;
 
@@ -76,11 +88,13 @@ void CutSceneState::Exit() {
 }
 void CutSceneState::Update(float delta) {
     if (m_cameraKeyframes.empty() || m_currentKeyframe >= m_cameraKeyframes.size() - 1) {
-        m_pStateManager->PopState();  // End cutscene when all keyframes are completed
+        // End cutscene and notify DialogueState
+        wolf::EventManager::TriggerEvent(DialogueResumeEvent(m_cutsceneID));
+        m_pStateManager->PopState();  // Return to DialogueState
         return;
     }
 
-    // Get the next keyframe target
+    // Handle camera interpolation logic
     CameraKeyframe& targetKeyframe = m_cameraKeyframes[m_currentKeyframe + 1];
     m_timeSinceLastKeyframe += delta;
 
@@ -89,35 +103,20 @@ void CutSceneState::Update(float delta) {
     m_currentCameraPosition = glm::mix(m_cameraKeyframes[m_currentKeyframe].position, targetKeyframe.position, t);
     m_currentZoomLevel = glm::mix(m_cameraKeyframes[m_currentKeyframe].zoom, targetKeyframe.zoom, t);
 
-    // Move to the next keyframe if this one is complete
+    // Advance to the next keyframe
     if (t >= 1.0f) {
         m_timeSinceLastKeyframe = 0.0f;
         m_currentKeyframe++;
-        m_currentCameraPosition = targetKeyframe.position;
-        m_currentZoomLevel = targetKeyframe.zoom;
     }
 
-    // Check if the target is a GameObject (e.g., Gorgon, Theseus)
+    // Apply camera transformations
     auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
     if (camera) {
-        if (targetKeyframe.position == glm::vec2(0, 0)) { // Some default value, handle otherwise
-            // Handle default case (e.g., specific position)
-        } else {
-            // If it's a GameObject like Gorgon or Theseus, fetch their position
-            auto objectID = m_entityIDs[targetKeyframe.target];
-            auto* targetObject = m_pGameInstance->GetScene().GetObject(objectID);
-            if (targetObject) {
-                auto* transform = targetObject->GetComponent<wolf::Transform2D>();
-                if (transform) {
-                    m_currentCameraPosition = transform->GetGlobalPosition();
-                }
-            }
-        }
-
         camera->SetPosition(m_currentCameraPosition);
         camera->SetZoom(m_currentZoomLevel);
     }
 }
+
 void CutSceneState::Render() {
     // No specific rendering required for camera-only cutscenes
 }

@@ -10,11 +10,11 @@ dialogue:
       - character: "Theseus"
         text: "Where am I? No way... Is this Daedalus' Labyrinth?"
         duration: 4.0
-      - action: "cutscene"  # Cutscene begins
-        cutsceneID: "gorgon_cutscene"
       - character: "Theseus"
         text: "What is that?"
         duration: 2.5
+      - action: "cutscene"
+        cutsceneID: "gorgon_cutscene"
       - character: "Gorgon"
         text: "You should have never come here, this'll be the end of you!"
         duration: 3.5
