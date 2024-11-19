@@ -664,7 +664,7 @@ void PlayerController::ApplyDamageToEnemy()
             projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
             projectileCollider.SetIgnoreTag(player->GetID());
 
-            auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+            auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 100.0f);
 
             spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + projectileDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - projectileDimensions.x * 0.5f) : (spawnOffset.x));
             spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + projectileDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - projectileDimensions.y * 0.5f) : (spawnOffset.y));
@@ -730,7 +730,7 @@ void PlayerController::ApplyDamageToEnemy()
             meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(0.0f));
             meleeCollider.SetIgnoreTag(player->GetID());
 
-            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 200.0f);
             
             melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
             melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
@@ -785,7 +785,7 @@ void PlayerController::ApplyDamageToEnemy()
                  
             meleeCollider.SetIgnoreTag(player->GetID());
 
-            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 300.0f);
             
             melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
             melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
