@@ -193,8 +193,6 @@ private:
     const float m_maxThrowPower = 100.0f; // Max limit for the throw power
     const float m_powerChargeRate = 25.0f; // Rate at which power increases
 
-    static float s_aAttackCooldown[(int)WeaponType::BOW + 1];
-
     // Animation and state tracking flags
     bool m_animationFinished = false;
     std::string m_currentAnimation;
