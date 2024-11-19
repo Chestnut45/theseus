@@ -111,7 +111,7 @@ void StatusComponent::RenderPlayerSEIcons()
     {
         // Setup
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar |  ImGuiWindowFlags_NoBackground;
-        ImVec2 windowSize = ImVec2((s_vTextureSize.x + 16) * StatusEffectType::NONE + 8, s_vTextureSize.y + 24);
+        ImVec2 windowSize = ImVec2((s_vTextureSize.x + 16) * (float)StatusEffectType::NONE + 8, s_vTextureSize.y + 24);
         ImGui::SetNextWindowPos({10, 10});
         ImGui::SetNextWindowSize(windowSize);
         ImGui::Begin("\t", nullptr, flags);
