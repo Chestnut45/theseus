@@ -14,10 +14,10 @@ enemies:
     armour: 2
     melee_range: 100
     attack_cooldown: 2
-    detection_range: 1000
+    detection_range: 10000000
     base_damage: 20
     chase_speed: 80
-    animation_init_file: "data/minitaur_anim_init.yaml"
+    animation_init_file: "data/harpy_anim_init.yaml"
 
   - type: gorgon
     health: 450
