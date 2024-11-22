@@ -223,13 +223,27 @@ void PlayState::Update(float delta)
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
             ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
+            ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
+            ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
+            ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
+            ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
+            ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
+            ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
+
             ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
             ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
 
             ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
             ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
             ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
+            
             playerInventory->AddItemOrDelete(pBoots);
+            playerInventory->AddItemOrDelete(pDentedHelmet);
+            playerInventory->AddItemOrDelete(pRustyChestplate);
+            playerInventory->AddItemOrDelete(pCopperVambraces);
+            playerInventory->AddItemOrDelete(pKilt);
+            playerInventory->AddItemOrDelete(pTheezys);
+            playerInventory->AddItemOrDelete(pFauxLeatherGloves);
             playerInventory->AddItemOrDelete(pBow);
             playerInventory->AddItemOrDelete(pSpear);
             playerInventory->AddItemOrDelete(pHealHeart);

@@ -8,7 +8,7 @@ Gold Coin: {
 
 Common Schematic: {
   id: SCHEMATIC,
-  description: One of Daedalus' old schematics. Can be traded at a dispensary for cheap equipment,
+  description: One of Daedalus' old schematics. Can be traded at a dispensary for cheap equipment.,
   value: 25,
   texture_frame: 16,
   rarity: COMMON
@@ -16,7 +16,7 @@ Common Schematic: {
 
 Uncommon Schematic: {
   id: SCHEMATIC,
-  description: One of Daedalus' old schematics. Can be traded at a dispensary for useful equipment,
+  description: One of Daedalus' old schematics. Can be traded at a dispensary for useful equipment.,
   value: 50,
   texture_frame: 17,
   rarity: UNCOMMON
@@ -24,7 +24,7 @@ Uncommon Schematic: {
 
 Rare Schematic: {
   id: SCHEMATIC,
-  description: One of Daedalus' old schematics. Can be traded at a dispensary for strong equipment,
+  description: One of Daedalus' old schematics. Can be traded at a dispensary for strong equipment.,
   value: 75,
   texture_frame: 18,
   rarity: RARE
@@ -32,7 +32,7 @@ Rare Schematic: {
 
 Epic Schematic: {
   id: SCHEMATIC,
-  description: One of Daedalus' old schematics. Can be traded at a dispensary for powerful equipment,
+  description: One of Daedalus' old schematics. Can be traded at a dispensary for powerful equipment.,
   value: 100,
   texture_frame: 19,
   rarity: EPIC
@@ -40,7 +40,7 @@ Epic Schematic: {
 
 Legendary Schematic: {
   id: SCHEMATIC,
-  description: One of Daedalus' favourite schematics. Can be traded at a dispensary for impressive equipment,
+  description: One of Daedalus' favourite schematics. Can be traded at a dispensary for impressive equipment.,
   value: 125,
   texture_frame: 20,
   rarity: LEGENDARY
@@ -88,7 +88,7 @@ Burning Heart: {
 
 Dull Blade: {
   id: EQUIPMENT,
-  description: A blade so dull butter could cut through it,
+  description: A blade so dull butter could cut through it.,
   value: 10,
   texture_frame: 1,
   rarity: COMMON,
@@ -102,7 +102,7 @@ Dull Blade: {
 
 Shaky Spear: {
   id: EQUIPMENT,
-  description: The pen is mightier than the sword, and this is a very large pen indeed,
+  description: The pen is mightier than the sword and this is a very large pen indeed.,
   value: 10,
   texture_frame: 1,
   rarity: COMMON,
@@ -134,17 +134,6 @@ Old Bow: {
   }
 }
 
-Dented Helmet: {
-  id: EQUIPMENT,
-  description: Someone definitely died in this helmet,
-  value: 10,
-  texture_frame: 9,
-  rarity: COMMON,
-  slot: HEAD,
-  damage_reduction: 0.02,
-  has_status_effects: false,
-}
-
 The Floor is Lava Boots: {
   id: EQUIPMENT,
   description: Guaranteed to make you feel like you're walking in lava! (Super extra long description text that is irrelevant and should be removed afterwards),
@@ -160,4 +149,70 @@ The Floor is Lava Boots: {
       duration: 2.0,
     }
   ]
+}
+
+Dented Helmet: {
+  id: EQUIPMENT,
+  description: Someone definitely died in this helmet.,
+  value: 10,
+  texture_frame: 9,
+  rarity: COMMON,
+  slot: HEAD,
+  damage_reduction: 0.02,
+  has_status_effects: false,
+}
+
+Rusty Chestplate: {
+  id: EQUIPMENT,
+  description: A piece of torso protection equipment that has undergone extensive oxidation.,
+  value: 15,
+  texture_frame: 10,
+  rarity: COMMON,
+  slot: BODY,
+  damage_reduction: 0.2,
+  has_status_effects: false,
+}
+
+Copper Vambraces: {
+  id: EQUIPMENT,
+  description: Made from only the highest quality copper offered by that reputable merchant Ea-nasir!,
+  value: 1,
+  texture_frame: 11,
+  rarity: COMMON,
+  slot: ARMS,
+  damage_reduction: 0.1,
+  has_status_effects: false,
+}
+
+Kilt: {
+  id: EQUIPMENT,
+  description: Rumoured to have originated from the ancient mythical realm of "Scotland".,
+  value: 10,
+  texture_frame: 12,
+  rarity: COMMON,
+  slot: LEGS,
+  damage_reduction: 0.05,
+  has_status_effects: false,
+}
+
+Theezys: {
+  id: EQUIPMENT,
+  description: Produced by the finest Athenian sweatshops!,
+  value: 25,
+  texture_frame: 13,
+  rarity: COMMON,
+  slot: FEET,
+  damage_reduction: 0.2,
+  has_status_effects: false,
+}
+
+Faux-leather Gloves: {
+  id: EQUIPMENT,
+  description: Faux-leather was developed after an incident involving Artemis' pet goat being made into a kitchen rug (long story).,
+  value: 15,
+  texture_frame: 14,
+  rarity: COMMON,
+  slot: GLOVES,
+  damage_reduction: 0.1,
+  has_status_effects: false,
 }
