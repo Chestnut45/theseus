@@ -3,6 +3,7 @@
 #include "ColliderComponent.h"
 #include "HealthComponent.h"
 #include "VelocityComponent.h"
+#include "StatusComponent.h"
 #include "TimedDestroyerComponent.h"
 #include "HarpyController.h"
 #include "MinitaurController.h"
@@ -46,6 +47,11 @@ ColliderManager* PlayerController::GetColliderManager() const
     return m_pColliderManager;
 }
 
+PlayerController::PlayerAction PlayerController::GetPlayerAction() const
+{
+    return this->m_action;
+}
+
 void PlayerController::SetAction(PlayerAction action)
 {
     // If transitioning to THROWING or PICKING_UP state, reset any active attack
@@ -54,7 +60,6 @@ void PlayerController::SetAction(PlayerAction action)
         m_isAttacking = false;
         m_action = PlayerAction::NONE; // Reset to NONE to avoid conflict
     }
-
     m_action = action;
 }
 
@@ -188,6 +193,23 @@ void PlayerController::HandlePlayerInput(float delta)
         m_action = PlayerAction::NONE;
     }
 
+    // Check if player is petrified
+    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+    if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    {
+        m_action = PlayerAction::PETRIFIED;
+    }
+    else
+    {
+        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+        // On exiting petrified state
+        if(m_action == PlayerAction::PETRIFIED)
+        {
+            m_action = PlayerAction::NONE;
+            m_pAnimComponent->SetAnimPaused(false);
+        } 
+    }
+
     // Handle pick up and drop actions
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
         PickUpObject();
@@ -214,6 +236,9 @@ void PlayerController::HandlePlayerInput(float delta)
         case PlayerAction::THROWING:
             HandleThrowing(delta);  // Handle throw logic
             HandleMovement(delta);
+            break;
+        case PlayerAction::PETRIFIED:
+            HandlePetrified(delta);
             break;
         default:
             HandleAttacking(delta);
@@ -270,6 +295,13 @@ void PlayerController::HandleThrowing(float delta) {
     }
 }
 
+void PlayerController::HandlePetrified(float delta)
+{
+        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::PETRIFIED);
+        m_action = PlayerAction::PETRIFIED;
+        m_pAnimComponent->SetAnimPaused(true);
+        m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+}
 
 void PlayerController::ThrowHeldObject() {
     if (!m_isHoldingObject || !m_pHeldObject) {

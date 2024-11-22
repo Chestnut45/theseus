@@ -26,6 +26,8 @@ private:
     void HandleProspectState(float delta);
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
+    void HandleStunnedState(float delta);
+    void HandlePetrifiedState(float delta);
     void HandleDeathState(float delta);
     void ChangeState(EnemyState newState);
     
@@ -33,7 +35,7 @@ private:
     // Minitaur-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;
-    VelocityComponent* m_pVelocity = nullptr;;
+    VelocityComponent* m_pVelocity = nullptr;
     float m_meleeRange;
     float m_attackCooldown;
     float m_attackTimer = 0.0f;

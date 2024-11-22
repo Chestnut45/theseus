@@ -215,7 +215,9 @@ AnimatedSprite2D::~AnimatedSprite2D() {
     // If this was the last AnimatedSprite2D instance then we no longer need our shader resources
     if (s_iAnimSprite2DCount == 0) {
         // So we can delete them
+        s_pCurrentProgram = nullptr;
         wolf::ProgramManager::DestroyProgram(s_pProgram);
+        wolf::ProgramManager::DestroyProgram(s_pPetrifiedProgram);
         wolf::BufferManager::DestroyBuffer(s_pVertexBuffer);
         wolf::BufferManager::DestroyBuffer(s_pIndexBuffer);
         delete s_pVAO;
@@ -291,35 +293,38 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
 // and Carol Boers' UPEI CS-4650 Animation Controller Component ***
 void AnimatedSprite2D::Update(float p_fDelta) {
     // Quick check to make sure that we have an animation
-    if (m_pCurrentAnim) {
-        // Advance the current frame
-        m_fCurrentFrame += p_fDelta * m_fPlaybackSpeed;
+    if(!m_bIsAnimPaused)
+    {
+        if (m_pCurrentAnim) {
+            // Advance the current frame
+            m_fCurrentFrame += p_fDelta * m_fPlaybackSpeed;
 
-        // If that advancement causes us to reach the end of the last frame of this animation
-        if (m_fCurrentFrame >= m_pCurrentAnim->m_iEndFrame + 1) {
-            // Check if this is a looping animation
-            if (m_pCurrentAnim->m_bLoop) {
-                // And if it is, restart the animation
-                m_fCurrentFrame = (float)m_pCurrentAnim->m_iStartFrame;
-                m_iAnimLoopCount++;
+            // If that advancement causes us to reach the end of the last frame of this animation
+            if (m_fCurrentFrame >= m_pCurrentAnim->m_iEndFrame + 1) {
+                // Check if this is a looping animation
+                if (m_pCurrentAnim->m_bLoop) {
+                    // And if it is, restart the animation
+                    m_fCurrentFrame = (float)m_pCurrentAnim->m_iStartFrame;
+                    m_iAnimLoopCount++;
+                }
+                else {
+                    m_bIsAnimFinished = true;
+                    m_fCurrentFrame = (float)m_pCurrentAnim->m_iEndFrame;
+                }
             }
-            else {
-                m_bIsAnimFinished = true;
-                m_fCurrentFrame = (float)m_pCurrentAnim->m_iEndFrame;
+
+            // Similarly, if that advancement caused us to change animation frames
+            if ((int)m_fCurrentFrame != (int)m_fLastFrame) { 
+                // Look for the next frame in the animation
+                m_bFrameChanged = true;
+                m_pCurrentFrameUVs = m_vpFrameUVCoords[(int)m_fCurrentFrame];
             }
-        }
 
-        // Similarly, if that advancement caused us to change animation frames
-        if ((int)m_fCurrentFrame != (int)m_fLastFrame) { 
-            // Look for the next frame in the animation
-            m_bFrameChanged = true;
-            m_pCurrentFrameUVs = m_vpFrameUVCoords[(int)m_fCurrentFrame];
+            // Keep track of which animation frame we played last so that
+            // we are only changing the UV coordinates when necessary
+            m_fLastFrame = m_fCurrentFrame;
         }
-
-        // Keep track of which animation frame we played last so that
-        // we are only changing the UV coordinates when necessary
-        m_fLastFrame = m_fCurrentFrame;
-    }
+    }  
 }
 
 void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint) {
@@ -386,12 +391,20 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
     model = glm::rotate(model, rotationRadians, glm::vec3(0.0f, 0.0f, 1.0f));
     model = glm::scale(model, glm::vec3(scale * m_v2FrameSize, 1.0f));
 
+        //-----------------//
+        //                 //
+        //  Added by Nhật  //
+        //                 //
+        //-----------------//
+        // Update shaders based on current special effects
+        UpdateShaders();
+
     // Set model uniform
-    s_pProgram->SetUniform("model", model);
-    s_pProgram->SetUniform("tint", chosenTint);
+    s_pCurrentProgram->SetUniform("model", model);
+    s_pCurrentProgram->SetUniform("tint", chosenTint);
 
     // Bind shader and texture
-    s_pProgram->Bind();
+    s_pCurrentProgram->Bind();
     m_pTexture->Bind(0);
 
     // Draw!
@@ -447,8 +460,16 @@ void AnimatedSprite2D::IncreaseReferences()
         // *** The following code segment is taken directly from D'Anyil Landry's W_Sprite2D.cpp _IncreaseRefCount() ***
         // *** some modifications have been made, but the majority of the code is the same                           ***
 
-        // Load shader program
+        // Load shader programs
         s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d.fs");
+
+            //-----------------//
+            //                 //
+            //  Added by Nhật  //
+            //                 //
+            //-----------------//
+            s_pPetrifiedProgram = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d_petrified.fs");
+            s_pCurrentProgram = s_pProgram;
 
         // Create vertex buffer
         s_pVertexBuffer = wolf::BufferManager::CreateVertexBuffer(m_arBaseVertexData, sizeof(m_arBaseVertexData));
@@ -476,4 +497,31 @@ void AnimatedSprite2D::IncreaseReferences()
     }
 
     s_iAnimSprite2DCount++;
+}
+
+//-----------------//
+//                 //
+//  Added by Nhật  //
+//                 //
+//-----------------//
+void AnimatedSprite2D::UpdateShaders()
+{
+    switch (m_specialEffectsType)
+    {
+        case SpecialEffectsType::PETRIFIED:
+        {
+            s_pCurrentProgram = s_pPetrifiedProgram;
+            break;
+        }
+        case SpecialEffectsType::NONE:
+        {
+            s_pCurrentProgram = s_pProgram;
+            break;
+        }
+        default:
+        {
+            s_pCurrentProgram = s_pProgram;
+            break;
+        }
+    }
 }

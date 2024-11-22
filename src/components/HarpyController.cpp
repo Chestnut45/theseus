@@ -63,6 +63,24 @@ void HarpyController::Update(float delta)
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
 
+    // Check if harpy is petrified
+    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+    if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    {
+        ChangeState(EnemyState::DEATH);
+    }
+   
+    else 
+    {
+        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+        // On exiting petrified state
+        if(m_state == EnemyState::PETRIFIED)
+        {
+            m_state = EnemyState::IDLE;
+            m_pAnimComponent->SetAnimPaused(false);
+        }         
+    }
+
     // Check if health is below or equal to 0 and transition to the DEATH state
     if (m_pHealth->GetHealth() <= 0)
     {
@@ -87,6 +105,9 @@ void HarpyController::Update(float delta)
             break;
         case EnemyState::ATTACKING:
             HandleAttackingState(delta);
+            break;
+        case EnemyState::PETRIFIED:
+            HandlePetrifiedState(delta);
             break;
         case EnemyState::DEATH:
             HandleDeathState(delta);
@@ -260,7 +281,10 @@ void HarpyController::HandleAttackingState(float delta)
     ChangeState(EnemyState::CHASING);
 }
 
-
+void HarpyController::HandlePetrifiedState(float delta)
+{
+    ChangeState(EnemyState::DEATH);
+}
 
 void HarpyController::UpdateAnimationBasedOnDirection()
 {

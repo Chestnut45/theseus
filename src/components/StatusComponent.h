@@ -10,9 +10,8 @@
 #include <glm/glm.hpp>
 #include <wolf.h>
 
-#include "HealthComponent.h"
 
-#include "../ColliderManager.h"
+// #include "../ColliderManager.h"
 #include "../events/InventoryEvents.h"
 
 class StatusComponent : public wolf::BaseComponent

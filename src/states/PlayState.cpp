@@ -89,7 +89,7 @@ void PlayState::Enter()
     
     // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
     
-    // this->CreateMinitaurEnemy();
+    this->CreateMinitaurEnemy();
     this->CreateHarpyEnemy();
     this->CreateGorgonEnemy();
 }
@@ -453,25 +453,20 @@ void PlayState::CreateMinitaurEnemy()
 
     MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
 
-    glm::vec2 positions[] = {
-        // glm::vec2(300.0f, 200.0f),
-        // glm::vec2(400.0f, 200.0f),
-        // glm::vec2(500.0f, 200.0f)
-        glm::vec2(6000.0f, 0.0f)
-    };
+    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 240.0f); 
 
-    for (const auto& position : positions)
+    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
+    auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, position, m_pColliderManager);
+    
+    // Set the scale of each Minitaur to 3
+    auto* transform = minitaur.GetComponent<wolf::Transform2D>();
+    if (transform)
     {
-        EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-        auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, position, m_pColliderManager);
-        
-        // Set the scale of each Minitaur to 3
-        auto* transform = minitaur.GetComponent<wolf::Transform2D>();
-        if (transform)
-        {
-            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each minitaur
-        }
+        transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each minitaur
     }
+
+    auto* statusComponent = minitaur.GetComponent<StatusComponent>();
+    statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
 }
 void PlayState::CreateHarpyEnemy()
 {
@@ -490,6 +485,8 @@ void PlayState::CreateHarpyEnemy()
     {
         transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
     }
+    auto* statusComponent = harpy.GetComponent<StatusComponent>();
+    statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 2.0f);
 }
 
 
@@ -500,25 +497,19 @@ void PlayState::CreateGorgonEnemy()
 
     GorgonBuilder gorgonBuilder(m_pGameInstance->GetScene());
 
-    glm::vec2 positions[] = {
-        // glm::vec2(-300.0f, -300.0f),
-        // glm::vec2(-400.0f, -400.0f),
-        // glm::vec2(-500.0f, -500.0f)
-        glm::vec2(6000.0f, 0.0f)
-    };
+    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, -360.0f);
 
-    for (const auto& position : positions)
+    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+    auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position, m_pColliderManager);
+    
+    // Set the scale of each Gorgon to 3
+    auto* transform = gorgon.GetComponent<wolf::Transform2D>();
+    if (transform)
     {
-        EnemyData gorgonData = loader.LoadEnemyData("gorgon");
-        auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position, m_pColliderManager);
-        
-        // Set the scale of each Gorgon to 3
-        auto* transform = gorgon.GetComponent<wolf::Transform2D>();
-        if (transform)
-        {
-            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
-        }
+        transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
     }
+    auto* statusComponent = gorgon.GetComponent<StatusComponent>();
+    statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3.0f);
 }
 
 void PlayState::CreateThrowableObject()

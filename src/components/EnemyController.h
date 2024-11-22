@@ -14,6 +14,8 @@ public:
         PROSPECT,
         CHASING,
         ATTACKING,
+        PETRIFIED,
+        STUNNED,
         DEATH
     };
     EnemyController() = default;    

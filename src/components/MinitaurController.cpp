@@ -60,6 +60,24 @@ void MinitaurController::Update(float delta)
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
 
+    // Check if minitaur is petrified
+    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+    if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    {
+        ChangeState(EnemyState::PETRIFIED);
+    }
+   
+    else 
+    {
+        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+        // On exiting petrified state
+        if(m_state == EnemyState::PETRIFIED)
+        {
+            m_state = EnemyState::IDLE;
+            m_pAnimComponent->SetAnimPaused(false);
+        }         
+    }
+
     // Check if health is below or equal to 0 and transition to the DEATH state
     if (m_pHealth->GetHealth() <= 0)
     {
@@ -81,6 +99,9 @@ void MinitaurController::Update(float delta)
             break;
         case EnemyState::ATTACKING:
             HandleAttackingState(delta);
+            break;
+        case EnemyState::PETRIFIED:
+            HandlePetrifiedState(delta);
             break;
         case EnemyState::DEATH:
             HandleDeathState(delta);
@@ -272,7 +293,12 @@ void MinitaurController::HandleAttackingState(float delta)
     }
 }
 
-
+void MinitaurController::HandlePetrifiedState(float delta)
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::PETRIFIED);
+    m_pAnimComponent->SetAnimPaused(true);
+    m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));  
+}
 
 void MinitaurController::UpdateAnimationBasedOnDirection()
 {

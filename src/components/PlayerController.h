@@ -38,6 +38,7 @@ public:
         IN_INVENTORY,
         PICKING_UP,
         THROWING,
+        PETRIFIED,
         DEAD
     };
 
@@ -78,8 +79,8 @@ public:
     void SetColliderManager(ColliderManager* pColliderManager);
     //get the collider manager (verification)
     ColliderManager* GetColliderManager() const;
-
-
+    //get player action
+    PlayerAction GetPlayerAction() const;
 
     //set player action
     void SetAction(PlayerAction action);
@@ -104,7 +105,7 @@ private:
     void HandleJumping(float delta);     // Declaration for HandleJumping
     void HandleAttacking(float delta);   // Declaration for HandleAttacking
     void HandleThrowing(float delta);  // New method to handle throwing
-    
+    void HandlePetrified(float delta);  // New method to handle being petrified
 
 
     // !-- Aurora added this --!
@@ -149,6 +150,7 @@ private:
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
+    PlayerAction m_lastAction = PlayerAction::NONE;
     PlayerDirection m_lastMoveDirectionEnum = PlayerDirection::SOUTH;
     PlayerDirection m_lastFaceDirectionEnum = PlayerDirection::SOUTH;
     std::vector<int> m_heldKeys;  // List of currently held keys

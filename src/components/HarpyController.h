@@ -25,6 +25,8 @@ private:
     void HandleIdleState();
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
+    void HandlePetrifiedState(float delta);
+    void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
     void ChangeState(EnemyState newState) ;
     

@@ -8,9 +8,7 @@
 
 #include "StatusComponent.h"
 
-#include "AnimatedSprite2D.h"
 #include "PlayerController.h"
-#include "VelocityComponent.h"
 
 int StatusComponent::s_iComponentCounter = 0;
 wolf::Texture* StatusComponent::s_pTextures[StatusComponent::StatusEffectType::NONE];
@@ -166,18 +164,6 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
 
         case StatusEffectType::PETRIFIED:
         {
-            VelocityComponent* velocityComponent = this->m_OwnerComponent->GetGameObject()->GetComponent<VelocityComponent>();
-            if(velocityComponent != nullptr)
-            {
-                velocityComponent->SetVelocity(glm::vec2(0.0f, 0.0f));
-            }
-
-            AnimatedSprite2D* animatedSprite2DComponent = this->m_OwnerComponent->GetGameObject()->GetComponent<AnimatedSprite2D>();
-            if(animatedSprite2DComponent != nullptr)
-            {
-                animatedSprite2DComponent->SetTint(glm::vec3(1.5f, 1.5f, 1.5f));
-            }
-
             break;
         }      
         
