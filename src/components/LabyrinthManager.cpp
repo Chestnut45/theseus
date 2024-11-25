@@ -282,6 +282,12 @@ void LabyrinthManager::GenerateLabyrinth()
     // Place all entitites
     PopulateEntities(placedRooms);
 
+    // Deactivate all chunks
+    for (auto& chunk : m_chunkMap)
+    {
+        DeactivateChunk(chunk.first);
+    }
+
     // Generate entrance room
     GenerateEntrance();
 
@@ -1467,11 +1473,9 @@ void LabyrinthManager::GenerateChunks()
             // Create tilemap
             auto& tilemap = tilemapObj.AddComponent<wolf::TileMap>(CHUNK_SIZE, CHUNK_SIZE);
             tilemap.LoadTileSet("data/labyrinth.tileset");
-            tilemap.SetVisibility(false);
 
-            // TESTING: Create collider component
+            // Create collider component
             auto& collider = tilemapObj.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
-            collider.SetActive(false);
 
             // Iterate chunk's tilemap
             for (int y = 0; y < CHUNK_SIZE; ++y)
@@ -1513,10 +1517,10 @@ void LabyrinthManager::GenerateChunks()
                             // tile = nonGoldFloors[m_rng.NextInt(0, sizeof(nonGoldFloors) / sizeof(int) - 1)];
 
                             // Grab values for adjacent perpendicular floors
-                            up = worldPos.y == m_height ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y + 1) == LogicalTile::Floor ? 1 : 0;
+                            up = worldPos.y == m_height - 1 ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y + 1) == LogicalTile::Floor ? 1 : 0;
                             down = worldPos.y == 0 ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y - 1) == LogicalTile::Floor ? 1 : 0;
                             left = worldPos.x == 0 ? 0 : m_labyrinthGrid.Get(worldPos.x - 1, worldPos.y) == LogicalTile::Floor ? 1 : 0;
-                            right = worldPos.x == m_width ? 0 : m_labyrinthGrid.Get(worldPos.x + 1, worldPos.y) == LogicalTile::Floor ? 1 : 0;
+                            right = worldPos.x == m_width - 1 ? 0 : m_labyrinthGrid.Get(worldPos.x + 1, worldPos.y) == LogicalTile::Floor ? 1 : 0;
 
                             // Combine and align into bitmasked index
                             mask = (up << 3) | (down << 2) | (left << 1) | right;
@@ -1532,10 +1536,10 @@ void LabyrinthManager::GenerateChunks()
                         case LogicalTile::Wall:
 
                             // Grab values for adjacent perpendicular walls
-                            up = worldPos.y == m_height ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y + 1) == LogicalTile::Wall ? 1 : 0;
+                            up = worldPos.y == m_height - 1 ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y + 1) == LogicalTile::Wall ? 1 : 0;
                             down = worldPos.y == 0 ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y - 1) == LogicalTile::Wall ? 1 : 0;
                             left = worldPos.x == 0 ? 0 : m_labyrinthGrid.Get(worldPos.x - 1, worldPos.y) == LogicalTile::Wall ? 1 : 0;
-                            right = worldPos.x == m_width ? 0 : m_labyrinthGrid.Get(worldPos.x + 1, worldPos.y) == LogicalTile::Wall ? 1 : 0;
+                            right = worldPos.x == m_width - 1 ? 0 : m_labyrinthGrid.Get(worldPos.x + 1, worldPos.y) == LogicalTile::Wall ? 1 : 0;
 
                             // Combine and align into bitmasked index
                             mask = (up << 3) | (down << 2) | (left << 1) | right;
@@ -1635,12 +1639,6 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Scale the minitaur
                         minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
-
-                        // Deactivate the collider
-                        minitaur.GetComponent<ColliderComponent>()->SetActive(false);
-
-                        // Make the sprite invisible
-                        minitaur.GetComponent<AnimatedSprite2D>()->SetVisibility(false);
 
                         // Add as a child object of the correct chunk
                         auto chunkID = GetChunkID(pos);
