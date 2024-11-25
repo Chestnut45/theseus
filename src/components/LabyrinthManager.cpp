@@ -1640,6 +1640,16 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
     for (const auto& room : placedRooms)
     {
+        // Create array of empty tiles
+        std::vector<glm::ivec2> emptyTiles;
+        for (int y = 0; y < room.m_bounds.m_size.y; ++y)
+        {
+            for (int x = 0; x < room.m_bounds.m_size.x; ++x)
+            {
+                emptyTiles.push_back(glm::ivec2(x + room.m_bounds.m_origin.x, y + room.m_bounds.m_origin.y));
+            }
+        }
+
         for (const auto& entity : room.m_entitySpawns)
         {
             // Calculate position for empty tile
@@ -1647,6 +1657,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
             if (entity.m_spawnPosType == Room::SpawnPosType::Manual) pos = entity.m_pos + room.m_bounds.m_origin;
             if (entity.m_spawnPosType == Room::SpawnPosType::Center) pos = glm::vec2(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
                                                                                       room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
+            pos += glm::vec2(0.5f);
             pos *= TILE_SIZE * SCALE;
 
             // Iterate all instances of the entity to spawn
@@ -1655,9 +1666,19 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                 // Generate a new position if random is selected
                 if (entity.m_spawnPosType == Room::SpawnPosType::Random)
                 {
-                    pos = glm::vec2(m_rng.NextInt(0, room.m_bounds.m_size.x), m_rng.NextInt(0, room.m_bounds.m_size.y));
-                    pos += room.m_bounds.m_origin;
+                    // Ensure there are empty tiles left
+                    if (emptyTiles.size() == 0)
+                    {
+                        wolf::Error("Too many spawns in room: ", room.m_name, ", no empty tiles!");
+                        break;
+                    }
+
+                    // Pick a random empty tile, offset and scale
+                    int tile = m_rng.NextInt(0, emptyTiles.size() - 1);
+                    pos = glm::vec2(emptyTiles[tile]);
+                    pos += glm::vec2(0.5f);
                     pos *= TILE_SIZE * SCALE;
+                    emptyTiles.erase(emptyTiles.begin() + tile);
                 }
 
                 // Build entity based on type
