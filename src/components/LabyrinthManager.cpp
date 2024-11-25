@@ -339,7 +339,7 @@ void LabyrinthManager::ShowGUI()
 
     // Set window position and size
     ImGui::SetNextWindowPos({0, 0});
-    ImGui::SetNextWindowSize({256, 512});
+    ImGui::SetNextWindowSize({320, 512});
     ImGui::Begin("Daedalus' Terminal v0.1", nullptr, flags);
 
     // Menu bar for saving / loading labyrinth configs
@@ -518,7 +518,7 @@ void LabyrinthManager::ShowGUI()
 
                 // Edit entity spawn type
                 const char* selectedEntityType = Room::s_entityTypeNames[(int)entityData.m_type];
-                if (ImGui::BeginCombo("Type##entity", selectedEntityType))
+                if (ImGui::BeginCombo("Entity Type##entity", selectedEntityType))
                 {
                     for (int n = 0; n < IM_ARRAYSIZE(Room::s_entityTypeNames); n++)
                     {
@@ -530,6 +530,27 @@ void LabyrinthManager::ShowGUI()
                         if (is_selected) ImGui::SetItemDefaultFocus();
                     }
                     ImGui::EndCombo();
+                }
+
+                // Edit entity spawn position type
+                const char* selectedSpawnPosType = Room::s_entitySpawnPosNames[(int)entityData.m_spawnPosType];
+                if (ImGui::BeginCombo("Spawn Type##entity", selectedSpawnPosType))
+                {
+                    for (int n = 0; n < IM_ARRAYSIZE(Room::s_entitySpawnPosNames); n++)
+                    {
+                        bool is_selected = (selectedSpawnPosType == Room::s_entitySpawnPosNames[n]);
+                        if (ImGui::Selectable(Room::s_entitySpawnPosNames[n], is_selected))
+                        {
+                            entityData.m_spawnPosType = (Room::SpawnPosType)n;
+                        }
+                        if (is_selected) ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+
+                if (entityData.m_spawnPosType == Room::SpawnPosType::Manual)
+                {
+                    ImGui::DragInt2("Position", &entityData.m_pos.x);
                 }
 
                 // Edit amount of spawns
@@ -1621,19 +1642,29 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
     {
         for (const auto& entity : room.m_entitySpawns)
         {
-            switch (entity.m_type)
-            {
-                case Room::EntityType::Minitaur:
-                {
-                    // Iterate each instance to spawn
-                    for (int i = 0; i < entity.m_amount; ++i)
-                    {
-                        // TODO: Calculate position for empty tile
-                        glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
-                                      room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
-                        
-                        pos *= TILE_SIZE * SCALE;
+            // Calculate position for empty tile
+            glm::vec2 pos(0,0);
+            if (entity.m_spawnPosType == Room::SpawnPosType::Manual) pos = entity.m_pos + room.m_bounds.m_origin;
+            if (entity.m_spawnPosType == Room::SpawnPosType::Center) pos = glm::vec2(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
+                                                                                      room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
+            pos *= TILE_SIZE * SCALE;
 
+            // Iterate all instances of the entity to spawn
+            for (int i = 0; i < entity.m_amount; ++i)
+            {
+                // Generate a new position if random is selected
+                if (entity.m_spawnPosType == Room::SpawnPosType::Random)
+                {
+                    pos = glm::vec2(m_rng.NextInt(0, room.m_bounds.m_size.x), m_rng.NextInt(0, room.m_bounds.m_size.y));
+                    pos += room.m_bounds.m_origin;
+                    pos *= TILE_SIZE * SCALE;
+                }
+
+                // Build entity based on type
+                switch (entity.m_type)
+                {
+                    case Room::EntityType::Minitaur:
+                    {
                         // Build Minitaur at the given position
                         wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, pos, m_pColliderManager);
 
@@ -1655,51 +1686,42 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         }
                         
                         pChunk->AddChild(minitaur);
-                    }
-                    break;
-                }
-                case Room::EntityType::CommonChest:
-                case Room::EntityType::UncommonChest:
-                case Room::EntityType::RareChest:
-                case Room::EntityType::EpicChest:
-                case Room::EntityType::LegendaryChest:
-                {
-                    std::string lootTablePath;
-                    std::string frameName;
-                    if (entity.m_type == Room::EntityType::CommonChest)
-                    {
-                        lootTablePath = "data/chest_loot_common.yaml";
-                        frameName = "CommonClosed";
-                    }
-                    if (entity.m_type == Room::EntityType::UncommonChest)
-                    {
-                        lootTablePath = "data/chest_loot_uncommon.yaml";
-                        frameName = "UncommonClosed";
-                    }
-                    if (entity.m_type == Room::EntityType::RareChest)
-                    {
-                        lootTablePath = "data/chest_loot_rare.yaml";
-                        frameName = "RareClosed";
-                    }
-                    if (entity.m_type == Room::EntityType::EpicChest)
-                    {
-                        lootTablePath = "data/chest_loot_epic.yaml";
-                        frameName = "EpicClosed";
-                    }
-                    if (entity.m_type == Room::EntityType::LegendaryChest)
-                    {
-                        lootTablePath = "data/chest_loot_legendary.yaml";
-                        frameName = "LegendaryClosed";
+                        break;
                     }
 
-                    // Iterate each instance to spawn
-                    for (int i = 0; i < entity.m_amount; ++i)
+                    case Room::EntityType::CommonChest:
+                    case Room::EntityType::UncommonChest:
+                    case Room::EntityType::RareChest:
+                    case Room::EntityType::EpicChest:
+                    case Room::EntityType::LegendaryChest:
                     {
-                        // TODO: Calculate position
-                        glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
-                                      room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
-                        
-                        pos *= TILE_SIZE * SCALE;
+                        std::string lootTablePath;
+                        std::string frameName;
+                        if (entity.m_type == Room::EntityType::CommonChest)
+                        {
+                            lootTablePath = "data/chest_loot_common.yaml";
+                            frameName = "CommonClosed";
+                        }
+                        if (entity.m_type == Room::EntityType::UncommonChest)
+                        {
+                            lootTablePath = "data/chest_loot_uncommon.yaml";
+                            frameName = "UncommonClosed";
+                        }
+                        if (entity.m_type == Room::EntityType::RareChest)
+                        {
+                            lootTablePath = "data/chest_loot_rare.yaml";
+                            frameName = "RareClosed";
+                        }
+                        if (entity.m_type == Room::EntityType::EpicChest)
+                        {
+                            lootTablePath = "data/chest_loot_epic.yaml";
+                            frameName = "EpicClosed";
+                        }
+                        if (entity.m_type == Room::EntityType::LegendaryChest)
+                        {
+                            lootTablePath = "data/chest_loot_legendary.yaml";
+                            frameName = "LegendaryClosed";
+                        }
 
                         // Create the chest object
                         auto& chest = pObject->GetScene().CreateObject2D();
@@ -1718,22 +1740,15 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add chest as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(chest);
+                        break;
                     }
-                    break;
-                }
-                // !-- Aurora added this --!
-                case Room::EntityType::DaedalusDispensary:
-                {
-                    // ?-- It would be nice to choose the loot table randomly or based on where the dispensary is spawned
-                    //     could use an RNG to index an array or use numbered filenames e.g. "dispensary_loot_N.yaml" --?
-                    std::string strLootTablePath = "data/dispensary_contents" + std::to_string(m_rng.NextInt(1, 2)) + ".yaml";
 
-                    for (int k = 0; k < entity.m_amount; k++) {
-                        // TODO: Calculate position
-                        glm::vec2 pos(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
-                                      room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
-                        
-                        pos *= TILE_SIZE * SCALE;
+                    // !-- Aurora added this --!
+                    case Room::EntityType::DaedalusDispensary:
+                    {
+                        // ?-- It would be nice to choose the loot table randomly or based on where the dispensary is spawned
+                        //     could use an RNG to index an array or use numbered filenames e.g. "dispensary_loot_N.yaml" --?
+                        std::string strLootTablePath = "data/dispensary_contents" + std::to_string(m_rng.NextInt(1, 2)) + ".yaml";
 
                         // Create the dispensary object
                         auto& dispensary = pObject->GetScene().CreateObject2D();
@@ -1756,8 +1771,8 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add dispensary as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(dispensary);
+                        break;
                     }
-                    break;
                 }
             }
         }

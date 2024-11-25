@@ -221,11 +221,21 @@ private:
         };
         static const inline char* s_entityTypeNames[] = {"Minitaur", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary"};
 
+        enum class SpawnPosType
+        {
+            Center,
+            Manual,
+            Random
+        };
+        static const inline char* s_entitySpawnPosNames[] = {"Center", "Manual", "Random"};
+
         // Entity spawn data structure
         struct EntitySpawnData
         {
             EntityType m_type = EntityType::Minitaur;
             int m_amount = 1;
+            SpawnPosType m_spawnPosType = SpawnPosType::Center;
+            glm::ivec2 m_pos{0,0};
         };
 
         // Entity spawn data
