@@ -90,7 +90,7 @@ void PlayState::Enter()
     // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
     
     // this->CreateMinitaurEnemy();
-    // this->CreateHarpyEnemy();
+    this->CreateHarpyEnemy();
     this->CreateGorgonEnemy();
 }
 
@@ -213,7 +213,7 @@ void PlayState::Update(float delta)
     // Inflict status effects upon the player
     for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
     {
-        status.Update();
+        status.Update(delta);
     }
 
     // INVENTORY TESTING
@@ -224,11 +224,14 @@ void PlayState::Update(float delta)
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
             ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
             ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
+            ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
+
             ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
             ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
             ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
             playerInventory->AddItemOrDelete(pBoots);
             playerInventory->AddItemOrDelete(pBow);
+            playerInventory->AddItemOrDelete(pSpear);
             playerInventory->AddItemOrDelete(pHealHeart);
             playerInventory->AddItemOrDelete(pHurtHeart);
             playerInventory->AddItemOrDelete(pBurnHeart);
@@ -387,6 +390,8 @@ void PlayState::Update(float delta)
 
     // Dispatch events
     wolf::EventManager::Dispatch();
+
+    // ImGui::ShowDemoWindow();
 }
 
 void PlayState::Render()
@@ -396,6 +401,12 @@ void PlayState::Render()
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
         playerController->Render();
+
+    // Render status effect icons
+    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
+    {
+        status.RenderPlayerSEIcons();
+    }
 }
 
 void PlayState::BackgroundUpdate(float delta)
@@ -436,7 +447,9 @@ void PlayState::CreatePlayer()
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 4.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 7.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, ImVec2(800, 200), "Merchant Guy", 0.1f, 50);
