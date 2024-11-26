@@ -14,7 +14,8 @@ animations: [
     start_frame: 2,
     end_frame: 11,
     origin: {x: 16.0, y: 16.0},
-    loops: false
+    loops: false,
+    next_anim: DaedalusSymbol,
   },
   {
     name: DaedalusSymbol,
