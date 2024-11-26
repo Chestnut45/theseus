@@ -51,7 +51,7 @@ class PercentItem : public ConsumableItem {
                 strBaseText += "+ " + std::format("{:.2f}", m_fAmt * 100) + "%";
             }
             else {
-                strBaseText += "- " + std::format("{:.2f}", abs(m_fAmt * 100)) + "%";
+                strBaseText += "- " + std::format("{:.2f}", -m_fAmt * 100) + "%";
             }
             return strBaseText;
         };

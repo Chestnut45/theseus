@@ -51,7 +51,7 @@ class FlatAmtItem : public ConsumableItem {
                 strBaseText += "+ " + std::format("{:.2f}", m_fAmt);
             }
             else {
-                strBaseText += "- " + std::format("{:.2f}", abs(m_fAmt));
+                strBaseText += "- " + std::format("{:.2f}", -m_fAmt);
             }
             return strBaseText;
         };
