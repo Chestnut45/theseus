@@ -156,7 +156,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
 
                 // And create a tooltip out of the item's information
                 std::string strTooltipName;
-                std::string strTooltipText;
+                std::string strTooltipText = pItem->GetToolTipText();
 
                 // Every item in this inventory SHOULD be an equipment item, so we try to cast it
                 EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(pItem);
@@ -165,11 +165,8 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                     wolf::Error("Failed to cast ItemBase to EquipmentItem!\n");
                 }
                     
-                // Then start constructing the string that will be used to display all of the item's details
+                // Then start constructing the string that will be used to the item's name
                 strTooltipName = pEquipment->GetName();
-                strTooltipText = pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue())
-                    + "\nSlot: " + pEquipment->GetEquipmentSlotString();
-
                 std::string strIndex = std::to_string(index);
 
                 // Then we make a button (UI inventory slot) for the item

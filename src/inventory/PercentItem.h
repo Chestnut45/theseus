@@ -36,6 +36,26 @@ class PercentItem : public ConsumableItem {
 
         virtual void Use();
 
+        inline virtual std::string GetToolTipText() const {
+            std::string strBaseText = ConsumableItem::GetToolTipText() + "\nEffect: ";
+            switch(m_enAttrib) {
+                case HEALTH:
+                    strBaseText += "HEALTH ";
+                break;
+
+                case STAMINA:
+                    strBaseText += "STAMINA ";
+                break;
+            }
+            if (m_fAmt > 0) {
+                strBaseText += "+ " + std::format("{:.2f}", m_fAmt * 100) + "%";
+            }
+            else {
+                strBaseText += "- " + std::format("{:.2f}", -m_fAmt * 100) + "%";
+            }
+            return strBaseText;
+        };
+
     private:
         Attribute m_enAttrib;
         float m_fAmt;
