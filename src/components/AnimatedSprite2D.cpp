@@ -438,8 +438,8 @@ bool AnimatedSprite2D::AddAnimationSet(const std::string& p_strPathToSetFile) {
             int iStart = anim["start_frame"].as<int>(); // What frame it starts on (inclusive)
             int iEnd = anim["end_frame"].as<int>(); // What frame it ends on (inclusive)
             glm::vec2 v2Origin;
-            v2Origin.x = anim["origin"]["x"].as<float>();
-            v2Origin.y = anim["origin"]["y"].as<float>();
+            v2Origin.x = anim["origin"]["x"] ? anim["origin"]["x"].as<float>() : v2Origin.x;
+            v2Origin.y = anim["origin"]["y"] ? anim["origin"]["y"].as<float>() : v2Origin.y;
             bool bLoops = anim["loops"].as<bool>(); // And whether the animation loops
             std::string strNextAnim = anim["next_anim"] ? anim["next_anim"].as<std::string>() : ""; // Whether or not this animation triggers another one when it finishes
 

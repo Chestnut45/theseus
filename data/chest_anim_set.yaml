@@ -13,6 +13,7 @@ animations: [
     name: UncommonClosed,
     start_frame: 2,
     end_frame: 2,
+    origin: {x: 16.0, y: 16.0},
     loops: false
   },
   {
