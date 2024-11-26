@@ -1,4 +1,6 @@
 #include "DispensaryInventoryComponent.h"
+#include "inventory/ItemCreator.h"
+#include "AnimatedSprite2D.h"
 
 DispensaryInventoryComponent::~DispensaryInventoryComponent() {
     // Deregister for events
@@ -154,7 +156,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
 
                 // And create a tooltip out of the item's information
                 std::string strTooltipName;
-                std::string strTooltipText;
+                std::string strTooltipText = pItem->GetToolTipText();
 
                 // Every item in this inventory SHOULD be an equipment item, so we try to cast it
                 EquipmentItem* pEquipment = dynamic_cast<EquipmentItem*>(pItem);
@@ -163,11 +165,8 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                     wolf::Error("Failed to cast ItemBase to EquipmentItem!\n");
                 }
                     
-                // Then start constructing the string that will be used to display all of the item's details
+                // Then start constructing the string that will be used to the item's name
                 strTooltipName = pEquipment->GetName();
-                strTooltipText = pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue())
-                    + "\nSlot: " + pEquipment->GetEquipmentSlotString();
-
                 std::string strIndex = std::to_string(index);
 
                 // Then we make a button (UI inventory slot) for the item
@@ -239,8 +238,17 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
 }
 
 void DispensaryInventoryComponent::DispenseItem(int p_iItemIndex) {
-    // Send the item to the player via event
-    wolf::EventManager::TriggerEvent(DispenseItemToPlayerEvent(m_iIdNum, this->GetItem(p_iItemIndex)));
+    // When we dispense an item, we need to make a new instance of an item that is in the dispensary
+    ItemBase* pItemToDispense = this->GetItem(p_iItemIndex);
+
+    // So we try to get the requested item
+    if (pItemToDispense) {
+        // Then we make a "copy" (new instance) of the item using the item creator
+        ItemBase* pCopyOfItemToDispense = ItemCreator::CreateItem(pItemToDispense->GetName());
+
+        // And we send the "copy" to the player
+        wolf::EventManager::TriggerEvent(DispenseItemToPlayerEvent(m_iIdNum, pCopyOfItemToDispense));
+    }
 }
 
 void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
@@ -250,6 +258,10 @@ void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryE
         if (p_event.enType == DISPENSARY_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
             m_bIsOpen = false;
+            AnimatedSprite2D* pAnim = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+            if (pAnim) {
+                pAnim->SetAnimation("Inactive");
+            }
         }
     }
 }
@@ -261,6 +273,10 @@ void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventor
         if (p_event.enType == PLAYER_INVENTORY) {
             // Close the dispensary as well
             m_bIsOpen = false;
+            AnimatedSprite2D* pAnim = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+            if (pAnim) {
+                pAnim->SetAnimation("Inactive");
+            }
         }
     }
 }

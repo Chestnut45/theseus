@@ -31,6 +31,25 @@ class StatusEffectItem : public ConsumableItem {
 
         virtual void Use();
 
+        inline virtual std::string GetToolTipText() const {
+            std::string strBaseText = ConsumableItem::GetToolTipText() + "\nApplies ";
+            switch (m_enType) {
+                case StatusComponent::BURNING:
+                    strBaseText += "BURNING ";
+                break;
+
+                case StatusComponent::PETRIFIED:
+                    strBaseText += "PETRIFIED ";
+                break;
+
+                case StatusComponent::POISONED:
+                        strBaseText += "POISONED ";
+                break;
+            }
+            strBaseText += "for " + std::format("{:.2f}", m_fDuration);
+            return strBaseText;
+        };
+
     private:
         StatusComponent::StatusEffectType m_enType;
         float m_fDuration;

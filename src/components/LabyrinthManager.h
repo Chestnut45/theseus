@@ -217,8 +217,9 @@ private:
             RareChest,
             EpicChest,
             LegendaryChest,
+            DaedalusDispensary, // !-- Aurora added this --!
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary"};
 
         // Entity spawn data structure
         struct EntitySpawnData

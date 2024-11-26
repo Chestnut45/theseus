@@ -89,7 +89,7 @@ void PlayState::Enter()
     // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
     
     // this->CreateMinitaurEnemy();
-    // this->CreateHarpyEnemy();
+    this->CreateHarpyEnemy();
     this->CreateGorgonEnemy();
 }
 
@@ -213,7 +213,7 @@ void PlayState::Update(float delta)
     // Inflict status effects upon the player
     for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
     {
-        status.Update();
+        status.Update(delta);
     }
 
     // INVENTORY TESTING
@@ -224,11 +224,14 @@ void PlayState::Update(float delta)
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
             ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
             ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
+            ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
+
             ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
             ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
             ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
             playerInventory->AddItemOrDelete(pBoots);
             playerInventory->AddItemOrDelete(pBow);
+            playerInventory->AddItemOrDelete(pSpear);
             playerInventory->AddItemOrDelete(pHealHeart);
             playerInventory->AddItemOrDelete(pHurtHeart);
             playerInventory->AddItemOrDelete(pBurnHeart);
@@ -294,13 +297,62 @@ void PlayState::Update(float delta)
         merchant->ShowInventoryGUI();
     }
 
-    auto* dispensary = m_pPlayerObject->GetComponent<DispensaryInventoryComponent>();
-    if (dispensary) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            dispensary->ToggleOpen();
-        }
+    // Display all open dispensary GUIs
+    for (auto&&[_, dispensaryInventory, transform] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent, wolf::Transform2D>())
+    {
 
-        dispensary->ShowInventoryGUI();
+        // If the dispensary has an animated sprite we're going to want to retrieve it
+        AnimatedSprite2D* dispensarySprite = dispensaryInventory.GetGameObject()->GetComponent<AnimatedSprite2D>();
+
+        // Show GUI
+        dispensaryInventory.ShowInventoryGUI();
+
+        // Distance checking
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+        {
+            // Player is in range of the chest, display tooltip
+            std::string tooltip = dispensaryInventory.IsOpen() ? "Press E to Close Daedalus Dispensary" : "Press E to Open Daedalus Dispensary";
+            ShowTooltip(tooltip);
+
+            // When you interact with the dispensary
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+            {
+                // Either open or close it
+                dispensaryInventory.ToggleOpen();
+
+                // If the dispensary has an AnimatedSprite
+                if (dispensarySprite) {
+                    // Play the activation animation when we open it
+                    if (dispensaryInventory.IsOpen()) {
+                        dispensarySprite->SetAnimation("Activate");
+                    }
+                    else {
+                        // And set it back to inactive when we close it
+                        dispensarySprite->SetAnimation("Inactive");
+                    }
+                }
+
+                // Also, if we close it, close the player inventory as well
+                if (!dispensaryInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                break;
+            }
+        }
+        else
+        {
+            // Close dispensary if the player walks away
+            if (dispensaryInventory.IsOpen())
+            {
+                dispensaryInventory.Close();
+
+                // If the dispensary has an AnimatedSprite, play the inactive animation
+                if (dispensarySprite) {
+                    dispensarySprite->SetAnimation("Inactive");
+                }
+
+                // Close the player's inventory as well
+                m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+            }
+        }
     }
     
     for (auto&&[_, droppedItem, transform] : m_pGameInstance->GetScene().Each<DroppedItemComponent, wolf::Transform2D>())
@@ -339,6 +391,8 @@ void PlayState::Update(float delta)
 
     // Dispatch events
     wolf::EventManager::Dispatch();
+
+    // ImGui::ShowDemoWindow();
 }
 
 void PlayState::Render()
@@ -348,6 +402,12 @@ void PlayState::Render()
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
         playerController->Render();
+
+    // Render status effect icons
+    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
+    {
+        status.RenderPlayerSEIcons();
+    }
 }
 
 void PlayState::BackgroundUpdate(float delta)
@@ -381,7 +441,7 @@ void PlayState::CreatePlayer()
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
     // Add inventory
-    auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, ImVec2(500, 200));
+    auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, ImVec2(50, 50));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
     collider.AddColliderBox(glm::vec2(7.0f, 8.0f), glm::vec2(-4.0f, -4.0f));
@@ -391,13 +451,13 @@ void PlayState::CreatePlayer()
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 4.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 7.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, ImVec2(800, 200), "Merchant Guy", 0.1f, 50);
     pMerchant->FillInventoryFromFile("data/test_chest_contents.yaml");
-    DispensaryInventoryComponent* pDispensary = &m_pPlayerObject->AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(200, 200));
-    pDispensary->FillInventoryFromFile("data/test_dispensary_contents.yaml");
 }
 
 void PlayState::CreateMinitaurEnemy()
