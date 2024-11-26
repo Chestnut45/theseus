@@ -24,7 +24,7 @@ struct SpriteAnimation2D {
     std::string m_strTexturePath; // What is the texture this animation draws from?
 
     glm::vec2 m_v2FrameSize;
-    glm::vec2 m_v2Origin = {0.5f, 0.5f};
+    glm::vec2 m_v2Origin{0.0f};
 
     int m_iStartFrame;      // Which frame does this animation start on?
     int m_iEndFrame;        // Which frame does this animation end on?
