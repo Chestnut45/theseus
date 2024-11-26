@@ -28,6 +28,8 @@
 #include <ColliderComponent.h>
 #include <EnemyDataLoader.h>
 #include <MinitaurBuilder.h>
+#include <HarpyBuilder.h>
+#include <GorgonBuilder.h>
 #include <PlayerController.h>
 
 LabyrinthManager::LabyrinthManager()
@@ -534,7 +536,7 @@ void LabyrinthManager::ShowGUI()
 
                 // Edit entity spawn position type
                 const char* selectedSpawnPosType = Room::s_entitySpawnPosNames[(int)entityData.m_spawnPosType];
-                if (ImGui::BeginCombo("Spawn Type##entity", selectedSpawnPosType))
+                if (ImGui::BeginCombo("Placement##entity", selectedSpawnPosType))
                 {
                     for (int n = 0; n < IM_ARRAYSIZE(Room::s_entitySpawnPosNames); n++)
                     {
@@ -662,17 +664,31 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
 
                 // Grab the entity node
                 YAML::Node entity = entities[e];
-                std::string eType = entity["type"].as<std::string>();
+                std::string eType = entity["type"] ? entity["type"].as<std::string>() : "";
 
                 // Parse data
                 if (eType == "minitaur") data.m_type = Room::EntityType::Minitaur;
+                if (eType == "harpy") data.m_type = Room::EntityType::Harpy;
+                if (eType == "gorgon") data.m_type = Room::EntityType::Gorgon;
                 if (eType == "common_chest") data.m_type = Room::EntityType::CommonChest;
                 if (eType == "uncommon_chest") data.m_type = Room::EntityType::UncommonChest;
                 if (eType == "rare_chest") data.m_type = Room::EntityType::RareChest;
                 if (eType == "epic_chest") data.m_type = Room::EntityType::EpicChest;
                 if (eType == "legendary_chest") data.m_type = Room::EntityType::LegendaryChest;
+                if (eType == "dispensary") data.m_type = Room::EntityType::DaedalusDispensary;
                 
-                data.m_amount = entity["amount"].as<int>();
+                data.m_amount = entity["amount"] ? entity["amount"].as<int>() : data.m_amount;
+
+                // Parse placement
+                std::string ePlacement = entity["placement"] ? entity["placement"].as<std::string>() : "";
+                if (ePlacement == "center") data.m_spawnPosType = Room::SpawnPosType::Center;
+                if (ePlacement == "manual") data.m_spawnPosType = Room::SpawnPosType::Manual;
+                if (ePlacement == "random") data.m_spawnPosType = Room::SpawnPosType::Random;
+                if (entity["position"])
+                {
+                    data.m_pos.x = entity["position"]["x"].as<int>();
+                    data.m_pos.y = entity["position"]["y"].as<int>();
+                }
 
                 // Add the spawn data to the current room
                 room.m_entitySpawns.push_back(data);
@@ -791,6 +807,12 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
                 case Room::EntityType::Minitaur:
                     file << "minitaur, amount: ";
                     break;
+                case Room::EntityType::Harpy:
+                    file << "harpy, amount: ";
+                    break;
+                case Room::EntityType::Gorgon:
+                    file << "gorgon, amount: ";
+                    break;
                 case Room::EntityType::CommonChest:
                     file << "common_chest, amount: ";
                     break;
@@ -806,9 +828,29 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
                 case Room::EntityType::LegendaryChest:
                     file << "legendary_chest, amount: ";
                     break;
+                case Room::EntityType::DaedalusDispensary:
+                    file << "dispensary, amount: ";
+                    break;
             }
             file << std::to_string(data.m_amount).c_str();
-            file << "}\n";
+            file << ", placement: ";
+            switch (data.m_spawnPosType)
+            {
+                case Room::SpawnPosType::Center:
+                    file << "center";
+                    break;
+                case Room::SpawnPosType::Manual:
+                    file << "manual, position: {x: ";
+                    file << std::to_string(data.m_pos.x);
+                    file << ", y: ";
+                    file << std::to_string(data.m_pos.y);
+                    file << "}";
+                    break;
+                case Room::SpawnPosType::Random:
+                    file << "random";
+                    break;
+            }
+            file << "},\n";
         }
         file << "\t\t]\n";
 
@@ -1636,7 +1678,12 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
     EnemyDataLoader loader;
     loader.LoadAllEnemyData("data/enemies.yaml");
     EnemyData minitaurData = loader.LoadEnemyData("minitaur");
+    EnemyData harpyData = loader.LoadEnemyData("harpy");
+    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+
     MinitaurBuilder minitaurBuilder(pObject->GetScene());
+    HarpyBuilder harpyBuilder(pObject->GetScene());
+    GorgonBuilder gorgonBuilder(pObject->GetScene());
 
     for (const auto& room : placedRooms)
     {
@@ -1654,9 +1701,26 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
         {
             // Calculate position for empty tile
             glm::vec2 pos(0,0);
-            if (entity.m_spawnPosType == Room::SpawnPosType::Manual) pos = entity.m_pos + room.m_bounds.m_origin;
-            if (entity.m_spawnPosType == Room::SpawnPosType::Center) pos = glm::vec2(room.m_bounds.m_origin.x + (float)room.m_bounds.m_size.x / 2,
-                                                                                      room.m_bounds.m_origin.y + (float)room.m_bounds.m_size.y / 2);
+            if (entity.m_spawnPosType == Room::SpawnPosType::Manual) pos = glm::vec2(entity.m_pos + room.m_bounds.m_origin);
+            if (entity.m_spawnPosType == Room::SpawnPosType::Center)
+            {
+                // Calculate center tile index
+                glm::ivec2 ipos = glm::vec2(room.m_bounds.m_origin.x + room.m_bounds.m_size.x / 2,
+                                            room.m_bounds.m_origin.y + room.m_bounds.m_size.y / 2);
+                
+                // Remove center tile from empty tiles
+                for (auto iter = emptyTiles.begin(); iter != emptyTiles.end(); ++iter)
+                {
+                    if (ipos == *iter)
+                    {
+                        emptyTiles.erase(iter);
+                        break;
+                    }
+                }
+                pos = glm::vec2(ipos);
+            }
+
+            // Offset and scale floating point position
             pos += glm::vec2(0.5f);
             pos *= TILE_SIZE * SCALE;
 
@@ -1710,6 +1774,58 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         break;
                     }
 
+                    case Room::EntityType::Harpy:
+                    {
+                        // Build Harpy at the given position
+                        wolf::GameObject& harpy = harpyBuilder.BuildHarpy(harpyData, pos, m_pColliderManager);
+
+                        // Scale the harpy
+                        harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
+
+                        // Add as a child object of the correct chunk
+                        auto chunkID = GetChunkID(pos);
+                        auto* pChunk = GetChunk(chunkID);
+
+                        if (!pChunk)
+                        {
+                            // Warn if chunk doesn't exist
+                            wolf::Warning("Enemy spawned in non-existant chunk, pls fix!");
+
+                            // Fall back on adding to main labyrinth object
+                            pObject->AddChild(harpy);
+                            break;
+                        }
+                        
+                        pChunk->AddChild(harpy);
+                        break;
+                    }
+
+                    case Room::EntityType::Gorgon:
+                    {
+                        // Build Gorgon at the given position
+                        wolf::GameObject& gorgon = gorgonBuilder.BuildGorgon(gorgonData, pos, m_pColliderManager);
+
+                        // Scale the gorgon
+                        gorgon.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
+
+                        // Add as a child object of the correct chunk
+                        auto chunkID = GetChunkID(pos);
+                        auto* pChunk = GetChunk(chunkID);
+
+                        if (!pChunk)
+                        {
+                            // Warn if chunk doesn't exist
+                            wolf::Warning("Enemy spawned in non-existant chunk, pls fix!");
+
+                            // Fall back on adding to main labyrinth object
+                            pObject->AddChild(gorgon);
+                            break;
+                        }
+                        
+                        pChunk->AddChild(gorgon);
+                        break;
+                    }
+
                     case Room::EntityType::CommonChest:
                     case Room::EntityType::UncommonChest:
                     case Room::EntityType::RareChest:
@@ -1754,6 +1870,12 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add the sprite
                         auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        sprite.SetAnimation(frameName);
+                        sprite.SetOriginToCenterOfFrame();
+                        
+                        // Add collider
+                        auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+                        collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
 
                         // Add the chest inventory
                         auto& chestInv = chest.AddComponent<ChestInventoryComponent>(16, 4, ImVec2(800, 450));

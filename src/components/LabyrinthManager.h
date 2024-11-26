@@ -212,6 +212,8 @@ private:
         enum class EntityType
         {
             Minitaur,
+            Harpy,
+            Gorgon,
             CommonChest,
             UncommonChest,
             RareChest,
@@ -219,7 +221,7 @@ private:
             LegendaryChest,
             DaedalusDispensary, // !-- Aurora added this --!
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary"};
 
         enum class SpawnPosType
         {
