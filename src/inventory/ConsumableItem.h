@@ -8,6 +8,7 @@
 //-----------------------------------------------------------------------------
 
 #include "ItemBase.h"
+#include <format>
 
 enum Attribute {
     HEALTH = 1,
@@ -46,6 +47,10 @@ class ConsumableItem : public ItemBase {
             if (m_iNumUses <= 0) {
                 this->~ConsumableItem();
             }
+        };
+
+        inline virtual std::string GetToolTipText() const {
+            return m_strDesc + "\n\nUses: " + std::to_string(m_iNumUses);
         };
 
     protected:

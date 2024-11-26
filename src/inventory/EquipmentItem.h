@@ -9,6 +9,7 @@
 
 #include "ItemBase.h"
 #include "StatusComponent.h"
+#include <format>
 
 enum EquipmentSlot {
     WEAPON,
@@ -63,9 +64,6 @@ class EquipmentItem : public ItemBase {
                     m_strSlot = "ACCESSORY";
                 break;
                 
-                default:
-                    m_strSlot = "PROBLEM!";
-                break;
             }
         };
 
@@ -84,15 +82,17 @@ class EquipmentItem : public ItemBase {
 
         // Once you set the equipment slot you can't change it later
         EquipmentSlot GetEquipmentSlot() {return m_enSlot;};
-        int GetDetailedType(){return m_enDetailedType;};
 
         // This method should ONLY be used when you want to print or otherwise display the equipment slot
         // for all other uses such as comparison/iteration/etc. use GetEquipmentSlot() and the enum itself.
         const std::string& GetEquipmentSlotString() {return m_strSlot;};
 
+        inline virtual std::string GetToolTipText() const {
+            return m_strDesc + "\n\nSlot: " + m_strSlot;
+        };
+
     protected:
         bool m_bEquipped = false;
         EquipmentSlot m_enSlot;
         std::string m_strSlot;
-        int m_enDetailedType;
 };
