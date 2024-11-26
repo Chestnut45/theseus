@@ -9,6 +9,7 @@
 
 #include "ItemBase.h"
 #include "StatusComponent.h"
+#include <format>
 
 enum EquipmentSlot {
     WEAPON,
@@ -87,7 +88,7 @@ class EquipmentItem : public ItemBase {
         const std::string& GetEquipmentSlotString() {return m_strSlot;};
 
         inline virtual std::string GetToolTipText() const {
-            return m_strDesc + "\n\nValue: " + std::to_string(m_iValue) + "\nSlot: " + m_strSlot;
+            return m_strDesc + "\n\nSlot: " + m_strSlot;
         };
 
     protected:

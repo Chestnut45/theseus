@@ -47,7 +47,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             if (!m_vvpContents[k].empty()) {
                 // We grab a reference to the top item and create a variable to hold the item's details
                 ItemBase* pItem = m_vvpContents[k].top();
-                std::string strTooltipText = pItem->GetToolTipText();;
+                std::string strTooltipText = pItem->GetToolTipText() + "\n\nValue: " + std::to_string(pItem->GetValue());
                 std::string strTooltipName;
 
                 // There are different rules for drawing Consumables and Equipment Items so we need to figure out

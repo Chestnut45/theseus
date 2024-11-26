@@ -82,7 +82,7 @@ class ItemBase {
         void SetTextureFrameIndex(int p_iIndex) {m_iTextureFrameIndex = p_iIndex;};
 
         inline virtual std::string GetToolTipText() const {
-            return m_strDesc + "\n\nValue: " + std::to_string(m_iValue);
+            return m_strDesc;
         };
 
     protected:

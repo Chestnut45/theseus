@@ -30,7 +30,27 @@ class ArmourItem : public EquipmentItem {
         std::vector<ArmourStatusEffect>* GetStatusEffectList() {return &m_vStatusEffects;};
 
         inline virtual std::string GetToolTipText() const {
-            return EquipmentItem::GetToolTipText();
+            std::string strBaseText = EquipmentItem::GetToolTipText() + "\nDefense: " + std::format("{:.2f}", m_fDamageReduction);
+            if (!m_vStatusEffects.empty()) {
+                strBaseText += "\nApplies: ";
+                for (auto& effect : m_vStatusEffects) {
+                    switch (effect.enType) {
+                        case StatusComponent::BURNING:
+                            strBaseText += "\n\tBURNING ";
+                        break;
+
+                        case StatusComponent::PETRIFIED:
+                            strBaseText += "\n\tPETRIFIED ";
+                        break;
+
+                        case StatusComponent::POISONED:
+                            strBaseText += "\n\tPOISONED ";
+                        break;
+                    }
+                    strBaseText += "for " + std::format("{:.2f}", effect.fDuration);
+                }
+            }
+            return strBaseText;
         };
 
     private:

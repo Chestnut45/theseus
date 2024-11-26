@@ -63,7 +63,13 @@ class WeaponItem : public EquipmentItem {
         ProjectileProperties GetProjectileProperties() const {return m_Projectile;};
 
         inline virtual std::string GetToolTipText() const {
-            return EquipmentItem::GetToolTipText();
+            std::string strBaseText = EquipmentItem::GetToolTipText() 
+                + "\nWeapon Damage: " + std::format("{:.2f}", m_fDamage)
+                + "\nCooldown: " + std::format("{:.2f}", m_fDelay);
+            if (m_bHasProjectiles) {
+                strBaseText += "\nProjectile Damage: " + std::format("{:.2f}", m_Projectile.fDamage);
+            }
+            return strBaseText;
         };
 
     private:
