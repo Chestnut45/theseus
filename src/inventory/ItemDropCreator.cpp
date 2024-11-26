@@ -55,7 +55,7 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromExistingItem(ItemBase* p_pI
 
     // Add the animated sprite component and rig up the default animation (literally just show the item's sprite forever)
     auto pItemDropAnim = &pItemDropGO->AddComponent<AnimatedSprite2D>(ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), 1.0f);
-    pItemDropAnim->AddAnimation("Display", ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), p_pItem->GetTextureFrameIndex(), p_pItem->GetTextureFrameIndex(), false);
+    pItemDropAnim->AddAnimation("Display", ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), p_pItem->GetTextureFrameIndex(), p_pItem->GetTextureFrameIndex(), glm::vec2(16.0f, 16.0f), false);
     pItemDropAnim->SetAnimation("Display");
 
     // Move the gameobject to the spawn location
@@ -81,7 +81,7 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromDirectory(const std::string
 
         // Add the animated sprite component and rig up the default animation (literally just show the item's sprite forever)
         auto pItemDropAnim = &pItemDropGO->AddComponent<AnimatedSprite2D>(ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), 1.0f);
-        pItemDropAnim->AddAnimation("Display", ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), pItem->GetTextureFrameIndex(), pItem->GetTextureFrameIndex(), false);
+        pItemDropAnim->AddAnimation("Display", ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), pItem->GetTextureFrameIndex(), pItem->GetTextureFrameIndex(), glm::vec2(16.0f, 16.0f), false);
         pItemDropAnim->SetAnimation("Display");
 
         // Move the gameobject to the spawn location
@@ -186,7 +186,7 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromLootTable(const std::string
 
         // Add the animated sprite component and rig up the default animation (literally just show the item's sprite forever)
         auto pItemDropAnim = &pItemDropGO->AddComponent<AnimatedSprite2D>(ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), 1.0f);
-        pItemDropAnim->AddAnimation("Display", ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), pItem->GetTextureFrameIndex(), pItem->GetTextureFrameIndex(), false);
+        pItemDropAnim->AddAnimation("Display", ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), pItem->GetTextureFrameIndex(), pItem->GetTextureFrameIndex(), glm::vec2(16.0f, 16.0f), false);
         pItemDropAnim->SetAnimation("Display");
 
         // Move the gameobject to the spawn location

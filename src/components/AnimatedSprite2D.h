@@ -17,13 +17,14 @@
 // that file into unique animations so that you don't have to swap textures when you switch between animations
 
 struct SpriteAnimation2D {
-    SpriteAnimation2D(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop) :
-    m_strName(p_strName), m_strTexturePath(p_strTexturePath), m_v2FrameSize(p_v2FrameSize), m_iStartFrame(p_iStartFrame), m_iEndFrame(p_iEndFrame), m_bLoop(p_bLoop){};
+    SpriteAnimation2D(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, const glm::vec2& p_v2Origin, bool p_bLoop) :
+    m_strName(p_strName), m_strTexturePath(p_strTexturePath), m_v2FrameSize(p_v2FrameSize), m_iStartFrame(p_iStartFrame), m_iEndFrame(p_iEndFrame), m_v2Origin(p_v2Origin), m_bLoop(p_bLoop){};
     
     std::string m_strName;  // What is this an animation of?
     std::string m_strTexturePath; // What is the texture this animation draws from?
 
     glm::vec2 m_v2FrameSize;
+    glm::vec2 m_v2Origin = {0.5f, 0.5f};
 
     int m_iStartFrame;      // Which frame does this animation start on?
     int m_iEndFrame;        // Which frame does this animation end on?
@@ -62,7 +63,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         void Update(float p_fDelta);
 
-        bool AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop);
+        bool AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, const glm::vec2& p_vec2Origin, bool p_bLoop);
         bool AddAnimationSet(const std::string& p_strPathToSetFile);
         bool RemoveAnimation(const std::string& p_strName);
 
