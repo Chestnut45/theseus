@@ -103,6 +103,9 @@ void MinitaurController::Update(float delta)
         case EnemyState::PETRIFIED:
             HandlePetrifiedState(delta);
             break;
+        case EnemyState::STUNNED:
+            HandleStunnedState(delta);
+            break;
         case EnemyState::DEATH:
             HandleDeathState(delta);
             return;  // After calling HandleDeathState(), return immediately since the object is now deleted
@@ -298,6 +301,26 @@ void MinitaurController::HandlePetrifiedState(float delta)
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::PETRIFIED);
     m_pAnimComponent->SetAnimPaused(true);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));  
+}
+
+void MinitaurController::HandleStunnedState(float delta)
+{
+    AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+    if(m_stunnedTimer >= m_stunnedTime)
+    {
+        if(sprite != nullptr)
+        {
+            sprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+        }
+        m_stunnedTimer = 0.0f;
+        ChangeState(EnemyState::PROSPECT);
+    }
+
+    if(sprite != nullptr)
+    {
+        sprite->SetTint(glm::vec3(1.0f, 0.0f, 0.0f));
+    }
+    m_stunnedTimer += delta;
 }
 
 void MinitaurController::UpdateAnimationBasedOnDirection()

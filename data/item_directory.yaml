@@ -169,18 +169,18 @@ Rusty Chestplate: {
   texture_frame: 10,
   rarity: COMMON,
   slot: BODY,
-  damage_reduction: 0.2,
+  damage_reduction: 0.02,
   has_status_effects: false,
 }
 
 Copper Vambraces: {
   id: EQUIPMENT,
-  description: Made from only the highest quality copper offered by that reputable merchant Ea-nasir!,
+  description: Protects your forearms!,
   value: 1,
   texture_frame: 11,
   rarity: COMMON,
   slot: ARMS,
-  damage_reduction: 0.1,
+  damage_reduction: 0.02,
   has_status_effects: false,
 }
 
@@ -191,7 +191,7 @@ Kilt: {
   texture_frame: 12,
   rarity: COMMON,
   slot: LEGS,
-  damage_reduction: 0.05,
+  damage_reduction: 0.02,
   has_status_effects: false,
 }
 
@@ -202,7 +202,7 @@ Theezys: {
   texture_frame: 13,
   rarity: COMMON,
   slot: FEET,
-  damage_reduction: 0.2,
+  damage_reduction: 0.02,
   has_status_effects: false,
 }
 
@@ -213,6 +213,17 @@ Faux-leather Gloves: {
   texture_frame: 14,
   rarity: COMMON,
   slot: GLOVES,
-  damage_reduction: 0.1,
+  damage_reduction: 0.02,
+  has_status_effects: false,
+}
+
+Lapis Lazuli Ring: {
+  id: EQUIPMENT,
+  description: Lapis Lazuli ores can be mined with a stone pickaxe or better and drops 4-9 lapis lazuli.,
+  value: 5,
+  texture_frame: 15,
+  rarity: COMMON,
+  slot: ACCESSORY,
+  damage_reduction: 0.02,
   has_status_effects: false,
 }

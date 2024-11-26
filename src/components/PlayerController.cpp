@@ -130,99 +130,43 @@ void PlayerController::Update(float delta)
         wolf::Error("PlayerController missing essential components!");
         return;
     }
-    CheckHealth();
-    if (m_action == PlayerAction::DEAD) return;
-
-    // Debug speed modifier hotkeys
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
+    if (m_action != PlayerAction::DEAD)
     {
-        m_moveSpeed *= 0.5f;
-        m_rollSpeed *= 0.5f;
-        m_inventoryMoveSpeed *= 0.5f;
-    }
-
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
-    {
-        m_moveSpeed *= 2;
-        m_rollSpeed *= 2;
-        m_inventoryMoveSpeed *= 2;
-    }
-    
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
-    {
-        m_moveSpeed = 200.0f;
-        m_rollSpeed = 400.0f;
-        m_inventoryMoveSpeed = 100.0f;
-    }
-
-    HandlePlayerInput(delta);
-    RegenerateStamina(delta);
-
-    // Call SetAnimationBasedOnState() only if the action or direction has changed
-    if (m_action != m_previousAction || m_lastMoveDirectionEnum != m_previousDirection)
-    {
-        SetAnimationBasedOnState();
-        m_previousAction = m_action;
-        m_previousDirection = m_lastMoveDirectionEnum;
-    }
-}
-
-
-void PlayerController::HandlePlayerInput(float delta)
-{
-    auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
-
-    // Handle inventory management with left alt
-    if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) {
-        if (m_action != PlayerAction::IN_INVENTORY) {
-            playerInventory->Open();
-            SetAction(PlayerAction::IN_INVENTORY);
-        }
-    } else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) {
-        playerInventory->Close();
-        SetAction(PlayerAction::NONE);
-    }
-
-    // IN_INVENTORY state when inventory is toggled with 0 (handled in PlayState)
-    if (playerInventory && playerInventory->IsOpen()) 
-    {
-        m_action = PlayerAction::IN_INVENTORY;
-    }
-    else if (m_action == PlayerAction::IN_INVENTORY) 
-    {
-        m_action = PlayerAction::NONE;
-    }
-
-    // Check if player is petrified
-    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-    if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
-    {
-        m_action = PlayerAction::PETRIFIED;
-    }
-    else
-    {
-        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
-        // On exiting petrified state
-        if(m_action == PlayerAction::PETRIFIED)
+        RegenerateStamina(delta);
+        // Call SetAnimationBasedOnState() only if the action or direction has changed
+        if (m_action != m_previousAction || m_lastMoveDirectionEnum != m_previousDirection)
         {
-            m_action = PlayerAction::NONE;
-            m_pAnimComponent->SetAnimPaused(false);
-        } 
-    }
+            SetAnimationBasedOnState();
+            m_previousAction = m_action;
+            m_previousDirection = m_lastMoveDirectionEnum;
+        }
 
-    // Handle pick up and drop actions
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
-        PickUpObject();
-    }
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
-        DropObject();
-    }
+        HandlePlayerInput(delta);
 
-    // If holding an object, handle throw/drop actions
-    if (m_isHoldingObject) {
-        HandleThrowing(delta);  // Throw if needed
-        HandleMovement(delta);  // Continue to allow movement
-        return;  // Skip attack or other actions while holding an object
+        // If holding an object, handle throw/drop actions
+        if (m_isHoldingObject) {
+            HandleThrowing(delta);  // Throw if needed
+            HandleMovement(delta);  // Continue to allow movement
+            return;  // Skip attack or other actions while holding an object
+        }
+
+        // Check if player is petrified
+        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+        if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+        {
+            m_action = PlayerAction::PETRIFIED;
+        }
+        else
+        {
+            m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+            // On exiting petrified state
+            if(m_action == PlayerAction::PETRIFIED)
+            {
+                m_action = PlayerAction::NONE;
+                m_pAnimComponent->SetAnimPaused(false);
+            } 
+        }
+        CheckHealth();
     }
 
     // Handle regular player actions
@@ -240,12 +184,63 @@ void PlayerController::HandlePlayerInput(float delta)
         case PlayerAction::PETRIFIED:
             HandlePetrified(delta);
             break;
+        case PlayerAction::DEAD:
+            HandleDeath(delta);
+            break;
         default:
             HandleAttacking(delta);
             HandleRolling(delta);
             HandleJumping(delta);
             HandleMovement(delta);
             break;
+    }
+}
+
+void PlayerController::HandlePlayerInput(float delta)
+{
+    // Debug speed modifier hotkeys
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
+    {
+        m_currentMoveSpeed *= 0.5f;
+        m_rollSpeed *= 0.5f;
+        m_inventoryMoveSpeed *= 0.5f;
+    }
+
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
+    {
+        m_currentMoveSpeed *= 2;
+        m_rollSpeed *= 2;
+        m_inventoryMoveSpeed *= 2;
+    }
+    
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
+    {
+        m_currentMoveSpeed = 200.0f;
+        m_rollSpeed = 400.0f;
+        m_inventoryMoveSpeed = 100.0f;
+    }
+    auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
+
+    // Handle inventory management with left alt
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_LEFT_ALT)) {
+        playerInventory->ToggleOpen();
+        m_inventoryOpen = !m_inventoryOpen;
+        std::cout << "PlayerController - Inventory Open: " << m_inventoryOpen << std::endl;
+        if(m_inventoryOpen == true)
+        {
+            m_currentMoveSpeed = m_inventoryMoveSpeed;
+        }
+        else
+        {
+            m_currentMoveSpeed = m_normalMoveSpeed;
+        }
+    }
+    // Handle pick up and drop actions
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+        PickUpObject();
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
+        DropObject();
     }
 }
 
@@ -277,7 +272,6 @@ void PlayerController::DropObject() {
     }
 }
 
-
 void PlayerController::HandleThrowing(float delta) {
     // Charge the throw power while holding the button
     if (wolf::Input::IsLMBHeld() && m_isHoldingObject) {
@@ -301,6 +295,43 @@ void PlayerController::HandlePetrified(float delta)
         m_action = PlayerAction::PETRIFIED;
         m_pAnimComponent->SetAnimPaused(true);
         m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+}
+
+void PlayerController::HandleDeath(float delta)
+{
+    // Fall over
+    if(m_fallDeadTimer <= m_timeToFallDead)
+    {
+        if(m_fallDeadTimer == 0.0f)
+        {
+            if (m_pVelocity)
+            {
+                m_pVelocity->SetVelocity(glm::vec2(0.0f));
+            }
+
+            ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
+            if(collider != nullptr)
+            {
+                collider->SetColliderType(ColliderComponent::ColliderType::NONE);
+            }
+            
+            m_pAnimComponent->SetTint(glm::vec3(1,0,0));
+        }
+
+        float angle = (90.0f / m_timeToFallDead) * delta;
+        m_pTransform->RotateDegrees(angle);
+        
+        m_fallDeadTimer += delta;
+    }
+
+    // Lie dead
+    else
+    {
+        if(m_lieDeadTimer >= m_timeToLieDead)
+        {
+        }
+        m_lieDeadTimer += delta;
+    }
 }
 
 void PlayerController::ThrowHeldObject() {
@@ -372,8 +403,12 @@ void PlayerController::HandleMovement(float delta)
 
     direction = glm::normalize(direction);
     m_lastMoveDirectionEnum = GetDirectionFromVector(direction);
-    float currentSpeed = (m_action == PlayerAction::IN_INVENTORY) ? m_inventoryMoveSpeed : m_moveSpeed;
-    m_pVelocity->SetVelocity(direction * currentSpeed);
+    
+    if(m_action == PlayerAction::IN_INVENTORY)
+    {
+        printf("PlayerController - Inv_Open");
+    }
+    m_pVelocity->SetVelocity(direction * m_currentMoveSpeed);
 
     if (!m_isRolling && !m_isJumping) m_action = PlayerAction::WALKING;
 }
@@ -883,7 +918,7 @@ std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirecti
 void PlayerController::Render()
 {
     if (!m_pTransform) return;
-     if (m_action == PlayerAction::DEAD) {
+    if (m_action == PlayerAction::DEAD) {
         RenderDeathScreen();
         return;
     }
@@ -1020,12 +1055,15 @@ void PlayerController::CheckHealth() {
 }
 
 void PlayerController::EnterDeathState() {
+    printf("PlayerAction - DEAD\n");
     SetAction(PlayerAction::DEAD);
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
     m_isAttacking = m_isRolling = m_isJumping = false;
 
     m_runtimeTimer.Stop(); // Stop the timer
     m_deathRuntime = m_runtimeTimer.Elapsed(); // Capture elapsed time once
+    m_pAnimComponent->SetAnimPaused(true);
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
 }
 
 void PlayerController::RenderDeathScreen() {

@@ -47,6 +47,8 @@ private:
     // Added by Nhật
     wolf::RNG m_RNG;
     float m_rangedRange = 300.0f;
+    float m_stunnedTime = 0.5f;
+    float m_stunnedTimer = 0.0f;
 
     float m_fallDeadTimer = 0.0f;
     float m_lieDeadTimer = 0.0f;

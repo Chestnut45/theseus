@@ -218,6 +218,7 @@ AnimatedSprite2D::~AnimatedSprite2D() {
         s_pCurrentProgram = nullptr;
         wolf::ProgramManager::DestroyProgram(s_pProgram);
         wolf::ProgramManager::DestroyProgram(s_pPetrifiedProgram);
+        wolf::ProgramManager::DestroyProgram(s_pWhiteProgram);
         wolf::BufferManager::DestroyBuffer(s_pVertexBuffer);
         wolf::BufferManager::DestroyBuffer(s_pIndexBuffer);
         delete s_pVAO;
@@ -469,6 +470,7 @@ void AnimatedSprite2D::IncreaseReferences()
             //                 //
             //-----------------//
             s_pPetrifiedProgram = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d_petrified.fs");
+            s_pWhiteProgram = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d_white.fs");
             s_pCurrentProgram = s_pProgram;
 
         // Create vertex buffer
@@ -513,6 +515,9 @@ void AnimatedSprite2D::UpdateShaders()
             s_pCurrentProgram = s_pPetrifiedProgram;
             break;
         }
+        case SpecialEffectsType::WHITE:
+            s_pCurrentProgram = s_pWhiteProgram;
+            break;
         case SpecialEffectsType::NONE:
         {
             s_pCurrentProgram = s_pProgram;

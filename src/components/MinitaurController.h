@@ -26,8 +26,8 @@ private:
     void HandleProspectState(float delta);
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
-    void HandleStunnedState(float delta);
     void HandlePetrifiedState(float delta);
+    void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
     void ChangeState(EnemyState newState);
     
@@ -50,6 +50,8 @@ private:
 
     float m_prospectCounter = 0.0f;
     float m_prospectStandingCounter = 2.0f;
+    float m_stunnedTime = 0.5f;
+    float m_stunnedTimer = 0.0f;
     
     float m_fallDeadTimer = 0.0f;
     float m_lieDeadTimer = 0.0f;

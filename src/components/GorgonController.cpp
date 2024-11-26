@@ -105,6 +105,9 @@ void GorgonController::Update(float delta)
         case EnemyState::PETRIFIED:
             HandlePetrifiedState(delta);
             break;
+        case EnemyState::STUNNED:
+            HandleStunnedState(delta);
+            break;
         case EnemyState::DEATH:
             HandleDeathState(delta);
             return;  // After calling HandleDeathState(), return immediately since the object is now deleted
@@ -315,6 +318,24 @@ void GorgonController::HandlePetrifiedState(float delta)
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::PETRIFIED);
     m_pAnimComponent->SetAnimPaused(true);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));    
+}
+
+void GorgonController::HandleStunnedState(float delta)
+{
+    
+    if(m_stunnedTimer >= m_stunnedTime)
+    {
+        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+        
+        m_stunnedTimer = 0.0f;
+        ChangeState(EnemyState::PROSPECT);
+    }
+    else
+    {
+        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+
+    }
+    m_stunnedTimer += delta;
 }
 
 void GorgonController::UpdateAnimationBasedOnDirection()

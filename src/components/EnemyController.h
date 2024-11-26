@@ -25,10 +25,9 @@ public:
     virtual void Update(float delta);     // Update enemy state, to be extended in concrete enemies
     void SetColliderManager(ColliderManager* pColliderManager);  // Set the ColliderManager, general for all enemies
     ColliderManager* GetColliderManager() const;
-
-protected:
     void ChangeState(EnemyState newState); // General state transition logic shared by all enemies
 
+protected:
     // These components are common to all enemies and will be initialized here, but used in specific enemy classes
     wolf::Transform2D* m_pTransform = nullptr;
     HealthComponent* m_pHealth = nullptr;

@@ -6,6 +6,10 @@
 
 #include "AttackDamageComponent.h"
 #include "ColliderComponent.h"
+#include "EnemyController.h"
+#include "GorgonController.h"
+#include "HarpyController.h"
+#include "MinitaurController.h"
 
 
 AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager)
@@ -58,14 +62,18 @@ void AttackDamageComponent::Update(float p_dt)
     wolf::GameObject* thisObject = this->GetGameObject();
     ColliderComponent* thisCollider = thisObject->GetComponent<ColliderComponent>();
 
+    // If collider of this object is HurtboxDD
     if (thisCollider != nullptr && thisCollider->IsHurtboxDamageDealer())
     {
         for (auto&&[thatID, thatHealth, thatCollider] : this->GetGameObject()->GetScene().Each<HealthComponent, ColliderComponent>())
         {
+            // If collider of that object is HurtboxDR
             if (thatCollider.IsActive() && thatCollider.IsHurtboxDamageReceiver())
             {
+                // If colliders colliding
                 if (this->m_pColliderManager->IsColliding(*thisCollider, thatCollider, p_dt))
-                { 
+                {
+                    // Deal damage
                     thatHealth.Damage(m_fDamage);
                     
                     wolf::GameObject* thatObject = thatHealth.GetGameObject();
@@ -82,8 +90,25 @@ void AttackDamageComponent::Update(float p_dt)
                                 StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
                                 thatStatus->AddStatusEffect(seType, lifespan);
                             }
-
                         }
+                    }
+
+                    // Stun enemy
+                    EnemyController* thatEnemyController;
+                    thatEnemyController = thatObject->GetComponent<GorgonController>();
+                    if(thatEnemyController == nullptr)
+                    {
+                        thatEnemyController = thatObject->GetComponent<MinitaurController>();
+                    }
+                    
+                    if(thatEnemyController == nullptr)
+                    {
+                        thatEnemyController = thatObject->GetComponent<HarpyController>();
+                    }
+
+                    if(thatEnemyController != nullptr)
+                    {
+                        thatEnemyController->ChangeState(EnemyController::EnemyState::STUNNED);
                     }
                 }
             }

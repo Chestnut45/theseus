@@ -67,6 +67,9 @@ void HealthComponent::Damage(float p_damage)
             ArmourItem* feetgear = static_cast<ArmourItem*>(pic->GetEquippedItem(EquipmentSlot::FEET));
             damageReduction += feetgear != nullptr ? feetgear->GetDamageReduction() : 0;
 
+            ArmourItem* accessorygear = static_cast<ArmourItem*>(pic->GetEquippedItem(EquipmentSlot::ACCESSORY));
+            damageReduction += accessorygear != nullptr ? accessorygear->GetDamageReduction() : 0;
+
             // std::cout << "HealthComponent - damred: " << damageReduction << std::endl;
         }
 

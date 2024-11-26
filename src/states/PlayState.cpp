@@ -89,8 +89,8 @@ void PlayState::Enter()
     
     // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
     
-    this->CreateMinitaurEnemy();
-    this->CreateHarpyEnemy();
+    //this->CreateMinitaurEnemy();
+    //this->CreateHarpyEnemy();
     this->CreateGorgonEnemy();
 }
 
@@ -219,7 +219,7 @@ void PlayState::Update(float delta)
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
     if (playerInventory) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
+        //if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
             ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
@@ -229,6 +229,7 @@ void PlayState::Update(float delta)
             ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
             ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
             ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
+            ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
 
             ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
             ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
@@ -244,6 +245,8 @@ void PlayState::Update(float delta)
             playerInventory->AddItemOrDelete(pKilt);
             playerInventory->AddItemOrDelete(pTheezys);
             playerInventory->AddItemOrDelete(pFauxLeatherGloves);
+            playerInventory->AddItemOrDelete(pLapisLazuliRing);
+
             playerInventory->AddItemOrDelete(pBow);
             playerInventory->AddItemOrDelete(pSpear);
             playerInventory->AddItemOrDelete(pHealHeart);
@@ -453,7 +456,7 @@ void PlayState::CreatePlayer()
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
     // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 4.0f);
     // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 7.0f);
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, ImVec2(800, 200), "Merchant Guy", 0.1f, 50);
@@ -480,7 +483,7 @@ void PlayState::CreateMinitaurEnemy()
     }
 
     auto* statusComponent = minitaur.GetComponent<StatusComponent>();
-    statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
+    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
 }
 void PlayState::CreateHarpyEnemy()
 {
@@ -500,7 +503,7 @@ void PlayState::CreateHarpyEnemy()
         transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
     }
     auto* statusComponent = harpy.GetComponent<StatusComponent>();
-    statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 2.0f);
+    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 2.0f);
 }
 
 
@@ -523,7 +526,7 @@ void PlayState::CreateGorgonEnemy()
         transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
     }
     auto* statusComponent = gorgon.GetComponent<StatusComponent>();
-    statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3.0f);
+    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3.0f);
 }
 
 void PlayState::CreateThrowableObject()

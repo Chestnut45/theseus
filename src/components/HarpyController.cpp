@@ -109,6 +109,9 @@ void HarpyController::Update(float delta)
         case EnemyState::PETRIFIED:
             HandlePetrifiedState(delta);
             break;
+        case EnemyState::STUNNED:
+            HandleStunnedState(delta);
+            break;
         case EnemyState::DEATH:
             HandleDeathState(delta);
             return;  // After calling HandleDeathState(), return immediately since the object is now deleted
@@ -286,6 +289,26 @@ void HarpyController::HandlePetrifiedState(float delta)
     ChangeState(EnemyState::DEATH);
 }
 
+void HarpyController::HandleStunnedState(float delta)
+{
+    AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+    if(m_stunnedTimer >= m_stunnedTime)
+    {
+        if(sprite != nullptr)
+        {
+            sprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+        }
+        m_stunnedTimer = 0.0f;
+        ChangeState(EnemyState::PROSPECT);
+    }
+    
+    if(sprite != nullptr)
+    {
+        sprite->SetTint(glm::vec3(1.0f, 0.0f, 0.0f));
+    }
+    m_stunnedTimer += delta;
+}
+
 void HarpyController::UpdateAnimationBasedOnDirection()
 {
     if (!m_pAnimComponent || !m_pVelocity) return;
@@ -326,7 +349,7 @@ void HarpyController::UpdateAnimationBasedOnDirection()
 
 void HarpyController::HandleDeathState(float delta)
 {
-     // Fall over
+    // Fall over
     if(m_fallDeadTimer <= m_timeToFallDead)
     {
         if(m_fallDeadTimer == 0.0f)

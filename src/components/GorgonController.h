@@ -59,6 +59,8 @@ private:
 
     float m_prospectCounter = 0.0f;
     float m_prospectStandingCounter = 2.0f;
+    float m_stunnedTime = 0.5f;
+    float m_stunnedTimer = 0.0f;
     
     float m_fallDeadTimer = 0.0f;
     float m_lieDeadTimer = 0.0f;

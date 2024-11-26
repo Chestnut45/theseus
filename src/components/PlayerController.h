@@ -104,9 +104,9 @@ private:
     void HandleRolling(float delta);     // Declaration for HandleRolling
     void HandleJumping(float delta);     // Declaration for HandleJumping
     void HandleAttacking(float delta);   // Declaration for HandleAttacking
-    void HandleThrowing(float delta);  // New method to handle throwing
-    void HandlePetrified(float delta);  // New method to handle being petrified
-
+    void HandleThrowing(float delta);  // Method to handle throwing
+    void HandlePetrified(float delta);  // Method to handle being petrified
+    void HandleDeath(float delta);  // New method to handle the existential fear of death
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
@@ -154,7 +154,8 @@ private:
     PlayerDirection m_lastMoveDirectionEnum = PlayerDirection::SOUTH;
     PlayerDirection m_lastFaceDirectionEnum = PlayerDirection::SOUTH;
     std::vector<int> m_heldKeys;  // List of currently held keys
-    float m_moveSpeed = 200.0f;
+    float m_currentMoveSpeed = 200.0f;
+    float m_normalMoveSpeed = 200.0f;
     float m_inventoryMoveSpeed = 100.0f;
 
     // Sound effect properties
@@ -201,6 +202,8 @@ private:
     PlayerAction m_previousAction = PlayerAction::NONE;
     PlayerDirection m_previousDirection = PlayerDirection::NONE;
 
+    bool m_inventoryOpen = false;
+
     ColliderManager* m_pColliderManager = nullptr;
 
     // Default weapon if no weapon equipped
@@ -211,6 +214,12 @@ private:
     wolf::Timer m_runtimeTimer;
     double m_deathRuntime = 0.0; // Store the runtime once when player dies
     wolf::Texture* m_deathScreenTexture = nullptr; //death screen texture
+
+    float m_fallDeadTimer = 0.0f;
+    float m_lieDeadTimer = 0.0f;
+    float m_timeToFallDead = 0.6f;
+    float m_timeToLieDead = 0.8f;
+    
     // fade transitions
     float m_fadeOpacity = 0.0f; 
     bool m_fadeComplete = false;

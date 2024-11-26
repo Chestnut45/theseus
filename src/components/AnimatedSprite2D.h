@@ -47,6 +47,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         enum SpecialEffectsType
         {
             PETRIFIED,
+            WHITE,
             NONE
         };
         
@@ -192,6 +193,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         //-----------------//
         static inline wolf::Program* s_pCurrentProgram = nullptr;
         static inline wolf::Program* s_pPetrifiedProgram = nullptr;
+        static inline wolf::Program* s_pWhiteProgram = nullptr;
 
         // Reference counting helper
         static void IncreaseReferences();
