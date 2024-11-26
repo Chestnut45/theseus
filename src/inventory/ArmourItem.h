@@ -29,6 +29,10 @@ class ArmourItem : public EquipmentItem {
 
         std::vector<ArmourStatusEffect>* GetStatusEffectList() {return &m_vStatusEffects;};
 
+        inline virtual std::string GetToolTipText() const {
+            return EquipmentItem::GetToolTipText();
+        };
+
     private:
         float m_fDamageReduction; // How much damage does this piece of armour reduce (as a percentage)
         std::vector<ArmourStatusEffect> m_vStatusEffects;

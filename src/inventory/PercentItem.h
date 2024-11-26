@@ -36,6 +36,10 @@ class PercentItem : public ConsumableItem {
 
         virtual void Use();
 
+        inline virtual std::string GetToolTipText() const {
+            return ConsumableItem::GetToolTipText();
+        };
+
     private:
         Attribute m_enAttrib;
         float m_fAmt;

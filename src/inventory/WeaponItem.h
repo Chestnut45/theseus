@@ -62,6 +62,10 @@ class WeaponItem : public EquipmentItem {
         bool SetProjectileProperties(float p_fDamage, const glm::vec2& p_v2HurtBoxSize, const glm::vec2& p_v2Velocity, const std::string& p_strPathToSprite);
         ProjectileProperties GetProjectileProperties() const {return m_Projectile;};
 
+        inline virtual std::string GetToolTipText() const {
+            return EquipmentItem::GetToolTipText();
+        };
+
     private:
         bool m_bHasProjectiles; // Does this weapon have projectiles associated with it?
         bool m_bProjectilesEnabled = false; // And can this weapon CURRENTLY fire said projectiles? (Default is NO)

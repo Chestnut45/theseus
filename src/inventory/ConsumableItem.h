@@ -48,6 +48,10 @@ class ConsumableItem : public ItemBase {
             }
         };
 
+        inline virtual std::string GetToolTipText() const {
+            return m_strDesc + "\n\nValue: " + std::to_string(m_iValue) + "\nUses: " + std::to_string(m_iNumUses);
+        };
+
     protected:
         void SetConsumableType(ConsumableType p_enType) {m_enType = p_enType;};
 

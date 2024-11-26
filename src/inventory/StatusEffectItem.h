@@ -31,6 +31,10 @@ class StatusEffectItem : public ConsumableItem {
 
         virtual void Use();
 
+        inline virtual std::string GetToolTipText() const {
+            return ConsumableItem::GetToolTipText();
+        };
+
     private:
         StatusComponent::StatusEffectType m_enType;
         float m_fDuration;
