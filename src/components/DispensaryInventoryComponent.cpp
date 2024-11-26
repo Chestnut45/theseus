@@ -1,5 +1,6 @@
 #include "DispensaryInventoryComponent.h"
 #include "inventory/ItemCreator.h"
+#include "AnimatedSprite2D.h"
 
 DispensaryInventoryComponent::~DispensaryInventoryComponent() {
     // Deregister for events
@@ -260,6 +261,10 @@ void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryE
         if (p_event.enType == DISPENSARY_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
             m_bIsOpen = false;
+            AnimatedSprite2D* pAnim = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+            if (pAnim) {
+                pAnim->SetAnimation("Inactive");
+            }
         }
     }
 }
@@ -271,6 +276,10 @@ void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventor
         if (p_event.enType == PLAYER_INVENTORY) {
             // Close the dispensary as well
             m_bIsOpen = false;
+            AnimatedSprite2D* pAnim = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+            if (pAnim) {
+                pAnim->SetAnimation("Inactive");
+            }
         }
     }
 }
