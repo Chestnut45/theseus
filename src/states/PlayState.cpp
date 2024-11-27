@@ -317,6 +317,10 @@ void PlayState::Update(float delta)
     // Display all open dispensary GUIs
     for (auto&&[_, dispensaryInventory, transform] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent, wolf::Transform2D>())
     {
+
+        // If the dispensary has an animated sprite we're going to want to retrieve it
+        AnimatedSprite2D* dispensarySprite = dispensaryInventory.GetGameObject()->GetComponent<AnimatedSprite2D>();
+
         // Show GUI
         dispensaryInventory.ShowInventoryGUI();
 
@@ -333,8 +337,7 @@ void PlayState::Update(float delta)
                 // Either open or close it
                 dispensaryInventory.ToggleOpen();
 
-                // If the dispensary has an animated sprite
-                AnimatedSprite2D* dispensarySprite = dispensaryInventory.GetGameObject()->GetComponent<AnimatedSprite2D>();
+                // If the dispensary has an AnimatedSprite
                 if (dispensarySprite) {
                     // Play the activation animation when we open it
                     if (dispensaryInventory.IsOpen()) {
@@ -353,10 +356,17 @@ void PlayState::Update(float delta)
         }
         else
         {
-            // Close chest if the player walks away
+            // Close dispensary if the player walks away
             if (dispensaryInventory.IsOpen())
             {
                 dispensaryInventory.Close();
+
+                // If the dispensary has an AnimatedSprite, play the inactive animation
+                if (dispensarySprite) {
+                    dispensarySprite->SetAnimation("Inactive");
+                }
+
+                // Close the player's inventory as well
                 m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
             }
         }

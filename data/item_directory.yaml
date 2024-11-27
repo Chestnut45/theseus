@@ -104,7 +104,7 @@ Shaky Spear: {
   id: EQUIPMENT,
   description: The pen is mightier than the sword and this is a very large pen indeed.,
   value: 10,
-  texture_frame: 1,
+  texture_frame: 2,
   rarity: COMMON,
   slot: WEAPON,
   type: SPEAR,
@@ -136,7 +136,7 @@ Old Bow: {
 
 The Floor is Lava Boots: {
   id: EQUIPMENT,
-  description: Guaranteed to make you feel like you're walking in lava! (Super extra long description text that is irrelevant and should be removed afterwards),
+  description: Guaranteed to make you feel like you're walking in lava!,
   value: 25,
   texture_frame: 13,
   rarity: UNCOMMON,
