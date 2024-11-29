@@ -88,12 +88,10 @@ public:
 
     // setting the holding object bool variable
     void SetHoldingObject(bool isHolding);
-
-    
+ 
     // This getter simply returns the current value of m_lastFaceDirectionEnum, allowing ThrowableObjectComponent to access it.
     PlayerDirection GetLastFacingDirection() const { return m_lastFaceDirectionEnum; }
-
-    void ChangeAction(PlayerAction p_player_action);
+    glm::vec2 GetLastFacingDirectionVector() const;
 
 private:
     // Initialization and animation management
@@ -122,6 +120,7 @@ private:
     void StartRoll();       // Starts a rolling action
     void StartDeath();
     
+    void EndAttacking();
     void EndJump();         // Ends a jumping action
     void EndPetrified();
     void EndRoll();         // Ends a rolling action
@@ -129,8 +128,6 @@ private:
     void ThrowHeldObject();
     void PickUpObject();
     void DropObject();
-
-    void UpdateAttackState(float delta);
 
     // Utility functions
     void ApplyDamageToEnemy(); // Applies damage to enemies
@@ -170,7 +167,6 @@ private:
     float m_walkSoundInterval = 0.333333333f;
 
     // Stamina management
-    bool m_isRolling = false;
     float m_rollSpeed = 400.0f;
     float m_rollTimer = 0.0f;
     float m_rollDuration = 0.5f;
@@ -188,7 +184,6 @@ private:
 
     // Attacking management
     bool m_hasAppliedDamage = false;
-    bool m_isAttacking = false;
     float m_attackCooldown = 0.5f;
     float m_attackDamage = 50.0f;
     float m_attackRange = 100.0f;
@@ -204,7 +199,6 @@ private:
     const float m_powerChargeRate = 25.0f; // Rate at which power increases
 
     // Animation and state tracking flags
-    bool m_animationFinished = false;
     std::string m_currentAnimation;
     PlayerAction m_previousAction = PlayerAction::NONE;
     PlayerDirection m_previousDirection = PlayerDirection::NONE;
