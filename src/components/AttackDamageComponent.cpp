@@ -94,20 +94,21 @@ void AttackDamageComponent::Update(float p_dt)
                     }
 
                     // Stun enemy
-                    EnemyController* thatEnemyController;
-                    thatEnemyController = thatObject->GetComponent<GorgonController>();
-                    if(thatEnemyController == nullptr)
+                    if (thatObject->HasAny<GorgonController>())
                     {
-                        thatEnemyController = thatObject->GetComponent<MinitaurController>();
-                    }
-                    
-                    if(thatEnemyController == nullptr)
-                    {
-                        thatEnemyController = thatObject->GetComponent<HarpyController>();
+                        GorgonController* thatEnemyController = thatObject->GetComponent<GorgonController>();
+                        thatEnemyController->ChangeState(EnemyController::EnemyState::STUNNED);
                     }
 
-                    if(thatEnemyController != nullptr)
+                    else if (thatObject->HasAny<HarpyController>())
                     {
+                        HarpyController* thatEnemyController = thatObject->GetComponent<HarpyController>();
+                        thatEnemyController->ChangeState(EnemyController::EnemyState::STUNNED);
+                    }
+
+                    else if (thatObject->HasAny<MinitaurController>())
+                    {
+                        MinitaurController* thatEnemyController = thatObject->GetComponent<MinitaurController>();
                         thatEnemyController->ChangeState(EnemyController::EnemyState::STUNNED);
                     }
                 }

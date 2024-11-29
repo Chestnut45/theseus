@@ -71,6 +71,7 @@ public:
     void LateInitialize();
     void Update(float delta);
     void Render();
+    
     void SetAnimationComponent(AnimatedSprite2D* animComponent);
 
     // Overloaded << operator for printing directions
@@ -92,7 +93,7 @@ public:
     // This getter simply returns the current value of m_lastFaceDirectionEnum, allowing ThrowableObjectComponent to access it.
     PlayerDirection GetLastFacingDirection() const { return m_lastFaceDirectionEnum; }
 
-    // Weapon & Attack functions
+    void ChangeAction(PlayerAction p_player_action);
 
 private:
     // Initialization and animation management
@@ -108,6 +109,7 @@ private:
     void HandlePetrified(float delta);  // Method to handle being petrified
     void HandleDeath(float delta);  // New method to handle the existential fear of death
 
+
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
     void HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event);
@@ -115,15 +117,20 @@ private:
 
     // Manage and transition different player states
     void StartAttack();
-    void UpdateAttackState(float delta);
-    void StartRoll();       // Starts a rolling action
-    void EndRoll();         // Ends a rolling action
+    void StartPetrified();
     void StartJump();       // Starts a jumping action
+    void StartRoll();       // Starts a rolling action
+    void StartDeath();
+    
     void EndJump();         // Ends a jumping action
+    void EndPetrified();
+    void EndRoll();         // Ends a rolling action
+    
     void ThrowHeldObject();
     void PickUpObject();
     void DropObject();
-    void EnterDeathState();
+
+    void UpdateAttackState(float delta);
 
     // Utility functions
     void ApplyDamageToEnemy(); // Applies damage to enemies

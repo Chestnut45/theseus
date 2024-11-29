@@ -16,6 +16,7 @@ public:
 
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
+    void ChangeState(EnemyState newState);
 
 private:
     // Minitaur-specific methods
@@ -28,9 +29,7 @@ private:
     void HandleAttackingState(float delta);
     void HandlePetrifiedState(float delta);
     void HandleStunnedState(float delta);
-    void HandleDeathState(float delta);
-    void ChangeState(EnemyState newState);
-    
+    void HandleDeathState(float delta);    
     
     // Minitaur-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;

@@ -60,13 +60,50 @@ void PlayerController::SetAction(PlayerAction action)
         m_isAttacking = false;
         m_action = PlayerAction::NONE; // Reset to NONE to avoid conflict
     }
+
+    // End old action
+    switch (m_action)
+    {
+            case PlayerAction::PETRIFIED:
+            {
+                EndPetrified();
+                break;
+            }
+        default:
+        {
+            break;
+        }
+    }
+
+    // Start new action
+    switch (action)
+    {
+        case PlayerAction::ATTACKING:
+        {
+            break;
+        }
+        case PlayerAction::PETRIFIED:
+        {
+            StartPetrified();
+            break;
+        }
+        case PlayerAction::DEAD:
+            {
+                StartDeath();
+                break;
+            }
+        default:
+        {
+            break;
+        }
+    }
+
     m_action = action;
 }
 
 void PlayerController::SetHoldingObject(bool isHolding) {
     m_isHoldingObject = isHolding;
 }
-
 
 // Initialize components related to the player
 void PlayerController::LateInitialize()
@@ -154,16 +191,14 @@ void PlayerController::Update(float delta)
         StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
         if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
         {
-            m_action = PlayerAction::PETRIFIED;
+            SetAction(PlayerAction::PETRIFIED);
         }
         else
         {
-            m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
             // On exiting petrified state
             if(m_action == PlayerAction::PETRIFIED)
             {
-                m_action = PlayerAction::NONE;
-                m_pAnimComponent->SetAnimPaused(false);
+                SetAction(PlayerAction::NONE);
             } 
         }
         CheckHealth();
@@ -291,10 +326,7 @@ void PlayerController::HandleThrowing(float delta) {
 
 void PlayerController::HandlePetrified(float delta)
 {
-        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::PETRIFIED);
-        m_action = PlayerAction::PETRIFIED;
-        m_pAnimComponent->SetAnimPaused(true);
-        m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+        
 }
 
 void PlayerController::HandleDeath(float delta)
@@ -332,6 +364,12 @@ void PlayerController::HandleDeath(float delta)
         }
         m_lieDeadTimer += delta;
     }
+}
+
+void PlayerController::EndPetrified()
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    m_pAnimComponent->SetAnimPaused(false);
 }
 
 void PlayerController::ThrowHeldObject() {
@@ -388,7 +426,7 @@ void PlayerController::HandleMovement(float delta)
     direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
 
     if (glm::length(direction) == 0.0f) {
-        if (!m_isAttacking && !m_isRolling) m_action = PlayerAction::NONE;
+        if (!m_isAttacking && !m_isRolling) SetAction(PlayerAction::NONE);
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
         m_walkSoundTimer.Reset();
         return;
@@ -410,7 +448,7 @@ void PlayerController::HandleMovement(float delta)
     }
     m_pVelocity->SetVelocity(direction * m_currentMoveSpeed);
 
-    if (!m_isRolling && !m_isJumping) m_action = PlayerAction::WALKING;
+    if (!m_isRolling && !m_isJumping) SetAction(PlayerAction::WALKING);
 }
 
 // Manage attack state and animation transitions
@@ -610,7 +648,7 @@ void PlayerController::StartAttack()
         m_hasAppliedDamage = false;
 
         // Set the player action to attacking and reset attack-related timers.
-        m_action = PlayerAction::ATTACKING;
+        SetAction(PlayerAction::ATTACKING);
         m_attackTimer.Restart();
 
         // Choose the correct animation based on the player's direction.
@@ -622,6 +660,13 @@ void PlayerController::StartAttack()
         // Store the current animation to handle transitions later.
         m_currentAnimation = attackAnimation;
     }
+}
+
+void PlayerController::StartPetrified()
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::PETRIFIED);
+    m_pAnimComponent->SetAnimPaused(true);
+    m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }
 
 void PlayerController::UpdateAttackState(float delta)
@@ -644,11 +689,11 @@ void PlayerController::UpdateAttackState(float delta)
         // Determine the next action based on the player's velocity
         if (glm::length(m_pVelocity->GetVelocity()) < 0.01f)
         {
-            m_action = PlayerAction::NONE; // Set to idle state
+            SetAction(PlayerAction::NONE); // Set to idle state
         }
         else
         {
-            m_action = PlayerAction::WALKING; // Set to walking state
+            SetAction(PlayerAction::WALKING); // Set to walking state
         }
 
         // Clear the current animation and set a new one based on the updated state
@@ -870,7 +915,7 @@ void PlayerController::StartRoll()
         rollDirection = glm::normalize(rollDirection) * m_rollSpeed; // Set velocity based on roll speed
         m_pVelocity->SetVelocity(rollDirection);
     }
-    m_action = PlayerAction::ROLLING;
+    SetAction(PlayerAction::ROLLING);
     m_stamina -= 25.0f;
     m_staminaRegenTimer.Restart();
 }
@@ -879,14 +924,14 @@ void PlayerController::EndRoll()
 {
     m_isRolling = false;
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    m_action = PlayerAction::NONE;
+    SetAction(PlayerAction::NONE);
 }
 
 void PlayerController::StartJump()
 {
     m_isJumping = true;
     m_jumpTimer = m_jumpHeight / m_jumpSpeed;
-    m_action = PlayerAction::JUMPING;
+    SetAction(PlayerAction::JUMPING);
     m_pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed));
 }
 
@@ -894,7 +939,7 @@ void PlayerController::EndJump()
 {
     m_isJumping = false;
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    m_action = PlayerAction::NONE;
+    SetAction(PlayerAction::NONE);
 }
 
 std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction)
@@ -1050,11 +1095,11 @@ void PlayerController::RenderThrowPowerBar() {
 void PlayerController::CheckHealth() {
     auto* healthComponent = GetGameObject()->GetComponent<HealthComponent>();
     if (healthComponent && healthComponent->GetHealth() <= 0) {
-        EnterDeathState();
+        StartDeath();
     }
 }
 
-void PlayerController::EnterDeathState() {
+void PlayerController::StartDeath() {
     printf("PlayerAction - DEAD\n");
     SetAction(PlayerAction::DEAD);
     m_pVelocity->SetVelocity(glm::vec2(0.0f));

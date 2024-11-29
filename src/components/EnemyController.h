@@ -26,6 +26,7 @@ public:
     void SetColliderManager(ColliderManager* pColliderManager);  // Set the ColliderManager, general for all enemies
     ColliderManager* GetColliderManager() const;
     void ChangeState(EnemyState newState); // General state transition logic shared by all enemies
+    
 
 protected:
     // These components are common to all enemies and will be initialized here, but used in specific enemy classes
