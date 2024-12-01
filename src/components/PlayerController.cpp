@@ -305,8 +305,6 @@ void PlayerController::HandlePlayerInput(float delta)
     glm::vec2 direction = GetLastFacingDirectionVector();
 
     // Only start roll if a direction is being held and sufficient stamina is available
-    
-
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_action != PlayerAction::ROLLING && m_action != PlayerAction::ATTACKING && m_stamina >= 15.0f)
     {
         SetAction(PlayerAction::ROLLING);
@@ -315,7 +313,6 @@ void PlayerController::HandlePlayerInput(float delta)
     // Start the attack if the left mouse button is pressed and the player is not currently attacking.
     if (wolf::Input::IsLMBJustDown() && m_action != PlayerAction::ATTACKING)
     {
-        printf("PlayerController - Set Attacking\n");
         SetAction(PlayerAction::ATTACKING);
     }
     
@@ -1111,7 +1108,6 @@ void PlayerController::CheckHealth() {
 }
 
 void PlayerController::StartDeath() {
-    printf("PlayerAction - DEAD\n");
     SetAction(PlayerAction::DEAD);
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 

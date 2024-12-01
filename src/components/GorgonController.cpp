@@ -27,6 +27,8 @@ void GorgonController::Init(const EnemyData& data)
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
+    m_targetDetectionTimer = m_RNG.NextFloat(0.2f, 0.4f);
+
     // Set attack timer
     m_rangedTimer = m_rangedCooldown;
     std::cout << "GorgonController - m_rangedCooldown: " << m_rangedCooldown << std::endl;
@@ -86,29 +88,36 @@ void GorgonController::Update(float delta)
         // Switch to the DEATH state if the health is depleted
         ChangeState(EnemyState::DEATH);
     }
-
+    
     // Update based on the current state
     switch (m_state)
     {
         case EnemyState::IDLE:
-            HandleIdleState();
+            std::cout << "GorgonController - Idle" << std::endl;
+            HandleIdleState(delta);
             break;
         case EnemyState::CHASING:
+        std::cout << "GorgonController - Chasing" << std::endl;
             HandleChasingState(delta);
             break;
         case EnemyState::PROSPECT:
+            std::cout << "GorgonController - Prospect" << std::endl;
             HandleProspectState(delta);
             break;
         case EnemyState::ATTACKING:
+            std::cout << "GorgonController - Attacking" << std::endl;
             HandleAttackingState(delta);
             break;
         case EnemyState::PETRIFIED:
+            std::cout << "GorgonController - Petrified" << std::endl;
             HandlePetrifiedState(delta);
             break;
         case EnemyState::STUNNED:
+            std::cout << "GorgonController - Stunned" << std::endl;
             HandleStunnedState(delta);
             break;
         case EnemyState::DEATH:
+            std::cout << "GorgonController - Death" << std::endl;
             HandleDeathState(delta);
             return;  // After calling HandleDeathState(), return immediately since the object is now deleted
     }
@@ -127,9 +136,24 @@ void GorgonController::ChangeState(EnemyState newState)
             ExitAttackState();
             break;
         }
+        case EnemyState::CHASING:
+        {
+            ExitChasingState();
+            break;
+        }
+        case EnemyState::IDLE:
+        {
+            ExitIdleState();
+            break;
+        }
         case EnemyState::PETRIFIED:
         {
             ExitPetrifiedState();
+            break;
+        }
+        case EnemyState::PROSPECT:
+        {
+            ExitProspectState();
             break;
         }
         case EnemyState::STUNNED:
@@ -145,7 +169,11 @@ void GorgonController::ChangeState(EnemyState newState)
     // Enter new state
         switch (newState)
     {
-        
+        case EnemyState::IDLE:
+        {
+            EnterIdleState();
+            break;
+        }
         case EnemyState::STUNNED:
         {
             EnterStunnedState();
@@ -202,39 +230,59 @@ void GorgonController::MoveTowardsTarget(float delta)
     }
 }
 
-void GorgonController::HandleIdleState()
+void GorgonController::HandleIdleState(float delta)
 {
-    // Check if the player is within detection range
-    float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
-
-    // If the player comes into detection range and not petrified, start chasing
-    if (distanceToPlayer <= m_detectionRange && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    // If detection timer expired, perform detection check
+    if(m_targetDetectionTimer <= 0.0f)
     {
-        ChangeState(EnemyState::CHASING); 
+        // If target detected, chase
+        if (IsTargetDetected())
+        {
+            ChangeState(EnemyState::CHASING); 
+        }
+
+        // Else, reset detection timer
+        else
+        {
+            m_targetDetectionTimer = m_RNG.NextFloat(0.4f, 0.8f);
+        }
+    }
+    else
+    {
+        m_targetDetectionTimer -= delta;
     }
 }
 
 void GorgonController::HandleProspectState(float delta)
 {
-    // Chase player if in range and not petrified
-    float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
-    if (distanceToPlayer <= m_detectionRange && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
-    {
-        ChangeState(EnemyState::CHASING); 
-        m_prospectCounter = 0;
+    // If detection timer expired, perform detection check
+    if(m_targetDetectionTimer <= 0.0f)
+    {    
+        // If target detected, chase
+        if (IsTargetDetected())
+        {
+            ChangeState(EnemyState::CHASING); 
+        }
+        // Else, reset detection timer
+        else
+        {
+            m_targetDetectionTimer = m_RNG.NextFloat(0.4f, 0.8f);
+        }
     }
-
-    // else, prospect
+    // Else, do thing
     else
     {
+        m_targetDetectionTimer -= delta;
+        // If pondering period over, move
         if (m_prospectStandingCounter <= 0.0f)
         {
+            // If moving period over, decide next action
             if(m_prospectCounter <= 0)
             {        
                     
                     // Roll for prospect
                     float rng = m_RNG.NextInt(1, 100);
-                    // Begin prospecting
+                    // If larger than 10, begin prospecting
                     if(rng > 10)
                     {
                         
@@ -243,11 +291,10 @@ void GorgonController::HandleProspectState(float delta)
                         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
                     }
 
-                    // Change to idle
+                    // Else, change to idle
                     else
                     {
                         ChangeState(EnemyState::IDLE);
-                        m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Reset velocity when returning to idle
                     }
                     m_prospectStandingCounter = m_RNG.NextFloat(0.5f, 2.0f);                  
             }
@@ -282,7 +329,6 @@ void GorgonController::HandleChasingState(float delta)
     )
     {
         ChangeState(EnemyState::PROSPECT);
-        return;
     }
 
     if (!m_transitionTimer.IsRunning())
@@ -297,15 +343,7 @@ void GorgonController::HandleChasingState(float delta)
         if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
         {
             ChangeState(EnemyState::ATTACKING);
-            m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
-            m_transitionTimer.Reset();
         }
-    }
-    // If target is out of range, set timer to 0 & set transition delay to random value
-    else
-    {
-        m_transitionTimer.Reset();
-        m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
     }
 }
 
@@ -323,7 +361,7 @@ void GorgonController::HandleAttackingState(float delta)
         {
             m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
         }
-        ChangeState(EnemyState::PROSPECT);
+        ChangeState(EnemyState::CHASING);
     }
     else
     {
@@ -452,6 +490,17 @@ void GorgonController::HandleDeathState(float delta)
     }
 }
 
+void GorgonController::EnterIdleState()
+{
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+}
+
+void GorgonController::EnterChasingState()
+{
+    m_transitionTimer.Reset();
+}
+
 void GorgonController::EnterStunnedState()
 {
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
@@ -468,10 +517,30 @@ void GorgonController::ExitAttackState()
     }
 }
 
+void GorgonController::ExitChasingState()
+{
+    m_transitionTimer.Reset();
+    m_transitionTimer.Stop();
+    m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
+}
+
+void GorgonController::ExitIdleState()
+{
+    m_targetDetectionTimer = m_RNG.NextFloat(0.2f, 0.4f);
+}
+
 void GorgonController::ExitPetrifiedState()
 {
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
     m_pAnimComponent->SetAnimPaused(false);
+}
+
+void GorgonController::ExitProspectState()
+{
+    m_targetDetectionTimer = m_RNG.NextFloat(0.4f, 0.8f);
+    m_prospectCounter = 0;
+    m_prospectStandingCounter = m_RNG.NextFloat(0.5f, 2.0f);
+
 }
 
 void GorgonController::ExitStunnedState()
@@ -479,6 +548,22 @@ void GorgonController::ExitStunnedState()
     
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
     m_stunnedTimer = 0.0f;
+}
+
+bool GorgonController::IsTargetDetected()
+{
+    float distanceToTarget = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
+
+    if(
+        m_pTargetStatusComponent != nullptr                                                             &&  // Target not null
+        distanceToTarget <= m_detectionRange                                                            &&  // Target in detection range
+        !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)   &&  // Target in line of sight
+        IsTargetInLOS()
+        )
+    {
+        return true;
+    }
+    return false;
 }
 
 bool GorgonController::IsTargetInLOS()

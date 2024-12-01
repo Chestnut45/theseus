@@ -91,7 +91,7 @@ void PlayState::Enter()
     
     //this->CreateMinitaurEnemy();
     //this->CreateHarpyEnemy();
-    //this->CreateGorgonEnemy();
+    this->CreateGorgonEnemy();
 }
 
 void PlayState::Exit()
@@ -524,7 +524,7 @@ void PlayState::CreateGorgonEnemy()
 
     GorgonBuilder gorgonBuilder(m_pGameInstance->GetScene());
 
-    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, -360.0f);
+    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 580.0f);
 
     EnemyData gorgonData = loader.LoadEnemyData("gorgon");
     auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position, m_pColliderManager);

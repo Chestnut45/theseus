@@ -24,7 +24,7 @@ private:
     void SetUpAnimations(const std::string& animationInitPath);          
     void UpdateAnimationBasedOnDirection();
     void MoveTowardsTarget(float delta);
-    void HandleIdleState();
+    void HandleIdleState(float delta);
     void HandleProspectState(float delta);
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
@@ -32,11 +32,18 @@ private:
     void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
     
+    void EnterIdleState();
+    void EnterChasingState();
     void EnterStunnedState();
 
     void ExitAttackState();
+    void ExitChasingState();
+    void ExitIdleState();
     void ExitPetrifiedState();
+    void ExitProspectState();
     void ExitStunnedState();
+
+    bool IsTargetDetected();
 
     bool IsTargetInLOS(); // Check if target is in line of sight
     bool IsWallTile(int p_tile_id);
@@ -64,6 +71,8 @@ private:
     //-----------------//
     
     wolf::RNG m_RNG; 
+
+    float m_targetDetectionTimer = 0.0f;
 
     float m_prospectCounter = 0.0f;
     float m_prospectStandingCounter = 2.0f;
