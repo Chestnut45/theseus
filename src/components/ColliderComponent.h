@@ -37,8 +37,7 @@ public:
     glm::vec2 position; // Position of the corner
     std::string label;  //  c1", "c2", etc.
     };
-    std::vector<std::array<Corner, 4>> GetCorners() const;
-
+    std::vector<std::array<glm::vec2, 4>> GetCorners() const;
     ColliderComponent(ColliderType p_collider_type, bool p_doc , bool p_relativity, wolf::GameObjectID p_ignore_id = -1);   
     virtual ~ColliderComponent();
 
