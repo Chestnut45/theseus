@@ -167,6 +167,11 @@ void GorgonController::ChangeState(EnemyState newState)
     // Enter new state
         switch (newState)
     {
+        case EnemyState::CHASING:
+        {
+            EnterChasingState();
+            break;
+        }
         case EnemyState::IDLE:
         {
             EnterIdleState();
@@ -326,11 +331,6 @@ void GorgonController::HandleChasingState(float delta)
     )
     {
         ChangeState(EnemyState::PROSPECT);
-    }
-
-    if (!m_transitionTimer.IsRunning())
-    {
-        m_transitionTimer.Start();
     }
 
     // If target is within ranged range
@@ -537,15 +537,16 @@ void GorgonController::HandleDeathState(float delta)
     }
 }
 
+void GorgonController::EnterChasingState()
+{
+    m_transitionTimer.Reset();
+    m_transitionTimer.Start();
+}
+
 void GorgonController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
-}
-
-void GorgonController::EnterChasingState()
-{
-    m_transitionTimer.Reset();
 }
 
 void GorgonController::EnterStunnedState()
@@ -556,7 +557,6 @@ void GorgonController::EnterStunnedState()
 void GorgonController::ExitAttackState()
 {
     m_rangedTimer = m_rangedCooldown;
-    m_stunnedTimer = 0.0f;
     
     if(m_pAnimComponent != nullptr)
     {
@@ -587,12 +587,10 @@ void GorgonController::ExitProspectState()
     m_targetDetectionTimer = m_RNG.NextFloat(0.4f, 0.8f);
     m_prospectCounter = 0;
     m_prospectStandingCounter = m_RNG.NextFloat(0.5f, 2.0f);
-
 }
 
 void GorgonController::ExitStunnedState()
 {
-    
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
     m_stunnedTimer = 0.0f;
 }

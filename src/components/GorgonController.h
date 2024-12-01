@@ -32,8 +32,8 @@ private:
     void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
     
-    void EnterIdleState();
     void EnterChasingState();
+    void EnterIdleState();
     void EnterStunnedState();
 
     void ExitAttackState();

@@ -16,7 +16,6 @@ void EnemyDataLoader::LoadAllEnemyData(const std::string& filepath) {
             data.armour = enemyNode["armour"].as<int>();
             data.meleeRange = enemyNode["melee_range"] ? enemyNode["melee_range"].as<float>() : 1.0f;
             data.rangedRange = enemyNode["ranged_range"] ? enemyNode["ranged_range"].as<float>() : 1.0f;
-            data.attackCooldown = enemyNode["attack_cooldown"].as<float>();
             data.meleeCooldown = enemyNode["melee_cooldown"] ? enemyNode["melee_cooldown"].as<float>() : 1.0f;
             data.rangedCooldown = enemyNode["ranged_cooldown"] ? enemyNode["ranged_cooldown"].as<float>() : 1.0f;
             data.detectionRange = enemyNode["detection_range"].as<float>();

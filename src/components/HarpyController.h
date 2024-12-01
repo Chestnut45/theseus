@@ -28,23 +28,37 @@ private:
     void HandlePetrifiedState(float delta);
     void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
+
+    void EnterChasingState();
+    void EnterIdleState();
+    void EnterStunnedState();
+
+    void ExitAttackState();
+    void ExitChasingState();
+    void ExitIdleState();
+    void ExitPetrifiedState();
+    void ExitStunnedState();
     
     // Minitaur-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
-    float m_meleeRange;
-    float m_attackCooldown;
-    float m_attackTimer = 0.0f;
     float m_detectionRange;
     float m_baseDamage;
     float m_chaseSpeed;
     wolf::Timer m_transitionTimer;
     float m_transitionDelay = 0.2f; // Example delay for transitioning states
 
-    // Added by Nhật
+    //-----------------//
+    //                 //
+    //  Added by Nhật  //
+    //                 //
+    //-----------------//
+
     wolf::RNG m_RNG;
-    float m_rangedRange = 300.0f;
+    float m_rangedCooldown;
+    float m_rangedTimer = 0.0f;
+    float m_rangedRange = 1.0f;
     float m_stunnedTime = 0.5f;
     float m_stunnedTimer = 0.0f;
 

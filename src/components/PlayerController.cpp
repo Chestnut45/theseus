@@ -1103,12 +1103,11 @@ void PlayerController::RenderThrowPowerBar() {
 void PlayerController::CheckHealth() {
     auto* healthComponent = GetGameObject()->GetComponent<HealthComponent>();
     if (healthComponent && healthComponent->GetHealth() <= 0) {
-        StartDeath();
+        SetAction(PlayerAction::DEAD);
     }
 }
 
 void PlayerController::StartDeath() {
-    SetAction(PlayerAction::DEAD);
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
     m_runtimeTimer.Stop(); // Stop the timer
