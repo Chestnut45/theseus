@@ -13,7 +13,6 @@
 
 #include "../ColliderManager.h"
 #include "../VertexDeclarations.h"
-#include <array>
 
 class ColliderManager;
 
