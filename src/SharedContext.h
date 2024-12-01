@@ -10,7 +10,7 @@ public:
         if (it != m_entityIDs.end()) {
             return it->second;
         }
-        throw std::runtime_error("Entity ID not found for: " + name);
+        wolf::Error("Entity ID not found for: " + name);
     }
 
     bool HasEntity(const std::string& name) const {
@@ -24,3 +24,4 @@ public:
 private:
     std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
 };
+ 
