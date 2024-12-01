@@ -211,30 +211,3 @@ bool ColliderComponent::IsActive() const {
     return m_active;
 }
 
-std::vector<std::array<glm::vec2, 4>> ColliderComponent::GetCorners() const {
-    std::vector<std::array<glm::vec2, 4>> corners;
-    corners.reserve(m_vColliderBoxes.size()); // Reserve space to avoid reallocation
-
-    // Cache global position and scale
-    glm::vec2 globalPosition = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 globalScale = this->IsRelative()
-        ? this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale()
-        : glm::vec2(1.0f, 1.0f);
-
-    // Iterate over all collider boxes
-    for (const auto& box : m_vColliderBoxes) {
-        glm::vec2 offset = box.GetPosition() * globalScale;
-        glm::vec2 dimensions = glm::vec2(box.GetWidth(), box.GetHeight()) * globalScale;
-
-        // Precompute positions
-        glm::vec2 topLeft = globalPosition + offset;
-        glm::vec2 topRight = topLeft + glm::vec2(dimensions.x, 0.0f);
-        glm::vec2 bottomLeft = topLeft + glm::vec2(0.0f, -dimensions.y);
-        glm::vec2 bottomRight = topLeft + glm::vec2(dimensions.x, -dimensions.y);
-
-        // Store the four corners (no labels, just positions)
-        corners.push_back({ topLeft, topRight, bottomLeft, bottomRight });
-    }
-
-    return corners;
-}
