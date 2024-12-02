@@ -44,7 +44,6 @@ private:
     void ExitStunnedState();
 
     bool IsTargetDetected();
-
     bool IsTargetInLOS(); // Check if target is in line of sight
     bool IsWallTile(int p_tile_id);
     glm::vec2 GetTileWorldPos(glm::ivec2 p_tile_pos);
@@ -72,7 +71,7 @@ private:
     
     wolf::RNG m_RNG; 
 
-    float m_targetDetectionTimer = 0.0f;
+    float m_targetDetectionTimer = 0.0f; // Taget detecction reaction delay
 
     float m_prospectCounter = 0.0f;
     float m_prospectStandingCounter = 2.0f;

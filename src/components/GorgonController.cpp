@@ -91,31 +91,24 @@ void GorgonController::Update(float delta)
     switch (m_state)
     {
         case EnemyState::IDLE:
-            // std::cout << "GorgonController - Idle" << std::endl;
             HandleIdleState(delta);
             break;
         case EnemyState::CHASING:
-            // std::cout << "GorgonController - Chasing" << std::endl;
             HandleChasingState(delta);
             break;
         case EnemyState::PROSPECT:
-            // std::cout << "GorgonController - Prospect" << std::endl;
             HandleProspectState(delta);
             break;
         case EnemyState::ATTACKING:
-            // std::cout << "GorgonController - Attacking" << std::endl;
             HandleAttackingState(delta);
             break;
         case EnemyState::PETRIFIED:
-            // std::cout << "GorgonController - Petrified" << std::endl;
             HandlePetrifiedState(delta);
             break;
         case EnemyState::STUNNED:
-            // std::cout << "GorgonController - Stunned" << std::endl;
             HandleStunnedState(delta);
             break;
         case EnemyState::DEATH:
-            // std::cout << "GorgonController - Death" << std::endl;
             HandleDeathState(delta);
             return;  // After calling HandleDeathState(), return immediately since the object is now deleted
     }
@@ -247,7 +240,7 @@ void GorgonController::HandleIdleState(float delta)
         // Else, reset detection timer
         else
         {
-            m_targetDetectionTimer = m_RNG.NextFloat(0.4f, 0.8f);
+            m_targetDetectionTimer = m_RNG.NextFloat(0.2f, 0.4f);
         }
     }
     else
@@ -269,7 +262,7 @@ void GorgonController::HandleProspectState(float delta)
         // Else, reset detection timer
         else
         {
-            m_targetDetectionTimer = m_RNG.NextFloat(0.4f, 0.8f);
+            m_targetDetectionTimer = m_RNG.NextFloat(0.2f, 0.4f);
         }
     }
     // Else, do thing
@@ -282,7 +275,7 @@ void GorgonController::HandleProspectState(float delta)
             // If moving done, decide next action
             if(m_prospectCounter <= 0)
             {          
-                    // Roll for prospect
+                    // Roll for action
                     float rng = m_RNG.NextInt(1, 100);
                     // If larger than 10, prospect
                     if(rng > 10)
@@ -584,7 +577,7 @@ void GorgonController::ExitPetrifiedState()
 
 void GorgonController::ExitProspectState()
 {
-    m_targetDetectionTimer = m_RNG.NextFloat(0.4f, 0.8f);
+    m_targetDetectionTimer = m_RNG.NextFloat(0.2f, 0.4f);
     m_prospectCounter = 0;
     m_prospectStandingCounter = m_RNG.NextFloat(0.5f, 2.0f);
 }
@@ -636,7 +629,7 @@ bool GorgonController::IsTargetInLOS()
         // If either this tile or target tile is invalid, return false
         if(thisTileID < 0 || targetTileID < 0)
         {
-            printf("Gorgon Controller - ERROR: INVALID TILE\n");
+            // printf("Gorgon Controller - ERROR: INVALID TILE\n");
             return false;
         }
 
@@ -687,8 +680,10 @@ bool GorgonController::IsTargetInLOS()
         else
         {
             tileStep.y = -1;
-            rayLength.y = (thisPos.y - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y + 1)).y) * rayStep.y;
+            rayLength.y = (thisPos.y - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y - 1)).y) * rayStep.y;
         }
+        
+        rayStep *= tileSize;
         
         // Iterate until target tile is reached
         bool isTargetTileReached = false;

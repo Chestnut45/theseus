@@ -23,33 +23,56 @@ private:
     void SetUpAnimations(const std::string& animationInitPath);          
     void UpdateAnimationBasedOnDirection();
     void MoveTowardsTarget(float delta);
-    void HandleIdleState();
+    void HandleIdleState(float delta);
     void HandleProspectState(float delta);
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
     void HandlePetrifiedState(float delta);
     void HandleStunnedState(float delta);
-    void HandleDeathState(float delta);    
+    void HandleDeathState(float delta);
+
+    void EnterChasingState();
+    void EnterIdleState();
+    void EnterStunnedState();
+
+    void ExitAttackState();
+    void ExitChasingState();
+    void ExitIdleState();
+    void ExitPetrifiedState();
+    void ExitProspectState();
+    void ExitStunnedState();
+
+    bool IsTargetDetected();
+    bool IsTargetInLOS(); // Check if target is in line of sight
+    bool IsWallTile(int p_tile_id);
+    glm::vec2 GetTileWorldPos(glm::ivec2 p_tile_pos);
     
     // Minitaur-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
     float m_meleeRange;
-    float m_attackCooldown;
-    float m_attackTimer = 0.0f;
+    float m_meleeCooldown;
+    float m_meleeTimer = 0.0f;
     float m_detectionRange;
     float m_baseDamage;
     float m_chaseSpeed;
     wolf::Timer m_transitionTimer;
     float m_transitionDelay = 0.2f; // Example delay for transitioning states
 
-    // Added by Nhật
+    //-----------------//
+    //                 //
+    //  Added by Nhật  //
+    //                 //
+    //-----------------//
+
     wolf::RNG m_RNG; 
+
+    float m_targetDetectionTimer = 0.0f; // Taget detecction reaction delay
 
     float m_prospectCounter = 0.0f;
     float m_prospectStandingCounter = 2.0f;
-    float m_stunnedTime = 0.5f;
+    float m_stunnedTime = 0.3f;
     float m_stunnedTimer = 0.0f;
     
     float m_fallDeadTimer = 0.0f;
