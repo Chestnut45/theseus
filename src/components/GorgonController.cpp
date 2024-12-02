@@ -625,6 +625,12 @@ bool GorgonController::IsTargetInLOS()
         glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::ivec2 targetTilePos = lbmg->GetTilePosition(targetPos);
         int targetTileID = lbmg->GetTile(targetTilePos.x, targetTilePos.y);
+        glColor3f(0, 1, 0);
+        glLineWidth(3);
+        glBegin(GL_LINES);
+        glVertex2i(thisPos.x, thisPos.y);
+        glVertex2i(targetPos.x, targetPos.y);
+        glEnd();
 
         // If either this tile or target tile is invalid, return false
         if(thisTileID < 0 || targetTileID < 0)
@@ -655,33 +661,29 @@ bool GorgonController::IsTargetInLOS()
         glm::vec2 rayLength = glm::vec2(0.0f, 0.0f);
         glm::ivec2 tileStep = glm::vec2(0, 0);
         glm::vec2 rayStep = glm::vec2(
-            sqrt(1 + pow((normalisedLine.y / normalisedLine.x), 2)),
-            sqrt(1 + pow((normalisedLine.x / normalisedLine.y), 2))
+            sqrt(1 + (normalisedLine.y / normalisedLine.x) * (normalisedLine.y / normalisedLine.x)),
+            sqrt(1 + (normalisedLine.x / normalisedLine.y) * (normalisedLine.x / normalisedLine.y))
         );
-        // std::cout << "GorgonController - Normalised Line - x: " << normalisedLine.x << ", y: " << normalisedLine.y << std::endl;
-        // std::cout << "GorgonController - This Tile Pos - x: " << thisTilePos.x << ", y: " << thisTilePos.y << std::endl;
-        // std::cout << "GorgonController - Target Tile Pos - x: " << targetTilePos.x << ", y: " << targetTilePos.y << std::endl;
-
         if(line.x > 0.0f)
         {
             tileStep.x = 1;
-            rayLength.x = (this->GetTileWorldPos(glm::ivec2(thisTilePos.x + 1, thisTilePos.y)).x - thisPos.x) * rayStep.x;
+            rayLength.x = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).x - thisPos.x) * rayStep.x;
         }
         else
         {
             tileStep.x = -1;
-            rayLength.x = (thisPos.x - this->GetTileWorldPos(glm::ivec2(thisTilePos.x - 1, thisTilePos.y)).x) * rayStep.x;
+            rayLength.x = abs(thisPos.x - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).x) * rayStep.x;
         }
 
         if(line.y > 0.0f)
         {
             tileStep.y = 1;
-            rayLength.y = (this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y + 1)).y - thisPos.y) * rayStep.y;
+            rayLength.y = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).y - thisPos.y) * rayStep.y;
         }
         else
         {
             tileStep.y = -1;
-            rayLength.y = (thisPos.y - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y - 1)).y) * rayStep.y;
+            rayLength.y = abs(thisPos.y - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).y) * rayStep.y;
         }
         
         rayStep *= tileSize;
@@ -690,7 +692,9 @@ bool GorgonController::IsTargetInLOS()
         bool isTargetSpotted = true;
         bool isIterating = true;
         // printf("GorgonController ------------------------------------------------ \n");
-        // std::cout << "GorgonController - Distance: " << distance << std::endl;
+        // std::cout << "GorgonController - Distance: " << distance << std::endl;    
+        // std::cout << "GorgonController - Normalised Line - x: " << normalisedLine.x << ", y: " << normalisedLine.y << std::endl;
+        // std::cout << "GorgonController - Original Ray Length - x: " << rayLength.x << ", y: " << rayLength.y << std::endl;
         // std::cout << "GorgonController - This Tile Pos - x: " << thisTilePos.x << ", y: " << thisTilePos.y << std::endl;
         // std::cout << "GorgonController - Target Tile Pos - x: " << targetTilePos.x << ", y: " << targetTilePos.y << std::endl;
         float distanceCheck = 0.0f;
@@ -709,25 +713,28 @@ bool GorgonController::IsTargetInLOS()
                 distanceCheck = rayLength.y;
                 rayLength.y += rayStep.y;
             }
-            // std::cout << "MinitaurController - Ray Length - x: " << abs(rayLength.x) << ", y: " << abs(rayLength.y) << std::endl;
-
-
-            // std::cout << "MinitaurController - Current Tile Pos - x: " << currentTilePos.x << ", y: " << currentTilePos.y << std::endl;
+            // std::cout << "GorgonController - Ray Length - x: " << abs(rayLength.x) << ", y: " << abs(rayLength.y) << std::endl;
+            // std::cout << "GorgonController - Current Tile Pos - x: " << currentTilePos.x << ", y: " << currentTilePos.y << std::endl;
 
             currentTileID = lbmg->GetTile(currentTilePos.x, currentTilePos.y);
             
             if(this->IsWallTile(currentTileID))
             {
-                // printf("MinitaurController - Blocked\n");
-                return false;
+                if(distanceCheck < distance)
+                {
+                    // printf("GorgonController - Blocked\n");
+                    return false;
+                }
+                // printf("GorgonController - Length Exceeded\n");
+                break;
             }
             if(distanceCheck >= distance)
             {
-                // printf("MinitaurController - Length Exceeded\n");
+                // printf("GorgonController - Length Exceeded\n");
             }
         }
     }
-    // printf("MinitaurController - Detected\n");
+    // printf("GorgonController - Detected\n");
     return true;
 }
 

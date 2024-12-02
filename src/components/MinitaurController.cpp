@@ -588,34 +588,34 @@ bool MinitaurController::IsTargetInLOS()
         if(line.x > 0.0f)
         {
             tileStep.x = 1;
-            rayLength.x = (this->GetTileWorldPos(glm::ivec2(thisTilePos.x + 1, thisTilePos.y)).x - thisPos.x) * rayStep.x;
+            rayLength.x = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).x - thisPos.x) * rayStep.x;
         }
         else
         {
             tileStep.x = -1;
-            rayLength.x = (thisPos.x - this->GetTileWorldPos(glm::ivec2(thisTilePos.x - 1, thisTilePos.y)).x) * rayStep.x;
+            rayLength.x = abs(thisPos.x - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).x) * rayStep.x;
         }
 
         if(line.y > 0.0f)
         {
             tileStep.y = 1;
-            rayLength.y = (this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y + 1)).y - thisPos.y) * rayStep.y;
+            rayLength.y = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).y - thisPos.y) * rayStep.y;
         }
         else
         {
             tileStep.y = -1;
-            rayLength.y = (thisPos.y - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y - 1)).y) * rayStep.y;
+            rayLength.y = abs(thisPos.y - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).y) * rayStep.y;
         }
         
         rayStep *= tileSize;
         
         // Iterate until target tile is reached
+        bool isTargetSpotted = true;
+        bool isIterating = true;
         // printf("MinitaurController ------------------------------------------------ \n");
         // std::cout << "MinitaurController - Distance: " << distance << std::endl;    
         // std::cout << "MinitaurController - Normalised Line - x: " << normalisedLine.x << ", y: " << normalisedLine.y << std::endl;
         // std::cout << "MinitaurController - Original Ray Length - x: " << rayLength.x << ", y: " << rayLength.y << std::endl;
-        // std::cout << "MinitaurController - This Pos - x: " << thisPos.x << ", y: " << thisPos.y << std::endl;
-        // std::cout << "MinitaurController - Target Pos - x: " << targetPos.x << ", y: " << targetPos.y << std::endl;
         // std::cout << "MinitaurController - This Tile Pos - x: " << thisTilePos.x << ", y: " << thisTilePos.y << std::endl;
         // std::cout << "MinitaurController - Target Tile Pos - x: " << targetTilePos.x << ", y: " << targetTilePos.y << std::endl;
         float distanceCheck = 0.0f;
@@ -635,16 +635,19 @@ bool MinitaurController::IsTargetInLOS()
                 rayLength.y += rayStep.y;
             }
             // std::cout << "MinitaurController - Ray Length - x: " << abs(rayLength.x) << ", y: " << abs(rayLength.y) << std::endl;
-
-
             // std::cout << "MinitaurController - Current Tile Pos - x: " << currentTilePos.x << ", y: " << currentTilePos.y << std::endl;
 
             currentTileID = lbmg->GetTile(currentTilePos.x, currentTilePos.y);
             
             if(this->IsWallTile(currentTileID))
             {
-                // printf("MinitaurController - Blocked\n");
-                return false;
+                if(distanceCheck < distance)
+                {
+                    // printf("MinitaurController - Blocked\n");
+                    return false;
+                }
+                // printf("MinitaurController - Length Exceeded\n");
+                break;
             }
             if(distanceCheck >= distance)
             {
