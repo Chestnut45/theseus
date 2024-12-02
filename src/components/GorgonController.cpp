@@ -648,6 +648,7 @@ bool GorgonController::IsTargetInLOS()
 
         glm::vec2 line = targetPos - thisPos;
         glm::vec2 normalisedLine = glm::normalize(line);
+        float distance = glm::length(line);
 
         glm::ivec2 currentTilePos = thisTilePos;
         int currentTileID = thisTileID;
