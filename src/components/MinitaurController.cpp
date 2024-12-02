@@ -611,48 +611,49 @@ bool MinitaurController::IsTargetInLOS()
         
         // Iterate until target tile is reached
         // printf("MinitaurController ------------------------------------------------ \n");
-
+        // std::cout << "MinitaurController - Distance: " << distance << std::endl;    
         // std::cout << "MinitaurController - Normalised Line - x: " << normalisedLine.x << ", y: " << normalisedLine.y << std::endl;
         // std::cout << "MinitaurController - Original Ray Length - x: " << rayLength.x << ", y: " << rayLength.y << std::endl;
         // std::cout << "MinitaurController - This Pos - x: " << thisPos.x << ", y: " << thisPos.y << std::endl;
         // std::cout << "MinitaurController - Target Pos - x: " << targetPos.x << ", y: " << targetPos.y << std::endl;
         // std::cout << "MinitaurController - This Tile Pos - x: " << thisTilePos.x << ", y: " << thisTilePos.y << std::endl;
         // std::cout << "MinitaurController - Target Tile Pos - x: " << targetTilePos.x << ", y: " << targetTilePos.y << std::endl;
-        while(true)
+        float distanceCheck = 0.0f;
+        while(distanceCheck < distance)
         {
-            if(
-                (currentTilePos.x == targetTilePos.x) && 
-                (currentTilePos.y == targetTilePos.y)
-            )
-            {
-                // printf("Minitaur Controller - Target Detected\n");
-                return true;
-            }
 
-            // std::cout << "MinitaurController - Ray Length - x: " << rayLength.x << ", y: " << rayLength.y << std::endl;
             if(rayLength.x < rayLength.y)
             {
                 currentTilePos.x += tileStep.x;
+                distanceCheck = rayLength.x;
                 rayLength.x += rayStep.x;
             }
             else
             {
                 currentTilePos.y += tileStep.y;
+                distanceCheck = rayLength.y;
                 rayLength.y += rayStep.y;
             }
+            // std::cout << "MinitaurController - Ray Length - x: " << abs(rayLength.x) << ", y: " << abs(rayLength.y) << std::endl;
+
+
             // std::cout << "MinitaurController - Current Tile Pos - x: " << currentTilePos.x << ", y: " << currentTilePos.y << std::endl;
-            
+
             currentTileID = lbmg->GetTile(currentTilePos.x, currentTilePos.y);
-            // If tile is a wall, return false
+            
             if(this->IsWallTile(currentTileID))
             {
                 // printf("MinitaurController - Blocked\n");
                 return false;
             }
+            if(distanceCheck >= distance)
+            {
+                // printf("MinitaurController - Length Exceeded\n");
+            }
         }
     }
-
-    return false;
+    // printf("MinitaurController - Detected\n");
+    return true;
 }
 
 bool MinitaurController::IsWallTile(int p_tile_id)
