@@ -372,7 +372,7 @@ void ColliderManager::CheckCornerCollision(float p_delta)
     // Separate moving and static colliders
     for (auto&& [id, collider] : m_scene->Each<ColliderComponent>())
     {
-        if (!collider.IsActive()) continue;
+        if (!collider.IsActive() || !collider.IsHitbox()) continue;
 
         // Check velocity
         auto* velocityComponent = collider.GetGameObject()->GetComponent<VelocityComponent>();
@@ -425,7 +425,7 @@ void ColliderManager::CheckCornerCollision(float p_delta)
 // Helper function to check for and handle corner collisions
 bool ColliderManager::HandleCornerCollision(
     ColliderComponent* collider1,
-    glm::vec2& velocity1,
+    const glm::vec2& velocity1,
     const std::array<glm::vec2, 4>& corners,
     ColliderComponent* collider2,
     const glm::vec2& scale1,
@@ -484,18 +484,19 @@ bool ColliderManager::HandleCornerCollision(
                     glm::vec2 newPosition = translation1 + pushDirection;
                     transform->SetPosition(newPosition);
                 }
-
+                
                 // Stop movement in the collision direction
+                glm::vec2 newVel = velocity1;
                 if (pushDirection.x != 0.0f)
-                    velocity1.x = 0.0f;
+                    newVel.x = 0.0f;
                 if (pushDirection.y != 0.0f)
-                    velocity1.y = 0.0f;
+                    newVel.y = 0.0f;
 
                 // Apply the updated velocity back to the velocity component
                 auto* velocityComponent = collider1->GetGameObject()->GetComponent<VelocityComponent>();
                 if (velocityComponent)
                 {
-                    velocityComponent->SetVelocity(velocity1);
+                    velocityComponent->SetVelocity(newVel);
                 }
 
                 return true; // Corner collision detected

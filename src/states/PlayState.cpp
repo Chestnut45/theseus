@@ -28,8 +28,8 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
-
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+
 
     
     this->m_pColliderManager = new ColliderManager(&scene);
@@ -103,6 +103,7 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+
 
     // Delete managers
     delete this->m_pColliderManager;
@@ -378,9 +379,12 @@ void PlayState::Update(float delta)
         wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
     }
 
-    // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
-    {
+        // Update velocity components to apply friction and decelerate objects
+    for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
+        velocity.Update(delta);  // Update velocity with friction and other forces
+    }
+    // Apply velocity for all objects with Transform2D and VelocityComponent
+    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
         transform.Translate(velocity.GetVelocity() * delta);
     }
     ConvertPlayerTileToGold();
@@ -743,3 +747,4 @@ void PlayState::OnCutsceneTriggerEvent(const TriggerEvent& event) {
 void PlayState::StartCutscene(const std::string& cutsceneID) {
     m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", cutsceneID));
 }
+
