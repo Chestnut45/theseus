@@ -3,6 +3,8 @@
 #include <yaml-cpp/yaml.h>
 #include "../inventory/ItemCreator.h"
 
+#include <AnimatedSprite2D.h>
+
 ChestInventoryComponent::~ChestInventoryComponent() {
     // Empty each of the stacks in the contents vector
     this->EmptyInventory();
@@ -244,6 +246,15 @@ void ChestInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent&
         if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
             m_bIsOpen = false;
+
+            // Adjust sprite
+            auto* pAnim = GetGameObject()->GetComponent<AnimatedSprite2D>();
+            if (pAnim)
+            {
+                std::string name = pAnim->GetCurrentAnimation()->m_strName;
+                size_t pos = name.find("Open");
+                if (pos != std::string::npos) pAnim->SetAnimation(name.replace(pos, 4, "Closed"));
+            }
         }
     }
 }
@@ -255,6 +266,15 @@ void ChestInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEven
         if (m_bIsOpen) {
             // Close it
             m_bIsOpen = false;
+
+            // Adjust sprite
+            auto* pAnim = GetGameObject()->GetComponent<AnimatedSprite2D>();
+            if (pAnim)
+            {
+                std::string name = pAnim->GetCurrentAnimation()->m_strName;
+                size_t pos = name.find("Open");
+                if (pos != std::string::npos) pAnim->SetAnimation(name.replace(pos, 4, "Closed"));
+            }
         }
     }
 }

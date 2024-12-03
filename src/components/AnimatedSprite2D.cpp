@@ -222,7 +222,7 @@ AnimatedSprite2D::~AnimatedSprite2D() {
     }
 }
 
-bool AnimatedSprite2D::AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_vec2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop) {
+bool AnimatedSprite2D::AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_vec2FrameSize, int p_iStartFrame, int p_iEndFrame, const glm::vec2& p_vec2Origin, bool p_bLoop, const std::string& p_strNextAnimName) {
     // Check that the start and end frames are valid
     if (p_iStartFrame > p_iEndFrame || p_iStartFrame < 0 || p_iEndFrame < 0) {
         wolf::Error("Attempted to add animation to AnimatedSprite2D with invalid start and end frames.");
@@ -230,7 +230,7 @@ bool AnimatedSprite2D::AddAnimation(const std::string& p_strName, const std::str
     }
 
     // Creates a new SpriteAnimation2D out of the parameters and stores it in the map with p_strName as its key
-    SpriteAnimation2D* p_anim = new SpriteAnimation2D(p_strName, p_strTexturePath, p_vec2FrameSize, p_iStartFrame, p_iEndFrame, p_bLoop);
+    SpriteAnimation2D* p_anim = new SpriteAnimation2D(p_strName, p_strTexturePath, p_vec2FrameSize, p_iStartFrame, p_iEndFrame, p_vec2Origin, p_bLoop, p_strNextAnimName);
     m_mAnimationMap.insert(std::pair<std::string, SpriteAnimation2D*>(p_strName, p_anim));
     return true;
 }
@@ -255,6 +255,7 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
         }
         m_pCurrentAnim = animIt->second;
         this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
+        this->SetOrigin(m_pCurrentAnim->m_v2Origin);
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[m_pCurrentAnim->m_iStartFrame];
         m_bFrameChanged = true;
@@ -279,6 +280,7 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
 
         m_pCurrentAnim = animIt->second;
         this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
+        this->SetOrigin(m_pCurrentAnim->m_v2Origin);
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame + p_iTargetAnimFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[iTargetFrame];
         m_bFrameChanged = true;
@@ -304,8 +306,16 @@ void AnimatedSprite2D::Update(float p_fDelta) {
                 m_iAnimLoopCount++;
             }
             else {
-                m_bIsAnimFinished = true;
-                m_fCurrentFrame = (float)m_pCurrentAnim->m_iEndFrame;
+                // Check if this animation triggers another one
+                if (m_pCurrentAnim->m_strNextAnimName != "") {
+                    // If it does, play that animation
+                    this->SetAnimation(m_pCurrentAnim->m_strNextAnimName);
+                }
+                else {
+                    // Otherwise, don't advance beyond the last frame of the animation
+                    m_bIsAnimFinished = true;
+                    m_fCurrentFrame = (float)m_pCurrentAnim->m_iEndFrame;
+                }
             }
         }
 
@@ -427,10 +437,14 @@ bool AnimatedSprite2D::AddAnimationSet(const std::string& p_strPathToSetFile) {
             std::string strName = anim["name"].as<std::string>();  // Name
             int iStart = anim["start_frame"].as<int>(); // What frame it starts on (inclusive)
             int iEnd = anim["end_frame"].as<int>(); // What frame it ends on (inclusive)
+            glm::vec2 v2Origin;
+            v2Origin.x = anim["origin"]["x"] ? anim["origin"]["x"].as<float>() : v2Origin.x;
+            v2Origin.y = anim["origin"]["y"] ? anim["origin"]["y"].as<float>() : v2Origin.y;
             bool bLoops = anim["loops"].as<bool>(); // And whether the animation loops
+            std::string strNextAnim = anim["next_anim"] ? anim["next_anim"].as<std::string>() : ""; // Whether or not this animation triggers another one when it finishes
 
             // Then add the animation to the AnimatedSprite2D component
-            this->AddAnimation(strName, strTexture, v2Size, iStart, iEnd, bLoops);
+            this->AddAnimation(strName, strTexture, v2Size, iStart, iEnd, v2Origin, bLoops, strNextAnim);
         }
         return true;
     }

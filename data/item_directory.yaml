@@ -104,7 +104,7 @@ Shaky Spear: {
   id: EQUIPMENT,
   description: The pen is mightier than the sword, and this is a very large pen indeed,
   value: 10,
-  texture_frame: 1,
+  texture_frame: 2,
   rarity: COMMON,
   slot: WEAPON,
   type: SPEAR,
