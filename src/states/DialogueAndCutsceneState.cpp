@@ -183,7 +183,6 @@ void DialogueAndCutsceneState::LoadFromYAML(const std::string& yamlFilePath) {
                         character.portraitTexture = wolf::TextureManager::CreateTexture(character.portraitPath);
                         m_characterPortraits[character.name] = character.portraitTexture;
                     }
-
                 }
             }
 
@@ -191,6 +190,7 @@ void DialogueAndCutsceneState::LoadFromYAML(const std::string& yamlFilePath) {
             if (sequenceEntry.second["sequence"]) {
                 for (const auto& seqNode : sequenceEntry.second["sequence"]) {
                     std::string type = seqNode["type"].as<std::string>();
+                    
                     if (type == "dialogue") {
                         DialogueLine line;
                         line.characterName = seqNode["character"].as<std::string>();
@@ -232,6 +232,49 @@ void DialogueAndCutsceneState::LoadFromYAML(const std::string& yamlFilePath) {
                         }
 
                         // Add cutscene to sequence list
+                        item.sequenceID = sequenceID;
+                        m_dialogueAndCutsceneSequence.push_back(item);
+                        item = {}; // Reset the item for subsequent parsing
+                    } else if (type == "combined") {
+                        item.type = "combined";
+                        auto& sharedContext = m_pGameInstance->GetSharedContext();
+
+                        // Parse dialogue data
+                        if (seqNode["dialogue"]) {
+                            DialogueLine line;
+                            line.characterName = seqNode["dialogue"]["character"].as<std::string>();
+                            line.text = seqNode["dialogue"]["text"].as<std::string>();
+                            line.duration = seqNode["dialogue"]["duration"].as<float>();
+                            item.dialogue = line;
+                        }
+
+                        // Parse cutscene data
+                        if (seqNode["cutscene"] && seqNode["cutscene"]["camera_keyframes"]) {
+                            for (const auto& keyframe : seqNode["cutscene"]["camera_keyframes"]) {
+                                CameraKeyframe frame;
+                                frame.target = keyframe["target"].as<std::string>();
+                                frame.duration = keyframe["duration"] ? keyframe["duration"].as<float>() : 0.0f;
+
+                                // Fetch position using shared context if target exists
+                                if (!frame.target.empty() && sharedContext.HasEntity(frame.target)) {
+                                    auto targetID = sharedContext.GetEntityID(frame.target);
+                                    auto* targetObject = m_pGameInstance->GetScene().GetObject(targetID);
+                                    if (targetObject) {
+                                        auto* transform = targetObject->GetComponent<wolf::Transform2D>();
+                                        if (transform) {
+                                            frame.position = transform->GetGlobalPosition();
+                                        }
+                                    }
+                                } else {
+                                    // Default to (0, 0) if target is not found
+                                    frame.position = glm::vec2(0.0f, 0.0f);
+                                }
+
+                                item.cutscene.push_back(frame);
+                            }
+                        }
+
+                        // Add combined item to sequence list
                         item.sequenceID = sequenceID;
                         m_dialogueAndCutsceneSequence.push_back(item);
                         item = {}; // Reset the item for subsequent parsing
