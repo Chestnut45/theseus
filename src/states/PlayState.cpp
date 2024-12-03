@@ -207,8 +207,6 @@ void PlayState::Update(float delta)
         itemDrop.Update(delta);
     }
 
-    // Update collisions
-    this->m_pColliderManager->Update(delta);
 
     // Inflict status effects upon the player
     for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
@@ -382,6 +380,10 @@ void PlayState::Update(float delta)
     for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
         velocity.Update(delta);  // Update velocity with friction and other forces
     }
+
+    // Update collisions
+    this->m_pColliderManager->Update(delta);
+    
     // Apply velocity for all objects with Transform2D and VelocityComponent
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
         transform.Translate(velocity.GetVelocity() * delta);
