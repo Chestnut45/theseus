@@ -1912,6 +1912,20 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& collider = dispensary.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
                         collider.AddColliderBox(glm::vec2(22.0f, 29.0f), glm::vec2(-11.0f, 16.0f));
 
+                        // Create the icon
+                        auto& icon = pObject->GetScene().CreateObject2D();
+                        
+                        // Set up the icon's animated sprite
+                        auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/item_icons_anim_init.yaml");
+                        
+                        // Add the icon as a child object of the dispensary
+                        dispensary.AddChild(icon);
+                        
+                        // Position the child
+                        auto& iconTransform = *icon.GetComponent<wolf::Transform2D>();
+                        iconTransform.SetPosition(glm::vec2(0.0f, 25.0f));
+                        iconTransform.SetScale(glm::vec2(0.5f, 0.5f));
+
                         // Add dispensary as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(dispensary);
                         break;

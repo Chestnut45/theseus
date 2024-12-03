@@ -206,8 +206,6 @@ void PlayState::Update(float delta)
         itemDrop.Update(delta);
     }
 
-    // Update collisions
-    this->m_pColliderManager->Update(delta);
 
     // Inflict status effects upon the player
     for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
@@ -327,7 +325,15 @@ void PlayState::Update(float delta)
                     }
                     else {
                         // And set it back to inactive when we close it
-                        dispensarySprite->SetAnimation("Inactive");
+                        dispensarySprite->SetAnimation("Deactivate");
+                    }
+                }
+
+                // Hide the child icon
+                for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
+                    AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                    if (anim) {
+                        anim->SetAnimation("Transparent");
                     }
                 }
 
@@ -345,7 +351,15 @@ void PlayState::Update(float delta)
 
                 // If the dispensary has an AnimatedSprite, play the inactive animation
                 if (dispensarySprite) {
-                    dispensarySprite->SetAnimation("Inactive");
+                    dispensarySprite->SetAnimation("Deactivate");
+                }
+
+                // Hide the child icon
+                for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
+                    AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                    if (anim) {
+                        anim->SetAnimation("Transparent");
+                    }
                 }
 
                 // Close the player's inventory as well
@@ -382,6 +396,10 @@ void PlayState::Update(float delta)
     for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
         velocity.Update(delta);  // Update velocity with friction and other forces
     }
+
+    // Update collisions
+    this->m_pColliderManager->Update(delta);
+    
     // Apply velocity for all objects with Transform2D and VelocityComponent
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
         transform.Translate(velocity.GetVelocity() * delta);
