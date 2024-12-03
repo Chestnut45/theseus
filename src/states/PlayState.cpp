@@ -57,9 +57,8 @@ void PlayState::Enter()
 
     CreateThrowableObject();
     
-    CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(96.0f, 96.0f), TriggerType::SINGLE_USE);
-    CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f), TriggerType::REUSABLE);
-    CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(-192.0f, -192.0f), TriggerType::CUTSCENE_SINGLE);  // Position as needed
+    // Create a test spike trap
+    CreateSpikeTrap(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f));
 
 
     // Testing: Create a test projectile object
@@ -614,6 +613,30 @@ void PlayState::CreatePressurePlate(const glm::vec2& position, TriggerType trigg
     // wolf::Log("Created pressure plate with TriggerComponent at position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
 }
 
+wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
+{
+    // Create the trap object
+    auto& trap = m_pGameInstance->GetScene().CreateObject2D();
+
+    // Add sprite
+    auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
+    sprite.SetOriginToCenterOfTexture();
+
+    // Set position
+    auto& transform = *trap.GetComponent<wolf::Transform2D>();
+    transform.SetPosition(position);
+    transform.SetScale(glm::vec2(3.0f));
+
+    // Add a collider for interaction
+    auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+
+    // Add the TriggerComponent
+    trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE);
+
+    return trap;
+}
+
 void PlayState::OnTriggerEvent(const TriggerEvent& event) {
     if (event.m_triggerType == TriggerType::SINGLE_USE || event.m_triggerType == TriggerType::REUSABLE) {
         auto* pressurePlateObject = event.m_pTriggerObject;
@@ -626,14 +649,14 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
                 return;
             }
 
-            glm::vec2 trapPosition = plateTransform->GetGlobalPosition() + glm::vec2(0.0f, -64.0f); // Adjust as necessary
+            glm::vec2 trapPosition = plateTransform->GetGlobalPosition(); // Adjust as necessary
 
             // Create the trap object
             // wolf::Log("Creating trap at position: (" + std::to_string(trapPosition.x) + ", " + std::to_string(trapPosition.y) + ")");
             auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
 
-            // Add trap sprite
-            auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/spiketrap.png");
+            // Add spikes extended sprite
+            auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/SpikesExtended.png");
             trapSprite.SetOriginToCenterOfTexture();
 
             // Add transform and set position

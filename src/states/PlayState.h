@@ -83,6 +83,7 @@ private:
     // Creates a pressure plate with specified position, trigger type, trap damage, lifespan, and offset.
     void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType);
     void CreateThrowableObject();
+    wolf::GameObject& CreateSpikeTrap(const glm::vec2& position);
 
     void OnGameOverEvent(const GameOverEvent& event);
 
