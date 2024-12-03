@@ -188,6 +188,14 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                     ImGui::PopTextWrapPos();
 
                     ImGui::EndTooltip();
+
+                    // Set the child's animation to be the item's icon
+                    for (auto& child : this->GetGameObject()->GetChildren()) {
+                        AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                        if (anim) {
+                            anim->SetAnimation(std::to_string(pItem->GetTextureFrameIndex()).c_str());
+                        }
+                    }
                 }
 
                 // When we click on an inventory slot
@@ -260,7 +268,7 @@ void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryE
             m_bIsOpen = false;
             AnimatedSprite2D* pAnim = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
             if (pAnim) {
-                pAnim->SetAnimation("Inactive");
+                pAnim->SetAnimation("Deactivate");
             }
         }
     }
@@ -275,7 +283,15 @@ void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventor
             m_bIsOpen = false;
             AnimatedSprite2D* pAnim = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
             if (pAnim) {
-                pAnim->SetAnimation("Inactive");
+                pAnim->SetAnimation("Deactivate");
+            }
+
+            // Hide the child icon
+            for (auto& child : this->GetGameObject()->GetChildren()) {
+                AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                if (anim) {
+                    anim->SetAnimation("Transparent");
+                }
             }
         }
     }
