@@ -327,7 +327,15 @@ void PlayState::Update(float delta)
                     }
                     else {
                         // And set it back to inactive when we close it
-                        dispensarySprite->SetAnimation("Inactive");
+                        dispensarySprite->SetAnimation("Deactivate");
+                    }
+                }
+
+                // Hide the child icon
+                for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
+                    AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                    if (anim) {
+                        anim->SetAnimation("Transparent");
                     }
                 }
 
@@ -345,7 +353,15 @@ void PlayState::Update(float delta)
 
                 // If the dispensary has an AnimatedSprite, play the inactive animation
                 if (dispensarySprite) {
-                    dispensarySprite->SetAnimation("Inactive");
+                    dispensarySprite->SetAnimation("Deactivate");
+                }
+
+                // Hide the child icon
+                for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
+                    AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                    if (anim) {
+                        anim->SetAnimation("Transparent");
+                    }
                 }
 
                 // Close the player's inventory as well
