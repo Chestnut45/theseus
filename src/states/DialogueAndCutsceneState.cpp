@@ -52,7 +52,6 @@ void DialogueAndCutsceneState::Update(float delta) {
         AdvanceSequence(delta);
     } else {
         // Ensure PopState() is called if sequences are complete
-        std::cout << "DialogueAndCutsceneState: All sequences complete in Update()." << std::endl;
         m_pStateManager->PopState();
     }
 }
@@ -93,8 +92,7 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
     auto& currentItem = m_dialogueAndCutsceneSequence[m_currentSequenceIndex];
 
     // Debugging: Print the current sequence type
-    std::cout << "Processing sequence at index " << m_currentSequenceIndex 
-              << " of type: " << currentItem.type << std::endl;
+
 
     // Track the progress of dialogue and cutscene
     bool dialogueFinished = false;
@@ -208,7 +206,6 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
         if (cutsceneFinished) {
             // Then, only advance once the dialogue is also done
             if (dialogueFinished) {
-                std::cout << "Combined sequence finished. Advancing to next sequence." << std::endl;
 
                 m_timeSinceLastKeyframe = 0.0f;
                 m_showFullText = false;
@@ -220,7 +217,6 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
         }
     } else if ((currentItem.type == "dialogue" && dialogueFinished) ||
                (currentItem.type == "cutscene" && cutsceneFinished)) {
-        std::cout << "Sequence finished. Advancing to next sequence." << std::endl;
 
         m_timeSinceLastKeyframe = 0.0f;
         m_showFullText = false;
@@ -234,8 +230,6 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
 void DialogueAndCutsceneState::ResetCutsceneState() {
     if (m_currentSequenceIndex < m_dialogueAndCutsceneSequence.size()) {
         auto& nextItem = m_dialogueAndCutsceneSequence[m_currentSequenceIndex];
-        std::cout << "Resetting cutscene state for sequence at index " << m_currentSequenceIndex 
-                  << " of type: " << nextItem.type << std::endl;
 
         // Reset state only for sequences involving cutscenes
         if (nextItem.type == "cutscene" || nextItem.type == "combined") {
@@ -597,5 +591,4 @@ void DialogueAndCutsceneState::RenderSequence() {
 void DialogueAndCutsceneState::OnExitButtonPressed() {
     // Set the sequence index to the end
     m_currentSequenceIndex = m_dialogueAndCutsceneSequence.size();
-    std::cout << "DialogueAndCutsceneState: Sequence ended early by user." << std::endl;
 }
