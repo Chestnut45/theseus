@@ -215,6 +215,7 @@ void PlayState::Update(float delta)
     for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
     {
         status.Update(delta);
+        status.RenderPlayerSEIcons();
     }
 
     // INVENTORY TESTING
@@ -405,12 +406,6 @@ void PlayState::Render()
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
         playerController->Render();
-
-    // Render status effect icons
-    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
-    {
-        status.RenderPlayerSEIcons();
-    }
 }
 
 void PlayState::BackgroundUpdate(float delta)
