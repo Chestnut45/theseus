@@ -91,7 +91,7 @@ private:
     bool m_isYAMLLoaded = false;
     std::unordered_map<std::string, wolf::Texture*> m_characterPortraits; // Map for character portraits
     std::string m_currentCharacterName;
-    
+
     float m_lmbCooldown = 0.0f; // Cooldown timer for LMB input
-    const float LMB_DELAY = 0.2f; // Delay duration in seconds
+    const float LMB_DELAY = 0.75f; // Delay duration in seconds
 };

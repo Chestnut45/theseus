@@ -111,14 +111,32 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
         bool isInputPressed = (m_lmbCooldown <= 0.0f) && (wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE));
         bool isAnyButtonHovered = ImGui::IsAnyItemHovered();
 
+        bool isLastLine = (m_currentSequenceIndex >= m_dialogueAndCutsceneSequence.size() - 1);
+
         if (isInputPressed && !isAnyButtonHovered) {
             m_lmbCooldown = LMB_DELAY;
-            if (!m_showFullText && !m_isLineFinished) {
-                // Show the full text immediately
-                m_showFullText = true;
-            } else if (m_isLineFinished) {
-                // Mark the dialogue as finished if the line is finished
-                dialogueFinished = true;
+
+            if (isLastLine) {
+                // If this is the last line
+                if (!m_showFullText) {
+                    // Case 1: The last line isn't fully displayed; skip to the end of the line
+                    m_showFullText = true;
+                } else if (!m_isLineFinished) {
+                    // Case 2: The last line is fully displayed but not marked as finished
+                    m_isLineFinished = true;
+                } else {
+                    // Case 3: The last line is fully displayed and marked as finished; allow exit
+                    dialogueFinished = true;
+                }
+            } else {
+                // Handle non-last line behavior
+                if (!m_showFullText && !m_isLineFinished) {
+                    m_showFullText = true; // Show the full line
+                } else if (m_showFullText && !m_isLineFinished) {
+                    m_isLineFinished = true; // Mark the line as finished
+                } else if (m_isLineFinished) {
+                    dialogueFinished = true; // Move to the next line
+                }
             }
         }
 
