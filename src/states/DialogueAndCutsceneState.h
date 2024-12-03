@@ -1,7 +1,7 @@
 #pragma once
 
 #include "GameState.h"
-#include "Theseus.h"
+#include "theseus.h"
 #include <unordered_map>
 #include <vector>
 #include <string>
