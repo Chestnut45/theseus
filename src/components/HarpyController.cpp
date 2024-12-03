@@ -27,7 +27,7 @@ void HarpyController::Init(const EnemyData& data)
     // Assign enemy data
     m_rangedRange = data.rangedRange;
     m_rangedCooldown = data.rangedCooldown;
-    m_detectionRange = data.detectionRange;
+    m_detectionRange = data.detectionRange >= 0.0f ? data.detectionRange : std::numeric_limits<float>::infinity();
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
@@ -98,7 +98,7 @@ void HarpyController::Update(float delta)
     switch (m_state)
     {
         case EnemyState::IDLE:
-            HandleIdleState();
+            HandleIdleState(delta);
             break;
         case EnemyState::CHASING:
             HandleChasingState(delta);
@@ -226,10 +226,14 @@ void HarpyController::MoveTowardsTarget(float delta)
     }
 }
 
-void HarpyController::HandleIdleState()
+void HarpyController::HandleIdleState(float delta)
 {
-    // Constantly chase target
-    if (m_pTarget != nullptr)
+    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+    
+    //std::cout << "HarpyController - Detection Range: " << m_detectionRange << std::endl;
+    if (distanceToPlayer <= m_detectionRange)
     {
         ChangeState(EnemyState::CHASING);  // Transition to CHASING when the player is in range
     }

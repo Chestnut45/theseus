@@ -22,7 +22,7 @@ private:
     void SetUpAnimations(const std::string& animationInitPath);          
     void UpdateAnimationBasedOnDirection();
     void MoveTowardsTarget(float delta);
-    void HandleIdleState();
+    void HandleIdleState(float delta);
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
     void HandlePetrifiedState(float delta);
