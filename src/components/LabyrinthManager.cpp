@@ -25,6 +25,7 @@
 
 #include <ChestInventoryComponent.h>
 #include <DispensaryInventoryComponent.h>
+#include <ThrowableObjectComponent.h>
 #include <ColliderComponent.h>
 #include <EnemyDataLoader.h>
 #include <MinitaurBuilder.h>
@@ -676,6 +677,7 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
                 if (eType == "epic_chest") data.m_type = Room::EntityType::EpicChest;
                 if (eType == "legendary_chest") data.m_type = Room::EntityType::LegendaryChest;
                 if (eType == "dispensary") data.m_type = Room::EntityType::DaedalusDispensary;
+                if (eType == "throwable_object") data.m_type = Room::EntityType::ThrowableObject;
                 
                 data.m_amount = entity["amount"] ? entity["amount"].as<int>() : data.m_amount;
 
@@ -830,6 +832,9 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
                     break;
                 case Room::EntityType::DaedalusDispensary:
                     file << "dispensary, amount: ";
+                    break;
+                case Room::EntityType::ThrowableObject:
+                    file << "throwable_object, amount: ";
                     break;
             }
             file << std::to_string(data.m_amount).c_str();
@@ -1914,6 +1919,74 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add dispensary as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(dispensary);
+                        break;
+                    }
+
+                    case Room::EntityType::ThrowableObject:
+                    {
+                        // Create the throwable object
+                        auto& throwableGO = pObject->GetScene().CreateObject2D();
+
+                        // Place and scale the throwable object
+                        auto& transform = *throwableGO.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Set up the animated sprite
+                        auto& animSprite = throwableGO.AddComponent<AnimatedSprite2D>("data/throwable_anim_init.yaml");
+                        switch(m_rng.NextInt(1, 9)){
+                            case 1:
+                            {
+                                animSprite.SetAnimation("RoundPot");
+                                break;
+                            }
+                            case 2:
+                            {
+                                animSprite.SetAnimation("ThinPot");
+                                break;
+                            }
+                            case 3:
+                            {
+                                animSprite.SetAnimation("DarkPot");
+                                break;
+                            }
+                            case 4:
+                            {
+                                animSprite.SetAnimation("Skull");
+                                break;
+                            }
+                            case 5:
+                            {
+                                animSprite.SetAnimation("Bowl");
+                                break;
+                            }
+                            case 6:
+                            {
+                                animSprite.SetAnimation("Bottle");
+                                break;
+                            }
+                            case 7:
+                            {
+                                animSprite.SetAnimation("Arm");
+                                break;
+                            }
+                            case 8:
+                            {
+                                animSprite.SetAnimation("Rock");
+                                break;
+                            }
+                            case 9:
+                            {
+                                animSprite.SetAnimation("BrokenSpear");
+                                break;
+                            }
+                        }
+
+                        // Add the throwable component
+                        auto& throwableComp = throwableGO.AddComponent<ThrowableObjectComponent>(20.0f, m_pColliderManager);
+
+                        // Add throwable as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(throwableGO);
                         break;
                     }
                 }
