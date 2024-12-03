@@ -157,9 +157,23 @@ animations: [
     loops: false
   },
   {
-    name: Transparent,
+    name: "23",
     start_frame: 23,
     end_frame: 23,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: "24",
+    start_frame: 24,
+    end_frame: 24,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: Transparent,
+    start_frame: 25,
+    end_frame: 25,
     origin: {x: 16.0, y: 16.0},
     loops: false
   },
