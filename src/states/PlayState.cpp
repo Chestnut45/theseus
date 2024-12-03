@@ -621,6 +621,7 @@ wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
     // Add sprite
     auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
     sprite.SetOriginToCenterOfTexture();
+    sprite.SetLayer(0);
 
     // Set position
     auto& transform = *trap.GetComponent<wolf::Transform2D>();
@@ -658,6 +659,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             // Add spikes extended sprite
             auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/SpikesExtended.png");
             trapSprite.SetOriginToCenterOfTexture();
+            trapSprite.SetLayer(1);
 
             // Add transform and set position
             auto* trapTransform = trapObj.GetComponent<wolf::Transform2D>();
@@ -675,7 +677,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
             trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
             // Add TrapComponent with some parameters (e.g., 50 damage, 5 seconds lifespan)
-            trapObj.AddComponent<TrapComponent>(50.0f, 5.0f, m_pColliderManager);
+            trapObj.AddComponent<TrapComponent>(50.0f, 1.0f, m_pColliderManager);
             
             // wolf::Log("Trap created and activated.");
         }

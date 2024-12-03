@@ -9,6 +9,7 @@
 //-----------------------------------------------------------------------------
 
 #include <vector>
+#include <utility>
 #include <entt/entity/registry.hpp>
 
 #include "W_Camera2D.h"

@@ -1,5 +1,6 @@
 #include "W_Scene.h"
 
+#include <map>
 #include <string>
 
 #include "W_GameObject.h"
@@ -101,10 +102,27 @@ void Scene::Render()
     // Bind the active camera
     m_pActiveCamera->Bind();
 
-    // Render all sprites with transform components
+    // Build map of sprites to render by layer
+    std::map<int, std::vector<std::pair<Sprite2D*, Transform2D*>>> sortedSprites;
     for (auto&&[_, sprite, transform] : Each<Sprite2D, Transform2D>())
     {
-        sprite.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
+        int layer = sprite.GetLayer();
+
+        // Add new spritebatch if it doesn't exist
+        if (!sortedSprites.contains(layer)) sortedSprites[layer] = {};
+
+        // Push back the next sprite
+        sortedSprites[layer].push_back(std::make_pair<Sprite2D*, Transform2D*>(&sprite, &transform));
+    }
+
+    // Render all sprites in order
+    for (auto iter = sortedSprites.rbegin(); iter != sortedSprites.rend(); ++iter)
+    {
+        auto& batch = iter->second;
+        for (auto& pair : batch)
+        {
+            pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
+        }
     }
 
     // Render all animated sprites with transform components
