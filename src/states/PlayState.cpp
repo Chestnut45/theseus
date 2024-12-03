@@ -1,7 +1,5 @@
 #include "PlayState.h"
 #include "PauseState.h"
-#include "CutSceneState.h"
-#include "DialogueState.h"
 #include "DialogueAndCutsceneState.h"
 #include <imgui/imgui.h>
 
@@ -28,7 +26,6 @@ void PlayState::Enter()
     // Initialize the dialogue listener
     wolf::EventManager::AddListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
-    wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
 
 
@@ -102,7 +99,6 @@ void PlayState::Exit()
 
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
-    wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
 
 
@@ -740,14 +736,6 @@ void PlayState::ShowTooltip(const std::string& text)
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(2);
 }
-void PlayState::OnCutsceneTriggerEvent(const TriggerEvent& event) {
-    if (event.m_triggerType == TriggerType::CUTSCENE_SINGLE) {
-        StartCutscene("intro");  // Specify cutscene ID as needed
-    }
-}
 
-void PlayState::StartCutscene(const std::string& cutsceneID) {
-    m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", cutsceneID));
-}
 
 

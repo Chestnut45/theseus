@@ -17,7 +17,6 @@
 #include "../inventory/ItemCreator.h"
 #include "../inventory/ItemDropCreator.h"
 #include "../events/DialogueAndCutsceneEvent.h"
-#include "../events/CutsceneTriggerEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
 #include "events/TriggerEvent.h"
@@ -52,7 +51,6 @@ public:
     void BackgroundRender() override;
     void OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
-    void OnCutsceneTriggerEvent(const TriggerEvent& event);  // Listener for cutscene trigger
     std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}
 
 private:
@@ -70,7 +68,6 @@ private:
     bool m_showInventoryGUI = false;
 
     // Private helper methods
-    void StartDialogue(const std::string& dialogueID);
     void ConvertPlayerTileToGold();
 
     // Creates the player object and all of its components
@@ -89,7 +86,6 @@ private:
 
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);
-    void StartCutscene(const std::string& cutsceneID);
 
     std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
 

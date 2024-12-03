@@ -45,6 +45,9 @@ void DialogueAndCutsceneState::Resume() {
 
 // Update
 void DialogueAndCutsceneState::Update(float delta) {
+     if (m_lmbCooldown > 0.0f) {
+        m_lmbCooldown -= delta; // Reduce the cooldown timer
+    }
     if (m_currentSequenceIndex < m_dialogueAndCutsceneSequence.size()) {
         AdvanceSequence(delta);
     } else {
@@ -105,10 +108,11 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
         m_isLineFinished = (m_timeSinceLastKeyframe >= currentLine.length() * 0.05f || m_showFullText);
 
         // Check user input for skipping
-        bool isInputPressed = wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE);
+        bool isInputPressed = (m_lmbCooldown <= 0.0f) && (wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE));
         bool isAnyButtonHovered = ImGui::IsAnyItemHovered();
 
         if (isInputPressed && !isAnyButtonHovered) {
+            m_lmbCooldown = LMB_DELAY;
             if (!m_showFullText && !m_isLineFinished) {
                 // Show the full text immediately
                 m_showFullText = true;
@@ -182,15 +186,19 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
 
     // Combined logic
     if (currentItem.type == "combined") {
-        if (dialogueFinished && cutsceneFinished) {
-            std::cout << "Combined sequence finished. Advancing to next sequence." << std::endl;
+        // First, wait for the cutscene to finish
+        if (cutsceneFinished) {
+            // Then, only advance once the dialogue is also done
+            if (dialogueFinished) {
+                std::cout << "Combined sequence finished. Advancing to next sequence." << std::endl;
 
-            m_timeSinceLastKeyframe = 0.0f;
-            m_showFullText = false;
-            m_currentSequenceIndex++;
+                m_timeSinceLastKeyframe = 0.0f;
+                m_showFullText = false;
+                m_currentSequenceIndex++;
 
-            // Reset both dialogue and cutscene state for the next item
-            ResetCutsceneState();
+                // Reset both dialogue and cutscene state for the next item
+                ResetCutsceneState();
+            }
         }
     } else if ((currentItem.type == "dialogue" && dialogueFinished) ||
                (currentItem.type == "cutscene" && cutsceneFinished)) {
@@ -513,7 +521,7 @@ void DialogueAndCutsceneState::RenderSequence() {
         ImGui::Dummy(ImVec2(0.0f, 20.0f)); // Whitespace below text
 
         // Centered button layout
-        bool showContinueButton = !isLastLine || !m_isLineFinished;
+        bool showContinueButton = !isLastLine || (isLastLine && !m_isLineFinished);
         float buttonWidth = showContinueButton ? 130.0f : 180.0f;  // Adjust button width
         ImVec2 buttonSize(buttonWidth, 35);
 
