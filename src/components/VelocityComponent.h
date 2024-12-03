@@ -27,7 +27,13 @@ public:
 
     void SetVelocity(const glm::vec2& velocity);  // Setter for velocity
     const glm::vec2& GetVelocity() const;  // Getter for velocity
+    void ApplyKnockback(const glm::vec2& direction, float magnitude);
+
+    void Update(float deltaTime); // To update velocity over time
 
 private:
     glm::vec2 m_velocity = glm::vec2(0.0f, 0.0f);  // Store velocity
+    float m_friction = 10.0f; // Friction coefficient to slow down velocity
+    glm::vec2 m_knockbackStartVelocity = glm::vec2(0.0f, 0.0f); // Initial velocity when knockback starts
+    float m_knockbackRecoveryTime = 0.0f; // Time for the knockback to fade out
 };

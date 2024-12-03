@@ -11,24 +11,11 @@
 #include "HarpyController.h"
 #include "MinitaurController.h"
 
-
-AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager)
+AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects)
 {
     this->m_fDamage = p_damage;
     this->m_pColliderManager = p_collider_manager;
-
-    // Set default lifespans to 0
-    for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
-    {
-        m_aStatusEffectsLifespans[i] = 0.0f;
-    }
-
-}
-
-AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects)
-{
-    this->m_fDamage = p_damage;
-    this->m_pColliderManager = p_collider_manager;
+    this->m_knockbackMagnitude = knockbackMagnitude;
 
     // Set default lifespans to 0
     for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
@@ -52,6 +39,8 @@ AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_
     }
 }
 
+
+
 AttackDamageComponent::~AttackDamageComponent()
 {
     this->m_pColliderManager = nullptr;
@@ -61,6 +50,8 @@ void AttackDamageComponent::Update(float p_dt)
 {
     wolf::GameObject* thisObject = this->GetGameObject();
     ColliderComponent* thisCollider = thisObject->GetComponent<ColliderComponent>();
+    wolf::Transform2D* thisTransform = thisObject->GetComponent<wolf::Transform2D>();
+
 
     // If collider of this object is HurtboxDD
     if (thisCollider != nullptr && thisCollider->IsHurtboxDamageDealer())
@@ -90,26 +81,8 @@ void AttackDamageComponent::Update(float p_dt)
                                 StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
                                 thatStatus->AddStatusEffect(seType, lifespan);
                             }
+
                         }
-                    }
-
-                    // Stun enemy
-                    if (thatObject->HasAny<GorgonController>())
-                    {
-                        GorgonController* thatEnemyController = thatObject->GetComponent<GorgonController>();
-                        thatEnemyController->ChangeState(EnemyController::EnemyState::STUNNED);
-                    }
-
-                    else if (thatObject->HasAny<HarpyController>())
-                    {
-                        HarpyController* thatEnemyController = thatObject->GetComponent<HarpyController>();
-                        thatEnemyController->ChangeState(EnemyController::EnemyState::STUNNED);
-                    }
-
-                    else if (thatObject->HasAny<MinitaurController>())
-                    {
-                        MinitaurController* thatEnemyController = thatObject->GetComponent<MinitaurController>();
-                        thatEnemyController->ChangeState(EnemyController::EnemyState::STUNNED);
                     }
                 }
             }

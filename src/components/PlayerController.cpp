@@ -779,7 +779,7 @@ void PlayerController::ApplyDamageToEnemy()
             projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
             projectileCollider.SetIgnoreTag(player->GetID());
 
-            auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+            auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 200.0f);
 
             spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + projectileDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - projectileDimensions.x * 0.5f) : (spawnOffset.x));
             spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + projectileDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - projectileDimensions.y * 0.5f) : (spawnOffset.y));
@@ -839,16 +839,15 @@ void PlayerController::ApplyDamageToEnemy()
 
             // Create melee object & add components
             auto& melee = scene.CreateObject2D();
-            melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
 
-            auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(0.0f));
+            auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 0);
+            meleeCollider.AddColliderBox(meleeDimensions * playerScale, offset);
             meleeCollider.SetIgnoreTag(player->GetID());
 
-            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f);
             
             melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
-            melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
+            melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
             auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
             break;
         }
@@ -892,18 +891,15 @@ void PlayerController::ApplyDamageToEnemy()
 
             // Create melee object & add components
             auto& melee = scene.CreateObject2D();
-            melee.GetComponent<wolf::Transform2D>()->SetScale(playerScale);
 
-            auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);  
-            meleeCollider.AddColliderBox(meleeDimensions, glm::vec2(0.0f, 0.0f));
-
-                 
+            auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 0);
+            meleeCollider.AddColliderBox(meleeDimensions * playerScale, offset);
             meleeCollider.SetIgnoreTag(player->GetID());
 
-            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager);
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 3000.0f);
             
             melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
-            melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + offset);
+            melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
             auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
         }
     }

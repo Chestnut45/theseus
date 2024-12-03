@@ -30,6 +30,7 @@
 #include "EnemyDataLoader.h"
 
 
+
 class LabyrinthManager;
 
 class PlayState : public GameState
