@@ -16,9 +16,6 @@ int main(int, char**)
 
 Theseus::Theseus() : App("Theseus", 1280, 720)
 {
-    // Enable depth testing
-    glEnable(GL_DEPTH_TEST);
-
     // Initialize the game state manager
     m_pStateManager = new GameStateManager();
 
