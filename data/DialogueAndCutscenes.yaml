@@ -1,37 +1,34 @@
-dialogue:
-  - id: "intro_1"
-    event: "player_enters_labyrinth"
+CutscenesAndDialogues:
+  intro_sequence:
     characters:
       - name: "Theseus"
         portraitPath: "data/textures/sPlayerTest.png"
       - name: "Gorgon"
         portraitPath: "data/textures/gorgon.png"
-    lines:
-      - character: "Theseus"
+    sequence:
+      - type: "dialogue"
+        character: "Theseus"
         text: "Where am I? No way... Is this Daedalus' Labyrinth?"
         duration: 4.0
-      - character: "Theseus"
+      - type: "dialogue"
+        character: "Theseus"
         text: "What is that?"
         duration: 2.5
-      - action: "cutscene"
-        cutsceneID: "gorgon_cutscene"
-      - character: "Gorgon"
+      - type: "cutscene"
+        camera_keyframes:
+          - target: "Theseus"
+            duration: 0.3
+          - target: "Gorgon"
+            duration: 3.0
+      - type: "dialogue"
+        character: "Gorgon"
         text: "You should have never come here, this'll be the end of you!"
         duration: 3.5
-      - action: "cutscene"
-        cutsceneID: "theseus_cutscene"
-      - character: "Theseus"
+      - type: "cutscene"
+        camera_keyframes:
+          - target: "Theseus"
+            duration: 3.0
+      - type: "dialogue"
+        character: "Theseus"
         text: "Not in a million years."
-        duration: 3.0
-
-cutscenes:
-  gorgon_cutscene:
-    camera_keyframes:
-      - target: "Theseus" 
-        duration: 0.3
-      - target: "Gorgon"  
-        duration: 3.0
-  theseus_cutscene:
-    camera_keyframes:
-      - target: "Theseus"  
         duration: 3.0

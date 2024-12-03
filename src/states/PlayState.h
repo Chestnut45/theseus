@@ -16,7 +16,7 @@
 #include "../inventory/StatusEffectItem.h"
 #include "../inventory/ItemCreator.h"
 #include "../inventory/ItemDropCreator.h"
-#include "../events/DialogueTriggerEvent.h"
+#include "../events/DialogueAndCutsceneEvent.h"
 #include "../events/CutsceneTriggerEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
@@ -50,7 +50,7 @@ public:
     void Render() override;
     void BackgroundUpdate(float delta) override;
     void BackgroundRender() override;
-    void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
+    void OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
     void OnCutsceneTriggerEvent(const TriggerEvent& event);  // Listener for cutscene trigger
     std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}

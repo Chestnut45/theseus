@@ -19,34 +19,25 @@ public:
     void Render() override;
     void BackgroundUpdate(float delta) override {}
     void BackgroundRender() override {}
-    void StartDialogue(const std::string& dialogueID);
-
+    void StartSequence(const std::string& sequenceID); // Start a sequence (dialogues and cutscenes)
+    // New function to handle the lifecycle of sequence loading
+    void LoadSequence(const std::string& sequenceID);
 
 private:
-    // Dialogue logic
-    void AdvanceDialogue();
-    void EndDialogue();
-    bool IsComplete() const;
-    void OnContinueButtonPressed();
-    std::string GetCurrentDialogueLine() const;
-    std::string GetCurrentCharacterName() const;
-    void UpdateDialogue(float delta);
-    void RenderDialogue();
-
-    // Cutscene logic
-    void AdvanceCutscene(float delta);
-    void StartCutscene(const std::string& cutsceneID);
-    void EndCutscene();
+    // Unified logic for sequences
+    void AdvanceSequence(float delta); // Handles both dialogue and cutscene progression
+    void RenderSequence();            // Handles rendering for both dialogue and cutscene
 
     // YAML Parsing
     void LoadFromYAML(const std::string& yamlFilePath);
 
+    // Helper methods
+    std::string GetCurrentDialogueLine() const;
+    std::string GetCurrentCharacterName() const;
+    void OnContinueButtonPressed();
+    void EndDialogue();
 
-    // State management
-    enum class Mode { Dialogue, Cutscene, None };
-    Mode m_mode = Mode::None;
-
-    // Dialogue data
+    // Sequence data structures
     struct CharacterData {
         std::string name;
         std::string portraitPath;
@@ -56,33 +47,27 @@ private:
     struct DialogueLine {
         std::string characterName;
         std::string text;
-        std::string action;
-        std::string cutsceneID;
         float duration = 0.0f;
     };
 
-    struct DialogueData {
-        std::vector<CharacterData> characters;
-        std::vector<DialogueLine> lines;
-    };
-
-    std::unordered_map<std::string, DialogueData> m_dialogues;
-    std::vector<DialogueLine> m_currentDialogueLines;
-    std::string m_activeDialogueID;
-    size_t m_currentLineIndex = 0;
-
-    // Cutscene data
     struct CameraKeyframe {
         glm::vec2 position;   // Position for the camera
-        float zoom;           // Zoom level
-        float duration;       // Duration for this keyframe
+        float zoom = 1.0f;    // Zoom level
+        float duration = 0.0f; // Duration for this keyframe
         std::string target;   // Target entity (e.g., "Theseus", "Gorgon")
     };
 
-    std::unordered_map<std::string, std::vector<CameraKeyframe>> m_cutscenes;
-    std::vector<CameraKeyframe> m_currentCutsceneKeyframes;
-    size_t m_currentKeyframeIndex = 0;
-    float m_cutsceneTimer = 0.0f;
+    struct DialogueAndCutsceneItem {
+        std::string sequenceID; // Identifier for the sequence
+        std::string type; // "dialogue" or "cutscene"
+        DialogueLine dialogue; // For dialogue items
+        std::vector<CameraKeyframe> cutscene; // For cutscene items
+        std::vector<CharacterData> characters; // Associated characters
+    };
+
+    // Sequence management
+    std::vector<DialogueAndCutsceneItem> m_dialogueAndCutsceneSequence; // Unified sequence list
+    size_t m_currentSequenceIndex = 0; // Current sequence item index
 
     // Dialogue state variables
     bool m_isDialogueActive = false;
@@ -91,10 +76,18 @@ private:
     bool m_autoplay = false;
     float m_timeSinceLastKeyframe = 0.0f;
     float m_autoPlayDelay = 2.0f;
+    size_t m_currentLineIndex = 0; // Tracks the current line in a dialogue
 
+    // Cutscene state variables
+    size_t m_currentKeyframeIndex = 0;
+    float m_cutsceneTimer = 0.0f;
     glm::vec2 m_currentCameraPosition = glm::vec2(0.0f, 0.0f); // Current camera position
     float m_currentZoomLevel = 1.0f; // Current zoom level
 
     // YAML data
     std::string m_yamlFilePath;
+    bool m_isYAMLLoaded = false;
+    std::unordered_map<std::string, wolf::Texture*> m_characterPortraits; // Map for character portraits
+    std::string m_currentCharacterName;
+
 };
