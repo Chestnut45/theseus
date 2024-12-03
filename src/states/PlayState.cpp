@@ -2,6 +2,7 @@
 #include "PauseState.h"
 #include "CutSceneState.h"
 #include "DialogueState.h"
+#include "DialogueAndCutsceneState.h"
 #include <imgui/imgui.h>
 
 #include "../components/ChestInventoryComponent.h"
@@ -574,16 +575,14 @@ void PlayState::CreateThrowableObject()
     auto& throwable = throwableObj.AddComponent<ThrowableObjectComponent>(25.0f, m_pColliderManager);
 }
 
-void PlayState::StartDialogue(const std::string& dialogueID)
-{
-    // Create a new DialogueState and push it onto the state stack
-    DialogueState* dialogueState = new DialogueState(m_pStateManager, m_pGameInstance, m_pDialogueManager);
-    m_pStateManager->PushState(dialogueState);
+void PlayState::StartDialogue(const std::string& dialogueID) {
+    // Create a new DialogueAndCutsceneState and push it onto the state stack
+    auto* dialogueAndCutsceneState = new DialogueAndCutsceneState(m_pStateManager, m_pGameInstance, "data/DialogueAndCutscenes.yaml");
+    m_pStateManager->PushState(dialogueAndCutsceneState);
 
     // Start the dialogue with the given ID
-    dialogueState->StartDialogue(dialogueID);
+    dialogueAndCutsceneState->StartDialogue(dialogueID);
 }
-
 void PlayState::OnDialogueTriggerEvent(const DialogueTriggerEvent& event)
 {
     StartDialogue(event.dialogueID);

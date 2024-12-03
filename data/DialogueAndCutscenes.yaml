@@ -23,3 +23,15 @@ dialogue:
       - character: "Theseus"
         text: "Not in a million years."
         duration: 3.0
+
+cutscenes:
+  gorgon_cutscene:
+    camera_keyframes:
+      - target: "Theseus" 
+        duration: 0.3
+      - target: "Gorgon"  
+        duration: 3.0
+  theseus_cutscene:
+    camera_keyframes:
+      - target: "Theseus"  
+        duration: 3.0
