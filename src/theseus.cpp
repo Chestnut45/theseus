@@ -19,7 +19,7 @@ Theseus::Theseus() : App("Theseus", 1280, 720)
     // Initialize the game state manager
     m_pStateManager = new GameStateManager();
 
-    m_dialogueManager.LoadDialogueFromYAML("data/dialogues.yaml");
+    // m_dialogueManager.LoadDialogueFromYAML("data/dialogues.yaml");
     
     // Start with the Main Menu State
     m_pStateManager->PushState(new MainMenuState(m_pStateManager, this));

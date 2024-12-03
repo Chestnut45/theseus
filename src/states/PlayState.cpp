@@ -1,7 +1,6 @@
 #include "PlayState.h"
 #include "PauseState.h"
-#include "CutSceneState.h"
-#include "DialogueState.h"
+#include "DialogueAndCutsceneState.h"
 #include <imgui/imgui.h>
 
 #include "../components/ChestInventoryComponent.h"
@@ -25,9 +24,8 @@ void PlayState::Enter()
     auto& scene = m_pGameInstance->GetScene();
 
     // Initialize the dialogue listener
-    wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
+    wolf::EventManager::AddListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
-    wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
 
 
@@ -90,7 +88,7 @@ void PlayState::Enter()
     
     // this->CreateMinitaurEnemy();
     // this->CreateHarpyEnemy();
-    // this->CreateGorgonEnemy();
+    this->CreateGorgonEnemy();
 }
 
 void PlayState::Exit()
@@ -98,10 +96,10 @@ void PlayState::Exit()
     // Delete objects / components from the scene
     m_pGameInstance->GetScene().Clear();
 
-    wolf::EventManager::RemoveListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
+    wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
-    wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+
 
 
     // Delete managers
@@ -386,10 +384,11 @@ void PlayState::Update(float delta)
         }
     }
 
+    // Trigger CutsceneDialogueEvent when pressing 9
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
-        // Broadcast the DialogueTriggerEvent with a specific dialogue ID
-        wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
+        // Trigger both cutscene and dialogue with IDs
+        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence"));
     }
 
         // Update velocity components to apply friction and decelerate objects
@@ -445,6 +444,9 @@ void PlayState::CreatePlayer()
 {
     // Create player object with transform
     m_pPlayerObject = &m_pGameInstance->GetScene().CreateObject2D();
+    
+    // Register the player (Theseus) in the shared context
+    m_pGameInstance->GetSharedContext().RegisterEntity("Theseus", m_pPlayerObject->GetID());
 
     // Add player controller and initialize
     // NOTE: This manages all player animations and the animated sprite component for the player
@@ -549,6 +551,7 @@ void PlayState::CreateGorgonEnemy()
         {
             transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
         }
+        m_pGameInstance->GetSharedContext().RegisterEntity("Gorgon", gorgon.GetID());
     }
 }
 
@@ -585,20 +588,15 @@ void PlayState::CreateThrowableObject()
     auto& throwable = throwableObj.AddComponent<ThrowableObjectComponent>(25.0f, m_pColliderManager);
 }
 
-void PlayState::StartDialogue(const std::string& dialogueID)
-{
-    // Create a new DialogueState and push it onto the state stack
-    DialogueState* dialogueState = new DialogueState(m_pStateManager, m_pGameInstance, m_pDialogueManager);
-    m_pStateManager->PushState(dialogueState);
+void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {
+    std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
 
-    // Start the dialogue with the given ID
-    dialogueState->StartDialogue(dialogueID);
+    // Push the DialogueAndCutsceneState onto the game state stack
+    auto* dialogueAndCutsceneState = new DialogueAndCutsceneState(m_pStateManager, m_pGameInstance, "data/DialogueAndCutscenes.yaml");
+    dialogueAndCutsceneState->LoadSequence(event.sequenceID);  // Start the specific sequence
+    m_pStateManager->PushState(dialogueAndCutsceneState);
 }
 
-void PlayState::OnDialogueTriggerEvent(const DialogueTriggerEvent& event)
-{
-    StartDialogue(event.dialogueID);
-}
 
 void PlayState::CreatePressurePlate(const glm::vec2& position, TriggerType triggerType) {
     // Create the pressure plate object
@@ -781,13 +779,6 @@ void PlayState::ShowTooltip(const std::string& text)
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(2);
 }
-void PlayState::OnCutsceneTriggerEvent(const TriggerEvent& event) {
-    if (event.m_triggerType == TriggerType::CUTSCENE_SINGLE) {
-        StartCutscene("intro");  // Specify cutscene ID as needed
-    }
-}
 
-void PlayState::StartCutscene(const std::string& cutsceneID) {
-    m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", cutsceneID));
-}
+
 
