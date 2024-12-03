@@ -11,6 +11,7 @@ public:
             return it->second;
         }
         wolf::Error("Entity ID not found for: " + name);
+        return static_cast<wolf::GameObjectID>(-1);
     }
 
     bool HasEntity(const std::string& name) const {
