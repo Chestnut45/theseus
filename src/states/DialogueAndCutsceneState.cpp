@@ -398,11 +398,25 @@ void DialogueAndCutsceneState::OnContinueButtonPressed() {
     if (!m_showFullText && !m_isLineFinished) {
         m_showFullText = true;
     } else {
+        // Advance dialogue and cutscene together if in a "combined" state
+        auto& currentItem = m_dialogueAndCutsceneSequence[m_currentSequenceIndex];
+        if (currentItem.type == "cutscene" || currentItem.type == "combined") {
+            if (m_currentKeyframeIndex < currentItem.cutscene.size()) {
+                // Forcefully complete the current cutscene keyframe
+                auto& targetKeyframe = currentItem.cutscene[m_currentKeyframeIndex];
+                m_cutsceneTimer = targetKeyframe.duration; // Simulate completion
+            }
+        }
+
         m_timeSinceLastKeyframe = 0.0f;
         m_showFullText = false;
+
+        // Advance to the next sequence
         m_currentSequenceIndex++;
+        ResetCutsceneState(); // Ensure state resets for the next item
     }
 }
+
 
 // Handle dialogue ending
 void DialogueAndCutsceneState::EndDialogue() {
