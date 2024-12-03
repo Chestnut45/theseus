@@ -304,18 +304,16 @@ void PlayerController::HandlePlayerInput(float delta)
     auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
 
     // Handle inventory management with left alt
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_LEFT_ALT)) {
-        playerInventory->ToggleOpen();
-        m_inventoryOpen = !m_inventoryOpen;
-        std::cout << "PlayerController - Inventory Open: " << m_inventoryOpen << std::endl;
-        if(m_inventoryOpen == true)
-        {
+    if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) {
+        if (m_action != PlayerAction::IN_INVENTORY) {
+            playerInventory->Open();
+            SetAction(PlayerAction::IN_INVENTORY);
             m_currentMoveSpeed = m_inventoryMoveSpeed;
         }
-        else
-        {
-            m_currentMoveSpeed = m_normalMoveSpeed;
-        }
+    } else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) {
+        playerInventory->Close();
+        SetAction(PlayerAction::NONE);
+        m_currentMoveSpeed = m_normalMoveSpeed;
     }
     glm::vec2 direction = GetLastFacingDirectionVector();
 
