@@ -115,6 +115,11 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         bool IsVisible() const { return m_visible; }
         inline void SetVisibility(bool visible) { m_visible = visible; }
 
+        // Set the layer of this sprite
+        // 0 is the bottommost layer
+        void SetLayer(int layer) { m_layer = layer; }
+        int GetLayer() const { return m_layer; }
+
         // Draw the sprite at the given position, rotation, and scale in world space
         // Multiplies final pixel color by provided tint color
         // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
@@ -149,6 +154,10 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         // Tint color of the animated sprite
         glm::vec3 m_tint{1.0f};
+
+        // The layer of the sprite
+        // Bottommost layer is 0
+        int m_layer = 0;
 
         float m_fPlaybackSpeed; // How fast is the animation playing?
         float m_fCurrentFrame; // Which animation frame are we currently on?

@@ -166,6 +166,10 @@ private:
     wolf::Timer m_walkSoundTimer;
     float m_walkSoundInterval = 0.333333333f;
 
+    // DEBUG: Godmode flags
+    bool m_godmode = false;
+    bool m_superSpeed = false;
+
     // Stamina management
     float m_rollSpeed = 400.0f;
     float m_rollTimer = 0.0f;

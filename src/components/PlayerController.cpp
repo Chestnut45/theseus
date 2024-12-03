@@ -8,6 +8,7 @@
 #include "HarpyController.h"
 #include "MinitaurController.h"
 #include "PlayerController.h"
+#include "LabyrinthManager.h"
 
 #include "../inventory/ItemCreator.h"
 
@@ -171,6 +172,7 @@ void PlayerController::InitializeAnimations()
 
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
+    m_pAnimComponent->SetLayer(10);
 }
 
 // Main update loop for the player controller
@@ -265,26 +267,39 @@ void PlayerController::Update(float delta)
 
 void PlayerController::HandlePlayerInput(float delta)
 {
-    // Debug speed modifier hotkeys
+    // Godmode hotkey
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
     {
-        m_currentMoveSpeed *= 0.5f;
-        m_rollSpeed *= 0.5f;
-        m_inventoryMoveSpeed *= 0.5f;
+        m_godmode = !m_godmode;
     }
 
+    // Super speed hotkey
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
     {
-        m_currentMoveSpeed *= 2;
-        m_rollSpeed *= 2;
-        m_inventoryMoveSpeed *= 2;
+        m_superSpeed = !m_superSpeed;
+        if (m_superSpeed)
+        {
+            m_normalMoveSpeed = 800.0f;
+            m_rollSpeed = 1600.0f;
+            m_inventoryMoveSpeed = 400.0f;
+        }
+        else
+        {
+            m_normalMoveSpeed = 200.0f;
+            m_rollSpeed = 400.0f;
+            m_inventoryMoveSpeed = 100.0f;
+        }
     }
-    
+
+    // Teleport to labyrinth spawn location hotkey
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
     {
-        m_currentMoveSpeed = 200.0f;
-        m_rollSpeed = 400.0f;
-        m_inventoryMoveSpeed = 100.0f;
+        // Teleport to the spawn position
+        for (const auto&&[_, labMan] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+        {
+            GetGameObject()->GetComponent<wolf::Transform2D>()->SetPosition(labMan.GetSpawnLocation());
+            break;
+        }
     }
     auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
 
@@ -1098,8 +1113,16 @@ void PlayerController::RenderThrowPowerBar() {
 
 void PlayerController::CheckHealth() {
     auto* healthComponent = GetGameObject()->GetComponent<HealthComponent>();
-    if (healthComponent && healthComponent->GetHealth() <= 0) {
-        SetAction(PlayerAction::DEAD);
+    if (healthComponent)
+    {
+        if (m_godmode)
+        {
+            healthComponent->Heal(healthComponent->GetMaxHealth());
+        }
+        else
+        {
+            if (healthComponent->GetHealth() <= 0) SetAction(PlayerAction::DEAD);
+        }
     }
 }
 
