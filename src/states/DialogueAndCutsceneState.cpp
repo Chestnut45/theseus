@@ -86,79 +86,135 @@ void DialogueAndCutsceneState::StartSequence(const std::string& sequenceID) {
         // std::cerr << "Sequence ID '" << sequenceID << "' not found!" << std::endl;
     }
 }
-// AdvanceSequence
 void DialogueAndCutsceneState::AdvanceSequence(float delta) {
     auto& currentItem = m_dialogueAndCutsceneSequence[m_currentSequenceIndex];
 
+    // Debugging: Print the current sequence type
+    std::cout << "Processing sequence at index " << m_currentSequenceIndex 
+              << " of type: " << currentItem.type << std::endl;
+
+    // Track the progress of dialogue and cutscene
+    bool dialogueFinished = false;
+    bool cutsceneFinished = false;
+
+    // Handle dialogue progression
     if (currentItem.type == "dialogue" || currentItem.type == "combined") {
-        // Dialogue progression logic
         m_timeSinceLastKeyframe += delta;
 
-        const std::string& currentLine = currentItem.dialogue.text;
+        const std::string& currentLine = GetCurrentDialogueLine();
         m_isLineFinished = (m_timeSinceLastKeyframe >= currentLine.length() * 0.05f || m_showFullText);
 
+        // Check user input for skipping
         bool isInputPressed = wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE);
         bool isAnyButtonHovered = ImGui::IsAnyItemHovered();
 
         if (isInputPressed && !isAnyButtonHovered) {
             if (!m_showFullText && !m_isLineFinished) {
+                // Show the full text immediately
                 m_showFullText = true;
             } else if (m_isLineFinished) {
-                m_timeSinceLastKeyframe = 0.0f;
-                m_showFullText = false;
-                m_currentSequenceIndex++;
+                // Mark the dialogue as finished if the line is finished
+                dialogueFinished = true;
             }
         }
 
-        if (currentItem.dialogue.characterName != m_currentCharacterName) {
-            m_currentCharacterName = currentItem.dialogue.characterName;
+        // Handle autoplay progression if enabled
+        if (m_autoplay && m_isLineFinished && m_timeSinceLastKeyframe > m_autoPlayDelay) {
+            dialogueFinished = true;
         }
 
-        if (m_autoplay && m_isLineFinished && m_timeSinceLastKeyframe > m_autoPlayDelay) {
-            m_timeSinceLastKeyframe = 0.0f;
-            m_showFullText = false;
-            m_currentSequenceIndex++;
-        }
+        // Ensure dialogue sequence is finished only when explicitly marked
+        dialogueFinished = dialogueFinished && m_isLineFinished;
     }
 
+    // Handle cutscene progression
     if (currentItem.type == "cutscene" || currentItem.type == "combined") {
-        // Cutscene progression logic
         if (m_currentKeyframeIndex >= currentItem.cutscene.size()) {
-            m_currentSequenceIndex++;
-            m_currentKeyframeIndex = 0;
-            m_cutsceneTimer = 0.0f;
+            // Cutscene finished
+            cutsceneFinished = true;
         } else {
             const auto& targetKeyframe = currentItem.cutscene[m_currentKeyframeIndex];
             m_cutsceneTimer += delta;
 
-            if (m_currentKeyframeIndex > 0) {
-                const auto& previousKeyframe = currentItem.cutscene[m_currentKeyframeIndex - 1];
-                float t = glm::clamp(m_cutsceneTimer / targetKeyframe.duration, 0.0f, 1.0f);
+            // Handle interpolation for camera movement
+            float t = glm::clamp(m_cutsceneTimer / targetKeyframe.duration, 0.0f, 1.0f);
 
+            if (m_currentKeyframeIndex > 0) {
+                // Interpolate between previous and target keyframe
+                const auto& previousKeyframe = currentItem.cutscene[m_currentKeyframeIndex - 1];
                 m_currentCameraPosition = glm::mix(previousKeyframe.position, targetKeyframe.position, t);
                 m_currentZoomLevel = glm::mix(previousKeyframe.zoom, targetKeyframe.zoom, t);
-
-                auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
-                if (camera) {
-                    camera->SetPosition(m_currentCameraPosition);
-                    camera->SetZoom(m_currentZoomLevel);
-                }
-
-                if (t >= 1.0f) {
-                    m_cutsceneTimer = 0.0f;
-                    m_currentKeyframeIndex++;
-                }
             } else {
-                m_currentCameraPosition = targetKeyframe.position;
-                m_currentZoomLevel = targetKeyframe.zoom;
-
+                // Interpolate from the current camera state for the first keyframe
                 auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
                 if (camera) {
-                    camera->SetPosition(m_currentCameraPosition);
-                    camera->SetZoom(m_currentZoomLevel);
+                    glm::vec2 initialPosition = camera->GetPosition();
+                    float initialZoom = camera->GetZoom();
+
+                    m_currentCameraPosition = glm::mix(initialPosition, targetKeyframe.position, t);
+                    m_currentZoomLevel = glm::mix(initialZoom, targetKeyframe.zoom, t);
                 }
+            }
+
+            // Apply camera transformations
+            auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
+            if (camera) {
+                camera->SetPosition(m_currentCameraPosition);
+                camera->SetZoom(m_currentZoomLevel);
+            }
+
+            // Skip to the end of the current keyframe if LMB is pressed
+            bool isInputPressed = wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE);
+            if (isInputPressed) {
+                m_cutsceneTimer = targetKeyframe.duration;
+                t = 1.0f; // Force transition to the end of the keyframe
+            }
+
+            // Advance to the next keyframe if fully transitioned
+            if (t >= 1.0f) {
+                m_cutsceneTimer = 0.0f;
                 m_currentKeyframeIndex++;
             }
+
+            cutsceneFinished = (m_currentKeyframeIndex >= currentItem.cutscene.size());
+        }
+    }
+
+    // Combined logic
+    if (currentItem.type == "combined") {
+        if (dialogueFinished && cutsceneFinished) {
+            std::cout << "Combined sequence finished. Advancing to next sequence." << std::endl;
+
+            m_timeSinceLastKeyframe = 0.0f;
+            m_showFullText = false;
+            m_currentSequenceIndex++;
+
+            // Reset both dialogue and cutscene state for the next item
+            ResetCutsceneState();
+        }
+    } else if ((currentItem.type == "dialogue" && dialogueFinished) ||
+               (currentItem.type == "cutscene" && cutsceneFinished)) {
+        std::cout << "Sequence finished. Advancing to next sequence." << std::endl;
+
+        m_timeSinceLastKeyframe = 0.0f;
+        m_showFullText = false;
+        m_currentSequenceIndex++;
+
+        // Reset cutscene state for the next item
+        ResetCutsceneState();
+    }
+}
+
+void DialogueAndCutsceneState::ResetCutsceneState() {
+    if (m_currentSequenceIndex < m_dialogueAndCutsceneSequence.size()) {
+        auto& nextItem = m_dialogueAndCutsceneSequence[m_currentSequenceIndex];
+        std::cout << "Resetting cutscene state for sequence at index " << m_currentSequenceIndex 
+                  << " of type: " << nextItem.type << std::endl;
+
+        // Reset state only for sequences involving cutscenes
+        if (nextItem.type == "cutscene" || nextItem.type == "combined") {
+            m_cutsceneTimer = 0.0f;
+            m_currentKeyframeIndex = 0;
         }
     }
 }
@@ -484,7 +540,12 @@ void DialogueAndCutsceneState::RenderSequence() {
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
 
             if (ImGui::Button("Continue", buttonSize)) {
-                OnContinueButtonPressed();
+                m_showFullText = true;
+                m_isLineFinished = true;
+                // Advance sequence for `combined` only if dialogue is fully displayed
+                if (currentItem.type != "combined" || (m_showFullText && m_isLineFinished)) {
+                    OnContinueButtonPressed();
+                }
             }
 
             ImGui::PopStyleColor(3);

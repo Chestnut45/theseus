@@ -25,11 +25,12 @@ CutscenesAndDialogues:
               duration: 0.3
             - target: "Gorgon"
               duration: 3.0
-      - type: "cutscene"
-        camera_keyframes:
-          - target: "Theseus"
-            duration: 3.0
-      - type: "dialogue"
-        character: "Theseus"
-        text: "Not in a million years."
-        duration: 3.0
+      - type: "combined"
+        dialogue:
+          character: "Theseus"
+          text: "Not in a million years."
+          duration: 3.0
+        cutscene:
+          camera_keyframes:
+            - target: "Theseus"
+              duration: 3.0

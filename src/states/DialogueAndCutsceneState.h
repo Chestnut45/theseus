@@ -37,6 +37,7 @@ private:
     void OnContinueButtonPressed();
     void EndDialogue();
     void OnExitButtonPressed();
+    void ResetCutsceneState();
 
     // Sequence data structures
     struct CharacterData {
