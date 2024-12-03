@@ -19,7 +19,7 @@ void DialogueAndCutsceneState::Enter() {
             std::cerr << "Error loading YAML: " << e.what() << std::endl;
         }
     } else {
-        std::cout << "DialogueAndCutsceneState: YAML already loaded, skipping reload." << std::endl;
+        // std::cout << "DialogueAndCutsceneState: YAML already loaded, skipping reload." << std::endl;
     }
 }
 
@@ -35,12 +35,12 @@ void DialogueAndCutsceneState::Exit() {
 
 // Pause
 void DialogueAndCutsceneState::Pause() {
-    std::cout << "DialogueAndCutsceneState paused." << std::endl;
+    // std::cout << "DialogueAndCutsceneState paused." << std::endl;
 }
 
 // Resume
 void DialogueAndCutsceneState::Resume() {
-    std::cout << "DialogueAndCutsceneState resumed." << std::endl;
+    // std::cout << "DialogueAndCutsceneState resumed." << std::endl;
 }
 
 // Update
@@ -60,7 +60,7 @@ void DialogueAndCutsceneState::LoadSequence(const std::string& sequenceID) {
 
     // Step 2: Validate if the YAML loaded correctly
     if (m_dialogueAndCutsceneSequence.empty()) {
-        std::cerr << "DialogueAndCutsceneState: No sequences loaded after YAML parsing." << std::endl;
+        // std::cerr << "DialogueAndCutsceneState: No sequences loaded after YAML parsing." << std::endl;
         return;
     }
 
@@ -83,81 +83,72 @@ void DialogueAndCutsceneState::StartSequence(const std::string& sequenceID) {
         m_cutsceneTimer = 0.0f;
         m_currentKeyframeIndex = 0;
     } else {
-        std::cerr << "Sequence ID '" << sequenceID << "' not found!" << std::endl;
+        // std::cerr << "Sequence ID '" << sequenceID << "' not found!" << std::endl;
     }
 }
 // AdvanceSequence
 void DialogueAndCutsceneState::AdvanceSequence(float delta) {
     auto& currentItem = m_dialogueAndCutsceneSequence[m_currentSequenceIndex];
 
-    if (currentItem.type == "dialogue") {
+    if (currentItem.type == "dialogue" || currentItem.type == "combined") {
         // Dialogue progression logic
         m_timeSinceLastKeyframe += delta;
 
-        const std::string& currentLine = GetCurrentDialogueLine();
+        const std::string& currentLine = currentItem.dialogue.text;
         m_isLineFinished = (m_timeSinceLastKeyframe >= currentLine.length() * 0.05f || m_showFullText);
 
-        // Handle user input or autoplay for dialogue progression
         bool isInputPressed = wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE);
-
-        // Check if any UI elements like buttons are hovered/clicked
         bool isAnyButtonHovered = ImGui::IsAnyItemHovered();
 
         if (isInputPressed && !isAnyButtonHovered) {
             if (!m_showFullText && !m_isLineFinished) {
-                // Show the full text if not already fully displayed
                 m_showFullText = true;
             } else if (m_isLineFinished) {
-                // Advance to the next line if the current line is fully displayed
                 m_timeSinceLastKeyframe = 0.0f;
                 m_showFullText = false;
                 m_currentSequenceIndex++;
             }
         }
-        // Update the current character name if it changes
+
         if (currentItem.dialogue.characterName != m_currentCharacterName) {
             m_currentCharacterName = currentItem.dialogue.characterName;
         }
 
-        // Handle autoplay progression
         if (m_autoplay && m_isLineFinished && m_timeSinceLastKeyframe > m_autoPlayDelay) {
             m_timeSinceLastKeyframe = 0.0f;
             m_showFullText = false;
             m_currentSequenceIndex++;
         }
-    } else if (currentItem.type == "cutscene") {
+    }
+
+    if (currentItem.type == "cutscene" || currentItem.type == "combined") {
         // Cutscene progression logic
         if (m_currentKeyframeIndex >= currentItem.cutscene.size()) {
-            m_currentSequenceIndex++; // Move to the next item
+            m_currentSequenceIndex++;
             m_currentKeyframeIndex = 0;
             m_cutsceneTimer = 0.0f;
         } else {
             const auto& targetKeyframe = currentItem.cutscene[m_currentKeyframeIndex];
             m_cutsceneTimer += delta;
 
-            // Interpolation logic
             if (m_currentKeyframeIndex > 0) {
                 const auto& previousKeyframe = currentItem.cutscene[m_currentKeyframeIndex - 1];
                 float t = glm::clamp(m_cutsceneTimer / targetKeyframe.duration, 0.0f, 1.0f);
 
-                // Interpolate position and zoom
                 m_currentCameraPosition = glm::mix(previousKeyframe.position, targetKeyframe.position, t);
                 m_currentZoomLevel = glm::mix(previousKeyframe.zoom, targetKeyframe.zoom, t);
 
-                // Apply camera transformations
                 auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
                 if (camera) {
                     camera->SetPosition(m_currentCameraPosition);
                     camera->SetZoom(m_currentZoomLevel);
                 }
 
-                // Advance to the next keyframe if fully transitioned
                 if (t >= 1.0f) {
                     m_cutsceneTimer = 0.0f;
                     m_currentKeyframeIndex++;
                 }
             } else {
-                // Initialize the first keyframe position and zoom
                 m_currentCameraPosition = targetKeyframe.position;
                 m_currentZoomLevel = targetKeyframe.zoom;
 
@@ -310,7 +301,7 @@ void DialogueAndCutsceneState::RenderSequence() {
     const auto& currentItem = m_dialogueAndCutsceneSequence[m_currentSequenceIndex];
 
     // Handle camera rendering (for cutscenes)
-    if (currentItem.type == "cutscene") {
+    if (currentItem.type == "cutscene" || currentItem.type == "combined") {
         auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
         if (camera) {
             // Render the scene with the current camera transformations
@@ -319,7 +310,7 @@ void DialogueAndCutsceneState::RenderSequence() {
     }
 
     // Handle dialogue rendering
-    if (currentItem.type == "dialogue") {
+    if (currentItem.type == "dialogue" || currentItem.type == "combined") {
         // Smooth fade-in effect for the dialogue box
         static float fadeOpacity = 0.0f;
         fadeOpacity = std::min(fadeOpacity + 0.05f, 1.0f); // Gradually increase opacity
@@ -463,7 +454,7 @@ void DialogueAndCutsceneState::RenderSequence() {
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.3f, 0.35f, fadeOpacity));
 
         if (ImGui::Button("Exit", buttonSize)) {
-            EndDialogue();
+            OnExitButtonPressed();
         }
 
         ImGui::PopStyleColor(3);
@@ -472,4 +463,9 @@ void DialogueAndCutsceneState::RenderSequence() {
         ImGui::PopStyleVar(3);
         ImGui::PopStyleColor(3);
     }
+}
+void DialogueAndCutsceneState::OnExitButtonPressed() {
+    // Set the sequence index to the end
+    m_currentSequenceIndex = m_dialogueAndCutsceneSequence.size();
+    std::cout << "DialogueAndCutsceneState: Sequence ended early by user." << std::endl;
 }

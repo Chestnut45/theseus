@@ -36,6 +36,7 @@ private:
     std::string GetCurrentCharacterName() const;
     void OnContinueButtonPressed();
     void EndDialogue();
+    void OnExitButtonPressed();
 
     // Sequence data structures
     struct CharacterData {

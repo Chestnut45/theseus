@@ -14,16 +14,17 @@ CutscenesAndDialogues:
         character: "Theseus"
         text: "What is that?"
         duration: 2.5
-      - type: "cutscene"
-        camera_keyframes:
-          - target: "Theseus"
-            duration: 0.3
-          - target: "Gorgon"
-            duration: 3.0
-      - type: "dialogue"
-        character: "Gorgon"
-        text: "You should have never come here, this'll be the end of you!"
-        duration: 3.5
+      - type: "combined"
+        dialogue:
+          character: "Gorgon"
+          text: "You should have never come here, this'll be the end of you!"
+          duration: 3.5
+        cutscene:
+          camera_keyframes:
+            - target: "Theseus"
+              duration: 0.3
+            - target: "Gorgon"
+              duration: 3.0
       - type: "cutscene"
         camera_keyframes:
           - target: "Theseus"
