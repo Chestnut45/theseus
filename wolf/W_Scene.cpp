@@ -125,9 +125,27 @@ void Scene::Render()
         }
     }
 
-    // Render all animated sprites with transform components
-    for (auto&&[_, animSprite, transform] : Each<AnimatedSprite2D, Transform2D>()) {
-        animSprite.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
+    // Build map of animated sprites to render by layer
+    std::map<int, std::vector<std::pair<AnimatedSprite2D*, Transform2D*>>> sortedAnimatedSprites;
+    for (auto&&[_, sprite, transform] : Each<AnimatedSprite2D, Transform2D>())
+    {
+        int layer = sprite.GetLayer();
+
+        // Add new spritebatch if it doesn't exist
+        if (!sortedAnimatedSprites.contains(layer)) sortedAnimatedSprites[layer] = {};
+
+        // Push back the next sprite
+        sortedAnimatedSprites[layer].push_back(std::make_pair<AnimatedSprite2D*, Transform2D*>(&sprite, &transform));
+    }
+
+    // Render all animated sprites in order
+    for (auto iter = sortedAnimatedSprites.rbegin(); iter != sortedAnimatedSprites.rend(); ++iter)
+    {
+        auto& batch = iter->second;
+        for (auto& pair : batch)
+        {
+            pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
+        }
     }
 
     // Render all tilemaps with transform components

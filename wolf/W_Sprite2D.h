@@ -62,9 +62,7 @@ public:
     const glm::vec3& GetTint() const { return m_tint; }
 
     // Set the layer of this sprite
-    // 0 is the lowest layer
-    // NOTE: Unused yet, will require the rendering system to iterate
-    // the used layers or use depth testing to sort the sprites.
+    // 0 is the bottommost layer
     void SetLayer(int layer) { m_layer = layer; }
     int GetLayer() const { return m_layer; }
 
@@ -91,7 +89,7 @@ private:
     glm::vec3 m_tint{1.0f};
 
     // The layer of the sprite
-    // Topmost layer is 0
+    // Bottommost layer is 0
     int m_layer = 0;
 
     // Static resources shared by all sprites
