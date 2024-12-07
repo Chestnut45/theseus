@@ -4,7 +4,7 @@ enemies:
     armour: 3
     melee_range: 70.0
     melee_cooldown: 1
-    detection_range: 600.0
+    detection_range: 300
     base_damage: 15.0
     chase_speed: 100.0
     animation_init_file: "data/minitaur_anim_init.yaml"

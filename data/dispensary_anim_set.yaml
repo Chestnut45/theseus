@@ -11,31 +11,25 @@ animations: [
   },
   {
     name: Activate,
-    start_frame: 2,
+    start_frame: 1,
     end_frame: 11,
     origin: {x: 16.0, y: 16.0},
     loops: false,
-    next_anim: DaedalusSymbol,
+    next_anim: Active,
   },
   {
-    name: DaedalusSymbol,
+    name: Active,
+    start_frame: 11,
+    end_frame: 11,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: Deactivate,
     start_frame: 12,
-    end_frame: 16,
+    end_frame: 22,
     origin: {x: 16.0, y: 16.0},
-    loops: true
-  },
-  {
-    name: Helmet,
-    start_frame: 17,
-    end_frame: 21,
-    origin: {x: 16.0, y: 16.0},
-    loops: true
-  },
-  {
-    name: Bow,
-    start_frame: 22,
-    end_frame: 26,
-    origin: {x: 16.0, y: 16.0},
-    loops: true
+    loops: false,
+    next_anim: Inactive
   },
 ]
