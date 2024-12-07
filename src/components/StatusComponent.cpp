@@ -39,6 +39,9 @@ StatusComponent::StatusComponent()
     {
         this->m_aStatusEffects[i].m_OwnerComponent = this;
         this->m_aStatusEffects[i].m_StatusEffectType = (StatusEffectType)i;
+
+        // Initialise all resistance values to 0
+        this->m_aStatusEffectResistance[i] = 0.0f;
     }
 
     wolf::EventManager::AddListener<ApplyStatusEffectEvent, StatusComponent, &StatusComponent::HandleApplyStatusEffectEvent>(*this);
@@ -58,14 +61,26 @@ StatusComponent::~StatusComponent()
     }
 }
 
-// If status effect already present, reset timer
-// else, add status effect
+
 void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifespan)
 {
-    this->m_aStatusEffects[p_se_type].m_StatusEffectType = p_se_type;
+    // this->m_aStatusEffects[p_se_type].m_StatusEffectType = p_se_type;
     this->m_aStatusEffects[p_se_type].m_isActive = true;
     this->m_aStatusEffects[p_se_type].m_timer.Restart();
     this->m_aStatusEffects[p_se_type].m_fLifespan = p_lifespan;
+}
+
+void StatusComponent::SetStatusEffectResistance(StatusEffectType p_se_type, float p_resistance_value)
+{
+    if(p_resistance_value < 0.0f) return;
+
+    float absoluteValue = p_resistance_value;
+    float left, right; // left = integral, right = decimal
+    
+    right = std::modf(absoluteValue, &left); // Getting integral & decimal
+    left = left <= 1.0f ? 0.0f : 1.0f;
+
+    m_aStatusEffectResistance[p_se_type] = left == 1.0f ? left : right; // Final value always in range [0, 1]
 }
 
 bool StatusComponent::IsStatusEffectActive(StatusEffectType p_se_type) const
@@ -84,12 +99,18 @@ void StatusComponent::Update(float p_delta)
         {
             statusEffect.ApplyStatusEffect(p_delta);
 
+            // If lifetime expired, remove status effect
             if(statusEffect.m_fLifespan >= 0 && statusEffect.m_timer.Elapsed() >= statusEffect.m_fLifespan)
             {
                 this->RemoveStatusEffect(statusEffect.m_StatusEffectType);
             }
         }
     }
+}
+
+float StatusComponent::GetStatusEffectResistance(StatusEffectType p_se_type) const
+{
+    return this->m_aStatusEffectResistance[p_se_type];
 }
 
 void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
@@ -147,7 +168,8 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
-                health->Pierce(100.0f * p_delta);
+                float resistance = m_OwnerComponent->m_aStatusEffectResistance[StatusEffectType::BURNING];
+                health->Pierce(100.0f * p_delta * (1.0f - resistance));
             }
             else
             {
@@ -168,12 +190,11 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
                 std::cout << "StatusComponent - ERROR: HealthComponent not found." << std::endl;
             }
             break;
-            break;
         }
 
         case StatusEffectType::PETRIFIED:
         {
-            // Handled in PlayerController or inheritors of EnemyControllers
+            // Handled in PlayerController or inheritors of EnemyController
             break;
         }      
         
@@ -182,7 +203,8 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
-                health->Pierce(50.0f * p_delta);
+                float resistance = m_OwnerComponent->m_aStatusEffectResistance[StatusEffectType::POISONED];
+                health->Pierce(50.0f * p_delta * (1.0f - resistance));
             }
             else
             {
