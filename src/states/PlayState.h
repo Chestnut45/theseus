@@ -16,7 +16,7 @@
 #include "../inventory/StatusEffectItem.h"
 #include "../inventory/ItemCreator.h"
 #include "../inventory/ItemDropCreator.h"
-#include "../events/DialogueTriggerEvent.h"
+#include "../events/DialogueAndCutsceneEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
 #include "events/TriggerEvent.h"
@@ -29,6 +29,7 @@
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
 
+#include <unordered_map>
 
 
 class LabyrinthManager;
@@ -48,11 +49,9 @@ public:
     void Render() override;
     void BackgroundUpdate(float delta) override;
     void BackgroundRender() override;
-    void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
+    void OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
-    void OnCutsceneTriggerEvent(const TriggerEvent& event);  // Listener for cutscene trigger
-
-
+    std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}
 
 private:
     
@@ -69,7 +68,6 @@ private:
     bool m_showInventoryGUI = false;
 
     // Private helper methods
-    void StartDialogue(const std::string& dialogueID);
     void ConvertPlayerTileToGold();
 
     // Creates the player object and all of its components
@@ -89,5 +87,7 @@ private:
 
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);
-    void StartCutscene(const std::string& cutsceneID);
+
+    std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
+
 };

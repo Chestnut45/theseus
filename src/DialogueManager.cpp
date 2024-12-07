@@ -17,12 +17,24 @@ DialogueManager::~DialogueManager() {
 void DialogueManager::LoadDialogueFromYAML(const std::string& filePath)
 {
     std::cout << "Loading dialogue from YAML file: " << filePath << std::endl;
+
     try {
+        // Load the YAML file
         YAML::Node config = YAML::LoadFile(filePath);
+
+        // Iterate through the "dialogue" entries in the YAML file
         for (const auto& dialogueNode : config["dialogue"])
         {
             DialogueData dialogueData;
-            std::string id = dialogueNode["id"].as<std::string>();
+            std::string id;
+
+            // Ensure the "id" field exists
+            if (dialogueNode["id"]) {
+                id = dialogueNode["id"].as<std::string>();
+            } else {
+                std::cerr << "Dialogue entry missing 'id' field, skipping..." << std::endl;
+                continue;
+            }
 
             // Parse characters in the dialogue
             for (const auto& characterNode : dialogueNode["characters"])
@@ -30,27 +42,43 @@ void DialogueManager::LoadDialogueFromYAML(const std::string& filePath)
                 CharacterData character;
                 character.name = characterNode["name"].as<std::string>();
                 character.portraitPath = characterNode["portraitPath"].as<std::string>();
-                character.expression = characterNode["expression"].as<std::string>();
 
-                // Load the texture for the portrait
+                // Load portrait texture
                 character.portraitTexture = wolf::TextureManager::CreateTexture(character.portraitPath);
-                
                 dialogueData.characters.push_back(character);
             }
 
-            // Parse each line in the dialogue
+            // Parse dialogue lines
             for (const auto& lineNode : dialogueNode["lines"])
             {
                 DialogueLine line;
-                line.characterName = lineNode["character"].as<std::string>();
-                line.text = lineNode["text"].as<std::string>();
-                line.duration = lineNode["duration"].as<float>();
+
+                // Optional character and text fields
+                if (lineNode["character"]) {
+                    line.characterName = lineNode["character"].as<std::string>();
+                }
+                if (lineNode["text"]) {
+                    line.text = lineNode["text"].as<std::string>();
+                }
+                if (lineNode["duration"]) {
+                    line.duration = lineNode["duration"].as<float>();
+                }
+
+                // Handle actions like "cutscene" or other events
+                if (lineNode["action"]) {
+                    line.action = lineNode["action"].as<std::string>();
+                }
+                if (lineNode["cutsceneID"]) {
+                    line.cutsceneID = lineNode["cutsceneID"].as<std::string>();
+                }
+
                 dialogueData.lines.push_back(line);
             }
 
-            // Store the dialogue data in the map
+            // Store dialogue data in the map
             m_dialogues[id] = dialogueData;
         }
+
         std::cout << "Successfully loaded dialogue data from: " << filePath << std::endl;
     }
     catch (const YAML::Exception& e) {
