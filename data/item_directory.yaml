@@ -221,9 +221,15 @@ Lapis Lazuli Ring: {
   id: EQUIPMENT,
   description: Lapis Lazuli ores can be mined with a stone pickaxe or better and drops 4-9 lapis lazuli.,
   value: 5,
-  texture_frame: 15,
+  texture_frame: 24,
   rarity: COMMON,
   slot: ACCESSORY,
   damage_reduction: 0.02,
-  has_status_effects: false,
+  has_status_effects: true,
+  status_effects: [
+    {
+      type: HEALING,
+      duration: 5.0,
+    }
+  ]
 }

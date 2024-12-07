@@ -21,12 +21,15 @@ StatusComponent::StatusComponent()
     {
         s_pTextures[StatusComponent::StatusEffectType::BURNING] = wolf::TextureManager::CreateTexture("data/textures/SEBurning.png");
         s_pTextures[StatusComponent::StatusEffectType::BURNING]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+        s_pTextures[StatusComponent::StatusEffectType::HEALING] = wolf::TextureManager::CreateTexture("data/textures/SEHealing.png");
+        s_pTextures[StatusComponent::StatusEffectType::HEALING]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
         s_pTextures[StatusComponent::StatusEffectType::PETRIFIED] = wolf::TextureManager::CreateTexture("data/textures/SEPetrified.png");
         s_pTextures[StatusComponent::StatusEffectType::PETRIFIED]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
         s_pTextures[StatusComponent::StatusEffectType::POISONED] = wolf::TextureManager::CreateTexture("data/textures/SEPoisoned.png");
         s_pTextures[StatusComponent::StatusEffectType::POISONED]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
 
         s_aStatusEffectDescriptions[StatusEffectType::BURNING] = "You Are Burning!";
+        s_aStatusEffectDescriptions[StatusEffectType::HEALING] = "You Are Healing!";
         s_aStatusEffectDescriptions[StatusEffectType::PETRIFIED] = "You Are Petrified!";
         s_aStatusEffectDescriptions[StatusEffectType::POISONED] = "You Are Poisoned!";
     }
@@ -92,15 +95,6 @@ void StatusComponent::Update(float p_delta)
 void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 {
     this->m_aStatusEffects[p_se_type].m_isActive = false;
-
-    if(p_se_type == StatusEffectType::PETRIFIED)
-    {
-        AnimatedSprite2D* animatedSprite2DComponent = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
-        if(animatedSprite2DComponent != nullptr)
-        {
-            animatedSprite2DComponent->SetTint(glm::vec3(1.0f));
-        }
-    }
 }
 
 void StatusComponent::RenderPlayerSEIcons()
@@ -161,9 +155,25 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             }
             break;
         }
+        
+        case StatusEffectType::HEALING:
+        {
+            HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
+            if(health != nullptr)
+            {
+                health->Heal(25.0f * p_delta);
+            }
+            else
+            {
+                std::cout << "StatusComponent - ERROR: HealthComponent not found." << std::endl;
+            }
+            break;
+            break;
+        }
 
         case StatusEffectType::PETRIFIED:
         {
+            // Handled in PlayerController or inheritors of EnemyControllers
             break;
         }      
         

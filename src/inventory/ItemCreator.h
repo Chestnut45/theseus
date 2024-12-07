@@ -270,6 +270,9 @@ namespace ItemCreator {
                             if (strEffectType == "BURNING") {
                                 enEffectType = StatusComponent::BURNING;
                             }
+                            else if (strEffectType == "HEALING"){
+                                enEffectType = StatusComponent::HEALING;
+                            }
                             else if (strEffectType == "PETRIFIED") {
                                 enEffectType = StatusComponent::PETRIFIED;
                             }

@@ -20,6 +20,7 @@ public:
     enum StatusEffectType
     {
         BURNING,
+        HEALING,
         PETRIFIED,
         POISONED,
         NONE
