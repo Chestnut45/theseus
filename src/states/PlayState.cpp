@@ -425,6 +425,11 @@ void PlayState::Update(float delta)
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
 
+    // Update damage indicators
+    for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>()) {
+        health.UpdateDamageIndicators(delta);
+    }
+
     // Dispatch events
     wolf::EventManager::Dispatch();
 
@@ -438,6 +443,12 @@ void PlayState::Render()
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
         playerController->Render();
+    
+    // Render damage indicators
+    for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>())
+    {
+        health.RenderDamageIndicators();
+    }
 
     // Render status effect icons
     for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
