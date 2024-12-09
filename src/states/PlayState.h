@@ -79,7 +79,6 @@ private:
     void CreateHarpyEnemy();
     void CreateGorgonEnemy();
 
-    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType, TrapType trapType = TrapType::NONE);
     void CreateThrowableObject();
     wolf::GameObject& CreateSpikeTrap(const glm::vec2& position);
 

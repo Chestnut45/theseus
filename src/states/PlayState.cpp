@@ -601,37 +601,6 @@ void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& e
 }
 
 
-void PlayState::CreatePressurePlate(const glm::vec2& position, TriggerType triggerType, TrapType trapType) {
-    // Create the pressure plate object in the scene
-    auto& pressurePlateObj = m_pGameInstance->GetScene().CreateObject2D();
-
-    // Add a sprite for visualization
-    auto& sprite = pressurePlateObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/pressureplate.png");
-    sprite.SetOriginToCenterOfTexture();
-
-    // Check if the Transform2D component exists, and add it if not
-    if (!pressurePlateObj.HasAll<wolf::Transform2D>()) {
-        pressurePlateObj.AddComponent<wolf::Transform2D>();
-    }
-    auto* transform = pressurePlateObj.GetComponent<wolf::Transform2D>();
-    transform->SetPosition(position);
-    transform->SetScale(glm::vec2(3.0f));
-
-    // Add velocity component (optional if no movement is needed)
-    auto& velocity = pressurePlateObj.AddComponent<VelocityComponent>();
-    velocity.SetVelocity(glm::vec2(0.0f, 0.0f));
-
-    // Add a collider for interaction
-    auto& collider = pressurePlateObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
-
-    // Add the TriggerComponent with specified trigger and trap types
-    pressurePlateObj.AddComponent<TriggerComponent>(m_pColliderManager, triggerType, trapType);
-
-    // Log the creation of the pressure plate
-    // wolf::Log("Created pressure plate with TriggerComponent at position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
-}
-
 wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
 {
     // Create the trap object
@@ -652,7 +621,7 @@ wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
     collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
 
     // Add the TriggerComponent
-    trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE);
+    trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::TRAP);
 
     return trap;
 }
@@ -670,17 +639,21 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
         return;
     }
 
-    glm::vec2 trapPosition = transform->GetGlobalPosition();
+    glm::vec2 triggerPosition = transform->GetGlobalPosition();
 
-    switch (event.m_trapType) {
-        case TrapType::SPIKE_TRAP:
-            CreateSpikeTrap(trapPosition);
+    switch (event.m_purpose) {
+        case TriggerPurpose::TRAP: {
+            // Handle reusable traps creation here
+            CreateSpikeTrap(triggerPosition); // Example: SpikeTrap is created here
+            // Add other trap creation logic if needed
             break;
-        case TrapType::BOULDER_TRAP:
-            CreateBoulderTrap(trapPosition);
+        }
+        case TriggerPurpose::CUTSCENE: {
+            // Trigger a cutscene
             break;
+        }
         default:
-            wolf::Log("Unsupported trap type for the trigger event.");
+            wolf::Log("Unsupported trigger purpose.");
             break;
     }
 }

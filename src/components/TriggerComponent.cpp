@@ -3,9 +3,11 @@
 #include "PlayerController.h"
 #include "W_EventManager.h"
 
-TriggerComponent::TriggerComponent(ColliderManager* colliderManager, TriggerType type, TrapType trapType)
-    : m_colliderManager(colliderManager), m_triggerType(type), m_trapType(trapType), m_triggered(false) {
-    wolf::EventManager::AddListener<TrapDestroyedEvent, TriggerComponent, &TriggerComponent::OnTrapDestroyed>(*this);
+TriggerComponent::TriggerComponent(ColliderManager* colliderManager, TriggerType type, TriggerPurpose purpose)
+    : m_colliderManager(colliderManager), m_triggerType(type), m_purpose(purpose), m_triggered(false) {
+    if (purpose == TriggerPurpose::TRAP && type == TriggerType::REUSABLE) {
+        wolf::EventManager::AddListener<TrapDestroyedEvent, TriggerComponent, &TriggerComponent::OnTrapDestroyed>(*this);
+    }
 }
 
 TriggerComponent::~TriggerComponent() {
@@ -17,10 +19,10 @@ void TriggerComponent::Update(float delta) {
         m_triggered = true;
 
         // Dispatch the TriggerEvent with trap type information
-        wolf::EventManager::TriggerEvent(TriggerEvent(GetGameObject(), m_triggerType, m_trapType));
+        wolf::EventManager::TriggerEvent(TriggerEvent(GetGameObject(), m_triggerType, m_purpose));
 
         // Delete for single-use triggers
-        if (m_triggerType == TriggerType::SINGLE_USE || m_triggerType == TriggerType::CUTSCENE_SINGLE) {
+        if (m_triggerType == TriggerType::SINGLE_USE) {
             GetGameObject()->Delete();
         }
     }
