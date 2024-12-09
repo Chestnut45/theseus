@@ -159,6 +159,10 @@ private:
     wolf::Timer m_walkSoundTimer;
     float m_walkSoundInterval = 0.333333333f;
 
+    // DEBUG: Godmode flags
+    bool m_godmode = false;
+    bool m_superSpeed = false;
+
     // Stamina management
     bool m_isRolling = false;
     float m_rollSpeed = 400.0f;
@@ -192,8 +196,6 @@ private:
     float m_throwPower = 0.0f;       // Power for the throw
     const float m_maxThrowPower = 100.0f; // Max limit for the throw power
     const float m_powerChargeRate = 25.0f; // Rate at which power increases
-
-    static float s_aAttackCooldown[(int)WeaponType::BOW + 1];
 
     // Animation and state tracking flags
     bool m_animationFinished = false;

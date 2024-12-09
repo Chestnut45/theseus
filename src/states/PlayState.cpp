@@ -1,7 +1,6 @@
 #include "PlayState.h"
 #include "PauseState.h"
-#include "CutSceneState.h"
-#include "DialogueState.h"
+#include "DialogueAndCutsceneState.h"
 #include <imgui/imgui.h>
 
 #include "../components/ChestInventoryComponent.h"
@@ -25,11 +24,10 @@ void PlayState::Enter()
     auto& scene = m_pGameInstance->GetScene();
 
     // Initialize the dialogue listener
-    wolf::EventManager::AddListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
+    wolf::EventManager::AddListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
-    wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
-
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+
 
     
     this->m_pColliderManager = new ColliderManager(&scene);
@@ -57,10 +55,8 @@ void PlayState::Enter()
 
     CreateThrowableObject();
     
-// CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(96.0f, 96.0f), TriggerType::REUSABLE, TrapType::SPIKE_TRAP);
-CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(-192.0f, -192.0f), TriggerType::CUTSCENE_SINGLE);
-CreatePressurePlate(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(128.0f, 128.0f), TriggerType::SINGLE_USE, TrapType::BOULDER_TRAP);
-
+    // Create a test spike trap
+    CreateSpikeTrap(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f));
 
 
     // Testing: Create a test projectile object
@@ -100,10 +96,11 @@ void PlayState::Exit()
     // Delete objects / components from the scene
     m_pGameInstance->GetScene().Clear();
 
-    wolf::EventManager::RemoveListener<DialogueTriggerEvent, PlayState, &PlayState::OnDialogueTriggerEvent>(*this);
+    wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
-    wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnCutsceneTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+
+
 
     // Delete managers
     delete this->m_pColliderManager;
@@ -211,13 +208,11 @@ void PlayState::Update(float delta)
         itemDrop.Update(delta);
     }
 
-    // Update collisions
-    this->m_pColliderManager->Update(delta);
 
     // Inflict status effects upon the player
     for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
     {
-        status.Update();
+        status.Update(delta);
     }
 
     // INVENTORY TESTING
@@ -228,11 +223,14 @@ void PlayState::Update(float delta)
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
             ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
             ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
+            ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
+
             ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
             ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
             ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
             playerInventory->AddItemOrDelete(pBoots);
             playerInventory->AddItemOrDelete(pBow);
+            playerInventory->AddItemOrDelete(pSpear);
             playerInventory->AddItemOrDelete(pHealHeart);
             playerInventory->AddItemOrDelete(pHurtHeart);
             playerInventory->AddItemOrDelete(pBurnHeart);
@@ -298,13 +296,78 @@ void PlayState::Update(float delta)
         merchant->ShowInventoryGUI();
     }
 
-    auto* dispensary = m_pPlayerObject->GetComponent<DispensaryInventoryComponent>();
-    if (dispensary) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_5)) {
-            dispensary->ToggleOpen();
-        }
+    // Display all open dispensary GUIs
+    for (auto&&[_, dispensaryInventory, transform] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent, wolf::Transform2D>())
+    {
 
-        dispensary->ShowInventoryGUI();
+        // If the dispensary has an animated sprite we're going to want to retrieve it
+        AnimatedSprite2D* dispensarySprite = dispensaryInventory.GetGameObject()->GetComponent<AnimatedSprite2D>();
+
+        // Show GUI
+        dispensaryInventory.ShowInventoryGUI();
+
+        // Distance checking
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+        {
+            // Player is in range of the chest, display tooltip
+            std::string tooltip = dispensaryInventory.IsOpen() ? "Press E to Close Daedalus Dispensary" : "Press E to Open Daedalus Dispensary";
+            ShowTooltip(tooltip);
+
+            // When you interact with the dispensary
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+            {
+                // Either open or close it
+                dispensaryInventory.ToggleOpen();
+
+                // If the dispensary has an AnimatedSprite
+                if (dispensarySprite) {
+                    // Play the activation animation when we open it
+                    if (dispensaryInventory.IsOpen()) {
+                        dispensarySprite->SetAnimation("Activate");
+                    }
+                    else {
+                        // And set it back to inactive when we close it
+                        dispensarySprite->SetAnimation("Deactivate");
+                    }
+                }
+
+                // Hide the child icon
+                for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
+                    AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                    if (anim) {
+                        anim->SetAnimation("Transparent");
+                    }
+                }
+
+                // Also, if we close it, close the player inventory as well
+                if (!dispensaryInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                break;
+            }
+        }
+        else
+        {
+            // Close dispensary if the player walks away
+            if (dispensaryInventory.IsOpen())
+            {
+                dispensaryInventory.Close();
+
+                // If the dispensary has an AnimatedSprite, play the inactive animation
+                if (dispensarySprite) {
+                    dispensarySprite->SetAnimation("Deactivate");
+                }
+
+                // Hide the child icon
+                for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
+                    AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                    if (anim) {
+                        anim->SetAnimation("Transparent");
+                    }
+                }
+
+                // Close the player's inventory as well
+                m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+            }
+        }
     }
     
     for (auto&&[_, droppedItem, transform] : m_pGameInstance->GetScene().Each<DroppedItemComponent, wolf::Transform2D>())
@@ -324,15 +387,23 @@ void PlayState::Update(float delta)
         }
     }
 
+    // Trigger CutsceneDialogueEvent when pressing 9
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
-        // Broadcast the DialogueTriggerEvent with a specific dialogue ID
-        wolf::EventManager::TriggerEvent(DialogueTriggerEvent("intro_1"));
+        // Trigger both cutscene and dialogue with IDs
+        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence"));
     }
 
-    // Apply velocity to transforms for all objects with both components
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>())
-    {
+        // Update velocity components to apply friction and decelerate objects
+    for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
+        velocity.Update(delta);  // Update velocity with friction and other forces
+    }
+
+    // Update collisions
+    this->m_pColliderManager->Update(delta);
+    
+    // Apply velocity for all objects with Transform2D and VelocityComponent
+    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
         transform.Translate(velocity.GetVelocity() * delta);
     }
     ConvertPlayerTileToGold();
@@ -342,6 +413,8 @@ void PlayState::Update(float delta)
 
     // Dispatch events
     wolf::EventManager::Dispatch();
+
+    // ImGui::ShowDemoWindow();
 }
 
 void PlayState::Render()
@@ -351,6 +424,12 @@ void PlayState::Render()
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
         playerController->Render();
+
+    // Render status effect icons
+    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
+    {
+        status.RenderPlayerSEIcons();
+    }
 }
 
 void PlayState::BackgroundUpdate(float delta)
@@ -368,6 +447,9 @@ void PlayState::CreatePlayer()
 {
     // Create player object with transform
     m_pPlayerObject = &m_pGameInstance->GetScene().CreateObject2D();
+    
+    // Register the player (Theseus) in the shared context
+    m_pGameInstance->GetSharedContext().RegisterEntity("Theseus", m_pPlayerObject->GetID());
 
     // Add player controller and initialize
     // NOTE: This manages all player animations and the animated sprite component for the player
@@ -381,7 +463,7 @@ void PlayState::CreatePlayer()
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
     // Add inventory
-    auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, ImVec2(500, 200));
+    auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, ImVec2(50, 50));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
     collider.AddColliderBox(glm::vec2(7.0f, 8.0f), glm::vec2(-4.0f, -4.0f));
@@ -391,13 +473,13 @@ void PlayState::CreatePlayer()
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, -1.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 4.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 7.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, ImVec2(800, 200), "Merchant Guy", 0.1f, 50);
     pMerchant->FillInventoryFromFile("data/test_chest_contents.yaml");
-    DispensaryInventoryComponent* pDispensary = &m_pPlayerObject->AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(200, 200));
-    pDispensary->FillInventoryFromFile("data/test_dispensary_contents.yaml");
 }
 
 void PlayState::CreateMinitaurEnemy()
@@ -472,6 +554,7 @@ void PlayState::CreateGorgonEnemy()
         {
             transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
         }
+        m_pGameInstance->GetSharedContext().RegisterEntity("Gorgon", gorgon.GetID());
     }
 }
 
@@ -508,20 +591,15 @@ void PlayState::CreateThrowableObject()
     auto& throwable = throwableObj.AddComponent<ThrowableObjectComponent>(25.0f, m_pColliderManager);
 }
 
-void PlayState::StartDialogue(const std::string& dialogueID)
-{
-    // Create a new DialogueState and push it onto the state stack
-    DialogueState* dialogueState = new DialogueState(m_pStateManager, m_pGameInstance, m_pDialogueManager);
-    m_pStateManager->PushState(dialogueState);
+void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {
+    std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
 
-    // Start the dialogue with the given ID
-    dialogueState->StartDialogue(dialogueID);
+    // Push the DialogueAndCutsceneState onto the game state stack
+    auto* dialogueAndCutsceneState = new DialogueAndCutsceneState(m_pStateManager, m_pGameInstance, "data/DialogueAndCutscenes.yaml");
+    dialogueAndCutsceneState->LoadSequence(event.sequenceID);  // Start the specific sequence
+    m_pStateManager->PushState(dialogueAndCutsceneState);
 }
 
-void PlayState::OnDialogueTriggerEvent(const DialogueTriggerEvent& event)
-{
-    StartDialogue(event.dialogueID);
-}
 
 void PlayState::CreatePressurePlate(const glm::vec2& position, TriggerType triggerType, TrapType trapType) {
     // Create the pressure plate object in the scene
@@ -540,18 +618,12 @@ void PlayState::CreatePressurePlate(const glm::vec2& position, TriggerType trigg
     transform->SetScale(glm::vec2(3.0f));
 
     // Add velocity component (optional if no movement is needed)
-    if (!pressurePlateObj.HasAll<VelocityComponent>()) {
-        pressurePlateObj.AddComponent<VelocityComponent>();
-    }
-    auto* velocity = pressurePlateObj.GetComponent<VelocityComponent>();
-    velocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+    auto& velocity = pressurePlateObj.AddComponent<VelocityComponent>();
+    velocity.SetVelocity(glm::vec2(0.0f, 0.0f));
 
     // Add a collider for interaction
-    if (!pressurePlateObj.HasAll<ColliderComponent>()) {
-        pressurePlateObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-    }
-    auto* collider = pressurePlateObj.GetComponent<ColliderComponent>();
-    collider->AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+    auto& collider = pressurePlateObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
 
     // Add the TriggerComponent with specified trigger and trap types
     pressurePlateObj.AddComponent<TriggerComponent>(m_pColliderManager, triggerType, trapType);
@@ -560,9 +632,37 @@ void PlayState::CreatePressurePlate(const glm::vec2& position, TriggerType trigg
     // wolf::Log("Created pressure plate with TriggerComponent at position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
 }
 
+wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
+{
+    // Create the trap object
+    auto& trap = m_pGameInstance->GetScene().CreateObject2D();
+
+    // Add sprite
+    auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
+    sprite.SetOriginToCenterOfTexture();
+    sprite.SetLayer(0);
+
+    // Set position
+    auto& transform = *trap.GetComponent<wolf::Transform2D>();
+    transform.SetPosition(position);
+    transform.SetScale(glm::vec2(3.0f));
+
+    // Add a collider for interaction
+    auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+
+    // Add the TriggerComponent
+    trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE);
+
+    return trap;
+}
+
 void PlayState::OnTriggerEvent(const TriggerEvent& event) {
     auto* triggerObject = event.m_pTriggerObject;
-    if (!triggerObject) return;
+    if (!triggerObject) {
+        wolf::Error("TriggerEvent received with a null trigger object.");
+        return;
+    }
 
     auto* transform = triggerObject->GetComponent<wolf::Transform2D>();
     if (!transform) {
@@ -580,7 +680,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             CreateBoulderTrap(trapPosition);
             break;
         default:
-            wolf::Log("No trap to create for this trigger.");
+            wolf::Log("Unsupported trap type for the trigger event.");
             break;
     }
 }
@@ -664,51 +764,6 @@ void PlayState::ShowTooltip(const std::string& text)
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(2);
 }
-void PlayState::OnCutsceneTriggerEvent(const TriggerEvent& event) {
-    if (event.m_triggerType == TriggerType::CUTSCENE_SINGLE) {
-        StartCutscene("intro");  // Specify cutscene ID as needed
-    }
-}
-
-void PlayState::StartCutscene(const std::string& cutsceneID) {
-    m_pStateManager->PushState(new CutSceneState(m_pStateManager, m_pGameInstance, "data/cutscenes.yaml", cutsceneID));
-}
-
-void PlayState::CreateSpikeTrap(const glm::vec2& position) {
-    // Create the spike trap object
-    auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
-
-    // Add spike trap sprite
-    if (!trapObj.HasAll<wolf::Sprite2D>()) {
-        trapObj.AddComponent<wolf::Sprite2D>("data/textures/spiketrap.png");
-    }
-    auto* sprite = trapObj.GetComponent<wolf::Sprite2D>();
-    sprite->SetOriginToCenterOfTexture();
-
-    // Check if Transform2D component exists, and add if not
-    if (!trapObj.HasAll<wolf::Transform2D>()) {
-        trapObj.AddComponent<wolf::Transform2D>();
-    }
-    auto* transform = trapObj.GetComponent<wolf::Transform2D>();
-    transform->SetPosition(position);
-    transform->SetScale(glm::vec2(3.0f));
-
-    // Add collider component
-    if (!trapObj.HasAll<ColliderComponent>()) {
-        trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-    }
-    auto* collider = trapObj.GetComponent<ColliderComponent>();
-    collider->AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
-
-    // Add TrapComponent if not already present
-    if (!trapObj.HasAll<TrapComponent>()) {
-        trapObj.AddComponent<TrapComponent>(50.0f, 5.0f, m_pColliderManager);
-    }
-
-    // // Log the creation of the spike trap
-    // wolf::Log("Spike trap created at position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
-}
-
 void PlayState::CreateBoulderTrap(const glm::vec2& position) {
     auto& boulderObj = m_pGameInstance->GetScene().CreateObject2D();
 

@@ -8,6 +8,7 @@
 //-----------------------------------------------------------------------------
 
 #include <glm/glm.hpp>
+#include <array>
 
 namespace wolf
 {
@@ -58,6 +59,17 @@ struct Rectangle
 
     // Returns the top left coordinate of the rectangle
     inline glm::vec2 GetPosition() const { return glm::vec2(m_left, m_top); };
+
+     // **New Helper**: Returns the corners of the rectangle
+    inline std::array<glm::vec2, 4> GetCorners() const
+    {
+        return {
+            glm::vec2(m_left, m_top),                // Top-left
+            glm::vec2(m_right, m_top),              // Top-right
+            glm::vec2(m_left, m_bottom),            // Bottom-left
+            glm::vec2(m_right, m_bottom)            // Bottom-right
+        };
+    }
 
     // Data
     float m_left;

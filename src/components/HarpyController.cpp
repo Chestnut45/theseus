@@ -223,7 +223,13 @@ void HarpyController::HandleAttackingState(float delta)
     {
         auto& projectile = scene.CreateObject2D();
 
-        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
+        //
+        std::vector<std::pair<StatusComponent::StatusEffectType, float>> statusEffects = 
+        {
+            std::pair<StatusComponent::StatusEffectType, float>(StatusComponent::StatusEffectType::BURNING, 5.0f)
+        };
+
+        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(m_baseDamage, m_pColliderManager, 0.0f, statusEffects);
 
         auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
         projectileSprite.SetOriginToCenterOfTexture();
@@ -232,7 +238,7 @@ void HarpyController::HandleAttackingState(float delta)
         projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
         projectileCollider.SetIgnoreTag(this->GetGameObject()->GetID());
 
-        auto& projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 12.0f, 16);
+        auto& projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 6.0f, 0.1f);
         auto& projectileTimedDestroyer = projectile.AddComponent<TimedDestroyerComponent>(10);
 
         auto& projectileVelocityComponent = projectile.AddComponent<VelocityComponent>();
@@ -327,7 +333,7 @@ void HarpyController::HandleDeathState(float delta)
         if(m_lieDeadTimer >= m_timeToLieDead)
         {
             // !-- Aurora added this --!
-            ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), 5.0f);
+            ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
             GetGameObject()->Delete();
         }
         m_lieDeadTimer += delta;

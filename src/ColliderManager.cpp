@@ -22,6 +22,7 @@ ColliderManager::~ColliderManager()
 
 void ColliderManager::Update(float p_delta)
 {
+    this->CheckCornerCollision(p_delta);
     this->CheckCollisions(p_delta);
     this->RemoveFlagged();
 }
@@ -143,6 +144,16 @@ bool ColliderManager::IsColliding(ColliderComponent& p_colliderComponent1, Colli
         }
     }
     return false;
+}
+
+bool ColliderManager::StandardAABB(float left1, float right1, float top1, float bottom1, float left2, float right2, float top2, float bottom2)
+{
+    return !(
+        right1  < left2     ||
+        left1   > right2    ||
+        bottom1 > top2      ||
+        top1    < bottom2
+    ); 
 }
 
 bool ColliderManager::CustomAABB(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta)
@@ -343,10 +354,154 @@ bool ColliderManager::CustomAABBInternalUse(const glm::vec2& p_translation_1, co
     // If one is true but the other isn't
     else if (result != newResult)
     {
+        
         this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
         return true;
     }
 
     // Both results must be false
     return false;
+}
+
+void ColliderManager::CheckCornerCollision(float p_delta)
+{
+    // Precompute moving colliders
+    std::vector<std::pair<ColliderComponent*, glm::vec2>> movingColliders;
+    std::vector<ColliderComponent*> staticColliders;
+
+    // Separate moving and static colliders
+    for (auto&& [id, collider] : m_scene->Each<ColliderComponent>())
+    {
+        if (!collider.IsActive() || !collider.IsHitbox()) continue;
+
+        // Check velocity
+        auto* velocityComponent = collider.GetGameObject()->GetComponent<VelocityComponent>();
+        glm::vec2 velocity = velocityComponent ? velocityComponent->GetVelocity() : glm::vec2(0.0f);
+
+        if (velocity != glm::vec2(0.0f))
+        {
+            movingColliders.push_back({&collider, velocity});
+        }
+        else
+        {
+            staticColliders.push_back(&collider);
+        }
+    }
+
+    // Compare moving colliders with each other and with static colliders
+    for (auto& [collider1, velocity1] : movingColliders)
+    {
+        // Get transform and scale of first collider
+        glm::vec2 translation1 = collider1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 scale1 = collider1->IsRelative() ? collider1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale() : glm::vec2(1.0f);
+
+        for (wolf::Rectangle box1 : collider1->GetColliderBoxes())
+        {
+            auto corners1 = box1.GetCorners();
+
+            // Compare with other moving colliders
+            for (auto& [collider2, velocity2] : movingColliders)
+            {
+                if (collider1 == collider2) continue;
+
+                if (HandleCornerCollision(collider1, velocity1, corners1, collider2, scale1, translation1))
+                {
+                    // std::cout << "Corner collision detected and velocity adjusted!" << std::endl;
+                }
+            }
+
+            // Compare with static colliders
+            for (auto* collider2 : staticColliders)
+            {
+                if (HandleCornerCollision(collider1, velocity1, corners1, collider2, scale1, translation1))
+                {
+                    // std::cout << "Corner collision detected and velocity adjusted!" << std::endl;
+                }
+            }
+        }
+    }
+}
+
+// Helper function to check for and handle corner collisions
+bool ColliderManager::HandleCornerCollision(
+    ColliderComponent* collider1,
+    const glm::vec2& velocity1,
+    const std::array<glm::vec2, 4>& corners,
+    ColliderComponent* collider2,
+    const glm::vec2& scale1,
+    const glm::vec2& translation1)
+{
+    glm::vec2 translation2 = collider2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 scale2 = collider2->IsRelative() ? collider2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale() : glm::vec2(1.0f);
+
+    const float buffer = 0.1f; // Small buffer to push the colliders slightly apart
+
+    for (wolf::Rectangle box2 : collider2->GetColliderBoxes())
+    {
+        glm::vec2 adjustedTopLeft2 = box2.GetPosition() * scale2 + translation2;
+        glm::vec2 adjustedBottomRight2 = adjustedTopLeft2 + glm::vec2(box2.GetWidth(), -box2.GetHeight()) * scale2;
+
+        for (const auto& corner : corners)
+        {
+            glm::vec2 transformedCorner = corner * scale1 + translation1;
+
+            // Check if the corner is inside the bounds of the second collider
+            if (transformedCorner.x >= adjustedTopLeft2.x && transformedCorner.x <= adjustedBottomRight2.x &&
+                transformedCorner.y <= adjustedTopLeft2.y && transformedCorner.y >= adjustedBottomRight2.y)
+            {
+                glm::vec2 pushDirection(0.0f);
+
+                // Determine the smallest axis of penetration
+                float overlapX = std::min(
+                    std::abs(adjustedBottomRight2.x - transformedCorner.x),
+                    std::abs(adjustedTopLeft2.x - transformedCorner.x));
+                float overlapY = std::min(
+                    std::abs(adjustedTopLeft2.y - transformedCorner.y),
+                    std::abs(adjustedBottomRight2.y - transformedCorner.y));
+
+                // Push out based on the smaller overlap
+                if (overlapX < overlapY)
+                {
+                    // Push along the X-axis
+                    if (transformedCorner.x > (adjustedTopLeft2.x + adjustedBottomRight2.x) / 2.0f)
+                        pushDirection.x = overlapX + buffer; // Push right
+                    else
+                        pushDirection.x = -(overlapX + buffer); // Push left
+                }
+                else
+                {
+                    // Push along the Y-axis
+                    if (transformedCorner.y > (adjustedTopLeft2.y + adjustedBottomRight2.y) / 2.0f)
+                        pushDirection.y = overlapY + buffer; // Push up
+                    else
+                        pushDirection.y = -(overlapY + buffer); // Push down
+                }
+
+                // Adjust collider1's position to resolve the overlap
+                auto* transform = collider1->GetGameObject()->GetComponent<wolf::Transform2D>();
+                if (transform)
+                {
+                    glm::vec2 newPosition = translation1 + pushDirection;
+                    transform->SetPosition(newPosition);
+                }
+                
+                // Stop movement in the collision direction
+                glm::vec2 newVel = velocity1;
+                if (pushDirection.x != 0.0f)
+                    newVel.x = 0.0f;
+                if (pushDirection.y != 0.0f)
+                    newVel.y = 0.0f;
+
+                // Apply the updated velocity back to the velocity component
+                auto* velocityComponent = collider1->GetGameObject()->GetComponent<VelocityComponent>();
+                if (velocityComponent)
+                {
+                    velocityComponent->SetVelocity(newVel);
+                }
+
+                return true; // Corner collision detected
+            }
+        }
+    }
+    return false; // No collision
 }

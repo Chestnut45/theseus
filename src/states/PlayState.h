@@ -16,7 +16,7 @@
 #include "../inventory/StatusEffectItem.h"
 #include "../inventory/ItemCreator.h"
 #include "../inventory/ItemDropCreator.h"
-#include "../events/DialogueTriggerEvent.h"
+#include "../events/DialogueAndCutsceneEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
 #include "events/TriggerEvent.h"
@@ -29,6 +29,8 @@
 #include <HarpyBuilder.h>
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
+
+#include <unordered_map>
 
 
 class LabyrinthManager;
@@ -48,13 +50,9 @@ public:
     void Render() override;
     void BackgroundUpdate(float delta) override;
     void BackgroundRender() override;
-
-    // Event Handlers
-    void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
-    void OnCutsceneTriggerEvent(const TriggerEvent& event);
-    void OnGameOverEvent(const GameOverEvent& event);
-
+    void OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event);
+    std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}
 
 private:
     
@@ -71,7 +69,6 @@ private:
     bool m_showInventoryGUI = false;
 
     // Private helper methods
-    void StartDialogue(const std::string& dialogueID);
     void ConvertPlayerTileToGold();
 
     // Creates the player object and all of its components
@@ -84,14 +81,16 @@ private:
 
     void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType, TrapType trapType = TrapType::NONE);
     void CreateThrowableObject();
+    wolf::GameObject& CreateSpikeTrap(const glm::vec2& position);
 
-    // New Helper Methods for Traps
-    void CreateSpikeTrap(const glm::vec2& position);
+    void OnGameOverEvent(const GameOverEvent& event);
+
+    // New Helper Methods for BoulderTrap
     void CreateBoulderTrap(const glm::vec2& position);
-
-
 
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);
-    void StartCutscene(const std::string& cutsceneID);
+
+    std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
+
 };

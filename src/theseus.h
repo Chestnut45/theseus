@@ -3,6 +3,7 @@
 #include <wolf.h>
 #include "GameInc.h"
 #include "DialogueManager.h"
+#include "SharedContext.h"
 class Theseus : public wolf::App
 {
 public:
@@ -30,6 +31,8 @@ public:
     inline wolf::Scene& GetScene() { return m_scene; }
     DialogueManager& GetDialogueManager() { return m_dialogueManager; }
 
+    SharedContext& GetSharedContext() { return m_sharedContext; }
+
 
 private:
 
@@ -42,4 +45,6 @@ private:
 
     // Flags
     bool m_showDebug = false;
+
+    SharedContext m_sharedContext;
 };
