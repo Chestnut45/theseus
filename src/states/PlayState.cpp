@@ -177,9 +177,6 @@ void PlayState::Update(float delta)
     for (auto&& [_, trap] : m_pGameInstance->GetScene().Each<TrapComponent>()) {
         trap.Update(delta);
     }
-    for (auto&& [_, bouldertrap] : m_pGameInstance->GetScene().Each<BoulderTrapComponent>()) {
-        bouldertrap.Update(delta);
-    }
         
     for (auto&& [_, throwable] : m_pGameInstance->GetScene().Each<ThrowableObjectComponent>()) 
     {
@@ -628,34 +625,50 @@ wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
 
 
 void PlayState::OnTriggerEvent(const TriggerEvent& event) {
-    auto* triggerObject = event.m_pTriggerObject;
-    if (!triggerObject) {
-        wolf::Error("TriggerEvent received with a null trigger object.");
-        return;
-    }
+    if (event.m_triggerType == TriggerType::SINGLE_USE || event.m_triggerType == TriggerType::REUSABLE) {
+        auto* triggerObject = event.m_pTriggerObject;
+        if (triggerObject){
+            auto* transform = triggerObject->GetComponent<wolf::Transform2D>();
+            if (!transform) {
+                wolf::Error("Trigger object has no Transform2D component!");
+                return;
+            }
+            glm::vec2 triggerPosition = transform->GetGlobalPosition();
+            printf("OnTriggerEvent Received: Type=%d, Purpose=%d\n", static_cast<int>(event.m_triggerType), static_cast<int>(event.m_purpose));
 
-    auto* transform = triggerObject->GetComponent<wolf::Transform2D>();
-    if (!transform) {
-        wolf::Error("Trigger object has no Transform2D component!");
-        return;
-    }
+            TriggerPurpose purpose = event.m_purpose;
+            printf("TriggerEvent Purpose: %d\n", static_cast<int>(purpose));
 
-    glm::vec2 triggerPosition = transform->GetGlobalPosition();
-    printf("OnTriggerEvent Received: Type=%d, Purpose=%d\n", static_cast<int>(event.m_triggerType), static_cast<int>(event.m_purpose));
+            switch (purpose) {
+                case TriggerPurpose::SPIKE_TRAP: {
+                    auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
+                    auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/SpikesExtended.png");
+                    trapSprite.SetOriginToCenterOfTexture();
+                    trapSprite.SetLayer(1);
+                    auto* trapTransform = trapObj.GetComponent<wolf::Transform2D>();
+                    if (!trapTransform) {
+                        trapTransform = &trapObj.AddComponent<wolf::Transform2D>();
+                    }
+                    trapTransform->SetPosition(triggerPosition);
+                    trapTransform->SetScale(glm::vec2(3.0f));
 
-    TriggerPurpose purpose = event.m_purpose;
-    printf("TriggerEvent Purpose: %d\n", static_cast<int>(purpose));
+                    // Add velocity (optional)
+                    auto& velocity = trapObj.AddComponent<VelocityComponent>();
+                    velocity.SetVelocity(glm::vec2(0.0f, 0.0f));
 
-    switch (purpose) {
-        case TriggerPurpose::SPIKE_TRAP: {
-            auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
-            // auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/SpikesExtended.png");
-            wolf::Log("Spike trap triggered!");
-            break;
+                    // Add collider for the trap
+                    auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+                    trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+                    // Add TrapComponent with some parameters (e.g., 50 damage, 5 seconds lifespan)
+                    trapObj.AddComponent<TrapComponent>(50.0f, 1.0f, m_pColliderManager);
+                    wolf::Log("Spike trap triggered!");
+                    break;
+                }
+                default:
+                    wolf::Log("Unsupported trigger purpose.");
+                    break;
+            }
         }
-        default:
-            wolf::Log("Unsupported trigger purpose.");
-            break;
     }
 }
 
