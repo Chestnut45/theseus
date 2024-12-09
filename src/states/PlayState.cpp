@@ -626,6 +626,7 @@ wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
     return trap;
 }
 
+
 void PlayState::OnTriggerEvent(const TriggerEvent& event) {
     auto* triggerObject = event.m_pTriggerObject;
     if (!triggerObject) {
@@ -643,9 +644,28 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
     switch (event.m_purpose) {
         case TriggerPurpose::TRAP: {
-            // Handle reusable traps creation here
-            CreateSpikeTrap(triggerPosition); // Example: SpikeTrap is created here
-            // Add other trap creation logic if needed
+            auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
+            auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/SpikesExtended.png");
+            trapSprite.SetOriginToCenterOfTexture();
+            trapSprite.SetLayer(1);
+
+            // Add transform and set position
+            auto* trapTransform = trapObj.GetComponent<wolf::Transform2D>();
+            if (!trapTransform) {
+                trapTransform = &trapObj.AddComponent<wolf::Transform2D>();
+            }
+            trapTransform->SetPosition(triggerPosition);
+            trapTransform->SetScale(glm::vec2(3.0f));
+
+            // Add velocity (optional)
+            auto& velocity = trapObj.AddComponent<VelocityComponent>();
+            velocity.SetVelocity(glm::vec2(0.0f, 0.0f));
+
+            // Add collider for the trap
+            auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+            trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+            // Add TrapComponent with some parameters (e.g., 50 damage, 5 seconds lifespan)
+            trapObj.AddComponent<TrapComponent>(50.0f, 1.0f, m_pColliderManager);
             break;
         }
         case TriggerPurpose::CUTSCENE: {
@@ -737,40 +757,4 @@ void PlayState::ShowTooltip(const std::string& text)
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(2);
 }
-void PlayState::CreateBoulderTrap(const glm::vec2& position) {
-    auto& boulderObj = m_pGameInstance->GetScene().CreateObject2D();
 
-    // Add sprite component for the boulder using the debug sprite
-    if (!boulderObj.HasAll<wolf::Sprite2D>()) {
-        boulderObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    }
-    auto* sprite = boulderObj.GetComponent<wolf::Sprite2D>();
-    sprite->SetOriginToCenterOfTexture();
-
-    // Add transform component
-    if (!boulderObj.HasAll<wolf::Transform2D>()) {
-        boulderObj.AddComponent<wolf::Transform2D>();
-    }
-    auto* transform = boulderObj.GetComponent<wolf::Transform2D>();
-    transform->SetPosition(position);
-    transform->SetScale(glm::vec2(3.0f));
-
-    // Add collider component
-    if (!boulderObj.HasAll<ColliderComponent>()) {
-        boulderObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-    }
-    auto* collider = boulderObj.GetComponent<ColliderComponent>();
-    collider->AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
-
-    // // Add AttackDamageComponent with specified damage value
-    // if (!boulderObj.HasAll<AttackDamageComponent>()) {
-    //     boulderObj.AddComponent<AttackDamageComponent>(100.0f, m_pColliderManager);
-    // }
-
-    // Add BoulderTrapComponent with movement and lifespan settings
-    if (!boulderObj.HasAll<BoulderTrapComponent>()) {
-        boulderObj.AddComponent<BoulderTrapComponent>(m_pColliderManager, BoulderDirection::LEFT, 200.0f, 10.0f);
-    }
-
-    // wolf::Log("Boulder trap created with damage component, position: (" + std::to_string(position.x) + ", " + std::to_string(position.y) + ")");
-}

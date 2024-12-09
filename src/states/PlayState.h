@@ -84,8 +84,7 @@ private:
 
     void OnGameOverEvent(const GameOverEvent& event);
 
-    // New Helper Methods for BoulderTrap
-    void CreateBoulderTrap(const glm::vec2& position);
+    // TO DO: New Helper Methods for BoulderTrap
 
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);
