@@ -1,11 +1,12 @@
 #include "TriggerComponent.h"
+#include "TriggerEvent.h"
 #include "W_GameObject.h"
 #include "PlayerController.h"
 #include "W_EventManager.h"
 
 TriggerComponent::TriggerComponent(ColliderManager* colliderManager, TriggerType type, TriggerPurpose purpose)
     : m_colliderManager(colliderManager), m_triggerType(type), m_purpose(purpose), m_triggered(false) {
-    if (purpose == TriggerPurpose::TRAP && type == TriggerType::REUSABLE) {
+    if (purpose == TriggerPurpose::SPIKE_TRAP && type == TriggerType::REUSABLE) {
         wolf::EventManager::AddListener<TrapDestroyedEvent, TriggerComponent, &TriggerComponent::OnTrapDestroyed>(*this);
     }
 }

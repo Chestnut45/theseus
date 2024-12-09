@@ -177,7 +177,7 @@ void PlayState::Update(float delta)
     for (auto&& [_, trap] : m_pGameInstance->GetScene().Each<TrapComponent>()) {
         trap.Update(delta);
     }
-      for (auto&& [_, bouldertrap] : m_pGameInstance->GetScene().Each<BoulderTrapComponent>()) {
+    for (auto&& [_, bouldertrap] : m_pGameInstance->GetScene().Each<BoulderTrapComponent>()) {
         bouldertrap.Update(delta);
     }
         
@@ -621,7 +621,7 @@ wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
     collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
 
     // Add the TriggerComponent
-    trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::TRAP);
+    trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP);
 
     return trap;
 }
@@ -641,35 +641,16 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
     }
 
     glm::vec2 triggerPosition = transform->GetGlobalPosition();
+    printf("OnTriggerEvent Received: Type=%d, Purpose=%d\n", static_cast<int>(event.m_triggerType), static_cast<int>(event.m_purpose));
 
-    switch (event.m_purpose) {
-        case TriggerPurpose::TRAP: {
+    TriggerPurpose purpose = event.m_purpose;
+    printf("TriggerEvent Purpose: %d\n", static_cast<int>(purpose));
+
+    switch (purpose) {
+        case TriggerPurpose::SPIKE_TRAP: {
             auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
-            auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/SpikesExtended.png");
-            trapSprite.SetOriginToCenterOfTexture();
-            trapSprite.SetLayer(1);
-
-            // Add transform and set position
-            auto* trapTransform = trapObj.GetComponent<wolf::Transform2D>();
-            if (!trapTransform) {
-                trapTransform = &trapObj.AddComponent<wolf::Transform2D>();
-            }
-            trapTransform->SetPosition(triggerPosition);
-            trapTransform->SetScale(glm::vec2(3.0f));
-
-            // Add velocity (optional)
-            auto& velocity = trapObj.AddComponent<VelocityComponent>();
-            velocity.SetVelocity(glm::vec2(0.0f, 0.0f));
-
-            // Add collider for the trap
-            auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-            trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
-            // Add TrapComponent with some parameters (e.g., 50 damage, 5 seconds lifespan)
-            trapObj.AddComponent<TrapComponent>(50.0f, 1.0f, m_pColliderManager);
-            break;
-        }
-        case TriggerPurpose::CUTSCENE: {
-            // Trigger a cutscene
+            // auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/SpikesExtended.png");
+            wolf::Log("Spike trap triggered!");
             break;
         }
         default:

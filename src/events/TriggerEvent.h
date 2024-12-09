@@ -1,9 +1,7 @@
 #pragma once
 #include "W_GameObject.h" 
+#include "TriggerComponent.h" // This includes TriggerPurpose and TriggerType
 
-// Forward declare enums to avoid circular dependency
-enum class TriggerType;
-enum class TriggerPurpose;
 
 struct TriggerEvent {
     wolf::GameObject* m_pTriggerObject = nullptr;

@@ -2,7 +2,6 @@
 #include "W_BaseComponent.h"
 #include "ColliderComponent.h"
 #include "W_EventManager.h"
-#include <events/TriggerEvent.h>
 #include <events/TrapDestroyedEvent.h>
 
 enum class TriggerType {
@@ -12,7 +11,7 @@ enum class TriggerType {
 
 enum class TriggerPurpose {
     NONE,            // No specific action
-    TRAP,            // Triggers a trap
+    SPIKE_TRAP,            // Triggers a trap
     CUTSCENE         // Triggers a cutscene
 };
 
