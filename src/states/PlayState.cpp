@@ -581,6 +581,9 @@ void PlayState::CreateThrowableObject()
 
     // Add the throwable component with parameters matching the constructor
     auto& throwable = throwableObj.AddComponent<ThrowableObjectComponent>(25.0f, m_pColliderManager);
+    glm::vec2 finalPosition = transform->GetGlobalPosition();
+    wolf::Log("Throwable Object Final Position: (" + 
+              std::to_string(finalPosition.x) + ", " + std::to_string(finalPosition.y) + ")");
 }
 
 void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {

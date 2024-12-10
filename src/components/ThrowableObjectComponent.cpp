@@ -121,20 +121,18 @@ void ThrowableObjectComponent::SetState(ThrowableState newState) {
 void ThrowableObjectComponent::HandleCollision() {
     if (m_hasCollided) return; // Prevent double collision handling
 
-    for (auto&& [_, minitaurController] : GetGameObject()->GetScene().Each<MinitaurController>()) {
-        auto* minitaurObject = minitaurController.GetGameObject();
-        auto* minitaurCollider = minitaurObject->GetComponent<ColliderComponent>();
+    for (auto&& [_, gameObject] : GetGameObject()->GetScene().Each<wolf::GameObject>()) {
+        auto* targetCollider = gameObject.GetComponent<ColliderComponent>();
+        auto* targetHealth = gameObject.GetComponent<HealthComponent>();
 
-        if (minitaurCollider && m_pCollider && m_pColliderManager->IsColliding(*m_pCollider, *minitaurCollider, 0.0f)) {
-            // Collision detected with Minitaur
-            auto* healthComponent = minitaurObject->GetComponent<HealthComponent>();
-            if (healthComponent) {
-                healthComponent->Damage(200.0f); // Apply damage to Minitaur's health
-                // std::cout << "Collision with Minitaur! Damage dealt: 200" << std::endl;
+        if (targetCollider && m_pCollider && m_pColliderManager->IsColliding(*m_pCollider, *targetCollider, 0.0f)) {
+            // If object has a health component, apply damage
+            if (targetHealth) {
+                targetHealth->Damage(m_damage); // Use the damage value of the throwable object
+                m_hasCollided = true;
+                GetGameObject()->Delete(); // Mark object for deletion after collision
+                return;
             }
-            m_hasCollided = true;
-            GetGameObject()->Delete(); // Mark object for deletion
-            return;
         }
     }
 }
