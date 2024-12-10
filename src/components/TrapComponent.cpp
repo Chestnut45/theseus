@@ -41,12 +41,31 @@ bool TrapComponent::CheckForPlayerCollision(float delta) {
     auto* trapCollider = GetGameObject()->GetComponent<ColliderComponent>();
     if (!trapCollider) return false;
 
-    for (auto&& [_, playerController] : GetGameObject()->GetScene().Each<PlayerController>()) {
-        auto* playerCollider = playerController.GetGameObject()->GetComponent<ColliderComponent>();
-        if (playerCollider && m_colliderManager->IsColliding(*trapCollider, *playerCollider, delta)) {
-            auto* playerHealth = playerController.GetGameObject()->GetComponent<HealthComponent>();
+
+    for (auto&& [_, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
+    {
+        // Get player object
+        auto* pObj = playerController.GetGameObject();
+        auto* playerCollider = pObj->GetComponent<ColliderComponent>();
+        if (playerCollider && m_colliderManager->IsColliding(*trapCollider, *playerCollider, delta))
+        {
+            auto* playerHealth = pObj->GetComponent<HealthComponent>();
             if (playerHealth) {
+
+                // Damage the player
                 playerHealth->Damage(m_damage);
+
+                // Apply knockback to the player
+                auto* playerVelocity = pObj->GetComponent<VelocityComponent>();
+                if (playerVelocity)
+                {
+                    // Calculate knockback direction
+                    const glm::vec2 targetPosition = pObj->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                    const glm::vec2 currentPosition = GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                    glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
+                    playerVelocity->ApplyKnockback(knockbackDirection, 2000);
+                }
+
                 return true;
             }
         }
