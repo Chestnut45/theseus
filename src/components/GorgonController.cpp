@@ -2,7 +2,34 @@
 #include "PlayerController.h"
 #include <cassert>
 
+int GorgonController::s_iComponentCounter = 0;
+wolf::Texture* GorgonController::s_pEmoteTextures[EnemyEmote::NONE];
 
+GorgonController::GorgonController()
+{
+    if(s_iComponentCounter == 0)
+    {
+        s_pEmoteTextures[EnemyEmote::EXLAMATION] = wolf::TextureManager::CreateTexture("data/textures/emote_exclamation.png");
+        s_pEmoteTextures[EnemyEmote::EXLAMATION]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+
+        s_pEmoteTextures[EnemyEmote::QUESTION] = wolf::TextureManager::CreateTexture("data/textures/emote_question.png");
+        s_pEmoteTextures[EnemyEmote::QUESTION]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+    }
+    s_iComponentCounter++;
+}   
+
+GorgonController::~GorgonController()
+{
+    s_iComponentCounter--;
+    if(s_iComponentCounter == 0)
+    {
+        for (int i = 0; i < EnemyEmote::NONE; i++)
+        {
+            wolf::TextureManager::DestroyTexture(s_pEmoteTextures[i]);
+            s_pEmoteTextures[i] = nullptr;
+        }
+    }
+}
 
 void GorgonController::Init(const EnemyData& data)
 {

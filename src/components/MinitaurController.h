@@ -11,8 +11,8 @@
 class MinitaurController : public EnemyController
 {
 public:
-    MinitaurController() = default;    
-    ~MinitaurController() = default; 
+    MinitaurController();    
+    ~MinitaurController();
 
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
@@ -54,4 +54,6 @@ private:
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
 
+    static int s_iComponentCounter;
+    static wolf::Texture* s_pEmoteTextures [EnemyEmote::NONE];
 };

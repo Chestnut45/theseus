@@ -5,6 +5,34 @@
 // !- Aurora added this --!
 #include "inventory/ItemDropCreator.h"
 
+int MinitaurController::s_iComponentCounter = 0;
+wolf::Texture* MinitaurController::s_pEmoteTextures[EnemyEmote::NONE];
+
+MinitaurController::MinitaurController()
+{
+    if(s_iComponentCounter == 0)
+    {
+        s_pEmoteTextures[EnemyEmote::EXLAMATION] = wolf::TextureManager::CreateTexture("data/textures/emote_exclamation.png");
+        s_pEmoteTextures[EnemyEmote::EXLAMATION]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+
+        s_pEmoteTextures[EnemyEmote::QUESTION] = wolf::TextureManager::CreateTexture("data/textures/emote_question.png");
+        s_pEmoteTextures[EnemyEmote::QUESTION]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+    }
+    s_iComponentCounter++;
+}
+
+MinitaurController::~MinitaurController()
+{
+    if(s_iComponentCounter == 0)
+    {
+        s_pEmoteTextures[EnemyEmote::EXLAMATION] = wolf::TextureManager::CreateTexture("data/textures/emote_exclamation.png");
+        s_pEmoteTextures[EnemyEmote::EXLAMATION]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+
+        s_pEmoteTextures[EnemyEmote::QUESTION] = wolf::TextureManager::CreateTexture("data/textures/emote_question.png");
+        s_pEmoteTextures[EnemyEmote::QUESTION]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+    }
+    s_iComponentCounter++;
+}
 
 void MinitaurController::Init(const EnemyData& data)
 {

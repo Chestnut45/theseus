@@ -11,8 +11,8 @@
 class HarpyController : public EnemyController
 {
 public:
-    HarpyController() = default;    
-    ~HarpyController() = default; 
+    HarpyController();    
+    ~HarpyController(); 
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
     
@@ -50,4 +50,8 @@ private:
     float m_lieDeadTimer = 0.0f;
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
+
+    static int s_iComponentCounter;
+    static wolf::Texture* s_pEmoteTextures [EnemyEmote::NONE];
+
 };

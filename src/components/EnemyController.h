@@ -25,6 +25,12 @@ public:
     ColliderManager* GetColliderManager() const;
 
 protected:
+    enum EnemyEmote
+    {
+        EXLAMATION,
+        QUESTION,
+        NONE
+    };
     void ChangeState(EnemyState newState); // General state transition logic shared by all enemies
 
     // These components are common to all enemies and will be initialized here, but used in specific enemy classes
@@ -36,7 +42,5 @@ protected:
     ColliderManager* m_pColliderManager = nullptr;
     wolf::GameObject* m_pTarget = nullptr;  // Target (usually the player)
 
-    static wolf::Texture* s_pExclamation;
-    static wolf::Texture* s_pQuestion;
     float m_fCountdownToDeath = 2.0f;
 };
