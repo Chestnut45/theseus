@@ -36,5 +36,7 @@ protected:
     ColliderManager* m_pColliderManager = nullptr;
     wolf::GameObject* m_pTarget = nullptr;  // Target (usually the player)
 
+    static wolf::Texture* s_pExclamation;
+    static wolf::Texture* s_pQuestion;
     float m_fCountdownToDeath = 2.0f;
 };
