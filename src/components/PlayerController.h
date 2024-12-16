@@ -112,7 +112,7 @@ private:
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
     void HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event);
     void HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event);
-
+    void HandleArmourUnequippedEvent(const ArmourUnequippedEvent& p_event);
     // Manage and transition different player states
     void StartAttack();
     void StartPetrified();

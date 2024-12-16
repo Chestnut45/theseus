@@ -10,4 +10,10 @@ void ArmourItem::SetEquipped(bool p_bEquip) {
         // Let whoever is interested know
         wolf::EventManager::TriggerEvent(ArmourEquippedEvent(this));
     }
+    // If we just unequipped it
+    else
+    {
+        // Let whoever is interested know
+        wolf::EventManager::TriggerEvent(ArmourUnequippedEvent(this));
+    }
 }

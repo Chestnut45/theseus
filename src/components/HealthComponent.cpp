@@ -139,7 +139,7 @@ void HealthComponent::RenderDamageIndicators()
         // Render damage indicators
         for(DamageIndicator damageIndicator: this->m_vDamageIndicators)
         {
-            damageIndicator.Render();
+            //damageIndicator.Render();
         }
     }    
 }

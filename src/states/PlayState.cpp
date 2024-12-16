@@ -499,8 +499,7 @@ void PlayState::CreatePlayer()
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
 
-    status.SetStatusEffectResistance(StatusComponent::StatusEffectType::BURNING, 0.5f);
-    status.SetStatusEffectResistance(StatusComponent::StatusEffectType::POISONED, 0.5f);
+
     // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 3.0f);
     // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
     // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 7.0f);

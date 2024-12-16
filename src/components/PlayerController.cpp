@@ -27,6 +27,7 @@ PlayerController::~PlayerController() {
     wolf::EventManager::RemoveListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
+    wolf::EventManager::RemoveListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
     if (m_deathScreenTexture) {
         wolf::TextureManager::DestroyTexture(m_deathScreenTexture);
         m_deathScreenTexture = nullptr;
@@ -141,6 +142,7 @@ void PlayerController::LateInitialize()
     wolf::EventManager::AddListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
     wolf::EventManager::AddListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
+    wolf::EventManager::AddListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
 }
 
 glm::vec2 PlayerController::GetLastFacingDirectionVector() const 
@@ -271,6 +273,13 @@ void PlayerController::HandlePlayerInput(float delta)
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
     {
         m_godmode = !m_godmode;
+    }
+
+    // Burning hotkey
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_B))
+    {
+        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
     }
 
     // Super speed hotkey
@@ -1051,22 +1060,47 @@ void PlayerController::HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& 
 }
 
 void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {
-    printf("The player equipped a %s!\n", p_event.pArmour->GetName().c_str());
+    printf("The player equipped %s!\n", p_event.pArmour->GetName().c_str());
 
-        //-----------------//
-        //                 //
-        //  Added by Nhat  //
-        //                 //
-        //-----------------//
-        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        if(statusComponent != nullptr)
+    //-----------------//
+    //                 //
+    //  Added by Nhat  //
+    //                 //
+    //-----------------//
+    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+    if(statusComponent != nullptr)
+    {
+        for (auto info : *p_event.pArmour->GetStatusEffectList())
         {
-            for (auto info : *p_event.pArmour->GetStatusEffectList())
-            {
-                statusComponent->AddStatusEffect(info.enType, info.fDuration);
-            }
+            statusComponent->AddStatusEffect(info.enType, info.fDuration);
         }
+        
+        const float* info = p_event.pArmour->GetStatusEffectResistances();
+        for (int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
+        {
+            StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
+            statusComponent->SetStatusEffectResistance(seType, info[0]);
+        }
+    }
 
+}
+
+void PlayerController::HandleArmourUnequippedEvent(const ArmourUnequippedEvent& p_event)
+{
+    //-----------------//
+    //                 //
+    //  Added by Nhat  //
+    //                 //
+    //-----------------//
+    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+    if(statusComponent != nullptr)
+    {
+        for (int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
+        {
+            StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
+            statusComponent->SetStatusEffectResistance(seType, 0);
+        }
+    }
 }
 
 void PlayerController::RenderThrowPowerBar() {
