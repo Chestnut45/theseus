@@ -23,11 +23,12 @@
 
 class ItemDropCreator {
     public:
-        static void CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed);
+        static void CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed, wolf::GameObjectID p_uiPlayerGOId);
         static void DestroyInstance();
         static ItemDropCreator* Instance();
 
         void SetScene(wolf::Scene* m_pScene);
+        void SetPlayerGOId(wolf::GameObjectID p_uiGOId);
 
         wolf::GameObject* CreateItemDropFromExistingItem(ItemBase* p_pItem, const glm::vec2& p_v2SpawnPos, float p_fLifespan);
         wolf::GameObject* CreateItemDropFromDirectory(const std::string& p_strItemName, const glm::vec2& p_v2SpawnPos, float p_fLifespan);
@@ -52,6 +53,7 @@ class ItemDropCreator {
         static wolf::RNG* m_pRNG;
 
         static int m_iRNGSeed;
+        static wolf::GameObjectID m_uiPlayerGOId;
 
         static std::map<std::string, YAML::Node> m_mLootTables;
 };
