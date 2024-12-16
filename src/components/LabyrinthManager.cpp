@@ -290,11 +290,12 @@ void LabyrinthManager::GenerateLabyrinth()
         DeactivateChunk(chunk.first);
     }
 
+    // Flag has to be updated first so that
+    // GetSpawnLocation() can be called by GenerateEntrance()
+    m_isGenerated = true;
+
     // Generate entrance room
     GenerateEntrance();
-
-    // Update flag
-    m_isGenerated = true;
 
     // Place the player at the spawn location of the labyrinth
     wolf::GameObject* pPlayer = nullptr;
@@ -1948,21 +1949,30 @@ void LabyrinthManager::GenerateEntrance()
     tilemap.LoadTileSet("data/labyrinth.tileset");
     tilemap.Clear(Tile::Grass);
 
+    glm::vec2 patchOrigin = glm::vec2((m_width / 2 * TILE_SIZE - (m_spawnPatchSize.x / 2 * TILE_SIZE)) * SCALE, -m_spawnPatchSize.y * TILE_SIZE * SCALE);
+
     // Position and scale the object
     auto& transform = *spawnRoomObj.GetComponent<wolf::Transform2D>();
-    transform.SetPosition(glm::vec2((m_width / 2 * TILE_SIZE - (m_spawnPatchSize.x / 2 * TILE_SIZE)) * SCALE, -m_spawnPatchSize.y * TILE_SIZE * SCALE));
+    transform.SetPosition(patchOrigin);
     transform.SetScale(glm::vec2(SCALE));
+
+    int left = m_spawnPatchSize.x / 2 - (m_spawnRoomSize.x / 2) - 1;
+    int right = m_spawnPatchSize.x / 2 + (m_spawnRoomSize.x / 2) + 1;
 
     // Place walls
     for (int y = m_spawnPatchSize.y - 1; y >= m_spawnPatchSize.y - m_spawnRoomSize.y; --y)
     {
-        tilemap.SetTile(m_spawnPatchSize.x / 2 - (m_spawnRoomSize.x / 2) - 1, y, Tile::WallPillars);
-        tilemap.SetTile(m_spawnPatchSize.x / 2 + (m_spawnRoomSize.x / 2) + 1, y, Tile::WallPillars);
+        tilemap.SetTile(left, y, Tile::WallLeft);
+        tilemap.SetTile(right, y, Tile::WallLeft);
     }
-    for (int x = m_spawnPatchSize.x / 2 - (m_spawnRoomSize.x / 2) - 1; x <= m_spawnPatchSize.x / 2 + (m_spawnRoomSize.x / 2) + 1; ++x)
+    for (int x = left; x <= right; ++x)
     {
-        tilemap.SetTile(x, m_spawnPatchSize.y - m_spawnRoomSize.y - 1, Tile::WallPillars);
+        tilemap.SetTile(x, m_spawnPatchSize.y - m_spawnRoomSize.y - 1, Tile::WallBottom);
     }
+
+    // Corners
+    tilemap.SetTile(left, m_spawnPatchSize.y - m_spawnRoomSize.y - 1, Tile::WallBottomLeft);
+    tilemap.SetTile(right, m_spawnPatchSize.y - m_spawnRoomSize.y - 1, Tile::WallBottomRight);
 
     // Place floors
     for (int y = m_spawnPatchSize.y - 1; y >= m_spawnPatchSize.y - m_spawnRoomSize.y; --y)
@@ -1972,4 +1982,46 @@ void LabyrinthManager::GenerateEntrance()
             tilemap.SetTile(x, y, Tile::FloorSpiral);
         }
     }
+
+    // Place walls
+    // TODO: Calculate these values from spawn room size, should be easy
+    auto& collider = pObject->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
+    collider.AddColliderBox(glm::vec2(672, 96), patchOrigin + glm::vec2(864, 1920));
+    collider.AddColliderBox(glm::vec2(96, 576), patchOrigin + glm::vec2(864, 2400));
+    collider.AddColliderBox(glm::vec2(96, 576), patchOrigin + glm::vec2(1440, 2400));
+
+    // Place starting dispensary
+
+    // Create the dispensary object
+    auto& dispensary = pObject->GetScene().CreateObject2D();
+
+    // Place and scale the dispensary
+    auto& dispensaryTransform = *dispensary.GetComponent<wolf::Transform2D>();
+    dispensaryTransform.SetPosition(GetSpawnLocation() + glm::vec2(96, 0));
+    dispensaryTransform.SetScale(glm::vec2(SCALE));
+
+    // Set up the animated sprite
+    auto& animSprite = dispensary.AddComponent<AnimatedSprite2D>("data/dispensary_anim_init.yaml");
+
+    // Add the dispensary inventory
+    auto& inventory = dispensary.AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(50, 300));
+    inventory.FillInventoryFromFile("data/dispensary_contents1.yaml");
+
+    // Add the collider
+    auto& dispensaryCollider = dispensary.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+    dispensaryCollider.AddColliderBox(glm::vec2(22.0f, 29.0f), glm::vec2(-11.0f, 16.0f));
+
+    // Create the icon
+    auto& icon = pObject->GetScene().CreateObject2D();
+    
+    // Set up the icon's animated sprite
+    auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/item_icons_anim_init.yaml");
+    
+    // Add the icon as a child object of the dispensary
+    dispensary.AddChild(icon);
+    
+    // Position the child
+    auto& iconTransform = *icon.GetComponent<wolf::Transform2D>();
+    iconTransform.SetPosition(glm::vec2(0.0f, 25.0f));
+    iconTransform.SetScale(glm::vec2(0.5f, 0.5f));
 }

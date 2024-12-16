@@ -75,9 +75,6 @@ void PlayerController::LateInitialize()
     }
     m_runtimeTimer.Start(); // Start runtime timer 
 
-    this->m_pDefaultWeapon = dynamic_cast<WeaponItem*>(ItemCreator::CreateItem("Dull Blade"));
-    this->m_pCurrentWeapon = this->m_pDefaultWeapon;
-
     InitializeAnimations();
 
     // !-- Aurora added this --!
@@ -364,8 +361,12 @@ void PlayerController::HandleMovement(float delta)
 // Manage attack state and animation transitions
 void PlayerController::HandleAttacking(float delta)
 {
-    // Disable attacking when in inventory, picking up, or holding a throwable object
-    if (m_action == PlayerAction::IN_INVENTORY || m_action == PlayerAction::PICKING_UP || m_action == PlayerAction::THROWING) {
+    // Disable attacking when in inventory, picking up, holding
+    // a throwable object, or when no weapon is equipped
+    if (m_action == PlayerAction::IN_INVENTORY ||
+        m_action == PlayerAction::PICKING_UP ||
+        m_action == PlayerAction::THROWING ||
+        !m_pCurrentWeapon) {
         return;
     }
 
@@ -928,7 +929,7 @@ void PlayerController::HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& 
 {
     if(this->m_pCurrentWeapon == p_event.pWeapon)
     {
-        this->m_pCurrentWeapon = this->m_pDefaultWeapon;
+        this->m_pCurrentWeapon = nullptr;
     }
 }
 
