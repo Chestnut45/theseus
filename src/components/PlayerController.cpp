@@ -561,29 +561,45 @@ void PlayerController::StartAttack()
         glm::vec2 viewSize = camera->GetViewSize();
         glm::vec2 worldPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         
-        float l, r, t, b;
-        l = cameraPos.x - viewSize.x * 0.5f;
-        r = cameraPos.x + viewSize.x * 0.5f;
-        t = cameraPos.y + viewSize.y * 0.5f;
-        b = cameraPos.y - viewSize.y * 0.5f;
-        
         glm::vec2 cursorScreenPos = wolf::Input::GetMousePos();
-        glm::vec2 cursorScreenPosNormalised = glm::vec2
-        (
-            (cursorScreenPos.x / viewSize.x) * 2.0f - 1.0f,
-            1.0f - (cursorScreenPos.y / viewSize.y) * 2.0f
-        );
-
         glm::vec2 cursorWorldPos = glm::vec2
         (
-            cameraPos.x + cursorScreenPosNormalised.x * viewSize.x * 0.5f,
-            cameraPos.y + cursorScreenPosNormalised.y * viewSize.y * 0.5f
+            cameraPos.x + (cursorScreenPos.x - viewSize.x * 0.5f),
+            cameraPos.y + (viewSize.y * 0.5f - cursorScreenPos.y)
         );
 
         m_attackDir = glm::normalize(cursorWorldPos - worldPos);
-        glm::vec2 lastDir = abs(m_attackDir.x) > abs(m_attackDir.y) ? 
-            glm::normalize(glm::vec2(m_attackDir.x, 0.0f)) :
-            glm::normalize(glm::vec2(0.0f, m_attackDir.y));
+        glm::vec2 lastDir = glm::vec2(1.0f, 0.0f);
+        
+        float angle = std::atan2(m_attackDir.y, m_attackDir.x);
+        float eighthPi = std::numbers::pi / 8.0f;
+
+        if (angle >= -eighthPi && angle < eighthPi) 
+        {
+            lastDir = glm::normalize(glm::vec2(1.0f, 0.0f));    // East
+        }
+        else if (angle >= eighthPi && angle < 3.0f * eighthPi) 
+        {
+            lastDir = glm::normalize(glm::vec2(1.0f, 1.0f));    // NorthEast
+        }
+        else if (angle >= 3.0f * eighthPi && angle < 5.0f * eighthPi) {
+            lastDir = glm::normalize(glm::vec2(0.0f, 1.0f));    // North
+        }
+        else if (angle >= 5.0f * eighthPi && angle < 7.0f * eighthPi) {
+            lastDir = glm::normalize(glm::vec2(-1.0f, 1.0f));   // NorthWest
+        }
+        else if (angle >= 7.0f * eighthPi || angle < -7.0f * eighthPi) {
+            lastDir = glm::normalize(glm::vec2(-1.0f, 0.0f));   // West
+        }
+        else if (angle >= -7.0f * eighthPi && angle < -5.0f * eighthPi) {
+            lastDir = glm::normalize(glm::vec2(-1.0f, -1.0f));  // SouthWest
+        }
+        else if (angle >= -5.0f * eighthPi && angle < -3.0f * eighthPi) {
+            lastDir = glm::normalize(glm::vec2(0.0f, -1.0f));   // South
+        }
+        else if (angle >= -3.0f * eighthPi && angle < -eighthPi) {
+            lastDir = glm::normalize(glm::vec2(1.0f, -1.0f));   // SouthEast
+        }
 
         m_lastFaceDirectionEnum = GetDirectionFromVector(lastDir);
 
