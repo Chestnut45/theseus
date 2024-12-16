@@ -445,10 +445,10 @@ void PlayState::Render()
         playerController->Render();
     
     // Render damage indicators
-    for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>())
-    {
-        health.RenderDamageIndicators();
-    }
+    // for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>())
+    // {
+    //     health.RenderDamageIndicators();
+    // }
 
     // Render status effect icons
     for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
