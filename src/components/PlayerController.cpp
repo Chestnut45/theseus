@@ -180,6 +180,7 @@ void PlayerController::Update(float delta)
 
 void PlayerController::HandlePlayerInput(float delta)
 {
+
     auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
 
     // Handle inventory management with left alt
@@ -551,8 +552,45 @@ void PlayerController::RegenerateStamina(float delta)
 void PlayerController::StartAttack()
 {
     // Check if the player is not already attacking to prevent re-triggering attacks mid-animation.
+    
     if (!m_isAttacking)
-    {
+    {        
+        wolf::Scene* scene = &this->GetGameObject()->GetScene();
+        wolf::Camera2D* camera = scene->GetActiveCamera();
+        glm::vec2 cameraPos = camera->GetPosition();
+        glm::vec2 viewSize = camera->GetViewSize();
+        glm::vec2 worldPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        
+        float l, r, t, b;
+        l = cameraPos.x - viewSize.x * 0.5f;
+        r = cameraPos.x + viewSize.x * 0.5f;
+        t = cameraPos.y + viewSize.y * 0.5f;
+        b = cameraPos.y - viewSize.y * 0.5f;
+        
+        glm::vec2 cursorScreenPos = wolf::Input::GetMousePos();
+        glm::vec2 cursorScreenPosNormalised = glm::vec2
+        (
+            (cursorScreenPos.x / viewSize.x) * 2.0f - 1.0f,
+            1.0f - (cursorScreenPos.y / viewSize.y) * 2.0f
+        );
+
+        glm::vec2 cursorWorldPos = glm::vec2
+        (
+            cameraPos.x + cursorScreenPosNormalised.x * viewSize.x * 0.5f,
+            cameraPos.y + cursorScreenPosNormalised.y * viewSize.y * 0.5f
+        );
+
+        m_attackDir = glm::normalize(cursorWorldPos - worldPos);
+        glm::vec2 lastDir = abs(m_attackDir.x) > abs(m_attackDir.y) ? 
+            glm::normalize(glm::vec2(m_attackDir.x, 0.0f)) :
+            glm::normalize(glm::vec2(0.0f, m_attackDir.y));
+
+        m_lastFaceDirectionEnum = GetDirectionFromVector(lastDir);
+
+        // std::cout << "PlayerController - Cursor World Pos - x: " << cursorWorldPos.x << ", y: " << cursorWorldPos.y << std::endl;
+        // std::cout << "PlayerController - Player World Pos - x: " << worldPos.x << ", y: " << worldPos.y << std::endl;
+        // std::cout << "PlayerController - new Direction - x: " << newPlayerDirectionVector.x << ", y: " << newPlayerDirectionVector.y << std::endl;
+        // std::cout << "PlayerController - Direction: " << this->m_lastFaceDirectionEnum << std::endl;
         m_isAttacking = true;
         m_animationFinished = false;
         m_hasAppliedDamage = false;
@@ -562,8 +600,8 @@ void PlayerController::StartAttack()
         m_attackTimer.Restart();
 
         // Choose the correct animation based on the player's direction.
-        std::string attackAnimation = GetAttackAnimationForDirection(m_lastMoveDirectionEnum);
-
+        // std::string attackAnimation = GetAttackAnimationForDirection(m_lastMoveDirectionEnum);
+        std::string attackAnimation = GetAttackAnimationForDirection(m_lastFaceDirectionEnum);
         // Set the attacking animation.
         m_pAnimComponent->SetAnimation(attackAnimation);
 
@@ -607,7 +645,6 @@ void PlayerController::UpdateAttackState(float delta)
 
 void PlayerController::ApplyDamageToEnemy()
 {
-
     // Attack
     auto* player = this->GetGameObject();
     if (!player || !m_pTransform) return;
@@ -688,12 +725,12 @@ void PlayerController::ApplyDamageToEnemy()
            
             auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
             
-            projectileVelocity.SetVelocity(playerDirection * glm::length(projprop.v2Velocity) + playerVelocity);
+            projectileVelocity.SetVelocity(m_attackDir * glm::length(projprop.v2Velocity) + playerVelocity);
 
             // Calculate how to rotate arrow sprite
             glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);
-            float angle = std::acos(glm::dot(baseVector, playerDirection) / (glm::length(baseVector) * glm::length(playerDirection)));
-            if(playerDirection.y < 0.0f) angle *= -1;
+            float angle = std::acos(glm::dot(baseVector, m_attackDir) / (glm::length(baseVector) * glm::length(m_attackDir)));
+            if(m_attackDir.y < 0.0f) angle *= -1;
             projectile.GetComponent<wolf::Transform2D>()->SetRotation(angle);
         
             projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
