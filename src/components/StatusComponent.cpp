@@ -175,7 +175,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             AnimatedSprite2D* animatedSprite2DComponent = this->m_OwnerComponent->GetGameObject()->GetComponent<AnimatedSprite2D>();
             if(animatedSprite2DComponent != nullptr)
             {
-                animatedSprite2DComponent->SetTint(glm::vec3(1.5f, 1.5f, 1.5f));
+                animatedSprite2DComponent->UseMask(0);
             }
 
             break;

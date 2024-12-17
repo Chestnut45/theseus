@@ -216,9 +216,15 @@ AnimatedSprite2D::~AnimatedSprite2D() {
     if (s_iAnimSprite2DCount == 0) {
         // So we can delete them
         wolf::ProgramManager::DestroyProgram(s_pProgram);
+        wolf::ProgramManager::DestroyProgram(s_pProgramBlend);
         wolf::BufferManager::DestroyBuffer(s_pVertexBuffer);
         wolf::BufferManager::DestroyBuffer(s_pIndexBuffer);
         delete s_pVAO;
+        for(auto texture : s_vMasks)
+        {
+            wolf::TextureManager::DestroyTexture(texture);
+        }
+        s_vMasks.clear();
     }
 }
 
@@ -463,6 +469,7 @@ void AnimatedSprite2D::IncreaseReferences()
 
         // Load shader program
         s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d.fs");
+        s_pProgramBlend = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d_blend.fs");
 
         // Create vertex buffer
         s_pVertexBuffer = wolf::BufferManager::CreateVertexBuffer(m_arBaseVertexData, sizeof(m_arBaseVertexData));
@@ -486,8 +493,26 @@ void AnimatedSprite2D::IncreaseReferences()
         s_pVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
         s_pVAO->End();
 
+        //-----------------//
+        //                 //
+        //  Added by Nhat  //
+        //                 //
+        //-----------------//
+        s_vMasks.push_back(wolf::TextureManager::CreateTexture("data/textures/DebugSprites/debug_sprite.png"));
+
         // *** End of borrowed code segment ***
     }
 
     s_iAnimSprite2DCount++;
+}
+
+
+void AnimatedSprite2D::UseMask(int p_mask_index)
+{
+    // Return if index out of bounds
+    if(p_mask_index >= s_vMasks.size()) return;
+
+    // Negative to stop using masks
+    // 0 for debug mask - Do not use unless for debugging
+    this->m_iCurrentMaskIndex = p_mask_index;
 }

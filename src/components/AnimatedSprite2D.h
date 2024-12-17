@@ -118,6 +118,12 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
         void Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint = glm::vec3(-1.0f));
 
+        //-----------------//
+        //                 //
+        //  Added by Nhat  //
+        //                 //
+        //-----------------//
+        void UseMask(int p_mask_index);
     private:
         bool SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize);
 
@@ -171,6 +177,15 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         static inline wolf::VertexBuffer* s_pVertexBuffer = nullptr;
         static inline wolf::IndexBuffer* s_pIndexBuffer = nullptr;
         static inline wolf::VertexDeclaration* s_pVAO = nullptr;
+        
+        //-----------------//
+        //                 //
+        //  Added by Nhat  //
+        //                 //
+        //-----------------//
+        int m_iCurrentMaskIndex = -1; // Sets mask to use for blending
+        static inline std::vector<wolf::Texture*> s_vMasks;
+        static inline wolf::Program* s_pProgramBlend = nullptr;
 
         // Reference counting helper
         static void IncreaseReferences();
