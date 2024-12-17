@@ -302,7 +302,7 @@ void HarpyController::UpdateAnimationBasedOnDirection()
 
 void HarpyController::HandleDeathState(float delta)
 {
-     // Fall over
+    // Fall over
     if(m_fallDeadTimer <= m_timeToFallDead)
     {
         if(m_fallDeadTimer == 0.0f)
