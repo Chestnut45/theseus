@@ -6,6 +6,7 @@
 
 #include "AttackDamageComponent.h"
 #include "ColliderComponent.h"
+#include "TimedDestroyerComponent.h"
 
 AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects)
 {
@@ -90,6 +91,16 @@ void AttackDamageComponent::Update(float p_dt)
                             velocityComponent->ApplyKnockback(knockbackDirection, m_knockbackMagnitude);
                         }
                     }
+                    
+                    // Deactivate collider and add a timed destroyer component to the object
+                    // NOTE: A delayed destruction is used to ensure AOE attacks can affect all targets
+                    // in a single frame instead of immediately deleting the object on first contact.
+                    // Maybe this should be configurable in the future as a DamageType enum or similar?
+                    thisCollider->SetActive(false);
+
+                    // If another destroyer exists, this one should take precedence since it's for 0 frames
+                    thisObject->DeleteComponent<TimedDestroyerComponent>();
+                    thisObject->AddComponent<TimedDestroyerComponent>(0, true);
                 }
             }
         }

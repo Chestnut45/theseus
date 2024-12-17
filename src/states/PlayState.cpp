@@ -53,11 +53,10 @@ void PlayState::Enter()
 
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed(), m_pPlayerObject->GetID());
 
-    CreateThrowableObject();
+    // CreateThrowableObject();
     
     // Create a test spike trap
-    CreateSpikeTrap(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f));
-
+    // CreateSpikeTrap(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f));
 
     // Testing: Create a test projectile object
     // auto& testObj = scene.CreateObject2D();
@@ -69,7 +68,6 @@ void PlayState::Enter()
     // testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
     // auto& testVelocity = testObj.AddComponent<VelocityComponent>();
     //testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
-
 
     // auto& testObj2 = scene.CreateObject2D();
     // testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
@@ -88,7 +86,7 @@ void PlayState::Enter()
     
     // this->CreateMinitaurEnemy();
     // this->CreateHarpyEnemy();
-    this->CreateGorgonEnemy();
+    // this->CreateGorgonEnemy();
 }
 
 void PlayState::Exit()
@@ -135,15 +133,6 @@ void PlayState::Update(float delta)
     
     // Update the labyrinth manager
     m_pLabyrinthManager->Update(delta);
-
-    // TESTING: Delete all tiles the player steps on
-    // TODO: Check for floor tiles, change them to gold variant
-    // const auto& pos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    // const auto& tilePos = m_pLabyrinthManager->GetTilePosition(pos);
-    // if (m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y) >= 0)
-    // {
-    //     m_pLabyrinthManager->SetTile(tilePos.x, tilePos.y, -1);
-    // }
 
     // Update timed destroyer components
     for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
