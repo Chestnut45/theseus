@@ -51,7 +51,7 @@ void PlayState::Enter()
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
     m_pLabyrinthManager->GenerateLabyrinth();
 
-    ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed(), m_pPlayerObject->GetID());
+    ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
 
     // CreateThrowableObject();
     

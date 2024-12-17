@@ -23,7 +23,7 @@
 
 class ItemDropCreator {
     public:
-        static void CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed, wolf::GameObjectID p_uiPlayerGOId);
+        static void CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed);
         static void DestroyInstance();
         static ItemDropCreator* Instance();
 
@@ -53,7 +53,6 @@ class ItemDropCreator {
         static wolf::RNG* m_pRNG;
 
         static int m_iRNGSeed;
-        static wolf::GameObjectID m_uiPlayerGOId;
 
         static std::map<std::string, YAML::Node> m_mLootTables;
 };

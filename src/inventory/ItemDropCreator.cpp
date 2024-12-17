@@ -5,12 +5,11 @@ wolf::Scene* ItemDropCreator::m_pScene = nullptr;
 wolf::RNG* ItemDropCreator::m_pRNG = nullptr;
 
 int ItemDropCreator::m_iRNGSeed;
-wolf::GameObjectID ItemDropCreator::m_uiPlayerGOId;
 std::map<std::string, YAML::Node> ItemDropCreator::m_mLootTables;
 
 const std::string ItemDropCreator::ITEM_TEXTURE_PATH = "data/textures/ItemIcons-Sheet.png";
 
-void ItemDropCreator::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed, wolf::GameObjectID p_uiPlayerGOId) {
+void ItemDropCreator::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
     // If there is not already an existing instance
     assert(m_pInstance == nullptr);
 
@@ -19,7 +18,6 @@ void ItemDropCreator::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed, wolf
     m_pRNG = new wolf::RNG(p_iRNGSeed); // This seed value is completely arbitrary
     m_pScene = p_pScene;
     m_iRNGSeed = p_iRNGSeed;
-    m_uiPlayerGOId = p_uiPlayerGOId;
 }
 
 void ItemDropCreator::DestroyInstance() {
@@ -45,10 +43,6 @@ ItemDropCreator* ItemDropCreator::Instance() {
 
 void ItemDropCreator::SetScene(wolf::Scene* p_pScene) {
     m_pScene = p_pScene;
-}
-
-void ItemDropCreator::SetPlayerGOId(wolf::GameObjectID p_uiGOId) {
-    m_uiPlayerGOId = p_uiGOId;
 }
 
 // Create a single drop item using a pointer to an existing item (use when you are dropping an item from an inventory)
@@ -199,8 +193,10 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromLootTable(const std::string
         auto pItemDropTransform = pItemDropGO->GetComponent<wolf::Transform2D>();
         pItemDropTransform->SetPosition(p_v2SpawnPos + glm::vec2(m_pRNG->NextFloat(-1.5f, 1.5f), m_pRNG->NextFloat(-1.5f, 1.5f)));
 
-        auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_uiPlayerGOId);
+        auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_pScene->GetPlayerGoId());
         pCollider.AddColliderBox(glm::vec2(16.0f, 16.0f), glm::vec2(-8.0f, 8.0f));
+
+        auto& pVelocity = pItemDropGO->AddComponent<VelocityComponent>();
 
         // Then return a reference to the gameobject we created
         return pItemDropGO;
