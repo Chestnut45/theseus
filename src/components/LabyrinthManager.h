@@ -245,6 +245,9 @@ private:
         std::vector<EntitySpawnData> m_entitySpawns;
     };
 
+    // Map of string names to entity IDs
+    static std::unordered_map<std::string, Room::EntityType> s_entityIDs;
+
     // List of all rooms to be generated in the labyrinth
     std::vector<Room> m_rooms;
 

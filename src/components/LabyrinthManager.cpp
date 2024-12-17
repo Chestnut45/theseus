@@ -33,8 +33,20 @@
 #include <PlayerController.h>
 #include <TriggerComponent.h>
 
+std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
+
 LabyrinthManager::LabyrinthManager()
 {
+    s_entityIDs["minitaur"] = Room::EntityType::Minitaur;
+    s_entityIDs["harpy"] = Room::EntityType::Harpy;
+    s_entityIDs["gorgon"] = Room::EntityType::Gorgon;
+    s_entityIDs["common_chest"] = Room::EntityType::CommonChest;
+    s_entityIDs["uncommon_chest"] = Room::EntityType::UncommonChest;
+    s_entityIDs["rare_chest"] = Room::EntityType::RareChest;
+    s_entityIDs["epic_chest"] = Room::EntityType::EpicChest;
+    s_entityIDs["legendary_chest"] = Room::EntityType::LegendaryChest;
+    s_entityIDs["dispensary"] = Room::EntityType::DaedalusDispensary;
+    s_entityIDs["spike_trap"] = Room::EntityType::SpikeTrap;
 }
 
 LabyrinthManager::~LabyrinthManager()
@@ -667,21 +679,9 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
                 // Grab the entity node
                 YAML::Node entity = entities[e];
                 std::string eType = entity["type"] ? entity["type"].as<std::string>() : "";
-
-                // Map of names to enum value for entities
-                static std::unordered_map<std::string, Room::EntityType> entityIDs;
-                entityIDs["minitaur"] = Room::EntityType::Minitaur;
-                entityIDs["harpy"] = Room::EntityType::Harpy;
-                entityIDs["gorgon"] = Room::EntityType::Gorgon;
-                entityIDs["common_chest"] = Room::EntityType::CommonChest;
-                entityIDs["uncommon_chest"] = Room::EntityType::UncommonChest;
-                entityIDs["rare_chest"] = Room::EntityType::RareChest;
-                entityIDs["epic_chest"] = Room::EntityType::EpicChest;
-                entityIDs["legendary_chest"] = Room::EntityType::LegendaryChest;
-                entityIDs["dispensary"] = Room::EntityType::DaedalusDispensary;
-                entityIDs["spike_trap"] = Room::EntityType::SpikeTrap;
                 
-                data.m_type = entityIDs[eType];
+                // Grab entity ID from map
+                data.m_type = s_entityIDs[eType];
                 data.m_amount = entity["amount"] ? entity["amount"].as<int>() : data.m_amount;
 
                 // Parse placement
