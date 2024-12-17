@@ -705,16 +705,74 @@ void PlayerController::RegenerateStamina(float delta)
 
 void PlayerController::StartAttack()
 {
-    m_hasAppliedDamage = false;
+    // Check if the player is not already attacking to prevent re-triggering attacks mid-animation.
+    
+    if (!m_isAttacking)
+    {        
+        wolf::Scene* scene = &this->GetGameObject()->GetScene();
+        wolf::Camera2D* camera = scene->GetActiveCamera();
+        glm::vec2 cameraPos = camera->GetPosition();
+        glm::vec2 viewSize = camera->GetViewSize();
+        glm::vec2 worldPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        
+        glm::vec2 cursorScreenPos = wolf::Input::GetMousePos();
+        glm::vec2 cursorWorldPos = glm::vec2
+        (
+            cameraPos.x + (cursorScreenPos.x - viewSize.x * 0.5f),
+            cameraPos.y + (viewSize.y * 0.5f - cursorScreenPos.y)
+        );
+
+        m_attackDir = glm::normalize(cursorWorldPos - worldPos);
+        glm::vec2 lastDir = glm::vec2(1.0f, 0.0f);
+        
+        float angle = std::atan2(m_attackDir.y, m_attackDir.x);
+        float eighthPi = std::numbers::pi / 8.0f;
+
+        if (angle >= -eighthPi && angle < eighthPi) 
+        {
+            lastDir = glm::normalize(glm::vec2(1.0f, 0.0f));    // East
+        }
+        else if (angle >= eighthPi && angle < 3.0f * eighthPi) 
+        {
+            lastDir = glm::normalize(glm::vec2(1.0f, 1.0f));    // NorthEast
+        }
+        else if (angle >= 3.0f * eighthPi && angle < 5.0f * eighthPi) {
+            lastDir = glm::normalize(glm::vec2(0.0f, 1.0f));    // North
+        }
+        else if (angle >= 5.0f * eighthPi && angle < 7.0f * eighthPi) {
+            lastDir = glm::normalize(glm::vec2(-1.0f, 1.0f));   // NorthWest
+        }
+        else if (angle >= 7.0f * eighthPi || angle < -7.0f * eighthPi) {
+            lastDir = glm::normalize(glm::vec2(-1.0f, 0.0f));   // West
+        }
+        else if (angle >= -7.0f * eighthPi && angle < -5.0f * eighthPi) {
+            lastDir = glm::normalize(glm::vec2(-1.0f, -1.0f));  // SouthWest
+        }
+        else if (angle >= -5.0f * eighthPi && angle < -3.0f * eighthPi) {
+            lastDir = glm::normalize(glm::vec2(0.0f, -1.0f));   // South
+        }
+        else if (angle >= -3.0f * eighthPi && angle < -eighthPi) {
+            lastDir = glm::normalize(glm::vec2(1.0f, -1.0f));   // SouthEast
+        }
+
+        m_lastFaceDirectionEnum = GetDirectionFromVector(lastDir);
+
+        // std::cout << "PlayerController - Cursor World Pos - x: " << cursorWorldPos.x << ", y: " << cursorWorldPos.y << std::endl;
+        // std::cout << "PlayerController - Player World Pos - x: " << worldPos.x << ", y: " << worldPos.y << std::endl;
+        // std::cout << "PlayerController - new Direction - x: " << newPlayerDirectionVector.x << ", y: " << newPlayerDirectionVector.y << std::endl;
+        // std::cout << "PlayerController - Direction: " << this->m_lastFaceDirectionEnum << std::endl;
+        m_isAttacking = true;
+        m_animationFinished = false;
+        m_hasAppliedDamage = false;
 
     // Set the player action to attacking and reset attack-related timers.
     m_attackTimer.Restart();
 
-    // Choose the correct animation based on the player's direction.
-    std::string attackAnimation = GetAttackAnimationForDirection(m_lastMoveDirectionEnum);
-
-    // Set the attacking animation.
-    m_pAnimComponent->SetAnimation(attackAnimation);
+        // Choose the correct animation based on the player's direction.
+        // std::string attackAnimation = GetAttackAnimationForDirection(m_lastMoveDirectionEnum);
+        std::string attackAnimation = GetAttackAnimationForDirection(m_lastFaceDirectionEnum);
+        // Set the attacking animation.
+        m_pAnimComponent->SetAnimation(attackAnimation);
 
     // Store the current animation to handle transitions later.
     m_currentAnimation = attackAnimation;
@@ -729,7 +787,6 @@ void PlayerController::StartPetrified()
 
 void PlayerController::ApplyDamageToEnemy()
 {
-
     // Attack
     auto* player = this->GetGameObject();
     if (!player || !m_pTransform) return;
@@ -810,12 +867,12 @@ void PlayerController::ApplyDamageToEnemy()
            
             auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
             
-            projectileVelocity.SetVelocity(playerDirection * glm::length(projprop.v2Velocity) + playerVelocity);
+            projectileVelocity.SetVelocity(m_attackDir * glm::length(projprop.v2Velocity) + playerVelocity);
 
             // Calculate how to rotate arrow sprite
             glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);
-            float angle = std::acos(glm::dot(baseVector, playerDirection) / (glm::length(baseVector) * glm::length(playerDirection)));
-            if(playerDirection.y < 0.0f) angle *= -1;
+            float angle = std::acos(glm::dot(baseVector, m_attackDir) / (glm::length(baseVector) * glm::length(m_attackDir)));
+            if(m_attackDir.y < 0.0f) angle *= -1;
             projectile.GetComponent<wolf::Transform2D>()->SetRotation(angle);
         
             projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));

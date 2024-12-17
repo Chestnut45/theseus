@@ -191,6 +191,7 @@ private:
     float m_attackCooldown = 0.5f;
     float m_attackDamage = 50.0f;
     float m_attackRange = 100.0f;
+    glm::vec2 m_attackDir = glm::vec2(0.0f, 0.0f);
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
 
