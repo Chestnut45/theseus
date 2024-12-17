@@ -202,9 +202,6 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromLootTable(const std::string
         auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_uiPlayerGOId);
         pCollider.AddColliderBox(glm::vec2(16.0f, 16.0f), glm::vec2(-8.0f, 8.0f));
 
-        auto& pVelocity = pItemDropGO->AddComponent<VelocityComponent>();
-        pVelocity.SetVelocity(glm::vec2(10.0f, 0.0f));
-
         // Then return a reference to the gameobject we created
         return pItemDropGO;
     }

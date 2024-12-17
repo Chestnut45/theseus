@@ -341,7 +341,7 @@ void MinitaurController::HandleDeathState(float delta)
             ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
             if(collider != nullptr)
             {
-                collider->SetColliderType(ColliderComponent::ColliderType::NONE);
+                collider->SetIgnoreTag(m_uiPlayerGOId);
             }
             
             m_pAnimComponent->SetTint(glm::vec3(1,0,0));
