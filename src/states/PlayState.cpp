@@ -134,15 +134,6 @@ void PlayState::Update(float delta)
     // Update the labyrinth manager
     m_pLabyrinthManager->Update(delta);
 
-    // TESTING: Delete all tiles the player steps on
-    // TODO: Check for floor tiles, change them to gold variant
-    // const auto& pos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    // const auto& tilePos = m_pLabyrinthManager->GetTilePosition(pos);
-    // if (m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y) >= 0)
-    // {
-    //     m_pLabyrinthManager->SetTile(tilePos.x, tilePos.y, -1);
-    // }
-
     // Update timed destroyer components
     for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
     {
