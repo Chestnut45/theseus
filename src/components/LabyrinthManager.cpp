@@ -31,6 +31,7 @@
 #include <HarpyBuilder.h>
 #include <GorgonBuilder.h>
 #include <PlayerController.h>
+#include <TriggerComponent.h>
 
 LabyrinthManager::LabyrinthManager()
 {
@@ -667,17 +668,20 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
                 YAML::Node entity = entities[e];
                 std::string eType = entity["type"] ? entity["type"].as<std::string>() : "";
 
-                // Parse data
-                if (eType == "minitaur") data.m_type = Room::EntityType::Minitaur;
-                if (eType == "harpy") data.m_type = Room::EntityType::Harpy;
-                if (eType == "gorgon") data.m_type = Room::EntityType::Gorgon;
-                if (eType == "common_chest") data.m_type = Room::EntityType::CommonChest;
-                if (eType == "uncommon_chest") data.m_type = Room::EntityType::UncommonChest;
-                if (eType == "rare_chest") data.m_type = Room::EntityType::RareChest;
-                if (eType == "epic_chest") data.m_type = Room::EntityType::EpicChest;
-                if (eType == "legendary_chest") data.m_type = Room::EntityType::LegendaryChest;
-                if (eType == "dispensary") data.m_type = Room::EntityType::DaedalusDispensary;
+                // Map of names to enum value for entities
+                static std::unordered_map<std::string, Room::EntityType> entityIDs;
+                entityIDs["minitaur"] = Room::EntityType::Minitaur;
+                entityIDs["harpy"] = Room::EntityType::Harpy;
+                entityIDs["gorgon"] = Room::EntityType::Gorgon;
+                entityIDs["common_chest"] = Room::EntityType::CommonChest;
+                entityIDs["uncommon_chest"] = Room::EntityType::UncommonChest;
+                entityIDs["rare_chest"] = Room::EntityType::RareChest;
+                entityIDs["epic_chest"] = Room::EntityType::EpicChest;
+                entityIDs["legendary_chest"] = Room::EntityType::LegendaryChest;
+                entityIDs["dispensary"] = Room::EntityType::DaedalusDispensary;
+                entityIDs["spike_trap"] = Room::EntityType::SpikeTrap;
                 
+                data.m_type = entityIDs[eType];
                 data.m_amount = entity["amount"] ? entity["amount"].as<int>() : data.m_amount;
 
                 // Parse placement
@@ -831,6 +835,9 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
                     break;
                 case Room::EntityType::DaedalusDispensary:
                     file << "dispensary, amount: ";
+                    break;
+                case Room::EntityType::SpikeTrap:
+                    file << "spike_trap, amount: ";
                     break;
             }
             file << std::to_string(data.m_amount).c_str();
@@ -1931,6 +1938,33 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         GetChunk(GetChunkID(pos))->AddChild(dispensary);
                         break;
                     }
+
+                    case Room::EntityType::SpikeTrap:
+                    {
+                        // Create the trap object
+                        auto& trap = pObject->GetScene().CreateObject2D();
+
+                        // Add sprite
+                        auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
+                        sprite.SetOriginToCenterOfTexture();
+                        sprite.SetLayer(0);
+
+                        // Set position
+                        auto& transform = *trap.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add a collider for interaction
+                        auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+                        collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+
+                        // Add the TriggerComponent
+                        trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE);
+
+                        // Add the object to the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(trap);
+                        break;
+                    }
                 }
             }
         }
@@ -1984,16 +2018,16 @@ void LabyrinthManager::GenerateEntrance()
     }
 
     // Place walls
-    // TODO: Calculate these values from spawn room size, should be easy
-    auto& collider = pObject->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
-    collider.AddColliderBox(glm::vec2(672, 96), patchOrigin + glm::vec2(864, 1920));
-    collider.AddColliderBox(glm::vec2(96, 576), patchOrigin + glm::vec2(864, 2400));
-    collider.AddColliderBox(glm::vec2(96, 576), patchOrigin + glm::vec2(1440, 2400));
+    auto& collider = spawnRoomObj.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
+    collider.AddColliderBox(glm::vec2(672, 96), glm::vec2(864, 1920));
+    collider.AddColliderBox(glm::vec2(96, 576), glm::vec2(864, 2400));
+    collider.AddColliderBox(glm::vec2(96, 576), glm::vec2(1440, 2400));
 
     // Place starting dispensary
 
     // Create the dispensary object
     auto& dispensary = pObject->GetScene().CreateObject2D();
+    pObject->AddChild(dispensary);
 
     // Place and scale the dispensary
     auto& dispensaryTransform = *dispensary.GetComponent<wolf::Transform2D>();
