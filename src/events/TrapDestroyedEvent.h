@@ -3,7 +3,7 @@
 
 // Event that is sent when a trap is destroyed
 struct TrapDestroyedEvent {
-    wolf::GameObject* m_pTrapObject;
+    wolf::GameObject* m_pTrapObject = nullptr;
 
     TrapDestroyedEvent(wolf::GameObject* trapObject)
         : m_pTrapObject(trapObject) {}
