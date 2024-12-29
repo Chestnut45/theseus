@@ -9,11 +9,13 @@
 
 #include <W_BaseComponent.h>
 #include <string>
+#include <queue>
+#include <map>
 
 // --------------- Back-end ---------------
-// [ ] - Component Setup
+// [x] - Component Setup
 // [x] - Name
-// [ ] - Dialogue
+// [?] - Dialogue
 // [x] - Merchant inventory (optional)
 // [x] - Drop table
 // [ ] - Collider (handled separately)
@@ -35,15 +37,29 @@
 // Struct used to sort all of the NPC's possible dialogues into a minimum priority queue
 // so that we can programmatically control the ordering and repeatability of each conversation
 struct NPCDialogueEntry {
+    NPCDialogueEntry(int p_iPriority, const std::string& p_strDialogueID, bool p_bHasTrigger, bool p_bCanRepeat)
+    : iPriority(p_iPriority), strDialogueID(p_strDialogueID), bHasTrigger(p_bHasTrigger), bCanRepeat(p_bCanRepeat)
+    {};
+
     int iPriority; // The entry with the lowest value will always play FIRST and the lowest possible value is 0 (zero)
     std::string strDialogueID; // This id MUST correspond to a YAML Node in the dialogue file the NPC is drawing from
 
-    bool bHasPlayed; // Has this dialogue played yet?
+    bool bHasPlayed = false; // Has this dialogue been played yet?
+
+    bool bHasTrigger; // Can this dialogue play immediately or does it have to be triggered by something?
     bool bCanRepeat; // Can this dialogue repeat (play multiple times)?
 
     // !-- Note that if a dialogue entry repeats, its priority value will be changed to one level higher
     // than the current highest dialogue value after it has been played for the first time to ensure
-    // that replayable dialogue does not take priority over new or unique entries --!
+    // that replayable dialogue does not take priority over new or unique entries. Also note that a
+    // repeatable dialogue will never leave permanently leave the queue once it has been added as it
+    // will be continually added to the end of the queue everytime it plays --!
+};
+
+struct ComparePriority {
+    bool operator()(const NPCDialogueEntry* a, const NPCDialogueEntry* b) {
+        return a->iPriority > b->iPriority;
+    }
 };
 
 class NPCComponent : public wolf::BaseComponent {
@@ -92,6 +108,15 @@ class NPCComponent : public wolf::BaseComponent {
         // Does this NPC's GameObject have a MerchantInventoryComponent attached?
         bool CanBeMerchant() const {return m_bCanBeMerchant;};
 
+        // Dialogue and priority queue operations
+        void PlayNextDialogue();
+        void QueueDialogue(const std::string& p_strEntryID);
+
+        bool HasDialoguePlayed(const std::string& p_strEntryID);
+        bool ChangeDialoguePriority(const std::string& p_strEntryID, int p_iNewPriority);
+
+        void EmptyDialogueQueue();
+
     private:
         int m_iID;
         static int m_iNextID;
@@ -100,6 +125,11 @@ class NPCComponent : public wolf::BaseComponent {
         std::string m_strDialogueFilePath;
         std::string m_strDropTableFilePath;
 
-        bool m_bIsMerchant;     // Is this NPC currently a merchant? (they have a currently accessible MerchantInventoryComponent)
+        bool m_bIsMerchant; // Is this NPC currently a merchant? (they have a currently accessible MerchantInventoryComponent)
         const bool m_bCanBeMerchant;  // Can this NPC be a merchant? (they have a MerchantInventoryComponent that is -- or will be -- accessible)
+
+        std::map<std::string, NPCDialogueEntry*> m_mDialogueEntries; // Map to hold all of the NPC's dialogues
+        std::priority_queue<NPCDialogueEntry*, std::vector<NPCDialogueEntry*>, ComparePriority> m_pqDialogueQueue; // Priority queue to decide which dialogue will play next
+
+        int m_iCurHighPriorityVal = 0;
 };
