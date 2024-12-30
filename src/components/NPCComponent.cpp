@@ -1,4 +1,5 @@
-#include "NPCComponent.h"
+#include <NPCComponent.h>
+#include <ColliderComponent.h>
 
 int NPCComponent::m_iNextID = 0;
 
@@ -31,6 +32,72 @@ NPCComponent::~NPCComponent() {
 
     // And delete all of the dialogue entries
     m_mDialogueEntries.clear();
+}
+
+void NPCComponent::Update(float p_fDelta) {
+    // If we have no health left
+    if (m_pHealthComp->GetHealth() <= 0) {
+        // Check if we have an open merchant inventory
+        if (m_pMerchInvComp && m_pMerchInvComp->IsOpen()) {
+            // And close it if so
+            m_pMerchInvComp->Close();
+        }
+
+        // Then handle the death state
+        this->HandleDeadState(p_fDelta);
+    }
+}
+
+// Call this method once the Health, AnimatedSprite2D, and optionally the MerchantInventory
+// components have been added to the NPC GameObject
+void NPCComponent::Init() {
+    // Retrieve the Transform2D Component
+    m_pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
+
+    // Retrieve the HealthComponent
+    m_pHealthComp = this->GetGameObject()->GetComponent<HealthComponent>();
+
+    // If this NPC can be a merchant, retrieve the MerchantInventoryComponent
+    if (m_bCanBeMerchant) {
+        m_pMerchInvComp = this->GetGameObject()->GetComponent<MerchantInventoryComponent>();
+    }
+
+    // Retrieve the AnimatedSprite2D Component
+    m_pAnimSpriteComp = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+}
+
+void NPCComponent::HandleDeadState(float p_fDelta) {
+    // *** This method is taken directly from Nhat's HandleDeathState() in the PlayerController ***
+    // Fall over
+    if(m_fallDeadTimer <= m_timeToFallDead)
+    {
+        if(m_fallDeadTimer == 0.0f)
+        {
+            ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
+            if(collider != nullptr)
+            {
+                collider->SetColliderType(ColliderComponent::ColliderType::NONE);
+            }
+            
+            m_pAnimSpriteComp->SetTint(glm::vec3(1,0,0));
+        }
+
+        float angle = (90.0f / m_timeToFallDead) * delta;
+        m_pTransform->RotateDegrees(angle);
+        
+        m_fallDeadTimer += delta;
+    }
+
+    // Lie dead
+    else
+    {
+        if(m_lieDeadTimer >= m_timeToLieDead)
+        {
+            ItemDropCreator::Instance()->CreateItemDropFromLootTable(m_strDropTableFilePath, m_pTransform->GetGlobalPosition(), -1.0f);
+            GetGameObject()->Delete();
+        }
+        m_lieDeadTimer += delta;
+    } 
 }
 
 // Play the dialogue entry with the lowest priority value and remove it from the queue

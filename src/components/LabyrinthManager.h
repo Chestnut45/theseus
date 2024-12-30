@@ -221,8 +221,11 @@ private:
             LegendaryChest,
             DaedalusDispensary, // !-- Aurora added this --!
             SpikeTrap,
+            DaedalusNPC,
+            AriadneNPC,
+            RandomNPC,
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary", "Spike Trap"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC"};
 
         enum class SpawnPosType
         {

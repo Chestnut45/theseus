@@ -12,26 +12,34 @@
 #include <queue>
 #include <map>
 
+#include <W_Transform2D.h>
+#include <ItemDropCreator.h>
+#include <HealthComponent.h>
+#include <AnimatedSprite2D.h>
+#include <MerchantInventoryComponent.h>
+
 // --------------- Back-end ---------------
 // [x] - Component Setup
 // [x] - Name
 // [?] - Dialogue
-// [x] - Merchant inventory (optional)
+// [ ] - Merchant inventory (optional)
 // [x] - Drop table
-// [ ] - Collider (handled separately)
-// [ ] - Health (handled separately)
+// [x] - Collider (handled separately)
+// [x] - Health (handled separately)
 // [ ] - Spawning
+// [x] - Handle death and item dropping
+// [ ] - Velocity Component
 // ----------------------------------------
 
 // -------------- Data-Drive --------------
 // [ ] - Dialogue
-// [ ] - Merchant inventory
+// [x] - Merchant inventory
 // [ ] - Drop table
 // [ ] - Whole Entity Setup
-//       [ ] - Collider Component
-//       [ ] - Health Component
+//       [x] - Collider Component
+//       [x] - Health Component
 //       [ ] - NPC Component
-//       [ ] - AnimatedSprite2D Component
+//       [x] - AnimatedSprite2D Component
 // ----------------------------------------
 
 // Struct used to sort all of the NPC's possible dialogues into a minimum priority queue
@@ -56,6 +64,7 @@ struct NPCDialogueEntry {
     // will be continually added to the end of the queue everytime it plays --!
 };
 
+// Function to compare the priority level of NPCDialogueEntries
 struct ComparePriority {
     bool operator()(const NPCDialogueEntry* a, const NPCDialogueEntry* b) {
         return a->iPriority > b->iPriority;
@@ -76,6 +85,10 @@ class NPCComponent : public wolf::BaseComponent {
         NPCComponent& operator=(NPCComponent&& other) = delete;
 
         int GetID() const {return m_iID;};
+
+        void Init();
+        void Update(float p_fDelta);
+        void HandleDeadState(float p_fDelta);
 
         const std::string& GetName() const {return m_strName;};
         void SetName(const std::string& p_strName) {m_strName = p_strName;};
@@ -132,4 +145,16 @@ class NPCComponent : public wolf::BaseComponent {
         std::priority_queue<NPCDialogueEntry*, std::vector<NPCDialogueEntry*>, ComparePriority> m_pqDialogueQueue; // Priority queue to decide which dialogue will play next
 
         int m_iCurHighPriorityVal = 0;
+
+        // Timers for the NPC death animation
+        float m_fFallDeadTimer = 0.0f;
+        float m_fLieDeadTimer = 0.0f;
+        float m_fTimeToFallDead = 0.6f;
+        float m_fTimeToLieDead = 0.8f;
+
+        // Pointers to other components that the NPCComponent will occasionally need to access
+        HealthComponent* m_pHealthComp = nullptr;
+        wolf::Transform2D* m_pTransform = nullptr;
+        AnimatedSprite2D* m_pAnimSpriteComp = nullptr;
+        MerchantInventoryComponent* m_pMerchInvComp = nullptr;
 };

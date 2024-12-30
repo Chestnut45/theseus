@@ -1,0 +1,17 @@
+name: Ariadne
+dialogue_bank_path: ariadne_dialogue_bank.yaml
+loot_table_path: minitaur_loot.yaml
+can_be_merchant: false
+health: 100
+collider_size: {x: 13.0, y: 30.0}
+collider_offset: {x: -7.0, y: 14.0}
+
+animation_init: {
+  frame_size: {x: 32.0, y: 32.0},
+  playback_speed: 0.0,
+  texture: data/textures/AriadneAll-Sheet.png,
+  start_anim: StandSouth,
+  animation_sets: [
+    data/ariadne_stand_anim_set.yaml,
+  ]
+}

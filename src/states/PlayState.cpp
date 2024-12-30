@@ -17,6 +17,7 @@
 #include "../components/ThrowableObjectComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
+#include <NPCBuilder.h>
 
 void PlayState::Enter()
 {
@@ -52,6 +53,7 @@ void PlayState::Enter()
     m_pLabyrinthManager->GenerateLabyrinth();
 
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+    NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
 
     // CreateThrowableObject();
     
