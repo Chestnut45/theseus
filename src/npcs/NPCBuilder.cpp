@@ -1,4 +1,4 @@
-#include <NPCBuilder.h>
+#include "NPCBuilder.h"
 
 NPCBuilder* NPCBuilder::m_pInstance = nullptr;
 wolf::Scene* NPCBuilder::m_pScene = nullptr;
@@ -7,7 +7,7 @@ wolf::RNG* NPCBuilder::m_pRNG = nullptr;
 int NPCBuilder::m_iRNGSeed;
 
 const std::string NPCBuilder::NPC_DIRECTORY_PATH = "";
-const glm::vec2 NPCBuilder::NPC_INVENTORY_DRAW_POS = {0.0f, 0.0f};
+const ImVec2 NPCBuilder::NPC_INVENTORY_DRAW_POS = {0.0f, 0.0f};
 
 void NPCBuilder::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
     // If there is not already an existing instance
@@ -48,7 +48,8 @@ void NPCBuilder::SetScene(wolf::Scene* p_pScene) {
 // Use this method when you know which NPC you want to build and can provide
 // the corresponding .yaml file
 wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
-    wolf::GameObject* pConstructedNPC = nullptr;
+    wolf::GameObject* pConstructedNPC = &m_pScene->CreateObject2D();
+    std::map<std::string, NPCDialogueEntry*> m_mDialogueMap;
 
     try {
         // First load up the npc file
@@ -56,15 +57,33 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
 
         // Then start looking for the attributes we need to create an NPCComponent
         std::string strName = pNPCDetails["name"].as<std::string>();
-        std::string strDialogueBank = pNPCDetails["dialogue_bank_path"].as<std::string>();
         std::string strLootTable = pNPCDetails["loot_table_path"].as<std::string>();
+
+        // This is the file that we'll be drawing from anytime the NPC is presenting dialogue or a cutscene
+        std::string strDialogueBank = pNPCDetails["dialogue_bank_path"].as<std::string>();
+
+        // We'll need to iterate through the list of dialogue/cutscene entries and create a map of 'em
+        // with the entry id (or name) as the key and the rest of the information as the value
+        YAML::Node dialogueEntries = pNPCDetails["dialogue_entries"];
+        for (int e = 0; e < dialogueEntries.size(); ++e) {
+            int priority = dialogueEntries[e]["priority"].as<int>();            // Priority value (lower values play before higher ones)
+            std::string id = dialogueEntries[e]["entry_id"].as<std::string>();  // Entry ID that matches an entry in the dialogue bank
+            bool hasTrigger = dialogueEntries[e]["has_trigger"].as<bool>();     // Whether or not this entry must be triggered to play
+            bool canRepeat = dialogueEntries[e]["can_repeat"].as<bool>();       // Whether or not this entry can play multiple times
+
+            // Create a new entry object and add it to the map
+            NPCDialogueEntry* pEntry = new NPCDialogueEntry(priority, id, hasTrigger, canRepeat);
+            m_mDialogueMap.insert({id, pEntry});
+        }
+
+        // Check whether or not this NPC can be a merchant
         bool bCanBeMerchant = pNPCDetails["can_be_merchant"].as<bool>();
 
         // This attribute may not be present so we use a lambda expression to default to false when it isn't there
         bool bStartsAsMerchant = pNPCDetails["starts_as_merchant"] ? pNPCDetails["starts_as_merchant"].as<bool>() : false;
 
         // Create the NPCComponent and attach it to the in-progress GameObject
-        pConstructedNPC->AddComponent<NPCComponent>(strName, strDialogueBank, strLootTable, bStartsAsMerchant, bCanBeMerchant);
+        pConstructedNPC->AddComponent<NPCComponent>(strName, strDialogueBank, m_mDialogueMap, strLootTable, bStartsAsMerchant, bCanBeMerchant);
 
         // If this NPC can be a merchant then we'll need to look for the attributes
         // required to set up a MerchantInventoryComponent
@@ -84,7 +103,7 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
             std::string strMerchantLootFile = merchantInit["merchant_loot_file"].as<std::string>();
 
             // Create and attach a MerchantInventoryComponent to the GameObject
-            auto& pMerchantInv = pConstructedNPC->AddComponent<MerchantInventoryComponent>(iInvSize, iSlotsPerRow, NPC_INVENTORY_DRAW_POS, fPercentMarkup, iGold);
+            MerchantInventoryComponent& pMerchantInv = pConstructedNPC->AddComponent<MerchantInventoryComponent>(iInvSize, iSlotsPerRow, NPC_INVENTORY_DRAW_POS, strName, fPercentMarkup, iGold);
             
             // Then fill the inventory using the loot file we retrieved a moment ago
             pMerchantInv.FillInventoryFromFile(strMerchantLootFile);
@@ -93,6 +112,9 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
         // Next we need to create the health component
         int iHealth = pNPCDetails["health"].as<int>();
         pConstructedNPC->AddComponent<HealthComponent>(iHealth);
+
+        // As well as a Velocity Component
+        pConstructedNPC->AddComponent<VelocityComponent>();
 
         // Then we look for the collider attributes...
         glm::vec2 v2Size;
@@ -104,7 +126,7 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
         v2Offset.y = pNPCDetails["collider_offset"]["y"].as<float>();
 
         // ...before creating and attaching a collider to the in-progress GameObject
-        auto& pCollider = pConstructedNPC->AddComponent<ColliderComponent>(ColliderComponent::HITHURTBOXDR, false, true);
+        auto& pCollider = pConstructedNPC->AddComponent<ColliderComponent>(ColliderComponent::HURTBOXDR, false, true);
         pCollider.AddColliderBox(v2Size, v2Offset);
 
         // Finally, we look for the attributes needed to create an AnimatedSprite2D
@@ -139,8 +161,11 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
         // Report the error
         wolf::Error("Error using '", p_strFilePath.c_str(), "' to construct NPC: ", e.what());
 
+        // Delete anything that was stored in the dialogue map
+        m_mDialogueMap.clear();
+
         // Delete the in-progress GameObject
-        delete pConstructedNPC;
+        m_pScene->DeleteObject(pConstructedNPC->GetID());
 
         // And return nullptr
         return nullptr;
@@ -154,4 +179,5 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
 // from its stored directory
 wolf::GameObject* NPCBuilder::BuildNPC() {
     // !-- Hey! This method is empty! --!
+    return nullptr;
 }

@@ -17,7 +17,7 @@
 #include "../components/ThrowableObjectComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
-#include <NPCBuilder.h>
+#include "../npcs/NPCBuilder.h"
 
 void PlayState::Enter()
 {

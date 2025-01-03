@@ -32,7 +32,7 @@
 #include <GorgonBuilder.h>
 #include <PlayerController.h>
 #include <TriggerComponent.h>
-#include <NPCBuilder.h>
+#include "../npcs/NPCBuilder.h"
 
 std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
 
@@ -1975,7 +1975,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     case Room::EntityType::AriadneNPC:
                     {
                         // Create Ariadne using the NPCBuilder
-                        auto& pAriadne = NPCBuilder::Instance()->BuildNPC("data/ariadne_init.yaml");
+                        wolf::GameObject& pAriadne = *NPCBuilder::Instance()->BuildNPC("data/ariadne_init.yaml");
 
                         // Set Ariadne's position and scale
                         auto& transform = *pAriadne.GetComponent<wolf::Transform2D>();
@@ -1983,7 +1983,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         transform.SetScale(glm::vec2(SCALE));
 
                         // Add her to the correct chunk
-                        GetChunk(GetCunkID(pos))->AddChild(pAriadne);
+                        GetChunk(GetChunkID(pos))->AddChild(pAriadne);
                         break;
                     }
 

@@ -1,7 +1,7 @@
 texture: data/textures/AriadneAll-Sheet.png
 frame_size: {x: 32.0, y: 32.0}
 
-animations: {
+animations: [
   {
     name: StandSouth,
     start_frame: 1,
@@ -30,4 +30,4 @@ animations: {
     origin: {x: 16.0, y: 16.0},
     loops: false
   }
-}
+]

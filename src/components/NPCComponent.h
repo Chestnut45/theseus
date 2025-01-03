@@ -13,10 +13,11 @@
 #include <map>
 
 #include <W_Transform2D.h>
-#include <ItemDropCreator.h>
 #include <HealthComponent.h>
 #include <AnimatedSprite2D.h>
 #include <MerchantInventoryComponent.h>
+
+#include "../inventory/ItemDropCreator.h"
 
 // --------------- Back-end ---------------
 // [x] - Component Setup
@@ -73,7 +74,7 @@ struct ComparePriority {
 
 class NPCComponent : public wolf::BaseComponent {
     public:
-        NPCComponent(const std::string& p_strName, const std::string& p_strDialogueFilePath, const std::string& p_strDropTableFilePath, bool p_bIsMerchant, bool p_bCanBeMerchant);
+        NPCComponent(const std::string& p_strName, const std::string& p_strDialogueFilePath, std::map<std::string, NPCDialogueEntry*>& p_mDialogueEntries, const std::string& p_strDropTableFilePath, bool p_bIsMerchant, bool p_bCanBeMerchant);
         ~NPCComponent();
         
         // Delete copy constructor/assignment

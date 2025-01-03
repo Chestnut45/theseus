@@ -3,7 +3,7 @@
 
 int NPCComponent::m_iNextID = 0;
 
-NPCComponent::NPCComponent(const std::string& p_strName, const std::string& p_strDialogueFilePath, const std::string& p_strDropTableFilePath, bool p_bIsMerchant, bool p_bCanBeMerchant)
+NPCComponent::NPCComponent(const std::string& p_strName, const std::string& p_strDialogueFilePath, std::map<std::string, NPCDialogueEntry*>& p_mDialogueEntries, const std::string& p_strDropTableFilePath, bool p_bIsMerchant, bool p_bCanBeMerchant)
     : m_strName(p_strName), m_strDialogueFilePath(p_strDialogueFilePath), m_strDropTableFilePath(p_strDropTableFilePath), m_bCanBeMerchant(p_bCanBeMerchant)
 {
     // If the NPC has the ability to be a merchant
@@ -18,8 +18,8 @@ NPCComponent::NPCComponent(const std::string& p_strName, const std::string& p_st
         m_bIsMerchant = false;
     }
 
-    // Parse the dialogue
-    
+    // Grab a reference to the dialogue entries map
+    m_mDialogueEntries = p_mDialogueEntries;
 
     // Assign a unique ID number to this NPC and update the NextID counter
     m_iID = m_iNextID;
@@ -69,9 +69,9 @@ void NPCComponent::Init() {
 void NPCComponent::HandleDeadState(float p_fDelta) {
     // *** This method is taken directly from Nhat's HandleDeathState() in the PlayerController ***
     // Fall over
-    if(m_fallDeadTimer <= m_timeToFallDead)
+    if(m_fFallDeadTimer <= m_fTimeToFallDead)
     {
-        if(m_fallDeadTimer == 0.0f)
+        if(m_fFallDeadTimer == 0.0f)
         {
             ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
             if(collider != nullptr)
@@ -82,21 +82,21 @@ void NPCComponent::HandleDeadState(float p_fDelta) {
             m_pAnimSpriteComp->SetTint(glm::vec3(1,0,0));
         }
 
-        float angle = (90.0f / m_timeToFallDead) * delta;
+        float angle = (90.0f / m_fTimeToFallDead) * p_fDelta;
         m_pTransform->RotateDegrees(angle);
         
-        m_fallDeadTimer += delta;
+        m_fFallDeadTimer += p_fDelta;
     }
 
     // Lie dead
     else
     {
-        if(m_lieDeadTimer >= m_timeToLieDead)
+        if(m_fLieDeadTimer >= m_fTimeToLieDead)
         {
             ItemDropCreator::Instance()->CreateItemDropFromLootTable(m_strDropTableFilePath, m_pTransform->GetGlobalPosition(), -1.0f);
             GetGameObject()->Delete();
         }
-        m_lieDeadTimer += delta;
+        m_fLieDeadTimer += p_fDelta;
     } 
 }
 

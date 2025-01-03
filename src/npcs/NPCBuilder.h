@@ -10,17 +10,19 @@
 //-----------------------------------------------------------------------------
 
 #include <yaml-cpp/yaml.h>
-#include <NPCComponent.h>
 #include <W_GameObject.h>
 #include <W_Logging.h>
 #include <W_Scene.h>
 #include <W_RNG.h>
 
-#include <NPCComponent.h>
 #include <HealthComponent.h>
 #include <ColliderComponent.h>
 #include <AnimatedSprite2D.h>
 #include <MerchantInventoryComponent.h>
+#include <VelocityComponent.h>
+
+#include "../components/NPCComponent.h"
+#include <imgui/imgui.h>
 
 class NPCBuilder {
     public:
@@ -47,11 +49,11 @@ class NPCBuilder {
         NPCBuilder& operator=(NPCBuilder&& other) = delete;
 
         static NPCBuilder* m_pInstance;
-        static wolf::Scene m_pScene;
-        static wolf::RNG m_pRNG;
+        static wolf::Scene* m_pScene;
+        static wolf::RNG* m_pRNG;
 
         static int m_iRNGSeed;
 
-        static const std::string NPC_DIRECTOR_PATH;
-        static const glm::vec2 NPC_INVENTORY_DRAW_POS;
+        static const std::string NPC_DIRECTORY_PATH;
+        static const ImVec2 NPC_INVENTORY_DRAW_POS;
 };

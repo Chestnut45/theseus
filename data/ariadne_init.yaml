@@ -1,10 +1,27 @@
 name: Ariadne
-dialogue_bank_path: ariadne_dialogue_bank.yaml
 loot_table_path: minitaur_loot.yaml
+
+dialogue_bank_path: ariadne_dialogue_and_cutscenes.yaml
+dialogue_entries: [
+  {
+    priority: 0,
+    entry_id: intro_cutscene,
+    has_trigger: false,
+    can_repeat: false
+  },
+  {
+    priority: 1,
+    entry_id: hello,
+    has_trigger: false,
+    can_repeat: true
+  },
+]
+
 can_be_merchant: false
-health: 100
-collider_size: {x: 13.0, y: 30.0}
-collider_offset: {x: -7.0, y: 14.0}
+
+health: 10
+collider_size: {x: 13.0, y: 28.0}
+collider_offset: {x: -6.0, y: 14.0}
 
 animation_init: {
   frame_size: {x: 32.0, y: 32.0},
