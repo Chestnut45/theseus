@@ -17,25 +17,41 @@ public:
     ~GorgonController() = default; 
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
-    
+    void ChangeState(EnemyState newState);
 
 private:
     // Gorgon-specific methods
     void SetUpAnimations(const std::string& animationInitPath);          
     void UpdateAnimationBasedOnDirection();
     void MoveTowardsTarget(float delta);
-    void HandleIdleState();
+    void HandleIdleState(float delta);
     void HandleProspectState(float delta);
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
+    void HandlePetrifiedState(float delta);
+    void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
-    void ChangeState(EnemyState newState) ;
     
+    void EnterChasingState();
+    void EnterIdleState();
+    void EnterStunnedState();
+
+    void ExitAttackState();
+    void ExitChasingState();
+    void ExitIdleState();
+    void ExitPetrifiedState();
+    void ExitProspectState();
+    void ExitStunnedState();
+
+    bool IsTargetDetected();
+    bool IsTargetInLOS(); // Check if target is in line of sight
+    bool IsWallTile(int p_tile_id);
+    glm::vec2 GetTileWorldPos(glm::ivec2 p_tile_pos);
     
     // Gorgon-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;
-    StatusComponent * m_pTargetStatusComponent = nullptr;
+    StatusComponent* m_pTargetStatusComponent = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
     float m_meleeRange;
     float m_rangedRange;
@@ -55,9 +71,13 @@ private:
     
     wolf::RNG m_RNG; 
 
+    float m_targetDetectionTimer = 0.0f; // Taget detecction reaction delay
+
     float m_prospectCounter = 0.0f;
     float m_prospectStandingCounter = 2.0f;
-    
+    float m_stunnedTime = 0.3f;
+    float m_stunnedTimer = 0.0f;
+
     float m_fallDeadTimer = 0.0f;
     float m_lieDeadTimer = 0.0f;
     float m_timeToFallDead = 0.6f;

@@ -25,9 +25,9 @@ void HarpyController::Init(const EnemyData& data)
     EnemyController::Init();
 
     // Assign enemy data
-    m_meleeRange = data.meleeRange;
-    m_attackCooldown = data.attackCooldown;
-    m_detectionRange = data.detectionRange;
+    m_rangedRange = data.rangedRange;
+    m_rangedCooldown = data.rangedCooldown;
+    m_detectionRange = data.detectionRange >= 0.0f ? data.detectionRange : std::numeric_limits<float>::infinity();
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
@@ -63,6 +63,24 @@ void HarpyController::Update(float delta)
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
 
+    // Check if harpy is petrified
+    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+    if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    {
+        ChangeState(EnemyState::DEATH);
+    }
+   
+    else 
+    {
+        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+        // On exiting petrified state
+        if(m_state == EnemyState::PETRIFIED)
+        {
+            m_state = EnemyState::IDLE;
+            m_pAnimComponent->SetAnimPaused(false);
+        }         
+    }
+
     // Check if health is below or equal to 0 and transition to the DEATH state
     if (m_pHealth->GetHealth() <= 0)
     {
@@ -70,23 +88,29 @@ void HarpyController::Update(float delta)
         ChangeState(EnemyState::DEATH);
     }
 
-    if(m_attackTimer > 0.0f)
+    if(m_rangedTimer > 0.0f)
     {
         // Cooldown timer for next attack
-        m_attackTimer -= delta;
+        m_rangedTimer -= delta;
     }
 
     // Update based on the current state
     switch (m_state)
     {
         case EnemyState::IDLE:
-            HandleIdleState();
+            HandleIdleState(delta);
             break;
         case EnemyState::CHASING:
             HandleChasingState(delta);
             break;
         case EnemyState::ATTACKING:
             HandleAttackingState(delta);
+            break;
+        case EnemyState::PETRIFIED:
+            HandlePetrifiedState(delta);
+            break;
+        case EnemyState::STUNNED:
+            HandleStunnedState(delta);
             break;
         case EnemyState::DEATH:
             HandleDeathState(delta);
@@ -97,6 +121,67 @@ void HarpyController::Update(float delta)
     UpdateAnimationBasedOnDirection();
 }
 
+void HarpyController::ChangeState(EnemyState newState)
+{
+     // Exit old state
+    switch (m_state)
+    {
+        case EnemyState::ATTACKING:
+        {
+            ExitAttackState();
+            break;
+        }
+        case EnemyState::CHASING:
+        {
+            ExitChasingState();
+            break;
+        }
+        case EnemyState::IDLE:
+        {
+            ExitIdleState();
+            break;
+        }
+        case EnemyState::PETRIFIED:
+        {
+            ExitPetrifiedState();
+            break;
+        }
+        case EnemyState::STUNNED:
+        {
+            ExitStunnedState();
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+    // Enter new state
+        switch (newState)
+    {
+        case EnemyState::CHASING:
+        {
+            EnterChasingState();
+            break;
+        }
+        case EnemyState::IDLE:
+        {
+            EnterIdleState();
+            break;
+        }
+        case EnemyState::STUNNED:
+        {
+            EnterStunnedState();
+            break;
+        }
+        default:
+        {         
+            break;
+        }
+    }
+
+    m_state = newState;
+}
 
 void HarpyController::SetUpAnimations(const std::string& animationInitPath)
 {
@@ -111,7 +196,6 @@ void HarpyController::SetUpAnimations(const std::string& animationInitPath)
 
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
-    m_pAnimComponent->SetTint(glm::vec3(0,1,0));
 }
 
 void HarpyController::MoveTowardsTarget(float delta)
@@ -141,12 +225,13 @@ void HarpyController::MoveTowardsTarget(float delta)
     }
 }
 
-void HarpyController::HandleIdleState()
+void HarpyController::HandleIdleState(float delta)
 {
-    // Check if the player is within detection range
-    float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
-
-    // If the player comes into detection range, start chasing
+    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+    
+    //std::cout << "HarpyController - Detection Range: " << m_detectionRange << std::endl;
     if (distanceToPlayer <= m_detectionRange)
     {
         ChangeState(EnemyState::CHASING);  // Transition to CHASING when the player is in range
@@ -156,57 +241,25 @@ void HarpyController::HandleIdleState()
 void HarpyController::HandleChasingState(float delta)
 {
     MoveTowardsTarget(delta);
-    // glm::vec2 currentVelocity = m_pVelocity->GetVelocity();
-    // printf("After MoveTowardsTarget - Velocity: (%f, %f)\n", currentVelocity.x, currentVelocity.y);
 
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
-    // Check if the player has moved out of the detection range and transition to IDLE
-    if (distanceToPlayer > m_detectionRange)
-    {
-        ChangeState(EnemyState::IDLE);
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));  // Reset velocity when returning to idle
-        return;
-    }
-
-    if (!m_transitionTimer.IsRunning())
-    {
-        m_transitionTimer.Start();
-    }
-
-    // if (distanceToPlayer <= m_meleeRange)
-    // {
-    //     if (m_transitionTimer.Elapsed() >= m_transitionDelay)
-    //     {
-    //         ChangeState(EnemyState::ATTACKING);
-    //         m_transitionTimer.Reset();
-    //     }
-    // }
     if(distanceToPlayer <= m_rangedRange)
     {
-        if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_attackTimer <= 0.0f)
+        if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_rangedTimer <= 0.0f)
         {
-            
-            ChangeState(EnemyState::ATTACKING);
-            m_transitionTimer.Reset();
-            
+            ChangeState(EnemyState::ATTACKING);            
         }
-    }
-    else
-    {
-        // Ensure the timer is reset if the player is not in range
-        m_transitionTimer.Reset();
     }
 }
 
 void HarpyController::HandleAttackingState(float delta)
 {
     if (!m_pTarget) return;
-
-    // Check distance to player
     
+    // Retrieving & calculating data
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
@@ -218,12 +271,12 @@ void HarpyController::HandleAttackingState(float delta)
     glm::vec2 projectileDefaultVelocity = harpyDirection * 168.0f;
 
     auto& scene = this->GetGameObject()->GetScene();
-    
+
+    // Spawn 3 projectiles
     for(int i = -1; i <= 1; i += 1)
     {
         auto& projectile = scene.CreateObject2D();
 
-        //
         std::vector<std::pair<StatusComponent::StatusEffectType, float>> statusEffects = 
         {
             std::pair<StatusComponent::StatusEffectType, float>(StatusComponent::StatusEffectType::BURNING, 5.0f)
@@ -242,25 +295,39 @@ void HarpyController::HandleAttackingState(float delta)
         auto& projectileTimedDestroyer = projectile.AddComponent<TimedDestroyerComponent>(10);
 
         auto& projectileVelocityComponent = projectile.AddComponent<VelocityComponent>();
-        // float angle = (60 * -i) / (MATH_PI * 180.0f);
-        // glm::vec2 projectileVelocity = glm::vec2(0.0f, 0.0f);
-        // projectileVelocity.x = projectileDefaultVelocity.x * glm::cos(angle) - projectileDefaultVelocity.y * glm::sin(angle);
-        // projectileVelocity.y = projectileDefaultVelocity.x * glm::sin(angle) + projectileDefaultVelocity.y * glm::cos(angle);
         projectileVelocityComponent.SetVelocity(projectileDefaultVelocity);
 
         glm::vec2 offset = perpendicularVector * (30.0f * i);
         projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset);
         projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
     }
-    
-    
-    m_attackTimer = m_attackCooldown;
-    
-
     ChangeState(EnemyState::CHASING);
 }
 
+void HarpyController::HandlePetrifiedState(float delta)
+{
+    ChangeState(EnemyState::DEATH);
+}
 
+void HarpyController::HandleStunnedState(float delta)
+{
+    AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+    if(m_stunnedTimer >= m_stunnedTime)
+    {
+        if(sprite != nullptr)
+        {
+            sprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+        }
+        m_stunnedTimer = 0.0f;
+        ChangeState(EnemyState::CHASING);
+    }
+    
+    if(sprite != nullptr)
+    {
+        sprite->SetTint(glm::vec3(1.0f, 0.0f, 0.0f));
+    }
+    m_stunnedTimer += delta;
+}
 
 void HarpyController::UpdateAnimationBasedOnDirection()
 {
@@ -302,7 +369,7 @@ void HarpyController::UpdateAnimationBasedOnDirection()
 
 void HarpyController::HandleDeathState(float delta)
 {
-     // Fall over
+    // Fall over
     if(m_fallDeadTimer <= m_timeToFallDead)
     {
         if(m_fallDeadTimer == 0.0f)
@@ -340,7 +407,47 @@ void HarpyController::HandleDeathState(float delta)
     }  
 }
 
-void HarpyController::ChangeState(EnemyState newState)
+void HarpyController::EnterChasingState()
 {
-    m_state = newState;
+    m_transitionTimer.Reset();
+    m_transitionTimer.Start();
 }
+
+void HarpyController::EnterIdleState()
+{
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+}
+
+void HarpyController::EnterStunnedState()
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+}
+
+void HarpyController::ExitAttackState()
+{
+    m_rangedTimer = m_rangedCooldown;
+}
+
+void HarpyController::ExitChasingState()
+{
+    m_transitionTimer.Reset();
+    m_transitionTimer.Stop();
+    m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
+}
+
+void HarpyController::ExitIdleState()
+{
+}
+
+void HarpyController::ExitPetrifiedState()
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    m_pAnimComponent->SetAnimPaused(false);
+}
+
+void HarpyController::ExitStunnedState()
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    m_stunnedTimer = 0.0f;
+}
+
