@@ -159,6 +159,10 @@ private:
     wolf::Timer m_walkSoundTimer;
     float m_walkSoundInterval = 0.333333333f;
 
+    // DEBUG: Godmode flags
+    bool m_godmode = false;
+    bool m_superSpeed = false;
+
     // Stamina management
     bool m_isRolling = false;
     float m_rollSpeed = 400.0f;
@@ -182,6 +186,7 @@ private:
     float m_attackCooldown = 0.5f;
     float m_attackDamage = 50.0f;
     float m_attackRange = 100.0f;
+    glm::vec2 m_attackDir = glm::vec2(0.0f, 0.0f);
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
 
@@ -201,8 +206,7 @@ private:
 
     ColliderManager* m_pColliderManager = nullptr;
 
-    // Default weapon if no weapon equipped
-    WeaponItem* m_pDefaultWeapon = nullptr;
+    // Equipped weapon (no default)
     WeaponItem* m_pCurrentWeapon = nullptr;
 
     // Death screen related variables

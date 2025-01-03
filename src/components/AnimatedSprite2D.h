@@ -17,18 +17,21 @@
 // that file into unique animations so that you don't have to swap textures when you switch between animations
 
 struct SpriteAnimation2D {
-    SpriteAnimation2D(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop) :
-    m_strName(p_strName), m_strTexturePath(p_strTexturePath), m_v2FrameSize(p_v2FrameSize), m_iStartFrame(p_iStartFrame), m_iEndFrame(p_iEndFrame), m_bLoop(p_bLoop){};
+    SpriteAnimation2D(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, const glm::vec2& p_v2Origin, bool p_bLoop, const std::string& p_strNextAnimName) :
+    m_strName(p_strName), m_strTexturePath(p_strTexturePath), m_v2FrameSize(p_v2FrameSize), m_iStartFrame(p_iStartFrame), m_iEndFrame(p_iEndFrame), m_v2Origin(p_v2Origin), m_bLoop(p_bLoop), m_strNextAnimName(p_strNextAnimName){};
     
     std::string m_strName;  // What is this an animation of?
     std::string m_strTexturePath; // What is the texture this animation draws from?
 
     glm::vec2 m_v2FrameSize;
+    glm::vec2 m_v2Origin{0.0f};
 
     int m_iStartFrame;      // Which frame does this animation start on?
     int m_iEndFrame;        // Which frame does this animation end on?
 
     bool m_bLoop;           // Does this animation loop?
+
+    std::string m_strNextAnimName = ""; // Does this animation trigger another one automatically?
 };
 
 // To render one frame of animation you're going to need the corresponding UV coordinates from
@@ -62,7 +65,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         void Update(float p_fDelta);
 
-        bool AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, bool p_bLoop);
+        bool AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, const glm::vec2& p_vec2Origin, bool p_bLoop, const std::string& p_strNextAnimName);
         bool AddAnimationSet(const std::string& p_strPathToSetFile);
         bool RemoveAnimation(const std::string& p_strName);
 
@@ -105,6 +108,11 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         bool IsVisible() const { return m_visible; }
         inline void SetVisibility(bool visible) { m_visible = visible; }
 
+        // Set the layer of this sprite
+        // 0 is the bottommost layer
+        void SetLayer(int layer) { m_layer = layer; }
+        int GetLayer() const { return m_layer; }
+
         // Draw the sprite at the given position, rotation, and scale in world space
         // Multiplies final pixel color by provided tint color
         // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
@@ -130,6 +138,10 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         // Tint color of the animated sprite
         glm::vec3 m_tint{1.0f};
+
+        // The layer of the sprite
+        // Bottommost layer is 0
+        int m_layer = 0;
 
         float m_fPlaybackSpeed; // How fast is the animation playing?
         float m_fCurrentFrame; // Which animation frame are we currently on?

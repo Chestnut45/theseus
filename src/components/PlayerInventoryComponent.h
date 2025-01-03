@@ -11,6 +11,13 @@
 #include "events/DroppedItemEvents.h"
 #include "inventory/ItemDropCreator.h"
 
+#include "inventory/FlatAmtItem.h"
+#include "inventory/PercentItem.h"
+#include "inventory/StatusEffectItem.h"
+
+#include "inventory/ArmourItem.h"
+#include "inventory/WeaponItem.h"
+
 class PlayerInventoryComponent : public InventoryComponent {
     public:
         PlayerInventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos)
@@ -28,6 +35,9 @@ class PlayerInventoryComponent : public InventoryComponent {
                 for (int j = 0; j < END_OF_RARITIES; j++) {
                     m_iSchematics[j] = 0;
                 }
+
+                // Start with exactly one common schematic
+                m_iSchematics[0] = 1;
 
                 // We also need to register for events related to the player's inventory
                 wolf::EventManager::AddListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);

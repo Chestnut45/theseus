@@ -3,6 +3,8 @@
 #include <yaml-cpp/yaml.h>
 #include "../inventory/ItemCreator.h"
 
+#include <AnimatedSprite2D.h>
+
 ChestInventoryComponent::~ChestInventoryComponent() {
     // Empty each of the stacks in the contents vector
     this->EmptyInventory();
@@ -117,7 +119,7 @@ void ChestInventoryComponent::ShowInventoryGUI() {
             if (!m_vvpContents[k].empty()) {
                 // We grab a reference to the top item and create a variable to hold the item's details
                 ItemBase* pItem = m_vvpContents[k].top();
-                std::string strTooltipText;
+                std::string strTooltipText = pItem->GetToolTipText() + "\n\nValue: " + std::to_string(pItem->GetValue());
                 std::string strTooltipName;
 
                 // There are different rules for drawing Consumables and Equipment Items so we need to figure out
@@ -135,10 +137,8 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                         wolf::Error("Failed to cast ItemBase to ConsumableItem!\n");
                     }
 
-                    // Then construct the string that will be used to display all of the item's details
+                    // Then construct the string that will be used to display the item's name
                     strTooltipName = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")";
-                    strTooltipText = pConsumable->GetDescription() + "\n\nValue: " + std::to_string(pConsumable->GetValue())
-                        + "\nUses: " + std::to_string(pConsumable->GetNumUses());
 
                 }
                 else if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
@@ -149,7 +149,7 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                         wolf::Error("Failed to cast ItemBase to EquipmentItem!\n");
                     }
                     
-                    // Then start constructing the string that will be used to display all of the item's details
+                    // Then start constructing the string that will be used to display the item's name
                     strTooltipName = pEquipment->GetName();
 
                     // If this item is equipped then we want to show that in the details string
@@ -157,14 +157,9 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                         strTooltipName += " (E)";
                         bIsEquipped = true; // (And we'll need to remember that it's equipped later on)
                     }
-
-                    // Add the rest of the item's details to the string
-                    strTooltipText = pEquipment->GetDescription() + "\n\nValue: " + std::to_string(pEquipment->GetValue())
-                        + "\nSlot: " + pEquipment->GetEquipmentSlotString();
                 }
                 else { // If for some reason this item isn't Consumable OR Equipment
                     strTooltipName = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")";
-                    strTooltipText = pItem->GetDescription();
                 }
                 
                 // We're also going to store a string representation of the slot index that we're on
@@ -251,6 +246,15 @@ void ChestInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent&
         if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
             m_bIsOpen = false;
+
+            // Adjust sprite
+            auto* pAnim = GetGameObject()->GetComponent<AnimatedSprite2D>();
+            if (pAnim)
+            {
+                std::string name = pAnim->GetCurrentAnimation()->m_strName;
+                size_t pos = name.find("Open");
+                if (pos != std::string::npos) pAnim->SetAnimation(name.replace(pos, 4, "Closed"));
+            }
         }
     }
 }
@@ -262,6 +266,15 @@ void ChestInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEven
         if (m_bIsOpen) {
             // Close it
             m_bIsOpen = false;
+
+            // Adjust sprite
+            auto* pAnim = GetGameObject()->GetComponent<AnimatedSprite2D>();
+            if (pAnim)
+            {
+                std::string name = pAnim->GetCurrentAnimation()->m_strName;
+                size_t pos = name.find("Open");
+                if (pos != std::string::npos) pAnim->SetAnimation(name.replace(pos, 4, "Closed"));
+            }
         }
     }
 }

@@ -212,25 +212,41 @@ private:
         enum class EntityType
         {
             Minitaur,
+            Harpy,
+            Gorgon,
             CommonChest,
             UncommonChest,
             RareChest,
             EpicChest,
             LegendaryChest,
             DaedalusDispensary, // !-- Aurora added this --!
+            SpikeTrap,
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary", "Spike Trap"};
+
+        enum class SpawnPosType
+        {
+            Center,
+            Manual,
+            Random
+        };
+        static const inline char* s_entitySpawnPosNames[] = {"Center", "Manual", "Random"};
 
         // Entity spawn data structure
         struct EntitySpawnData
         {
             EntityType m_type = EntityType::Minitaur;
             int m_amount = 1;
+            SpawnPosType m_spawnPosType = SpawnPosType::Center;
+            glm::ivec2 m_pos{0,0};
         };
 
         // Entity spawn data
         std::vector<EntitySpawnData> m_entitySpawns;
     };
+
+    // Map of string names to entity IDs
+    static std::unordered_map<std::string, Room::EntityType> s_entityIDs;
 
     // List of all rooms to be generated in the labyrinth
     std::vector<Room> m_rooms;
@@ -267,7 +283,7 @@ private:
     struct ChunkData
     {
         wolf::GameObject* m_pObject = nullptr;
-        bool active = false;
+        bool active = true;
     };
 
     // Map of chunk IDs to chunk game object pointers

@@ -9,23 +9,25 @@
 
 // Structure to hold character-specific data
 struct CharacterData {
-    std::string name;
-    std::string portraitPath;
-    std::string expression;
-    wolf::Texture* portraitTexture = nullptr;  // Pointer to texture
+    std::string name;                  // Character's name
+    std::string portraitPath;          // Path to the character's portrait texture
+    wolf::Texture* portraitTexture = nullptr;  // Pointer to the loaded texture
 };
 
 // Structure to hold each dialogue line data
 struct DialogueLine {
-    std::string characterName;
-    std::string text;
-    float duration;
+    std::string characterName;         // Name of the character speaking (optional)
+    std::string text;                  // Dialogue text (optional)
+    float duration = 0.0f;             // Duration for which the line is displayed
+    std::string action;                // Action type, e.g., "cutscene" (optional)
+    std::string cutsceneID;            // Cutscene ID if action is "cutscene" (optional)
+    std::string target;                // Camera target if action involves movement (optional)
 };
 
 // Structure to hold the entire dialogue data
 struct DialogueData {
-    std::vector<CharacterData> characters;
-    std::vector<DialogueLine> lines;
+    std::vector<CharacterData> characters;  // List of characters in the dialogue
+    std::vector<DialogueLine> lines;        // List of dialogue lines
 };
 
 // Dialogue Manager Class

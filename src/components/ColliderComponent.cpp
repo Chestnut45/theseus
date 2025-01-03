@@ -210,3 +210,4 @@ void ColliderComponent::SetActive(bool active) {
 bool ColliderComponent::IsActive() const {
     return m_active;
 }
+

@@ -240,7 +240,8 @@ void MinitaurController::HandleAttackingState(float delta)
 
     // Stop Minitaur's movement during attack
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    if(m_attackTimer <= 0.0f)
+
+    if (m_attackTimer <= 0.0f)
     {
         // Check distance to player
         const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -250,19 +251,32 @@ void MinitaurController::HandleAttackingState(float delta)
         // Apply damage if player is within melee range and attack cooldown is over
         if (distanceToPlayer <= m_meleeRange)
         {
-            // // Simulate applying damage to the player
+            // Apply damage to the player
             auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
             if (playerHealth)
             {
-                playerHealth->Damage(m_baseDamage);  // Apply damage to the player
+                playerHealth->Damage(m_baseDamage);
                 wolf::Audio::Play("data/sounds/hurt.wav");
-            }        
+
+            }
+
+            // Apply strong knockback to the player
+            auto* playerVelocity = m_pTarget->GetComponent<VelocityComponent>();
+            if (playerVelocity)
+            {
+                // Calculate knockback direction and amplify the push
+                glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
+                float knockbackStrength = 800.0f; // Amplified knockback strength
+                playerVelocity->ApplyKnockback(knockbackDirection, knockbackStrength);
+            }
+
         }
-        else 
+        else
         {
             // Return to chasing if player moves out of range
             ChangeState(EnemyState::CHASING);
         }
+
         // Reset attack cooldown timer
         m_attackTimer = m_attackCooldown;
     }

@@ -165,11 +165,14 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
                 // We grab a reference to the top item and create a variable to hold the item's details
                 ItemBase* pItem = m_vvpContents[k].top();
                 std::string strTooltipName;
-                std::string strTooltipText;
+                std::string strTooltipText = pItem->GetToolTipText();
 
                 // Compute how much this merchant is selling the item for
                 int iItemValue = pItem->GetValue();
                 int iSalePrice = iItemValue + (iItemValue * m_fPercentMarkup);
+
+                // And attach the price to the item's description
+                strTooltipText += "\n\nPrice: " + std::to_string(iSalePrice);
 
                 // There are different rules for drawing Consumables and Equipment Items so we need to figure out
                 // what this particular item is before we go any further
@@ -188,7 +191,6 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
 
                     // Then construct the string that will be used to display all of the item's details
                     strTooltipName = pConsumable->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")";
-                    strTooltipText = pConsumable->GetDescription() + "\nUses: " + std::to_string(pConsumable->GetNumUses()) + "\n\nPrice: " + std::to_string(iSalePrice);
 
                 }
                 else if (pItem->GetID() == EQUIPMENT) { // If this is an equipment item
@@ -201,12 +203,9 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
                     
                     // Then construct the string that will be used to display all of the item's details
                     strTooltipName = pEquipment->GetName();
-                    strTooltipText = pEquipment->GetDescription() + "\nSlot: " + pEquipment->GetEquipmentSlotString()
-                        + "\n\nPrice: " + std::to_string(iSalePrice);
                 }
                 else { // If for some reason this item isn't Consumable OR Equipment
                     strTooltipName = pItem->GetName() + " (" + std::to_string(m_vvpContents[k].size()) + ")";
-                    strTooltipText = pItem->GetDescription() + "\n\nPrice: " + std::to_string(iSalePrice);
                 }
                 
                 // We're also going to store a string representation of the slot index that we're on

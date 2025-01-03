@@ -1,5 +1,5 @@
 random_seed: false
-seed: 4545
+seed: 1589844665
 width: 125
 height: 125
 
@@ -11,26 +11,41 @@ rooms: [
 		position: {type: manual, origin: {x: 51, y: 51}},
 		size: {type: manual, value: {x: 23, y: 23}},
 		entities: [
-			{type: legendary_chest, amount: 1}
+			{type: legendary_chest, amount: 1, placement: center},
+			{type: minitaur, amount: 8, placement: random},
 		]
 	},
 	{
-		name: Clustered Rooms,
-		instances: 64,
+		name: Dispensary Rooms,
+		instances: 8,
 		force: false,
-		position: {type: random_radius, position: {x: 63, y: 63}, radius: 24},
-		size: {type: manual, value: {x: 3, y: 3}},
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
 		entities: [
-			{type: minitaur, amount: 1}
+			{type: dispensary, amount: 1, placement: center},
 		]
 	},
 	{
-		name: Large Rooms,
-		instances: 32,
+		name: Basic Fight Rooms,
+		instances: 16,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
+			{type: spike_trap, amount: 1, placement: center},
+			{type: minitaur, amount: 3, placement: random},
+		]
+	},
+	{
+		name: Elite Rooms,
+		instances: 8,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		entities: [
+			{type: rare_chest, amount: 1, placement: center},
+			{type: harpy, amount: 1, placement: random},
+			{type: gorgon, amount: 1, placement: random},
 		]
 	}
 ]
