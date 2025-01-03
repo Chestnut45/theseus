@@ -52,6 +52,10 @@ class ArmourItem : public EquipmentItem {
                         case StatusComponent::POISONED:
                             strBaseText += "\n\tPOISONED ";
                         break;
+
+                        case StatusComponent::HEALING:
+                            strBaseText += "\n\tHEALING ";
+                        break;
                     }
                     strBaseText += "for " + std::format("{:.2f}", effect.fDuration);
                 }

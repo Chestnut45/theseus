@@ -6,6 +6,7 @@ void ArmourItem::SetEquipped(bool p_bEquip) {
     m_bEquipped = p_bEquip;
 
     // If we just equipped it
+
     if (m_bEquipped) {
         // Let whoever is interested know
         wolf::EventManager::TriggerEvent(ArmourEquippedEvent(this));
