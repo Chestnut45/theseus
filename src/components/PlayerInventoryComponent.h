@@ -102,6 +102,6 @@ class PlayerInventoryComponent : public InventoryComponent {
         int m_iOpenChestIdNum = -1;
         int m_iOpenMerchantIdNum = -1;
 
-        int m_iEquipmentSlots[END_OF_EQUIPMENT - 1];
-        int m_iSchematics[END_OF_RARITIES - 1];
+        int m_iEquipmentSlots[END_OF_EQUIPMENT];
+        int m_iSchematics[END_OF_RARITIES];
 };
