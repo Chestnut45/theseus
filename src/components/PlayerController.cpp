@@ -330,7 +330,8 @@ void PlayerController::HandlePlayerInput(float delta)
     }
 
     // Start the attack if the left mouse button is pressed and the player is not currently attacking.
-    if (wolf::Input::IsLMBJustDown() && m_action != PlayerAction::ATTACKING)
+    // !-- Aurora added a m_pCurrentWeapon != nullptr check here --!
+    if (wolf::Input::IsLMBJustDown() && m_action != PlayerAction::ATTACKING && m_pCurrentWeapon)
     {
         SetAction(PlayerAction::ATTACKING);
     }
