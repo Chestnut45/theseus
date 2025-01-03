@@ -212,8 +212,7 @@ private:
 
     ColliderManager* m_pColliderManager = nullptr;
 
-    // Default weapon if no weapon equipped
-    WeaponItem* m_pDefaultWeapon = nullptr;
+    // Equipped weapon (no default)
     WeaponItem* m_pCurrentWeapon = nullptr;
 
     // Death screen related variables
