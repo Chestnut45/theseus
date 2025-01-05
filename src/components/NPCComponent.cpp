@@ -3,7 +3,7 @@
 
 int NPCComponent::m_iNextID = 0;
 
-NPCComponent::NPCComponent(const std::string& p_strName, const std::string& p_strDialogueFilePath, std::map<std::string, NPCDialogueEntry*>& p_mDialogueEntries, const std::string& p_strDropTableFilePath, bool p_bIsMerchant, bool p_bCanBeMerchant)
+NPCComponent::NPCComponent(const std::string& p_strName, const std::string& p_strDialogueFilePath, std::unordered_map<std::string, NPCDialogueEntry*>& p_mDialogueEntries, const std::string& p_strDropTableFilePath, bool p_bIsMerchant, bool p_bCanBeMerchant)
     : m_strName(p_strName), m_strDialogueFilePath(p_strDialogueFilePath), m_strDropTableFilePath(p_strDropTableFilePath), m_bCanBeMerchant(p_bCanBeMerchant)
 {
     // If the NPC has the ability to be a merchant
@@ -20,6 +20,13 @@ NPCComponent::NPCComponent(const std::string& p_strName, const std::string& p_st
 
     // Grab a reference to the dialogue entries map
     m_mDialogueEntries = p_mDialogueEntries;
+
+    // Then queue up all of the entries that don't require a trigger
+    for (const auto& entry : m_mDialogueEntries) {
+        if (!entry.second->bHasTrigger) {
+            m_pqDialogueQueue.push(entry.second);
+        }
+    }
 
     // Assign a unique ID number to this NPC and update the NextID counter
     m_iID = m_iNextID;
@@ -109,6 +116,7 @@ void NPCComponent::PlayNextDialogue() {
     m_pqDialogueQueue.pop();
 
     // Play the dialogue
+    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent(dialogue->strDialogueID, m_strDialogueFilePath));
 
     // If the dialogue can be replayed
     if (dialogue->bCanRepeat) {

@@ -1,0 +1,25 @@
+CutscenesAndDialogues:
+  intro_cutscene:
+    characters:
+      - name: "Daedalus"
+        portraitPath: "data/textures/sPlayerTest.png"
+      - name: "Theseus"
+        portraitPath: "data/textures/sPlayerTest.png"
+    sequence:
+      - type: "dialogue"
+        character: "Daedalus"
+        text: "Put schematics in dispensaries, okay?"
+        duration: 4.0
+      - type: "dialogue"
+        character: "Theseus"
+        text: "Okay!"
+        duration: 2.0
+  hello:
+    characters:
+      - name: "Daedalus"
+        portraitPath: "data/textures/sPlayerTest.png"
+    sequence:
+      - type: "dialogue"
+        character: "Daedalus"
+        text: "Hello, Theseus."
+        duration: 2.0

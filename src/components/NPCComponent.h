@@ -10,38 +10,31 @@
 #include <W_BaseComponent.h>
 #include <string>
 #include <queue>
-#include <map>
+#include <unordered_map>
 
 #include <W_Transform2D.h>
+#include <W_EventManager.h>
 #include <HealthComponent.h>
 #include <AnimatedSprite2D.h>
 #include <MerchantInventoryComponent.h>
 
 #include "../inventory/ItemDropCreator.h"
+#include "../events/DialogueAndCutsceneEvent.h"
 
-// --------------- Back-end ---------------
-// [x] - Component Setup
-// [x] - Name
-// [?] - Dialogue
-// [ ] - Merchant inventory (optional)
-// [x] - Drop table
-// [x] - Collider (handled separately)
-// [x] - Health (handled separately)
-// [ ] - Spawning
-// [x] - Handle death and item dropping
-// [ ] - Velocity Component
-// ----------------------------------------
-
-// -------------- Data-Drive --------------
-// [ ] - Dialogue
-// [x] - Merchant inventory
-// [ ] - Drop table
-// [ ] - Whole Entity Setup
-//       [x] - Collider Component
-//       [x] - Health Component
-//       [ ] - NPC Component
-//       [x] - AnimatedSprite2D Component
-// ----------------------------------------
+// ---------- TO DO -----------
+// [?] - Get it to build
+// [ ] - Test dialogue
+// [ ] - Open merchant after
+//       dialogue and start
+//       goodbye when shop is
+//       closed
+// [x] - Write Daedalus .yaml
+// [ ] - Test merchant
+// [ ] - Add hit effect
+// [/] - Get NPCs to die
+// [ ] - Random selection for
+//       BuildNPC()
+// ----------------------------
 
 // Struct used to sort all of the NPC's possible dialogues into a minimum priority queue
 // so that we can programmatically control the ordering and repeatability of each conversation
@@ -67,14 +60,14 @@ struct NPCDialogueEntry {
 
 // Function to compare the priority level of NPCDialogueEntries
 struct ComparePriority {
-    bool operator()(const NPCDialogueEntry* a, const NPCDialogueEntry* b) {
+    inline bool operator()(const NPCDialogueEntry* a, const NPCDialogueEntry* b) {
         return a->iPriority > b->iPriority;
     }
 };
 
 class NPCComponent : public wolf::BaseComponent {
     public:
-        NPCComponent(const std::string& p_strName, const std::string& p_strDialogueFilePath, std::map<std::string, NPCDialogueEntry*>& p_mDialogueEntries, const std::string& p_strDropTableFilePath, bool p_bIsMerchant, bool p_bCanBeMerchant);
+        NPCComponent(const std::string& p_strName, const std::string& p_strDialogueFilePath, std::unordered_map<std::string, NPCDialogueEntry*>& p_mDialogueEntries, const std::string& p_strDropTableFilePath, bool p_bIsMerchant, bool p_bCanBeMerchant);
         ~NPCComponent();
         
         // Delete copy constructor/assignment
@@ -85,27 +78,27 @@ class NPCComponent : public wolf::BaseComponent {
         NPCComponent(NPCComponent&& other) = delete;
         NPCComponent& operator=(NPCComponent&& other) = delete;
 
-        int GetID() const {return m_iID;};
+        inline int GetID() const {return m_iID;};
 
         void Init();
         void Update(float p_fDelta);
         void HandleDeadState(float p_fDelta);
 
-        const std::string& GetName() const {return m_strName;};
-        void SetName(const std::string& p_strName) {m_strName = p_strName;};
+        inline const std::string& GetName() const {return m_strName;};
+        inline void SetName(const std::string& p_strName) {m_strName = p_strName;};
 
-        const std::string& GetDialogueFilePath() const {return m_strDialogueFilePath;};
-        void SetDialogueFilePath(const std::string& p_strFilePath) {m_strDialogueFilePath = p_strFilePath;};
+        inline const std::string& GetDialogueFilePath() const {return m_strDialogueFilePath;};
+        inline void SetDialogueFilePath(const std::string& p_strFilePath) {m_strDialogueFilePath = p_strFilePath;};
 
-        const std::string& GetDropTableFilePath() const {return m_strDropTableFilePath;};
-        void SetDropTableFilePath(const std::string& p_strFilePath) {m_strDropTableFilePath = p_strFilePath;};
+        inline const std::string& GetDropTableFilePath() const {return m_strDropTableFilePath;};
+        inline void SetDropTableFilePath(const std::string& p_strFilePath) {m_strDropTableFilePath = p_strFilePath;};
 
         // If the NPC's GameObject has a MerchantInventoryComponent attached, is it currently accessible?
-        bool IsMerchant() const {return m_bIsMerchant;};
+        inline bool IsMerchant() const {return m_bIsMerchant;};
 
         // If the NPC's GameObject has a MerchantInventoryComponent attached, toggle its accessiblity.
         // Return true if the accessibility was toggled and false otherwise
-        bool SetIsMerchant(bool p_bIsMerchant) {
+        inline bool SetIsMerchant(bool p_bIsMerchant) {
             // If this NPC has the ability to become (or stop being) a merchant
             if (m_bCanBeMerchant) {
                 // Toggle their merchant-hood
@@ -120,7 +113,7 @@ class NPCComponent : public wolf::BaseComponent {
         };
         
         // Does this NPC's GameObject have a MerchantInventoryComponent attached?
-        bool CanBeMerchant() const {return m_bCanBeMerchant;};
+        inline bool CanBeMerchant() const {return m_bCanBeMerchant;};
 
         // Dialogue and priority queue operations
         void PlayNextDialogue();
@@ -142,7 +135,7 @@ class NPCComponent : public wolf::BaseComponent {
         bool m_bIsMerchant; // Is this NPC currently a merchant? (they have a currently accessible MerchantInventoryComponent)
         const bool m_bCanBeMerchant;  // Can this NPC be a merchant? (they have a MerchantInventoryComponent that is -- or will be -- accessible)
 
-        std::map<std::string, NPCDialogueEntry*> m_mDialogueEntries; // Map to hold all of the NPC's dialogues
+        std::unordered_map<std::string, NPCDialogueEntry*> m_mDialogueEntries; // Map to hold all of the NPC's dialogues
         std::priority_queue<NPCDialogueEntry*, std::vector<NPCDialogueEntry*>, ComparePriority> m_pqDialogueQueue; // Priority queue to decide which dialogue will play next
 
         int m_iCurHighPriorityVal = 0;

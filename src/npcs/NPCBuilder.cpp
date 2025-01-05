@@ -1,4 +1,5 @@
 #include "NPCBuilder.h"
+#include <unordered_map>
 
 NPCBuilder* NPCBuilder::m_pInstance = nullptr;
 wolf::Scene* NPCBuilder::m_pScene = nullptr;
@@ -15,7 +16,7 @@ void NPCBuilder::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
 
     // Create one
     m_pInstance = new NPCBuilder();
-    m_pRNG = new wolf::RNG(p_iRNGSeed); // This seed value is completely arbitrary
+    m_pRNG = new wolf::RNG(p_iRNGSeed);
     m_pScene = p_pScene;
     m_iRNGSeed = p_iRNGSeed;
 }
@@ -49,7 +50,7 @@ void NPCBuilder::SetScene(wolf::Scene* p_pScene) {
 // the corresponding .yaml file
 wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
     wolf::GameObject* pConstructedNPC = &m_pScene->CreateObject2D();
-    std::map<std::string, NPCDialogueEntry*> m_mDialogueMap;
+    std::unordered_map<std::string, NPCDialogueEntry*> m_mDialogueMap;
 
     try {
         // First load up the npc file
@@ -83,7 +84,7 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
         bool bStartsAsMerchant = pNPCDetails["starts_as_merchant"] ? pNPCDetails["starts_as_merchant"].as<bool>() : false;
 
         // Create the NPCComponent and attach it to the in-progress GameObject
-        pConstructedNPC->AddComponent<NPCComponent>(strName, strDialogueBank, m_mDialogueMap, strLootTable, bStartsAsMerchant, bCanBeMerchant);
+        auto& npcComp = pConstructedNPC->AddComponent<NPCComponent>(strName, strDialogueBank, m_mDialogueMap, strLootTable, bStartsAsMerchant, bCanBeMerchant);
 
         // If this NPC can be a merchant then we'll need to look for the attributes
         // required to set up a MerchantInventoryComponent
@@ -156,6 +157,8 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
         // Then set the component's current animation to be the starting animation
         pAnim.SetAnimation(strStartAnim);
 
+        // Finally, we initialize the NPC
+        npcComp.Init();
     }
     catch (YAML::Exception e) { // If we run into an issue while parsing the file
         // Report the error
@@ -173,11 +176,4 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
 
     // If nothing went wrong, we're good to return the GameObject
     return pConstructedNPC;
-}
-
-// Use this method when you want the builder to choose a random NPC to build
-// from its stored directory
-wolf::GameObject* NPCBuilder::BuildNPC() {
-    // !-- Hey! This method is empty! --!
-    return nullptr;
 }

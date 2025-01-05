@@ -18,9 +18,9 @@
 #include <HealthComponent.h>
 #include <ColliderComponent.h>
 #include <AnimatedSprite2D.h>
-#include <MerchantInventoryComponent.h>
 #include <VelocityComponent.h>
 
+#include "../components/MerchantInventoryComponent.h"
 #include "../components/NPCComponent.h"
 #include <imgui/imgui.h>
 
@@ -33,7 +33,6 @@ class NPCBuilder {
         void SetScene(wolf::Scene* p_pScene);
 
         wolf::GameObject* BuildNPC(const std::string& p_strFilePath);
-        wolf::GameObject* BuildNPC();
 
     private:
         // Private constructor and destructor because this is a singleton
