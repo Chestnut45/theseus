@@ -1,6 +1,7 @@
 #include "GorgonController.h"
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
+#include "../GLShapesRenderer.h"
 
 #include <cassert>
 
@@ -160,6 +161,11 @@ void GorgonController::ChangeState(EnemyState newState)
     // Enter new state
         switch (newState)
     {
+        case EnemyState::ATTACKING:
+        {
+            EnterAttackState();
+            break;
+        }
         case EnemyState::CHASING:
         {
             EnterChasingState();
@@ -350,12 +356,13 @@ void GorgonController::HandleAttackingState(float delta)
 
     if(m_rangedTimer <= 0.0f)
     {
-
         // If target is in line of sight, petrify target and switch to prospect
         if(m_pTargetStatusComponent != nullptr && IsTargetInLOS())
         {
             m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
         }
+
+        std::cout << "GorgonController - Crosshair Offset - x: " << m_crosshairOffset.x << ", y: " << m_crosshairOffset.y << std::endl;
         ChangeState(EnemyState::CHASING);
     }
     else
@@ -366,9 +373,28 @@ void GorgonController::HandleAttackingState(float delta)
         // Brighten sprite to indicate attack
         if(m_pAnimComponent != nullptr)
         {
-            m_pAnimComponent->SetTint(m_pAnimComponent->GetTint() + delta / (m_rangedCooldown * 0.5f));
+            m_pAnimComponent->SetTint(m_pAnimComponent->GetTint() + delta / (m_rangedCooldown));
         }
     }
+        // Add indicator for rendering
+    glm::vec2 targetPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 targetScale = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+    float halfWidth = 2.0f;
+    float halfHeight = 2.0f;
+    m_curentCrosshairColour.g -= delta * (1.0f / m_rangedCooldown);
+    glm::vec4 colour = m_curentCrosshairColour;
+
+    glm::vec2 tr = targetPos + m_crosshairOffset + glm::vec2(halfWidth, halfHeight) * targetScale;
+    glm::vec2 tl = targetPos + m_crosshairOffset + glm::vec2(-halfWidth, halfHeight) * targetScale;
+    glm::vec2 bl = targetPos + m_crosshairOffset + glm::vec2(-halfWidth, -halfHeight) * targetScale;
+    glm::vec2 br = targetPos + m_crosshairOffset + glm::vec2(halfWidth, -halfHeight) * targetScale;
+
+    GLShapesRenderer::GetInstance()->AddQuad(
+                                            {tr.x, tr.y, colour.r, colour.g, colour.b, colour.a},
+                                            {tl.x, tl.y, colour.r, colour.g, colour.b, colour.a},
+                                            {bl.x, bl.y, colour.r, colour.g, colour.b, colour.a},
+                                            {br.x, br.y, colour.r, colour.g, colour.b, colour.a}
+                                            );
 }
 
 void GorgonController::HandlePetrifiedState(float delta)
@@ -530,6 +556,14 @@ void GorgonController::HandleDeathState(float delta)
     }
 }
 
+void GorgonController::EnterAttackState()
+{
+    m_crosshairOffset = glm::vec2(
+        m_RNG.NextFloat(-12.0f, 12.0f),
+        m_RNG.NextFloat(-12.0f, 12.0f)
+        );
+}
+
 void GorgonController::EnterChasingState()
 {
     m_transitionTimer.Reset();
@@ -550,7 +584,7 @@ void GorgonController::EnterStunnedState()
 void GorgonController::ExitAttackState()
 {
     m_rangedTimer = m_rangedCooldown;
-    
+    m_curentCrosshairColour = CROSSHAIR_COLOUR;
     if(m_pAnimComponent != nullptr)
     {
         m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
@@ -614,23 +648,17 @@ bool GorgonController::IsTargetInLOS()
         lbmg = &labyrinthManager;
         break;
     }
+    glm::vec2 thisPos = m_pTransform->GetGlobalPosition();
+    glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
 
     // Check
     if(lbmg != nullptr)
     {
-        glm::vec2 thisPos = m_pTransform->GetGlobalPosition();
         glm::ivec2 thisTilePos = lbmg->GetTilePosition(thisPos);
         int thisTileID = lbmg->GetTile(thisTilePos.x, thisTilePos.y);
 
-        glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::ivec2 targetTilePos = lbmg->GetTilePosition(targetPos);
         int targetTileID = lbmg->GetTile(targetTilePos.x, targetTilePos.y);
-        glColor3f(0, 1, 0);
-        glLineWidth(3);
-        glBegin(GL_LINES);
-        glVertex2i(thisPos.x, thisPos.y);
-        glVertex2i(targetPos.x, targetPos.y);
-        glEnd();
 
         // If either this tile or target tile is invalid, return false
         if(thisTileID < 0 || targetTileID < 0)
@@ -718,11 +746,13 @@ bool GorgonController::IsTargetInLOS()
 
             currentTileID = lbmg->GetTile(currentTilePos.x, currentTilePos.y);
             
+
             if(this->IsWallTile(currentTileID))
             {
                 if(distanceCheck < distance)
                 {
                     // printf("GorgonController - Blocked\n");
+
                     return false;
                 }
                 // printf("GorgonController - Length Exceeded\n");

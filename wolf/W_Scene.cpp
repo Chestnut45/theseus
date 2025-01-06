@@ -10,6 +10,8 @@
 #include "AnimatedSprite2D.h"
 
 #include "../src/components/ColliderComponent.h"
+#include "GLShapesRenderer.h"
+
 
 namespace wolf
 {
@@ -162,7 +164,10 @@ void Scene::Render()
 
     // Flush debug drawing (disable depth testing so it always renders on top)
     glDisable(GL_DEPTH_TEST);
-    ColliderComponent::DebugDrawAndFlush();
+    //ColliderComponent::DebugDrawAndFlush();
+    // Render Shapes
+    GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
+    GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
     glEnable(GL_DEPTH_TEST);
 }
 

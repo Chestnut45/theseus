@@ -27,15 +27,13 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
-
-
-    
+ 
     this->m_pColliderManager = new ColliderManager(&scene);
+
+    GLShapesRenderer::CreateInstance();
 
     // Initialize the player object
     CreatePlayer();
-
-
 
     // Add the main camera as a child object of the player
     auto& cameraObj = scene.CreateObject2D();
@@ -86,7 +84,7 @@ void PlayState::Enter()
     
     // this->CreateMinitaurEnemy();
     // this->CreateHarpyEnemy();
-    // this->CreateGorgonEnemy();
+    this->CreateGorgonEnemy();
 }
 
 void PlayState::Exit()
@@ -103,6 +101,8 @@ void PlayState::Exit()
     // Delete managers
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
+    
+    GLShapesRenderer::DestroyInstance();
 
     ItemDropCreator::DestroyInstance();
 }
@@ -444,6 +444,8 @@ void PlayState::Render()
     {
         status.RenderPlayerSEIcons();
     }
+
+    
 }
 
 void PlayState::BackgroundUpdate(float delta)
