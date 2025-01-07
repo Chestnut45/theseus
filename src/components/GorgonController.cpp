@@ -5,17 +5,16 @@
 #include <cassert>
 
 int GorgonController::s_iComponentCounter = 0;
-wolf::Texture* GorgonController::s_pEmoteTextures[EnemyEmote::NONE];
+int GorgonController::s_iEmoteFrameSize = 32;
+wolf::Texture* GorgonController::s_pEmotesTexture = nullptr;
 
 GorgonController::GorgonController()
 {
     if(s_iComponentCounter == 0)
     {
-        s_pEmoteTextures[EnemyEmote::EXLAMATION] = wolf::TextureManager::CreateTexture("data/textures/emote_exclamation.png");
-        s_pEmoteTextures[EnemyEmote::EXLAMATION]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
-
-        s_pEmoteTextures[EnemyEmote::QUESTION] = wolf::TextureManager::CreateTexture("data/textures/emote_question.png");
-        s_pEmoteTextures[EnemyEmote::QUESTION]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+        s_pEmotesTexture = wolf::TextureManager::CreateTexture("data/textures/Emotes-Sheet.png");
+        s_pEmotesTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+        s_iEmoteFrameSize = s_pEmotesTexture->GetWidth() / EnemyEmote::NONE;
     }
     s_iComponentCounter++;
 }   
@@ -27,8 +26,8 @@ GorgonController::~GorgonController()
     {
         for (int i = 0; i < EnemyEmote::NONE; i++)
         {
-            wolf::TextureManager::DestroyTexture(s_pEmoteTextures[i]);
-            s_pEmoteTextures[i] = nullptr;
+            wolf::TextureManager::DestroyTexture(s_pEmotesTexture);
+            s_pEmotesTexture = nullptr;
         }
     }
 }

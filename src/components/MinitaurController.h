@@ -81,5 +81,4 @@ private:
     float m_timeToLieDead = 0.8f;
 
     static int s_iComponentCounter;
-    static wolf::Texture* s_pEmoteTextures [EnemyEmote::NONE];
 };
