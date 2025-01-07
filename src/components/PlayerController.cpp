@@ -3,6 +3,7 @@
 #include "ColliderComponent.h"
 #include "HealthComponent.h"
 #include "VelocityComponent.h"
+#include "StatusComponent.h"
 #include "TimedDestroyerComponent.h"
 #include "HarpyController.h"
 #include "MinitaurController.h"
@@ -26,6 +27,7 @@ PlayerController::~PlayerController() {
     wolf::EventManager::RemoveListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
+    wolf::EventManager::RemoveListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
     if (m_deathScreenTexture) {
         wolf::TextureManager::DestroyTexture(m_deathScreenTexture);
         m_deathScreenTexture = nullptr;
@@ -47,13 +49,70 @@ ColliderManager* PlayerController::GetColliderManager() const
     return m_pColliderManager;
 }
 
+PlayerController::PlayerAction PlayerController::GetPlayerAction() const
+{
+    return this->m_action;
+}
+
 void PlayerController::SetAction(PlayerAction action)
 {
     // If transitioning to THROWING or PICKING_UP state, reset any active attack
-    if ((action == PlayerAction::THROWING || action == PlayerAction::PICKING_UP) && m_isAttacking)
+    if ((action == PlayerAction::THROWING || action == PlayerAction::PICKING_UP) && m_action == PlayerAction::ATTACKING)
     {
-        m_isAttacking = false;
         m_action = PlayerAction::NONE; // Reset to NONE to avoid conflict
+    }
+
+    // End old action
+    switch (m_action)
+    {
+        case PlayerAction::ATTACKING:
+        {
+            EndAttacking();
+            break;
+        }
+        case PlayerAction::PETRIFIED:
+        {
+            EndPetrified();
+            break;
+        }
+        case PlayerAction::ROLLING:
+        {
+            EndRoll();
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+
+    // Start new action
+    switch (action)
+    {
+        case PlayerAction::ATTACKING:
+        {
+            StartAttack();
+            break;
+        }
+        case PlayerAction::PETRIFIED:
+        {
+            StartPetrified();
+            break;
+        }
+        case PlayerAction::ROLLING:
+        {
+            StartRoll();
+            break;
+        }
+        case PlayerAction::DEAD:
+        {
+            StartDeath();
+            break;
+        }
+        default:
+        {
+            break;
+        }
     }
 
     m_action = action;
@@ -62,7 +121,6 @@ void PlayerController::SetAction(PlayerAction action)
 void PlayerController::SetHoldingObject(bool isHolding) {
     m_isHoldingObject = isHolding;
 }
-
 
 // Initialize components related to the player
 void PlayerController::LateInitialize()
@@ -75,15 +133,28 @@ void PlayerController::LateInitialize()
     }
     m_runtimeTimer.Start(); // Start runtime timer 
 
-    this->m_pDefaultWeapon = dynamic_cast<WeaponItem*>(ItemCreator::CreateItem("Dull Blade"));
-    this->m_pCurrentWeapon = this->m_pDefaultWeapon;
-
     InitializeAnimations();
 
     // !-- Aurora added this --!
     wolf::EventManager::AddListener<WeaponEquippedEvent, PlayerController, &PlayerController::HandleWeaponEquippedEvent>(*this);
     wolf::EventManager::AddListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
+    wolf::EventManager::AddListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
+}
+
+glm::vec2 PlayerController::GetLastFacingDirectionVector() const 
+{
+    switch (m_lastFaceDirectionEnum) {
+        case PlayerDirection::NORTH:       return glm::vec2(0.0f, 1.0f);
+        case PlayerDirection::EAST:        return glm::vec2(1.0f, 0.0f);
+        case PlayerDirection::SOUTH:       return glm::vec2(0.0f, -1.0f);
+        case PlayerDirection::WEST:        return glm::vec2(-1.0f, 0.0f);
+        case PlayerDirection::NORTH_EAST:  return glm::normalize(glm::vec2(1.0f, 1.0f));
+        case PlayerDirection::NORTH_WEST:  return glm::normalize(glm::vec2(-1.0f, 1.0f));
+        case PlayerDirection::SOUTH_EAST:  return glm::normalize(glm::vec2(1.0f, -1.0f));
+        case PlayerDirection::SOUTH_WEST:  return glm::normalize(glm::vec2(-1.0f, -1.0f));
+        default:                           return glm::vec2(1.0f, 0.0f);
+    }
 }
 
 // Add and initialize animations for the player character
@@ -127,13 +198,85 @@ void PlayerController::Update(float delta)
         wolf::Error("PlayerController missing essential components!");
         return;
     }
-    CheckHealth();
-    if (m_action == PlayerAction::DEAD) return;
+    if (m_action != PlayerAction::DEAD)
+    {
+        RegenerateStamina(delta);
+        // Call SetAnimationBasedOnState() only if the action or direction has changed
+        if (m_action != m_previousAction || m_lastMoveDirectionEnum != m_previousDirection)
+        {
+            SetAnimationBasedOnState();
+            m_previousAction = m_action;
+            m_previousDirection = m_lastMoveDirectionEnum;
+        }
 
+        HandlePlayerInput(delta);
+
+        // If holding an object, handle throw/drop actions
+        if (m_isHoldingObject) {
+            HandleThrowing(delta);  // Throw if needed
+            HandleMovement(delta);  // Continue to allow movement
+            return;  // Skip attack or other actions while holding an object
+        }
+
+        // Check if player is petrified
+        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+        if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+        {
+            SetAction(PlayerAction::PETRIFIED);
+        }
+        else
+        {
+            // On exiting petrified state
+            if(m_action == PlayerAction::PETRIFIED)
+            {
+                SetAction(PlayerAction::NONE);
+            } 
+        }
+        CheckHealth();
+    }
+
+    // Handle regular player actions
+    switch (m_action) {
+        case PlayerAction::ATTACKING:
+            HandleAttacking(delta);
+            HandleMovement(delta);
+            break;
+        case PlayerAction::PICKING_UP:
+            SetAction(PlayerAction::NONE);  // Transition to NONE after picking up
+            break;
+        case PlayerAction::ROLLING:
+            HandleRolling(delta);
+            break;
+        case PlayerAction::THROWING:
+            HandleThrowing(delta);  // Handle throw logic
+            HandleMovement(delta);
+            break;
+        case PlayerAction::PETRIFIED:
+            HandlePetrified(delta);
+            break;
+        case PlayerAction::DEAD:
+            HandleDeath(delta);
+            break;
+        default:
+            HandleJumping(delta);
+            HandleMovement(delta);
+            break;
+    }
+}
+
+void PlayerController::HandlePlayerInput(float delta)
+{
     // Godmode hotkey
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
     {
         m_godmode = !m_godmode;
+    }
+
+    // Burning hotkey
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_B))
+    {
+        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
     }
 
     // Super speed hotkey
@@ -142,13 +285,13 @@ void PlayerController::Update(float delta)
         m_superSpeed = !m_superSpeed;
         if (m_superSpeed)
         {
-            m_moveSpeed = 800.0f;
+            m_normalMoveSpeed = 800.0f;
             m_rollSpeed = 1600.0f;
             m_inventoryMoveSpeed = 400.0f;
         }
         else
         {
-            m_moveSpeed = 200.0f;
+            m_normalMoveSpeed = 200.0f;
             m_rollSpeed = 400.0f;
             m_inventoryMoveSpeed = 100.0f;
         }
@@ -164,22 +307,6 @@ void PlayerController::Update(float delta)
             break;
         }
     }
-
-    HandlePlayerInput(delta);
-    RegenerateStamina(delta);
-
-    // Call SetAnimationBasedOnState() only if the action or direction has changed
-    if (m_action != m_previousAction || m_lastMoveDirectionEnum != m_previousDirection)
-    {
-        SetAnimationBasedOnState();
-        m_previousAction = m_action;
-        m_previousDirection = m_lastMoveDirectionEnum;
-    }
-}
-
-
-void PlayerController::HandlePlayerInput(float delta)
-{
     auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
 
     // Handle inventory management with left alt
@@ -187,55 +314,34 @@ void PlayerController::HandlePlayerInput(float delta)
         if (m_action != PlayerAction::IN_INVENTORY) {
             playerInventory->Open();
             SetAction(PlayerAction::IN_INVENTORY);
+            m_currentMoveSpeed = m_inventoryMoveSpeed;
         }
     } else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) {
         playerInventory->Close();
         SetAction(PlayerAction::NONE);
+        m_currentMoveSpeed = m_normalMoveSpeed;
+    }
+    glm::vec2 direction = GetLastFacingDirectionVector();
+
+    // Only start roll if a direction is being held and sufficient stamina is available
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_action != PlayerAction::ROLLING && m_action != PlayerAction::ATTACKING && m_stamina >= 15.0f)
+    {
+        SetAction(PlayerAction::ROLLING);
     }
 
-    // IN_INVENTORY state when inventory is toggled with 0 (handled in PlayState)
-    if (playerInventory && playerInventory->IsOpen()) 
+    // Start the attack if the left mouse button is pressed and the player is not currently attacking.
+    // !-- Aurora added a m_pCurrentWeapon != nullptr check here --!
+    if (wolf::Input::IsLMBJustDown() && m_action != PlayerAction::ATTACKING && m_pCurrentWeapon)
     {
-        m_action = PlayerAction::IN_INVENTORY;
+        SetAction(PlayerAction::ATTACKING);
     }
-    else if (m_action == PlayerAction::IN_INVENTORY) 
-    {
-        m_action = PlayerAction::NONE;
-    }
-
+    
     // Handle pick up and drop actions
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
         PickUpObject();
     }
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
         DropObject();
-    }
-
-    // If holding an object, handle throw/drop actions
-    if (m_isHoldingObject) {
-        HandleThrowing(delta);  // Throw if needed
-        HandleMovement(delta);  // Continue to allow movement
-        return;  // Skip attack or other actions while holding an object
-    }
-
-    // Handle regular player actions
-    switch (m_action) {
-        case PlayerAction::IN_INVENTORY:
-            HandleMovement(delta);  // Allow movement while in inventory
-            break;
-        case PlayerAction::PICKING_UP:
-            SetAction(PlayerAction::NONE);  // Transition to NONE after picking up
-            break;
-        case PlayerAction::THROWING:
-            HandleThrowing(delta);  // Handle throw logic
-            HandleMovement(delta);
-            break;
-        default:
-            HandleAttacking(delta);
-            HandleRolling(delta);
-            HandleJumping(delta);
-            HandleMovement(delta);
-            break;
     }
 }
 
@@ -267,7 +373,6 @@ void PlayerController::DropObject() {
     }
 }
 
-
 void PlayerController::HandleThrowing(float delta) {
     // Charge the throw power while holding the button
     if (wolf::Input::IsLMBHeld() && m_isHoldingObject) {
@@ -285,6 +390,53 @@ void PlayerController::HandleThrowing(float delta) {
     }
 }
 
+void PlayerController::HandlePetrified(float delta)
+{
+        
+}
+
+void PlayerController::HandleDeath(float delta)
+{
+    // Fall over
+    if(m_fallDeadTimer <= m_timeToFallDead)
+    {
+        if(m_fallDeadTimer == 0.0f)
+        {
+            if (m_pVelocity)
+            {
+                m_pVelocity->SetVelocity(glm::vec2(0.0f));
+            }
+
+            ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
+            if(collider != nullptr)
+            {
+                collider->SetColliderType(ColliderComponent::ColliderType::NONE);
+            }
+            
+            m_pAnimComponent->SetTint(glm::vec3(1,0,0));
+        }
+
+        float angle = (90.0f / m_timeToFallDead) * delta;
+        m_pTransform->RotateDegrees(angle);
+        
+        m_fallDeadTimer += delta;
+    }
+
+    // Lie dead
+    else
+    {
+        if(m_lieDeadTimer >= m_timeToLieDead)
+        {
+        }
+        m_lieDeadTimer += delta;
+    }
+}
+
+void PlayerController::EndPetrified()
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    m_pAnimComponent->SetAnimPaused(false);
+}
 
 void PlayerController::ThrowHeldObject() {
     if (!m_isHoldingObject || !m_pHeldObject) {
@@ -338,9 +490,10 @@ void PlayerController::HandleMovement(float delta)
     direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
     direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
     direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
-
+    
+    // If player is not moving, attacking or rolling, then idle
     if (glm::length(direction) == 0.0f) {
-        if (!m_isAttacking && !m_isRolling) m_action = PlayerAction::NONE;
+        if (m_action != PlayerAction::ATTACKING && m_action != PlayerAction::ROLLING) SetAction(PlayerAction::NONE);
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
         m_walkSoundTimer.Reset();
         return;
@@ -355,37 +508,52 @@ void PlayerController::HandleMovement(float delta)
 
     direction = glm::normalize(direction);
     m_lastMoveDirectionEnum = GetDirectionFromVector(direction);
-    float currentSpeed = (m_action == PlayerAction::IN_INVENTORY) ? m_inventoryMoveSpeed : m_moveSpeed;
-    m_pVelocity->SetVelocity(direction * currentSpeed);
+    
+    if(m_action == PlayerAction::IN_INVENTORY)
+    {
+        // printf("PlayerController - Inv_Open");
+    }
+    m_pVelocity->SetVelocity(direction * m_currentMoveSpeed);
 
-    if (!m_isRolling && !m_isJumping) m_action = PlayerAction::WALKING;
+    if (m_action != PlayerAction::ATTACKING && m_action != PlayerAction::ROLLING && !m_isJumping) SetAction(PlayerAction::WALKING);
 }
 
 // Manage attack state and animation transitions
 void PlayerController::HandleAttacking(float delta)
 {
-    // Disable attacking when in inventory, picking up, or holding a throwable object
-    if (m_action == PlayerAction::IN_INVENTORY || m_action == PlayerAction::PICKING_UP || m_action == PlayerAction::THROWING) {
+    // Disable attacking when in inventory, picking up, holding
+    // a throwable object, or when no weapon is equipped
+    if (m_action == PlayerAction::IN_INVENTORY ||
+        m_action == PlayerAction::PICKING_UP ||
+        m_action == PlayerAction::THROWING ||
+        !m_pCurrentWeapon) {
         return;
     }
 
-    // Start the attack if the left mouse button is pressed and the player is not currently attacking.
-    if (wolf::Input::IsLMBJustDown() && !m_isAttacking)
-    {
-        StartAttack();
-    }
-
     // Check if enough time has elapsed since the last attack to allow for damage application.
-    if (m_attackTimer.Elapsed() >= m_pCurrentWeapon->GetDelay() && m_isAttacking)
+    if (m_attackTimer.Elapsed() >= m_pCurrentWeapon->GetDelay())
     {
         ApplyDamageToEnemy(); // Apply damage if there's a collision with an enemy.
         m_attackTimer.Restart(); // Restart the timer for future attacks.
     }
 
-    // Update the attack state and manage transitions.
-    if (m_isAttacking)
+    // If the animation has finished, transition out of the attacking state
+    if (m_pAnimComponent->IsAnimationFinished())
     {
-        UpdateAttackState(delta);
+        // Determine the next action based on the player's velocity
+        if (glm::length(m_pVelocity->GetVelocity()) < 0.01f)
+        {
+            SetAction(PlayerAction::NONE); // Set to idle state
+        }
+        else
+        {
+            SetAction(PlayerAction::WALKING); // Set to walking state
+        }
+
+        // Clear the current animation and set a new one based on the updated state
+        // This goes here rather than EndAttack() as SetAnimationBasedOnState() needs to happen before SetAction()
+        m_currentAnimation = "";
+        SetAnimationBasedOnState();
     }
 }
 // Handle rolling logic based on player input and stamina
@@ -394,24 +562,9 @@ void PlayerController::HandleRolling(float delta)
     // Prevent rolling if the player is in the inventory state
     if (m_action == PlayerAction::IN_INVENTORY) return;
 
-    if (m_isRolling)
-    {
-        m_rollTimer -= delta;
-        if (m_rollTimer <= 0.0f) EndRoll();
-        return;
-    }
-
-    // Only start roll if a direction is being held and sufficient stamina is available
-    glm::vec2 direction(0.0f);
-    direction.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
-    direction.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
-    direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
-    direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
-
-    if (direction != glm::vec2(0.0f) && wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_stamina >= 15.0f)
-    {
-        StartRoll();
-    }
+    m_rollTimer -= delta;
+    if (m_rollTimer <= 0.0f) SetAction(PlayerAction::NONE);
+    return;
 }
 
 // Manage jumping state transitions
@@ -433,7 +586,11 @@ void PlayerController::HandleJumping(float delta)
 void PlayerController::SetAnimationBasedOnState()
 {
     // Skip if the player is performing an action that overrides animations like attacking, rolling, jumping, or inventory management.
-    if (m_isAttacking || m_isRolling || m_isJumping || m_action == PlayerAction::IN_INVENTORY) return;
+    if (m_action == PlayerAction::ATTACKING || m_action == PlayerAction::ROLLING || m_isJumping || m_action == PlayerAction::IN_INVENTORY) 
+    {
+        return;
+    }
+    
 
     std::string animationName;
 
@@ -551,63 +708,83 @@ void PlayerController::RegenerateStamina(float delta)
 void PlayerController::StartAttack()
 {
     // Check if the player is not already attacking to prevent re-triggering attacks mid-animation.
-    if (!m_isAttacking)
-    {
-        m_isAttacking = true;
-        m_animationFinished = false;
-        m_hasAppliedDamage = false;
+          
+    wolf::Scene* scene = &this->GetGameObject()->GetScene();
+    wolf::Camera2D* camera = scene->GetActiveCamera();
+    glm::vec2 cameraPos = camera->GetPosition();
+    glm::vec2 viewSize = camera->GetViewSize();
+    glm::vec2 worldPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    
+    glm::vec2 cursorScreenPos = wolf::Input::GetMousePos();
+    glm::vec2 cursorWorldPos = glm::vec2
+    (
+        cameraPos.x + (cursorScreenPos.x - viewSize.x * 0.5f),
+        cameraPos.y + (viewSize.y * 0.5f - cursorScreenPos.y)
+    );
 
-        // Set the player action to attacking and reset attack-related timers.
-        m_action = PlayerAction::ATTACKING;
-        m_attackTimer.Restart();
+    m_attackDir = glm::normalize(cursorWorldPos - worldPos);
+    glm::vec2 lastDir = glm::vec2(1.0f, 0.0f);
+    
+    float angle = std::atan2(m_attackDir.y, m_attackDir.x);
+    float eighthPi = std::numbers::pi / 8.0f;
+
+    if (angle >= -eighthPi && angle < eighthPi) 
+    {
+        lastDir = glm::normalize(glm::vec2(1.0f, 0.0f));    // East
+    }
+    else if (angle >= eighthPi && angle < 3.0f * eighthPi) 
+    {
+        lastDir = glm::normalize(glm::vec2(1.0f, 1.0f));    // NorthEast
+    }
+    else if (angle >= 3.0f * eighthPi && angle < 5.0f * eighthPi) {
+        lastDir = glm::normalize(glm::vec2(0.0f, 1.0f));    // North
+    }
+    else if (angle >= 5.0f * eighthPi && angle < 7.0f * eighthPi) {
+        lastDir = glm::normalize(glm::vec2(-1.0f, 1.0f));   // NorthWest
+    }
+    else if (angle >= 7.0f * eighthPi || angle < -7.0f * eighthPi) {
+        lastDir = glm::normalize(glm::vec2(-1.0f, 0.0f));   // West
+    }
+    else if (angle >= -7.0f * eighthPi && angle < -5.0f * eighthPi) {
+        lastDir = glm::normalize(glm::vec2(-1.0f, -1.0f));  // SouthWest
+    }
+    else if (angle >= -5.0f * eighthPi && angle < -3.0f * eighthPi) {
+        lastDir = glm::normalize(glm::vec2(0.0f, -1.0f));   // South
+    }
+    else if (angle >= -3.0f * eighthPi && angle < -eighthPi) {
+        lastDir = glm::normalize(glm::vec2(1.0f, -1.0f));   // SouthEast
+    }
+
+    m_lastFaceDirectionEnum = GetDirectionFromVector(lastDir);
+
+    // std::cout << "PlayerController - Cursor World Pos - x: " << cursorWorldPos.x << ", y: " << cursorWorldPos.y << std::endl;
+    // std::cout << "PlayerController - Player World Pos - x: " << worldPos.x << ", y: " << worldPos.y << std::endl;
+    // std::cout << "PlayerController - new Direction - x: " << newPlayerDirectionVector.x << ", y: " << newPlayerDirectionVector.y << std::endl;
+    // std::cout << "PlayerController - Direction: " << this->m_lastFaceDirectionEnum << std::endl;
+    m_hasAppliedDamage = false;
+
+    // Set the player action to attacking and reset attack-related timers.
+    m_attackTimer.Restart();
 
         // Choose the correct animation based on the player's direction.
-        std::string attackAnimation = GetAttackAnimationForDirection(m_lastMoveDirectionEnum);
-
+        // std::string attackAnimation = GetAttackAnimationForDirection(m_lastMoveDirectionEnum);
+        std::string attackAnimation = GetAttackAnimationForDirection(m_lastFaceDirectionEnum);
         // Set the attacking animation.
         m_pAnimComponent->SetAnimation(attackAnimation);
 
-        // Store the current animation to handle transitions later.
-        m_currentAnimation = attackAnimation;
-    }
+    // Store the current animation to handle transitions later.
+    m_currentAnimation = attackAnimation;
 }
 
-void PlayerController::UpdateAttackState(float delta)
+void PlayerController::StartPetrified()
 {
-    // Check if the animation has finished playing all its frames
-    if (m_pAnimComponent->IsAnimationFinished())
-    {
-        m_animationFinished = true;
-    }
-
-    // If the animation has finished, transition out of the attacking state
-    if (m_animationFinished)
-    {
-
-        // Reset all attack-related flags
-        m_isAttacking = false;
-        m_animationFinished = false;
-        m_hasAppliedDamage = false;
-
-        // Determine the next action based on the player's velocity
-        if (glm::length(m_pVelocity->GetVelocity()) < 0.01f)
-        {
-            m_action = PlayerAction::NONE; // Set to idle state
-        }
-        else
-        {
-            m_action = PlayerAction::WALKING; // Set to walking state
-        }
-
-        // Clear the current animation and set a new one based on the updated state
-        m_currentAnimation = "";
-        SetAnimationBasedOnState();
-    }
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::PETRIFIED);
+    m_pAnimComponent->SetAnimPaused(true);
+    m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }
 
 void PlayerController::ApplyDamageToEnemy()
 {
-
     // Attack
     auto* player = this->GetGameObject();
     if (!player || !m_pTransform) return;
@@ -688,12 +865,12 @@ void PlayerController::ApplyDamageToEnemy()
            
             auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
             
-            projectileVelocity.SetVelocity(playerDirection * glm::length(projprop.v2Velocity) + playerVelocity);
+            projectileVelocity.SetVelocity(m_attackDir * glm::length(projprop.v2Velocity) + playerVelocity);
 
             // Calculate how to rotate arrow sprite
             glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);
-            float angle = std::acos(glm::dot(baseVector, playerDirection) / (glm::length(baseVector) * glm::length(playerDirection)));
-            if(playerDirection.y < 0.0f) angle *= -1;
+            float angle = std::acos(glm::dot(baseVector, m_attackDir) / (glm::length(baseVector) * glm::length(m_attackDir)));
+            if(m_attackDir.y < 0.0f) angle *= -1;
             projectile.GetComponent<wolf::Transform2D>()->SetRotation(angle);
         
             projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
@@ -806,39 +983,44 @@ void PlayerController::ApplyDamageToEnemy()
 }
 void PlayerController::StartRoll()
 {
-    m_isRolling = true;
     m_rollTimer = m_rollDuration;
-    glm::vec2 rollDirection = m_pVelocity->GetVelocity(); // Get current movement direction
+    glm::vec2 rollDirection = glm::vec2(0.0f, 0.0f); // Get current movement direction
     if (glm::length(rollDirection) > 0.0f)
     {
-        rollDirection = glm::normalize(rollDirection) * m_rollSpeed; // Set velocity based on roll speed
-        m_pVelocity->SetVelocity(rollDirection);
+        rollDirection = glm::normalize(m_pVelocity->GetVelocity()) * m_rollSpeed; // Set velocity based on roll speed
     }
-    m_action = PlayerAction::ROLLING;
+    else
+    {
+        rollDirection = GetLastFacingDirectionVector() * m_rollSpeed;
+    }
+    m_pVelocity->SetVelocity(rollDirection);
     m_stamina -= 25.0f;
     m_staminaRegenTimer.Restart();
 }
 
 void PlayerController::EndRoll()
 {
-    m_isRolling = false;
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    m_action = PlayerAction::NONE;
 }
 
 void PlayerController::StartJump()
 {
     m_isJumping = true;
     m_jumpTimer = m_jumpHeight / m_jumpSpeed;
-    m_action = PlayerAction::JUMPING;
+    SetAction(PlayerAction::JUMPING);
     m_pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed));
+}
+
+void PlayerController::EndAttacking()
+{
+    m_hasAppliedDamage = false;
 }
 
 void PlayerController::EndJump()
 {
     m_isJumping = false;
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    m_action = PlayerAction::NONE;
+    SetAction(PlayerAction::NONE);
 }
 
 std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction)
@@ -862,7 +1044,7 @@ std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirecti
 void PlayerController::Render()
 {
     if (!m_pTransform) return;
-     if (m_action == PlayerAction::DEAD) {
+    if (m_action == PlayerAction::DEAD) {
         RenderDeathScreen();
         return;
     }
@@ -928,27 +1110,52 @@ void PlayerController::HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& 
 {
     if(this->m_pCurrentWeapon == p_event.pWeapon)
     {
-        this->m_pCurrentWeapon = this->m_pDefaultWeapon;
+        this->m_pCurrentWeapon = nullptr;
     }
 }
 
 void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {
-    printf("The player equipped a %s!\n", p_event.pArmour->GetName().c_str());
+    printf("The player equipped %s!\n", p_event.pArmour->GetName().c_str());
 
-        //-----------------//
-        //                 //
-        //  Added by Nhat  //
-        //                 //
-        //-----------------//
-        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        if(statusComponent != nullptr)
+    //-----------------//
+    //                 //
+    //  Added by Nhat  //
+    //                 //
+    //-----------------//
+    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+    if(statusComponent != nullptr)
+    {
+        for (auto info : *p_event.pArmour->GetStatusEffectList())
         {
-            for (auto info : *p_event.pArmour->GetStatusEffectList())
-            {
-                statusComponent->AddStatusEffect(info.enType, info.fDuration);
-            }
+            statusComponent->AddStatusEffect(info.enType, info.fDuration);
         }
+        
+        const float* info = p_event.pArmour->GetStatusEffectResistances();
+        for (int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
+        {
+            StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
+            statusComponent->SetStatusEffectResistance(seType, info[0]);
+        }
+    }
 
+}
+
+void PlayerController::HandleArmourUnequippedEvent(const ArmourUnequippedEvent& p_event)
+{
+    //-----------------//
+    //                 //
+    //  Added by Nhat  //
+    //                 //
+    //-----------------//
+    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+    if(statusComponent != nullptr)
+    {
+        for (int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
+        {
+            StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
+            statusComponent->SetStatusEffectResistance(seType, 0);
+        }
+    }
 }
 
 void PlayerController::RenderThrowPowerBar() {
@@ -1001,18 +1208,18 @@ void PlayerController::CheckHealth() {
         }
         else
         {
-            if (healthComponent->GetHealth() <= 0) EnterDeathState();
+            if (healthComponent->GetHealth() <= 0) SetAction(PlayerAction::DEAD);
         }
     }
 }
 
-void PlayerController::EnterDeathState() {
-    SetAction(PlayerAction::DEAD);
+void PlayerController::StartDeath() {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    m_isAttacking = m_isRolling = m_isJumping = false;
 
     m_runtimeTimer.Stop(); // Stop the timer
     m_deathRuntime = m_runtimeTimer.Elapsed(); // Capture elapsed time once
+    m_pAnimComponent->SetAnimPaused(true);
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
 }
 
 void PlayerController::RenderDeathScreen() {

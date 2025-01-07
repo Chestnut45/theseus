@@ -1,5 +1,7 @@
 #include "GorgonController.h"
 #include "PlayerController.h"
+#include "LabyrinthManager.h"
+
 #include <cassert>
 
 int GorgonController::s_iComponentCounter = 0;
@@ -52,6 +54,8 @@ void GorgonController::Init(const EnemyData& data)
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
+    m_targetDetectionTimer = m_RNG.NextFloat(0.2f, 0.4f);
+
     // Set attack timer
     m_rangedTimer = m_rangedCooldown;
 
@@ -88,18 +92,33 @@ void GorgonController::Update(float delta)
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
 
+    // Check if gorgon is petrified
+    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+    if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    {
+        ChangeState(EnemyState::PETRIFIED);
+    }
+    else 
+    {
+        // On exiting petrified state
+        if(m_state == EnemyState::PETRIFIED)
+        {
+            ChangeState(EnemyState::CHASING);
+        }         
+    }
+
     // Check if health is below or equal to 0 and transition to the DEATH state
     if (m_pHealth->GetHealth() <= 0)
     {
         // Switch to the DEATH state if the health is depleted
         ChangeState(EnemyState::DEATH);
     }
-
+    
     // Update based on the current state
     switch (m_state)
     {
         case EnemyState::IDLE:
-            HandleIdleState();
+            HandleIdleState(delta);
             break;
         case EnemyState::CHASING:
             HandleChasingState(delta);
@@ -110,6 +129,12 @@ void GorgonController::Update(float delta)
         case EnemyState::ATTACKING:
             HandleAttackingState(delta);
             break;
+        case EnemyState::PETRIFIED:
+            HandlePetrifiedState(delta);
+            break;
+        case EnemyState::STUNNED:
+            HandleStunnedState(delta);
+            break;
         case EnemyState::DEATH:
             HandleDeathState(delta);
             return;  // After calling HandleDeathState(), return immediately since the object is now deleted
@@ -119,6 +144,72 @@ void GorgonController::Update(float delta)
     UpdateAnimationBasedOnDirection();
 }
 
+void GorgonController::ChangeState(EnemyState newState)
+{
+    // Exit old state
+    switch (m_state)
+    {
+        case EnemyState::ATTACKING:
+        {
+            ExitAttackState();
+            break;
+        }
+        case EnemyState::CHASING:
+        {
+            ExitChasingState();
+            break;
+        }
+        case EnemyState::IDLE:
+        {
+            ExitIdleState();
+            break;
+        }
+        case EnemyState::PETRIFIED:
+        {
+            ExitPetrifiedState();
+            break;
+        }
+        case EnemyState::PROSPECT:
+        {
+            ExitProspectState();
+            break;
+        }
+        case EnemyState::STUNNED:
+        {
+            ExitStunnedState();
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+    // Enter new state
+        switch (newState)
+    {
+        case EnemyState::CHASING:
+        {
+            EnterChasingState();
+            break;
+        }
+        case EnemyState::IDLE:
+        {
+            EnterIdleState();
+            break;
+        }
+        case EnemyState::STUNNED:
+        {
+            EnterStunnedState();
+            break;
+        }
+        default:
+        {         
+            break;
+        }
+    }
+
+    m_state = newState;
+}
 
 void GorgonController::SetUpAnimations(const std::string& animationInitPath)
 {
@@ -162,39 +253,58 @@ void GorgonController::MoveTowardsTarget(float delta)
     }
 }
 
-void GorgonController::HandleIdleState()
+void GorgonController::HandleIdleState(float delta)
 {
-    // Check if the player is within detection range
-    float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
-
-    // If the player comes into detection range and not petrified, start chasing
-    if (distanceToPlayer <= m_detectionRange && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    // If detection timer expired, perform detection check
+    if(m_targetDetectionTimer <= 0.0f)
     {
-        ChangeState(EnemyState::CHASING); 
+        // If target detected, chase
+        if (IsTargetDetected())
+        {
+            ChangeState(EnemyState::CHASING); 
+        }
+
+        // Else, reset detection timer
+        else
+        {
+            m_targetDetectionTimer = m_RNG.NextFloat(0.2f, 0.4f);
+        }
+    }
+    else
+    {
+        m_targetDetectionTimer -= delta;
     }
 }
 
 void GorgonController::HandleProspectState(float delta)
 {
-    // Chase player if in range and not petrified
-    float distanceToPlayer = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
-    if (distanceToPlayer <= m_detectionRange && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
-    {
-        ChangeState(EnemyState::CHASING); 
-        m_prospectCounter = 0;
+    // If detection timer expired, perform detection check
+    if(m_targetDetectionTimer <= 0.0f)
+    {    
+        // If target detected, chase
+        if (IsTargetDetected())
+        {
+            ChangeState(EnemyState::CHASING); 
+        }
+        // Else, reset detection timer
+        else
+        {
+            m_targetDetectionTimer = m_RNG.NextFloat(0.2f, 0.4f);
+        }
     }
-
-    // else, prospect
+    // Else, do thing
     else
     {
+        m_targetDetectionTimer -= delta;
+        // If pondering done, move
         if (m_prospectStandingCounter <= 0.0f)
         {
+            // If moving done, decide next action
             if(m_prospectCounter <= 0)
-            {        
-                    
-                    // Roll for prospect
+            {          
+                    // Roll for action
                     float rng = m_RNG.NextInt(1, 100);
-                    // Begin prospecting
+                    // If larger than 10, prospect
                     if(rng > 10)
                     {
                         
@@ -203,11 +313,10 @@ void GorgonController::HandleProspectState(float delta)
                         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
                     }
 
-                    // Change to idle
+                    // Else, idle
                     else
                     {
                         ChangeState(EnemyState::IDLE);
-                        m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Reset velocity when returning to idle
                     }
                     m_prospectStandingCounter = m_RNG.NextFloat(0.5f, 2.0f);                  
             }
@@ -242,64 +351,39 @@ void GorgonController::HandleChasingState(float delta)
     )
     {
         ChangeState(EnemyState::PROSPECT);
-        return;
-    }
-
-    if (!m_transitionTimer.IsRunning())
-    {
-        m_transitionTimer.Start();
     }
 
     // If target is within ranged range
     if (distanceToTarget <= m_rangedRange)
     {
-        // If transition delay is expired and target is not already petrified, attack
-        if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_pTargetStatusComponent != nullptr && !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+        if 
+        (
+            m_pTargetStatusComponent != nullptr                                                             &&  // If target status component not null
+            m_transitionTimer.Elapsed() >= m_transitionDelay                                                &&  // If transition delay expired
+            !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)   &&  // If target not already petrified
+            IsTargetInLOS()                                                                                     // If target in line of sight
+        )
         {
             ChangeState(EnemyState::ATTACKING);
-            m_transitionTimer.Reset();
         }
-    }
-    // If target is out of range, set timer to 0 & set transition delay to random value
-    else
-    {
-        m_transitionTimer.Reset();
-        m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
     }
 }
 
 void GorgonController::HandleAttackingState(float delta)
 {
     if (!m_pTarget) return;
-
     // Stop Gorgon's movement during attack
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
     if(m_rangedTimer <= 0.0f)
     {
-        //---------------------------//
-        //                           //
-        //  TODO: ADD HITSCAN CHECK  //
-        //                           //
-        //---------------------------//
-        if(true)
+
+        // If target is in line of sight, petrify target and switch to prospect
+        if(m_pTargetStatusComponent != nullptr && IsTargetInLOS())
         {
-            // Petrify target and switch to prospect
-            if(m_pTargetStatusComponent != nullptr)
-            {
-                m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
-                ChangeState(EnemyState::PROSPECT);
-                AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
-                if(sprite != nullptr)
-                {
-                    sprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
-                }
-            }
+            m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
         }
-        
-        
-        // Reset attack cooldown timer
-        m_rangedTimer = m_rangedCooldown;        
+        ChangeState(EnemyState::CHASING);
     }
     else
     {
@@ -307,60 +391,122 @@ void GorgonController::HandleAttackingState(float delta)
         m_rangedTimer -= delta;
 
         // Brighten sprite to indicate attack
-        AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
-        if(sprite != nullptr)
+        if(m_pAnimComponent != nullptr)
         {
-            sprite->SetTint(sprite->GetTint() + delta / (m_rangedCooldown * 0.5f));
+            m_pAnimComponent->SetTint(m_pAnimComponent->GetTint() + delta / (m_rangedCooldown * 0.5f));
         }
     }
 }
 
+void GorgonController::HandlePetrifiedState(float delta)
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::PETRIFIED);
+    m_pAnimComponent->SetAnimPaused(true);
+    m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));    
+}
 
+void GorgonController::HandleStunnedState(float delta)
+{
+    if(m_stunnedTimer >= m_stunnedTime)
+    {
+        ChangeState(EnemyState::PROSPECT);
+    }
+    else
+    {
+        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+        m_stunnedTimer += delta;
+    }
+}
 
 void GorgonController::UpdateAnimationBasedOnDirection()
 {
     if (!m_pAnimComponent || !m_pVelocity) return;
 
-    std::string animationName;
+    std::string animationName = "";
 
     // Get the current velocity to determine direction
     glm::vec2 velocity = m_pVelocity->GetVelocity();
 
     // Only update animation if the Gorgon is moving
-    if (glm::length(velocity) > 0.01f)  // Ensure the velocity is not zero
+    switch (m_state)
     {
-        // Check if the movement is more along the X or Y axis
-        if (fabs(velocity.x) > fabs(velocity.y))
+        case EnemyState::ATTACKING:
         {
-            // Moving left or right
-            animationName = (velocity.x > 0.0f) ? "StandEast" : "StandWest";
-        }
-        else
-        {
-            // Moving up or down
-            animationName = (velocity.y > 0.0f) ? "StandNorth" : "StandSouth";
-        }
-    }
-    else
-    {
-        // If not moving, default to idle state based on the last direction
-        if(m_state == EnemyState::ATTACKING)
-        {
-            const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-            const glm::vec2 vectorToTarget = targetPosition - currentPosition;
-            const float distanceToTarget = glm::length(vectorToTarget);
+            if(m_state == EnemyState::ATTACKING)
+            {
+                const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+                const glm::vec2 vectorToTarget = targetPosition - currentPosition;
+                const float distanceToTarget = glm::length(vectorToTarget);
 
-            if (fabs(vectorToTarget.x) > fabs(vectorToTarget.y))
-            {
-                // Moving left or right
-                animationName = (vectorToTarget.x > 0.0f) ? "StandEast" : "StandWest";
+                if (fabs(vectorToTarget.x) > fabs(vectorToTarget.y))
+                {
+                    // Moving left or right
+                    animationName = (vectorToTarget.x > 0.0f) ? "StandEast" : "StandWest";
+                }
+                else
+                {
+                    // Moving up or down
+                    animationName = (vectorToTarget.y > 0.0f) ? "StandNorth" : "StandSouth";
+                }
             }
-            else
+        }
+
+        case EnemyState::CHASING:
+        {
+            if (glm::length(velocity) > 0.01f)  // Ensure the velocity is not zero
             {
-                // Moving up or down
-                animationName = (vectorToTarget.y > 0.0f) ? "StandNorth" : "StandSouth";
+                // Check if the movement is more along the X or Y axis
+                if (fabs(velocity.x) > fabs(velocity.y))
+                {
+                    // Moving left or right
+                    animationName = (velocity.x > 0.0f) ? "StandEast" : "StandWest";
+                }
+                else
+                {
+                    // Moving up or down
+                    animationName = (velocity.y > 0.0f) ? "StandNorth" : "StandSouth";
+                }
             }
+            break;
+        }
+
+        case EnemyState::PROSPECT:
+        {
+            if (glm::length(velocity) > 0.01f)  // Ensure the velocity is not zero
+            {
+                // Check if the movement is more along the X or Y axis
+                if (fabs(velocity.x) > fabs(velocity.y))
+                {
+                    // Moving left or right
+                    animationName = (velocity.x > 0.0f) ? "StandEast" : "StandWest";
+                }
+                else
+                {
+                    // Moving up or down
+                    animationName = (velocity.y > 0.0f) ? "StandNorth" : "StandSouth";
+                }
+            }
+            break;
+        }
+
+        default:
+        {
+            if (glm::length(velocity) > 0.01f)  // Ensure the velocity is not zero
+            {
+                // Check if the movement is more along the X or Y axis
+                if (fabs(velocity.x) > fabs(velocity.y))
+                {
+                    // Moving left or right
+                    animationName = (velocity.x > 0.0f) ? "StandEast" : "StandWest";
+                }
+                else
+                {
+                    // Moving up or down
+                    animationName = (velocity.y > 0.0f) ? "StandNorth" : "StandSouth";
+                }
+            }
+            break;
         }
     }
 
@@ -411,7 +557,224 @@ void GorgonController::HandleDeathState(float delta)
     }
 }
 
-void GorgonController::ChangeState(EnemyState newState)
+void GorgonController::EnterChasingState()
 {
-    m_state = newState;
+    m_transitionTimer.Reset();
+    m_transitionTimer.Start();
+}
+
+void GorgonController::EnterIdleState()
+{
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+}
+
+void GorgonController::EnterStunnedState()
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+}
+
+void GorgonController::ExitAttackState()
+{
+    m_rangedTimer = m_rangedCooldown;
+    
+    if(m_pAnimComponent != nullptr)
+    {
+        m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+    }
+}
+
+void GorgonController::ExitChasingState()
+{
+    m_transitionTimer.Reset();
+    m_transitionTimer.Stop();
+    m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
+}
+
+void GorgonController::ExitIdleState()
+{
+    m_targetDetectionTimer = m_RNG.NextFloat(0.2f, 0.4f);
+}
+
+void GorgonController::ExitPetrifiedState()
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    m_pAnimComponent->SetAnimPaused(false);
+}
+
+void GorgonController::ExitProspectState()
+{
+    m_targetDetectionTimer = m_RNG.NextFloat(0.2f, 0.4f);
+    m_prospectCounter = 0;
+    m_prospectStandingCounter = m_RNG.NextFloat(0.5f, 2.0f);
+}
+
+void GorgonController::ExitStunnedState()
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    m_stunnedTimer = 0.0f;
+}
+
+bool GorgonController::IsTargetDetected()
+{
+    float distanceToTarget = glm::length(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - m_pTransform->GetGlobalPosition());
+
+    if(
+        m_pTargetStatusComponent != nullptr                                                             &&  // Target status component not null
+        distanceToTarget <= m_detectionRange                                                            &&  // Target in detection range
+        !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)   &&  // Target not already petrified
+        IsTargetInLOS()                                                                                     // Target in line of sight
+        )
+    {
+        return true;
+    }
+    return false;
+}
+
+bool GorgonController::IsTargetInLOS()
+{
+
+    // Get labyrinth manager
+    LabyrinthManager* lbmg = nullptr;
+    for (auto&& [_, labyrinthManager] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+    {
+        lbmg = &labyrinthManager;
+        break;
+    }
+
+    // Check
+    if(lbmg != nullptr)
+    {
+        glm::vec2 thisPos = m_pTransform->GetGlobalPosition();
+        glm::ivec2 thisTilePos = lbmg->GetTilePosition(thisPos);
+        int thisTileID = lbmg->GetTile(thisTilePos.x, thisTilePos.y);
+
+        glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::ivec2 targetTilePos = lbmg->GetTilePosition(targetPos);
+        int targetTileID = lbmg->GetTile(targetTilePos.x, targetTilePos.y);
+        glColor3f(0, 1, 0);
+        glLineWidth(3);
+        glBegin(GL_LINES);
+        glVertex2i(thisPos.x, thisPos.y);
+        glVertex2i(targetPos.x, targetPos.y);
+        glEnd();
+
+        // If either this tile or target tile is invalid, return false
+        if(thisTileID < 0 || targetTileID < 0)
+        {
+            // printf("Gorgon Controller - ERROR: INVALID TILE\n");
+            return false;
+        }
+
+        // If either entity or target is inside wall (somehow), return false
+        if(this->IsWallTile(thisTileID) || this->IsWallTile(targetTileID))
+        {
+            return false;
+        }
+
+        if(thisTilePos == targetTilePos && !this->IsWallTile(thisTileID))
+        {
+            return true;
+        }
+
+        const int tileSize = (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+
+        glm::vec2 line = targetPos - thisPos;
+        glm::vec2 normalisedLine = glm::normalize(line);
+        float distance = glm::length(line);
+
+        glm::ivec2 currentTilePos = thisTilePos;
+        int currentTileID = thisTileID;
+        glm::vec2 rayLength = glm::vec2(0.0f, 0.0f);
+        glm::ivec2 tileStep = glm::vec2(0, 0);
+        glm::vec2 rayStep = glm::vec2(
+            sqrt(1 + (normalisedLine.y / normalisedLine.x) * (normalisedLine.y / normalisedLine.x)),
+            sqrt(1 + (normalisedLine.x / normalisedLine.y) * (normalisedLine.x / normalisedLine.y))
+        );
+        if(line.x > 0.0f)
+        {
+            tileStep.x = 1;
+            rayLength.x = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).x - thisPos.x) * rayStep.x;
+        }
+        else
+        {
+            tileStep.x = -1;
+            rayLength.x = abs(thisPos.x - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).x) * rayStep.x;
+        }
+
+        if(line.y > 0.0f)
+        {
+            tileStep.y = 1;
+            rayLength.y = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).y - thisPos.y) * rayStep.y;
+        }
+        else
+        {
+            tileStep.y = -1;
+            rayLength.y = abs(thisPos.y - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).y) * rayStep.y;
+        }
+        
+        rayStep *= tileSize;
+        
+        // Iterate until target tile is reached
+        bool isTargetSpotted = true;
+        bool isIterating = true;
+        // printf("GorgonController ------------------------------------------------ \n");
+        // std::cout << "GorgonController - Distance: " << distance << std::endl;    
+        // std::cout << "GorgonController - Normalised Line - x: " << normalisedLine.x << ", y: " << normalisedLine.y << std::endl;
+        // std::cout << "GorgonController - Original Ray Length - x: " << rayLength.x << ", y: " << rayLength.y << std::endl;
+        // std::cout << "GorgonController - This Tile Pos - x: " << thisTilePos.x << ", y: " << thisTilePos.y << std::endl;
+        // std::cout << "GorgonController - Target Tile Pos - x: " << targetTilePos.x << ", y: " << targetTilePos.y << std::endl;
+        float distanceCheck = 0.0f;
+        while(distanceCheck < distance)
+        {
+
+            if(rayLength.x < rayLength.y)
+            {
+                currentTilePos.x += tileStep.x;
+                distanceCheck = rayLength.x;
+                rayLength.x += rayStep.x;
+            }
+            else
+            {
+                currentTilePos.y += tileStep.y;
+                distanceCheck = rayLength.y;
+                rayLength.y += rayStep.y;
+            }
+            // std::cout << "GorgonController - Ray Length - x: " << abs(rayLength.x) << ", y: " << abs(rayLength.y) << std::endl;
+            // std::cout << "GorgonController - Current Tile Pos - x: " << currentTilePos.x << ", y: " << currentTilePos.y << std::endl;
+
+            currentTileID = lbmg->GetTile(currentTilePos.x, currentTilePos.y);
+            
+            if(this->IsWallTile(currentTileID))
+            {
+                if(distanceCheck < distance)
+                {
+                    // printf("GorgonController - Blocked\n");
+                    return false;
+                }
+                // printf("GorgonController - Length Exceeded\n");
+                break;
+            }
+            if(distanceCheck >= distance)
+            {
+                // printf("GorgonController - Length Exceeded\n");
+            }
+        }
+    }
+    // printf("GorgonController - Detected\n");
+    return true;
+}
+
+bool GorgonController::IsWallTile(int p_tile_id)
+{
+    return (p_tile_id >= Tile::WallBottomLeft) && (p_tile_id <= Tile::WallTop);
+}
+
+glm::vec2 GorgonController::GetTileWorldPos(glm::ivec2 p_tile_pos)
+{
+    glm::vec2 res = glm::vec2(
+        p_tile_pos.x * (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE), 
+        p_tile_pos.y * (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE)
+    );
+    return res;
 }

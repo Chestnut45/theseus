@@ -14,6 +14,8 @@ public:
         PROSPECT,
         CHASING,
         ATTACKING,
+        PETRIFIED,
+        STUNNED,
         DEATH
     };
     EnemyController() = default;    
@@ -32,7 +34,9 @@ protected:
         NONE
     };
     void ChangeState(EnemyState newState); // General state transition logic shared by all enemies
+    
 
+protected:
     // These components are common to all enemies and will be initialized here, but used in specific enemy classes
     wolf::Transform2D* m_pTransform = nullptr;
     HealthComponent* m_pHealth = nullptr;

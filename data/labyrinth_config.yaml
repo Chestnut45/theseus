@@ -27,12 +27,12 @@ rooms: [
 	},
 	{
 		name: Basic Fight Rooms,
-		instances: 24,
+		instances: 16,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
-			{type: uncommon_chest, amount: 1, placement: center},
+			{type: spike_trap, amount: 1, placement: center},
 			{type: minitaur, amount: 3, placement: random},
 		]
 	},
@@ -44,7 +44,7 @@ rooms: [
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
 			{type: rare_chest, amount: 1, placement: center},
-			{type: harpy, amount: 2, placement: random},
+			{type: harpy, amount: 1, placement: random},
 			{type: gorgon, amount: 1, placement: random},
 		]
 	}
