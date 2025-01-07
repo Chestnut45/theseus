@@ -545,8 +545,8 @@ void GorgonController::EnterAttackState()
 {
     m_IsRenderingAttackIndicator = true;
     m_crosshairOffset = glm::vec2(
-        m_RNG.NextFloat(-12.0f, 12.0f),
-        m_RNG.NextFloat(-12.0f, 12.0f)
+        m_RNG.NextFloat(-4.0f, 4.0f),
+        m_RNG.NextFloat(-4.0f, 4.0f)
         );
 }
 
@@ -636,6 +636,7 @@ bool GorgonController::IsTargetInLOS()
     }
     glm::vec2 thisPos = m_pTransform->GetGlobalPosition();
     glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec4 colour = m_curentCrosshairColour;
 
     if(m_IsRenderingAttackIndicator == true)
     {
@@ -643,7 +644,7 @@ bool GorgonController::IsTargetInLOS()
         glm::vec2 targetScale = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalScale();
         float halfWidth = 2.0f * targetScale.x;
         float halfHeight = 2.0f * targetScale.y;
-        glm::vec4 colour = m_curentCrosshairColour;
+        
 
         glm::vec2 tr = targetPos + m_crosshairOffset + glm::vec2(halfWidth, halfHeight) ;
         glm::vec2 tl = targetPos + m_crosshairOffset + glm::vec2(-halfWidth, halfHeight);
@@ -744,13 +745,13 @@ bool GorgonController::IsTargetInLOS()
             {
                 if(distanceCheck < distance)
                 {
-                    printf("GorgonController - Blocked\n");
+                    // printf("GorgonController - Blocked\n");
                     if(m_IsRenderingAttackIndicator == true)
                     {
                         glm::vec2 endpoint = normalisedLine * distanceCheck + thisPos;
                         GLShapesRenderer::GetInstance()->AddLine(
-                                                                {thisPos.x, thisPos.y, 1.0f, 1.0f, 0.0f, 1.0f},
-                                                                {endpoint.x, endpoint.y, 1.0f, 1.0f, 0.0f, 1.0f}
+                                                                {thisPos.x, thisPos.y, colour.r, colour.g, colour.b, colour.a},
+                                                                {endpoint.x, endpoint.y, colour.r, colour.g, colour.b, colour.a}
                                                                 );
                     }
                     return false;
@@ -769,8 +770,8 @@ bool GorgonController::IsTargetInLOS()
     if(m_IsRenderingAttackIndicator == true)
     {
         GLShapesRenderer::GetInstance()->AddLine(
-                                            {thisPos.x, thisPos.y, 1.0f, 1.0f, 0.0f, 1.0f},
-                                            {targetPos.x, targetPos.y, 1.0f, 1.0f, 0.0f, 1.0f}
+                                            {thisPos.x, thisPos.y, colour.r, colour.g, colour.b, colour.a},
+                                            {targetPos.x, targetPos.y, colour.r, colour.g, colour.b, colour.a}
                                             );
     }
     return true;
