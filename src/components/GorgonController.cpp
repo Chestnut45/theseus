@@ -357,7 +357,7 @@ void GorgonController::HandleAttackingState(float delta)
     if(m_rangedTimer <= 0.0f)
     {
         // If target is in line of sight, petrify target and switch to prospect
-        if(m_pTargetStatusComponent != nullptr && IsTargetInLOS())
+        if(IsTargetInLOS() && m_pTargetStatusComponent != nullptr)
         {
             m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
         }
@@ -374,12 +374,11 @@ void GorgonController::HandleAttackingState(float delta)
         {
             m_pAnimComponent->SetTint(m_pAnimComponent->GetTint() + delta / (m_rangedCooldown));
         }
+        // Render attack indicator
+        IsTargetInLOS();
     }
 
     m_curentCrosshairColour.g -= delta * (1.0f / m_rangedCooldown);
-
-    // Render attack indicator
-    IsTargetInLOS();
 }
 
 void GorgonController::HandlePetrifiedState(float delta)
