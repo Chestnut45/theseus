@@ -84,6 +84,8 @@ private:
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
 
+    bool m_IsRenderingAttackIndicator = false;
+
     const glm::vec4 CROSSHAIR_COLOUR = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
     glm::vec4 m_curentCrosshairColour = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
     glm::vec2 m_crosshairOffset = glm::vec2(0.0f, 0.0f);

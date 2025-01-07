@@ -362,7 +362,6 @@ void GorgonController::HandleAttackingState(float delta)
             m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
         }
 
-        std::cout << "GorgonController - Crosshair Offset - x: " << m_crosshairOffset.x << ", y: " << m_crosshairOffset.y << std::endl;
         ChangeState(EnemyState::CHASING);
     }
     else
@@ -376,25 +375,11 @@ void GorgonController::HandleAttackingState(float delta)
             m_pAnimComponent->SetTint(m_pAnimComponent->GetTint() + delta / (m_rangedCooldown));
         }
     }
-        // Add indicator for rendering
-    glm::vec2 targetPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 targetScale = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalScale();
-    float halfWidth = 2.0f;
-    float halfHeight = 2.0f;
+
     m_curentCrosshairColour.g -= delta * (1.0f / m_rangedCooldown);
-    glm::vec4 colour = m_curentCrosshairColour;
 
-    glm::vec2 tr = targetPos + m_crosshairOffset + glm::vec2(halfWidth, halfHeight) * targetScale;
-    glm::vec2 tl = targetPos + m_crosshairOffset + glm::vec2(-halfWidth, halfHeight) * targetScale;
-    glm::vec2 bl = targetPos + m_crosshairOffset + glm::vec2(-halfWidth, -halfHeight) * targetScale;
-    glm::vec2 br = targetPos + m_crosshairOffset + glm::vec2(halfWidth, -halfHeight) * targetScale;
-
-    GLShapesRenderer::GetInstance()->AddQuad(
-                                            {tr.x, tr.y, colour.r, colour.g, colour.b, colour.a},
-                                            {tl.x, tl.y, colour.r, colour.g, colour.b, colour.a},
-                                            {bl.x, bl.y, colour.r, colour.g, colour.b, colour.a},
-                                            {br.x, br.y, colour.r, colour.g, colour.b, colour.a}
-                                            );
+    // Render attack indicator
+    IsTargetInLOS();
 }
 
 void GorgonController::HandlePetrifiedState(float delta)
@@ -558,6 +543,7 @@ void GorgonController::HandleDeathState(float delta)
 
 void GorgonController::EnterAttackState()
 {
+    m_IsRenderingAttackIndicator = true;
     m_crosshairOffset = glm::vec2(
         m_RNG.NextFloat(-12.0f, 12.0f),
         m_RNG.NextFloat(-12.0f, 12.0f)
@@ -583,6 +569,7 @@ void GorgonController::EnterStunnedState()
 
 void GorgonController::ExitAttackState()
 {
+    m_IsRenderingAttackIndicator = false;
     m_rangedTimer = m_rangedCooldown;
     m_curentCrosshairColour = CROSSHAIR_COLOUR;
     if(m_pAnimComponent != nullptr)
@@ -640,7 +627,6 @@ bool GorgonController::IsTargetDetected()
 
 bool GorgonController::IsTargetInLOS()
 {
-
     // Get labyrinth manager
     LabyrinthManager* lbmg = nullptr;
     for (auto&& [_, labyrinthManager] : GetGameObject()->GetScene().Each<LabyrinthManager>())
@@ -651,6 +637,27 @@ bool GorgonController::IsTargetInLOS()
     glm::vec2 thisPos = m_pTransform->GetGlobalPosition();
     glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
 
+    if(m_IsRenderingAttackIndicator == true)
+    {
+        // Add indicator for rendering
+        glm::vec2 targetScale = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+        float halfWidth = 2.0f * targetScale.x;
+        float halfHeight = 2.0f * targetScale.y;
+        glm::vec4 colour = m_curentCrosshairColour;
+
+        glm::vec2 tr = targetPos + m_crosshairOffset + glm::vec2(halfWidth, halfHeight) ;
+        glm::vec2 tl = targetPos + m_crosshairOffset + glm::vec2(-halfWidth, halfHeight);
+        glm::vec2 bl = targetPos + m_crosshairOffset + glm::vec2(-halfWidth, -halfHeight);
+        glm::vec2 br = targetPos + m_crosshairOffset + glm::vec2(halfWidth, -halfHeight);
+
+        GLShapesRenderer::GetInstance()->AddQuad(
+                            {tr.x, tr.y, colour.r, colour.g, colour.b, colour.a},
+                            {tl.x, tl.y, colour.r, colour.g, colour.b, colour.a},
+                            {bl.x, bl.y, colour.r, colour.g, colour.b, colour.a},
+                            {br.x, br.y, colour.r, colour.g, colour.b, colour.a}
+                            );
+    }
+
     // Check
     if(lbmg != nullptr)
     {
@@ -659,13 +666,6 @@ bool GorgonController::IsTargetInLOS()
 
         glm::ivec2 targetTilePos = lbmg->GetTilePosition(targetPos);
         int targetTileID = lbmg->GetTile(targetTilePos.x, targetTilePos.y);
-
-        // If either this tile or target tile is invalid, return false
-        if(thisTileID < 0 || targetTileID < 0)
-        {
-            // printf("Gorgon Controller - ERROR: INVALID TILE\n");
-            return false;
-        }
 
         // If either entity or target is inside wall (somehow), return false
         if(this->IsWallTile(thisTileID) || this->IsWallTile(targetTileID))
@@ -695,7 +695,7 @@ bool GorgonController::IsTargetInLOS()
         if(line.x > 0.0f)
         {
             tileStep.x = 1;
-            rayLength.x = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).x - thisPos.x) * rayStep.x;
+            rayLength.x = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x + 1, thisTilePos.y)).x - thisPos.x) * rayStep.x;
         }
         else
         {
@@ -706,7 +706,7 @@ bool GorgonController::IsTargetInLOS()
         if(line.y > 0.0f)
         {
             tileStep.y = 1;
-            rayLength.y = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).y - thisPos.y) * rayStep.y;
+            rayLength.y = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y + 1)).y - thisPos.y) * rayStep.y;
         }
         else
         {
@@ -719,13 +719,8 @@ bool GorgonController::IsTargetInLOS()
         // Iterate until target tile is reached
         bool isTargetSpotted = true;
         bool isIterating = true;
-        // printf("GorgonController ------------------------------------------------ \n");
-        // std::cout << "GorgonController - Distance: " << distance << std::endl;    
-        // std::cout << "GorgonController - Normalised Line - x: " << normalisedLine.x << ", y: " << normalisedLine.y << std::endl;
-        // std::cout << "GorgonController - Original Ray Length - x: " << rayLength.x << ", y: " << rayLength.y << std::endl;
-        // std::cout << "GorgonController - This Tile Pos - x: " << thisTilePos.x << ", y: " << thisTilePos.y << std::endl;
-        // std::cout << "GorgonController - Target Tile Pos - x: " << targetTilePos.x << ", y: " << targetTilePos.y << std::endl;
         float distanceCheck = 0.0f;
+
         while(distanceCheck < distance)
         {
 
@@ -741,8 +736,6 @@ bool GorgonController::IsTargetInLOS()
                 distanceCheck = rayLength.y;
                 rayLength.y += rayStep.y;
             }
-            // std::cout << "GorgonController - Ray Length - x: " << abs(rayLength.x) << ", y: " << abs(rayLength.y) << std::endl;
-            // std::cout << "GorgonController - Current Tile Pos - x: " << currentTilePos.x << ", y: " << currentTilePos.y << std::endl;
 
             currentTileID = lbmg->GetTile(currentTilePos.x, currentTilePos.y);
             
@@ -751,9 +744,17 @@ bool GorgonController::IsTargetInLOS()
             {
                 if(distanceCheck < distance)
                 {
-                    // printf("GorgonController - Blocked\n");
-
+                    printf("GorgonController - Blocked\n");
+                    if(m_IsRenderingAttackIndicator == true)
+                    {
+                        glm::vec2 endpoint = normalisedLine * distanceCheck + thisPos;
+                        GLShapesRenderer::GetInstance()->AddLine(
+                                                                {thisPos.x, thisPos.y, 1.0f, 1.0f, 0.0f, 1.0f},
+                                                                {endpoint.x, endpoint.y, 1.0f, 1.0f, 0.0f, 1.0f}
+                                                                );
+                    }
                     return false;
+
                 }
                 // printf("GorgonController - Length Exceeded\n");
                 break;
@@ -765,6 +766,13 @@ bool GorgonController::IsTargetInLOS()
         }
     }
     // printf("GorgonController - Detected\n");
+    if(m_IsRenderingAttackIndicator == true)
+    {
+        GLShapesRenderer::GetInstance()->AddLine(
+                                            {thisPos.x, thisPos.y, 1.0f, 1.0f, 0.0f, 1.0f},
+                                            {targetPos.x, targetPos.y, 1.0f, 1.0f, 0.0f, 1.0f}
+                                            );
+    }
     return true;
 }
 

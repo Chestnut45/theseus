@@ -444,8 +444,6 @@ void PlayState::Render()
     {
         status.RenderPlayerSEIcons();
     }
-
-    
 }
 
 void PlayState::BackgroundUpdate(float delta)
