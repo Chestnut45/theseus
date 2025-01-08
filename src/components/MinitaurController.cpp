@@ -19,6 +19,10 @@ MinitaurController::MinitaurController()
 
 MinitaurController::~MinitaurController()
 {
+    s_iComponentCounter--;
+    if(s_iComponentCounter == 0)
+    {
+    }
 }
 
 void MinitaurController::Init(const EnemyData& data)
@@ -66,6 +70,20 @@ void MinitaurController::Init(const EnemyData& data)
     {
         wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
     }
+
+    // Init emotes object
+    m_pEmoteObj = &pGameObject->GetScene().CreateObject2D();
+    pGameObject->AddChild(*m_pEmoteObj);
+    wolf::Transform2D* transform = m_pEmoteObj->GetComponent<wolf::Transform2D>();
+    transform->SetPosition(glm::vec2(-8.0f, 8.0f));
+
+    // Add emotes spritesheet
+    AnimatedSprite2D* emotesSpritesheet = &m_pEmoteObj->AddComponent<AnimatedSprite2D>("data/emotes_anim_init.yaml");
+    emotesSpritesheet->SetAnimPaused(true);
+    emotesSpritesheet->SetOriginToCenterOfFrame();
+
+    m_fEmoteTimer = EMOTE_TIME;
+    m_bIsTargetDetected = false;
 }
 
 
@@ -128,6 +146,19 @@ void MinitaurController::Update(float delta)
 
     // Update animations based on direction after handling movement
     UpdateAnimationBasedOnDirection();
+
+    // Emoting
+    if(m_fEmoteTimer > 0.0f)
+    {
+        m_fEmoteTimer -= delta;
+    }
+    else
+    {
+        if(m_emote != EnemyEmote::NONE)
+        {
+            SetEmote(EnemyEmote::NONE);
+        }
+    }
 }
 
 void MinitaurController::ChangeState(EnemyState newState)
@@ -181,6 +212,11 @@ void MinitaurController::ChangeState(EnemyState newState)
         case EnemyState::IDLE:
         {
             EnterIdleState();
+            break;
+        }
+        case EnemyState::PROSPECT:
+        {
+            EnterProspectState();
             break;
         }
         case EnemyState::STUNNED:
@@ -319,9 +355,10 @@ void MinitaurController::HandleChasingState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
-    // Check if the player has moved out of the detection range and transition to PROSPECT
+    // If player is out of detection range, emote & switch to prospect
     if (distanceToPlayer > m_detectionRange)
     {
+        SetEmote(EnemyEmote::QUESTION);
         ChangeState(EnemyState::PROSPECT);      
         return;
     }
@@ -488,11 +525,23 @@ void MinitaurController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
+
+    if(m_bIsTargetDetected == false)
+    {
+        m_bIsTargetDetected = true;
+        SetEmote(EnemyEmote::EXLAMATION);
+    }
 }
 
 void MinitaurController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    m_bIsTargetDetected = false;
+}
+
+void MinitaurController::EnterProspectState()
+{
+    m_bIsTargetDetected = false;
 }
 
 void MinitaurController::EnterStunnedState()
@@ -539,6 +588,32 @@ void MinitaurController::ExitStunnedState()
 {
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
     m_stunnedTimer = 0.0f;
+}
+
+void MinitaurController::SetEmote(EnemyEmote p_emote)
+{
+    m_fEmoteTimer = EMOTE_TIME;
+    switch(p_emote)
+    {
+        case EnemyEmote::EXLAMATION:
+        {
+            m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("Exclamation");
+            break;
+        }
+
+        case EnemyEmote::QUESTION:
+        {
+            m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("Question");
+            break;
+        }
+        case EnemyEmote::NONE:
+        {
+            m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("None");
+            break;
+        }
+    }
+
+    m_emote = p_emote;
 }
 
 bool MinitaurController::IsTargetDetected()
@@ -638,12 +713,6 @@ bool MinitaurController::IsTargetInLOS()
         // Iterate until target tile is reached
         bool isTargetSpotted = true;
         bool isIterating = true;
-        // printf("MinitaurController ------------------------------------------------ \n");
-        // std::cout << "MinitaurController - Distance: " << distance << std::endl;    
-        // std::cout << "MinitaurController - Normalised Line - x: " << normalisedLine.x << ", y: " << normalisedLine.y << std::endl;
-        // std::cout << "MinitaurController - Original Ray Length - x: " << rayLength.x << ", y: " << rayLength.y << std::endl;
-        // std::cout << "MinitaurController - This Tile Pos - x: " << thisTilePos.x << ", y: " << thisTilePos.y << std::endl;
-        // std::cout << "MinitaurController - Target Tile Pos - x: " << targetTilePos.x << ", y: " << targetTilePos.y << std::endl;
         float distanceCheck = 0.0f;
         while(distanceCheck < distance)
         {
@@ -660,8 +729,6 @@ bool MinitaurController::IsTargetInLOS()
                 distanceCheck = rayLength.y;
                 rayLength.y += rayStep.y;
             }
-            // std::cout << "MinitaurController - Ray Length - x: " << abs(rayLength.x) << ", y: " << abs(rayLength.y) << std::endl;
-            // std::cout << "MinitaurController - Current Tile Pos - x: " << currentTilePos.x << ", y: " << currentTilePos.y << std::endl;
 
             currentTileID = lbmg->GetTile(currentTilePos.x, currentTilePos.y);
             

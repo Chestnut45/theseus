@@ -70,6 +70,20 @@ void HarpyController::Init(const EnemyData& data)
     {
         wolf::Warning("Harpy " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
     }
+
+        // Init emotes object
+    m_pEmoteObj = &pGameObject->GetScene().CreateObject2D();
+    pGameObject->AddChild(*m_pEmoteObj);
+    wolf::Transform2D* transform = m_pEmoteObj->GetComponent<wolf::Transform2D>();
+    transform->SetPosition(glm::vec2(-8.0f, 8.0f));
+
+    // Add emotes spritesheet
+    AnimatedSprite2D* emotesSpritesheet = &m_pEmoteObj->AddComponent<AnimatedSprite2D>("data/emotes_anim_init.yaml");
+    emotesSpritesheet->SetAnimPaused(true);
+    emotesSpritesheet->SetOriginToCenterOfFrame();
+
+    m_fEmoteTimer = EMOTE_TIME;
+    m_bIsTargetDetected = false;
 }
 
 
@@ -135,6 +149,19 @@ void HarpyController::Update(float delta)
 
     // Update animations based on direction after handling movement
     UpdateAnimationBasedOnDirection();
+
+    // Emoting
+    if(m_fEmoteTimer > 0.0f)
+    {
+        m_fEmoteTimer -= delta;
+    }
+    else
+    {
+        if(m_emote != EnemyEmote::NONE)
+        {
+            SetEmote(EnemyEmote::NONE);
+        }
+    }
 }
 
 void HarpyController::ChangeState(EnemyState newState)
@@ -427,11 +454,18 @@ void HarpyController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
+
+    if(m_bIsTargetDetected == false)
+    {
+        m_bIsTargetDetected = true;
+        SetEmote(EnemyEmote::EXLAMATION);
+    }
 }
 
 void HarpyController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    m_bIsTargetDetected = false;
 }
 
 void HarpyController::EnterStunnedState()
@@ -467,3 +501,28 @@ void HarpyController::ExitStunnedState()
     m_stunnedTimer = 0.0f;
 }
 
+void HarpyController::SetEmote(EnemyEmote p_emote)
+{
+    m_fEmoteTimer = EMOTE_TIME;
+    switch(p_emote)
+    {
+        case EnemyEmote::EXLAMATION:
+        {
+            m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("Exclamation");
+            break;
+        }
+
+        case EnemyEmote::QUESTION:
+        {
+            m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("Question");
+            break;
+        }
+        case EnemyEmote::NONE:
+        {
+            m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("None");
+            break;
+        }
+    }
+
+    m_emote = p_emote;
+}

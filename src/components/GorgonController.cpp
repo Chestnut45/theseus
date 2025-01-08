@@ -5,16 +5,11 @@
 #include <cassert>
 
 int GorgonController::s_iComponentCounter = 0;
-int GorgonController::s_iEmoteFrameSize = 32;
-wolf::Texture* GorgonController::s_pEmotesTexture = nullptr;
 
 GorgonController::GorgonController()
 {
     if(s_iComponentCounter == 0)
     {
-        s_pEmotesTexture = wolf::TextureManager::CreateTexture("data/textures/Emotes-Sheet.png");
-        s_pEmotesTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
-        s_iEmoteFrameSize = s_pEmotesTexture->GetWidth() / EnemyEmote::NONE;
     }
     s_iComponentCounter++;
 }   
@@ -24,10 +19,6 @@ GorgonController::~GorgonController()
     s_iComponentCounter--;
     if(s_iComponentCounter == 0)
     {
-
-        wolf::TextureManager::DestroyTexture(s_pEmotesTexture);
-        s_pEmotesTexture = nullptr;
-        
     }
 }
 
@@ -665,7 +656,6 @@ void GorgonController::ExitStunnedState()
 
 void GorgonController::SetEmote(EnemyEmote p_emote)
 {
-    std::cout << "GorgonController - Set Emote: " << p_emote << std::endl;
     m_fEmoteTimer = EMOTE_TIME;
     switch(p_emote)
     {

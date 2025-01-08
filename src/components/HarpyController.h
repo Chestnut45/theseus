@@ -39,6 +39,8 @@ private:
     void ExitPetrifiedState();
     void ExitStunnedState();
     
+    void SetEmote(EnemyEmote p_emote);
+
     // Minitaur-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;
@@ -68,4 +70,10 @@ private:
     float m_timeToLieDead = 0.8f;
 
     static int s_iComponentCounter;
+
+    EnemyEmote m_emote = EnemyEmote::NONE; // Current emote
+    bool m_bIsTargetDetected = false; // For emote-related uses; Unrelated to the method of the same name
+    const float EMOTE_TIME = 1.0f;
+    float m_fEmoteTimer = 0.0f;
+    wolf::GameObject* m_pEmoteObj = nullptr;
 };
