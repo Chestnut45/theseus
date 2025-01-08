@@ -80,8 +80,15 @@ void MerchantInventoryComponent::HandleSellItemToMerchantEvent(const SellItemToM
                 m_iGold -= p_event.pItem->GetValue(); // Take the gold from the merchant
                 this->AddItem(p_event.pItem); // And add the item to their inventory
 
-                // Then let the player know that the item has been sold
-                wolf::EventManager::TriggerEvent(RemoveFromPlayerInventoryEvent(p_event.pItem->GetName(), p_event.iPlayerInventoryIndex, p_event.pItem->GetValue()));
+                // We then need to check if the item was equipped or not
+                if (p_event.bWasEquipped) {
+                    // If it was, we need to trigger a RemoveFromPlayerEquipmentEvent
+                    wolf::EventManager::TriggerEvent(RemoveFromPlayerEquipmentEvent(static_cast<EquipmentSlot>(p_event.iPlayerInventoryIndex), p_event.pItem->GetValue()));
+                }
+                else {
+                    // Otherwise, we trigger a RemoveFromPlayerInventoryEvent
+                    wolf::EventManager::TriggerEvent(RemoveFromPlayerInventoryEvent(p_event.pItem->GetName(), p_event.iPlayerInventoryIndex, p_event.pItem->GetValue()));
+                }
             }
             else { // If the merchant does not have enough gold
                 m_bShowSellForLessPrompt = true; // We need to ask the player if they are willing to sell the item, anyway
@@ -89,6 +96,7 @@ void MerchantInventoryComponent::HandleSellItemToMerchantEvent(const SellItemToM
                 // So we put the item that we're asking about in "stasis" so we can keep track of it outside of this method
                 m_ItemInStasis.pItem = p_event.pItem;
                 m_ItemInStasis.iPlayerInventoryIndex = p_event.iPlayerInventoryIndex;
+                m_ItemInStasis.bWasEquipped = p_event.bWasEquipped;
             }
         }
     }
@@ -118,11 +126,22 @@ void MerchantInventoryComponent::TakeItemOutOfStasis(bool p_bSold) {
         // We need to add the item to our inventory
         this->AddItem(m_ItemInStasis.pItem);
 
+        // Figure out how much gold we had at the time of sale
+        int iSoldFor = this->GetGold();
+
         // Take away the gold we spent
         this->TakeGold(m_ItemInStasis.pItem->GetValue());
 
-        // And let the player know the sale has gone through
-        wolf::EventManager::TriggerEvent(RemoveFromPlayerInventoryEvent(m_ItemInStasis.pItem->GetName(), m_ItemInStasis.iPlayerInventoryIndex));
+        // And let the player know the sale has gone through by triggering an event
+        // based on whether or not the item was equipped when they sold it to us
+        if (m_ItemInStasis.bWasEquipped) {
+            // If it was equipped, trigger a RemoveFromPlayerEquipmentEvent
+            wolf::EventManager::TriggerEvent(RemoveFromPlayerEquipmentEvent(m_ItemInStasis.iPlayerInventoryIndex, iSoldFor));
+        }
+        else {
+            // Otherwise, trigger a RemoveFromPlayerInventoryEvent
+            wolf::EventManager::TriggerEvent(RemoveFromPlayerInventoryEvent(m_ItemInStasis.pItem->GetName(), m_ItemInStasis.iPlayerInventoryIndex, iSoldFor));
+        }
     }
     
     // We don't need to keep track of this information anymore so we reset it to the defaults
