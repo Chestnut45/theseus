@@ -83,7 +83,10 @@ private:
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
 
-    EnemyEmote m_emote = EnemyEmote::EXLAMATION;
+    EnemyEmote m_emote = EnemyEmote::NONE;
+    const float EMOTE_TIME = 1.0f;
+    float m_fEmoteTimer = 1.0f;
+    wolf::GameObject* m_pEmoteObj = nullptr;
     static int s_iComponentCounter;
     static int s_iEmoteFrameSize;
     static wolf::Texture* s_pEmotesTexture;

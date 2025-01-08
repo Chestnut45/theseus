@@ -24,11 +24,10 @@ GorgonController::~GorgonController()
     s_iComponentCounter--;
     if(s_iComponentCounter == 0)
     {
-        for (int i = 0; i < EnemyEmote::NONE; i++)
-        {
-            wolf::TextureManager::DestroyTexture(s_pEmotesTexture);
-            s_pEmotesTexture = nullptr;
-        }
+
+        wolf::TextureManager::DestroyTexture(s_pEmotesTexture);
+        s_pEmotesTexture = nullptr;
+        
     }
 }
 
@@ -82,6 +81,17 @@ void GorgonController::Init(const EnemyData& data)
     {
         wolf::Warning("Gorgon " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
     }
+
+    // Init emotes object
+    m_pEmoteObj = &pGameObject->GetScene().CreateObject2D();
+    pGameObject->AddChild(*m_pEmoteObj);
+    wolf::Transform2D* transform = m_pEmoteObj->GetComponent<wolf::Transform2D>();
+    transform->SetPosition(glm::vec2(0.0f, 8.0f));
+
+    // Add emotes spritesheet
+    AnimatedSprite2D* emotesSpritesheet = &m_pEmoteObj->AddComponent<AnimatedSprite2D>("data/emotes_anim_init.yaml");
+    emotesSpritesheet->SetAnimPaused(true);
+    emotesSpritesheet->SetOriginToCenterOfFrame();
 }
 
 
@@ -366,6 +376,12 @@ void GorgonController::HandleChasingState(float delta)
             ChangeState(EnemyState::ATTACKING);
         }
     }
+
+    // Emoting
+    if(m_fEmoteTimer > 0.0f)
+    {
+        m_fEmoteTimer -= delta;
+    }
 }
 
 void GorgonController::HandleAttackingState(float delta)
@@ -560,6 +576,8 @@ void GorgonController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
+    m_fEmoteTimer = EMOTE_TIME;
+    m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("Exclamation");
 }
 
 void GorgonController::EnterIdleState()
@@ -588,6 +606,8 @@ void GorgonController::ExitChasingState()
     m_transitionTimer.Reset();
     m_transitionTimer.Stop();
     m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
+    m_fEmoteTimer = 0.0f;
+    m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("None");
 }
 
 void GorgonController::ExitIdleState()

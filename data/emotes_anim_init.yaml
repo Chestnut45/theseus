@@ -1,0 +1,11 @@
+frame_size: {x: 16.0, y: 16.0}
+playback_speed: 0.0
+
+start_animation: {
+  texture: data/textures/Emotes-Sheet.png,
+  name: None
+}
+
+animation_sets: [
+  data/emotes_anim_set.yaml,
+]
