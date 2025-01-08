@@ -35,6 +35,9 @@ class PlayerInventoryComponent : public InventoryComponent {
                     m_iSchematics[j] = 0;
                 }
 
+                // Start with exactly one common schematic
+                m_iSchematics[0] = 1;
+
                 // We also need to register for events related to the player's inventory
                 wolf::EventManager::AddListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
                 wolf::EventManager::AddListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
@@ -102,7 +105,7 @@ class PlayerInventoryComponent : public InventoryComponent {
         int m_iOpenChestIdNum = -1;
         int m_iOpenMerchantIdNum = -1;
 
-        EquipmentItem* m_pEquipment[END_OF_EQUIPMENT - 1];
+        EquipmentItem* m_pEquipment[END_OF_EQUIPMENT];
 
-        int m_iSchematics[END_OF_RARITIES - 1];
+        int m_iSchematics[END_OF_RARITIES];
 };
