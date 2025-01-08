@@ -34,6 +34,7 @@ private:
     
     void EnterChasingState();
     void EnterIdleState();
+    void EnterProspectState();
     void EnterStunnedState();
 
     void ExitAttackState();
@@ -42,6 +43,8 @@ private:
     void ExitPetrifiedState();
     void ExitProspectState();
     void ExitStunnedState();
+
+    void SetEmote(EnemyEmote p_emote);
 
     bool IsTargetDetected();
     bool IsTargetInLOS(); // Check if target is in line of sight
@@ -83,9 +86,10 @@ private:
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
 
-    EnemyEmote m_emote = EnemyEmote::NONE;
+    EnemyEmote m_emote = EnemyEmote::NONE; // Current emote
+    bool m_bIsTargetDetected = false; // For emote-related uses; Unrelated to the method of the same name
     const float EMOTE_TIME = 1.0f;
-    float m_fEmoteTimer = 1.0f;
+    float m_fEmoteTimer = 0.0f;
     wolf::GameObject* m_pEmoteObj = nullptr;
     static int s_iComponentCounter;
     static int s_iEmoteFrameSize;

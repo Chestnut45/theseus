@@ -44,7 +44,7 @@ rooms: [
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
 			{type: rare_chest, amount: 1, placement: center},
-			{type: harpy, amount: 1, placement: random},
+			#{type: harpy, amount: 1, placement: random},
 			{type: gorgon, amount: 1, placement: random},
 		]
 	}
