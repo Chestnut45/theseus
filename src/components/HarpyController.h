@@ -69,8 +69,6 @@ private:
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
 
-    static int s_iComponentCounter;
-
     EnemyEmote m_emote = EnemyEmote::NONE; // Current emote
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;

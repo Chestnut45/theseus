@@ -10,22 +10,12 @@
 #include <math.h>
 #include <cassert>
 
-int HarpyController::s_iComponentCounter = 0;
-
 HarpyController::HarpyController()
 {
-    if(s_iComponentCounter == 0)
-    {
-    }
-    s_iComponentCounter++;
 }  
 
 HarpyController::~HarpyController()
 {
-    s_iComponentCounter--;
-    if(s_iComponentCounter == 0)
-    {
-    }
 }
 
 void HarpyController::Init(const EnemyData& data)
@@ -278,7 +268,7 @@ void HarpyController::HandleIdleState(float delta)
     // If target detected, emote & chase
     if (distanceToPlayer <= m_detectionRange)
     {
-        SetEmote(EnemyEmote::EXLAMATION);
+        SetEmote(EnemyEmote::EXCLAMATION);
         ChangeState(EnemyState::CHASING);
     }
 }
@@ -501,7 +491,7 @@ void HarpyController::SetEmote(EnemyEmote p_emote)
     m_fEmoteTimer = EMOTE_TIME;
     switch(p_emote)
     {
-        case EnemyEmote::EXLAMATION:
+        case EnemyEmote::EXCLAMATION:
         {
             m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("Exclamation");
             break;

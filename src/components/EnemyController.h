@@ -29,7 +29,7 @@ public:
 protected:
     enum EnemyEmote
     {
-        EXLAMATION,
+        EXCLAMATION,
         QUESTION,
         NONE
     };

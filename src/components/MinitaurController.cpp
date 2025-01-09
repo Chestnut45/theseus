@@ -7,22 +7,12 @@
 // !- Aurora added this --!
 #include "inventory/ItemDropCreator.h"
 
-int MinitaurController::s_iComponentCounter = 0;
-
 MinitaurController::MinitaurController()
 {
-    if(s_iComponentCounter == 0)
-    {
-    }
-    s_iComponentCounter++;
 }
 
 MinitaurController::~MinitaurController()
 {
-    s_iComponentCounter--;
-    if(s_iComponentCounter == 0)
-    {
-    }
 }
 
 void MinitaurController::Init(const EnemyData& data)
@@ -276,7 +266,7 @@ void MinitaurController::HandleIdleState(float delta)
         // If target detected, emote & chase
         if (IsTargetDetected())
         {
-            SetEmote(EnemyEmote::EXLAMATION);
+            SetEmote(EnemyEmote::EXCLAMATION);
             ChangeState(EnemyState::CHASING); 
         }
 
@@ -300,7 +290,7 @@ void MinitaurController::HandleProspectState(float delta)
         // If target detected, emote & chase
         if (IsTargetDetected())
         {
-            SetEmote(EnemyEmote::EXLAMATION);
+            SetEmote(EnemyEmote::EXCLAMATION);
             ChangeState(EnemyState::CHASING); 
         }
         // Else, reset detection timer
@@ -590,7 +580,7 @@ void MinitaurController::SetEmote(EnemyEmote p_emote)
     m_fEmoteTimer = EMOTE_TIME;
     switch(p_emote)
     {
-        case EnemyEmote::EXLAMATION:
+        case EnemyEmote::EXCLAMATION:
         {
             m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("Exclamation");
             break;

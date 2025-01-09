@@ -4,22 +4,12 @@
 
 #include <cassert>
 
-int GorgonController::s_iComponentCounter = 0;
-
 GorgonController::GorgonController()
 {
-    if(s_iComponentCounter == 0)
-    {
-    }
-    s_iComponentCounter++;
 }   
 
 GorgonController::~GorgonController()
 {
-    s_iComponentCounter--;
-    if(s_iComponentCounter == 0)
-    {
-    }
 }
 
 void GorgonController::Init(const EnemyData& data)
@@ -283,7 +273,7 @@ void GorgonController::HandleIdleState(float delta)
         // If target detected, emote & chase
         if (IsTargetDetected())
         {
-            SetEmote(EnemyEmote::EXLAMATION);
+            SetEmote(EnemyEmote::EXCLAMATION);
             ChangeState(EnemyState::CHASING); 
         }
 
@@ -307,7 +297,7 @@ void GorgonController::HandleProspectState(float delta)
         // If target detected, emote & chase
         if (IsTargetDetected())
         {
-            SetEmote(EnemyEmote::EXLAMATION);
+            SetEmote(EnemyEmote::EXCLAMATION);
             ChangeState(EnemyState::CHASING); 
         }
         // Else, reset detection timer
@@ -655,7 +645,7 @@ void GorgonController::SetEmote(EnemyEmote p_emote)
     m_fEmoteTimer = EMOTE_TIME;
     switch(p_emote)
     {
-        case EnemyEmote::EXLAMATION:
+        case EnemyEmote::EXCLAMATION:
         {
             m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("Exclamation");
             break;
