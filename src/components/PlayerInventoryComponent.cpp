@@ -53,9 +53,6 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 // There are different rules for drawing Consumables and Equipment Items so we need to figure out
                 // what this particular item is before we go any further
 
-                // There's a chance we won't need this value but if we do then we need it to survive the if ID == EQUIPMENT scope
-                bool bIsEquipped = false;
-
                 // If this is a consumable item
                 if (pItem->GetID() == CONSUMABLE) {
                     // Try to cast it
@@ -78,12 +75,6 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     
                     // Then start constructing the string that will be used to display the item's name
                     strTooltipName = pEquipment->GetName();
-
-                    // If this item is equipped then we want to show that in the details string
-                    if (pEquipment->IsEquipped()) {
-                        strTooltipName += " (E)";
-                        bIsEquipped = true; // (And we'll need to remember that it's equipped later on)
-                    }
                     
                 }
                 else { // If for some reason this item isn't Consumable OR Equipment
@@ -131,19 +122,10 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                         }
                     }
                     else if (pItem->GetID() == EQUIPMENT) { // If the item is a piece of Equipment
-                        if (!bIsEquipped) { // We need to know if it is equipped
-                            // If it isn't, we need to be able to put it on
-                            if (ImGui::Button("Equip")) {
-                                this->EquipItem(pItem, k);
-                                ImGui::CloseCurrentPopup();
-                            }
-                        }
-                        else {
-                            // And if it IS equipped, we need to be able to take it off
-                            if (ImGui::Button("Unequip")) {
-                                this->UnequipItem(pItem);
-                                ImGui::CloseCurrentPopup();
-                            }
+                        // We need to be able to equip it
+                        if (ImGui::Button("Equip")) {
+                            this->EquipItem(pItem, k);
+                            ImGui::CloseCurrentPopup();
                         }
                     }
 
@@ -198,6 +180,124 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             else { // Otherwise, this is an empty inventory slot
                 if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
 
+                }
+            }
+
+            // If we've drawn the maximum number of slots per row
+            if (counter == m_iMaxPerRow - 1) {
+                // Reset the counter
+                counter = 0;
+            }
+            else {
+                // Otherwise, this slot needs to be drawn on the same line as the last one
+                ImGui::SameLine();
+                counter++;
+            }
+        }
+
+        // Reset the counter because we're moving on to a new section of the inventory
+        counter = 0;
+
+        // Draw the equipped items under a separator line
+        ImGui::SeparatorText("Equipped");
+        for (int t = 0; t < END_OF_EQUIPMENT; t++) {
+            // Get the item equipped in this slot
+            EquipmentItem* pEquipItem = m_pEquipment[t];
+
+            // If there is an item equipped in the slot
+            if (pEquipItem) {
+                // Get the name and item details
+                std::string strEquipName = pEquipItem->GetName();
+                std::string strEquipTooltip = pEquipItem->GetToolTipText();
+
+                // Draw the inventory slot
+                if (ImGui::ImageButton("Equipment Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pEquipItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pEquipItem->GetTextureFrameIndex()]->m_v2BotRight)) {
+                }
+
+                // Same as a regular item, when we hover over an equipment slot we display the item's details in a tooltip
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    // We display the details string that we constructed earlier
+                    ImGui::BeginTooltip();
+
+                    // Display the item name in the color that corresponds to its rarity level
+                    RGBIntColor equipNameColor = RarityColors[pEquipItem->GetRarity()];
+                    ImGui::TextColored(ImColor(equipNameColor.r, equipNameColor.g, equipNameColor.b), "%s", strEquipName.c_str());
+
+                    // Display the item's description
+                    ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + TOOLTIP_WRAP_POS);
+                    ImGui::TextWrapped("%s", strEquipTooltip.c_str());
+                    ImGui::PopTextWrapPos();
+
+                    ImGui::EndTooltip();
+                }
+
+                // We need a way for ImGui to differientiate between equipment slots so we make an id string
+                std::string strPopUpID = "E:" + std::to_string(t);
+
+                // When we click on an equipped item
+                if (ImGui::IsItemClicked()) {
+                    // We open a little pop-up menu
+                    ImGui::OpenPopup(strPopUpID.c_str());
+                }
+                
+                // The pop-up menu has different buttons based on what "state" the game is in
+                if (ImGui::BeginPopup(strPopUpID.c_str())) {
+                    // We can unequip items
+                    if (ImGui::Button("Unequip")) {
+                        this->UnequipItem(pEquipItem);
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    // If we currently have a chest open
+                    if (m_iOpenChestIdNum != -1) {
+                        // Then we need to be able to move items into it
+                        if (ImGui::Button("Store")) {
+                            // We move items by sending an event to the open chest
+                            // !-- Note that we send along the "index" or slot that the item is equipped at and a flag
+                            // indicating that the item is/was equipped--!
+                            wolf::EventManager::TriggerEvent(SendItemToChestEvent(m_iOpenChestIdNum, pEquipItem, t, true));
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+
+                    // If we are currently talking to a merchant
+                    if (m_iOpenMerchantIdNum != -1) {
+                        // The we need to be able to sell items to them
+                        if (ImGui::Button("Sell")) {
+                            // We sell an item by sending an event to the merchant we're talking to
+                            // !-- Note that we send along the "index" or slot that the item is equipped at and a flag
+                            // indicating that the item is/was equipped--!
+                            wolf::EventManager::TriggerEvent(SellItemToMerchantEvent(m_iOpenMerchantIdNum, pEquipItem, t, true));
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+
+                    // We can drop equipment
+                    if (ImGui::Button("Drop")) {
+                        wolf::Transform2D* pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
+                        if (pTransform) {
+                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pEquipItem, pTransform->GetGlobalPosition(), 5.0f);
+                        }
+                        this->RemoveEquippedItem(pEquipItem->GetEquipmentSlot());
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    // We can discard equipment
+                    if (ImGui::Button("Discard")) {
+                        this->DiscardEquipment(pEquipItem->GetEquipmentSlot());
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    // And we can close the pop-up menu whenever we like
+                    if (ImGui::Button("Close")) {
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
+                }
+            }
+            else {
+                // Otherwise, this slot is empty
+                if (ImGui::ImageButton("Empty Equipment Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
                 }
             }
 
@@ -330,18 +430,25 @@ void PlayerInventoryComponent::EquipItem(ItemBase* p_pItem, int p_iItemIndex) {
             return; // Just return
         }
 
-        // First we need to figure out if there is already something equipped in the slot
-        // that the item we're trying to equip corresponds to
-        int iPrevItemIndex = m_iEquipmentSlots[pEquipment->GetEquipmentSlot()];
+        // When we equip an item we take it out of the "main" inventory and
+        // store it in a "sub-inventory" that is just for equipped items
+        this->RemoveItem(p_iItemIndex);
 
-        // If there is, the index will be a positive integer (or zero)
-        if (iPrevItemIndex >= 0) {
-            // So we need to retrieve and then unequip the item at that index
-            this->UnequipItem(this->GetItem(iPrevItemIndex));
+        // Before we can do that, though, we need to check if there is already
+        // something equipped in the slot that the item equips into
+        EquipmentItem* pPrevItem = m_pEquipment[pEquipment->GetEquipmentSlot()];
+
+        // If there is,
+        if (pPrevItem) {
+            // We need to unequip that item
+            pPrevItem->SetEquipped(false);
+
+            // And add it back into the player's inventory
+            this->AddItem(pPrevItem);
         }
 
-        // Then we can store the index of the newly equipped item
-        m_iEquipmentSlots[pEquipment->GetEquipmentSlot()] = p_iItemIndex;
+        // Then we can store the new item in corresponding equipment slot
+        m_pEquipment[pEquipment->GetEquipmentSlot()] = pEquipment;
 
         // And let the item know it has been equipped
         pEquipment->SetEquipped(true);
@@ -356,35 +463,62 @@ void PlayerInventoryComponent::UnequipItem(ItemBase* p_pItem) {
             return; // Just return
         }
 
-        // Figure out which slot this item equips into and "empty" that slot by setting it to an invalid index
-        m_iEquipmentSlots[pEquipment->GetEquipmentSlot()] = -1;
+        // Because equipped items are stored in a sub-inventory,
+        // we can only unequip something if we have space to hold it
+        if (this->AddItem(m_pEquipment[pEquipment->GetEquipmentSlot()])) {
+            // If the item was added back into the main inventory successfully, we "empty" the sub-inventory slot
+            m_pEquipment[pEquipment->GetEquipmentSlot()] = nullptr;
 
-        // Then let the item know it's been unequipped
-        pEquipment->SetEquipped(false);
+            // And let the item know it's been unequipped
+            pEquipment->SetEquipped(false);
+        }
+        else {
+            // Otherwise, we want to let the player know that their inventory is too full to unequip the item
+            m_bShowFullInventoryPrompt = true;
+        }
     }
 }
 
 // This is a wrapper for GetItem that retrieves whichever item in the inventory is equipped
 // in a given equipment slot, or nullptr if there is no item currently equipped in that slot
 ItemBase* PlayerInventoryComponent::GetEquippedItem(EquipmentSlot p_enSlot) {
-    return GetItem(m_iEquipmentSlots[p_enSlot]);
+    return m_pEquipment[p_enSlot];
+}
+
+// This method DOES NOT delete the equipped item.
+// If you want to delete the item, retrieve it first using GetEquippedItem()
+void PlayerInventoryComponent::RemoveEquippedItem(EquipmentSlot p_enSlot) {
+    // If there is an item equipped in this slot
+    if (m_pEquipment[p_enSlot]) {
+        // Unequip it and "empty" the slot by setting it to nullptr
+        m_pEquipment[p_enSlot]->SetEquipped(false);
+        m_pEquipment[p_enSlot] = nullptr;
+    }
 }
 
 void PlayerInventoryComponent::DiscardItem(int p_iItemIndex) {
     // First find the item we want to discard
     ItemBase* pItem = m_vvpContents[p_iItemIndex].top();
 
-    // If it is an equipment item
-    if (pItem->GetID() == EQUIPMENT) {
-        // We need to make sure it is unequipped
-        this->UnequipItem(pItem);
-    }
-
-    // Then we can remove it from the inventory
+    // Then remove it from the inventory
     this->RemoveItem(p_iItemIndex);
 
     // And delete it!
     delete pItem;
+}
+
+void PlayerInventoryComponent::DiscardEquipment(EquipmentSlot p_enSlot) {
+    // Get the item that we want to discard
+    EquipmentItem* pEquipment = m_pEquipment[p_enSlot];
+
+    // Unequip it
+    pEquipment->SetEquipped(false);
+
+    // Empty the slot it was just in
+    m_pEquipment[p_enSlot] = nullptr;
+
+    // And delete it!
+    delete pEquipment;
 }
 
 void PlayerInventoryComponent::AddGold(int p_iAmt) {
@@ -552,7 +686,16 @@ void PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent(const Remove
         this->RemoveItem(p_event.strItemName);
     }
 
-    // If we were removing the item because we sold it to someone, then we'll want to add the amount we sold it for
+    // If we we're removing the item because we sold it to someone, then we'll want to add the amount we sold it for
+    // to our wallet. (If we didn't sell the item this is technically a pointless function call)
+    this->AddGold(p_event.iItemSoldFor);
+}
+
+void PlayerInventoryComponent::HandleRemoveFromPlayerEquipmentEvent(const RemoveFromPlayerEquipmentEvent& p_event) {
+    // Call the remove method for equipped items
+    this->RemoveEquippedItem(static_cast<EquipmentSlot>(p_event.iEquipSlot));
+
+    // If we we're removing the item because we sold it to someone, then we'll want to add the amount we sold it for
     // to our wallet. (If we didn't sell the item this is technically a pointless function call)
     this->AddGold(p_event.iItemSoldFor);
 }
