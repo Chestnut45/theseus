@@ -4,7 +4,13 @@
 
 #include <cassert>
 
+GorgonController::GorgonController()
+{
+}   
 
+GorgonController::~GorgonController()
+{
+}
 
 void GorgonController::Init(const EnemyData& data)
 {
@@ -56,6 +62,20 @@ void GorgonController::Init(const EnemyData& data)
     {
         wolf::Warning("Gorgon " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
     }
+
+    // Init emotes object
+    m_pEmoteObj = &pGameObject->GetScene().CreateObject2D();
+    pGameObject->AddChild(*m_pEmoteObj);
+    wolf::Transform2D* transform = m_pEmoteObj->GetComponent<wolf::Transform2D>();
+    transform->SetPosition(glm::vec2(-8.0f, 8.0f));
+
+    // Add emotes spritesheet
+    AnimatedSprite2D* emotesSpritesheet = &m_pEmoteObj->AddComponent<AnimatedSprite2D>("data/emotes_anim_init.yaml");
+    emotesSpritesheet->SetAnimPaused(true);
+    emotesSpritesheet->SetOriginToCenterOfFrame();
+
+    // Initialise emotes-related variables
+    m_fEmoteTimer = EMOTE_TIME;
 }
 
 
@@ -115,6 +135,20 @@ void GorgonController::Update(float delta)
 
     // Update animations based on direction after handling movement
     UpdateAnimationBasedOnDirection();
+
+    // Emoting
+    if(m_fEmoteTimer > 0.0f)
+    {
+        m_fEmoteTimer -= delta;
+    }
+    else
+    {
+        // Clear previous emote
+        if(m_emote != EnemyEmote::NONE)
+        {
+            SetEmote(EnemyEmote::NONE);
+        }
+    }
 }
 
 void GorgonController::ChangeState(EnemyState newState)
@@ -168,6 +202,11 @@ void GorgonController::ChangeState(EnemyState newState)
         case EnemyState::IDLE:
         {
             EnterIdleState();
+            break;
+        }
+        case EnemyState::PROSPECT:
+        {
+            EnterProspectState();
             break;
         }
         case EnemyState::STUNNED:
@@ -231,9 +270,10 @@ void GorgonController::HandleIdleState(float delta)
     // If detection timer expired, perform detection check
     if(m_targetDetectionTimer <= 0.0f)
     {
-        // If target detected, chase
+        // If target detected, emote & chase
         if (IsTargetDetected())
         {
+            SetEmote(EnemyEmote::EXCLAMATION);
             ChangeState(EnemyState::CHASING); 
         }
 
@@ -254,9 +294,10 @@ void GorgonController::HandleProspectState(float delta)
     // If detection timer expired, perform detection check
     if(m_targetDetectionTimer <= 0.0f)
     {    
-        // If target detected, chase
+        // If target detected, emote & chase
         if (IsTargetDetected())
         {
+            SetEmote(EnemyEmote::EXCLAMATION);
             ChangeState(EnemyState::CHASING); 
         }
         // Else, reset detection timer
@@ -316,11 +357,19 @@ void GorgonController::HandleChasingState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToTarget = glm::length(targetPosition - currentPosition);
 
-    // If player is out of detection range or within detection range but already petrified, switch to prospect
-    if 
+    // If player is out of detection range, emote & switch to prospect
+    if(distanceToTarget > m_detectionRange)
+    {
+        SetEmote(EnemyEmote::QUESTION);
+        ChangeState(EnemyState::PROSPECT);
+    }
+
+    // Else if player is within detection range but already petrified, switch to prospect
+    else if 
     (
-        distanceToTarget > m_detectionRange ||
-        (distanceToTarget <= m_detectionRange && m_pTargetStatusComponent != nullptr && m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+        distanceToTarget <= m_detectionRange                                                            && 
+        m_pTargetStatusComponent != nullptr                                                             && 
+        m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)
     )
     {
         ChangeState(EnemyState::PROSPECT);
@@ -539,7 +588,10 @@ void GorgonController::EnterChasingState()
 void GorgonController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+}
 
+void GorgonController::EnterProspectState()
+{
 }
 
 void GorgonController::EnterStunnedState()
@@ -586,6 +638,32 @@ void GorgonController::ExitStunnedState()
 {
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
     m_stunnedTimer = 0.0f;
+}
+
+void GorgonController::SetEmote(EnemyEmote p_emote)
+{
+    m_fEmoteTimer = EMOTE_TIME;
+    switch(p_emote)
+    {
+        case EnemyEmote::EXCLAMATION:
+        {
+            m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("Exclamation");
+            break;
+        }
+
+        case EnemyEmote::QUESTION:
+        {
+            m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("Question");
+            break;
+        }
+        case EnemyEmote::NONE:
+        {
+            m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("None");
+            break;
+        }
+    }
+
+    m_emote = p_emote;
 }
 
 bool GorgonController::IsTargetDetected()
