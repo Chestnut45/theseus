@@ -89,7 +89,6 @@ private:
     static int s_iComponentCounter;
 
     EnemyEmote m_emote = EnemyEmote::NONE; // Current emote
-    bool m_bIsTargetDetected = false; // For emote-related uses; Unrelated to the method of the same name
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;
     wolf::GameObject* m_pEmoteObj = nullptr;

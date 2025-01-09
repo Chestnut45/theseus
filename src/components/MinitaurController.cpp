@@ -82,8 +82,8 @@ void MinitaurController::Init(const EnemyData& data)
     emotesSpritesheet->SetAnimPaused(true);
     emotesSpritesheet->SetOriginToCenterOfFrame();
 
+    // Initialise emotes-related variables
     m_fEmoteTimer = EMOTE_TIME;
-    m_bIsTargetDetected = false;
 }
 
 
@@ -156,6 +156,7 @@ void MinitaurController::Update(float delta)
     {
         if(m_emote != EnemyEmote::NONE)
         {
+            // Clear previous emote
             SetEmote(EnemyEmote::NONE);
         }
     }
@@ -272,9 +273,10 @@ void MinitaurController::HandleIdleState(float delta)
     // If detection timer expired, perform detection check
     if(m_targetDetectionTimer <= 0.0f)
     {
-        // If target detected, chase
+        // If target detected, emote & chase
         if (IsTargetDetected())
         {
+            SetEmote(EnemyEmote::EXLAMATION);
             ChangeState(EnemyState::CHASING); 
         }
 
@@ -295,9 +297,10 @@ void MinitaurController::HandleProspectState(float delta)
     // If detection timer expired, perform detection check
     if(m_targetDetectionTimer <= 0.0f)
     {    
-        // If target detected, chase
+        // If target detected, emote & chase
         if (IsTargetDetected())
         {
+            SetEmote(EnemyEmote::EXLAMATION);
             ChangeState(EnemyState::CHASING); 
         }
         // Else, reset detection timer
@@ -525,23 +528,15 @@ void MinitaurController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
-
-    if(m_bIsTargetDetected == false)
-    {
-        m_bIsTargetDetected = true;
-        SetEmote(EnemyEmote::EXLAMATION);
-    }
 }
 
 void MinitaurController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    m_bIsTargetDetected = false;
 }
 
 void MinitaurController::EnterProspectState()
 {
-    m_bIsTargetDetected = false;
 }
 
 void MinitaurController::EnterStunnedState()

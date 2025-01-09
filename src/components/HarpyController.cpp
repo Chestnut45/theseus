@@ -82,8 +82,8 @@ void HarpyController::Init(const EnemyData& data)
     emotesSpritesheet->SetAnimPaused(true);
     emotesSpritesheet->SetOriginToCenterOfFrame();
 
+    // Initialise emotes-related variables
     m_fEmoteTimer = EMOTE_TIME;
-    m_bIsTargetDetected = false;
 }
 
 
@@ -159,6 +159,7 @@ void HarpyController::Update(float delta)
     {
         if(m_emote != EnemyEmote::NONE)
         {
+            // Clear previous emote
             SetEmote(EnemyEmote::NONE);
         }
     }
@@ -274,10 +275,11 @@ void HarpyController::HandleIdleState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
     
-    //std::cout << "HarpyController - Detection Range: " << m_detectionRange << std::endl;
+    // If target detected, emote & chase
     if (distanceToPlayer <= m_detectionRange)
     {
-        ChangeState(EnemyState::CHASING);  // Transition to CHASING when the player is in range
+        SetEmote(EnemyEmote::EXLAMATION);
+        ChangeState(EnemyState::CHASING);
     }
 }
 
@@ -454,18 +456,11 @@ void HarpyController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
-
-    if(m_bIsTargetDetected == false)
-    {
-        m_bIsTargetDetected = true;
-        SetEmote(EnemyEmote::EXLAMATION);
-    }
 }
 
 void HarpyController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    m_bIsTargetDetected = false;
 }
 
 void HarpyController::EnterStunnedState()

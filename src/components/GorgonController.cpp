@@ -84,8 +84,8 @@ void GorgonController::Init(const EnemyData& data)
     emotesSpritesheet->SetAnimPaused(true);
     emotesSpritesheet->SetOriginToCenterOfFrame();
 
+    // Initialise emotes-related variables
     m_fEmoteTimer = EMOTE_TIME;
-    m_bIsTargetDetected = false;
 }
 
 
@@ -153,6 +153,7 @@ void GorgonController::Update(float delta)
     }
     else
     {
+        // Clear previous emote
         if(m_emote != EnemyEmote::NONE)
         {
             SetEmote(EnemyEmote::NONE);
@@ -279,9 +280,10 @@ void GorgonController::HandleIdleState(float delta)
     // If detection timer expired, perform detection check
     if(m_targetDetectionTimer <= 0.0f)
     {
-        // If target detected, chase
+        // If target detected, emote & chase
         if (IsTargetDetected())
         {
+            SetEmote(EnemyEmote::EXLAMATION);
             ChangeState(EnemyState::CHASING); 
         }
 
@@ -302,9 +304,10 @@ void GorgonController::HandleProspectState(float delta)
     // If detection timer expired, perform detection check
     if(m_targetDetectionTimer <= 0.0f)
     {    
-        // If target detected, chase
+        // If target detected, emote & chase
         if (IsTargetDetected())
         {
+            SetEmote(EnemyEmote::EXLAMATION);
             ChangeState(EnemyState::CHASING); 
         }
         // Else, reset detection timer
@@ -590,22 +593,15 @@ void GorgonController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
-    if(m_bIsTargetDetected == false)
-    {
-        m_bIsTargetDetected = true;
-        SetEmote(EnemyEmote::EXLAMATION);
-    }
 }
 
 void GorgonController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    m_bIsTargetDetected = false;
 }
 
 void GorgonController::EnterProspectState()
 {
-    m_bIsTargetDetected = false;
 }
 
 void GorgonController::EnterStunnedState()
