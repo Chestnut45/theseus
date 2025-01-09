@@ -127,6 +127,12 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         //-----------------//
         //                 //
+        //  Added by Nhat  //
+        //                 //
+        //-----------------//
+        void UseMask(int p_mask_index);
+        //-----------------//
+        //                 //
         //  Added by Nhật  //
         //                 //
         //-----------------//
@@ -197,6 +203,15 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         static inline wolf::VertexBuffer* s_pVertexBuffer = nullptr;
         static inline wolf::IndexBuffer* s_pIndexBuffer = nullptr;
         static inline wolf::VertexDeclaration* s_pVAO = nullptr;
+        
+        //-----------------//
+        //                 //
+        //  Added by Nhat  //
+        //                 //
+        //-----------------//
+        int m_iCurrentMaskIndex = -1; // Sets mask to use for blending
+        static inline std::vector<wolf::Texture*> s_vMasks;
+        static inline wolf::Program* s_pProgramBlend = nullptr;
 
         //-----------------//
         //                 //
