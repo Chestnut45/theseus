@@ -19,6 +19,25 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
     wolf::EventManager::RemoveListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
 }
 
+void PlayerInventoryComponent::ShowToggleButtonGUI() {
+    ImGuiStyle* pStyle = &ImGui::GetStyle();
+    pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
+
+    // You can't resize the inventory or move it
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+
+    // By default, the inventory appears close to the middle of the screen
+    ImGui::SetNextWindowPos(ImVec2(100, 100));
+    ImGui::SetNextWindowSize({0,0});
+    ImGui::Begin("InventoryToggleButton", nullptr, flags);
+
+    if (ImGui::ImageButton("InventoryToggleButton", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[17]->m_v2TopLeft, m_vv2TextureCoords[17]->m_v2BotRight)) {
+        this->ToggleOpen();
+    }
+
+    ImGui::End();
+}
+
 void PlayerInventoryComponent::ShowInventoryGUI() {
     if (m_bIsOpen) {
         ImGuiStyle* pStyle = &ImGui::GetStyle();

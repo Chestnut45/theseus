@@ -9,6 +9,7 @@
 
 #include "InventoryComponent.h"
 #include "events/DroppedItemEvents.h"
+#include "events/InventoryEvents.h"
 #include "inventory/ItemDropCreator.h"
 
 #include "inventory/FlatAmtItem.h"
@@ -65,6 +66,7 @@ class PlayerInventoryComponent : public InventoryComponent {
         virtual void Close();
 
         virtual void ShowInventoryGUI();
+        void ShowToggleButtonGUI();
 
         void AddGold(int p_iAmt);
         bool TakeGold(int p_iAmt);

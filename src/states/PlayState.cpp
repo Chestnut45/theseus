@@ -247,6 +247,7 @@ void PlayState::Update(float delta)
             playerInventory->TakeGold(5);
         }
 
+        playerInventory->ShowToggleButtonGUI();
         playerInventory->ShowInventoryGUI();
     }
 
