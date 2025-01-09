@@ -27,9 +27,11 @@ void PlayerInventoryComponent::ShowToggleButtonGUI() {
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
     // By default, the inventory appears close to the middle of the screen
-    ImGui::SetNextWindowPos(ImVec2(100, 100));
+    ImGui::SetNextWindowPos(ImVec2(100, 800));
     ImGui::SetNextWindowSize({0,0});
     ImGui::Begin("InventoryToggleButton", nullptr, flags);
+    ImGui::GetStyle().WindowRounding = 32.0f;
+    ImGui::GetStyle().FrameRounding = 32.0f;
 
     if (ImGui::ImageButton("InventoryToggleButton", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[17]->m_v2TopLeft, m_vv2TextureCoords[17]->m_v2BotRight)) {
         this->ToggleOpen();
