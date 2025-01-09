@@ -211,7 +211,7 @@ void PlayState::Update(float delta)
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
     if (playerInventory) {
-        //if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
             ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
