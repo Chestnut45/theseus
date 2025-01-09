@@ -87,6 +87,7 @@ void PlayState::Enter()
     // this->CreateMinitaurEnemy();
     // this->CreateHarpyEnemy();
     // this->CreateGorgonEnemy();
+    this->CreateTrappedChest();
 }
 
 void PlayState::Exit()
@@ -562,6 +563,30 @@ void PlayState::CreateGorgonEnemy()
     }
     auto* statusComponent = gorgon.GetComponent<StatusComponent>();
     // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3.0f);
+}
+
+void PlayState::CreateTrappedChest()
+{
+    // Create the chest object
+    wolf::GameObject* chest = &m_pGameInstance->GetScene().CreateObject2D();
+    
+    // Scale the chest
+    auto& transform = *chest->GetComponent<wolf::Transform2D>();
+    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 288.0f);
+    transform.SetPosition(position);
+    transform.SetScale(glm::vec2(3.0f));
+
+    // Add the sprite
+    auto& sprite = chest->AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+    sprite.SetAnimation("LegendaryClosed");
+    sprite.SetOriginToCenterOfFrame();
+
+    // Add collider
+    // auto& collider = chest->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+    // collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
+
+    // Add the chest inventory
+    // auto& chestInv = chest->AddComponent<ChestInventoryComponent>(16, 4, ImVec2(800, 450));
 }
 
 void PlayState::CreateThrowableObject()
