@@ -8,9 +8,7 @@
 
 #include "StatusComponent.h"
 
-#include "AnimatedSprite2D.h"
 #include "PlayerController.h"
-#include "VelocityComponent.h"
 
 int StatusComponent::s_iComponentCounter = 0;
 wolf::Texture* StatusComponent::s_pTextures[StatusComponent::StatusEffectType::NONE];
@@ -23,12 +21,15 @@ StatusComponent::StatusComponent()
     {
         s_pTextures[StatusComponent::StatusEffectType::BURNING] = wolf::TextureManager::CreateTexture("data/textures/SEBurning.png");
         s_pTextures[StatusComponent::StatusEffectType::BURNING]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+        s_pTextures[StatusComponent::StatusEffectType::HEALING] = wolf::TextureManager::CreateTexture("data/textures/SEHealing.png");
+        s_pTextures[StatusComponent::StatusEffectType::HEALING]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
         s_pTextures[StatusComponent::StatusEffectType::PETRIFIED] = wolf::TextureManager::CreateTexture("data/textures/SEPetrified.png");
         s_pTextures[StatusComponent::StatusEffectType::PETRIFIED]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
         s_pTextures[StatusComponent::StatusEffectType::POISONED] = wolf::TextureManager::CreateTexture("data/textures/SEPoisoned.png");
         s_pTextures[StatusComponent::StatusEffectType::POISONED]->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
 
         s_aStatusEffectDescriptions[StatusEffectType::BURNING] = "You Are Burning!";
+        s_aStatusEffectDescriptions[StatusEffectType::HEALING] = "You Are Healing!";
         s_aStatusEffectDescriptions[StatusEffectType::PETRIFIED] = "You Are Petrified!";
         s_aStatusEffectDescriptions[StatusEffectType::POISONED] = "You Are Poisoned!";
     }
@@ -38,6 +39,9 @@ StatusComponent::StatusComponent()
     {
         this->m_aStatusEffects[i].m_OwnerComponent = this;
         this->m_aStatusEffects[i].m_StatusEffectType = (StatusEffectType)i;
+
+        // Initialise all resistance values to 0
+        this->m_aStatusEffectResistance[i] = 0.0f;
     }
 
     wolf::EventManager::AddListener<ApplyStatusEffectEvent, StatusComponent, &StatusComponent::HandleApplyStatusEffectEvent>(*this);
@@ -57,14 +61,26 @@ StatusComponent::~StatusComponent()
     }
 }
 
-// If status effect already present, reset timer
-// else, add status effect
+
 void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifespan)
 {
-    this->m_aStatusEffects[p_se_type].m_StatusEffectType = p_se_type;
+    // this->m_aStatusEffects[p_se_type].m_StatusEffectType = p_se_type;
     this->m_aStatusEffects[p_se_type].m_isActive = true;
     this->m_aStatusEffects[p_se_type].m_timer.Restart();
     this->m_aStatusEffects[p_se_type].m_fLifespan = p_lifespan;
+}
+
+void StatusComponent::SetStatusEffectResistance(StatusEffectType p_se_type, float p_resistance_value)
+{
+    if(p_resistance_value < 0.0f) return;
+
+    float absoluteValue = p_resistance_value;
+    float left, right; // left = integral, right = decimal
+    
+    right = std::modf(absoluteValue, &left); // Getting integral & decimal
+    left = left <= 1.0f ? 0.0f : 1.0f;
+
+    m_aStatusEffectResistance[p_se_type] = left == 1.0f ? left : right; // Final value always in range [0, 1]
 }
 
 bool StatusComponent::IsStatusEffectActive(StatusEffectType p_se_type) const
@@ -83,6 +99,7 @@ void StatusComponent::Update(float p_delta)
         {
             statusEffect.ApplyStatusEffect(p_delta);
 
+            // If lifetime expired, remove status effect
             if(statusEffect.m_fLifespan >= 0 && statusEffect.m_timer.Elapsed() >= statusEffect.m_fLifespan)
             {
                 this->RemoveStatusEffect(statusEffect.m_StatusEffectType);
@@ -91,18 +108,14 @@ void StatusComponent::Update(float p_delta)
     }
 }
 
+float StatusComponent::GetStatusEffectResistance(StatusEffectType p_se_type) const
+{
+    return this->m_aStatusEffectResistance[p_se_type];
+}
+
 void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 {
     this->m_aStatusEffects[p_se_type].m_isActive = false;
-
-    if(p_se_type == StatusEffectType::PETRIFIED)
-    {
-        AnimatedSprite2D* animatedSprite2DComponent = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
-        if(animatedSprite2DComponent != nullptr)
-        {
-            animatedSprite2DComponent->SetTint(glm::vec3(1.0f));
-        }
-    }
 }
 
 void StatusComponent::RenderPlayerSEIcons()
@@ -155,7 +168,22 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
-                health->Pierce(100.0f * p_delta);
+                float resistance = m_OwnerComponent->m_aStatusEffectResistance[StatusEffectType::BURNING];
+                health->Pierce(100.0f * p_delta * (1.0f - resistance));
+            }
+            else
+            {
+                std::cout << "StatusComponent - ERROR: HealthComponent not found." << std::endl;
+            }
+            break;
+        }
+        
+        case StatusEffectType::HEALING:
+        {
+            HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
+            if(health != nullptr)
+            {
+                health->Heal(25.0f * p_delta);
             }
             else
             {
@@ -166,18 +194,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
 
         case StatusEffectType::PETRIFIED:
         {
-            VelocityComponent* velocityComponent = this->m_OwnerComponent->GetGameObject()->GetComponent<VelocityComponent>();
-            if(velocityComponent != nullptr)
-            {
-                velocityComponent->SetVelocity(glm::vec2(0.0f, 0.0f));
-            }
-
-            AnimatedSprite2D* animatedSprite2DComponent = this->m_OwnerComponent->GetGameObject()->GetComponent<AnimatedSprite2D>();
-            if(animatedSprite2DComponent != nullptr)
-            {
-                animatedSprite2DComponent->UseMask(0);
-            }
-
+            // Handled in PlayerController or inheritors of EnemyController
             break;
         }      
         
@@ -186,7 +203,8 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
-                health->Pierce(50.0f * p_delta);
+                float resistance = m_OwnerComponent->m_aStatusEffectResistance[StatusEffectType::POISONED];
+                health->Pierce(50.0f * p_delta * (1.0f - resistance));
             }
             else
             {

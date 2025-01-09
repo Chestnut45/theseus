@@ -270,6 +270,9 @@ namespace ItemCreator {
                             if (strEffectType == "BURNING") {
                                 enEffectType = StatusComponent::BURNING;
                             }
+                            else if (strEffectType == "HEALING"){
+                                enEffectType = StatusComponent::HEALING;
+                            }
                             else if (strEffectType == "PETRIFIED") {
                                 enEffectType = StatusComponent::PETRIFIED;
                             }
@@ -289,9 +292,58 @@ namespace ItemCreator {
                             vStatusEffects.push_back({enEffectType, fDuration});
                         }
                     }
+                    
+                    //-----------------//
+                    //                 //
+                    //  Added by Nhat  //
+                    //                 //
+                    //-----------------//
+
+                    float aStatusEffectResistances [StatusComponent::StatusEffectType::NONE];
+
+                    // Initialise default value 0
+                    for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
+                    {
+                        aStatusEffectResistances[i] = 0.0f;
+                    }
+
+                    // Get the list of status effect resistances
+                    YAML::Node effectList = itemEntry["status_effect_resistances"];
+                    // Does this armour piece apply any status effects? If it does...
+                    if (effectList) {
+                        // Then iterate through it
+                        for (int j = 0; j < effectList.size(); ++j) {
+                            // Figure out what type of status effect this is
+                            std::string strEffectType = effectList[j]["type"].as<std::string>();
+                            // And convert it to the enum equivalent
+                            StatusComponent::StatusEffectType enEffectType;
+                            if (strEffectType == "BURNING") {
+                                enEffectType = StatusComponent::BURNING;
+                            }
+                            else if (strEffectType == "HEALING"){
+                                enEffectType = StatusComponent::HEALING;
+                            }
+                            else if (strEffectType == "PETRIFIED") {
+                                enEffectType = StatusComponent::PETRIFIED;
+                            }
+                            else if (strEffectType == "POISONED") {
+                                enEffectType = StatusComponent::POISONED;
+                            }
+                            else {
+                                // If we're trying to apply a status effect that doesn't exist then we can't create the item
+                                wolf::Error("ItemCreator Error: Invalid status effect type ", strEffectType.c_str(), " for ", p_strItemName.c_str());
+                                return nullptr;
+                            }
+
+                            // Then find the effect resistance value
+                            float fValue = effectList[j]["value"].as<float>();
+                            // And add the effect to the array
+                            aStatusEffectResistances[enEffectType] = fValue;
+                        }
+                    }
 
                     // Then we can create the armour item!
-                    pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enRarity, enSlot, fDamageReduction, vStatusEffects);
+                    pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enRarity, enSlot, fDamageReduction, vStatusEffects, aStatusEffectResistances);
 
                 }
             }

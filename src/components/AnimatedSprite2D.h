@@ -46,6 +46,13 @@ struct FrameUVCoordSet {
 
 class AnimatedSprite2D : public wolf::BaseComponent {
     public:
+
+        enum SpecialEffectsType
+        {
+            PETRIFIED,
+            WHITE,
+            NONE
+        };
         
         // Creates an animated sprite component from a yaml config file (new API)
         AnimatedSprite2D(const std::string& p_strPathToInit);
@@ -120,10 +127,13 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         //-----------------//
         //                 //
-        //  Added by Nhat  //
+        //  Added by Nhật  //
         //                 //
         //-----------------//
-        void UseMask(int p_mask_index);
+        void SetAnimPaused(bool p_bPaused){m_bIsAnimPaused = p_bPaused;};
+        void SetSpecialEffects(SpecialEffectsType p_spe_type) {m_specialEffectsType = p_spe_type;};
+        void UpdateShaders();
+
     private:
         bool SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize);
 
@@ -165,6 +175,16 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         glm::vec2 m_v2FrameSize; // This vector represents the size of a single animation frame in a spritesheet
 
+        //-----------------//
+        //                 //
+        //  Added by Nhật  //
+        //                 //
+        //-----------------//
+        // Bool for pausing animations
+        bool m_bIsAnimPaused = false;
+        SpecialEffectsType m_specialEffectsType = SpecialEffectsType::NONE;
+
+
         static const float m_arBaseVertexData[]; // Array to hold geometry and base UV coordinates for all AnimatedSprite2Ds
 
         // Array to hold the geometry and UV coordinates that we'll be sub-buffering to the Vertex Buffer when we change frames
@@ -177,15 +197,15 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         static inline wolf::VertexBuffer* s_pVertexBuffer = nullptr;
         static inline wolf::IndexBuffer* s_pIndexBuffer = nullptr;
         static inline wolf::VertexDeclaration* s_pVAO = nullptr;
-        
+
         //-----------------//
         //                 //
-        //  Added by Nhat  //
+        //  Added by Nhật  //
         //                 //
         //-----------------//
-        int m_iCurrentMaskIndex = -1; // Sets mask to use for blending
-        static inline std::vector<wolf::Texture*> s_vMasks;
-        static inline wolf::Program* s_pProgramBlend = nullptr;
+        static inline wolf::Program* s_pCurrentProgram = nullptr;
+        static inline wolf::Program* s_pPetrifiedProgram = nullptr;
+        static inline wolf::Program* s_pWhiteProgram = nullptr;
 
         // Reference counting helper
         static void IncreaseReferences();

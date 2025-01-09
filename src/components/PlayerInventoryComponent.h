@@ -25,16 +25,18 @@ class PlayerInventoryComponent : public InventoryComponent {
             {
                 m_enType = PLAYER_INVENTORY;
 
-                // We need to fill the equipment array with invalid indices so we don't
-                // automatically equip the first item added to the inventory
+                // We need to fill the equipment array with nullptrs because we don't have anything equipped, yet
                 for (int i = 0; i < END_OF_EQUIPMENT; i++) {
-                    m_iEquipmentSlots[i] = -1;
+                    m_pEquipment[i] = nullptr;
                 }
 
-                // We also need to fill the schematics array with zeros because we don't have any schematics, yet
+                // We need to fill the schematics array with zeros because we don't have any schematics, yet
                 for (int j = 0; j < END_OF_RARITIES; j++) {
                     m_iSchematics[j] = 0;
                 }
+
+                // Start with exactly one common schematic
+                m_iSchematics[0] = 1;
 
                 // We also need to register for events related to the player's inventory
                 wolf::EventManager::AddListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
@@ -44,6 +46,7 @@ class PlayerInventoryComponent : public InventoryComponent {
                 wolf::EventManager::AddListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
                 wolf::EventManager::AddListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
                 wolf::EventManager::AddListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
+                wolf::EventManager::AddListener<RemoveFromPlayerEquipmentEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerEquipmentEvent>(*this);
             };
         
         ~PlayerInventoryComponent();
@@ -57,6 +60,7 @@ class PlayerInventoryComponent : public InventoryComponent {
         PlayerInventoryComponent& operator=(PlayerInventoryComponent&& other) = delete;
 
         ItemBase* GetEquippedItem(EquipmentSlot p_enSlot);
+        void RemoveEquippedItem(EquipmentSlot p_enSlot);
 
         virtual void Close();
 
@@ -80,12 +84,14 @@ class PlayerInventoryComponent : public InventoryComponent {
         void HandleDispenseItemToPlayerEvent(const DispenseItemToPlayerEvent& p_event);
         void HandleAddToPlayerInventoryEvent(const SendItemToPlayerInventoryEvent& p_event);
         void HandleRemoveFromPlayerInventoryEvent(const RemoveFromPlayerInventoryEvent& p_event);
+        void HandleRemoveFromPlayerEquipmentEvent(const RemoveFromPlayerEquipmentEvent& p_event);
 
     private:
         void UseItem(ItemBase* p_pItem, int p_iItemIndex);
         void EquipItem(ItemBase* p_pItem, int p_iItemIndex);
         void UnequipItem(ItemBase* p_pItem);
         void DiscardItem(int p_iItemIndex);
+        void DiscardEquipment(EquipmentSlot p_enSlot);
 
         bool m_bShowFullInventoryPrompt = false;
         bool m_bShowTooExpensivePrompt = false;
@@ -99,6 +105,7 @@ class PlayerInventoryComponent : public InventoryComponent {
         int m_iOpenChestIdNum = -1;
         int m_iOpenMerchantIdNum = -1;
 
-        int m_iEquipmentSlots[END_OF_EQUIPMENT - 1];
-        int m_iSchematics[END_OF_RARITIES - 1];
+        EquipmentItem* m_pEquipment[END_OF_EQUIPMENT];
+
+        int m_iSchematics[END_OF_RARITIES];
 };
