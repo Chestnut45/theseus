@@ -83,7 +83,7 @@ void MerchantInventoryComponent::HandleSellItemToMerchantEvent(const SellItemToM
                 // We then need to check if the item was equipped or not
                 if (p_event.bWasEquipped) {
                     // If it was, we need to trigger a RemoveFromPlayerEquipmentEvent
-                    wolf::EventManager::TriggerEvent(RemoveFromPlayerEquipmentEvent(static_cast<EquipmentSlot>(p_event.iPlayerInventoryIndex), p_event.pItem->GetValue()));
+                    wolf::EventManager::TriggerEvent(RemoveFromPlayerEquipmentEvent(p_event.iPlayerInventoryIndex, p_event.pItem->GetValue()));
                 }
                 else {
                     // Otherwise, we trigger a RemoveFromPlayerInventoryEvent
