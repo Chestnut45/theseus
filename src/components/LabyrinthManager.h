@@ -12,6 +12,7 @@
 //-----------------------------------------------------------------------------
 
 #include <cstdint>
+#include <optional>
 #include <unordered_map>
 
 // Needed for std::hash implementation for glm vector types
