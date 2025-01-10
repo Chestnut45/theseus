@@ -13,8 +13,8 @@
 class GorgonController : public EnemyController
 {
 public:
-    GorgonController() = default;    
-    ~GorgonController() = default; 
+    GorgonController();    
+    ~GorgonController(); 
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
     void ChangeState(EnemyState newState);
@@ -35,6 +35,7 @@ private:
     void EnterAttackState();
     void EnterChasingState();
     void EnterIdleState();
+    void EnterProspectState();
     void EnterStunnedState();
 
     void ExitAttackState();
@@ -43,6 +44,8 @@ private:
     void ExitPetrifiedState();
     void ExitProspectState();
     void ExitStunnedState();
+
+    void SetEmote(EnemyEmote p_emote);
 
     bool IsTargetDetected();
     bool IsTargetInLOS(); // Check if target is in line of sight
@@ -83,6 +86,11 @@ private:
     float m_lieDeadTimer = 0.0f;
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
+
+    EnemyEmote m_emote = EnemyEmote::NONE; // Current emote
+    const float EMOTE_TIME = 1.0f;
+    float m_fEmoteTimer = 0.0f;
+    wolf::GameObject* m_pEmoteObj = nullptr;
 
     bool m_IsRenderingAttackIndicator = false;
 
