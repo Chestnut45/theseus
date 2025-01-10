@@ -49,11 +49,12 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         enum SpecialEffectsType
         {
-            PETRIFIED,
+            GRAYSCALE,
             WHITE,
+            MULTITEX_PETRIFIED,
             NONE
         };
-        
+
         // Creates an animated sprite component from a yaml config file (new API)
         AnimatedSprite2D(const std::string& p_strPathToInit);
 
@@ -127,17 +128,12 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         //-----------------//
         //                 //
-        //  Added by Nhat  //
-        //                 //
-        //-----------------//
-        void UseMask(int p_mask_index);
-        //-----------------//
-        //                 //
         //  Added by Nhật  //
         //                 //
         //-----------------//
+        
         void SetAnimPaused(bool p_bPaused){m_bIsAnimPaused = p_bPaused;};
-        void SetSpecialEffects(SpecialEffectsType p_spe_type) {m_specialEffectsType = p_spe_type;};
+        void SetSpecialEffects(SpecialEffectsType p_spe_type);
         void UpdateShaders();
 
     private:
@@ -209,9 +205,9 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         //  Added by Nhat  //
         //                 //
         //-----------------//
-        int m_iCurrentMaskIndex = -1; // Sets mask to use for blending
         static inline std::vector<wolf::Texture*> s_vMasks;
-        static inline wolf::Program* s_pProgramBlend = nullptr;
+        static inline wolf::Program* s_pMultitexProgram = nullptr;
+        static inline wolf::Program* s_pMultitexPetrifiedProgram = nullptr;
 
         //-----------------//
         //                 //
@@ -219,7 +215,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         //                 //
         //-----------------//
         static inline wolf::Program* s_pCurrentProgram = nullptr;
-        static inline wolf::Program* s_pPetrifiedProgram = nullptr;
+        static inline wolf::Program* s_pGrayscaleProgram = nullptr;
         static inline wolf::Program* s_pWhiteProgram = nullptr;
 
         // Reference counting helper
