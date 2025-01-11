@@ -221,8 +221,9 @@ private:
             LegendaryChest,
             DaedalusDispensary, // !-- Aurora added this --!
             ThrowableObject,
+            SpikeTrap,
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary", "Throwable Object"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary", "Throwable Object", "Spike Trap"};
 
         enum class SpawnPosType
         {
@@ -244,6 +245,9 @@ private:
         // Entity spawn data
         std::vector<EntitySpawnData> m_entitySpawns;
     };
+
+    // Map of string names to entity IDs
+    static std::unordered_map<std::string, Room::EntityType> s_entityIDs;
 
     // List of all rooms to be generated in the labyrinth
     std::vector<Room> m_rooms;

@@ -63,7 +63,8 @@ public:
     // NOTE: Does not validate tileID
     void SetTile(int x, int y, int tileID);
 
-    // Deletes all tiles in the map.
+    // Sets every tile in the map to tile
+    // Default value is -1
     void Clear(int tile = EMPTY_TILE);
 
     // Resizes the map to the given dimensions.

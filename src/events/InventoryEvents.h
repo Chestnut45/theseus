@@ -40,3 +40,10 @@ struct RemoveFromPlayerInventoryEvent {
     // If the item was sold to someone, we'll want to know how much it was sold for
     int iItemSoldFor = 0;
 };
+
+struct RemoveFromPlayerEquipmentEvent {
+    int iEquipSlot;
+
+    // If the equipment was sold to someone, we'll want to know how much it was sold for
+    int iItemSoldFor = 0;
+};

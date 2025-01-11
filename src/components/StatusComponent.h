@@ -10,9 +10,8 @@
 #include <glm/glm.hpp>
 #include <wolf.h>
 
-#include "HealthComponent.h"
 
-#include "../ColliderManager.h"
+// #include "../ColliderManager.h"
 #include "../events/InventoryEvents.h"
 
 class StatusComponent : public wolf::BaseComponent
@@ -21,6 +20,7 @@ public:
     enum StatusEffectType
     {
         BURNING,
+        HEALING,
         PETRIFIED,
         POISONED,
         NONE
@@ -38,7 +38,9 @@ public:
     StatusComponent& operator=(StatusComponent&& other) = delete;
 
     void AddStatusEffect(StatusEffectType p_se_type, float p_lifespan);
+    void SetStatusEffectResistance(StatusEffectType p_se_type, float p_resistance_value);
     bool IsStatusEffectActive(StatusEffectType p_se_type) const;
+    float GetStatusEffectResistance(StatusEffectType p_se_type) const;
 
     void Update(float p_delta);
     void RenderPlayerSEIcons();
@@ -55,7 +57,8 @@ private:
         StatusComponent* m_OwnerComponent = nullptr;
     };
 
-    StatusEffect m_aStatusEffects [StatusEffectType::NONE];
+    StatusEffect m_aStatusEffects [StatusEffectType::NONE];     // Position in array corresponds to position of status effect in enum
+    float m_aStatusEffectResistance [StatusEffectType::NONE];    // Resistance to status effect values
 
     static int s_iComponentCounter;
     
