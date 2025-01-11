@@ -88,7 +88,7 @@ void PlayState::Enter()
     
     // this->CreateMinitaurEnemy();
     // this->CreateHarpyEnemy();
-    // this->CreateGorgonEnemy();
+    this->CreateGorgonEnemy();
 }
 
 void PlayState::Exit()
@@ -214,13 +214,30 @@ void PlayState::Update(float delta)
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
             ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
+            ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
+            ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
+            ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
+            ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
+            ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
+            ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
+            ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
+
             ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
             ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
 
             ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
             ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
             ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
+            
             playerInventory->AddItemOrDelete(pBoots);
+            playerInventory->AddItemOrDelete(pDentedHelmet);
+            playerInventory->AddItemOrDelete(pRustyChestplate);
+            playerInventory->AddItemOrDelete(pCopperVambraces);
+            playerInventory->AddItemOrDelete(pKilt);
+            playerInventory->AddItemOrDelete(pTheezys);
+            playerInventory->AddItemOrDelete(pFauxLeatherGloves);
+            playerInventory->AddItemOrDelete(pLapisLazuliRing);
+
             playerInventory->AddItemOrDelete(pBow);
             playerInventory->AddItemOrDelete(pSpear);
             playerInventory->AddItemOrDelete(pHealHeart);
@@ -403,6 +420,11 @@ void PlayState::Update(float delta)
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
 
+    // Update damage indicators
+    for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>()) {
+        health.UpdateDamageIndicators(delta);
+    }
+
     // Dispatch events
     wolf::EventManager::Dispatch();
 
@@ -416,6 +438,12 @@ void PlayState::Render()
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
         playerController->Render();
+    
+    // Render damage indicators
+    // for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>())
+    // {
+    //     health.RenderDamageIndicators();
+    // }
 
     // Render status effect icons
     for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
@@ -465,9 +493,11 @@ void PlayState::CreatePlayer()
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 4.0f);
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 7.0f);
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
+
+
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 3.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
+    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 7.0f);
 
     // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
     MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, ImVec2(800, 200), "Merchant Guy", 0.1f, 50);
@@ -481,25 +511,20 @@ void PlayState::CreateMinitaurEnemy()
 
     MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
 
-    glm::vec2 positions[] = {
-        // glm::vec2(300.0f, 200.0f),
-        // glm::vec2(400.0f, 200.0f),
-        // glm::vec2(500.0f, 200.0f)
-        glm::vec2(6000.0f, 0.0f)
-    };
+    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 240.0f); 
 
-    for (const auto& position : positions)
+    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
+    auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, position, m_pColliderManager);
+    
+    // Set the scale of each Minitaur to 3
+    auto* transform = minitaur.GetComponent<wolf::Transform2D>();
+    if (transform)
     {
-        EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-        auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, position, m_pColliderManager);
-        
-        // Set the scale of each Minitaur to 3
-        auto* transform = minitaur.GetComponent<wolf::Transform2D>();
-        if (transform)
-        {
-            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each minitaur
-        }
+        transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each minitaur
     }
+
+    auto* statusComponent = minitaur.GetComponent<StatusComponent>();
+    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
 }
 void PlayState::CreateHarpyEnemy()
 {
@@ -518,6 +543,8 @@ void PlayState::CreateHarpyEnemy()
     {
         transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
     }
+    auto* statusComponent = harpy.GetComponent<StatusComponent>();
+    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 2.0f);
 }
 
 
@@ -528,26 +555,19 @@ void PlayState::CreateGorgonEnemy()
 
     GorgonBuilder gorgonBuilder(m_pGameInstance->GetScene());
 
-    glm::vec2 positions[] = {
-        // glm::vec2(-300.0f, -300.0f),
-        // glm::vec2(-400.0f, -400.0f),
-        // glm::vec2(-500.0f, -500.0f)
-        glm::vec2(6000.0f, 0.0f)
-    };
+    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 580.0f);
 
-    for (const auto& position : positions)
+    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+    auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position, m_pColliderManager);
+    
+    // Set the scale of each Gorgon to 3
+    auto* transform = gorgon.GetComponent<wolf::Transform2D>();
+    if (transform)
     {
-        EnemyData gorgonData = loader.LoadEnemyData("gorgon");
-        auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position, m_pColliderManager);
-        
-        // Set the scale of each Gorgon to 3
-        auto* transform = gorgon.GetComponent<wolf::Transform2D>();
-        if (transform)
-        {
-            transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
-        }
-        m_pGameInstance->GetSharedContext().RegisterEntity("Gorgon", gorgon.GetID());
+        transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
     }
+    auto* statusComponent = gorgon.GetComponent<StatusComponent>();
+    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3.0f);
 }
 
 void PlayState::CreateThrowableObject()
