@@ -58,10 +58,11 @@ void PlayState::Enter()
     
     // Create a test spike trap
     CreateSpikeTrap(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f));
+    CreateBoulderTrap(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(-192.0f, 192.0f));
 
     // Testing: Create a test projectile object
     // auto& testObj = scene.CreateObject2D();
-    // testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
+    // testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));5
     // testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
     // auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
     // auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
@@ -166,6 +167,10 @@ void PlayState::Update(float delta)
     }
     for (auto&& [_, trap] : m_pGameInstance->GetScene().Each<TrapComponent>()) {
         trap.Update(delta);
+    }
+
+    for (auto&& [_, boulder] : m_pGameInstance->GetScene().Each<BoulderTrapComponent>()) {
+        boulder.Update(delta);
     }
         
     for (auto&& [_, throwable] : m_pGameInstance->GetScene().Each<ThrowableObjectComponent>()) 
@@ -647,10 +652,10 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
                 return;
             }
             glm::vec2 triggerPosition = transform->GetGlobalPosition();
-            printf("OnTriggerEvent Received: Type=%d, Purpose=%d\n", static_cast<int>(event.m_triggerType), static_cast<int>(event.m_purpose));
+            // printf("OnTriggerEvent Received: Type=%d, Purpose=%d\n", static_cast<int>(event.m_triggerType), static_cast<int>(event.m_purpose));
 
             TriggerPurpose purpose = event.m_purpose;
-            printf("TriggerEvent Purpose: %d\n", static_cast<int>(purpose));
+            // printf("TriggerEvent Purpose: %d\n", static_cast<int>(purpose));
 
             switch (purpose) {
                 case TriggerPurpose::SPIKE_TRAP: {
@@ -673,7 +678,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
                     trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
                     // Add TrapComponent with some parameters (e.g., 50 damage, 5 seconds lifespan)
                     trapObj.AddComponent<TrapComponent>(50.0f, 1.0f, m_pColliderManager);
-                    wolf::Log("Spike trap triggered!");
+                    // wolf::Log("Spike trap triggered!");
                     break;
                 }
                 case TriggerPurpose::BOULDER_TRAP: {
@@ -695,13 +700,12 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
                     velocity.SetVelocity(glm::vec2(-100.0f, 0.0f)); // Initial velocity to move left
 
                     // Add Collider for the Boulder
-                    auto& boulderCollider = boulderObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 0, 1);
+                    auto& boulderCollider = boulderObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
                     boulderCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f)); 
 
-                    boulderObj.AddComponent<BoulderTrapComponent>(m_pColliderManager, BoulderDirection::LEFT, 100.0f, 5.0f);
+                    boulderObj.AddComponent<BoulderTrapComponent>(m_pColliderManager, BoulderDirection::UP, 100.0f, 5.0f);
 
-                    // boulderObj.AddComponent<AttackDamageComponent>(35.0f, m_pColliderManager, 250.0f);
-                    wolf::Log("Boulder trap triggered!");
+                    // wolf::Log("Boulder trap triggered!");
                     break;
                 }
                 default:

@@ -3,6 +3,8 @@
 #include "ColliderComponent.h"
 #include "W_EventManager.h"
 #include <events/TrapDestroyedEvent.h>
+#include <events/BoulderDestroyedEvent.h>
+
 
 enum class TriggerType {
     SINGLE_USE,
@@ -30,6 +32,7 @@ public:
 private:
     bool CheckPlayerCollision(float delta);
     void OnTrapDestroyed(const TrapDestroyedEvent& event);
+    void OnBoulderDestroyed(const BoulderDestroyedEvent& event);
     ColliderManager* m_colliderManager = nullptr;
 
     // Logic for reusable/single-use triggers
@@ -38,4 +41,9 @@ private:
     // Types and purpose of the trigger
     TriggerType m_triggerType;
     TriggerPurpose m_purpose;
+
+    /*** Resets the trigger state if it's reusable.*/
+    void ResetTrigger();
+
+
 };

@@ -9,10 +9,15 @@ TriggerComponent::TriggerComponent(ColliderManager* colliderManager, TriggerType
     if (purpose == TriggerPurpose::SPIKE_TRAP && type == TriggerType::REUSABLE) {
         wolf::EventManager::AddListener<TrapDestroyedEvent, TriggerComponent, &TriggerComponent::OnTrapDestroyed>(*this);
     }
+
+    if (purpose == TriggerPurpose::BOULDER_TRAP && type == TriggerType::REUSABLE) {
+        wolf::EventManager::AddListener<BoulderDestroyedEvent, TriggerComponent, &TriggerComponent::OnBoulderDestroyed>(*this);
+    }
 }
 
 TriggerComponent::~TriggerComponent() {
     wolf::EventManager::RemoveListener<TrapDestroyedEvent, TriggerComponent, &TriggerComponent::OnTrapDestroyed>(*this);
+    wolf::EventManager::RemoveListener<BoulderDestroyedEvent, TriggerComponent, &TriggerComponent::OnBoulderDestroyed>(*this);
 }
 
 void TriggerComponent::Update(float delta) {
@@ -51,8 +56,17 @@ bool TriggerComponent::CheckPlayerCollision(float delta) {
     return false;
 }
 
-void TriggerComponent::OnTrapDestroyed(const TrapDestroyedEvent& event) {
+void TriggerComponent::ResetTrigger() {
     if (m_triggerType == TriggerType::REUSABLE && m_triggered) {
         m_triggered = false;
+        // wolf::Log("TriggerComponent: Trigger reset.");
     }
+}
+
+void TriggerComponent::OnTrapDestroyed(const TrapDestroyedEvent& event) {
+    ResetTrigger();
+}
+
+void TriggerComponent::OnBoulderDestroyed(const BoulderDestroyedEvent& event) {
+    ResetTrigger();
 }
