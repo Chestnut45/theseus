@@ -461,6 +461,7 @@ void PlayState::CreatePlayer()
 {
     // Create player object with transform
     m_pPlayerObject = &m_pGameInstance->GetScene().CreateObject2D();
+    m_pGameInstance->GetScene().SetPlayerID(m_pPlayerObject->GetID());
     
     // Register the player (Theseus) in the shared context
     m_pGameInstance->GetSharedContext().RegisterEntity("Theseus", m_pPlayerObject->GetID());
