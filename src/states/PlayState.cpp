@@ -89,7 +89,7 @@ void PlayState::Enter()
     
     // this->CreateMinitaurEnemy();
     // this->CreateHarpyEnemy();
-    // this->CreateGorgonEnemy();
+    this->CreateGorgonEnemy();
 }
 
 void PlayState::Exit()

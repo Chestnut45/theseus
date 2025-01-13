@@ -25,6 +25,14 @@ public:
     virtual void Update(float delta);     // Update enemy state, to be extended in concrete enemies
     void SetColliderManager(ColliderManager* pColliderManager);  // Set the ColliderManager, general for all enemies
     ColliderManager* GetColliderManager() const;
+
+protected:
+    enum EnemyEmote
+    {
+        EXCLAMATION,
+        QUESTION,
+        NONE
+    };
     void ChangeState(EnemyState newState); // General state transition logic shared by all enemies
     
 
