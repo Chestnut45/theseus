@@ -26,6 +26,7 @@ wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, const gl
     // Add MinitaurController and initialize it with data
     auto& controller = minitaurObject->AddComponent<MinitaurController>();
     controller.Init(data);
+    controller.SetPlayerID(m_scene.GetPlayerID());
 
     return *minitaurObject;
 }
