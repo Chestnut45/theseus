@@ -48,8 +48,8 @@ NPCComponent::~NPCComponent() {
 void NPCComponent::Update(float p_fDelta) {
     // If we have no health left
     if (m_pHealthComp->GetHealth() <= 0) {
-        // We can't talk to them
-        m_bIsBusy = true;
+        // If we're dead we pretend we're playing dialogue so that the player can't talk to us (perhaps we're praying?)
+        m_bPlayingDialogue = true;
 
         // Check if we have an open merchant inventory
         if (m_pMerchInvComp && m_pMerchInvComp->IsOpen()) {
@@ -59,11 +59,6 @@ void NPCComponent::Update(float p_fDelta) {
 
         // Then handle the death state
         this->HandleDeadState(p_fDelta);
-    }
-    else {
-        if (m_bIsMerchant) {
-            m_bIsBusy = m_pMerchInvComp->IsOpen();
-        }
     }
 }
 
@@ -123,16 +118,14 @@ void NPCComponent::HandleDeadState(float p_fDelta) {
 // (Note that replayable entries are re-added to the queue with a higher priority value
 //  so that they will play AFTER new or unique dialogue)
 void NPCComponent::PlayNextDialogue() {
-    if (!m_bIsBusy) {
+    printf("Called it!\n");
+    if (!m_bPlayingDialogue) {
         // Take the top element off of the queue
         NPCDialogueEntry* dialogue = m_pqDialogueQueue.top();
         m_pqDialogueQueue.pop();
 
         // Play the dialogue
         wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent(dialogue->strDialogueID, m_strDialogueFilePath, m_iID));
-
-        // Mark the dialogue as played
-        dialogue->bHasPlayed = true;
 
         // If the dialogue can be replayed
         if (dialogue->bCanRepeat) {
@@ -188,12 +181,22 @@ void NPCComponent::EmptyDialogueQueue() {
 }
 
 void NPCComponent::HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndEvent& p_event) {
-    if (p_event.triggerNPCID == m_iID && m_bIsMerchant) {
-        if (m_bIsMerchant) {
-            m_pMerchInvComp->Open();
-        }
-        else {
-            m_bIsBusy = false;
+    // If we were the NPC who triggered the dialogue (if the dialogue was triggered by an npc)
+    if (p_event.triggerNPCID == m_iID) {
+        // Find the dialogue in our map
+        std::unordered_map<std::string, NPCDialogueEntry*>::const_iterator search = m_mDialogueEntries.find(p_event.sequenceID);
+        if (search != m_mDialogueEntries.end()) {
+            // And set it to played
+            search->second->bHasPlayed = true;
+
+            // Take ourselves out of the dialogue state
+            m_bPlayingDialogue = false;
+
+            // If we're a merchant right now
+            if (m_bIsMerchant) {
+                // Open the store
+                m_pMerchInvComp->Open();
+            }
         }
     }
 }

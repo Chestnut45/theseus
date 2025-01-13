@@ -143,7 +143,7 @@ class NPCComponent : public wolf::BaseComponent {
 
         int m_iCurHighPriorityVal = 0;
 
-        bool m_bIsBusy = false; // Flag to check if the NPC can be talked to / interacted with
+        bool m_bPlayingDialogue = false; // Flag to check if the NPC can be talked to / interacted with
 
         // Timers for the NPC death animation
         float m_fFallDeadTimer = 0.0f;

@@ -308,9 +308,9 @@ void PlayState::Update(float delta)
     }
 
     // Show all of the merchant GUIs
-    for (auto&& [_, merchantInventory] : m_pGameInstance->GetScene().Each<MerchantInventoryComponent>())
+    for (auto&& [_, merchantInventoryComp] : m_pGameInstance->GetScene().Each<MerchantInventoryComponent>())
     {
-        merchant->ShowInventoryGUI();
+        merchantInventoryComp.ShowInventoryGUI();
     }
 
     // Display all open dispensary GUIs
