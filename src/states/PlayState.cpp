@@ -664,6 +664,7 @@ wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
     return trap;
 }
 
+// Event handler to spawn traps when a trigger is triggered
 void PlayState::OnTriggerEvent(const TriggerEvent& event) {
     if (event.m_triggerType == TriggerType::SINGLE_USE || event.m_triggerType == TriggerType::REUSABLE) {
         auto* pressurePlateObject = event.m_pTriggerObject;
@@ -703,7 +704,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
             trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
             // Add TrapComponent with some parameters (e.g., 50 damage, 5 seconds lifespan)
-            trapObj.AddComponent<TrapComponent>(50.0f, 1.0f, m_pColliderManager);
+            trapObj.AddComponent<TrapComponent>(50.0f, 1.0f, m_pColliderManager, 0.0f, event.m_pTriggerObject->GetComponent<TriggerComponent>()->GetEntityListenTypes());
             
             // wolf::Log("Trap created and activated.");
         }
