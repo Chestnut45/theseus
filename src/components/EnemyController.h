@@ -26,6 +26,9 @@ public:
     void SetColliderManager(ColliderManager* pColliderManager);  // Set the ColliderManager, general for all enemies
     ColliderManager* GetColliderManager() const;
 
+    void SetPlayerID(wolf::GameObjectID p_uiGOId);
+    wolf::GameObjectID const GetPlayerID();
+
 protected:
     enum EnemyEmote
     {
@@ -49,4 +52,6 @@ protected:
     wolf::GameObject* m_pTarget = nullptr;  // Target (usually the player)
 
     float m_fCountdownToDeath = 2.0f;
+
+    wolf::GameObjectID m_uiPlayerGOId;
 };

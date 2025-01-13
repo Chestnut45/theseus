@@ -81,6 +81,10 @@ public:
         return m_registry.view<T...>().each();
     }
 
+    // Setter/Getter for the player's game object ID
+    void SetPlayerID(GameObjectID p_uiGOId);
+    GameObjectID const GetPlayerID();
+
 // Data / implementation
 protected:
 
@@ -88,6 +92,8 @@ protected:
     entt::basic_registry<GameObjectID> m_registry;
 
     Camera2D* m_pActiveCamera = nullptr;
+
+    GameObjectID m_uiPlayerGOId;
 
     // Needed for game objects to have access to the scene's registry
     friend class GameObject;
