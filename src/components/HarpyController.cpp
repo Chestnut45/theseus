@@ -101,11 +101,12 @@ void HarpyController::Update(float delta)
         }         
     }
 
-    // Check if health is below or equal to 0 and transition to the DEATH state
-    if (m_pHealth->GetHealth() <= 0)
+    // Check if health is below or equal to 0 and not already dying, transition to the DEATH state
+    if (m_pHealth->GetHealth() <= 0 && m_state != EnemyState::DEATH)
     {
         // Switch to the DEATH state if the health is depleted
         ChangeState(EnemyState::DEATH);
+        return;
     }
 
     if(m_rangedTimer > 0.0f)
@@ -352,22 +353,21 @@ void HarpyController::HandlePetrifiedState(float delta)
 
 void HarpyController::HandleStunnedState(float delta)
 {
-    AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
     if(m_stunnedTimer >= m_stunnedTime)
     {
-        if(sprite != nullptr)
+        if
+        (m_last_state == EnemyState::IDLE)
         {
-            sprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+            SetEmote(EnemyEmote::EXCLAMATION);   
         }
-        m_stunnedTimer = 0.0f;
         ChangeState(EnemyState::CHASING);
+        return;
     }
-    
-    if(sprite != nullptr)
+    else
     {
-        sprite->SetTint(glm::vec3(1.0f, 0.0f, 0.0f));
+        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+        m_stunnedTimer += delta;
     }
-    m_stunnedTimer += delta;
 }
 
 void HarpyController::UpdateAnimationBasedOnDirection()

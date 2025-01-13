@@ -101,11 +101,12 @@ void MinitaurController::Update(float delta)
         }         
     }
 
-    // Check if health is below or equal to 0 and transition to the DEATH state
-    if (m_pHealth->GetHealth() <= 0)
+    // Check if health is below or equal to 0 and not already dying, transition to the DEATH state
+    if (m_pHealth->GetHealth() <= 0 && m_state != EnemyState::DEATH)
     {
         // Switch to the DEATH state if the health is depleted
         ChangeState(EnemyState::DEATH);
+        return;
     }
 
     // Update based on the current state
