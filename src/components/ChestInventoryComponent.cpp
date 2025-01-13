@@ -284,8 +284,15 @@ void ChestInventoryComponent::HandleAddToChestEvent(const SendItemToChestEvent& 
     if (p_event.iChestIdNum == m_iIdNum) {
         // And we have the space to hold it
         if (this->AddItem(p_event.pItem)) {
-            // Then we need to let the player know that they can remove the item from their inventory
-            wolf::EventManager::TriggerEvent(RemoveFromPlayerInventoryEvent(p_event.pItem->GetName(), p_event.iPlayerInventoryIndex));
+            // Then we need to check if the player just stored an item that they had equipped
+            if (p_event.bWasEquipped) {
+                // If it was equipped, we need to trigger a RemoveFromPlayerEquipmentEvent
+                wolf::EventManager::TriggerEvent(RemoveFromPlayerEquipmentEvent(p_event.iPlayerInventoryIndex));
+            }
+            else {
+                // Otherwise, we need to trigger a RemoveFromPlayerInventoryEvent
+                wolf::EventManager::TriggerEvent(RemoveFromPlayerInventoryEvent(p_event.pItem->GetName(), p_event.iPlayerInventoryIndex));
+            }
         }
     }
 }

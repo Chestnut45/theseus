@@ -52,10 +52,10 @@ void EnemyController::ChangeState(EnemyState newState)
 }
 
 
-void EnemyController::SetPlayerGOId(wolf::GameObjectID p_uiGOId) {
+void EnemyController::SetPlayerID(wolf::GameObjectID p_uiGOId) {
     m_uiPlayerGOId = p_uiGOId;
 }
 
-wolf::GameObjectID const EnemyController::GetPlayerGOId() {
+wolf::GameObjectID const EnemyController::GetPlayerID() {
     return m_uiPlayerGOId;
 }

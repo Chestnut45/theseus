@@ -127,6 +127,9 @@ struct SendItemToChestEvent {
     // it should be used whenever possible to make sure that we remove a
     // specific item instance rather than the first one we find.
     int iPlayerInventoryIndex;
+
+    // This flag should be used anytime we are attempting to store an equipped item
+    bool bWasEquipped = false;
 };
 
 struct RemoveFromChestEvent {
@@ -163,6 +166,9 @@ struct SellItemToMerchantEvent {
 
     // This is an optional index that should be included whenever possible
     int iPlayerInventoryIndex;
+
+    // This flag should be used anytime we are attempting to store an equipped item
+    bool bWasEquipped = false;
 };
 
 struct BoughtItemFromMerchantEvent {

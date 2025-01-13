@@ -7,6 +7,10 @@
 #include "AttackDamageComponent.h"
 #include "ColliderComponent.h"
 #include "TimedDestroyerComponent.h"
+#include "EnemyController.h"
+#include "GorgonController.h"
+#include "HarpyController.h"
+#include "MinitaurController.h"
 
 AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects)
 {
@@ -50,14 +54,18 @@ void AttackDamageComponent::Update(float p_dt)
     wolf::Transform2D* thisTransform = thisObject->GetComponent<wolf::Transform2D>();
 
 
+    // If collider of this object is HurtboxDD
     if (thisCollider != nullptr && thisCollider->IsHurtboxDamageDealer())
     {
         for (auto&&[thatID, thatHealth, thatCollider] : this->GetGameObject()->GetScene().Each<HealthComponent, ColliderComponent>())
         {
+            // If collider of that object is HurtboxDR
             if (thatCollider.IsActive() && thatCollider.IsHurtboxDamageReceiver())
             {
+                // If colliders colliding
                 if (this->m_pColliderManager->IsColliding(*thisCollider, thatCollider, p_dt))
-                { 
+                {
+                    // Deal damage
                     thatHealth.Damage(m_fDamage);
                     
                     wolf::GameObject* thatObject = thatHealth.GetGameObject();
