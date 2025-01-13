@@ -208,12 +208,18 @@ void HarpyController::ChangeState(EnemyState newState)
             EnterStunnedState();
             break;
         }
+        case EnemyState::DEATH:
+        {
+            EnterDeathState();
+            break;
+        }
         default:
         {         
             break;
         }
     }
 
+    m_last_state = m_state;
     m_state = newState;
 }
 
@@ -456,6 +462,11 @@ void HarpyController::EnterIdleState()
 void HarpyController::EnterStunnedState()
 {
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+}
+
+void HarpyController::EnterDeathState()
+{
+    SetEmote(EnemyEmote::NONE);
 }
 
 void HarpyController::ExitAttackState()

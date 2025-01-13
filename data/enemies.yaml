@@ -12,7 +12,7 @@ enemies:
   - type: harpy
     health: 200
     armour: 2
-    melee_range: 100
+    ranged_range: 300
     attack_cooldown: 2
     detection_range: 600
     base_damage: 20
@@ -20,7 +20,7 @@ enemies:
     animation_init_file: "data/harpy_anim_init.yaml"
 
   - type: gorgon
-    health: 1000
+    health: 800
     armour: 1
     ranged_range: 300
     attack_cooldown: 3

@@ -90,6 +90,7 @@ void GorgonController::Update(float delta)
     if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
         ChangeState(EnemyState::PETRIFIED);
+        return;
     }
     else 
     {
@@ -97,14 +98,16 @@ void GorgonController::Update(float delta)
         if(m_state == EnemyState::PETRIFIED)
         {
             ChangeState(EnemyState::CHASING);
+            return;
         }         
     }
 
-    // Check if health is below or equal to 0 and transition to the DEATH state
-    if (m_pHealth->GetHealth() <= 0)
+    // Check if health is below or equal to 0 and not already dying, transition to the DEATH state
+    if (m_pHealth->GetHealth() <= 0 && m_state != EnemyState::DEATH)
     {
         // Switch to the DEATH state if the health is depleted
         ChangeState(EnemyState::DEATH);
+        return;
     }
     
     // Update based on the current state
@@ -214,12 +217,18 @@ void GorgonController::ChangeState(EnemyState newState)
             EnterStunnedState();
             break;
         }
+        case EnemyState::DEATH:
+        {
+            EnterDeathState();
+            break;
+        }
         default:
         {         
             break;
         }
     }
-
+    std::cout << "GorgonController - new_state: " << (int)newState << std::endl; 
+    m_last_state = m_state;
     m_state = newState;
 }
 
@@ -275,6 +284,7 @@ void GorgonController::HandleIdleState(float delta)
         {
             SetEmote(EnemyEmote::EXCLAMATION);
             ChangeState(EnemyState::CHASING); 
+            return;
         }
 
         // Else, reset detection timer
@@ -298,7 +308,8 @@ void GorgonController::HandleProspectState(float delta)
         if (IsTargetDetected())
         {
             SetEmote(EnemyEmote::EXCLAMATION);
-            ChangeState(EnemyState::CHASING); 
+            ChangeState(EnemyState::CHASING);
+            return; 
         }
         // Else, reset detection timer
         else
@@ -331,6 +342,7 @@ void GorgonController::HandleProspectState(float delta)
                     else
                     {
                         ChangeState(EnemyState::IDLE);
+                        return;
                     }
                     m_prospectStandingCounter = m_RNG.NextFloat(0.5f, 2.0f);                  
             }
@@ -357,22 +369,37 @@ void GorgonController::HandleChasingState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToTarget = glm::length(targetPosition - currentPosition);
 
-    // If player is out of detection range, emote & switch to prospect
+    // If player is out of detection range
     if(distanceToTarget > m_detectionRange)
     {
-        SetEmote(EnemyEmote::QUESTION);
+        // If player is not petrified, emote
+        if
+        (
+            m_pTargetStatusComponent != nullptr                                                             && 
+            !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)
+        )
+        {
+            SetEmote(EnemyEmote::QUESTION);
+        }
+
+        // Switch to prospect
         ChangeState(EnemyState::PROSPECT);
+        return;
     }
 
-    // Else if player is within detection range but already petrified, switch to prospect
-    else if 
-    (
-        distanceToTarget <= m_detectionRange                                                            && 
-        m_pTargetStatusComponent != nullptr                                                             && 
-        m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)
-    )
+    // Else if player is within detection range
+    else
     {
-        ChangeState(EnemyState::PROSPECT);
+        // If player is petrified, switch to prospect
+        if
+        ( 
+            m_pTargetStatusComponent != nullptr                                                             && 
+            m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)
+        )
+        {
+            ChangeState(EnemyState::PROSPECT);
+            return;
+        }
     }
 
     // If target is within ranged range
@@ -387,6 +414,7 @@ void GorgonController::HandleChasingState(float delta)
         )
         {
             ChangeState(EnemyState::ATTACKING);
+            return;
         }
     }
 }
@@ -406,6 +434,7 @@ void GorgonController::HandleAttackingState(float delta)
             m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
         }
         ChangeState(EnemyState::CHASING);
+        return;
     }
     else
     {
@@ -431,7 +460,24 @@ void GorgonController::HandleStunnedState(float delta)
 {
     if(m_stunnedTimer >= m_stunnedTime)
     {
+        if
+        (IsTargetDetected())
+        {
+            if
+            (
+            m_last_state != EnemyState::CHASING     &&
+            m_last_state != EnemyState::ATTACKING
+            )
+            {
+                SetEmote(EnemyEmote::EXCLAMATION);
+            }
+            ChangeState(EnemyState::CHASING);
+            return;
+        }
+        
+        SetEmote(EnemyEmote::QUESTION);
         ChangeState(EnemyState::PROSPECT);
+        return;
     }
     else
     {
@@ -597,6 +643,11 @@ void GorgonController::EnterProspectState()
 void GorgonController::EnterStunnedState()
 {
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+}
+
+void GorgonController::EnterDeathState()
+{
+    SetEmote(EnemyEmote::NONE);
 }
 
 void GorgonController::ExitAttackState()

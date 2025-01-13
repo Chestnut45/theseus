@@ -32,6 +32,7 @@ private:
     void EnterChasingState();
     void EnterIdleState();
     void EnterStunnedState();
+    void EnterDeathState();
 
     void ExitAttackState();
     void ExitChasingState();

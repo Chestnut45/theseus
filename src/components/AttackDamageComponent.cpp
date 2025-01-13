@@ -109,6 +109,31 @@ void AttackDamageComponent::Update(float p_dt)
                     // If another destroyer exists, this one should take precedence since it's for 0 frames
                     thisObject->DeleteComponent<TimedDestroyerComponent>();
                     thisObject->AddComponent<TimedDestroyerComponent>(0, true);
+
+                    // Stun target
+                    if(thatObject->HasAny<GorgonController, HarpyController, MinitaurController>())
+                    {
+                        GorgonController* gorgonController = thatObject->GetComponent<GorgonController>();
+                        if(gorgonController != nullptr)
+                        {
+                            gorgonController->ChangeState(EnemyController::EnemyState::STUNNED);
+                            return;
+                        }
+
+                        MinitaurController* minitaurController = thatObject->GetComponent<MinitaurController>();
+                        if(minitaurController != nullptr)
+                        {
+                            minitaurController->ChangeState(EnemyController::EnemyState::STUNNED);
+                            return;
+                        }
+
+                        HarpyController* harpyController = thatObject->GetComponent<HarpyController>();
+                        if(harpyController != nullptr)
+                        {
+                            harpyController->ChangeState(EnemyController::EnemyState::STUNNED);
+                            return;
+                        }
+                    }
                 }
             }
         }

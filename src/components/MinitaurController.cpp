@@ -215,11 +215,18 @@ void MinitaurController::ChangeState(EnemyState newState)
             EnterStunnedState();
             break;
         }
+        case EnemyState::DEATH:
+        {
+            EnterDeathState();
+            break;
+        }
         default:
         {         
             break;
         }
     }
+
+    m_last_state = m_state;
     m_state = newState;
 }
 
@@ -360,6 +367,7 @@ void MinitaurController::HandleChasingState(float delta)
         if (m_transitionTimer.Elapsed() >= m_transitionDelay)
         {
             ChangeState(EnemyState::ATTACKING);
+            return;
         }
     }
 }
@@ -426,7 +434,24 @@ void MinitaurController::HandleStunnedState(float delta)
 {
     if(m_stunnedTimer >= m_stunnedTime)
     {
+        if
+        (IsTargetDetected())
+        {
+            if
+            (
+            m_last_state != EnemyState::CHASING     &&
+            m_last_state != EnemyState::ATTACKING
+            )
+            {
+                SetEmote(EnemyEmote::EXCLAMATION);
+            }
+            ChangeState(EnemyState::CHASING);
+            return;
+        }
+        
+        SetEmote(EnemyEmote::QUESTION);
         ChangeState(EnemyState::PROSPECT);
+        return;
     }
     else
     {
@@ -532,6 +557,10 @@ void MinitaurController::EnterProspectState()
 void MinitaurController::EnterStunnedState()
 {
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+}
+void MinitaurController::EnterDeathState()
+{
+    SetEmote(EnemyEmote::NONE);
 }
 
 void MinitaurController::ExitAttackState()
