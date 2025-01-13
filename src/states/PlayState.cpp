@@ -298,11 +298,18 @@ void PlayState::Update(float delta)
         }
     }
 
+    // !-- REMOVE SOON --!
     auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
     if (merchant) {
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
             merchant->ToggleOpen();
         }
+        merchant->ShowInventoryGUI();
+    }
+
+    // Show all of the merchant GUIs
+    for (auto&& [_, merchantInventory] : m_pGameInstance->GetScene().Each<MerchantInventoryComponent>())
+    {
         merchant->ShowInventoryGUI();
     }
 
@@ -623,7 +630,7 @@ void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& e
     std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
 
     // Push the DialogueAndCutsceneState onto the game state stack
-    auto* dialogueAndCutsceneState = new DialogueAndCutsceneState(m_pStateManager, m_pGameInstance, event.dialogueFilePath);
+    auto* dialogueAndCutsceneState = new DialogueAndCutsceneState(m_pStateManager, m_pGameInstance, event.dialogueFilePath, event.triggerNPCID);
     dialogueAndCutsceneState->LoadSequence(event.sequenceID);  // Start the specific sequence
     m_pStateManager->PushState(dialogueAndCutsceneState);
 }

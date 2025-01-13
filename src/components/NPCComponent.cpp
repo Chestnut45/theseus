@@ -31,6 +31,8 @@ NPCComponent::NPCComponent(const std::string& p_strName, const std::string& p_st
     // Assign a unique ID number to this NPC and update the NextID counter
     m_iID = m_iNextID;
     m_iNextID += 1;
+
+    wolf::EventManager::AddListener<DialogueOrCutsceneEndEvent, NPCComponent, &NPCComponent::HandleDialogueOrCutsceneEndEvent>(*this);
 }
 
 NPCComponent::~NPCComponent() {
@@ -39,11 +41,16 @@ NPCComponent::~NPCComponent() {
 
     // And delete all of the dialogue entries
     m_mDialogueEntries.clear();
+
+    wolf::EventManager::RemoveListener<DialogueOrCutsceneEndEvent, NPCComponent, &NPCComponent::HandleDialogueOrCutsceneEndEvent>(*this);
 }
 
 void NPCComponent::Update(float p_fDelta) {
     // If we have no health left
     if (m_pHealthComp->GetHealth() <= 0) {
+        // We can't talk to them
+        m_bIsBusy = true;
+
         // Check if we have an open merchant inventory
         if (m_pMerchInvComp && m_pMerchInvComp->IsOpen()) {
             // And close it if so
@@ -52,6 +59,11 @@ void NPCComponent::Update(float p_fDelta) {
 
         // Then handle the death state
         this->HandleDeadState(p_fDelta);
+    }
+    else {
+        if (m_bIsMerchant) {
+            m_bIsBusy = m_pMerchInvComp->IsOpen();
+        }
     }
 }
 
@@ -111,19 +123,24 @@ void NPCComponent::HandleDeadState(float p_fDelta) {
 // (Note that replayable entries are re-added to the queue with a higher priority value
 //  so that they will play AFTER new or unique dialogue)
 void NPCComponent::PlayNextDialogue() {
-    // Take the top element off of the queue
-    NPCDialogueEntry* dialogue = m_pqDialogueQueue.top();
-    m_pqDialogueQueue.pop();
+    if (!m_bIsBusy) {
+        // Take the top element off of the queue
+        NPCDialogueEntry* dialogue = m_pqDialogueQueue.top();
+        m_pqDialogueQueue.pop();
 
-    // Play the dialogue
-    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent(dialogue->strDialogueID, m_strDialogueFilePath));
+        // Play the dialogue
+        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent(dialogue->strDialogueID, m_strDialogueFilePath, m_iID));
 
-    // If the dialogue can be replayed
-    if (dialogue->bCanRepeat) {
-        // Add it back into the queue with a higher priority so that it will be at the back of the queue
-        m_iCurHighPriorityVal += 1;
-        dialogue->iPriority = m_iCurHighPriorityVal;
-        m_pqDialogueQueue.push(dialogue);
+        // Mark the dialogue as played
+        dialogue->bHasPlayed = true;
+
+        // If the dialogue can be replayed
+        if (dialogue->bCanRepeat) {
+            // Add it back into the queue with a higher priority so that it will be at the back of the queue
+            m_iCurHighPriorityVal += 1;
+            dialogue->iPriority = m_iCurHighPriorityVal;
+            m_pqDialogueQueue.push(dialogue);
+        }
     }
 }
 
@@ -167,5 +184,16 @@ bool NPCComponent::ChangeDialoguePriority(const std::string& p_strEntryID, int p
 void NPCComponent::EmptyDialogueQueue() {
     while (!m_pqDialogueQueue.empty()) {
         m_pqDialogueQueue.pop();
+    }
+}
+
+void NPCComponent::HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndEvent& p_event) {
+    if (p_event.triggerNPCID == m_iID && m_bIsMerchant) {
+        if (m_bIsMerchant) {
+            m_pMerchInvComp->Open();
+        }
+        else {
+            m_bIsBusy = false;
+        }
     }
 }

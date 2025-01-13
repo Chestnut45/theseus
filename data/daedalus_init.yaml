@@ -1,7 +1,7 @@
 name: Daedalus
-loot_table_path: chest_loot_rare.yaml
+loot_table_path: data/chest_loot_rare.yaml
 
-dialogue_bank_path: daedalus_dialogue_and_cutscenes.yaml
+dialogue_bank_path: data/daedalus_dialogue_and_cutscenes.yaml
 dialogue_entries: [
   {
     priority: 0,
@@ -25,10 +25,10 @@ merchant_init: {
   max_slots_per_row: 4,
   percent_markup: 15.0,
   starting_gold: 500,
-  merchant_loot_file: test_chest_contents.yaml,
+  merchant_loot_file: data/test_chest_contents.yaml,
 }
 
-health: 10
+health: 100
 collider_size: {x: 13.0, y: 28.0}
 collider_offset: {x: -6.0, y: 14.0}
 

@@ -1968,22 +1968,27 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     }
 
                     case Room::EntityType::DaedalusNPC:
-                    {
-                        break;
-                    }
-
                     case Room::EntityType::AriadneNPC:
                     {
-                        // Create Ariadne using the NPCBuilder
-                        wolf::GameObject& pAriadne = *NPCBuilder::Instance()->BuildNPC("data/ariadne_init.yaml");
+                        // Figure out which yaml file we should use based on which NPC we're building
+                        std::string strNPCYamlFile;
+                        if (entity.m_type == Room::EntityType::DaedalusNPC) {
+                            strNPCYamlFile = "data/daedalus_init.yaml";
+                        }
+                        else if (entity.m_type == Room::EntityType::AriadneNPC) {
+                            strNPCYamlFile = "data/ariadne_init.yaml";
+                        }
 
-                        // Set Ariadne's position and scale
-                        auto& transform = *pAriadne.GetComponent<wolf::Transform2D>();
+                        // Create The NPC using the NPCBuilder
+                        wolf::GameObject& pNPC = *NPCBuilder::Instance()->BuildNPC(strNPCYamlFile);
+
+                        // Set the NPC's position and scale
+                        auto& transform = *pNPC.GetComponent<wolf::Transform2D>();
                         transform.SetPosition(pos);
                         transform.SetScale(glm::vec2(SCALE));
 
                         // Add her to the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(pAriadne);
+                        GetChunk(GetChunkID(pos))->AddChild(pNPC);
                         break;
                     }
 

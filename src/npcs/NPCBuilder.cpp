@@ -8,7 +8,7 @@ wolf::RNG* NPCBuilder::m_pRNG = nullptr;
 int NPCBuilder::m_iRNGSeed;
 
 const std::string NPCBuilder::NPC_DIRECTORY_PATH = "";
-const ImVec2 NPCBuilder::NPC_INVENTORY_DRAW_POS = {0.0f, 0.0f};
+const ImVec2 NPCBuilder::NPC_INVENTORY_DRAW_POS = {800.0f, 200.0f};
 
 void NPCBuilder::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
     // If there is not already an existing instance

@@ -3,10 +3,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "W_TextureManager.h"
 #include "W_Input.h"
+#include "../events/DialogueOrCutsceneEndEvent.h"
 
 // Constructor
 DialogueAndCutsceneState::DialogueAndCutsceneState(GameStateManager* manager, Theseus* gameInstance, const std::string& yamlFilePath)
-    : GameState(manager, gameInstance), m_yamlFilePath(yamlFilePath) {}
+    : GameState(manager, gameInstance), m_yamlFilePath(yamlFilePath), m_triggerNPCID(-1) {}
+
+// Constructor with optional NPC ID parameter (use when the dialogue was triggered by talking to an NPC)
+DialogueAndCutsceneState::DialogueAndCutsceneState(GameStateManager* manager, Theseus* gameInstance, const std::string& yamlFilePath, int npcID)
+    : GameState(manager, gameInstance), m_yamlFilePath(yamlFilePath), m_triggerNPCID(npcID) {}
 
 // Enter
 void DialogueAndCutsceneState::Enter() {
@@ -25,12 +30,16 @@ void DialogueAndCutsceneState::Enter() {
 
 // Exit
 void DialogueAndCutsceneState::Exit() {
+    // Send off an event to let anyone interested know that the dialogue has finished
+    wolf::EventManager::TriggerEvent(DialogueOrCutsceneEndEvent(m_dialogueAndCutsceneSequence[m_currentSequenceIndex - 1].sequenceID, m_triggerNPCID));
+
     for (auto& pair : m_characterPortraits) {
         wolf::TextureManager::DestroyTexture(pair.second);
     }
     m_characterPortraits.clear();
     m_dialogueAndCutsceneSequence.clear();
     m_currentSequenceIndex = 0;
+    m_triggerNPCID = -1;
 }
 
 // Pause

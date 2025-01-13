@@ -11,6 +11,7 @@
 class DialogueAndCutsceneState : public GameState {
 public:
     DialogueAndCutsceneState(GameStateManager* manager, Theseus* gameInstance, const std::string& yamlFilePath);
+    DialogueAndCutsceneState(GameStateManager* manager, Theseus* gameInstance, const std::string& yamlFilePath, int npcID);
     void Enter() override;
     void Exit() override;
     void Pause() override;
@@ -91,6 +92,7 @@ private:
     bool m_isYAMLLoaded = false;
     std::unordered_map<std::string, wolf::Texture*> m_characterPortraits; // Map for character portraits
     std::string m_currentCharacterName;
+    int m_triggerNPCID = -1;
 
     float m_lmbCooldown = 0.0f; // Cooldown timer for LMB input
     const float LMB_DELAY = 0.75f; // Delay duration in seconds

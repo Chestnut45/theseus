@@ -20,10 +20,11 @@
 
 #include "../inventory/ItemDropCreator.h"
 #include "../events/DialogueAndCutsceneEvent.h"
+#include "events/DialogueOrCutsceneEndEvent.h"
 
 // ---------- TO DO -----------
-// [?] - Get it to build
-// [ ] - Test dialogue
+// [x] - Get it to build
+// [/] - Test dialogue
 // [ ] - Open merchant after
 //       dialogue and start
 //       goodbye when shop is
@@ -125,6 +126,8 @@ class NPCComponent : public wolf::BaseComponent {
         void EmptyDialogueQueue();
 
     private:
+        void HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndEvent& p_event);
+
         int m_iID;
         static int m_iNextID;
 
@@ -139,6 +142,8 @@ class NPCComponent : public wolf::BaseComponent {
         std::priority_queue<NPCDialogueEntry*, std::vector<NPCDialogueEntry*>, ComparePriority> m_pqDialogueQueue; // Priority queue to decide which dialogue will play next
 
         int m_iCurHighPriorityVal = 0;
+
+        bool m_bIsBusy = false; // Flag to check if the NPC can be talked to / interacted with
 
         // Timers for the NPC death animation
         float m_fFallDeadTimer = 0.0f;
