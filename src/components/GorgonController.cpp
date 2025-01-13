@@ -227,7 +227,6 @@ void GorgonController::ChangeState(EnemyState newState)
             break;
         }
     }
-    std::cout << "GorgonController - new_state: " << (int)newState << std::endl; 
     m_last_state = m_state;
     m_state = newState;
 }

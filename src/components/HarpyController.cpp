@@ -130,6 +130,8 @@ void HarpyController::Update(float delta)
         case EnemyState::PETRIFIED:
             HandlePetrifiedState(delta);
             break;
+        case EnemyState::PROSPECT:
+            break;
         case EnemyState::STUNNED:
             HandleStunnedState(delta);
             break;
