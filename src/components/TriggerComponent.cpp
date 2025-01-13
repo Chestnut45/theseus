@@ -36,7 +36,7 @@ void TriggerComponent::Update(float delta) {
 bool TriggerComponent::CheckPlayerCollision(float delta)
 {
     // Early out if not listening for player
-    if (!(m_entityTypes & EntityListenType::PLAYER)) return false;
+    if (!(m_entityTypes & EntityListenType::PLAYER || m_entityTypes & EntityListenType::PLAYER_IGNORE_ROLLING)) return false;
 
     auto* plateGameObject = GetGameObject();
     if (!plateGameObject) {
@@ -52,6 +52,14 @@ bool TriggerComponent::CheckPlayerCollision(float delta)
 
     // Check for collision with any player in the scene
     for (auto&& [_, playerController] : GetGameObject()->GetScene().Each<PlayerController>()) {
+
+        // Ignore player if rolling
+        if (m_entityTypes & EntityListenType::PLAYER_IGNORE_ROLLING &&
+            playerController.GetPlayerAction() == PlayerController::PlayerAction::ROLLING)
+        {
+            continue;
+        }
+        
         auto* playerCollider = playerController.GetGameObject()->GetComponent<ColliderComponent>();
         if (playerCollider && m_colliderManager->IsColliding(*plateCollider, *playerCollider, delta)) {
             // wolf::Log("Player is colliding with the pressure plate!");

@@ -31,13 +31,20 @@ void TrapComponent::Update(float delta) {
 
 bool TrapComponent::CheckForPlayerCollision(float delta)
 {
-    if (!(m_entityTypes & EntityListenType::PLAYER)) return false;
+    if (!(m_entityTypes & EntityListenType::PLAYER || m_entityTypes & EntityListenType::PLAYER_IGNORE_ROLLING)) return false;
 
     auto* trapCollider = GetGameObject()->GetComponent<ColliderComponent>();
     if (!trapCollider) return false;
 
     for (auto&& [_, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
     {
+        // Ignore player if rolling
+        if (m_entityTypes & EntityListenType::PLAYER_IGNORE_ROLLING &&
+            playerController.GetPlayerAction() == PlayerController::PlayerAction::ROLLING)
+        {
+            continue;
+        }
+
         // Get player object
         auto* pObj = playerController.GetGameObject();
         auto* playerCollider = pObj->GetComponent<ColliderComponent>();

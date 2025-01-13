@@ -22,9 +22,10 @@ struct EntityListenType
     {
         NONE = 0,
         PLAYER = 1,
-        MINITAUR = 1 << 1,
-        GORGON = 1 << 2,
-        HARPY = 1 << 3,
+        PLAYER_IGNORE_ROLLING = 1 << 1, // NOTE: Ignores the player ONLY when rolling
+        MINITAUR = 1 << 2,
+        GORGON = 1 << 3,
+        HARPY = 1 << 4,
         // NOTE: Continue power of 2 chain for subsequent types to allow bitwise ops
     };
 };
