@@ -82,8 +82,8 @@ public:
     }
 
     // Setter/Getter for the player's game object ID
-    void SetPlayerGOId(GameObjectID p_uiGOId);
-    GameObjectID const GetPlayerGoId();
+    void SetPlayerID(GameObjectID p_uiGOId);
+    GameObjectID const GetPlayerID();
 
 // Data / implementation
 protected:

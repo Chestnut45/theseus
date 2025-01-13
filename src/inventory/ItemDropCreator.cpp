@@ -1,5 +1,8 @@
 #include "ItemDropCreator.h"
 
+#include <ColliderComponent.h>
+#include <VelocityComponent.h>
+
 ItemDropCreator* ItemDropCreator::m_pInstance = nullptr;
 wolf::Scene* ItemDropCreator::m_pScene = nullptr;
 wolf::RNG* ItemDropCreator::m_pRNG = nullptr;
@@ -63,7 +66,7 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromExistingItem(ItemBase* p_pI
     pItemDropTransform->SetPosition(p_v2SpawnPos + glm::vec2(m_pRNG->NextFloat(-1.5f, 1.5f), m_pRNG->NextFloat(-1.5f, 1.5f)));
 
     // Add the collider
-    auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_pScene->GetPlayerGoId());
+    auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_pScene->GetPlayerID());
     pCollider.AddColliderBox(glm::vec2(16.0f, 16.0f), glm::vec2(-8.0f, 8.0f));
 
     // Add the velocity component
@@ -96,7 +99,7 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromDirectory(const std::string
         pItemDropTransform->SetPosition(p_v2SpawnPos + glm::vec2(m_pRNG->NextFloat(-1.5f, 1.5f), m_pRNG->NextFloat(-1.5f, 1.5f)));
 
         // Add the collider
-        auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_pScene->GetPlayerGoId());
+        auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_pScene->GetPlayerID());
         pCollider.AddColliderBox(glm::vec2(16.0f, 16.0f), glm::vec2(-8.0f, 8.0f));
 
         // Add the velocity component
@@ -208,7 +211,7 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromLootTable(const std::string
         pItemDropTransform->SetPosition(p_v2SpawnPos + glm::vec2(m_pRNG->NextFloat(-1.5f, 1.5f), m_pRNG->NextFloat(-1.5f, 1.5f)));
 
         // Add the collider
-        auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_pScene->GetPlayerGoId());
+        auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_pScene->GetPlayerID());
         pCollider.AddColliderBox(glm::vec2(16.0f, 16.0f), glm::vec2(-8.0f, 8.0f));
 
         // Add the velocity component

@@ -26,7 +26,7 @@ wolf::GameObject& HarpyBuilder::BuildHarpy(const EnemyData& data, const glm::vec
     // Add HarpyController and initialize it with data
     auto& controller = harpyObject->AddComponent<HarpyController>();
     controller.Init(data);
-    controller.SetPlayerGOId(m_scene.GetPlayerGoId());
+    controller.SetPlayerID(m_scene.GetPlayerID());
 
     return *harpyObject;
 }

@@ -26,7 +26,7 @@ wolf::GameObject& GorgonBuilder::BuildGorgon(const EnemyData& data, const glm::v
     // Add GorgonController and initialize it with data
     auto& controller = gorgonObject->AddComponent<GorgonController>();
     controller.Init(data);
-    controller.SetPlayerGOId(m_scene.GetPlayerGoId());
+    controller.SetPlayerID(m_scene.GetPlayerID());
 
     return *gorgonObject;
 }

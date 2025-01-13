@@ -26,8 +26,8 @@ public:
     void SetColliderManager(ColliderManager* pColliderManager);  // Set the ColliderManager, general for all enemies
     ColliderManager* GetColliderManager() const;
 
-    void SetPlayerGOId(wolf::GameObjectID p_uiGOId);
-    wolf::GameObjectID const GetPlayerGOId();
+    void SetPlayerID(wolf::GameObjectID p_uiGOId);
+    wolf::GameObjectID const GetPlayerID();
 
 protected:
     enum EnemyEmote
