@@ -12,6 +12,7 @@
 //-----------------------------------------------------------------------------
 
 #include <cstdint>
+#include <optional>
 #include <unordered_map>
 
 // Needed for std::hash implementation for glm vector types
@@ -31,6 +32,22 @@
 
 class LabyrinthManager : public wolf::BaseComponent
 {
+// Public types
+public:
+
+    // Useful data for rooms that have been generated
+    struct RoomData
+    {
+        // Identifier (non-unique)
+        std::string m_name;
+
+        // Bounds of the room in labyrinth-space (0,0 is bottom-left tile of labyrinth)
+        wolf::IRectangle m_bounds;
+
+        // Labyrinth-space tile positions for each doorway tile
+        // connecting this room to another part of the labyrinth
+        std::vector<glm::ivec2> m_doors;
+    };
 
 // Public interface
 public:
@@ -75,6 +92,13 @@ public:
     // Gets the spawn position of the labyrinth in world space
     // NOTE: Returns (0, 0) if the labyrinth is not yet generated
     glm::vec2 GetSpawnLocation() const;
+
+    // Gets the room data for a given tile in labyrinth-space
+    // Returns an empty optional if the tile isn't in a room
+    std::optional<RoomData> GetRoom(const glm::ivec2& tilePosition);
+
+    // Gets the list of rooms that were successfully generated into the labyrinth
+    const std::vector<RoomData>& GetRooms() const { return m_generatedRooms; }
 
     // Gets the chunk ID for the chunk containing a given world space position
     glm::ivec2 GetChunkID(const glm::vec2& worldPosition) const;
@@ -152,8 +176,6 @@ private:
 
     // Grid of logical tiles
     wolf::Grid2D<LogicalTile> m_labyrinthGrid{m_width, m_height, LogicalTile::Unvisited};
-
-    // Room data
 
     // Definition of a room to be generated into the labyrinth
     struct Room
@@ -253,6 +275,7 @@ private:
 
     // List of all rooms to be generated in the labyrinth
     std::vector<Room> m_rooms;
+    std::vector<RoomData> m_generatedRooms;
 
     // Non-owning pointer to collider manager. Necessary for building minitaurs
     ColliderManager* m_pColliderManager = nullptr;
@@ -260,6 +283,9 @@ private:
 
     // Map of tile positions to section numbers
     std::unordered_map<glm::ivec2, int> m_tileSectionMap;
+    
+    // Map of tile positions to m_generatedRooms index
+    std::unordered_map<glm::ivec2, int> m_tileRoomMap;
 
     // Data structure for a connector
     struct Connector

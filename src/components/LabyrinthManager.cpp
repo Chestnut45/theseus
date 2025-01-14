@@ -243,6 +243,7 @@ void LabyrinthManager::GenerateLabyrinth()
 
     // Clear all data structures
     m_tileSectionMap.clear();
+    m_tileRoomMap.clear();
     m_sections.clear();
     m_prevChunk = glm::ivec2(0);
 
@@ -881,6 +882,18 @@ glm::vec2 LabyrinthManager::GetSpawnLocation() const
     return glm::vec2((float)m_width / 2 * TILE_SIZE * SCALE, -(float)m_spawnRoomSize.y / 2 * TILE_SIZE * SCALE);
 }
 
+std::optional<LabyrinthManager::RoomData> LabyrinthManager::GetRoom(const glm::ivec2& tilePosition)
+{
+    if (m_tileRoomMap.contains(tilePosition))
+    {
+        return m_generatedRooms[m_tileRoomMap[tilePosition]];
+    }
+    else
+    {
+        return std::optional<RoomData>();
+    }
+}
+
 glm::ivec2 LabyrinthManager::GetChunkID(const glm::vec2& worldPosition) const
 {
     return worldPosition / glm::vec2(TILE_SIZE * CHUNK_SIZE * SCALE);
@@ -1444,13 +1457,50 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
                 }
                 
                 // Replace the connector wall with a floor
-                // TODO: Doors?
                 m_labyrinthGrid.Set(connector.m_pos.x, connector.m_pos.y, LogicalTile::Floor);
             }
             
             // Delete the connector
             section.m_connectors.erase(section.m_connectors.begin() + index);
         }
+    }
+
+    // Build generated room data
+    m_generatedRooms.clear();
+    for (int i = 0; i < placedRooms.size(); ++i)
+    {
+        const auto& room = placedRooms[i];
+
+        RoomData data;
+        data.m_name = room.m_name;
+        data.m_bounds = room.m_bounds;
+
+        for (int y = -1; y <= room.m_bounds.m_size.y; ++y)
+        {
+            for (int x = -1; x <= room.m_bounds.m_size.x; ++x)
+            {
+                // Get the tile position
+                glm::ivec2 tilePos = glm::ivec2(room.m_bounds.m_origin.x + x, room.m_bounds.m_origin.y + y);
+                const auto& tile = m_labyrinthGrid.Get(tilePos.x, tilePos.y);
+                
+                if (x == -1 || y == -1 || x == room.m_bounds.m_size.x || y == room.m_bounds.m_size.y)
+                {
+                    // Tile is on the wall edge
+                    // Add a door position if no wall exists
+                    if (tile != LogicalTile::Wall)
+                    {
+                        data.m_doors.push_back(tilePos);
+                    }
+                }
+                else
+                {
+                    // Tile is in the main floor space of the room
+                    m_tileRoomMap[tilePos] = i;
+                }
+            }
+        }
+        
+        m_generatedRooms.push_back(data);
     }
 }
 
@@ -1960,7 +2010,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
 
                         // Add the TriggerComponent
-                        trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE);
+                        trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);
 
                         // Add the object to the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(trap);
