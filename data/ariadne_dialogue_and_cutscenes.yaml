@@ -35,3 +35,12 @@ CutscenesAndDialogues:
         character: "Ariadne"
         text: "Hello, Theseus."
         duration: 2.0
+  test:
+    characters:
+      - name: "Ariadne"
+        portraitPath: "data/textures/sPlayerTest.png"
+    sequence:
+      - type: "dialogue"
+        character: "Ariadne"
+        text: "THIS IS A TEST"
+        duration: 2.0

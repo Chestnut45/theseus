@@ -417,6 +417,10 @@ void PlayState::Update(float delta)
                 break;
             }
         }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_V)) {
+            npc.QueueDialogue("test");
+        }
     }
 
     // Trigger CutsceneDialogueEvent when pressing 9
