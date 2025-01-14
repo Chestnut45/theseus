@@ -87,10 +87,15 @@ void NPCComponent::HandleDeadState(float p_fDelta) {
     {
         if(m_fFallDeadTimer == 0.0f)
         {
+            VelocityComponent* pVel = this->GetGameObject()->GetComponent<VelocityComponent>();
+            if (pVel) {
+                pVel->SetVelocity(glm::vec2(0.0f));
+            }
+
             ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
             if(collider != nullptr)
             {
-                collider->SetColliderType(ColliderComponent::ColliderType::NONE);
+                collider->SetIgnoreTag(this->GetGameObject()->GetScene().GetPlayerID());
             }
             
             m_pAnimSpriteComp->SetTint(glm::vec3(1,0,0));
@@ -118,7 +123,6 @@ void NPCComponent::HandleDeadState(float p_fDelta) {
 // (Note that replayable entries are re-added to the queue with a higher priority value
 //  so that they will play AFTER new or unique dialogue)
 void NPCComponent::PlayNextDialogue() {
-    printf("Called it!\n");
     if (!m_bPlayingDialogue) {
         // Take the top element off of the queue
         NPCDialogueEntry* dialogue = m_pqDialogueQueue.top();
@@ -149,6 +153,19 @@ void NPCComponent::QueueDialogue(const std::string& p_strEntryID) {
                 // Set it as the current highest
                 m_iCurHighPriorityVal = dialogue->iPriority;
             }
+        }
+    }
+}
+
+// Immediately play a given dialogue/cutscene sequence regardless of what is in the queue
+void NPCComponent::TriggerDialogue(const std::string& p_strEntryID) {
+    // If we are not already playing a dialogue or cutscene sequence
+    if (!m_bPlayingDialogue) {
+        // Look for the given sequence
+        NPCDialogueEntry* dialogue = m_mDialogueEntries.at(p_strEntryID);
+        if (dialogue) {
+            // And play it if it exists
+            wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent(dialogue->strDialogueID, m_strDialogueFilePath, m_iID));
         }
     }
 }
@@ -194,9 +211,16 @@ void NPCComponent::HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndE
 
             // If we're a merchant right now
             if (m_bIsMerchant) {
-                // Open the store
-                m_pMerchInvComp->Open();
+                // If the sequence that just played WASN'T us saying goodbye
+                if (p_event.sequenceID != "goodbye") {
+                    // Open the store
+                    m_pMerchInvComp->Open();
+                }
             }
         }
     }
+}
+
+void NPCComponent::SayGoodbye() {
+    this->TriggerDialogue("goodbye");
 }

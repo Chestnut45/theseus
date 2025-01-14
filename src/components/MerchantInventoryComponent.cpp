@@ -2,6 +2,7 @@
 
 #include <yaml-cpp/yaml.h>
 #include "inventory/ItemCreator.h"
+#include "NPCComponent.h"
 
 MerchantInventoryComponent::~MerchantInventoryComponent() {
     // Empty each of the stacks in the contents vector
@@ -59,13 +60,36 @@ void MerchantInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEve
     }
 }
 
+void MerchantInventoryComponent::Close() {
+    // Close the inventory and let anyone interested know it happened
+    m_bIsOpen = false;
+    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+
+    // Then check if there is an npc attached to our GameObject
+    NPCComponent* pNPC = this->GetGameObject()->GetComponent<NPCComponent>();
+    if (pNPC) {
+        // If there is, tell them to say goodbye
+        pNPC->SayGoodbye();
+    }
+}
+
 void MerchantInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
     // If the player just closed their inventory
     if (p_event.enType == PLAYER_INVENTORY) {
-        // And this chest is open
+        // And this merchant is open
         if (m_bIsOpen) {
             // Close it
             m_bIsOpen = false;
+
+            // Then check if there is an npc attached to our GameObject
+            NPCComponent* pNPC = this->GetGameObject()->GetComponent<NPCComponent>();
+            if (pNPC) {
+                // If there is, tell them to say goodbye
+                pNPC->SayGoodbye();
+            }
+
+            // Note that we do not use the Close() method to do this as we do not
+            // want to send off another inventory closed event
         }
     }
 }
@@ -173,6 +197,12 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
         ImGui::SetNextWindowPos(m_v2DrawPos);
         ImGui::SetNextWindowSize({0,0});
         ImGui::Begin(strTitle.c_str(), &m_bIsOpen, flags);
+
+        // If we closed the inventory using IMGUI
+        if (!m_bIsOpen) {
+            // Close it internally, too
+            this->Close();
+        }
 
         // This counter lets us control how many items are drawn in a row
         int counter = 0;

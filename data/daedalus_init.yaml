@@ -15,6 +15,12 @@ dialogue_entries: [
     has_trigger: false,
     can_repeat: true
   },
+  {
+    priority: 1,
+    entry_id: goodbye,
+    has_trigger: true,
+    can_repeat: true,
+  }
 ]
 
 can_be_merchant: true

@@ -127,7 +127,7 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
         v2Offset.y = pNPCDetails["collider_offset"]["y"].as<float>();
 
         // ...before creating and attaching a collider to the in-progress GameObject
-        auto& pCollider = pConstructedNPC->AddComponent<ColliderComponent>(ColliderComponent::HURTBOXDR, false, true);
+        auto& pCollider = pConstructedNPC->AddComponent<ColliderComponent>(ColliderComponent::HITHURTBOXDR, false, true);
         pCollider.AddColliderBox(v2Size, v2Offset);
 
         // Finally, we look for the attributes needed to create an AnimatedSprite2D

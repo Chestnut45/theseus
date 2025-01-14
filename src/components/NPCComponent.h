@@ -25,14 +25,14 @@
 // ---------- TO DO -----------
 // [x] - Get it to build
 // [/] - Test dialogue
-// [ ] - Open merchant after
+// [/] - Open merchant after
 //       dialogue and start
 //       goodbye when shop is
 //       closed
 // [x] - Write Daedalus .yaml
-// [ ] - Test merchant
-// [ ] - Add hit effect
-// [/] - Get NPCs to die
+// [x] - Test merchant
+// [?] - Add hit effect
+// [x] - Get NPCs to die
 // [ ] - Random selection for
 //       BuildNPC()
 // ----------------------------
@@ -119,11 +119,13 @@ class NPCComponent : public wolf::BaseComponent {
         // Dialogue and priority queue operations
         void PlayNextDialogue();
         void QueueDialogue(const std::string& p_strEntryID);
+        void TriggerDialogue(const std::string& p_strEntryID);
 
         bool HasDialoguePlayed(const std::string& p_strEntryID);
         bool ChangeDialoguePriority(const std::string& p_strEntryID, int p_iNewPriority);
 
         void EmptyDialogueQueue();
+        void SayGoodbye();
 
     private:
         void HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndEvent& p_event);

@@ -23,3 +23,12 @@ CutscenesAndDialogues:
         character: "Daedalus"
         text: "Hello, Theseus."
         duration: 2.0
+  goodbye:
+    characters:
+      - name: "Daedalus"
+        portraitPath: "data/textures/sPlayerTest.png"
+    sequence:
+      - type: "dialogue"
+        character: "Daedalus"
+        text: "Come again!"
+        duration: 2.0
