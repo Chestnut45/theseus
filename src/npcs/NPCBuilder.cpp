@@ -7,7 +7,7 @@ wolf::RNG* NPCBuilder::m_pRNG = nullptr;
 
 int NPCBuilder::m_iRNGSeed;
 
-const std::string NPCBuilder::NPC_DIRECTORY_PATH = "";
+const std::string NPCBuilder::NPC_DIRECTORY_PATH = "data/npc_directory.yaml";
 const ImVec2 NPCBuilder::NPC_INVENTORY_DRAW_POS = {800.0f, 200.0f};
 
 void NPCBuilder::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
@@ -177,3 +177,56 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
     // If nothing went wrong, we're good to return the GameObject
     return pConstructedNPC;
 }
+
+wolf::GameObject* NPCBuilder::BuildRandomNPC() {
+    // Variable to hold the npc we create
+    wolf::GameObject* pRandomNPC = nullptr;
+
+    try {
+        // Load up the NPC directory file
+        YAML::Node baseNode = YAML::LoadFile(NPC_DIRECTORY_PATH);
+
+        // And grab the directory node
+        YAML::Node directory = baseNode["directory"];
+        int numEntries = directory.size();
+
+        // Initialize an array of entries
+        YAML::Node entries[numEntries];
+
+        // Count the number of items in the loot table
+        float sumWeights = 0;
+        for (int i = 0; i < numEntries; ++i)
+        {
+            entries[i] = directory[i];
+            const YAML::Node& entry = entries[i];
+            sumWeights += entry["probability"].as<float>();
+        }
+
+        // Generate a random number
+        float value = m_pRNG->NextFloat(0.0f, sumWeights);
+        std::string chosenInitFile;
+        for (int j = 0; j < numEntries; ++j)
+        {
+            float probability = entries[j]["probability"].as<float>();
+            
+            if (value < probability)
+            {
+                // And once we've chosen an npc, retrieve the init file associated with it
+                chosenInitFile = entries[j]["init_file"].as<std::string>();
+                break;
+            }
+            value -= probability;
+        }
+
+        // Then create an npc using that file
+        pRandomNPC = this->BuildNPC(chosenInitFile);
+    }
+    catch (YAML::Exception e) {
+        // If we run into an error, then we should print it and return nullptr
+        wolf::Error("YAML: Issue with ", NPC_DIRECTORY_PATH, ": ", e.what());
+        return nullptr;
+    }
+
+    // And return what we created (note that if the BuildNPC method ran into an error, this will return nullptr)
+    return pRandomNPC;
+};

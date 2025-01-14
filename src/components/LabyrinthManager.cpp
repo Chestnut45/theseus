@@ -2037,13 +2037,23 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         transform.SetPosition(pos);
                         transform.SetScale(glm::vec2(SCALE));
 
-                        // Add her to the correct chunk
+                        // Add them to the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(pNPC);
                         break;
                     }
 
                     case Room::EntityType::RandomNPC:
                     {
+                        // Create The NPC using the NPCBuilder
+                        wolf::GameObject& pNPC = *NPCBuilder::Instance()->BuildRandomNPC();
+
+                        // Set the NPC's position and scale
+                        auto& transform = *pNPC.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add them to the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(pNPC);
                         break;
                     }
                 }

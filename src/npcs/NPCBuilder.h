@@ -33,6 +33,7 @@ class NPCBuilder {
         void SetScene(wolf::Scene* p_pScene);
 
         wolf::GameObject* BuildNPC(const std::string& p_strFilePath);
+        wolf::GameObject* BuildRandomNPC();
 
     private:
         // Private constructor and destructor because this is a singleton
