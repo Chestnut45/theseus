@@ -88,7 +88,7 @@ private:
     float m_timeToLieDead = 0.8f;
 
     // Attack state members
-    const float MELEE_WINDUP_TIME = 3.0f;
+    const float MELEE_WINDUP_TIME = 1.0f;
     float m_meleeWindupTimer = 0.0f;
     bool m_isEnterMeleeWindup = false;
     const float MELEE_STRIKE_TIME = 0.1f;
@@ -99,4 +99,5 @@ private:
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;
     wolf::GameObject* m_pEmoteObj = nullptr;
+
 };

@@ -451,12 +451,15 @@ void GorgonController::HandleAttackingState(float delta)
         {
             m_isEnterRangedWindup = false;
         }
-        m_rangedWindupTimer -= delta;
 
+        m_rangedWindupTimer -= delta;
+        
         // Brighten sprite to indicate attack
         if(m_pAnimComponent != nullptr)
         {
-            m_pAnimComponent->SetTint(m_pAnimComponent->GetTint() + delta / (m_rangedCooldown * 0.5f));
+            glm::vec3 currentTint = m_pAnimComponent->GetTint();
+            glm::vec3 nextTint = currentTint + glm::vec3(delta / (RANGED_WINDUP_TIME * 0.5f));
+            m_pAnimComponent->SetTint(nextTint);
         }
     }
     // Else
@@ -465,6 +468,7 @@ void GorgonController::HandleAttackingState(float delta)
         // If entering strike
         if(m_isEnterRangedStrike == true)
         {
+            m_pAnimComponent->SetTint(glm::vec3(1.0f));
             m_isEnterRangedStrike = false;
         }
 
@@ -664,7 +668,6 @@ void GorgonController::HandleDeathState(float delta)
 void GorgonController::EnterAttackState()
 {
     m_isEnterRangedStrike = true;
-    m_rangedWindupTimer = true;
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 }
 

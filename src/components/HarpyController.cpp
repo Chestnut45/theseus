@@ -332,10 +332,11 @@ void HarpyController::HandleAttackingState(float delta)
             m_isEnterRangedWindup = false;
         }
 
-        glm::vec3 currentTint = m_pAnimComponent->GetTint();
-        glm::vec3 nextTint = currentTint + glm::vec3(delta);
-        m_pAnimComponent->SetTint(nextTint);
         m_rangedWindupTimer -= delta;
+
+        glm::vec3 currentTint = m_pAnimComponent->GetTint();
+        glm::vec3 nextTint = currentTint + glm::vec3(delta / (RANGED_WINDUP_TIME * 0.5f));
+        m_pAnimComponent->SetTint(nextTint);
     }
     // Else
     else
@@ -530,7 +531,6 @@ void HarpyController::HandleDeathState(float delta)
 void HarpyController::EnterAttackState()
 {
     m_isEnterRangedStrike = true;
-    m_rangedWindupTimer = true;
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
     if(m_attackChain <= 0){
         m_attackChain = m_RNG.NextInt(1, 2);

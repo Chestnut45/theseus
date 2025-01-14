@@ -400,6 +400,14 @@ void MinitaurController::HandleAttackingState(float delta)
         {
             m_isEnterMeleeWindup = false;
         }
+        // Brighten sprite to indicate attack
+        if(m_pAnimComponent != nullptr)
+        {
+            glm::vec3 currentTint = m_pAnimComponent->GetTint();
+            glm::vec3 nextTint = currentTint + glm::vec3(delta / (MELEE_WINDUP_TIME * 0.5f));
+            m_pAnimComponent->SetTint(nextTint);
+        }
+
         m_meleeWindupTimer -= delta;
     }
 
@@ -408,6 +416,7 @@ void MinitaurController::HandleAttackingState(float delta)
         // If entering strike
         if(m_isEnterMeleeStrike == true)
         {
+            m_pAnimComponent->SetTint(glm::vec3(1.0f));
             m_isEnterMeleeStrike = false;
         }
 
@@ -577,7 +586,6 @@ void MinitaurController::HandleDeathState(float delta)
 void MinitaurController::EnterAttackState()
 {
     m_isEnterMeleeStrike = true;
-    m_meleeWindupTimer = true;
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 }
 

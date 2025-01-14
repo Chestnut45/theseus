@@ -93,7 +93,7 @@ private:
     float m_timeToLieDead = 0.8f;
 
     // Attack state members
-    const float RANGED_WINDUP_TIME = 0.1f;
+    const float RANGED_WINDUP_TIME = 3.0f;
     float m_rangedWindupTimer = 0.0f;
     bool m_isEnterRangedWindup = false;
     const float RANGED_STRIKE_TIME = 0.1f;
