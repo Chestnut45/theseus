@@ -9,18 +9,12 @@
 
 TriggerComponent::TriggerComponent(ColliderManager* colliderManager, TriggerType type, TriggerPurpose purpose, EntityListenType::type entityTypes)
     : m_colliderManager(colliderManager), m_triggerType(type), m_purpose(purpose), m_entityTypes(entityTypes), m_triggered(false) {
-    if (purpose == TriggerPurpose::SPIKE_TRAP && type == TriggerType::REUSABLE) {
-        wolf::EventManager::AddListener<TrapDestroyedEvent, TriggerComponent, &TriggerComponent::OnTrapDestroyed>(*this);
-    }
 
-    if (purpose == TriggerPurpose::BOULDER_TRAP && type == TriggerType::REUSABLE) {
-        wolf::EventManager::AddListener<BoulderDestroyedEvent, TriggerComponent, &TriggerComponent::OnBoulderDestroyed>(*this);
-    }
+    wolf::EventManager::AddListener<TriggerPurposeFinishedEvent, TriggerComponent, &TriggerComponent::OnPurposeFinished>(*this);
 }
 
 TriggerComponent::~TriggerComponent() {
-    wolf::EventManager::RemoveListener<TrapDestroyedEvent, TriggerComponent, &TriggerComponent::OnTrapDestroyed>(*this);
-    wolf::EventManager::RemoveListener<BoulderDestroyedEvent, TriggerComponent, &TriggerComponent::OnBoulderDestroyed>(*this);
+    wolf::EventManager::RemoveListener<TriggerPurposeFinishedEvent, TriggerComponent, &TriggerComponent::OnPurposeFinished>(*this);
 }
 
 void TriggerComponent::Update(float delta) {
@@ -127,14 +121,8 @@ bool TriggerComponent::CheckEnemyCollision(float delta)
     return false;
 }
 
-void TriggerComponent::OnTrapDestroyed(const TrapDestroyedEvent& event) {
-    if (m_triggerType == TriggerType::REUSABLE && m_triggered) {
-        m_triggered = false;
-    }
-}
-
-void TriggerComponent::OnBoulderDestroyed(const BoulderDestroyedEvent& event) {
-    if (m_triggerType == TriggerType::REUSABLE && m_triggered) {
+void TriggerComponent::OnPurposeFinished(const TriggerPurposeFinishedEvent& event) {
+    if (m_triggerType == TriggerType::REUSABLE && m_triggered && event.m_pTrigger == this) {
         m_triggered = false;
     }
 }

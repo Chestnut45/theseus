@@ -5,10 +5,11 @@
 #include "HarpyController.h"
 #include "HealthComponent.h"
 
-TrapComponent::TrapComponent(float damage, float lifespan, ColliderManager* colliderManager, float initialDelay, EntityListenType::type entityTypes)
-    : m_damage(damage), m_lifespan(lifespan), m_entityTypes(entityTypes), m_pColliderManager(colliderManager), m_initialDelay(initialDelay) {
+TrapComponent::TrapComponent(TriggerComponent* pCreatorTrigger, float damage, float lifespan, ColliderManager* pColliderManager, float initialDelay)
+    : m_damage(damage), m_lifespan(lifespan), m_pColliderManager(pColliderManager), m_pCreatorTrigger(pCreatorTrigger), m_initialDelay(initialDelay) {
     // Start timers immediately, making the trap active upon creation
     m_lifespanTimer.Start();
+    m_entityTypes = m_pCreatorTrigger->GetEntityListenTypes();
 }
 
 void TrapComponent::Update(float delta) {
@@ -17,8 +18,8 @@ void TrapComponent::Update(float delta) {
     // Check if the lifespan has expired
     if (m_lifespanTimer.Elapsed() >= m_lifespan) {
         // Send event before deleting the trap
-        // wolf::Log("Triggering TrapDestroyedEvent for GameObject " + std::to_string(GetGameObject()->GetID()));
-        wolf::EventManager::TriggerEvent(TrapDestroyedEvent(GetGameObject()));
+        // wolf::Log("Triggering TriggerPurposeFinishedEvent for GameObject " + std::to_string(GetGameObject()->GetID()));
+        wolf::EventManager::TriggerEvent(TriggerPurposeFinishedEvent(m_pCreatorTrigger));
         GetGameObject()->Delete();
         return;
     }

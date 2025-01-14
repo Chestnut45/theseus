@@ -225,7 +225,7 @@ void HealthComponent::DamageIndicator::Render()
         ImGui::SetNextWindowSize(windowSize);
         ImGui::Begin("\t", nullptr, flags);
         // std::cout << "HealthComponent - Screenpos - x: " << screenpos.x << ", y: " << screenpos.y << std::endl;
-        ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f),  damageValue.c_str());
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "%s", damageValue.c_str());
 
         // End rendering
         ImGui::End();

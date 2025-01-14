@@ -4,8 +4,7 @@
 #include "W_BaseComponent.h"
 #include "ColliderComponent.h"
 #include "W_EventManager.h"
-#include <events/TrapDestroyedEvent.h>
-#include <events/BoulderDestroyedEvent.h>
+#include <events/TriggerPurposeFinishedEvent.h>
 
 
 enum class TriggerType {
@@ -54,8 +53,7 @@ public:
 private:
     bool CheckPlayerCollision(float delta);
     bool CheckEnemyCollision(float delta);
-    void OnTrapDestroyed(const TrapDestroyedEvent& event);
-    void OnBoulderDestroyed(const BoulderDestroyedEvent& event);
+    void OnPurposeFinished(const TriggerPurposeFinishedEvent& event);
     ColliderManager* m_colliderManager = nullptr;
 
     // Logic for reusable/single-use triggers

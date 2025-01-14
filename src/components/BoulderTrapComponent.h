@@ -2,6 +2,7 @@
 
 #include "W_BaseComponent.h"
 #include "ColliderManager.h"
+#include "TriggerComponent.h"
 #include "W_Timer.h"
 #include "glm/vec2.hpp"
 
@@ -16,7 +17,7 @@ enum class BoulderDirection {
 class BoulderTrapComponent : public wolf::BaseComponent {
 public:
     // Constructor
-    BoulderTrapComponent(ColliderManager* colliderManager, BoulderDirection direction, float speed, float lifespan);
+    BoulderTrapComponent(TriggerComponent* trigger, ColliderManager* colliderManager, BoulderDirection direction, float speed, float lifespan);
 
     // Update method called every frame
     void Update(float delta);
@@ -28,6 +29,7 @@ private:
     void ApplyCoolEffect(float delta, float elapsed); // Handles the cool effects (scaling, glowing, fading)
 
     // Private members
+    TriggerComponent* m_pTrigger = nullptr;
     ColliderManager* m_colliderManager = nullptr; // Reference to the ColliderManager
     BoulderDirection m_direction;                // Direction the boulder will move
     float m_speed;                               // Speed of the boulder

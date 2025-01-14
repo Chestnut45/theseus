@@ -5,7 +5,7 @@
 #include "VelocityComponent.h"
 #include "W_Sprite2D.h"
 #include "PlayerController.h"
-#include "BoulderDestroyedEvent.h"
+#include "TriggerPurposeFinishedEvent.h"
 
 // Constants for effects
 constexpr float FADE_TRIGGER_THRESHOLD = 1.0f; // Time before lifespan ends to trigger cool effect
@@ -14,8 +14,9 @@ constexpr float GLOW_PULSE_SPEED = 5.0f;       // Speed of glow pulsing (oscilla
 constexpr float FADE_OUT_SPEED = 2.0f;         // Speed of fade-out (opacity reduction)
 constexpr float MIN_SCALE = 0.1f;              // Minimum allowable scale to prevent shrinking to zero
 
-BoulderTrapComponent::BoulderTrapComponent(ColliderManager* colliderManager, BoulderDirection direction, float speed, float lifespan)
-    : m_colliderManager(colliderManager),
+BoulderTrapComponent::BoulderTrapComponent(TriggerComponent* trigger, ColliderManager* colliderManager, BoulderDirection direction, float speed, float lifespan)
+    : m_pTrigger(trigger),
+      m_colliderManager(colliderManager),
       m_direction(direction),
       m_speed(speed),
       m_lifespan(lifespan),
@@ -46,7 +47,7 @@ void BoulderTrapComponent::Update(float delta) {
 
     // Delete boulder if lifespan is expired
     if (elapsed >= m_lifespan) {
-        wolf::EventManager::TriggerEvent(BoulderDestroyedEvent(GetGameObject()));
+        wolf::EventManager::TriggerEvent(TriggerPurposeFinishedEvent(m_pTrigger));
         GetGameObject()->Delete();
     }
 }
