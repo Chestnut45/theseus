@@ -61,7 +61,14 @@ void HarpyController::Init(const EnemyData& data)
         wolf::Warning("Harpy " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
     }
 
-        // Init emotes object
+    // Init attack state members
+    m_attackWindupTimer = ATTACK_WINDUP_TIME;
+    m_isEnterAttackWindup = false;
+    m_attackStrikeTimer = ATTACK_STRIKE_TIME;
+    m_isEnterAttackStrike = false;
+    m_attackChain = 0;
+
+    // Init emotes object
     m_pEmoteObj = &pGameObject->GetScene().CreateObject2D();
     pGameObject->AddChild(*m_pEmoteObj);
     wolf::Transform2D* transform = m_pEmoteObj->GetComponent<wolf::Transform2D>();
@@ -196,6 +203,11 @@ void HarpyController::ChangeState(EnemyState newState)
     // Enter new state
         switch (newState)
     {
+        case EnemyState::ATTACKING:
+        {
+            EnterAttackState();
+            break;
+        }
         case EnemyState::CHASING:
         {
             EnterChasingState();
@@ -302,50 +314,89 @@ void HarpyController::HandleChasingState(float delta)
 void HarpyController::HandleAttackingState(float delta)
 {
     if (!m_pTarget) return;
-    
-    // Retrieving & calculating data
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
-    glm::vec2 projectileDimensions = glm::vec2(10.0f, 10.0f);
-    glm::vec2 hurtboxOffset = glm::vec2(-5.0f, 5.0f);
-    glm::vec2 harpyDirection = targetPosition - currentPosition == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(targetPosition - currentPosition);
-    glm::vec2 perpendicularVector = harpyDirection == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(glm::vec2(harpyDirection.y, -harpyDirection.x));
-    glm::vec2 projectileDefaultVelocity = harpyDirection * 168.0f;
-
-    auto& scene = this->GetGameObject()->GetScene();
-
-    // Spawn 3 projectiles
-    for(int i = -1; i <= 1; i += 1)
+    if(m_attackWindupTimer > 0.0f)
     {
-        auto& projectile = scene.CreateObject2D();
-
-        std::vector<std::pair<StatusComponent::StatusEffectType, float>> statusEffects = 
+        if(m_isEnterAttackWindup == true)
         {
-            std::pair<StatusComponent::StatusEffectType, float>(StatusComponent::StatusEffectType::BURNING, 5.0f)
-        };
-
-        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(m_baseDamage, m_pColliderManager, 0.0f, statusEffects);
-
-        auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
-        projectileSprite.SetOriginToCenterOfTexture();
-        
-        auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-        projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
-        projectileCollider.SetIgnoreTag(this->GetGameObject()->GetID());
-
-        auto& projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 6.0f, 0.1f);
-        auto& projectileTimedDestroyer = projectile.AddComponent<TimedDestroyerComponent>(10);
-
-        auto& projectileVelocityComponent = projectile.AddComponent<VelocityComponent>();
-        projectileVelocityComponent.SetVelocity(projectileDefaultVelocity);
-
-        glm::vec2 offset = perpendicularVector * (30.0f * i);
-        projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset);
-        projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+            m_isEnterAttackWindup = false;
+        }
+        glm::vec3 currentTint = m_pAnimComponent->GetTint();
+        glm::vec3 nextTint = currentTint + glm::vec3(delta);
+        m_pAnimComponent->SetTint(nextTint);
+        m_attackWindupTimer -= delta;
     }
-    ChangeState(EnemyState::CHASING);
+    else
+    {
+        if(m_isEnterAttackStrike == true)
+        {
+            m_attackChain--;
+            m_pAnimComponent->SetTint(glm::vec3(1.0f));
+            m_isEnterAttackStrike = false;
+        }
+
+        if(m_attackStrikeTimer > 0.0f)
+        {
+            m_attackStrikeTimer -= delta;
+        }
+        else
+        {
+            // Retrieving & calculating data
+            const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+            const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+
+            glm::vec2 projectileDimensions = glm::vec2(10.0f, 10.0f);
+            glm::vec2 hurtboxOffset = glm::vec2(-5.0f, 5.0f);
+            glm::vec2 harpyDirection = targetPosition - currentPosition == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(targetPosition - currentPosition);
+            glm::vec2 perpendicularVector = harpyDirection == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(glm::vec2(harpyDirection.y, -harpyDirection.x));
+            glm::vec2 projectileDefaultVelocity = harpyDirection * 168.0f;
+
+            auto& scene = this->GetGameObject()->GetScene();
+
+            // Spawn 3 projectiles
+            for(int i = -1; i <= 1; i += 1)
+            {
+                auto& projectile = scene.CreateObject2D();
+
+                std::vector<std::pair<StatusComponent::StatusEffectType, float>> statusEffects = 
+                {
+                    std::pair<StatusComponent::StatusEffectType, float>(StatusComponent::StatusEffectType::BURNING, 5.0f)
+                };
+
+                auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(m_baseDamage, m_pColliderManager, 0.0f, statusEffects);
+
+                auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
+                projectileSprite.SetOriginToCenterOfTexture();
+                
+                auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+                projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+                projectileCollider.SetIgnoreTag(this->GetGameObject()->GetID());
+
+                auto& projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 6.0f, 0.1f);
+                auto& projectileTimedDestroyer = projectile.AddComponent<TimedDestroyerComponent>(10);
+
+                auto& projectileVelocityComponent = projectile.AddComponent<VelocityComponent>();
+                projectileVelocityComponent.SetVelocity(projectileDefaultVelocity);
+
+                glm::vec2 offset = perpendicularVector * (30.0f * i);
+                projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset);
+                projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+            }
+
+            // Strike again
+            if(m_attackChain > 0)
+            {
+               ChangeState(EnemyState::ATTACKING);
+            }
+            // Else, switch state
+            else
+            {
+                ChangeState(EnemyState::CHASING);
+            }
+            return;
+        }
+    }
 }
 
 void HarpyController::HandlePetrifiedState(float delta)
@@ -463,6 +514,16 @@ void HarpyController::HandleDeathState(float delta)
     }  
 }
 
+void HarpyController::EnterAttackState()
+{
+    m_isEnterAttackStrike = true;
+    m_attackWindupTimer = true;
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    if(m_attackChain <= 0){
+        m_attackChain = m_RNG.NextInt(1, 2);
+    }
+}
+
 void HarpyController::EnterChasingState()
 {
     m_transitionTimer.Reset();
@@ -487,6 +548,10 @@ void HarpyController::EnterDeathState()
 void HarpyController::ExitAttackState()
 {
     m_rangedTimer = m_rangedCooldown;
+    m_attackStrikeTimer = ATTACK_STRIKE_TIME;
+    m_isEnterAttackStrike = false;
+    m_attackWindupTimer = ATTACK_WINDUP_TIME;
+    m_isEnterAttackWindup = false;
 }
 
 void HarpyController::ExitChasingState()
@@ -514,6 +579,7 @@ void HarpyController::ExitStunnedState()
 
 void HarpyController::SetEmote(EnemyEmote p_emote)
 {
+    // std::cout << "HarpyController - p_emote: " << p_emote << std::endl;
     m_fEmoteTimer = EMOTE_TIME;
     switch(p_emote)
     {

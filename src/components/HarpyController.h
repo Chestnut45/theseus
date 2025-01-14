@@ -29,6 +29,7 @@ private:
     void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
 
+    void EnterAttackState();
     void EnterChasingState();
     void EnterIdleState();
     void EnterStunnedState();
@@ -65,11 +66,22 @@ private:
     float m_stunnedTime = 0.5f;
     float m_stunnedTimer = 0.0f;
 
+    // Death state members
     float m_fallDeadTimer = 0.0f;
     float m_lieDeadTimer = 0.0f;
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
 
+    // Attack state members
+    const float ATTACK_WINDUP_TIME = 0.1f;
+    float m_attackWindupTimer = 0.0f;
+    bool m_isEnterAttackWindup = false;
+    const float ATTACK_STRIKE_TIME = 0.1f;
+    float m_attackStrikeTimer = 0.0f;
+    bool m_isEnterAttackStrike = false;
+    int m_attackChain = 0;
+
+    // Emote-related members
     EnemyEmote m_emote = EnemyEmote::NONE; // Current emote
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;

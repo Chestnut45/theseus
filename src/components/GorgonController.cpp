@@ -692,6 +692,7 @@ void GorgonController::ExitStunnedState()
 
 void GorgonController::SetEmote(EnemyEmote p_emote)
 {
+    std::cout << "GorgonController - p_emote: " << p_emote << std::endl;
     m_fEmoteTimer = EMOTE_TIME;
     switch(p_emote)
     {
