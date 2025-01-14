@@ -2,10 +2,13 @@
 #include "TriggerEvent.h"
 #include "W_GameObject.h"
 #include "PlayerController.h"
+#include "MinitaurController.h"
+#include "GorgonController.h"
+#include "HarpyController.h"
 #include "W_EventManager.h"
 
-TriggerComponent::TriggerComponent(ColliderManager* colliderManager, TriggerType type, TriggerPurpose purpose)
-    : m_colliderManager(colliderManager), m_triggerType(type), m_purpose(purpose), m_triggered(false) {
+TriggerComponent::TriggerComponent(ColliderManager* colliderManager, TriggerType type, TriggerPurpose purpose, EntityListenType::type entityTypes)
+    : m_colliderManager(colliderManager), m_triggerType(type), m_purpose(purpose), m_entityTypes(entityTypes), m_triggered(false) {
     if (purpose == TriggerPurpose::SPIKE_TRAP && type == TriggerType::REUSABLE) {
         wolf::EventManager::AddListener<TrapDestroyedEvent, TriggerComponent, &TriggerComponent::OnTrapDestroyed>(*this);
     }
@@ -21,7 +24,7 @@ TriggerComponent::~TriggerComponent() {
 }
 
 void TriggerComponent::Update(float delta) {
-    if (!m_triggered && CheckPlayerCollision(delta)) {
+    if (!m_triggered && (CheckPlayerCollision(delta) || CheckEnemyCollision(delta))) {
         m_triggered = true;
 
         // Dispatch the TriggerEvent with trap type information
@@ -34,7 +37,11 @@ void TriggerComponent::Update(float delta) {
     }
 }
 
-bool TriggerComponent::CheckPlayerCollision(float delta) {
+bool TriggerComponent::CheckPlayerCollision(float delta)
+{
+    // Early out if not listening for player
+    if (!(m_entityTypes & EntityListenType::PLAYER || m_entityTypes & EntityListenType::PLAYER_IGNORE_ROLLING)) return false;
+
     auto* plateGameObject = GetGameObject();
     if (!plateGameObject) {
         wolf::Error("TriggerComponent: GameObject is null!");
@@ -48,6 +55,14 @@ bool TriggerComponent::CheckPlayerCollision(float delta) {
     }
 
     for (auto&& [_, playerController] : GetGameObject()->GetScene().Each<PlayerController>()) {
+
+        // Ignore player if rolling
+        if (m_entityTypes & EntityListenType::PLAYER_IGNORE_ROLLING &&
+            playerController.GetPlayerAction() == PlayerController::PlayerAction::ROLLING)
+        {
+            continue;
+        }
+        
         auto* playerCollider = playerController.GetGameObject()->GetComponent<ColliderComponent>();
         if (playerCollider && m_colliderManager->IsColliding(*plateCollider, *playerCollider, delta)) {
             return true;
@@ -56,17 +71,70 @@ bool TriggerComponent::CheckPlayerCollision(float delta) {
     return false;
 }
 
-void TriggerComponent::ResetTrigger() {
-    if (m_triggerType == TriggerType::REUSABLE && m_triggered) {
-        m_triggered = false;
-        // wolf::Log("TriggerComponent: Trigger reset.");
+bool TriggerComponent::CheckEnemyCollision(float delta)
+{
+    auto* plateGameObject = GetGameObject();
+    if (!plateGameObject) {
+        wolf::Error("TriggerComponent: GameObject is null!");
+        return false;
     }
+
+    auto* plateCollider = plateGameObject->GetComponent<ColliderComponent>();
+    if (!plateCollider) {
+        wolf::Error("TriggerComponent: Plate collider is null!");
+        return false;
+    }
+
+    // Minitaurs
+    if (m_entityTypes & EntityListenType::MINITAUR)
+    {
+        for (auto&& [_, minitaur] : GetGameObject()->GetScene().Each<MinitaurController>())
+        {
+            auto* pCollider = minitaur.GetGameObject()->GetComponent<ColliderComponent>();
+            if (pCollider && pCollider->IsActive() && m_colliderManager->IsColliding(*plateCollider, *pCollider, delta))
+            {
+                return true;
+            }
+        }
+    }
+
+    // Gorgons
+    if (m_entityTypes & EntityListenType::GORGON)
+    {
+        for (auto&& [_, gorgon] : GetGameObject()->GetScene().Each<GorgonController>())
+        {
+            auto* pCollider = gorgon.GetGameObject()->GetComponent<ColliderComponent>();
+            if (pCollider && pCollider->IsActive() && m_colliderManager->IsColliding(*plateCollider, *pCollider, delta))
+            {
+                return true;
+            }
+        }
+    }
+
+    // Harpies
+    if (m_entityTypes & EntityListenType::HARPY)
+    {
+        for (auto&& [_, harpy] : GetGameObject()->GetScene().Each<HarpyController>())
+        {
+            auto* pCollider = harpy.GetGameObject()->GetComponent<ColliderComponent>();
+            if (pCollider && pCollider->IsActive() && m_colliderManager->IsColliding(*plateCollider, *pCollider, delta))
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 void TriggerComponent::OnTrapDestroyed(const TrapDestroyedEvent& event) {
-    ResetTrigger();
+    if (m_triggerType == TriggerType::REUSABLE && m_triggered) {
+        m_triggered = false;
+    }
 }
 
 void TriggerComponent::OnBoulderDestroyed(const BoulderDestroyedEvent& event) {
-    ResetTrigger();
+    if (m_triggerType == TriggerType::REUSABLE && m_triggered) {
+        m_triggered = false;
+    }
 }

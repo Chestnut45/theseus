@@ -467,6 +467,7 @@ void PlayState::CreatePlayer()
 {
     // Create player object with transform
     m_pPlayerObject = &m_pGameInstance->GetScene().CreateObject2D();
+    m_pGameInstance->GetScene().SetPlayerID(m_pPlayerObject->GetID());
     
     // Register the player (Theseus) in the shared context
     m_pGameInstance->GetSharedContext().RegisterEntity("Theseus", m_pPlayerObject->GetID());
@@ -662,6 +663,7 @@ wolf::GameObject& PlayState::CreateBoulderTrap(const glm::vec2& position)
     return bouldertrap;
 }
 
+// Event handler to spawn traps when a trigger is triggered
 void PlayState::OnTriggerEvent(const TriggerEvent& event) {
     if (event.m_triggerType == TriggerType::SINGLE_USE || event.m_triggerType == TriggerType::REUSABLE) {
         auto* triggerObject = event.m_pTriggerObject;
@@ -697,7 +699,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
                     auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
                     trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
                     // Add TrapComponent with some parameters (e.g., 50 damage, 5 seconds lifespan)
-                    trapObj.AddComponent<TrapComponent>(50.0f, 1.0f, m_pColliderManager);
+                    trapObj.AddComponent<TrapComponent>(50.0f, 1.0f, m_pColliderManager, 0.0f, event.m_pTriggerObject->GetComponent<TriggerComponent>()->GetEntityListenTypes());
                     // wolf::Log("Spike trap triggered!");
                     break;
                 }

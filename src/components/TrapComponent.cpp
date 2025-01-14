@@ -1,12 +1,14 @@
 #include "TrapComponent.h"
 #include "PlayerController.h"
+#include "MinitaurController.h"
+#include "GorgonController.h"
+#include "HarpyController.h"
 #include "HealthComponent.h"
 
-TrapComponent::TrapComponent(float damage, float lifespan, ColliderManager* colliderManager, float initialDelay)
-    : m_damage(damage), m_lifespan(lifespan), m_colliderManager(colliderManager), m_attackCooldown(1.0f), m_initialDelay(initialDelay) {
+TrapComponent::TrapComponent(float damage, float lifespan, ColliderManager* colliderManager, float initialDelay, EntityListenType::type entityTypes)
+    : m_damage(damage), m_lifespan(lifespan), m_entityTypes(entityTypes), m_pColliderManager(colliderManager), m_initialDelay(initialDelay) {
     // Start timers immediately, making the trap active upon creation
     m_lifespanTimer.Start();
-    m_attackCooldownTimer.Start();
 }
 
 void TrapComponent::Update(float delta) {
@@ -21,33 +23,32 @@ void TrapComponent::Update(float delta) {
         return;
     }
 
-    // Handle initial attack
-    if (!m_triggered && m_lifespanTimer.Elapsed() > m_initialDelay) {
-        if (CheckForPlayerCollision(delta)) {
-            m_attackCooldownTimer.Restart();
-            m_triggered = true;
-        }
-    }
-
-    // Handle player collision and attack cooldown
-    if (m_attackCooldownTimer.Elapsed() >= m_attackCooldown) {
-        if (CheckForPlayerCollision(delta)) {
-            m_attackCooldownTimer.Restart();
-        }
+    // Handle collision
+    if (CheckForPlayerCollision(delta) || CheckForEnemyCollision(delta)) {
+        m_triggered = true;
     }
 }
 
-bool TrapComponent::CheckForPlayerCollision(float delta) {
+bool TrapComponent::CheckForPlayerCollision(float delta)
+{
+    if (!(m_entityTypes & EntityListenType::PLAYER || m_entityTypes & EntityListenType::PLAYER_IGNORE_ROLLING)) return false;
+
     auto* trapCollider = GetGameObject()->GetComponent<ColliderComponent>();
     if (!trapCollider) return false;
 
-
     for (auto&& [_, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
     {
+        // Ignore player if rolling
+        if (m_entityTypes & EntityListenType::PLAYER_IGNORE_ROLLING &&
+            playerController.GetPlayerAction() == PlayerController::PlayerAction::ROLLING)
+        {
+            continue;
+        }
+
         // Get player object
         auto* pObj = playerController.GetGameObject();
         auto* playerCollider = pObj->GetComponent<ColliderComponent>();
-        if (playerCollider && m_colliderManager->IsColliding(*trapCollider, *playerCollider, delta))
+        if (playerCollider && m_pColliderManager->IsColliding(*trapCollider, *playerCollider, delta))
         {
             auto* playerHealth = pObj->GetComponent<HealthComponent>();
             if (playerHealth) {
@@ -67,6 +68,112 @@ bool TrapComponent::CheckForPlayerCollision(float delta) {
                 }
 
                 return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool TrapComponent::CheckForEnemyCollision(float delta) 
+{
+    auto* trapCollider = GetGameObject()->GetComponent<ColliderComponent>();
+    if (!trapCollider) return false;
+
+    // Get position
+    const glm::vec2 currentPosition = GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    // Minitaurs
+    if (m_entityTypes & EntityListenType::MINITAUR)
+    {
+        for (auto&& [_, minitaur] : GetGameObject()->GetScene().Each<MinitaurController>())
+        {
+            // Get object
+            auto* pObj = minitaur.GetGameObject();
+            auto* pCollider = pObj->GetComponent<ColliderComponent>();
+            if (pCollider && pCollider->IsActive() && m_pColliderManager->IsColliding(*trapCollider, *pCollider, delta))
+            {
+                auto* pHealth = pObj->GetComponent<HealthComponent>();
+                if (pHealth)
+                {
+                    // Apply damage
+                    pHealth->Damage(m_damage);
+
+                    // Apply knockback
+                    auto* pVelocity = pObj->GetComponent<VelocityComponent>();
+                    if (pVelocity)
+                    {
+                        // Calculate knockback direction
+                        const glm::vec2 targetPosition = pObj->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                        glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
+                        pVelocity->ApplyKnockback(knockbackDirection, 2000);
+                    }
+
+                    return true;
+                }
+            }
+        }
+    }
+
+    // Gorgons
+    if (m_entityTypes & EntityListenType::GORGON)
+    {
+        for (auto&& [_, gorgon] : GetGameObject()->GetScene().Each<GorgonController>())
+        {
+            // Get object
+            auto* pObj = gorgon.GetGameObject();
+            auto* pCollider = pObj->GetComponent<ColliderComponent>();
+            if (pCollider && pCollider->IsActive() && m_pColliderManager->IsColliding(*trapCollider, *pCollider, delta))
+            {
+                auto* pHealth = pObj->GetComponent<HealthComponent>();
+                if (pHealth)
+                {
+                    // Apply damage
+                    pHealth->Damage(m_damage);
+
+                    // Apply knockback
+                    auto* pVelocity = pObj->GetComponent<VelocityComponent>();
+                    if (pVelocity)
+                    {
+                        // Calculate knockback direction
+                        const glm::vec2 targetPosition = pObj->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                        glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
+                        pVelocity->ApplyKnockback(knockbackDirection, 2000);
+                    }
+
+                    return true;
+                }
+            }
+        }
+    }
+
+    // Harpies
+    if (m_entityTypes & EntityListenType::HARPY)
+    {
+        for (auto&& [_, harpy] : GetGameObject()->GetScene().Each<HarpyController>())
+        {
+            // Get object
+            auto* pObj = harpy.GetGameObject();
+            auto* pCollider = pObj->GetComponent<ColliderComponent>();
+            if (pCollider && pCollider->IsActive() && m_pColliderManager->IsColliding(*trapCollider, *pCollider, delta))
+            {
+                auto* pHealth = pObj->GetComponent<HealthComponent>();
+                if (pHealth)
+                {
+                    // Apply damage
+                    pHealth->Damage(m_damage);
+
+                    // Apply knockback
+                    auto* pVelocity = pObj->GetComponent<VelocityComponent>();
+                    if (pVelocity)
+                    {
+                        // Calculate knockback direction
+                        const glm::vec2 targetPosition = pObj->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                        glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
+                        pVelocity->ApplyKnockback(knockbackDirection, 2000);
+                    }
+
+                    return true;
+                }
             }
         }
     }
