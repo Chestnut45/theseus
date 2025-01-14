@@ -69,6 +69,12 @@ void GorgonController::Init(const EnemyData& data)
     wolf::Transform2D* transform = m_pEmoteObj->GetComponent<wolf::Transform2D>();
     transform->SetPosition(glm::vec2(-8.0f, 8.0f));
 
+    // Init attack state members
+    m_attackWindupTimer = ATTACK_WINDUP_TIME;
+    m_isEnterAttackWindup = false;
+    m_attackStrikeTimer = ATTACK_STRIKE_TIME;
+    m_isEnterAttackStrike = false;
+
     // Add emotes spritesheet
     AnimatedSprite2D* emotesSpritesheet = &m_pEmoteObj->AddComponent<AnimatedSprite2D>("data/emotes_anim_init.yaml");
     emotesSpritesheet->SetAnimPaused(true);
@@ -108,6 +114,12 @@ void GorgonController::Update(float delta)
         // Switch to the DEATH state if the health is depleted
         ChangeState(EnemyState::DEATH);
         return;
+    }
+
+    if(m_rangedTimer > 0.0f)
+    {
+        // Cooldown timer for next attack
+        m_rangedTimer -= delta;
     }
     
     // Update based on the current state
@@ -197,6 +209,11 @@ void GorgonController::ChangeState(EnemyState newState)
     // Enter new state
         switch (newState)
     {
+        case EnemyState::ATTACKING:
+        {
+            EnterAttackState();
+            break;
+        }
         case EnemyState::CHASING:
         {
             EnterChasingState();
@@ -408,6 +425,7 @@ void GorgonController::HandleChasingState(float delta)
         (
             m_pTargetStatusComponent != nullptr                                                             &&  // If target status component not null
             m_transitionTimer.Elapsed() >= m_transitionDelay                                                &&  // If transition delay expired
+            m_rangedTimer <= 0.0f                                                                           &&  // If delay between attacks expired
             !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)   &&  // If target not already petrified
             IsTargetInLOS()                                                                                     // If target in line of sight
         )
@@ -420,30 +438,49 @@ void GorgonController::HandleChasingState(float delta)
 
 void GorgonController::HandleAttackingState(float delta)
 {
-    if (!m_pTarget) return;
-    // Stop Gorgon's movement during attack
-    m_pVelocity->SetVelocity(glm::vec2(0.0f));
-
-    if(m_rangedTimer <= 0.0f)
+    if (!m_pTarget)
     {
-
-        // If target is in line of sight, petrify target and switch to prospect
-        if(m_pTargetStatusComponent != nullptr && IsTargetInLOS())
-        {
-            m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
-        }
-        ChangeState(EnemyState::CHASING);
+        ChangeState(EnemyState::IDLE);
         return;
     }
-    else
+    // If winding up attack
+    if(m_attackWindupTimer > 0.0f)
     {
-        // Cooldown timer for next attack
-        m_rangedTimer -= delta;
+        // If entering windup
+        if(m_isEnterAttackWindup == true)
+        {
+            m_isEnterAttackWindup = false;
+        }
+        m_attackWindupTimer -= delta;
 
         // Brighten sprite to indicate attack
         if(m_pAnimComponent != nullptr)
         {
             m_pAnimComponent->SetTint(m_pAnimComponent->GetTint() + delta / (m_rangedCooldown * 0.5f));
+        }
+    }
+    // Else
+    else
+    {
+        // If entering strike
+        if(m_isEnterAttackStrike == true)
+        {
+            m_attackStrikeTimer -= delta;
+        }
+
+        if(m_attackStrikeTimer > 0.0f)
+        {
+            m_attackStrikeTimer -= delta;
+        }
+        else
+        {
+            // If target is in line of sight, petrify target and switch to prospect
+            if(m_pTargetStatusComponent != nullptr && IsTargetInLOS())
+            {
+                m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
+            }
+            ChangeState(EnemyState::CHASING);
+            return;
         }
     }
 }
@@ -624,6 +661,13 @@ void GorgonController::HandleDeathState(float delta)
     }
 }
 
+void GorgonController::EnterAttackState()
+{
+    m_isEnterAttackStrike = true;
+    m_attackWindupTimer = true;
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+}
+
 void GorgonController::EnterChasingState()
 {
     m_transitionTimer.Reset();
@@ -650,13 +694,17 @@ void GorgonController::EnterDeathState()
 }
 
 void GorgonController::ExitAttackState()
-{
-    m_rangedTimer = m_rangedCooldown;
-    
+{   
     if(m_pAnimComponent != nullptr)
     {
         m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
     }
+
+    m_rangedTimer = m_rangedCooldown;
+    m_attackStrikeTimer = ATTACK_STRIKE_TIME;
+    m_isEnterAttackStrike = false;
+    m_attackWindupTimer = ATTACK_WINDUP_TIME;
+    m_isEnterAttackWindup = false;
 }
 
 void GorgonController::ExitChasingState()

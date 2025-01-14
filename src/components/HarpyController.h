@@ -60,7 +60,7 @@ private:
     //-----------------//
 
     wolf::RNG m_RNG;
-    float m_rangedCooldown;
+    float m_rangedCooldown;     // Delay between 2 attack states
     float m_rangedTimer = 0.0f;
     float m_rangedRange = 1.0f;
     float m_stunnedTime = 0.5f;

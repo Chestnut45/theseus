@@ -304,7 +304,11 @@ void HarpyController::HandleChasingState(float delta)
 
     if(distanceToPlayer <= m_rangedRange)
     {
-        if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_rangedTimer <= 0.0f)
+        if
+        (
+            m_transitionTimer.Elapsed() >= m_transitionDelay    && // If transition delay expired 
+            m_rangedTimer <= 0.0f                                  // If delay between attacks expired
+        )
         {
             ChangeState(EnemyState::ATTACKING);            
         }
@@ -313,21 +317,30 @@ void HarpyController::HandleChasingState(float delta)
 
 void HarpyController::HandleAttackingState(float delta)
 {
-    if (!m_pTarget) return;
+    if (!m_pTarget)
+    {
+        ChangeState(EnemyState::IDLE);
+        return;
+    }
 
+    // If winding up attack
     if(m_attackWindupTimer > 0.0f)
     {
+        // If entering windup
         if(m_isEnterAttackWindup == true)
         {
             m_isEnterAttackWindup = false;
         }
+
         glm::vec3 currentTint = m_pAnimComponent->GetTint();
         glm::vec3 nextTint = currentTint + glm::vec3(delta);
         m_pAnimComponent->SetTint(nextTint);
         m_attackWindupTimer -= delta;
     }
+    // Else
     else
-    {
+    {   
+        // If entering strike
         if(m_isEnterAttackStrike == true)
         {
             m_attackChain--;

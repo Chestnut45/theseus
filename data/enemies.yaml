@@ -13,7 +13,7 @@ enemies:
     health: 200
     armour: 2
     ranged_range: 300
-    attack_cooldown: 2
+    ranged_cooldown: 2
     detection_range: 600
     base_damage: 20
     chase_speed: 80
@@ -24,7 +24,7 @@ enemies:
     armour: 1
     ranged_range: 300
     attack_cooldown: 3
-    ranged_cooldown: 2
+    ranged_cooldown: 1
     detection_range: 300
     base_damage: 50
     chase_speed: 120
