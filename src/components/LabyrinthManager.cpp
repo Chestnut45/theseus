@@ -2010,7 +2010,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
 
                         // Add the TriggerComponent
-                        trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);
+                        trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);
 
                         // Add the object to the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(trap);
