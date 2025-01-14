@@ -1,6 +1,2 @@
 /build
 thirdparty/glew/glew.pc
-
-# Ignore Visual Studio Code settings and other IDE-specific files
-.vscode/
-.vscode/settings.json
