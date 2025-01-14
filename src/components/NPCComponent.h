@@ -24,16 +24,16 @@
 
 // ---------- TO DO -----------
 // [x] - Get it to build
-// [/] - Test dialogue
-// [/] - Open merchant after
+// [?] - Test dialogue
+// [?] - Open merchant after
 //       dialogue and start
 //       goodbye when shop is
 //       closed
 // [x] - Write Daedalus .yaml
 // [x] - Test merchant
-// [?] - Add hit effect
+// [!] - Add hit effect
 // [x] - Get NPCs to die
-// [ ] - Random selection for
+// [x] - Random selection for
 //       BuildNPC()
 // ----------------------------
 
