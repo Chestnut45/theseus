@@ -23,7 +23,6 @@ enemies:
     health: 800
     armour: 1
     ranged_range: 300
-    attack_cooldown: 3
     ranged_cooldown: 1
     detection_range: 300
     base_damage: 50
