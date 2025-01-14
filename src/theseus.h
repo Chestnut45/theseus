@@ -2,7 +2,8 @@
 
 #include <wolf.h>
 #include "GameInc.h"
-
+#include "DialogueManager.h"
+#include "SharedContext.h"
 class Theseus : public wolf::App
 {
 public:
@@ -28,6 +29,10 @@ public:
 
     // Gets a reference to the main scene of the game
     inline wolf::Scene& GetScene() { return m_scene; }
+    DialogueManager& GetDialogueManager() { return m_dialogueManager; }
+
+    SharedContext& GetSharedContext() { return m_sharedContext; }
+
 
 private:
 
@@ -36,7 +41,10 @@ private:
 
     // Manager for handling game states
     GameStateManager* m_pStateManager = nullptr;
+    DialogueManager m_dialogueManager;
 
     // Flags
     bool m_showDebug = false;
+
+    SharedContext m_sharedContext;
 };

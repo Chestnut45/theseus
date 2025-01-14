@@ -49,6 +49,26 @@
 6) You may need to choose your build target (theseus) from the dropdown the first time
 7) If you see errors about including "GL/glu.h", you may also need libglu1 development libraries (apt-get install libglu1-mesa libglu1-mesa-dev)
 
+# Controls
+- WASD - Move Player
+- Left Click - Attack / Select
+- Space - Roll
+
+# Hotkeys
+- 0: Open / Close Inventory
+- 1: Fill Inventory
+- 2: Add Gold to Player
+- 3: Take Gold from Player
+- 4: Open / Close Chest
+- 5: Fill Chest
+- 6: Open / Close Merchant (In Inventory Branch)
+- 7: Fill Merchant Inventory (In Inventory Branch)
+- 8: Open / Close Dispensary (In Inventory Branch)
+- 9: Open Dialogue
+- -: Zoom Out
+- +: Zoom In
+- ~: Show Debug Menu
+
 # Wolf Extensions
 
 ## App
@@ -406,8 +426,8 @@ for (auto&&[id, hitbox, transform] : scene.Each<Hitbox2D, Transform2D>())
 // Notice you can iterate the objects themselves directly with the exact same syntax as iterating components
 for (auto&&[id, object] : scene.Each<GameObject>())
 {
-    // Collect only game objects with no children (root objects)
-    if (!object.HasChildren())
+    // Collect only game objects with no parent (root objects in the scene)
+    if (!object.GetParent())
     {
         // ...
     }

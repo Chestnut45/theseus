@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include <W_GameObject.h>
+#include <W_Grid2D.h>
 #include <W_ProgramManager.h>
 #include <W_VertexBuffer.h>
 #include <W_VertexDeclaration.h>
@@ -29,8 +30,8 @@ public:
     // Empty tile ID
     static const inline int EMPTY_TILE = -1;
 
-    // Create an empty tilemap from (0, 0) to (width, height).
-    TileMap(int mapWidth, int mapHeight);
+    // Create an empty tilemap from (0, 0) to (width - 1, height - 1).
+    TileMap(int width, int height);
     ~TileMap();
 
     // Delete copy constructor/assignment
@@ -58,16 +59,21 @@ public:
     int GetTile(int x, int y) const;
 
     // Sets the tile at the given location to the given ID.
-    // NOTE: Does nothing if position is out of bounds.
+    // NOTE: Logs an error if position is out of bounds.
     // NOTE: Does not validate tileID
     void SetTile(int x, int y, int tileID);
 
-    // Deletes all tiles in the map.
-    void Clear();
+    // Sets every tile in the map to tile
+    // Default value is -1
+    void Clear(int tile = EMPTY_TILE);
 
     // Resizes the map to the given dimensions.
     // NOTE: Resizing will clear the map too!
-    void Resize(int width, int height);
+    void Resize(int width, int height, int clearTile = EMPTY_TILE);
+    
+    // Visibility access / control
+    inline bool IsVisible() const { return m_visible; }
+    inline void SetVisibility(bool visible) { m_visible = visible; }
 
     // TODO: Set origin to center of tilemap (including tile texture size)
 
@@ -76,19 +82,18 @@ public:
     // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
     void Draw(const glm::vec2& position, float rotationRadians = 0.0f, const glm::vec2& scale = glm::vec2(1.0f), const glm::vec3& tint = glm::vec3(1.0f));
 
+    // TODO: Generate a collider component that lines up with collidable tiles
+    void GenerateCollider();
+
 // Implementation
 private:
 
-    // Map dimensions
-    int m_width;
-    int m_height;
+    // Grid of tile data
+    wolf::Grid2D<int> m_tileGrid;
 
-    // Tile dimensions
+    // Tile dimensions in pixels
     int m_tileWidth = 0;
     int m_tileHeight = 0;
-
-    // Flattened tile array
-    std::vector<int> m_tileData;
 
     // Number of tiles to draw
     int m_tilesToDraw = 0;
@@ -101,8 +106,9 @@ private:
     GLuint m_VBO = 0;
     GLuint m_VAO = 0;
 
-    // Update flags
+    // Flags
     bool m_VBODirty = true;
+    bool m_visible = true;
 
     // Helper methods
     void _UpdateVBO();
@@ -118,7 +124,7 @@ private:
         glm::ivec2 m_tileSize{0};
     };
 
-    // Map from file path to refernece counted tile set array texture ID
+    // Map from file path to reference counted tile set array texture ID
     static inline std::unordered_map<std::string, TileSetEntry> s_tileSetIDMap;
 
     // Static rendering resources

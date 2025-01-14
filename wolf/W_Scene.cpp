@@ -1,11 +1,15 @@
 #include "W_Scene.h"
 
+#include <map>
 #include <string>
 
 #include "W_GameObject.h"
 #include "W_Sprite2D.h"
 #include "W_TileMap.h"
 #include "W_Transform2D.h"
+#include "AnimatedSprite2D.h"
+
+#include "../src/components/ColliderComponent.h"
 
 namespace wolf
 {
@@ -98,10 +102,50 @@ void Scene::Render()
     // Bind the active camera
     m_pActiveCamera->Bind();
 
-    // Render all sprites with transform components
+    // Build map of sprites to render by layer
+    std::map<int, std::vector<std::pair<Sprite2D*, Transform2D*>>> sortedSprites;
     for (auto&&[_, sprite, transform] : Each<Sprite2D, Transform2D>())
     {
-        sprite.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
+        int layer = sprite.GetLayer();
+
+        // Add new spritebatch if it doesn't exist
+        if (!sortedSprites.contains(layer)) sortedSprites[layer] = {};
+
+        // Push back the next sprite
+        sortedSprites[layer].push_back(std::make_pair<Sprite2D*, Transform2D*>(&sprite, &transform));
+    }
+
+    // Render all sprites in order
+    for (auto iter = sortedSprites.rbegin(); iter != sortedSprites.rend(); ++iter)
+    {
+        auto& batch = iter->second;
+        for (auto& pair : batch)
+        {
+            pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
+        }
+    }
+
+    // Build map of animated sprites to render by layer
+    std::map<int, std::vector<std::pair<AnimatedSprite2D*, Transform2D*>>> sortedAnimatedSprites;
+    for (auto&&[_, sprite, transform] : Each<AnimatedSprite2D, Transform2D>())
+    {
+        int layer = sprite.GetLayer();
+
+        // Add new spritebatch if it doesn't exist
+        if (!sortedAnimatedSprites.contains(layer)) sortedAnimatedSprites[layer] = {};
+
+        // Push back the next sprite
+        sortedAnimatedSprites[layer].push_back(std::make_pair<AnimatedSprite2D*, Transform2D*>(&sprite, &transform));
+    }
+
+    // Render all animated sprites in order
+    for (auto iter = sortedAnimatedSprites.rbegin(); iter != sortedAnimatedSprites.rend(); ++iter)
+    {
+        auto& batch = iter->second;
+        for (auto& pair : batch)
+        {
+            pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
+        }
     }
 
     // Render all tilemaps with transform components
@@ -109,6 +153,17 @@ void Scene::Render()
     {
         tilemap.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
     }
+
+    // Queue all colliders for debug rendering
+    for (auto&&[_, collider] : Each<ColliderComponent>())
+    {
+        if (collider.IsActive()) collider.FillVertexArray();
+    }
+
+    // Flush debug drawing (disable depth testing so it always renders on top)
+    glDisable(GL_DEPTH_TEST);
+    ColliderComponent::DebugDrawAndFlush();
+    glEnable(GL_DEPTH_TEST);
 }
 
 void _SceneTests()
@@ -187,6 +242,14 @@ void _SceneTests()
     {
         assert(objectID == object1.GetID());
     }
+}
+
+void Scene::SetPlayerID(GameObjectID p_uiGOId) {
+    m_uiPlayerGOId = p_uiGOId;
+}
+
+GameObjectID const Scene::GetPlayerID() {
+    return m_uiPlayerGOId;
 }
 
 }

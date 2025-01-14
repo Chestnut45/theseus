@@ -1,3 +1,4 @@
+
 #include "theseus.h"
 
 // Application entrypoint
@@ -15,11 +16,10 @@ int main(int, char**)
 
 Theseus::Theseus() : App("Theseus", 1280, 720)
 {
-    // Enable depth testing
-    glEnable(GL_DEPTH_TEST);
-
     // Initialize the game state manager
     m_pStateManager = new GameStateManager();
+
+    // m_dialogueManager.LoadDialogueFromYAML("data/dialogues.yaml");
     
     // Start with the Main Menu State
     m_pStateManager->PushState(new MainMenuState(m_pStateManager, this));

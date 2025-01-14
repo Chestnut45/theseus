@@ -98,6 +98,7 @@ App::App(const std::string& name, int width, int height)
     Log("OpenGL Context: ", glGetString(GL_VERSION));
 
     // Initialize audio system
+    // NOTE: Commented out until we find a fix for soloud crashing
     Audio::_Setup();
 }
 

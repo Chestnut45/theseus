@@ -1,0 +1,33 @@
+texture: data/textures/TheseusWalk-Sheet.png
+frame_size: {x: 32.0, y: 32.0}
+
+animations: [
+  {
+    name: WalkSouth,
+    start_frame: 1,
+    end_frame: 8,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: WalkEast,
+    start_frame: 9,
+    end_frame: 16,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: WalkNorth,
+    start_frame: 17,
+    end_frame: 24,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: WalkWest,
+    start_frame: 25,
+    end_frame: 32,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  }
+]
