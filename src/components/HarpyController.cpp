@@ -62,10 +62,10 @@ void HarpyController::Init(const EnemyData& data)
     }
 
     // Init attack state members
-    m_attackWindupTimer = ATTACK_WINDUP_TIME;
-    m_isEnterAttackWindup = false;
-    m_attackStrikeTimer = ATTACK_STRIKE_TIME;
-    m_isEnterAttackStrike = false;
+    m_rangedWindupTimer = RANGED_WINDUP_TIME;
+    m_isEnterRangedWindup = false;
+    m_rangedStrikeTimer = RANGED_STRIKE_TIME;
+    m_isEnterRangedStrike = false;
     m_attackChain = 0;
 
     // Init emotes object
@@ -324,33 +324,33 @@ void HarpyController::HandleAttackingState(float delta)
     }
 
     // If winding up attack
-    if(m_attackWindupTimer > 0.0f)
+    if(m_rangedWindupTimer > 0.0f)
     {
         // If entering windup
-        if(m_isEnterAttackWindup == true)
+        if(m_isEnterRangedWindup == true)
         {
-            m_isEnterAttackWindup = false;
+            m_isEnterRangedWindup = false;
         }
 
         glm::vec3 currentTint = m_pAnimComponent->GetTint();
         glm::vec3 nextTint = currentTint + glm::vec3(delta);
         m_pAnimComponent->SetTint(nextTint);
-        m_attackWindupTimer -= delta;
+        m_rangedWindupTimer -= delta;
     }
     // Else
     else
     {   
         // If entering strike
-        if(m_isEnterAttackStrike == true)
+        if(m_isEnterRangedStrike == true)
         {
             m_attackChain--;
             m_pAnimComponent->SetTint(glm::vec3(1.0f));
-            m_isEnterAttackStrike = false;
+            m_isEnterRangedStrike = false;
         }
 
-        if(m_attackStrikeTimer > 0.0f)
+        if(m_rangedStrikeTimer > 0.0f)
         {
-            m_attackStrikeTimer -= delta;
+            m_rangedStrikeTimer -= delta;
         }
         else
         {
@@ -529,8 +529,8 @@ void HarpyController::HandleDeathState(float delta)
 
 void HarpyController::EnterAttackState()
 {
-    m_isEnterAttackStrike = true;
-    m_attackWindupTimer = true;
+    m_isEnterRangedStrike = true;
+    m_rangedWindupTimer = true;
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
     if(m_attackChain <= 0){
         m_attackChain = m_RNG.NextInt(1, 2);
@@ -561,10 +561,10 @@ void HarpyController::EnterDeathState()
 void HarpyController::ExitAttackState()
 {
     m_rangedTimer = m_rangedCooldown;
-    m_attackStrikeTimer = ATTACK_STRIKE_TIME;
-    m_isEnterAttackStrike = false;
-    m_attackWindupTimer = ATTACK_WINDUP_TIME;
-    m_isEnterAttackWindup = false;
+    m_rangedStrikeTimer = RANGED_STRIKE_TIME;
+    m_isEnterRangedStrike = false;
+    m_rangedWindupTimer = RANGED_WINDUP_TIME;
+    m_isEnterRangedWindup = false;
 }
 
 void HarpyController::ExitChasingState()

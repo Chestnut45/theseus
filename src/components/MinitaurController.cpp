@@ -109,6 +109,12 @@ void MinitaurController::Update(float delta)
         return;
     }
 
+    if(m_meleeTimer > 0.0f)
+    {
+        // Cooldown timer for next attack
+        m_meleeTimer -= delta;
+    }
+
     // Update based on the current state
     switch (m_state)
     {
@@ -196,6 +202,11 @@ void MinitaurController::ChangeState(EnemyState newState)
     // Enter new state
         switch (newState)
     {
+        case EnemyState::ATTACKING:
+        {
+            EnterAttackState();
+            break;
+        }
         case EnemyState::CHASING:
         {
             EnterChasingState();
@@ -365,7 +376,7 @@ void MinitaurController::HandleChasingState(float delta)
     }
     if (distanceToPlayer <= m_meleeRange)
     {
-        if (m_transitionTimer.Elapsed() >= m_transitionDelay)
+        if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_meleeTimer <= 0.0f)
         {
             ChangeState(EnemyState::ATTACKING);
             return;
@@ -375,52 +386,75 @@ void MinitaurController::HandleChasingState(float delta)
 
 void MinitaurController::HandleAttackingState(float delta)
 {
-    if (!m_pTarget) return;
-
-    // Stop Minitaur's movement during attack
-    m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    if(m_meleeTimer <= 0.0f)
+    if (!m_pTarget)
     {
-        // Check distance to player
-        const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-        const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+        ChangeState(EnemyState::IDLE);
+        return;
+    }
 
-        // Apply damage if player is within melee range and attack cooldown is over
-        if (distanceToPlayer <= m_meleeRange)
+    // If winding up attack
+    if(m_meleeWindupTimer > 0.0f)
+    {
+        // If entering windup
+        if(m_isEnterMeleeWindup == true)
         {
-            // Apply damage to the player
-            auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
-            if (playerHealth)
-            {
-                playerHealth->Damage(m_baseDamage);
-                wolf::Audio::Play("data/sounds/hurt.wav");
+            m_isEnterMeleeWindup = false;
+        }
+        m_meleeWindupTimer -= delta;
+    }
 
-            }
+    else
+    {
+        // If entering strike
+        if(m_isEnterMeleeStrike == true)
+        {
+            m_isEnterMeleeStrike = false;
+        }
 
-            // Apply strong knockback to the player
-            auto* playerVelocity = m_pTarget->GetComponent<VelocityComponent>();
-            if (playerVelocity)
-            {
-                // Calculate knockback direction and amplify the push
-                glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
-                float knockbackStrength = 800.0f; // Amplified knockback strength
-                playerVelocity->ApplyKnockback(knockbackDirection, knockbackStrength);
-            }
-
+        if(m_meleeStrikeTimer > 0.0f)
+        {
+            m_meleeStrikeTimer -= delta;
         }
         else
         {
-            // Return to chasing if player moves out of range
-            ChangeState(EnemyState::CHASING);
-        }
+            // Check distance to player
+            const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+            const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
-        // Reset attack cooldown timer
-        m_meleeTimer = m_meleeCooldown;
-    }
-    else
-    {
-        m_meleeTimer -= delta;
+            // Apply damage if player is within melee range and attack cooldown is over
+            if (distanceToPlayer <= m_meleeRange)
+            {
+                // Apply damage to the player
+                auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
+                if (playerHealth)
+                {
+                    playerHealth->Damage(m_baseDamage);
+                    wolf::Audio::Play("data/sounds/hurt.wav");
+
+                }
+
+                // Apply strong knockback to the player
+                auto* playerVelocity = m_pTarget->GetComponent<VelocityComponent>();
+                if (playerVelocity)
+                {
+                    // Calculate knockback direction and amplify the push
+                    glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
+                    float knockbackStrength = 800.0f; // Amplified knockback strength
+                    playerVelocity->ApplyKnockback(knockbackDirection, knockbackStrength);
+                }
+
+                // Chain another attack
+                ChangeState(EnemyState::ATTACKING);
+                return;
+            }
+            else
+            {
+                // Return to chasing if player moves out of range
+                ChangeState(EnemyState::CHASING);
+                return;
+            }
+        }
     }
 }
 
@@ -540,6 +574,13 @@ void MinitaurController::HandleDeathState(float delta)
     }  
 }
 
+void MinitaurController::EnterAttackState()
+{
+    m_isEnterMeleeStrike = true;
+    m_meleeWindupTimer = true;
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+}
+
 void MinitaurController::EnterChasingState()
 {
     m_transitionTimer.Reset();
@@ -567,11 +608,10 @@ void MinitaurController::EnterDeathState()
 void MinitaurController::ExitAttackState()
 {
     m_meleeTimer = m_meleeCooldown;
-    
-    if(m_pAnimComponent != nullptr)
-    {
-        m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
-    }
+    m_meleeStrikeTimer = MELEE_STRIKE_TIME;
+    m_isEnterMeleeStrike = false;
+    m_meleeWindupTimer = MELEE_WINDUP_TIME;
+    m_isEnterMeleeWindup = false;
 }
 
 void MinitaurController::ExitChasingState()

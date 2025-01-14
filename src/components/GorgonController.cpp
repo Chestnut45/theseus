@@ -70,10 +70,10 @@ void GorgonController::Init(const EnemyData& data)
     transform->SetPosition(glm::vec2(-8.0f, 8.0f));
 
     // Init attack state members
-    m_attackWindupTimer = ATTACK_WINDUP_TIME;
-    m_isEnterAttackWindup = false;
-    m_attackStrikeTimer = ATTACK_STRIKE_TIME;
-    m_isEnterAttackStrike = false;
+    m_rangedWindupTimer = RANGED_WINDUP_TIME;
+    m_isEnterRangedWindup = false;
+    m_rangedStrikeTimer = RANGED_STRIKE_TIME;
+    m_isEnterRangedStrike = false;
 
     // Add emotes spritesheet
     AnimatedSprite2D* emotesSpritesheet = &m_pEmoteObj->AddComponent<AnimatedSprite2D>("data/emotes_anim_init.yaml");
@@ -444,14 +444,14 @@ void GorgonController::HandleAttackingState(float delta)
         return;
     }
     // If winding up attack
-    if(m_attackWindupTimer > 0.0f)
+    if(m_rangedWindupTimer > 0.0f)
     {
         // If entering windup
-        if(m_isEnterAttackWindup == true)
+        if(m_isEnterRangedWindup == true)
         {
-            m_isEnterAttackWindup = false;
+            m_isEnterRangedWindup = false;
         }
-        m_attackWindupTimer -= delta;
+        m_rangedWindupTimer -= delta;
 
         // Brighten sprite to indicate attack
         if(m_pAnimComponent != nullptr)
@@ -463,14 +463,14 @@ void GorgonController::HandleAttackingState(float delta)
     else
     {
         // If entering strike
-        if(m_isEnterAttackStrike == true)
+        if(m_isEnterRangedStrike == true)
         {
-            m_attackStrikeTimer -= delta;
+            m_isEnterRangedStrike = false;
         }
 
-        if(m_attackStrikeTimer > 0.0f)
+        if(m_rangedStrikeTimer > 0.0f)
         {
-            m_attackStrikeTimer -= delta;
+            m_rangedStrikeTimer -= delta;
         }
         else
         {
@@ -663,8 +663,8 @@ void GorgonController::HandleDeathState(float delta)
 
 void GorgonController::EnterAttackState()
 {
-    m_isEnterAttackStrike = true;
-    m_attackWindupTimer = true;
+    m_isEnterRangedStrike = true;
+    m_rangedWindupTimer = true;
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 }
 
@@ -701,10 +701,10 @@ void GorgonController::ExitAttackState()
     }
 
     m_rangedTimer = m_rangedCooldown;
-    m_attackStrikeTimer = ATTACK_STRIKE_TIME;
-    m_isEnterAttackStrike = false;
-    m_attackWindupTimer = ATTACK_WINDUP_TIME;
-    m_isEnterAttackWindup = false;
+    m_rangedStrikeTimer = RANGED_STRIKE_TIME;
+    m_isEnterRangedStrike = false;
+    m_rangedWindupTimer = RANGED_WINDUP_TIME;
+    m_isEnterRangedWindup = false;
 }
 
 void GorgonController::ExitChasingState()
@@ -740,7 +740,7 @@ void GorgonController::ExitStunnedState()
 
 void GorgonController::SetEmote(EnemyEmote p_emote)
 {
-    std::cout << "GorgonController - p_emote: " << p_emote << std::endl;
+    // std::cout << "GorgonController - p_emote: " << p_emote << std::endl;
     m_fEmoteTimer = EMOTE_TIME;
     switch(p_emote)
     {

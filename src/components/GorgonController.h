@@ -60,7 +60,7 @@ private:
     VelocityComponent* m_pVelocity = nullptr;
     float m_meleeRange;
     float m_rangedRange;
-    float m_rangedCooldown; // Delay between 2 attack states
+    float m_rangedCooldown; // Delay between 2 ranged attacks
     float m_rangedTimer = 0.0f;
     float m_detectionRange;
     float m_baseDamage;
@@ -93,12 +93,12 @@ private:
     float m_timeToLieDead = 0.8f;
 
     // Attack state members
-    const float ATTACK_WINDUP_TIME = 3.0f;
-    float m_attackWindupTimer = 0.0f;
-    bool m_isEnterAttackWindup = false;
-    const float ATTACK_STRIKE_TIME = 0.1f;
-    float m_attackStrikeTimer = 0.0f;
-    bool m_isEnterAttackStrike = false;
+    const float RANGED_WINDUP_TIME = 0.1f;
+    float m_rangedWindupTimer = 0.0f;
+    bool m_isEnterRangedWindup = false;
+    const float RANGED_STRIKE_TIME = 0.1f;
+    float m_rangedStrikeTimer = 0.0f;
+    bool m_isEnterRangedStrike = false;
 
     // Emote-related members
     EnemyEmote m_emote = EnemyEmote::NONE; // Current emote
