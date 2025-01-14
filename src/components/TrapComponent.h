@@ -2,12 +2,12 @@
 #include "W_BaseComponent.h"
 #include "ColliderComponent.h"
 #include "W_Timer.h"
-#include <events/TrapDestroyedEvent.h>
+#include <events/TriggerPurposeFinishedEvent.h>
 #include "TriggerComponent.h"
 
 class TrapComponent : public wolf::BaseComponent {
 public:
-    TrapComponent(float damage, float lifespan, ColliderManager* colliderManager, float initialDelay = 0.0f, EntityListenType::type entityTypes = EntityListenType::PLAYER);
+    TrapComponent(TriggerComponent* pCreatorTrigger, float damage, float lifespan, ColliderManager* pColliderManager, float initialDelay = 0.0f);
     void Update(float delta);
 
 private:
@@ -20,7 +20,8 @@ private:
     bool m_triggered = false;
 
     bool m_isActive = true; // Trap is active upon creation
-    EntityListenType::type m_entityTypes;
     wolf::Timer m_lifespanTimer;
     ColliderManager* m_pColliderManager = nullptr;
+    TriggerComponent* m_pCreatorTrigger = nullptr;
+    EntityListenType::type m_entityTypes;
 };
