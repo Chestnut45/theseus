@@ -298,21 +298,6 @@ void PlayState::Update(float delta)
         }
     }
 
-    // !-- REMOVE SOON --!
-    auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
-    if (merchant) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            merchant->ToggleOpen();
-        }
-        merchant->ShowInventoryGUI();
-    }
-
-    // Show all of the merchant GUIs
-    for (auto&& [_, merchantInventoryComp] : m_pGameInstance->GetScene().Each<MerchantInventoryComponent>())
-    {
-        merchantInventoryComp.ShowInventoryGUI();
-    }
-
     // Display all open dispensary GUIs
     for (auto&&[_, dispensaryInventory, transform] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent, wolf::Transform2D>())
     {
@@ -423,6 +408,24 @@ void PlayState::Update(float delta)
         }
     }
 
+    // Display all open merchant GUIs
+    for (auto&&[_, merchantInventory, transform, sprite] : m_pGameInstance->GetScene().Each<MerchantInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
+    {
+        // Show GUI
+        merchantInventory.ShowInventoryGUI();
+
+        // If the player walks too far away
+        if (!(glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f))
+        {
+            // And the merchant GUI is open
+            if (merchantInventory.IsOpen()) {
+                // Close it (and the player's inventory)
+                merchantInventory.Close();
+                m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+            }
+        }
+    }
+
     // Trigger CutsceneDialogueEvent when pressing 9
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
@@ -521,15 +524,6 @@ void PlayState::CreatePlayer()
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
-
-
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 3.0f);
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 7.0f);
-
-    // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
-    MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, ImVec2(800, 200), "Merchant Guy", 0.1f, 50);
-    pMerchant->FillInventoryFromFile("data/test_chest_contents.yaml");
 }
 
 void PlayState::CreateMinitaurEnemy()
