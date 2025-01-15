@@ -15,6 +15,7 @@
 #include <glm/glm.hpp>
 #include <yaml-cpp/yaml.h>
 #include <map>
+#include <vector>
 
 #include "ItemCreator.h"
 
@@ -28,11 +29,10 @@ class ItemDropCreator {
         static ItemDropCreator* Instance();
 
         void SetScene(wolf::Scene* m_pScene);
-        void SetPlayerGOId(wolf::GameObjectID p_uiGOId);
 
         wolf::GameObject* CreateItemDropFromExistingItem(ItemBase* p_pItem, const glm::vec2& p_v2SpawnPos, float p_fLifespan);
         wolf::GameObject* CreateItemDropFromDirectory(const std::string& p_strItemName, const glm::vec2& p_v2SpawnPos, float p_fLifespan);
-        wolf::GameObject* CreateItemDropFromLootTable(const std::string& p_strLootTable, const glm::vec2& p_v2SpawnPos, float p_fLifespan);
+        std::vector<wolf::GameObject*> CreateItemDropFromLootTable(const std::string& p_strLootTable, const glm::vec2& p_v2SpawnPos, float p_fLifespan);
 
     private:
         ItemDropCreator() {};
