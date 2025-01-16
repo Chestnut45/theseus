@@ -639,7 +639,20 @@ void GorgonController::HandleDeathState(float delta)
     {
         if(m_lieDeadTimer >= m_timeToLieDead)
         {
-            ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
+            // Spawn some loot
+            std::vector<wolf::GameObject*> pItemDrops = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
+            
+            // Harpies can be inside of the walls so we need to push the loot out. To do that,
+            // we get the loot item's velocity component
+            for (auto& pItem : pItemDrops) {
+                VelocityComponent* pItemVel = pItem->GetComponent<VelocityComponent>();
+                if (pItemVel) {
+                    // And gently push it in a random direction, which signals a collision in the ColliderManager
+                    // that caluclates which direction the item should ACTUALLY be pushed in to get it out of the
+                    // wall
+                    pItemVel->ApplyKnockback(glm::vec2(1.0f, 0.0f), 10.0f);
+                }
+            }
             GetGameObject()->Delete();
         }
         m_lieDeadTimer += delta;
