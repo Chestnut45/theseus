@@ -148,11 +148,18 @@ void HealthComponent::AddDamageIndicator(float p_damage)
 {
     this->m_vDamageIndicators.emplace_back(DamageIndicator());
     int pos = this->m_vDamageIndicators.size() - 1;
+    wolf::Transform2D* gameobjTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
+    std::string damageValueString = std::to_string((int)p_damage);
 
+    // Setup
     this->m_vDamageIndicators.at(pos).id = std::to_string(DamageIndicator::idGenerator);
-    this->m_vDamageIndicators.at(pos).damageValue = std::to_string(p_damage);
+    this->m_vDamageIndicators.at(pos).damageValue = damageValueString;
+    this->m_vDamageIndicators.at(pos).damageValueTextSize = ImGui::CalcTextSize(damageValueString.c_str());
     this->m_vDamageIndicators.at(pos).ownerComponent = this;
-    this->m_vDamageIndicators.at(pos).currentPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    this->m_vDamageIndicators.at(pos).currentPos = 
+                                                    gameobjTransform->GetGlobalPosition()                                                   +   // Set window position to position of gameobj
+                                                    glm::vec2(-DamageIndicator::WINDOW_SIZE.x, DamageIndicator::WINDOW_SIZE.y) * 0.5f       +   // Centre window
+                                                    glm::vec2(m_RNG.NextFloat(-8.0f, 8.0f) , 10.0f) * gameobjTransform->GetGlobalScale();       // Offset window
     this->m_vDamageIndicators.at(pos).lifetime = 1.0f;
 }
 
@@ -195,17 +202,17 @@ void HealthComponent::DamageIndicator::Render()
 {
     wolf::Scene* scene = &ownerComponent->GetGameObject()->GetScene();
     wolf::Camera2D* camera = scene->GetActiveCamera();
+    glm::vec2 cameraPos = camera->GetPosition();
     glm::vec2 viewSize = camera->GetViewSize();
+    glm::vec2 viewSizeHalf = glm::vec2(viewSize.x * 0.5f, viewSize.y * 0.5f);
     glm::vec2 worldpos = currentPos;
     
     float l, r, t, b;
-    l = camera->GetPosition().x - viewSize.x * 0.5f;
-    r = camera->GetPosition().x + viewSize.x * 0.5f;
-    t = camera->GetPosition().y + viewSize.y * 0.5f;
-    b = camera->GetPosition().y - viewSize.y * 0.5f;
+    l = cameraPos.x - viewSizeHalf.x;
+    r = cameraPos.x + viewSizeHalf.x;
+    t = cameraPos.y + viewSizeHalf.y;
+    b = cameraPos.y - viewSizeHalf.y;
     
-    // std::cout << "HealthComponent - Camerapos - x: " << camera->GetPosition().x << ", y: " << camera->GetPosition().y << std::endl;
-    // std::cout << "HealthComponent - Indicatorpos - x: " << worldpos.x << ", y: " << worldpos.y << std::endl;
     // Check if indicator is visible
     if
     (
@@ -216,17 +223,16 @@ void HealthComponent::DamageIndicator::Render()
     )
     {   
         glm::vec2 screenpos;
-        screenpos.x = (worldpos.x - (camera->GetPosition().x - viewSize.x * 0.5f));
-        screenpos.y = (worldpos.y - (camera->GetPosition().y - viewSize.y * 0.5f)) * (-1) + viewSize.y;
+        screenpos.x = (worldpos.x - (cameraPos.x - viewSizeHalf.x));
+        screenpos.y = (worldpos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
                 
         // Setup
-        ImVec2 windowSize = ImVec2(640, 320);
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-        ImGui::SetNextWindowPos({screenpos.x, screenpos.y}, ImGuiCond_Always);
-        ImGui::SetNextWindowSize(windowSize);
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
+        ImGui::SetNextWindowPos({screenpos.x, screenpos.y});
+        ImGui::SetNextWindowSize(DamageIndicator::WINDOW_SIZE);
         ImGui::Begin(id.c_str(), nullptr, flags);
-        // std::cout << "HealthComponent - Screenpos - x: " << screenpos.x << ", y: " << screenpos.y << std::endl;
-        ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "%s", damageValue.c_str());
+        ImGui::SetCursorPosX((DamageIndicator::WINDOW_SIZE.x - damageValueTextSize.x) * 0.5f);
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "%s", damageValue.c_str());
 
         // End rendering
         ImGui::End();

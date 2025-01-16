@@ -48,9 +48,12 @@ private:
     {
         std::string id = "";
         std::string damageValue = "0";
-        float lifetime = 1.0f;
+        float lifetime = 0.5f;
         glm::vec2 currentPos = glm::vec2(0.0f, 0.0f);
         HealthComponent* ownerComponent = nullptr;
+
+        ImVec2 damageValueTextSize = ImVec2(0.0f, 0.0f);
+        static const inline ImVec2 WINDOW_SIZE = ImVec2(32, 16);
 
         DamageIndicator(){ idGenerator++; };
         void Update(float p_delta);
@@ -60,6 +63,8 @@ private:
     };
 
     std::vector<DamageIndicator> m_vDamageIndicators;
+
+    wolf::RNG m_RNG;
 
     void AddDamageIndicator(float p_damage);
 };

@@ -272,11 +272,28 @@ void PlayerController::HandlePlayerInput(float delta)
         m_godmode = !m_godmode;
     }
 
-    // Burning hotkey
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_B))
+    // Status effect hotkeys
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_UP))
+    {
+        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
+    }
+
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_DOWN))
+    {
+        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::HEALING, 5.0f);
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_LEFT))
     {
         StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
         statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+    }
+
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT))
+    {
+        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
     }
 
     // Super speed hotkey

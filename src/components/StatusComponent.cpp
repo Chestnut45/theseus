@@ -104,7 +104,7 @@ void StatusComponent::Update(float p_delta)
             if(statusEffect.m_fDamageTimer <= 0.0f)
             {            
                 statusEffect.ApplyStatusEffect(p_delta);
-                statusEffect.m_fDamageTimer = statusEffect.m_fDamageTime;
+                statusEffect.m_fDamageTimer = StatusEffect::DAMAGE_TIMES[statusEffect.m_StatusEffectType];
             }
 
             // If lifetime expired, remove status effect
@@ -124,7 +124,7 @@ float StatusComponent::GetStatusEffectResistance(StatusEffectType p_se_type) con
 void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 {
     this->m_aStatusEffects[p_se_type].m_isActive = false;
-    this->m_aStatusEffects[p_se_type].m_fDamageTimer = this->m_aStatusEffects[p_se_type].m_fDamageTime;
+    this->m_aStatusEffects[p_se_type].m_fDamageTimer = StatusEffect::DAMAGE_TIMES[this->m_aStatusEffects[p_se_type].m_StatusEffectType];
 }
 
 void StatusComponent::RenderPlayerSEIcons()
@@ -134,7 +134,7 @@ void StatusComponent::RenderPlayerSEIcons()
         // Setup
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar |  ImGuiWindowFlags_NoBackground;
         ImVec2 windowSize = ImVec2((s_vTextureSize.x + 16) * (float)StatusEffectType::NONE + 8, s_vTextureSize.y + 24);
-        ImGui::SetNextWindowPos({10, 10}, ImGuiCond_Always);
+        ImGui::SetNextWindowPos({10, 10});
         ImGui::SetNextWindowSize(windowSize);
         ImGui::Begin("\t", nullptr, flags);
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
