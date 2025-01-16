@@ -33,7 +33,7 @@ public:
     void Pierce(float p_damage);
     void Heal(float p_heal);
     void Supercharge(float p_supercharge);
-    void GodmodeHeal();
+    void GodmodeHeal(); // Only for use when in godmode
 
     void UpdateDamageIndicators(float p_delta);
     void RenderDamageIndicators();
@@ -47,7 +47,7 @@ private:
 
     struct DamageIndicator
     {
-        std::string id = "";
+        std::string id = ""; // For rendering ImGui window
         float lifetime = 0.5f;
         glm::vec2 currentPos = glm::vec2(0.0f, 0.0f);
         HealthComponent* ownerComponent = nullptr;

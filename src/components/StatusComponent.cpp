@@ -98,13 +98,14 @@ void StatusComponent::Update(float p_delta)
         // Apply status effect
         if(statusEffect.m_isActive)
         {   
+            // Count down timer
+            statusEffect.m_fSEApplicationTimer -= p_delta;
             
-            statusEffect.m_fDamageTimer -= p_delta;
-            // If damage delay expired, deal damage & reset damage delay timer
-            if(statusEffect.m_fDamageTimer <= 0.0f)
+            // If application interval expired, deal damage & reset timer
+            if(statusEffect.m_fSEApplicationTimer <= 0.0f)
             {            
                 statusEffect.ApplyStatusEffect(p_delta);
-                statusEffect.m_fDamageTimer = StatusEffect::DAMAGE_TIMES[statusEffect.m_StatusEffectType];
+                statusEffect.m_fSEApplicationTimer = StatusEffect::SE_APPLICATION_INTERVALS[statusEffect.m_StatusEffectType];
             }
 
             // If lifetime expired, remove status effect
@@ -124,7 +125,7 @@ float StatusComponent::GetStatusEffectResistance(StatusEffectType p_se_type) con
 void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 {
     this->m_aStatusEffects[p_se_type].m_isActive = false;
-    this->m_aStatusEffects[p_se_type].m_fDamageTimer = StatusEffect::DAMAGE_TIMES[this->m_aStatusEffects[p_se_type].m_StatusEffectType];
+    this->m_aStatusEffects[p_se_type].m_fSEApplicationTimer = StatusEffect::SE_APPLICATION_INTERVALS[this->m_aStatusEffects[p_se_type].m_StatusEffectType];
 }
 
 void StatusComponent::RenderPlayerSEIcons()

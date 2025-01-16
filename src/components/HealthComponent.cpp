@@ -115,6 +115,7 @@ void HealthComponent::Supercharge(float p_supercharge)
     this->AddDamageIndicator(std::string("+") + std::to_string((int)this->m_cap), ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 }
 
+// Only for use when in godmode
 void HealthComponent::GodmodeHeal()
 {
     this->m_health = this->m_cap;
@@ -135,6 +136,7 @@ void HealthComponent::UpdateDamageIndicators(float p_delta)
             {
                 this->m_vDamageIndicators.erase(itr);
             }
+            // Else, update damage indicator
             else
             {
                 damageIndicator->Update(p_delta);
@@ -218,7 +220,6 @@ void HealthComponent::HandleFlatHealthItemEvent(const FlatHealthItemEvent& p_eve
 void HealthComponent::DamageIndicator::Update(float p_delta)
 {
     lifetime -= p_delta;
-    // std::cout << "HealthComponent - Indicator Lifetime: " << lifetime << std::endl;
     if(ownerComponent != nullptr)
     {                
         
@@ -228,6 +229,7 @@ void HealthComponent::DamageIndicator::Update(float p_delta)
 
 void HealthComponent::DamageIndicator::Render()
 {
+    // Get data for calculations
     wolf::Scene* scene = &ownerComponent->GetGameObject()->GetScene();
     wolf::Camera2D* camera = scene->GetActiveCamera();
     glm::vec2 cameraPos = camera->GetPosition();
@@ -235,13 +237,14 @@ void HealthComponent::DamageIndicator::Render()
     glm::vec2 viewSizeHalf = glm::vec2(viewSize.x * 0.5f, viewSize.y * 0.5f);
     glm::vec2 worldpos = currentPos;
     
+    // Calculate boundaries of camera
     float l, r, t, b;
     l = cameraPos.x - viewSizeHalf.x;
     r = cameraPos.x + viewSizeHalf.x;
     t = cameraPos.y + viewSizeHalf.y;
     b = cameraPos.y - viewSizeHalf.y;
     
-    // Check if indicator is visible
+    // If indicator is visible, render
     if
     (
         worldpos.x >= l &&
