@@ -354,7 +354,6 @@ bool ColliderManager::CustomAABBInternalUse(const glm::vec2& p_translation_1, co
     // If one is true but the other isn't
     else if (result != newResult)
     {
-        
         this->SlideAABB(p_translation_1, p_translation_2, p_dimensions_1, p_dimensions_2, p_velocity_1, p_velocity_2, p_delta);
         return true;
     }
@@ -435,6 +434,14 @@ bool ColliderManager::HandleCornerCollision(
     glm::vec2 scale2 = collider2->IsRelative() ? collider2->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale() : glm::vec2(1.0f);
 
     const float buffer = 0.1f; // Small buffer to push the colliders slightly apart
+
+    // !-- Aurora added this check --!
+    // Skip ignored IDs
+    if ((collider1->m_IgnoreID == collider2->GetGameObject()->GetID()) ||
+        (collider2->m_IgnoreID == collider1->GetGameObject()->GetID()))
+    {
+        return false;
+    }
 
     for (wolf::Rectangle box2 : collider2->GetColliderBoxes())
     {
