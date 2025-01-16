@@ -1221,7 +1221,7 @@ void PlayerController::CheckHealth() {
     {
         if (m_godmode)
         {
-            healthComponent->Heal(healthComponent->GetMaxHealth());
+            healthComponent->GodmodeHeal();
         }
         else
         {

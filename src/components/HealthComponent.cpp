@@ -32,6 +32,11 @@ void HealthComponent::Init()
 {
 }
 
+float HealthComponent::GetMaxHealth() const
+{
+    return m_cap;  
+}
+
 // Get health
 float HealthComponent::GetHealth() const
 {
@@ -76,7 +81,7 @@ void HealthComponent::Damage(float p_damage)
         float finalDamage = p_damage * (1.0f - damageReduction);
         this->m_health -= finalDamage;
         if (m_health < 0) m_health = 0;
-        this->AddDamageIndicator(finalDamage);
+        this->AddDamageIndicator(finalDamage, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
 }
 
@@ -87,7 +92,7 @@ void HealthComponent::Pierce(float p_damage)
     {
         this->m_health -= p_damage;
         if (m_health < 0) m_health = 0;
-        this->AddDamageIndicator(p_damage);
+        this->AddDamageIndicator(p_damage, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
     }
 }
 
@@ -99,12 +104,19 @@ void HealthComponent::Heal(float p_heal)
     {
         this->m_health = this->m_cap;
     }
+    this->AddDamageIndicator(std::string("+") + std::to_string((int)p_heal), ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 }
 
 // Increase cap & refill health
 void HealthComponent::Supercharge(float p_supercharge)
 {
     this->m_cap += p_supercharge;
+    this->m_health = this->m_cap;
+    this->AddDamageIndicator(std::string("+") + std::to_string((int)this->m_cap), ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+}
+
+void HealthComponent::GodmodeHeal()
+{
     this->m_health = this->m_cap;
 }
 
@@ -144,28 +156,44 @@ void HealthComponent::RenderDamageIndicators()
     }    
 }
 
-void HealthComponent::AddDamageIndicator(float p_damage)
+void HealthComponent::AddDamageIndicator(float p_damage, ImVec4 p_text_colour)
 {
     this->m_vDamageIndicators.emplace_back(DamageIndicator());
-    int pos = this->m_vDamageIndicators.size() - 1;
+    int index = this->m_vDamageIndicators.size() - 1;
     wolf::Transform2D* gameobjTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
     std::string damageValueString = std::to_string((int)p_damage);
-
+    DamageIndicator* dmg_ind = &this->m_vDamageIndicators.at(index);
     // Setup
-    this->m_vDamageIndicators.at(pos).id = std::to_string(DamageIndicator::idGenerator);
-    this->m_vDamageIndicators.at(pos).damageValue = damageValueString;
-    this->m_vDamageIndicators.at(pos).damageValueTextSize = ImGui::CalcTextSize(damageValueString.c_str());
-    this->m_vDamageIndicators.at(pos).ownerComponent = this;
-    this->m_vDamageIndicators.at(pos).currentPos = 
-                                                    gameobjTransform->GetGlobalPosition()                                                   +   // Set window position to position of gameobj
-                                                    glm::vec2(-DamageIndicator::WINDOW_SIZE.x, DamageIndicator::WINDOW_SIZE.y) * 0.5f       +   // Centre window
-                                                    glm::vec2(m_RNG.NextFloat(-8.0f, 8.0f) , 10.0f) * gameobjTransform->GetGlobalScale();       // Offset window
-    this->m_vDamageIndicators.at(pos).lifetime = 1.0f;
+    dmg_ind->id = std::to_string(DamageIndicator::idGenerator);
+    dmg_ind->damageValue = damageValueString;
+    dmg_ind->damageValueTextSize = ImGui::CalcTextSize(damageValueString.c_str());
+    dmg_ind->damageValueTextColour = p_text_colour;
+    dmg_ind->ownerComponent = this;
+    dmg_ind->currentPos = 
+                            gameobjTransform->GetGlobalPosition()                                                   +   // Set window position to position of gameobj
+                            glm::vec2(-DamageIndicator::WINDOW_SIZE.x, DamageIndicator::WINDOW_SIZE.y) * 0.5f       +   // Centre window
+                            glm::vec2(m_RNG.NextFloat(-8.0f, 8.0f) , 10.0f) * gameobjTransform->GetGlobalScale();       // Offset window
+    dmg_ind->lifetime = 1.0f;
 }
 
-float HealthComponent::GetMaxHealth() const
+void HealthComponent::AddDamageIndicator(std::string p_damage_str, ImVec4 p_text_colour)
 {
-    return m_cap;  
+    this->m_vDamageIndicators.emplace_back(DamageIndicator());
+    int index = this->m_vDamageIndicators.size() - 1;
+    wolf::Transform2D* gameobjTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
+    std::string damageValueString = p_damage_str;
+    DamageIndicator* dmg_ind = &this->m_vDamageIndicators.at(index);
+    // Setup
+    dmg_ind->id = std::to_string(DamageIndicator::idGenerator);
+    dmg_ind->damageValue = damageValueString;
+    dmg_ind->damageValueTextSize = ImGui::CalcTextSize(damageValueString.c_str());
+    dmg_ind->damageValueTextColour = p_text_colour;
+    dmg_ind->ownerComponent = this;
+    dmg_ind->currentPos = 
+                            gameobjTransform->GetGlobalPosition()                                                   +   // Set window position to position of gameobj
+                            glm::vec2(-DamageIndicator::WINDOW_SIZE.x, DamageIndicator::WINDOW_SIZE.y) * 0.5f       +   // Centre window
+                            glm::vec2(m_RNG.NextFloat(-8.0f, 8.0f) , 10.0f) * gameobjTransform->GetGlobalScale();       // Offset window
+    dmg_ind->lifetime = 1.0f;
 }
 
 // !-- Aurora added these events --!
@@ -232,7 +260,7 @@ void HealthComponent::DamageIndicator::Render()
         ImGui::SetNextWindowSize(DamageIndicator::WINDOW_SIZE);
         ImGui::Begin(id.c_str(), nullptr, flags);
         ImGui::SetCursorPosX((DamageIndicator::WINDOW_SIZE.x - damageValueTextSize.x) * 0.5f);
-        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "%s", damageValue.c_str());
+        ImGui::TextColored(damageValueTextColour, "%s", damageValue.c_str());
 
         // End rendering
         ImGui::End();
