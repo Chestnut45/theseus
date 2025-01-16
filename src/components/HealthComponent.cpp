@@ -13,7 +13,7 @@ HealthComponent::HealthComponent(int p_health)
 {
     this->m_health = p_health;
     this->m_cap = p_health;
-    this->m_vDamageIndicators;
+    this->m_vDamageIndicators = {};
 
     // Add Listeners for the healing events related to items
     wolf::EventManager::AddListener<PercentHealthItemEvent, HealthComponent, &HealthComponent::HandlePercentHealthItemEvent>(*this);
@@ -139,16 +139,17 @@ void HealthComponent::RenderDamageIndicators()
         // Render damage indicators
         for(DamageIndicator damageIndicator: this->m_vDamageIndicators)
         {
-            //damageIndicator.Render();
+            damageIndicator.Render();
         }
     }    
 }
 
 void HealthComponent::AddDamageIndicator(float p_damage)
 {
-    this->m_vDamageIndicators.emplace_back(DamageIndicator{});
+    this->m_vDamageIndicators.emplace_back(DamageIndicator());
     int pos = this->m_vDamageIndicators.size() - 1;
 
+    this->m_vDamageIndicators.at(pos).id = std::to_string(DamageIndicator::idGenerator);
     this->m_vDamageIndicators.at(pos).damageValue = std::to_string(p_damage);
     this->m_vDamageIndicators.at(pos).ownerComponent = this;
     this->m_vDamageIndicators.at(pos).currentPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -217,13 +218,13 @@ void HealthComponent::DamageIndicator::Render()
         glm::vec2 screenpos;
         screenpos.x = (worldpos.x - (camera->GetPosition().x - viewSize.x * 0.5f));
         screenpos.y = (worldpos.y - (camera->GetPosition().y - viewSize.y * 0.5f)) * (-1) + viewSize.y;
-        
+                
         // Setup
         ImVec2 windowSize = ImVec2(640, 320);
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs;
-        ImGui::SetNextWindowPos({80, 80});
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        ImGui::SetNextWindowPos({screenpos.x, screenpos.y}, ImGuiCond_Always);
         ImGui::SetNextWindowSize(windowSize);
-        ImGui::Begin("\t", nullptr, flags);
+        ImGui::Begin(id.c_str(), nullptr, flags);
         // std::cout << "HealthComponent - Screenpos - x: " << screenpos.x << ", y: " << screenpos.y << std::endl;
         ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "%s", damageValue.c_str());
 

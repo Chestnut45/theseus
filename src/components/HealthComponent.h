@@ -46,13 +46,17 @@ private:
 
     struct DamageIndicator
     {
+        std::string id = "";
         std::string damageValue = "0";
         float lifetime = 1.0f;
         glm::vec2 currentPos = glm::vec2(0.0f, 0.0f);
         HealthComponent* ownerComponent = nullptr;
 
+        DamageIndicator(){ idGenerator++; };
         void Update(float p_delta);
         void Render();
+
+        static inline long long idGenerator = 0;
     };
 
     std::vector<DamageIndicator> m_vDamageIndicators;

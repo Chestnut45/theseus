@@ -44,8 +44,10 @@ private:
 
         bool m_isActive = false;
         float m_fLifespan = 1.0f;
+        float m_fDamageTime = 0.2f; // Delay interval between damage instances
+        float m_fDamageTimer = 0.0f;
         StatusEffectType m_StatusEffectType;
-        wolf::Timer m_timer;
+        wolf::Timer m_timer; // Lifespan timer
         StatusComponent* m_OwnerComponent = nullptr;
     };
 

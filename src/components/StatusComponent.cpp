@@ -68,6 +68,7 @@ void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifesp
     this->m_aStatusEffects[p_se_type].m_isActive = true;
     this->m_aStatusEffects[p_se_type].m_timer.Restart();
     this->m_aStatusEffects[p_se_type].m_fLifespan = p_lifespan;
+    
 }
 
 void StatusComponent::SetStatusEffectResistance(StatusEffectType p_se_type, float p_resistance_value)
@@ -96,8 +97,15 @@ void StatusComponent::Update(float p_delta)
         
         // Apply status effect
         if(statusEffect.m_isActive)
-        {
-            statusEffect.ApplyStatusEffect(p_delta);
+        {   
+            
+            statusEffect.m_fDamageTimer -= p_delta;
+            // If damage delay expired, deal damage & reset damage delay timer
+            if(statusEffect.m_fDamageTimer <= 0.0f)
+            {            
+                statusEffect.ApplyStatusEffect(p_delta);
+                statusEffect.m_fDamageTimer = statusEffect.m_fDamageTime;
+            }
 
             // If lifetime expired, remove status effect
             if(statusEffect.m_fLifespan >= 0 && statusEffect.m_timer.Elapsed() >= statusEffect.m_fLifespan)
@@ -116,6 +124,7 @@ float StatusComponent::GetStatusEffectResistance(StatusEffectType p_se_type) con
 void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 {
     this->m_aStatusEffects[p_se_type].m_isActive = false;
+    this->m_aStatusEffects[p_se_type].m_fDamageTimer = this->m_aStatusEffects[p_se_type].m_fDamageTime;
 }
 
 void StatusComponent::RenderPlayerSEIcons()
@@ -125,7 +134,7 @@ void StatusComponent::RenderPlayerSEIcons()
         // Setup
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar |  ImGuiWindowFlags_NoBackground;
         ImVec2 windowSize = ImVec2((s_vTextureSize.x + 16) * (float)StatusEffectType::NONE + 8, s_vTextureSize.y + 24);
-        ImGui::SetNextWindowPos({10, 10});
+        ImGui::SetNextWindowPos({10, 10}, ImGuiCond_Always);
         ImGui::SetNextWindowSize(windowSize);
         ImGui::Begin("\t", nullptr, flags);
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
@@ -169,7 +178,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             if(health != nullptr)
             {
                 float resistance = m_OwnerComponent->m_aStatusEffectResistance[StatusEffectType::BURNING];
-                health->Pierce(100.0f * p_delta * (1.0f - resistance));
+                health->Pierce(10.0f * (1.0f - resistance));
             }
             else
             {
@@ -183,7 +192,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
-                health->Heal(25.0f * p_delta);
+                health->Heal(5.0f);
             }
             else
             {
@@ -204,7 +213,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             if(health != nullptr)
             {
                 float resistance = m_OwnerComponent->m_aStatusEffectResistance[StatusEffectType::POISONED];
-                health->Pierce(50.0f * p_delta * (1.0f - resistance));
+                health->Pierce(20.0f * (1.0f - resistance));
             }
             else
             {
