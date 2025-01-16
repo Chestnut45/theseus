@@ -276,13 +276,13 @@ void PlayerController::HandlePlayerInput(float delta)
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_UP))
     {
         StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
+        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::HEALING, 5.0f);
     }
 
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_DOWN))
     {
         StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::HEALING, 5.0f);
+        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
     }
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_LEFT))
     {
