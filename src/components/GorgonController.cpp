@@ -29,6 +29,7 @@ void GorgonController::Init(const EnemyData& data)
     m_meleeRange = data.meleeRange;
     m_rangedRange = data.rangedRange;
     m_rangedCooldown = data.rangedCooldown;
+    m_rangedWindupTime = data.rangedWindup;
     m_detectionRange = data.detectionRange;
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
@@ -70,10 +71,7 @@ void GorgonController::Init(const EnemyData& data)
     transform->SetPosition(glm::vec2(-8.0f, 8.0f));
 
     // Init attack state members
-    m_rangedWindupTimer = RANGED_WINDUP_TIME;
-    m_isEnterRangedWindup = false;
-    m_rangedStrikeTimer = RANGED_STRIKE_TIME;
-    m_isEnterRangedStrike = false;
+    m_rangedWindupTimer = m_rangedWindupTime;
 
     // Add emotes spritesheet
     AnimatedSprite2D* emotesSpritesheet = &m_pEmoteObj->AddComponent<AnimatedSprite2D>("data/emotes_anim_init.yaml");
@@ -446,46 +444,29 @@ void GorgonController::HandleAttackingState(float delta)
     // If winding up attack
     if(m_rangedWindupTimer > 0.0f)
     {
-        // If entering windup
-        if(m_isEnterRangedWindup == true)
-        {
-            m_isEnterRangedWindup = false;
-        }
-
         m_rangedWindupTimer -= delta;
         
         // Brighten sprite to indicate attack
         if(m_pAnimComponent != nullptr)
         {
             glm::vec3 currentTint = m_pAnimComponent->GetTint();
-            glm::vec3 nextTint = currentTint + glm::vec3(delta / (RANGED_WINDUP_TIME * 0.5f));
+            glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_rangedWindupTime * 0.5f));
             m_pAnimComponent->SetTint(nextTint);
         }
     }
-    // Else
+    
+    // Else, strike
     else
     {
-        // If entering strike
-        if(m_isEnterRangedStrike == true)
-        {
-            m_pAnimComponent->SetTint(glm::vec3(1.0f));
-            m_isEnterRangedStrike = false;
-        }
+        m_pAnimComponent->SetTint(glm::vec3(1.0f)); // Reset windup tint
 
-        if(m_rangedStrikeTimer > 0.0f)
+        // If target is in line of sight, petrify target and switch to prospect
+        if(m_pTargetStatusComponent != nullptr && IsTargetInLOS())
         {
-            m_rangedStrikeTimer -= delta;
+            m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
         }
-        else
-        {
-            // If target is in line of sight, petrify target and switch to prospect
-            if(m_pTargetStatusComponent != nullptr && IsTargetInLOS())
-            {
-                m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
-            }
-            ChangeState(EnemyState::CHASING);
-            return;
-        }
+        ChangeState(EnemyState::CHASING);
+        return;
     }
 }
 
@@ -667,7 +648,6 @@ void GorgonController::HandleDeathState(float delta)
 
 void GorgonController::EnterAttackState()
 {
-    m_isEnterRangedStrike = true;
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 }
 
@@ -704,10 +684,7 @@ void GorgonController::ExitAttackState()
     }
 
     m_rangedTimer = m_rangedCooldown;
-    m_rangedStrikeTimer = RANGED_STRIKE_TIME;
-    m_isEnterRangedStrike = false;
-    m_rangedWindupTimer = RANGED_WINDUP_TIME;
-    m_isEnterRangedWindup = false;
+    m_rangedWindupTimer = m_rangedWindupTime;
 }
 
 void GorgonController::ExitChasingState()

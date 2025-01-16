@@ -88,12 +88,8 @@ private:
     float m_timeToLieDead = 0.8f;
 
     // Attack state members
-    const float MELEE_WINDUP_TIME = 1.0f;
+    float m_meleeWindupTime = 1.0f; // Windup Time
     float m_meleeWindupTimer = 0.0f;
-    bool m_isEnterMeleeWindup = false;
-    const float MELEE_STRIKE_TIME = 0.1f;
-    float m_meleeStrikeTimer = 0.0f;
-    bool m_isEnterMeleeStrike = false;
 
     EnemyEmote m_emote = EnemyEmote::NONE; // Current emote
     const float EMOTE_TIME = 1.0f;

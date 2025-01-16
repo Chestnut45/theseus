@@ -30,6 +30,7 @@ void MinitaurController::Init(const EnemyData& data)
     // Assign enemy data
     m_meleeRange = data.meleeRange;
     m_meleeCooldown = data.attackCooldown;
+    m_meleeWindupTime = data.meleeWindup;
     m_detectionRange = data.detectionRange;
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
@@ -60,6 +61,9 @@ void MinitaurController::Init(const EnemyData& data)
     {
         wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
     }
+
+    // Init attack state members
+    m_meleeWindupTimer = m_meleeWindupTime;
 
     // Init emotes object
     m_pEmoteObj = &pGameObject->GetScene().CreateObject2D();
@@ -395,74 +399,58 @@ void MinitaurController::HandleAttackingState(float delta)
     // If winding up attack
     if(m_meleeWindupTimer > 0.0f)
     {
-        // If entering windup
-        if(m_isEnterMeleeWindup == true)
-        {
-            m_isEnterMeleeWindup = false;
-        }
         // Brighten sprite to indicate attack
         if(m_pAnimComponent != nullptr)
         {
             glm::vec3 currentTint = m_pAnimComponent->GetTint();
-            glm::vec3 nextTint = currentTint + glm::vec3(delta / (MELEE_WINDUP_TIME * 0.5f));
+            glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_meleeWindupTime * 0.5f));
             m_pAnimComponent->SetTint(nextTint);
         }
 
         m_meleeWindupTimer -= delta;
     }
 
+    // Else, strike
     else
     {
-        // If entering strike
-        if(m_isEnterMeleeStrike == true)
-        {
-            m_pAnimComponent->SetTint(glm::vec3(1.0f));
-            m_isEnterMeleeStrike = false;
-        }
+        m_pAnimComponent->SetTint(glm::vec3(1.0f)); // Reset windup tint
 
-        if(m_meleeStrikeTimer > 0.0f)
+        // Check distance to player
+        const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+        const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+
+        // Apply damage if player is within melee range and attack cooldown is over
+        if (distanceToPlayer <= m_meleeRange)
         {
-            m_meleeStrikeTimer -= delta;
+
+            // Apply damage to the player
+            auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
+            if (playerHealth)
+            {
+                playerHealth->Damage(m_baseDamage);
+                wolf::Audio::Play("data/sounds/hurt.wav");
+            }
+
+            // Apply strong knockback to the player
+            auto* playerVelocity = m_pTarget->GetComponent<VelocityComponent>();
+            if (playerVelocity)
+            {
+                // Calculate knockback direction and amplify the push
+                glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
+                float knockbackStrength = 800.0f; // Amplified knockback strength
+                playerVelocity->ApplyKnockback(knockbackDirection, knockbackStrength);
+            }
+
+            // Chain another attack
+            ChangeState(EnemyState::ATTACKING);
+            return;
         }
         else
         {
-            // Check distance to player
-            const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-            const float distanceToPlayer = glm::length(targetPosition - currentPosition);
-
-            // Apply damage if player is within melee range and attack cooldown is over
-            if (distanceToPlayer <= m_meleeRange)
-            {
-                // Apply damage to the player
-                auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
-                if (playerHealth)
-                {
-                    playerHealth->Damage(m_baseDamage);
-                    wolf::Audio::Play("data/sounds/hurt.wav");
-
-                }
-
-                // Apply strong knockback to the player
-                auto* playerVelocity = m_pTarget->GetComponent<VelocityComponent>();
-                if (playerVelocity)
-                {
-                    // Calculate knockback direction and amplify the push
-                    glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
-                    float knockbackStrength = 800.0f; // Amplified knockback strength
-                    playerVelocity->ApplyKnockback(knockbackDirection, knockbackStrength);
-                }
-
-                // Chain another attack
-                ChangeState(EnemyState::ATTACKING);
-                return;
-            }
-            else
-            {
-                // Return to chasing if player moves out of range
-                ChangeState(EnemyState::CHASING);
-                return;
-            }
+            // Return to chasing if player moves out of range
+            ChangeState(EnemyState::CHASING);
+            return;
         }
     }
 }
@@ -585,7 +573,6 @@ void MinitaurController::HandleDeathState(float delta)
 
 void MinitaurController::EnterAttackState()
 {
-    m_isEnterMeleeStrike = true;
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 }
 
@@ -616,10 +603,7 @@ void MinitaurController::EnterDeathState()
 void MinitaurController::ExitAttackState()
 {
     m_meleeTimer = m_meleeCooldown;
-    m_meleeStrikeTimer = MELEE_STRIKE_TIME;
-    m_isEnterMeleeStrike = false;
-    m_meleeWindupTimer = MELEE_WINDUP_TIME;
-    m_isEnterMeleeWindup = false;
+    m_meleeWindupTimer = m_meleeWindupTime;
 }
 
 void MinitaurController::ExitChasingState()

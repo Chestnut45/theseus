@@ -73,12 +73,8 @@ private:
     float m_timeToLieDead = 0.8f;
 
     // Attack state members
-    const float RANGED_WINDUP_TIME = 1.0f;
+    float m_rangedWindupTime = 1.0f; // Windup Time
     float m_rangedWindupTimer = 0.0f;
-    bool m_isEnterRangedWindup = false;
-    const float RANGED_STRIKE_TIME = 0.1f;
-    float m_rangedStrikeTimer = 0.0f;
-    bool m_isEnterRangedStrike = false;
     int m_attackChain = 0;
 
     // Emote-related members
