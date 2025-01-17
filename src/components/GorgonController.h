@@ -32,6 +32,7 @@ private:
     void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
     
+    void EnterAttackState();
     void EnterChasingState();
     void EnterIdleState();
     void EnterPetrifiedState();
@@ -91,4 +92,10 @@ private:
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;
     wolf::GameObject* m_pEmoteObj = nullptr;
+
+    bool m_IsRenderingAttackIndicator = false;
+
+    const glm::vec4 CROSSHAIR_COLOUR = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+    glm::vec4 m_curentCrosshairColour = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+    glm::vec2 m_crosshairOffset = glm::vec2(0.0f, 0.0f);
 };
