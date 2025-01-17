@@ -1,6 +1,7 @@
 #include "MinitaurController.h"
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
+#include "../GLShapesRenderer.h"
 
 #include <cassert>
 
@@ -638,15 +639,15 @@ bool MinitaurController::IsTargetInLOS()
         lbmg = &labyrinthManager;
         break;
     }
-
+    glm::vec2 thisPos = m_pTransform->GetGlobalPosition();
+    glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec4 colour = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
     // Check
     if(lbmg != nullptr)
     {
-        glm::vec2 thisPos = m_pTransform->GetGlobalPosition();
         glm::ivec2 thisTilePos = lbmg->GetTilePosition(thisPos);
         int thisTileID = lbmg->GetTile(thisTilePos.x, thisTilePos.y);
 
-        glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::ivec2 targetTilePos = lbmg->GetTilePosition(targetPos);
         int targetTileID = lbmg->GetTile(targetTilePos.x, targetTilePos.y);
 
@@ -687,7 +688,7 @@ bool MinitaurController::IsTargetInLOS()
         if(line.x > 0.0f)
         {
             tileStep.x = 1;
-            rayLength.x = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).x - thisPos.x) * rayStep.x;
+            rayLength.x = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x + 1, thisTilePos.y)).x - thisPos.x) * rayStep.x;
         }
         else
         {
@@ -698,7 +699,7 @@ bool MinitaurController::IsTargetInLOS()
         if(line.y > 0.0f)
         {
             tileStep.y = 1;
-            rayLength.y = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).y - thisPos.y) * rayStep.y;
+            rayLength.y = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y + 1)).y - thisPos.y) * rayStep.y;
         }
         else
         {
@@ -734,6 +735,11 @@ bool MinitaurController::IsTargetInLOS()
             {
                 if(distanceCheck < distance)
                 {
+                    // glm::vec2 endpoint = normalisedLine * distanceCheck + thisPos;
+                    // GLShapesRenderer::GetInstance()->AddLine(
+                    //                                         {thisPos.x, thisPos.y, colour.r, colour.g, colour.b, colour.a},
+                    //                                         {endpoint.x, endpoint.y, colour.r, colour.g, colour.b, colour.a}
+                    //                                         );
                     // printf("MinitaurController - Blocked\n");
                     return false;
                 }
@@ -747,6 +753,10 @@ bool MinitaurController::IsTargetInLOS()
         }
     }
     // printf("MinitaurController - Detected\n");
+    // GLShapesRenderer::GetInstance()->AddLine(
+    //                                         {thisPos.x, thisPos.y, colour.r, colour.g, colour.b, colour.a},
+    //                                         {targetPos.x, targetPos.y, colour.r, colour.g, colour.b, colour.a}
+    //                                         );
     return true;
 }
 

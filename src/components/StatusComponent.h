@@ -44,8 +44,11 @@ private:
 
         bool m_isActive = false;
         float m_fLifespan = 1.0f;
+        static const inline float SE_APPLICATION_INTERVALS [StatusEffectType::NONE] = {0.5f, 0.5f, 0.0f, 0.5f}; // Delay interval between instances of status effect application for each status effect
+
+        float m_fSEApplicationTimer = 0.0f;
         StatusEffectType m_StatusEffectType;
-        wolf::Timer m_timer;
+        wolf::Timer m_timer; // Lifespan timer
         StatusComponent* m_OwnerComponent = nullptr;
     };
 
