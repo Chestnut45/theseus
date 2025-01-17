@@ -153,6 +153,13 @@ private:
     int m_width = 125;
     int m_height = 125;
 
+    // Hallway spawn parameters
+
+    // Ratio of spike traps to hallway floors
+    // NOTE: 0 = no spike traps, 1 = no floors
+    // NOTE: Doesn't apply to rooms
+    float m_spikeTrapFloorRatio = 0.0f;
+
     // Spawn area settings
     glm::ivec2 m_spawnPatchSize = glm::ivec2(25);
     glm::ivec2 m_spawnRoomSize = glm::ivec2(5);
@@ -310,6 +317,7 @@ private:
     {
         wolf::GameObject* m_pObject = nullptr;
         bool active = true;
+        std::vector<glm::ivec2> m_hallwaySpikeTraps;
     };
 
     // Map of chunk IDs to chunk game object pointers

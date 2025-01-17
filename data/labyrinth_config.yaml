@@ -2,6 +2,7 @@ random_seed: false
 seed: 1589844665
 width: 125
 height: 125
+spike_trap_ratio: 0.02
 
 rooms: [
 	{

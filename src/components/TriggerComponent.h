@@ -45,6 +45,9 @@ public:
 
     void Update(float delta);
 
+    bool IsActive() const { return m_active; }
+    void SetActive(bool active) { m_active = active; }
+
     // Getters for type and purpose
     TriggerType GetTriggerType() const { return m_triggerType; }
     TriggerPurpose GetPurpose() const { return m_purpose; }
@@ -58,6 +61,9 @@ private:
 
     // Logic for reusable/single-use triggers
     bool m_triggered = false;
+
+    // Flag for enabling / disabling triggers
+    bool m_active = true;
 
     // Types and purpose of the trigger
     TriggerType m_triggerType;

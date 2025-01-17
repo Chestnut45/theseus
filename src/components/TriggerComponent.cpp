@@ -18,7 +18,7 @@ TriggerComponent::~TriggerComponent() {
 }
 
 void TriggerComponent::Update(float delta) {
-    if (!m_triggered && (CheckPlayerCollision(delta) || CheckEnemyCollision(delta))) {
+    if (m_active && !m_triggered && (CheckPlayerCollision(delta) || CheckEnemyCollision(delta))) {
         m_triggered = true;
 
         // Dispatch the TriggerEvent with trap type information
