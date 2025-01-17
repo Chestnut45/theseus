@@ -10,6 +10,7 @@
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
 
+#include "../GLShapesRenderer.h"
 #include "../inventory/ItemCreator.h"
 
 #include <W_Input.h>
