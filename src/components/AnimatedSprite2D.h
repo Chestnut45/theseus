@@ -133,7 +133,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         //-----------------//
         
         void SetAnimPaused(bool p_bPaused){m_bIsAnimPaused = p_bPaused;};
-        void SetSpecialEffects(SpecialEffectsType p_spe_type, bool p_is_gradual = false, float p_effect_time = 0.0f);
+        void SetSpecialEffects(SpecialEffectsType p_spe_type, float p_gradual_in = 0.0f, float p_gradual_out = 0.0f);
         void UpdateShaders();
 
     private:
@@ -185,6 +185,8 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         // Bool for pausing animations & special effects
         bool m_bIsAnimPaused = false;
         SpecialEffectsType m_specialEffectsType = SpecialEffectsType::NONE;
+        float m_fGradualFadeInTime = 0.0f;
+        float m_fGradualFadeOutTime = 0.0f;
 
         static const float m_arBaseVertexData[]; // Array to hold geometry and base UV coordinates for all AnimatedSprite2Ds
 

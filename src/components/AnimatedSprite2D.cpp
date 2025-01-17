@@ -549,9 +549,11 @@ void AnimatedSprite2D::IncreaseReferences()
 //  Added by Nhật  //
 //                 //
 //-----------------//
-void AnimatedSprite2D::SetSpecialEffects(SpecialEffectsType p_spe_type, bool p_is_gradual, float p_effect_time) 
+void AnimatedSprite2D::SetSpecialEffects(SpecialEffectsType p_spe_type, float p_gradual_in, float p_gradual_out) 
 {
     m_specialEffectsType = p_spe_type;
+    m_fGradualFadeInTime = p_gradual_in;
+    m_fGradualFadeOutTime = p_gradual_out;
 }
 
 void AnimatedSprite2D::UpdateShaders()
