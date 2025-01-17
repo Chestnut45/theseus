@@ -140,7 +140,7 @@ public:
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 16'383;
     static const inline int TILE_SIZE = 32;
-    static const inline int CHUNK_SIZE = 16;
+    static const inline int CHUNK_SIZE = 8;
     static const inline int SCALE = 3;
 
 // Implementation

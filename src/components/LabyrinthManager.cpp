@@ -163,16 +163,6 @@ void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
 
     std::function<void(wolf::GameObject*)> Activate = [&](wolf::GameObject* pObject) -> void
     {
-        // Make tilemaps visible
-        auto* pTileMap = pObject->GetComponent<wolf::TileMap>();
-        if (pTileMap) pTileMap->SetVisibility(true);
-
-        // Make sprites visible
-        auto* pAnimSprite = pObject->GetComponent<AnimatedSprite2D>();
-        if (pAnimSprite) pAnimSprite->SetVisibility(true);
-        auto* pSprite = pObject->GetComponent<wolf::Sprite2D>();
-        if (pSprite) pSprite->SetVisibility(true);
-
         // Activate collider
         // TODO: Only do this for walls? Or Move enemies to different chunks...
         auto* pCollider = pObject->GetComponent<ColliderComponent>();
@@ -205,16 +195,6 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
 
     std::function<void(wolf::GameObject*)> Deactivate = [&](wolf::GameObject* pObject) -> void
     {
-        // Make tilemaps invisible
-        auto* pTileMap = pObject->GetComponent<wolf::TileMap>();
-        if (pTileMap) pTileMap->SetVisibility(false);
-
-        // Make sprites invisible
-        auto* pAnimSprite = pObject->GetComponent<AnimatedSprite2D>();
-        if (pAnimSprite) pAnimSprite->SetVisibility(false);
-        auto* pSprite = pObject->GetComponent<wolf::Sprite2D>();
-        if (pSprite) pSprite->SetVisibility(false);
-
         // Deactivate collider
         // TODO: Only do this for walls? Or Move enemies to different chunks...
         auto* pCollider = pObject->GetComponent<ColliderComponent>();

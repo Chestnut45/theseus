@@ -1,16 +1,16 @@
 random_seed: false
-seed: 1589844665
-width: 125
-height: 125
-spike_trap_ratio: 0.02
+seed: 1234
+width: 75
+height: 75
+spike_trap_ratio: 0.020000
 
 rooms: [
 	{
 		name: Minotaur's Chamber,
 		instances: 1,
 		force: false,
-		position: {type: manual, origin: {x: 51, y: 51}},
-		size: {type: manual, value: {x: 23, y: 23}},
+		position: {type: manual, origin: {x: 31, y: 31}},
+		size: {type: manual, value: {x: 15, y: 15}},
 		entities: [
 			{type: legendary_chest, amount: 1, placement: center},
 			{type: minitaur, amount: 8, placement: random},
@@ -39,7 +39,7 @@ rooms: [
 	},
 	{
 		name: Elite Rooms,
-		instances: 8,
+		instances: 5,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
