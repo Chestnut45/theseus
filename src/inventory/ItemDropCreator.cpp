@@ -114,10 +114,11 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromDirectory(const std::string
 }
 
 // Create a single drop item using a .yaml loot table (use when you want to drop a non-specific item)
-wolf::GameObject* ItemDropCreator::CreateItemDropFromLootTable(const std::string& p_strLootTable, const glm::vec2& p_v2SpawnPos, float p_fLifespan) {
+std::vector<wolf::GameObject*> ItemDropCreator::CreateItemDropFromLootTable(const std::string& p_strLootTable, const glm::vec2& p_v2SpawnPos, float p_fLifespan) {
     // Temporary variables to hold the YAML loot table file and the item we create from it
     YAML::Node node;
     ItemBase* pItem;
+    std::vector<wolf::GameObject*> createdItems;
 
     // If we've seen this loot table before
     if (m_mLootTables.contains(p_strLootTable)) {
@@ -184,43 +185,40 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromLootTable(const std::string
                 wolf::Error("Item name invalid: ", chosenItem);
                 continue;
             }
+            else {
+                // Create the item's gameobject
+                wolf::GameObject* pItemDropGO = &m_pScene->CreateObject2D();
+
+                // Add the dropped item component and the sprite
+                pItemDropGO->AddComponent<DroppedItemComponent>(pItem, p_fLifespan);
+
+                // Add the animated sprite component and rig up the default animation (literally just show the item's sprite forever)
+                auto pItemDropAnim = &pItemDropGO->AddComponent<AnimatedSprite2D>(ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), 1.0f);
+                pItemDropAnim->AddAnimation("Display", ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), pItem->GetTextureFrameIndex(), pItem->GetTextureFrameIndex(), glm::vec2(16.0f, 16.0f), false, "");
+                pItemDropAnim->SetAnimation("Display");
+
+                // Move the gameobject to the spawn location
+                auto pItemDropTransform = pItemDropGO->GetComponent<wolf::Transform2D>();
+                pItemDropTransform->SetPosition(p_v2SpawnPos + glm::vec2(m_pRNG->NextFloat(-25.0f, 25.0f), m_pRNG->NextFloat(-25.0f, 25.0f)));
+
+                // Add the collider
+                auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_pScene->GetPlayerID());
+                pCollider.AddColliderBox(glm::vec2(16.0f, 16.0f), glm::vec2(-8.0f, 8.0f));
+
+                // Add the velocity component
+                auto& pVelocity = pItemDropGO->AddComponent<VelocityComponent>();
+
+                // Then add the item to the vector so we can return it later
+                createdItems.push_back(pItemDropGO);
+            }
         }
     }
     catch (YAML::Exception& e) // If there was a problem with the loot table YAML file
     {
         // If we run into an error, then we should print it and return false
         wolf::Error("YAML: Issue with ", p_strLootTable.c_str(), ": ", e.what());
-        return nullptr;
     }
 
-    // If the item was successfully created
-    if (pItem) {
-        // Create the item's gameobject
-        wolf::GameObject* pItemDropGO = &m_pScene->CreateObject2D();
-
-        // Add the dropped item component and the sprite
-        pItemDropGO->AddComponent<DroppedItemComponent>(pItem, p_fLifespan);
-
-        // Add the animated sprite component and rig up the default animation (literally just show the item's sprite forever)
-        auto pItemDropAnim = &pItemDropGO->AddComponent<AnimatedSprite2D>(ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), 1.0f);
-        pItemDropAnim->AddAnimation("Display", ITEM_TEXTURE_PATH, glm::vec2(32.0f, 32.0f), pItem->GetTextureFrameIndex(), pItem->GetTextureFrameIndex(), glm::vec2(16.0f, 16.0f), false, "");
-        pItemDropAnim->SetAnimation("Display");
-
-        // Move the gameobject to the spawn location
-        auto pItemDropTransform = pItemDropGO->GetComponent<wolf::Transform2D>();
-        pItemDropTransform->SetPosition(p_v2SpawnPos + glm::vec2(m_pRNG->NextFloat(-1.5f, 1.5f), m_pRNG->NextFloat(-1.5f, 1.5f)));
-
-        // Add the collider
-        auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_pScene->GetPlayerID());
-        pCollider.AddColliderBox(glm::vec2(16.0f, 16.0f), glm::vec2(-8.0f, 8.0f));
-
-        // Add the velocity component
-        auto& pVelocity = pItemDropGO->AddComponent<VelocityComponent>();
-
-        // Then return a reference to the gameobject we created
-        return pItemDropGO;
-    }
-    else { // If we couldn't create the item
-        return nullptr;
-    }
+    // Once we've created our items, we return the vector
+    return createdItems;
 }
