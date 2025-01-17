@@ -549,7 +549,7 @@ void AnimatedSprite2D::IncreaseReferences()
 //  Added by Nhật  //
 //                 //
 //-----------------//
-void AnimatedSprite2D::SetSpecialEffects(SpecialEffectsType p_spe_type) 
+void AnimatedSprite2D::SetSpecialEffects(SpecialEffectsType p_spe_type, bool p_is_gradual, float p_effect_time) 
 {
     m_specialEffectsType = p_spe_type;
 }
