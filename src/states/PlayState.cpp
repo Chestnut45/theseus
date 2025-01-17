@@ -13,6 +13,7 @@
 #include "../components/DispensaryInventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/TimedDestroyerComponent.h"
+#include "../components/TrappedChestComponent.h"
 #include "../components/VelocityComponent.h"
 #include "../components/ThrowableObjectComponent.h"
 #include "../components/BoulderTrapComponent.h"
@@ -294,6 +295,26 @@ void PlayState::Update(float delta)
                 auto name = sprite.GetCurrentAnimation()->m_strName;
                 sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
                 m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+            }
+        }
+    }
+
+    // Trapped chests
+    for (auto&&[_, trappedChest, transform, sprite] : m_pGameInstance->GetScene().Each<TrappedChestComponent, wolf::Transform2D, AnimatedSprite2D>())
+    {
+        // Update trapped chests
+        trappedChest.Update(delta);
+        // Distance checking
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+        {
+            if(trappedChest.IsOpen() == false)
+            {
+                std::string tooltip = "Press E to Open Chest";
+                ShowTooltip(tooltip);
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                {
+                    trappedChest.OpenTrappedChest();
+                }
             }
         }
     }
@@ -589,11 +610,11 @@ void PlayState::CreateTrappedChest()
     sprite.SetOriginToCenterOfFrame();
 
     // Add collider
-    // auto& collider = chest->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
-    // collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
+    auto& collider = chest->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
 
-    // Add the chest inventory
-    // auto& chestInv = chest->AddComponent<ChestInventoryComponent>(16, 4, ImVec2(800, 450));
+    // Add trapped chest component
+    auto& trappedChestComp = chest->AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::EXPLODE);
 }
 
 void PlayState::CreateThrowableObject()
