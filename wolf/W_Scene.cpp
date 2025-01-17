@@ -244,4 +244,12 @@ void _SceneTests()
     }
 }
 
+void Scene::SetPlayerID(GameObjectID p_uiGOId) {
+    m_uiPlayerGOId = p_uiGOId;
+}
+
+GameObjectID const Scene::GetPlayerID() {
+    return m_uiPlayerGOId;
+}
+
 }
