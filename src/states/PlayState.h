@@ -28,7 +28,6 @@
 #include <HarpyBuilder.h>
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
-#include "GLShapesRenderer.h"
 
 #include <unordered_map>
 

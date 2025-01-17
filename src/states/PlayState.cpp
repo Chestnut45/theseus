@@ -18,6 +18,7 @@
 #include "../components/BoulderTrapComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
+#include "GLShapesRenderer.h"
 
 void PlayState::Enter()
 {
