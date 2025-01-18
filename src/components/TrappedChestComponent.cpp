@@ -136,7 +136,7 @@ void TrappedChestComponent::DisplayTaunt()
     std::string taunt = TrappedChestComponent::s_vTaunts.at(m_iTauntIndex);
     
     // ImGui setup
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings;
     ImGui::SetNextWindowPos({screenpos.x, screenpos.y});
     ImGui::SetNextWindowSize(TrappedChestComponent::WINDOW_SIZE);
     
