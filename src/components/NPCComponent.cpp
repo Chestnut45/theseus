@@ -60,6 +60,36 @@ void NPCComponent::Update(float p_fDelta) {
         // Then handle the death state
         this->HandleDeadState(p_fDelta);
     }
+    else {
+        // Otherwise, figure out where the player is and rotate to face them
+        wolf::Scene* pScene = &this->GetGameObject()->GetScene();
+        glm::vec2 v2PlayerPos = pScene->GetObject(pScene->GetPlayerID())->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 v2MyPos = m_pTransform->GetGlobalPosition();
+
+        // If the player is to our right...
+        if (v2PlayerPos.x > v2MyPos.x) {
+            if (v2PlayerPos.y > v2MyPos.y + 64.0f) { // ...and above us
+                m_pAnimSpriteComp->SetAnimation("StandNorth");
+            }
+            else if (v2PlayerPos.y < v2MyPos.y - 64.0f) { // ...and below us
+                m_pAnimSpriteComp->SetAnimation("StandSouth");
+            }
+            else { // ...and roughly in-line with us
+                m_pAnimSpriteComp->SetAnimation("StandEast");
+            }
+        }
+        else { // If the player is to our left...
+            if (v2PlayerPos.y > v2MyPos.y + 64.0f) { // ...and above us
+                m_pAnimSpriteComp->SetAnimation("StandNorth");
+            }
+            else if (v2PlayerPos.y < v2MyPos.y - 64.0f) { //...and below us
+                m_pAnimSpriteComp->SetAnimation("StandSouth");
+            }
+            else { // ...and roughly in-line with us
+                m_pAnimSpriteComp->SetAnimation("StandWest");
+            }
+        }
+    }
 }
 
 // Call this method once the Health, AnimatedSprite2D, and optionally the MerchantInventory
