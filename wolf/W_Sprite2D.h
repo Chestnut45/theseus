@@ -66,6 +66,9 @@ public:
     void SetLayer(int layer) { m_layer = layer; }
     int GetLayer() const { return m_layer; }
 
+    bool IsVisible() const { return m_visible; }
+    void SetVisibility(bool visible) { m_visible = visible; }
+
     // Draw the sprite at the given position, rotation, and scale in world space
     // Multiplies final pixel color by provided tint color
     // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
@@ -91,6 +94,8 @@ private:
     // The layer of the sprite
     // Bottommost layer is 0
     int m_layer = 0;
+
+    bool m_visible = true;
 
     // Static resources shared by all sprites
     static inline wolf::Program* s_pProgram = nullptr;
