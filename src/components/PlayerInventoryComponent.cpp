@@ -20,6 +20,7 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
 }
 
 void PlayerInventoryComponent::ShowToggleButtonGUI() {
+
     ImGuiStyle* pStyle = &ImGui::GetStyle();
     pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
 
@@ -31,23 +32,20 @@ void PlayerInventoryComponent::ShowToggleButtonGUI() {
     ImGui::SetNextWindowSize({0,0});
     ImGui::Begin("InventoryToggleButton", nullptr, flags);
 
-    pStyle->Colors[ImGuiCol_Button] = ImVec4(0, 0, 0, 0);
-    pStyle->Colors[ImGuiCol_ButtonActive] = ImVec4(0, 0, 0, 0);
-    pStyle->Colors[ImGuiCol_ButtonHovered] = ImVec4(0, 0, 0, 0);
-
-    pStyle->WindowRounding = 32.0f;
-    pStyle->FrameRounding = 50.0f;
-
-    if (ImGui::ImageButton("InventoryToggleButton", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[17]->m_v2TopLeft, m_vv2TextureCoords[17]->m_v2BotRight)) {
+    if (ImGui::ImageButton("InventoryToggleButton", (void*)(intptr_t)m_pCItemTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[m_iToggleButtonIndex]->m_v2TopLeft, m_vv2ItemTextureCoords[m_iToggleButtonIndex]->m_v2BotRight)) {
         this->ToggleOpen();
-        pStyle->Colors[ImGuiCol_WindowBg] = ImVec4(0, 1, 0, 1);
     }
 
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-        pStyle->Colors[ImGuiCol_WindowBg] = ImVec4(1, 0, 0, 1);
+        if (m_bIsOpen) {
+            m_iToggleButtonIndex = 19;
+        }
+        else {
+            m_iToggleButtonIndex = 18;
+        }
     }
     else {
-        pStyle->Colors[ImGuiCol_WindowBg] = ImVec4(1, 0, 1, 1);
+        m_iToggleButtonIndex = 17;
     }
 
     ImGui::End();
@@ -120,7 +118,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 std::string strIndex = std::to_string(k);
 
                 // Now we can start making the actual buttons
-                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
+                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pCItemTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
                 }
                 
                 // When we hover over an inventory slot
@@ -212,7 +210,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 }
             }
             else { // Otherwise, this is an empty inventory slot
-                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
+                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pCItemTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
 
                 }
             }
@@ -245,7 +243,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 std::string strEquipTooltip = pEquipItem->GetToolTipText();
 
                 // Draw the inventory slot
-                if (ImGui::ImageButton("Equipment Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pEquipItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pEquipItem->GetTextureFrameIndex()]->m_v2BotRight)) {
+                if (ImGui::ImageButton("Equipment Slot", (void*)(intptr_t)m_pCItemTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[pEquipItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2ItemTextureCoords[pEquipItem->GetTextureFrameIndex()]->m_v2BotRight)) {
                 }
 
                 // Same as a regular item, when we hover over an equipment slot we display the item's details in a tooltip
@@ -331,7 +329,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             }
             else {
                 // Otherwise, this slot is empty
-                if (ImGui::ImageButton("Empty Equipment Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
+                if (ImGui::ImageButton("Empty Equipment Slot", (void*)(intptr_t)m_pCItemTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
                 }
             }
 

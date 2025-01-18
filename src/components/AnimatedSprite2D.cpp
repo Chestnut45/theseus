@@ -164,15 +164,15 @@ bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const
     }
 
     // Now we check if this AnimatedSprite2D instance already had a texture
-    if (m_pTexture) {
-        wolf::TextureManager::DestroyTexture(m_pTexture);   // And if it did we destroy it
+    if (m_pCItemTexture) {
+        wolf::TextureManager::DestroyTexture(m_pCItemTexture);   // And if it did we destroy it
     }
 
     // All we need to do now is set the Filter Mode to FM_Nearest (best mode for pixel art)
     pNewTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
 
     // And then let the AnimatedSprite2D instance know that its texture is good to go!
-    m_pTexture = pNewTexture;
+    m_pCItemTexture = pNewTexture;
     m_v2FrameSize = p_v2FrameSize;
     m_strCurrentTexturePath = p_strPathToAnimSheet;
     return true;
@@ -199,7 +199,7 @@ AnimatedSprite2D::~AnimatedSprite2D() {
     // Because AnimatedSprite2D components rely on having all animations for one object/entity/etc.
     // stored in a single image, we can assume that destroying this instance of the AnimatedSprite2D
     // means that we no longer need access to its texture, so it can be deleted
-    wolf::TextureManager::DestroyTexture(m_pTexture);
+    wolf::TextureManager::DestroyTexture(m_pCItemTexture);
 
     // Iterate through the animation map and delete all of the SpriteAnimation2Ds within it
     for (std::map<std::string, SpriteAnimation2D*>::iterator it = m_mAnimationMap.begin(); it != m_mAnimationMap.end(); ++it) {
@@ -257,7 +257,7 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
             return;
         }
         m_pCurrentAnim = animIt->second;
-        this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
+        this->SetTexture(m_pCurrentAnim->m_strItemsTexturePath, m_pCurrentAnim->m_v2FrameSize);
         this->SetOrigin(m_pCurrentAnim->m_v2Origin);
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[m_pCurrentAnim->m_iStartFrame];
@@ -282,7 +282,7 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
         }
 
         m_pCurrentAnim = animIt->second;
-        this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
+        this->SetTexture(m_pCurrentAnim->m_strItemsTexturePath, m_pCurrentAnim->m_v2FrameSize);
         this->SetOrigin(m_pCurrentAnim->m_v2Origin);
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame + p_iTargetAnimFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[iTargetFrame];
@@ -340,7 +340,7 @@ void AnimatedSprite2D::Update(float p_fDelta) {
 
 void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint) {
     // If we don't have a texture (or the coordinates that go with one) then we shouldn't be trying to draw anything
-    if (!m_visible || !m_pTexture || m_vpFrameUVCoords.empty()) {
+    if (!m_visible || !m_pCItemTexture || m_vpFrameUVCoords.empty()) {
         return;
     }
 
@@ -391,7 +391,7 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
     // And perform the rest of the draw call
 
     // Grab the texture size
-    const glm::vec2 texSize = glm::vec2(m_pTexture->GetWidth(), m_pTexture->GetHeight());
+    const glm::vec2 texSize = glm::vec2(m_pCItemTexture->GetWidth(), m_pCItemTexture->GetHeight());
 
     // Determine tint to use
     const glm::vec3& chosenTint = tint == glm::vec3(-1.0f) ? m_tint : tint;
@@ -416,7 +416,7 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
 
     // Bind shader and texture
     s_pCurrentProgram->Bind();
-    m_pTexture->Bind(0);
+    m_pCItemTexture->Bind(0);
 
     // Draw!
     s_pVAO->Bind();

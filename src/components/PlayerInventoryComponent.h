@@ -104,6 +104,8 @@ class PlayerInventoryComponent : public InventoryComponent {
         const int MAX_GOLD = 999;
         int m_iGold = 0;
 
+        int m_iToggleButtonIndex = 17;
+
         int m_iOpenChestIdNum = -1;
         int m_iOpenMerchantIdNum = -1;
 

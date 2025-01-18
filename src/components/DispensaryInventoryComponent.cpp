@@ -170,7 +170,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 std::string strIndex = std::to_string(index);
 
                 // Then we make a button (UI inventory slot) for the item
-                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
+                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pCItemTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
                 }
                     
                 // When we hover over an inventory slot
@@ -233,7 +233,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
             // We want to make sure that the rows of items in the dispensary are uniform even if we have different numbers of items
             // at each rarity level, so if a rarity level doesn't use an entire row we fill the remaining space with empty slots
             for (int p = counter; p != m_iMaxPerRow; p++) {
-                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {}
+                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pCItemTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {}
                 ImGui::SameLine();
             }
 
