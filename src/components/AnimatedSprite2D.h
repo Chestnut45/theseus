@@ -83,7 +83,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         void SetPlaybackSpeed(float p_fSpeed) {m_fPlaybackSpeed = p_fSpeed;};
         float GetPlaybackSpeed() const {return m_fPlaybackSpeed;};
 
-        wolf::Texture* GetTexture() const {return m_pCItemTexture;};
+        wolf::Texture* GetTexture() const {return m_pTexture;};
 
         // Set or get the origin to render the animated sprite from
         // Measured in pixel coordinates from the bottom-left of the frame
@@ -145,7 +145,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         SpriteAnimation2D* m_pCurrentAnim = nullptr; // The currently playing animation
         FrameUVCoordSet* m_pCurrentFrameUVs = nullptr; // The UV coordinates for the current animation frame
-        wolf::Texture* m_pCItemTexture = nullptr; // The texture we're currently using
+        wolf::Texture* m_pTexture = nullptr; // The texture we're currently using
         std::string m_strCurrentTexturePath;
 
         // Origin to draw the animated sprite at, in pixel coordinates
