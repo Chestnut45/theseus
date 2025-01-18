@@ -69,8 +69,9 @@ private:
     };
 
     // Sequence management
-    std::vector<DialogueAndCutsceneItem> m_dialogueAndCutsceneSequence; // Unified sequence list
-    size_t m_currentSequenceIndex = 0; // Current sequence item index
+    std::unordered_map<std::string, std::vector<DialogueAndCutsceneItem>> m_sequences; // Map of all sequences by ID
+    std::vector<DialogueAndCutsceneItem>* m_currentSequence = nullptr; // Pointer to the current sequence
+    size_t m_currentSequenceIndex = 0; // Current index within the sequence
 
     // Dialogue state variables
     bool m_isDialogueActive = false;

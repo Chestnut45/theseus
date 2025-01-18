@@ -164,18 +164,14 @@ void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
 
     std::function<void(wolf::GameObject*)> Activate = [&](wolf::GameObject* pObject) -> void
     {
-        // Make tilemaps visible
-        auto* pTileMap = pObject->GetComponent<wolf::TileMap>();
-        if (pTileMap) pTileMap->SetVisibility(true);
-
-        // Make sprites visible
-        auto* pSprite = pObject->GetComponent<AnimatedSprite2D>();
-        if (pSprite) pSprite->SetVisibility(true);
-
         // Activate collider
         // TODO: Only do this for walls? Or Move enemies to different chunks...
         auto* pCollider = pObject->GetComponent<ColliderComponent>();
         if (pCollider) pCollider->SetActive(true);
+
+        // Activate triggers
+        auto* pTrigger = pObject->GetComponent<TriggerComponent>();
+        if (pTrigger) pTrigger->SetActive(true);
 
         // Recursively activate all child objects and compatible components
         for (auto* pChild : pObject->GetChildren())
@@ -200,18 +196,14 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
 
     std::function<void(wolf::GameObject*)> Deactivate = [&](wolf::GameObject* pObject) -> void
     {
-        // Make tilemaps invisible
-        auto* pTileMap = pObject->GetComponent<wolf::TileMap>();
-        if (pTileMap) pTileMap->SetVisibility(false);
-
-        // Make sprites invisible
-        auto* pSprite = pObject->GetComponent<AnimatedSprite2D>();
-        if (pSprite) pSprite->SetVisibility(false);
-
         // Deactivate collider
         // TODO: Only do this for walls? Or Move enemies to different chunks...
         auto* pCollider = pObject->GetComponent<ColliderComponent>();
         if (pCollider) pCollider->SetActive(false);
+
+        // Deactivate triggers
+        auto* pTrigger = pObject->GetComponent<TriggerComponent>();
+        if (pTrigger) pTrigger->SetActive(false);
 
         // Recursively deactivate all child objects and compatible components
         for (auto* pChild : pObject->GetChildren())
@@ -260,8 +252,11 @@ void LabyrinthManager::GenerateLabyrinth()
     if (!pTransform) pTransform = &pObject->AddComponent<wolf::Transform2D>();
 
     // Reseed the rng before generating
-    if (m_randomizeSeed) m_rng.SetSeed(m_rng.NextInt(0, INT32_MAX));
-    else m_rng.Reseed();
+    if (m_randomizeSeed)
+    {
+        m_rng.SetSeed(m_rng.NextInt(0, INT32_MAX));
+    }
+    m_rng.Reseed();
 
     // Initialize global grid of logical tile data for entire labyrinth
     m_labyrinthGrid.Resize(m_width, m_height, LogicalTile::Unvisited);
@@ -410,6 +405,7 @@ void LabyrinthManager::ShowGUI()
     }
     ImGui::DragInt("Width", &m_width, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
     ImGui::DragInt("Height", &m_height, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
+    ImGui::DragFloat("Spike Trap Ratio", &m_spikeTrapFloorRatio, 0.001f, 0.0f, 1.0f);
 
     ImGui::SeparatorText("Rooms");
 
@@ -618,6 +614,7 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
         if (node["seed"]) m_rng.SetSeed(node["seed"].as<int>());
         m_width = node["width"] ? node["width"].as<int>() : m_width;
         m_height = node["height"] ? node["height"].as<int>() : m_height;
+        m_spikeTrapFloorRatio = node["spike_trap_ratio"] ? node["spike_trap_ratio"].as<float>() : m_spikeTrapFloorRatio;
 
         // Load room data
         YAML::Node rooms = node["rooms"];
@@ -727,7 +724,9 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
     file << "\n";
 
     file << "height: " << std::to_string(m_height).c_str();
-    file << "\n\n";
+    file << "\n";
+
+    file << "spike_trap_ratio: " << std::to_string(m_spikeTrapFloorRatio).c_str() << "\n\n";
 
     file << "rooms: [\n";
 
@@ -1579,7 +1578,6 @@ void LabyrinthManager::GenerateChunks()
             // Add the chunk object to the map
             ChunkData cd;
             cd.m_pObject = &chunkObj;
-            m_chunkMap[chunkID] = cd;
 
             // Create the tilemap object
             auto& tilemapObj = scene.CreateObject2D();
@@ -1606,6 +1604,9 @@ void LabyrinthManager::GenerateChunks()
                 {
                     // Calculate world position
                     glm::ivec2 worldPos = {x + xoffset, y + yoffset};
+
+                    // Get the room for the given position
+                    auto room = GetRoom(worldPos);
 
                     // Don't bother trying to place tiles that don't exist
                     if (worldPos.x >= m_width || worldPos.y >= m_height) continue;
@@ -1649,6 +1650,13 @@ void LabyrinthManager::GenerateChunks()
 
                             // Lookup tile for configuration
                             tile = floorVarID[mask];
+
+                            // Add a spike trap to the tile if it is not a floor
+                            if (!room.has_value())
+                            {
+                                cd.m_hallwaySpikeTraps.push_back(worldPos);
+                            }
+
                             break;
                         
                         case LogicalTile::Grass:
@@ -1725,6 +1733,9 @@ void LabyrinthManager::GenerateChunks()
                     tilemap.SetTile(x, y, tile);
                 }
             }
+
+            // Assign the chunk data
+            m_chunkMap[chunkID] = cd;
         }
     }
 }
@@ -1744,6 +1755,41 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
     HarpyBuilder harpyBuilder(pObject->GetScene());
     GorgonBuilder gorgonBuilder(pObject->GetScene());
 
+    // Place all entities in hallways
+    for (const auto& entry : m_chunkMap)
+    {
+        const auto& chunkData = entry.second;
+        for (const auto& tilePos : chunkData.m_hallwaySpikeTraps)
+        {
+            if (m_rng.NextFloat(0.0f, 1.0f) > m_spikeTrapFloorRatio) continue;
+
+            // Create the trap object
+            auto& trap = pObject->GetScene().CreateObject2D();
+
+            // Add sprite
+            auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
+            sprite.SetOriginToCenterOfTexture();
+            sprite.SetLayer(0);
+
+            // Set position
+            auto& transform = *trap.GetComponent<wolf::Transform2D>();
+            glm::vec2 pos = (glm::vec2(0.5f) + glm::vec2(tilePos)) * (float)TILE_SIZE * (float)SCALE;
+            transform.SetPosition(pos);
+            transform.SetScale(glm::vec2(SCALE));
+
+            // Add a collider for interaction
+            auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+            collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+
+            // Add the TriggerComponent
+            trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);
+
+            // Add the object to the correct chunk
+            GetChunk(GetChunkID(pos))->AddChild(trap);
+        }
+    }
+
+    // Place all entities in generated rooms
     for (const auto& room : placedRooms)
     {
         // Create array of empty tiles
