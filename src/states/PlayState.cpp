@@ -641,7 +641,6 @@ void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& e
     m_pStateManager->PushState(dialogueAndCutsceneState);
 }
 
-
 wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
 {
     // Create the trap object

@@ -608,10 +608,12 @@ void PlayerInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEve
     if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum == m_iOpenChestIdNum) {
         // Then we can safely discard the id number because we're done moving items between the two inventories
         m_iOpenChestIdNum = -1;
+        m_bIsOpen = false;
     }
     else if (p_event.enType == MERCHANT_INVENTORY && p_event.iIdNum == m_iOpenMerchantIdNum) {
         // We do the same with merchant inventories
         m_iOpenMerchantIdNum = -1;
+        m_bIsOpen = false;
     }
 }
 

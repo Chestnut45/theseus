@@ -31,7 +31,7 @@ void DialogueAndCutsceneState::Enter() {
 // Exit
 void DialogueAndCutsceneState::Exit() {
     // Send off an event to let anyone interested know that the dialogue has finished
-    wolf::EventManager::TriggerEvent(DialogueOrCutsceneEndEvent(m_dialogueAndCutsceneSequence[m_currentSequenceIndex - 1].sequenceID, m_triggerNPCID));
+    wolf::EventManager::TriggerEvent(DialogueOrCutsceneEndEvent(m_currentSequence->at(m_currentSequenceIndex - 1).sequenceID, m_triggerNPCID));
 
     // Destroy all character portraits
     for (auto& pair : m_characterPortraits) {
