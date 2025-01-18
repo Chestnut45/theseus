@@ -101,12 +101,12 @@ class InventoryComponent : public wolf::BaseComponent {
 
         std::vector<std::stack<ItemBase*>> m_vvpContents;
 
-        // Shared texture resources
-        static std::vector<ImGuiUVSet*> m_vv2TextureCoords;
+        // Shared texture resources for Items
+        static std::vector<ImGuiUVSet*> m_vv2ItemTextureCoords;
         static const int m_iEmptySlotIndex;
         static const std::string m_strItemsTexturePath;
         static const ImVec2 m_v2TexFrameSize;
-        static inline wolf::Texture* m_pTexture = nullptr;
+        static inline wolf::Texture* m_pItemsTexture = nullptr;
 };
 
 struct OpenInventoryEvent {

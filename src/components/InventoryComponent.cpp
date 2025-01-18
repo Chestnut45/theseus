@@ -12,7 +12,7 @@ const float InventoryComponent::TOOLTIP_WRAP_POS = 176.0f;
 const std::string InventoryComponent::m_strItemsTexturePath = "data/textures/ItemIcons-Sheet.png";
 const ImVec2 InventoryComponent::m_v2TexFrameSize = {32.0f, 32.0f};
 const int InventoryComponent::m_iEmptySlotIndex = 22;
-std::vector<ImGuiUVSet*> InventoryComponent::m_vv2TextureCoords;
+std::vector<ImGuiUVSet*> InventoryComponent::m_vv2ItemTextureCoords;
 
 InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow), m_iIdNum(m_iNextIdNum), m_v2DrawPos(p_v2DrawPos){
     // Reserve the amount of space we've been asked for
@@ -25,7 +25,7 @@ InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p
     }
 
     // If this is the first InventoryComponent that is created
-    if (!m_pTexture) {
+    if (!m_pItemsTexture) {
         // We need to initalize the shared texture
         wolf::Texture* pNewTexture = wolf::TextureManager::CreateTexture(m_strItemsTexturePath);
         if (pNewTexture) {
@@ -69,7 +69,7 @@ InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p
             // Because frames are numbered 1-n but vectors are index 0-n, we need an offset
             // frame coordinate set that occupies the first index.
             ImGuiUVSet* pOffsetCoord = new ImGuiUVSet(ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
-            m_vv2TextureCoords.push_back(pOffsetCoord);
+            m_vv2ItemTextureCoords.push_back(pOffsetCoord);
 
             // Now that we have all our UV coordinates, we're going to assign them to frames
             for (int p = 0; p <= iNumFramesY - 1; p++) {
@@ -81,12 +81,12 @@ InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p
                     ImGuiUVSet* pTexFrameCords = new ImGuiUVSet(av2WorkingUVCoords[iOriginPoint], av2WorkingUVCoords[iOriginPoint + iWidth + 1]);
 
                     // Then we store 'em
-                    m_vv2TextureCoords.push_back(pTexFrameCords);
+                    m_vv2ItemTextureCoords.push_back(pTexFrameCords);
                 }
             }
 
             pNewTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
-            m_pTexture = pNewTexture;
+            m_pItemsTexture = pNewTexture;
         }
     }
 
@@ -405,7 +405,7 @@ void InventoryComponent::ShowInventoryGUI() {
                 std::string strIndex = std::to_string(k);
 
                 // Now we can start making the actual buttons
-                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
+                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pItemsTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
                 }
                 
                 // When we hover over an inventory slot
@@ -426,7 +426,7 @@ void InventoryComponent::ShowInventoryGUI() {
                 }
             }
             else { // Otherwise, this is an empty inventory slot
-            if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
+            if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pItemsTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
 
             }
             }
