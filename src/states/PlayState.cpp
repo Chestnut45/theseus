@@ -615,7 +615,7 @@ void PlayState::CreateTrappedChest()
     collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
 
     // Add the trapped chest component
-    auto& trappedChestComp = chest->AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::EXPLODE);
+    auto& trappedChestComp = chest->AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::EXPLODE, true,  true);
     trappedChestComp.Init();
 }
 

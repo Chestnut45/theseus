@@ -24,7 +24,7 @@
 
 std::vector<std::string> TrappedChestComponent::s_vTaunts;
 std::vector<ImVec2> TrappedChestComponent::s_vTauntTextSizes;
-TrappedChestComponent::TrappedChestComponent(TrapType p_trap_type)
+TrappedChestComponent::TrappedChestComponent(TrapType p_trap_type,bool p_is_taunting, bool p_is_tinting)
 {
     if(s_iComponentCount == 0)
     {
@@ -35,6 +35,8 @@ TrappedChestComponent::TrappedChestComponent(TrapType p_trap_type)
     this->m_trapType = p_trap_type;
     this->m_bIsOpen = false;
     this->m_iTauntIndex = m_RNG.NextInt(0, TrappedChestComponent::s_vTaunts.size() - 1);
+    this->m_bIsTinting = p_is_tinting;
+    this->m_bIsTaunting = p_is_taunting;
 }
 
 TrappedChestComponent::~TrappedChestComponent()
@@ -55,11 +57,21 @@ void TrappedChestComponent::Update(float p_delta)
     {
         m_fSelfDestructTimer -= p_delta;
 
-        this->DisplayTaunt();
-
+        // Display taunt if allowed
+        if(this->m_bIsTaunting == true)
+        {
+            this->DisplayTaunt();
+        }
+        
+        // Display tinting if allowed
+        if(this->m_bIsTinting == true)
+        {
+            this->DisplayTinting(p_delta);
+        }
+        
         if(m_trapType == TrapType::EXPLODE)
         {
-            this->DisplayBlastRadius();
+            this->DisplayBlastRadius(p_delta);
         }
 
         // If countdown is over
@@ -149,7 +161,19 @@ void TrappedChestComponent::DisplayTaunt()
     ImGui::End();
 }
 
-void TrappedChestComponent::DisplayBlastRadius()
+void TrappedChestComponent::DisplayTinting(float p_delta)
+{
+    this->m_fTintingTimer += p_delta;
+
+    float current_red = (glm::sin(FULL_RAD * this->m_fTintingSpeed * this->m_fTintingTimer));   // Calculate current red tint using sin
+    current_red = (current_red + 1) * 0.5f;                                                     // Normalise range from [-1, 1] to [0, 1]
+    current_red *= 4.0f;                                                                        // Increase magnitue of red tint
+
+    this->m_fTintingSpeed += this->m_fTintingAccelerator * p_delta;
+    this->GetGameObject()->GetComponent<AnimatedSprite2D>()->SetTint(glm::vec3(1.0f + current_red, 0.5f, 0.5f));
+}
+
+void TrappedChestComponent::DisplayBlastRadius(float p_delta)
 {
     // Get genral information
     wolf::GameObject* gameObj = this->GetGameObject();
@@ -158,7 +182,10 @@ void TrappedChestComponent::DisplayBlastRadius()
 
     // Add information to GLShapesRenderer
     ColouredVertex2D blastCentre = {pos.x, pos.y, this->m_vBlastRadiusColour.r, this->m_vBlastRadiusColour.g, this->m_vBlastRadiusColour.b, this->m_vBlastRadiusColour.a};
-    GLShapesRenderer::GetInstance()->AddRegularPolygon(blastCentre, this->m_fBlastRadius, 16);
+    GLShapesRenderer::GetInstance()->AddRegularPolygon(blastCentre, this->m_fBlastRadius, 16, this->m_fRotateAngle);
+    
+    // Increment rotate angle
+    this->m_fRotateAngle += p_delta * this->m_fRotateSpeed;
 }
 
 void TrappedChestComponent::Explode()
@@ -198,13 +225,13 @@ void TrappedChestComponent::Explode()
         // Deal damage based on distance from chest
         float blastDamage = this->m_fBlastRadius - distance;
         blastDamage = blastDamage > 0.0f ? blastDamage: 0.0f;
-        blastDamage *= 1.5f;
+        blastDamage *= 1.6f;
         player->GetComponent<HealthComponent>()->Damage(blastDamage);
 
         // Apply knockback based on distance from chest
         float knockbackForce = this->m_fBlastRadius - distance;
         knockbackForce = knockbackForce > 0.0f ? knockbackForce : 0.0f;
-        knockbackForce *= 10.0f;
+        knockbackForce *= 16.0f;
         player->GetComponent<VelocityComponent>()->ApplyKnockback(line, knockbackForce);
     }
     // TODO - Apply line-of-sight check to explosion to account for walls
