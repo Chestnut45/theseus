@@ -1622,6 +1622,7 @@ void LabyrinthManager::GenerateChunks()
                     unsigned char mask = 0;
                     switch (logicalTile)
                     {
+                        default:
                         case LogicalTile::Unvisited:
                             
                             // Do nothing
