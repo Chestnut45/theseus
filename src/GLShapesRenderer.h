@@ -18,6 +18,8 @@ public:
     void AddLine(ColouredVertex2D p_coords_1, ColouredVertex2D p_coords_2);
     void AddTriangle(ColouredVertex2D p_coords_1, ColouredVertex2D p_coords_2, ColouredVertex2D p_coords_3);
     void AddQuad(ColouredVertex2D p_coords_1, ColouredVertex2D p_coords_2, ColouredVertex2D p_coords_3, ColouredVertex2D p_coords_4);
+    void AddQuad(ColouredVertex2D p_upper_left, float p_width, float p_height);
+    void AddRegularPolygon(ColouredVertex2D p_centre, float p_radius, int p_sides);
     
     void RenderAndDeleteLines();
     void RenderAndDeleteTriangles();

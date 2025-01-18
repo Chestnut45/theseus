@@ -19,9 +19,12 @@
 #include "HarpyBuilder.h"
 #include "MinitaurBuilder.h"
 
+#include "../GLShapesRenderer.h"
+#include "../VertexDeclarations.h"
+
 std::vector<std::string> TrappedChestComponent::s_vTaunts;
 std::vector<ImVec2> TrappedChestComponent::s_vTauntTextSizes;
-TrappedChestComponent::TrappedChestComponent(TrapType p_trap_event)
+TrappedChestComponent::TrappedChestComponent(TrapType p_trap_type)
 {
     if(s_iComponentCount == 0)
     {
@@ -29,7 +32,7 @@ TrappedChestComponent::TrappedChestComponent(TrapType p_trap_event)
     }
     s_iComponentCount++;
     this->m_iID = s_iComponentCount;
-    this->m_trapEvent = p_trap_event;
+    this->m_trapType = p_trap_type;
     this->m_bIsOpen = false;
     this->m_iTauntIndex = m_RNG.NextInt(0, TrappedChestComponent::s_vTaunts.size() - 1);
 }
@@ -39,9 +42,10 @@ TrappedChestComponent::~TrappedChestComponent()
 
 }
 
-bool TrappedChestComponent::IsOpen()
+void TrappedChestComponent::Init()
 {
-    return this->m_bIsOpen;
+    // Define blast radius & scale to object
+    this->m_fBlastRadius = 100.0f * GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale().x;
 }
 
 void TrappedChestComponent::Update(float p_delta)
@@ -53,30 +57,37 @@ void TrappedChestComponent::Update(float p_delta)
 
         this->DisplayTaunt();
 
+        if(m_trapType == TrapType::EXPLODE)
+        {
+            this->DisplayBlastRadius();
+        }
+
         // If countdown is over
         if(m_fSelfDestructTimer <= 0.0f)
-        {
-            
+        {    
             wolf::GameObject* gameObj = GetGameObject();
             wolf::Transform2D* gameObjTransform = gameObj->GetComponent<wolf::Transform2D>();
             wolf::Scene* scene = &gameObj->GetScene();
 
-            switch (m_trapEvent)
+            switch (m_trapType)
             {
             case TrapType::TRANSFORM_GORGON:
+            {
                 this->SpawnGorgon();
                 break;
-            
+            }
             
             case TrapType::TRANSFORM_HARPY:
+            {
                 this->SpawnHarpy();
                 break;
-
+            }
             
             case TrapType::TRANSFORM_MINITAUR:
+            {
                 this->SpawnMinitaur();
                 break;
-
+            }
             
             case TrapType::EXPLODE:
             {
@@ -94,6 +105,11 @@ void TrappedChestComponent::Update(float p_delta)
     }
 }
 
+bool TrappedChestComponent::IsOpen()
+{
+    return this->m_bIsOpen;
+}
+
 void TrappedChestComponent::OpenTrappedChest()
 {
     this->m_bIsOpen = true;
@@ -101,6 +117,7 @@ void TrappedChestComponent::OpenTrappedChest()
 
 void TrappedChestComponent::DisplayTaunt()
 {
+    // Get general information
     wolf::GameObject* gameObj = this->GetGameObject();
     wolf::Transform2D* gameObjTransform = gameObj->GetComponent<wolf::Transform2D>();
     wolf::Scene* scene = &gameObj->GetScene();
@@ -109,6 +126,7 @@ void TrappedChestComponent::DisplayTaunt()
     glm::vec2 viewSize = camera->GetViewSize();
     glm::vec2 worldpos = gameObjTransform->GetGlobalPosition() + glm::vec2(0.0f, 30.0f) * gameObjTransform->GetGlobalScale();
 
+    // Calculate position of taunt text on screen
     glm::vec2 screenpos;
     screenpos.x = (worldpos.x - (cameraPos.x - viewSize.x * 0.5f));
     screenpos.y = (worldpos.y - (cameraPos.y - viewSize.y * 0.5f)) * (-1) + viewSize.y;
@@ -117,10 +135,12 @@ void TrappedChestComponent::DisplayTaunt()
     std::string windowName = "TrappedChest" + std::to_string(m_iID);
     std::string taunt = TrappedChestComponent::s_vTaunts.at(m_iTauntIndex);
     
-    // Setup
+    // ImGui setup
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
     ImGui::SetNextWindowPos({screenpos.x, screenpos.y});
     ImGui::SetNextWindowSize(TrappedChestComponent::WINDOW_SIZE);
+    
+    // Begin rendering
     ImGui::Begin(windowName.c_str(), nullptr, flags);
     ImGui::SetCursorPosX((TrappedChestComponent::WINDOW_SIZE.x - s_vTauntTextSizes.at(m_iTauntIndex).x) * 0.5f);
     ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%s", taunt.c_str());
@@ -129,13 +149,26 @@ void TrappedChestComponent::DisplayTaunt()
     ImGui::End();
 }
 
+void TrappedChestComponent::DisplayBlastRadius()
+{
+    // Get genral information
+    wolf::GameObject* gameObj = this->GetGameObject();
+    wolf::Transform2D* gameObjTransform = gameObj->GetComponent<wolf::Transform2D>();
+    glm::vec2 pos = gameObjTransform->GetGlobalPosition();
+
+    // Add information to GLShapesRenderer
+    ColouredVertex2D blastCentre = {pos.x, pos.y, this->m_vBlastRadiusColour.r, this->m_vBlastRadiusColour.g, this->m_vBlastRadiusColour.b, this->m_vBlastRadiusColour.a};
+    GLShapesRenderer::GetInstance()->AddRegularPolygon(blastCentre, this->m_fBlastRadius, 16);
+}
+
 void TrappedChestComponent::Explode()
 {
+    // Get genral information
     wolf::GameObject* gameObj = GetGameObject();
     wolf::Transform2D* gameObjTransform = gameObj->GetComponent<wolf::Transform2D>();
     wolf::Scene* scene = &gameObj->GetScene();
 
-    // Spawn explosion
+    // Spawn explosion object
     wolf::GameObject* explosion = &scene->CreateObject2D();
 
     explosion->GetComponent<wolf::Transform2D>()->SetPosition(gameObjTransform->GetGlobalPosition());
@@ -146,7 +179,8 @@ void TrappedChestComponent::Explode()
     
     explosion->AddComponent<TimedDestroyerComponent>(0.5f);
 
-    // Get player
+    // Get player & player data
+    // TODO - Apply damage to all nearby enemies
     PlayerController* playerController;
     for(auto&& [_, player_controller] : scene->Each<PlayerController>())
     {
@@ -157,44 +191,42 @@ void TrappedChestComponent::Explode()
     wolf::Transform2D* playerTransform = player->GetComponent<wolf::Transform2D>();
     glm::vec2 line = playerTransform->GetGlobalPosition() - gameObjTransform->GetGlobalPosition();
     float distance = glm::length(line);
-
-    float blastRadius = 100.0f * gameObjTransform->GetGlobalScale().x;
-    // If player is in blast radius, deal damage
-    if(distance <= blastRadius)
-    {
-        float blastDamage = blastRadius - distance;
+    
+    // Check if player is in blast radius
+    if(distance <= this->m_fBlastRadius)
+    {   
+        // Deal damage based on distance from chest
+        float blastDamage = this->m_fBlastRadius - distance;
         blastDamage = blastDamage > 0.0f ? blastDamage: 0.0f;
         blastDamage *= 1.5f;
+        player->GetComponent<HealthComponent>()->Damage(blastDamage);
 
-        float knockbackForce = blastRadius - distance;
+        // Apply knockback based on distance from chest
+        float knockbackForce = this->m_fBlastRadius - distance;
         knockbackForce = knockbackForce > 0.0f ? knockbackForce : 0.0f;
         knockbackForce *= 10.0f;
-
-        player->GetComponent<HealthComponent>()->Damage(blastDamage);
         player->GetComponent<VelocityComponent>()->ApplyKnockback(line, knockbackForce);
     }
     // TODO - Apply line-of-sight check to explosion to account for walls
-    // TODO - Apply damage to all nearby enemies
 }
 
 // Spawns Gorgon
 void TrappedChestComponent::SpawnGorgon()
 {
+    // Get genral information
     wolf::GameObject* gameObj = GetGameObject();
     wolf::Transform2D* gameObjTransform = gameObj->GetComponent<wolf::Transform2D>();
     wolf::Scene* scene = &gameObj->GetScene();
 
+    // Load all enemy data
     EnemyDataLoader loader;
     loader.LoadAllEnemyData("data/enemies.yaml");
 
+    // Build gorgon
     GorgonBuilder gorgonBuilder(gameObj->GetScene());
-
     glm::vec2 position = gameObjTransform->GetGlobalPosition();
-
     EnemyData gorgonData = loader.LoadEnemyData("gorgon");
     auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position);
-    
-    // Set gorgon scale
     auto* transform = gorgon.GetComponent<wolf::Transform2D>();
     if (transform)
     {
@@ -205,19 +237,20 @@ void TrappedChestComponent::SpawnGorgon()
 // Spawns Harpy
 void TrappedChestComponent::SpawnHarpy()
 {
+    // Get genral information
     wolf::GameObject* gameObj = GetGameObject();
     wolf::Transform2D* gameObjTransform = gameObj->GetComponent<wolf::Transform2D>();
     wolf::Scene* scene = &gameObj->GetScene();
 
+    // Load all enemy data
     EnemyDataLoader loader;
     loader.LoadAllEnemyData("data/enemies.yaml");
 
+    // Build harpy
     HarpyBuilder harpyBuilder(gameObj->GetScene());
     glm::vec2 position = gameObjTransform->GetGlobalPosition();
-
     EnemyData harpyData = loader.LoadEnemyData("harpy");
     auto& harpy = harpyBuilder.BuildHarpy(harpyData, position);
-    
     // Set harpy scale
     auto* transform = harpy.GetComponent<wolf::Transform2D>();
     if (transform)
@@ -229,21 +262,20 @@ void TrappedChestComponent::SpawnHarpy()
 // Spawns Minitaur
 void TrappedChestComponent::SpawnMinitaur()
 {
+    // Get genral information
     wolf::GameObject* gameObj = GetGameObject();
     wolf::Transform2D* gameObjTransform = gameObj->GetComponent<wolf::Transform2D>();
     wolf::Scene* scene = &gameObj->GetScene();
 
+    // Load all enemy data
     EnemyDataLoader loader;
     loader.LoadAllEnemyData("data/enemies.yaml");
 
+    // Build minitaur
     MinitaurBuilder minitaurBuilder(gameObj->GetScene());
-
     glm::vec2 position = gameObjTransform->GetGlobalPosition(); 
-
     EnemyData minitaurData = loader.LoadEnemyData("minitaur");
     auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, position);
-    
-    // Set minitaur scale
     auto* transform = minitaur.GetComponent<wolf::Transform2D>();
     if (transform)
     {
@@ -255,13 +287,15 @@ void TrappedChestComponent::SpawnMinitaur()
 
 void TrappedChestComponent::InitTaunts()
 {
+    // Initialise texts
     s_vTaunts =
     {
         "From Eris With Love <3",
-        "Blessing From Eris :D",
+        "A Gift From Eris :D",
         "'Hope ya like it! :)))' - Eris"
     };
 
+    // Calculate text sizes
     s_vTauntTextSizes = 
     {
         ImGui::CalcTextSize(TrappedChestComponent::s_vTaunts.at(0).c_str()),

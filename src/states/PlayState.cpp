@@ -610,12 +610,13 @@ void PlayState::CreateTrappedChest()
     sprite.SetAnimation("LegendaryClosed");
     sprite.SetOriginToCenterOfFrame();
 
-    // Add collider
+    // Add the collider
     auto& collider = chest->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
     collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
 
-    // Add trapped chest component
+    // Add the trapped chest component
     auto& trappedChestComp = chest->AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::EXPLODE);
+    trappedChestComp.Init();
 }
 
 void PlayState::CreateThrowableObject()
