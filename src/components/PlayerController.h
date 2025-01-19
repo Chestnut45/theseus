@@ -209,6 +209,7 @@ private:
     PlayerDirection m_previousDirection = PlayerDirection::NONE;
 
     bool m_inventoryOpen = false;
+    bool m_inventoryHovered = false;
 
     ColliderManager* m_pColliderManager = nullptr;
 

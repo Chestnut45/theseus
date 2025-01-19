@@ -49,6 +49,8 @@ class PlayerInventoryComponent : public InventoryComponent {
         void AddSchematic(Rarity p_enRarity);
         int GetNumSchematics();
 
+        inline bool IsToggleButtonHovered() { return m_bToggleButtonHovered; }
+
         inline int GetNumSchematicsOfRarity(Rarity p_enRarity) const {return m_iSchematics[p_enRarity];};
 
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
@@ -70,6 +72,7 @@ class PlayerInventoryComponent : public InventoryComponent {
         bool m_bShowFullInventoryPrompt = false;
         bool m_bShowTooExpensivePrompt = false;
         bool m_bShowMissingSchematicPrompt = false;
+        bool m_bToggleButtonHovered = false;
 
         const int MAX_SCHEMATICS_PER_RARITY = 99;
 

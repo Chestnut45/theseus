@@ -152,6 +152,9 @@ void PlayerInventoryComponent::ShowToggleButtonGUI() {
         this->ToggleOpen();
     }
 
+    // Update whether the image button is hovered or not
+    m_bToggleButtonHovered = ImGui::IsItemHovered();
+
     // If we are hovering over the button
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
         if (m_bIsOpen) {
