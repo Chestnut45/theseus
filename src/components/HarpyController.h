@@ -30,6 +30,7 @@ private:
     void HandleDeathState(float delta);
 
     void EnterChasingState();
+    void EnterPetrifiedState();
     void EnterIdleState();
     void EnterStunnedState();
 
