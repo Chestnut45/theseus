@@ -82,23 +82,11 @@ void HarpyController::Update(float delta)
     // Ensure components and target are initialized before performing any updates
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
-
-    // Check if harpy is petrified
+    // Check if minitaur is petrified
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
     if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
         ChangeState(EnemyState::DEATH);
-    }
-   
-    else 
-    {
-        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
-        // On exiting petrified state
-        if(m_state == EnemyState::PETRIFIED)
-        {
-            m_state = EnemyState::IDLE;
-            m_pAnimComponent->SetAnimPaused(false);
-        }         
     }
 
     // Check if health is below or equal to 0 and transition to the DEATH state
@@ -201,6 +189,11 @@ void HarpyController::ChangeState(EnemyState newState)
         case EnemyState::IDLE:
         {
             EnterIdleState();
+            break;
+        }
+        case EnemyState::PETRIFIED:
+        {
+            EnterPetrifiedState();
             break;
         }
         case EnemyState::STUNNED:
@@ -461,6 +454,10 @@ void HarpyController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
+}
+void HarpyController::EnterPetrifiedState()
+{
+
 }
 
 void HarpyController::EnterIdleState()

@@ -210,6 +210,11 @@ void GorgonController::ChangeState(EnemyState newState)
             EnterIdleState();
             break;
         }
+        case EnemyState::PETRIFIED:
+        {
+            EnterPetrifiedState();
+            break;
+        }
         case EnemyState::PROSPECT:
         {
             EnterProspectState();
@@ -432,7 +437,6 @@ void GorgonController::HandleAttackingState(float delta)
 
 void GorgonController::HandlePetrifiedState(float delta)
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::PETRIFIED);
     m_pAnimComponent->SetAnimPaused(true);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));    
 }
@@ -445,7 +449,7 @@ void GorgonController::HandleStunnedState(float delta)
     }
     else
     {
-        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+        //m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
         m_stunnedTimer += delta;
     }
 }
@@ -620,6 +624,11 @@ void GorgonController::EnterChasingState()
 void GorgonController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+}
+
+void GorgonController::EnterPetrifiedState()
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED);
 }
 
 void GorgonController::EnterProspectState()
