@@ -49,11 +49,12 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         enum SpecialEffectsType
         {
-            PETRIFIED,
+            GRAYSCALE,
             WHITE,
+            MULTITEX_PETRIFIED,
             NONE
         };
-        
+
         // Creates an animated sprite component from a yaml config file (new API)
         AnimatedSprite2D(const std::string& p_strPathToInit);
 
@@ -130,8 +131,9 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         //  Added by Nhật  //
         //                 //
         //-----------------//
+        
         void SetAnimPaused(bool p_bPaused){m_bIsAnimPaused = p_bPaused;};
-        void SetSpecialEffects(SpecialEffectsType p_spe_type) {m_specialEffectsType = p_spe_type;};
+        void SetSpecialEffects(SpecialEffectsType p_spe_type, float p_gradual_in = 0.0f, float p_gradual_out = 0.0f);
         void UpdateShaders();
 
     private:
@@ -180,10 +182,11 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         //  Added by Nhật  //
         //                 //
         //-----------------//
-        // Bool for pausing animations
+        // Bool for pausing animations & special effects
         bool m_bIsAnimPaused = false;
         SpecialEffectsType m_specialEffectsType = SpecialEffectsType::NONE;
-
+        float m_fGradualFadeInTime = 0.0f;
+        float m_fGradualFadeOutTime = 0.0f;
 
         static const float m_arBaseVertexData[]; // Array to hold geometry and base UV coordinates for all AnimatedSprite2Ds
 
@@ -197,6 +200,15 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         static inline wolf::VertexBuffer* s_pVertexBuffer = nullptr;
         static inline wolf::IndexBuffer* s_pIndexBuffer = nullptr;
         static inline wolf::VertexDeclaration* s_pVAO = nullptr;
+        
+        //-----------------//
+        //                 //
+        //  Added by Nhat  //
+        //                 //
+        //-----------------//
+        static inline std::vector<wolf::Texture*> s_vMasks;
+        static inline wolf::Program* s_pMultitexProgram = nullptr;
+        static inline wolf::Program* s_pMultitexPetrifiedProgram = nullptr;
 
         //-----------------//
         //                 //
@@ -204,7 +216,7 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         //                 //
         //-----------------//
         static inline wolf::Program* s_pCurrentProgram = nullptr;
-        static inline wolf::Program* s_pPetrifiedProgram = nullptr;
+        static inline wolf::Program* s_pGrayscaleProgram = nullptr;
         static inline wolf::Program* s_pWhiteProgram = nullptr;
 
         // Reference counting helper

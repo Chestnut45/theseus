@@ -402,7 +402,7 @@ void PlayState::Update(float delta)
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Trigger both cutscene and dialogue with IDs
-        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence"));
+        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_cutscene"));
     }
 
         // Update velocity components to apply friction and decelerate objects
@@ -527,7 +527,7 @@ void PlayState::CreateMinitaurEnemy()
     }
 
     auto* statusComponent = minitaur.GetComponent<StatusComponent>();
-    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
+    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 4.0f);
 }
 void PlayState::CreateHarpyEnemy()
 {
