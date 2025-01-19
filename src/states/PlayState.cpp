@@ -549,7 +549,7 @@ void PlayState::CreateMinitaurEnemy()
     }
 
     auto* statusComponent = minitaur.GetComponent<StatusComponent>();
-    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
+    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 4.0f);
 }
 void PlayState::CreateHarpyEnemy()
 {

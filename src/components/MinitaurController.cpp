@@ -90,17 +90,15 @@ void MinitaurController::Update(float delta)
     {
         ChangeState(EnemyState::PETRIFIED);
     }
-   
     else 
     {
-        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
         // On exiting petrified state
         if(m_state == EnemyState::PETRIFIED)
         {
-            m_state = EnemyState::IDLE;
-            m_pAnimComponent->SetAnimPaused(false);
+            ChangeState(EnemyState::CHASING);
         }         
     }
+
 
     // Check if health is below or equal to 0 and transition to the DEATH state
     if (m_pHealth->GetHealth() <= 0)
@@ -204,6 +202,11 @@ void MinitaurController::ChangeState(EnemyState newState)
         case EnemyState::IDLE:
         {
             EnterIdleState();
+            break;
+        }
+        case EnemyState::PETRIFIED:
+        {
+            EnterPetrifiedState();
             break;
         }
         case EnemyState::PROSPECT:
@@ -418,7 +421,6 @@ void MinitaurController::HandleAttackingState(float delta)
 
 void MinitaurController::HandlePetrifiedState(float delta)
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::PETRIFIED);
     m_pAnimComponent->SetAnimPaused(true);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));  
 }
@@ -537,6 +539,10 @@ void MinitaurController::EnterChasingState()
 void MinitaurController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+}
+void MinitaurController::EnterPetrifiedState()
+{
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED);
 }
 
 void MinitaurController::EnterProspectState()
