@@ -11,8 +11,8 @@
 class HarpyController : public EnemyController
 {
 public:
-    HarpyController() = default;    
-    ~HarpyController() = default; 
+    HarpyController();    
+    ~HarpyController(); 
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
     void ChangeState(EnemyState newState);
@@ -30,6 +30,7 @@ private:
     void HandleDeathState(float delta);
 
     void EnterChasingState();
+    void EnterPetrifiedState();
     void EnterIdleState();
     void EnterStunnedState();
 
@@ -39,6 +40,8 @@ private:
     void ExitPetrifiedState();
     void ExitStunnedState();
     
+    void SetEmote(EnemyEmote p_emote);
+
     // Minitaur-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;
@@ -66,4 +69,9 @@ private:
     float m_lieDeadTimer = 0.0f;
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
+
+    EnemyEmote m_emote = EnemyEmote::NONE; // Current emote
+    const float EMOTE_TIME = 1.0f;
+    float m_fEmoteTimer = 0.0f;
+    wolf::GameObject* m_pEmoteObj = nullptr;
 };

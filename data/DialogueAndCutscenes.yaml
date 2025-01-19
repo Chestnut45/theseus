@@ -1,36 +1,38 @@
 CutscenesAndDialogues:
-  intro_sequence:
+  intro_cutscene:
     characters:
+      - name: "Ariadne"
+        portraitPath: "data/textures/sPlayerTest.png"
       - name: "Theseus"
         portraitPath: "data/textures/sPlayerTest.png"
-      - name: "Gorgon"
-        portraitPath: "data/textures/gorgon.png"
     sequence:
       - type: "dialogue"
-        character: "Theseus"
-        text: "Where am I? No way... Is this Daedalus' Labyrinth?"
+        character: "Ariadne"
+        text: "Hail stranger. Are you the one they call 'Theseus'?"
         duration: 4.0
       - type: "dialogue"
         character: "Theseus"
-        text: "What is that?"
-        duration: 2.5
-      - type: "combined"
-        dialogue:
-          character: "Gorgon"
-          text: "You should have never come here, this'll be the end of you!"
-          duration: 3.5
-        cutscene:
-          camera_keyframes:
-            - target: "Theseus"
-              duration: 0.3
-            - target: "Gorgon"
-              duration: 3.0
-      - type: "combined"
-        dialogue:
-          character: "Theseus"
-          text: "Not in a million years."
-          duration: 3.0
-        cutscene:
-          camera_keyframes:
-            - target: "Theseus"
-              duration: 3.0
+        text: "I am."
+        duration: 2.0
+      - type: "dialogue"
+        character: "Ariadne"
+        text: "And are the rumours true? Have you come to free your people and slay the Minotaur?"
+        duration: 4.0
+      - type: "dialogue"
+        character: "Theseus"
+        text: "I have."
+        duration: 2.0
+      - type: "dialogue"
+        character: "Ariadne"
+        text: "Thank the gods."
+        duration: 3.0
+
+  hello:
+    characters:
+      - name: "Ariadne"
+        portraitPath: "data/textures/sPlayerTest.png"
+    sequence:
+      - type: "dialogue"
+        character: "Ariadne"
+        text: "Hello, Theseus."
+        duration: 2.0

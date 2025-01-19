@@ -12,6 +12,7 @@
 struct ItemInStasis {
     ItemBase* pItem;
     int iPlayerInventoryIndex;
+    bool bWasEquipped;
 };
 
 class MerchantInventoryComponent : public InventoryComponent {

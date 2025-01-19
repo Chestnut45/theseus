@@ -10,7 +10,13 @@
 #include <math.h>
 #include <cassert>
 
+HarpyController::HarpyController()
+{
+}  
 
+HarpyController::~HarpyController()
+{
+}
 
 void HarpyController::Init(const EnemyData& data)
 {
@@ -54,6 +60,20 @@ void HarpyController::Init(const EnemyData& data)
     {
         wolf::Warning("Harpy " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
     }
+
+        // Init emotes object
+    m_pEmoteObj = &pGameObject->GetScene().CreateObject2D();
+    pGameObject->AddChild(*m_pEmoteObj);
+    wolf::Transform2D* transform = m_pEmoteObj->GetComponent<wolf::Transform2D>();
+    transform->SetPosition(glm::vec2(-8.0f, 8.0f));
+
+    // Add emotes spritesheet
+    AnimatedSprite2D* emotesSpritesheet = &m_pEmoteObj->AddComponent<AnimatedSprite2D>("data/emotes_anim_init.yaml");
+    emotesSpritesheet->SetAnimPaused(true);
+    emotesSpritesheet->SetOriginToCenterOfFrame();
+
+    // Initialise emotes-related variables
+    m_fEmoteTimer = EMOTE_TIME;
 }
 
 
@@ -62,23 +82,11 @@ void HarpyController::Update(float delta)
     // Ensure components and target are initialized before performing any updates
     if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
-
-    // Check if harpy is petrified
+    // Check if minitaur is petrified
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
     if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
         ChangeState(EnemyState::DEATH);
-    }
-   
-    else 
-    {
-        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
-        // On exiting petrified state
-        if(m_state == EnemyState::PETRIFIED)
-        {
-            m_state = EnemyState::IDLE;
-            m_pAnimComponent->SetAnimPaused(false);
-        }         
     }
 
     // Check if health is below or equal to 0 and transition to the DEATH state
@@ -119,6 +127,20 @@ void HarpyController::Update(float delta)
 
     // Update animations based on direction after handling movement
     UpdateAnimationBasedOnDirection();
+
+    // Emoting
+    if(m_fEmoteTimer > 0.0f)
+    {
+        m_fEmoteTimer -= delta;
+    }
+    else
+    {
+        if(m_emote != EnemyEmote::NONE)
+        {
+            // Clear previous emote
+            SetEmote(EnemyEmote::NONE);
+        }
+    }
 }
 
 void HarpyController::ChangeState(EnemyState newState)
@@ -167,6 +189,11 @@ void HarpyController::ChangeState(EnemyState newState)
         case EnemyState::IDLE:
         {
             EnterIdleState();
+            break;
+        }
+        case EnemyState::PETRIFIED:
+        {
+            EnterPetrifiedState();
             break;
         }
         case EnemyState::STUNNED:
@@ -231,10 +258,11 @@ void HarpyController::HandleIdleState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
     
-    //std::cout << "HarpyController - Detection Range: " << m_detectionRange << std::endl;
+    // If target detected, emote & chase
     if (distanceToPlayer <= m_detectionRange)
     {
-        ChangeState(EnemyState::CHASING);  // Transition to CHASING when the player is in range
+        SetEmote(EnemyEmote::EXCLAMATION);
+        ChangeState(EnemyState::CHASING);
     }
 }
 
@@ -382,7 +410,7 @@ void HarpyController::HandleDeathState(float delta)
             ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
             if(collider != nullptr)
             {
-                collider->SetColliderType(ColliderComponent::ColliderType::NONE);
+                collider->SetIgnoreTag(m_uiPlayerGOId);
             }
             
             m_pAnimComponent->SetTint(glm::vec3(1,0,0));
@@ -400,7 +428,22 @@ void HarpyController::HandleDeathState(float delta)
         if(m_lieDeadTimer >= m_timeToLieDead)
         {
             // !-- Aurora added this --!
-            ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
+            // Spawn some loot
+            std::vector<wolf::GameObject*> pItemDrops = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
+            
+            // Harpies can be inside of the walls so we need to push the loot out. To do that,
+            // we get the loot item's velocity component
+            for (auto& pItem : pItemDrops) {
+                VelocityComponent* pItemVel = pItem->GetComponent<VelocityComponent>();
+                if (pItemVel) {
+                    // And gently push it in a random direction, which signals a collision in the ColliderManager
+                    // that caluclates which direction the item should ACTUALLY be pushed in to get it out of the
+                    // wall
+                    pItemVel->ApplyKnockback(glm::vec2(1.0f, 0.0f), 10.0f);
+                }
+            }
+
+            // Then we delete the harpy
             GetGameObject()->Delete();
         }
         m_lieDeadTimer += delta;
@@ -411,6 +454,10 @@ void HarpyController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
+}
+void HarpyController::EnterPetrifiedState()
+{
+
 }
 
 void HarpyController::EnterIdleState()
@@ -451,3 +498,28 @@ void HarpyController::ExitStunnedState()
     m_stunnedTimer = 0.0f;
 }
 
+void HarpyController::SetEmote(EnemyEmote p_emote)
+{
+    m_fEmoteTimer = EMOTE_TIME;
+    switch(p_emote)
+    {
+        case EnemyEmote::EXCLAMATION:
+        {
+            m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("Exclamation");
+            break;
+        }
+
+        case EnemyEmote::QUESTION:
+        {
+            m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("Question");
+            break;
+        }
+        case EnemyEmote::NONE:
+        {
+            m_pEmoteObj->GetComponent<AnimatedSprite2D>()->SetAnimation("None");
+            break;
+        }
+    }
+
+    m_emote = p_emote;
+}
