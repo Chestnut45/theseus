@@ -199,6 +199,14 @@ void PlayerController::Update(float delta)
         wolf::Error("PlayerController missing essential components!");
         return;
     }
+
+    auto* pInventory = pGameObject->GetComponent<PlayerInventoryComponent>();
+    if (pInventory)
+    {
+        m_inventoryOpen = pInventory->IsOpen();
+        m_inventoryHovered = pInventory->IsToggleButtonHovered();
+    }
+
     if (m_action != PlayerAction::DEAD)
     {
         RegenerateStamina(delta);
@@ -331,12 +339,10 @@ void PlayerController::HandlePlayerInput(float delta)
     if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) {
         if (m_action != PlayerAction::IN_INVENTORY) {
             playerInventory->Open();
-            SetAction(PlayerAction::IN_INVENTORY);
             m_currentMoveSpeed = m_inventoryMoveSpeed;
         }
     } else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) {
         playerInventory->Close();
-        SetAction(PlayerAction::NONE);
         m_currentMoveSpeed = m_normalMoveSpeed;
     }
     glm::vec2 direction = GetLastFacingDirectionVector();
@@ -349,7 +355,7 @@ void PlayerController::HandlePlayerInput(float delta)
 
     // Start the attack if the left mouse button is pressed and the player is not currently attacking.
     // !-- Aurora added a m_pCurrentWeapon != nullptr check here --!
-    if (wolf::Input::IsLMBJustDown() && m_action != PlayerAction::ATTACKING && m_pCurrentWeapon)
+    if (wolf::Input::IsLMBJustDown() && m_pCurrentWeapon && m_action != PlayerAction::ATTACKING && !m_inventoryOpen && !m_inventoryHovered)
     {
         SetAction(PlayerAction::ATTACKING);
     }
