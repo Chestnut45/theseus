@@ -1,5 +1,5 @@
 CutscenesAndDialogues:
-  intro_cutscene:
+  intro_sequence:
     characters:
       - name: "Ariadne"
         portraitPath: "data/textures/sPlayerTest.png"
