@@ -9,6 +9,7 @@
 
 #include "InventoryComponent.h"
 #include "events/DroppedItemEvents.h"
+#include "events/InventoryEvents.h"
 #include "inventory/ItemDropCreator.h"
 
 #include "inventory/FlatAmtItem.h"
@@ -20,35 +21,7 @@
 
 class PlayerInventoryComponent : public InventoryComponent {
     public:
-        PlayerInventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos)
-            : InventoryComponent(p_iSize, p_iSlotsPerRow, p_v2DrawPos)
-            {
-                m_enType = PLAYER_INVENTORY;
-
-                // We need to fill the equipment array with nullptrs because we don't have anything equipped, yet
-                for (int i = 0; i < END_OF_EQUIPMENT; i++) {
-                    m_pEquipment[i] = nullptr;
-                }
-
-                // We need to fill the schematics array with zeros because we don't have any schematics, yet
-                for (int j = 0; j < END_OF_RARITIES; j++) {
-                    m_iSchematics[j] = 0;
-                }
-
-                // Start with exactly one common schematic
-                m_iSchematics[0] = 1;
-
-                // We also need to register for events related to the player's inventory
-                wolf::EventManager::AddListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
-                wolf::EventManager::AddListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
-                wolf::EventManager::AddListener<SellItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleSellItemToPlayerEvent>(*this);
-                wolf::EventManager::AddListener<PickupDroppedItemEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandlePickupDroppedItemEvent>(*this);
-                wolf::EventManager::AddListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
-                wolf::EventManager::AddListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
-                wolf::EventManager::AddListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
-                wolf::EventManager::AddListener<RemoveFromPlayerEquipmentEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerEquipmentEvent>(*this);
-            };
-        
+        PlayerInventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos);
         ~PlayerInventoryComponent();
 
         // Delete copy constructor/assignment
@@ -65,6 +38,7 @@ class PlayerInventoryComponent : public InventoryComponent {
         virtual void Close();
 
         virtual void ShowInventoryGUI();
+        void ShowToggleButtonGUI();
 
         void AddGold(int p_iAmt);
         bool TakeGold(int p_iAmt);
@@ -74,6 +48,8 @@ class PlayerInventoryComponent : public InventoryComponent {
         bool TakeSchematic(Rarity p_enRarity);
         void AddSchematic(Rarity p_enRarity);
         int GetNumSchematics();
+
+        inline bool IsToggleButtonHovered() { return m_bToggleButtonHovered; }
 
         inline int GetNumSchematicsOfRarity(Rarity p_enRarity) const {return m_iSchematics[p_enRarity];};
 
@@ -96,11 +72,14 @@ class PlayerInventoryComponent : public InventoryComponent {
         bool m_bShowFullInventoryPrompt = false;
         bool m_bShowTooExpensivePrompt = false;
         bool m_bShowMissingSchematicPrompt = false;
+        bool m_bToggleButtonHovered = false;
 
         const int MAX_SCHEMATICS_PER_RARITY = 99;
 
         const int MAX_GOLD = 999;
         int m_iGold = 0;
+
+        int m_iToggleButtonIndex;
 
         int m_iOpenChestIdNum = -1;
         int m_iOpenMerchantIdNum = -1;
@@ -108,4 +87,14 @@ class PlayerInventoryComponent : public InventoryComponent {
         EquipmentItem* m_pEquipment[END_OF_EQUIPMENT];
 
         int m_iSchematics[END_OF_RARITIES];
+
+        // Shared texture resources for the toggle button
+        static std::vector<ImGuiUVSet*> m_vv2ToggleTextureCoords;
+        static const std::string m_strToggleTexturePath;
+        static inline wolf::Texture* m_pToggleTexture = nullptr;
+
+        static const int TOG_BUTTON_CLOSED;
+        static const int TOG_BUTTON_CLOSED_HOVER;
+        static const int TOG_BUTTON_OPEN;
+        static const int TOG_BUTTON_OPEN_HOVER;
 };

@@ -146,6 +146,56 @@ void PlayState::Update(float delta)
         TimedDestroyerComponent.Update(delta);
     }
 
+    // INVENTORY TESTING
+    auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
+    if (playerInventory) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
+            ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
+            ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
+            ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
+            ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
+            ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
+            ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
+            ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
+            ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
+
+            ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
+            ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
+
+            ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
+            ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
+            ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
+            
+            playerInventory->AddItemOrDelete(pBoots);
+            playerInventory->AddItemOrDelete(pDentedHelmet);
+            playerInventory->AddItemOrDelete(pRustyChestplate);
+            playerInventory->AddItemOrDelete(pCopperVambraces);
+            playerInventory->AddItemOrDelete(pKilt);
+            playerInventory->AddItemOrDelete(pTheezys);
+            playerInventory->AddItemOrDelete(pFauxLeatherGloves);
+            playerInventory->AddItemOrDelete(pLapisLazuliRing);
+
+            playerInventory->AddItemOrDelete(pBow);
+            playerInventory->AddItemOrDelete(pSpear);
+            playerInventory->AddItemOrDelete(pHealHeart);
+            playerInventory->AddItemOrDelete(pHurtHeart);
+            playerInventory->AddItemOrDelete(pBurnHeart);
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
+            playerInventory->AddGold(10);
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
+            playerInventory->TakeGold(5);
+        }
+
+        playerInventory->ShowToggleButtonGUI();
+        playerInventory->ShowInventoryGUI();
+    }
+
     // Update all player controllers
     for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<PlayerController>())
     {
@@ -215,54 +265,7 @@ void PlayState::Update(float delta)
         status.Update(delta);
     }
 
-    // INVENTORY TESTING
-    auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
-    if (playerInventory) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-            ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
-            ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
-            ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
-            ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
-            ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
-            ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
-            ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
-            ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
-
-            ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
-            ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
-
-            ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
-            ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
-            ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
-            
-            playerInventory->AddItemOrDelete(pBoots);
-            playerInventory->AddItemOrDelete(pDentedHelmet);
-            playerInventory->AddItemOrDelete(pRustyChestplate);
-            playerInventory->AddItemOrDelete(pCopperVambraces);
-            playerInventory->AddItemOrDelete(pKilt);
-            playerInventory->AddItemOrDelete(pTheezys);
-            playerInventory->AddItemOrDelete(pFauxLeatherGloves);
-            playerInventory->AddItemOrDelete(pLapisLazuliRing);
-
-            playerInventory->AddItemOrDelete(pBow);
-            playerInventory->AddItemOrDelete(pSpear);
-            playerInventory->AddItemOrDelete(pHealHeart);
-            playerInventory->AddItemOrDelete(pHurtHeart);
-            playerInventory->AddItemOrDelete(pBurnHeart);
-        }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
-            playerInventory->AddGold(10);
-        }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-            playerInventory->TakeGold(5);
-        }
-
-        playerInventory->ShowInventoryGUI();
-    }
+    
 
     // Display all open chest GUIs
     const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -553,7 +556,7 @@ void PlayState::CreateMinitaurEnemy()
     }
 
     auto* statusComponent = minitaur.GetComponent<StatusComponent>();
-    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
+    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 4.0f);
 }
 void PlayState::CreateHarpyEnemy()
 {

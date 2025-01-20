@@ -204,7 +204,6 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
 
         case StatusEffectType::PETRIFIED:
         {
-            // Handled in PlayerController or inheritors of EnemyController
             break;
         }      
         
