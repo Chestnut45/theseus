@@ -1,8 +1,9 @@
 #include "PathfindingManager.h"
-#include <queue>
+#include <unordered_map>
 #include <unordered_set>
-#include <algorithm>
+#include <queue>
 #include <functional>
+#include <algorithm>
 
 PathfindingManager::PathfindingManager(LabyrinthManager& labyrinthManager)
     : m_labyrinthManager(labyrinthManager) {}
@@ -51,7 +52,7 @@ std::vector<glm::ivec2> PathfindingManager::FindPath(const glm::ivec2& start, co
 
     // Data structures for A* algorithm
     std::unordered_map<glm::ivec2, Node> allNodes;
-    std::unordered_set<glm::ivec2, std::hash<int>> closedList;
+    std::unordered_set<glm::ivec2> closedList;
 
     // Initialize the start node
     Node& startNode = allNodes[start] = { start, 0, CalculateHeuristic(start, end), 0, nullptr };

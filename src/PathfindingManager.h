@@ -1,9 +1,10 @@
 #pragma once
 
+#include "glm_ivec2_hash.h"
 #include <vector>
-#include <glm/glm.hpp>
 #include "LabyrinthManager.h"
 #include <unordered_map>
+
 
 // A* Pathfinding Manager for navigating a grid-based labyrinth
 class PathfindingManager {
