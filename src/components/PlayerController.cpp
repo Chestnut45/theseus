@@ -1073,13 +1073,13 @@ void PlayerController::Render()
         return;
     }
 
-    float barWidth = 180.0f;
+    float barWidth = 256.0f;
     float barHeight = 18.0f;
-    float verticalOffset = 10.0f;  // Offset between health and stamina bars
+    float verticalOffset = 20.0f;  // Offset between health and stamina bars
 
     // Position both bars at the top-center of the screen
     ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-    ImVec2 basePos = ImVec2(displaySize.x / 2.0f - barWidth / 2.0f, 20.0f);
+    ImVec2 basePos = ImVec2(10.0f, 10.0f);
 
     // Push ImGui style variables for a more polished and "arty" look
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);          // Rounded corners
@@ -1102,8 +1102,26 @@ void PlayerController::Render()
         ImGui::End();
     }
 
+    // Load the health bar frame image once
+    static ImTextureID healthBarTextureID = nullptr;
+    static wolf::Texture* pHealthBarTexture = nullptr;
+    if (!pHealthBarTexture) {
+        pHealthBarTexture = wolf::TextureManager::CreateTexture("data/textures/HealthBarFrame.png");
+        healthBarTextureID = reinterpret_cast<void*>(pHealthBarTexture->GetID());
+    }
+
+    // Render the health bar frame on top of the actual bar
+    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pHealthBarTexture->GetWidth() - 9.0f, basePos.y - barHeight});
+    ImGui::SetNextWindowSize({0,0});
+    ImGui::Begin("HealthBarFrame", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
+    ImGui::Image(healthBarTextureID, ImVec2(pHealthBarTexture->GetWidth(), pHealthBarTexture->GetHeight()), ImVec2(0, 0), ImVec2(1, 1));
+    ImGui::End();
+
     // Move the position down for the stamina bar
     basePos.y += (barHeight + verticalOffset);
+
+    // Change the stamina bar height to be slightly smaller
+    barHeight = 15.0f;
 
     // Render the stamina bar below the health bar
     ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for stamina bar
@@ -1112,6 +1130,21 @@ void PlayerController::Render()
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.0f, 1.0f, 0.0f, 1.0f)); // Green stamina color
     ImGui::ProgressBar(m_stamina / m_maxStamina, ImVec2(-1, barHeight)); // Full width, defined height
     ImGui::PopStyleColor(); // Pop color for stamina bar
+    ImGui::End();
+
+    // Load the stamina bar frame image once
+    static ImTextureID staminaBarTextureID = nullptr;
+    static wolf::Texture* pStaminaBarTexture = nullptr;
+    if (!pStaminaBarTexture) {
+        pStaminaBarTexture = wolf::TextureManager::CreateTexture("data/textures/StaminaBarFrame.png");
+        staminaBarTextureID = reinterpret_cast<void*>(pStaminaBarTexture->GetID());
+    }
+
+    // Render the stamina bar frame on top of the actual bar
+    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pStaminaBarTexture->GetWidth() - 9.0f, basePos.y - barHeight - (barHeight / 2.0f)});
+    ImGui::SetNextWindowSize({0,0});
+    ImGui::Begin("StaminaBarFrame", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
+    ImGui::Image(staminaBarTextureID, ImVec2(pStaminaBarTexture->GetWidth(), pStaminaBarTexture->GetHeight()), ImVec2(0, 0), ImVec2(1, 1));
     ImGui::End();
 
     if (m_isHoldingObject && wolf::Input::IsLMBHeld()) {
