@@ -164,7 +164,7 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
         pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
 
         // We want to show the merchant's name as part of the window title so we build a string with it real quick
-        std::string strTitle = " ~ " + m_strMerchantName + " ~";
+        const std::string strTitle = " ~ " + m_strMerchantName + " ~";
 
         // You can't resize the inventory or move it
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
@@ -388,8 +388,15 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
 
-            // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f, v2DisplaySize.y * 0.5f});
+            // Construct the text this prompt will display
+            const std::string strMessage = m_ItemInStasis.pItem->GetName() + " is worth " + std::to_string(m_ItemInStasis.pItem->GetValue())
+                + " Gold but " + m_strMerchantName + " only has " + std::to_string(m_iGold);
+
+            // Figure out roughly how big the window will be as a result
+            float fMessageWidth = ImGui::CalcTextSize(strMessage.c_str()).x;
+
+            // Draw the message in the middle of the screen
+            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f - (fMessageWidth / 2.0f), v2DisplaySize.y * 0.45f});
             ImGui::SetNextWindowSize({0,0});
             ImGui::Begin("Not Enough Gold", nullptr, flags);
 
@@ -398,7 +405,7 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
             // Show a message asking the player if they are okay with selling the item for less than its value
-            ImGui::Text("%s is worth %d Gold but %s only has %d.", m_ItemInStasis.pItem->GetName().c_str(), m_ItemInStasis.pItem->GetValue(), m_strMerchantName.c_str(), m_iGold);
+            ImGui::Text(strMessage.c_str());
             
             // Calculate the size of the window and the text we want to display
             fWindowWidth = ImGui::GetWindowWidth();

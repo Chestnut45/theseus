@@ -625,8 +625,10 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
 
+            float fMessageWidth = ImGui::CalcTextSize("Your inventory is full.").x;
+
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f, v2DisplaySize.y * 0.5f});
+            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f - (fMessageWidth / 2.0f), v2DisplaySize.y * 0.45f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Inventory Is Full Prompt", nullptr, flags);
 
@@ -662,8 +664,10 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
 
+            float fTooExpensiveWidth = ImGui::CalcTextSize("You don't have enough gold to buy that.").x;
+
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f, v2DisplaySize.y * 0.5f});
+            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f - (fTooExpensiveWidth / 2.0f), v2DisplaySize.y * 0.45f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Too Expensive Prompt", nullptr, flags);
 
@@ -699,8 +703,10 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
 
+            float fMissingSchematicWidth = ImGui::CalcTextSize("You don't have a schematic to trade for that.").x;
+
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f, v2DisplaySize.y * 0.5f});
+            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f - (fMissingSchematicWidth / 2.0f), v2DisplaySize.y * 0.45f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Missing Schematic Prompt", nullptr, flags);
 
