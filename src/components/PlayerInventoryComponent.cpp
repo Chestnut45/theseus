@@ -187,7 +187,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
         // Position the inventory
         ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
-        ImVec2 v2WindowDrawPos = {10.0f, 10.0f};
+        ImVec2 v2WindowDrawPos = {10.0f, v2DisplaySize.y * 0.07f};
         
         ImGui::SetNextWindowPos(v2WindowDrawPos);
         ImGui::SetNextWindowSize({0,0});
@@ -208,7 +208,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
         // Write the inventory title
         float fWindowWidth = ImGui::GetWindowSize().x;
-        float fTextWidth   = ImGui::CalcTextSize("~ Inventory ~").x;
+        float fTextWidth = ImGui::CalcTextSize("~ Inventory ~").x;
 
         ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
         ImGui::Text("~ Inventory ~");
@@ -289,6 +289,10 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 ImGui::PopStyleVar(2);
                 ImGui::PopStyleColor(3);
                 
+                // Push the tooltip style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
                 // When we hover over an inventory slot
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     // We display the details string that we constructed earlier
@@ -306,6 +310,10 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     ImGui::EndTooltip();
                 }
 
+                // Pop the tooltip style vars and colors
+                ImGui::PopStyleVar(1);
+                ImGui::PopStyleColor(1);
+
                 // When we click on an inventory slot
                 if (ImGui::IsItemClicked()) {
 
@@ -313,6 +321,15 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     ImGui::OpenPopup(strIndex.c_str());
                 }
                 
+                // Push the pop-up style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 2.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
                 // The pop-up menu has different buttons based on what the item is and what "state" it's in
                 if (ImGui::BeginPopup(strIndex.c_str())) {
                     if (pItem->GetID() == CONSUMABLE) { // If the item is Consumable
@@ -377,6 +394,11 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     }
                     ImGui::EndPopup();
                 }
+
+                // Pop the pop-up style vars and colors
+                ImGui::PopStyleVar(1);
+                ImGui::PopStyleColor(5);
+
             }
             else { // Otherwise, this is an empty inventory slot
                 // Push some style vars and colors
@@ -591,8 +613,6 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
         ImGui::NewLine();
 
-        ImVec2 v2MainWindowSize = ImGui::GetWindowSize();
-
         // End of window
         ImGui::End();
 
@@ -601,10 +621,18 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             // You can't resize the window or move it
             ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
+            // Push the message style vars and colors
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({m_v2DrawPos.x - v2MainWindowSize.x / 2.0f, m_v2DrawPos.y + v2MainWindowSize.y / 2.0f});
+            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f, v2DisplaySize.y * 0.5f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Inventory Is Full Prompt", nullptr, flags);
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
             // Show a message asking the player if they are okay with selling the item for less than its value
             ImGui::Text("Your inventory is full.");
@@ -617,6 +645,11 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 // Close this prompt and process the sale
                 m_bShowFullInventoryPrompt = false;
             }
+
+            // Pop the style vars and colors
+            ImGui::PopStyleVar(1);
+            ImGui::PopStyleColor(4);
+
             ImGui::End();
         }
 
@@ -625,10 +658,18 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             // You can't resize the window or move it
             ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
+            // Push the message style vars and colors
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({m_v2DrawPos.x - v2MainWindowSize.x / 4.0f, m_v2DrawPos.y + v2MainWindowSize.y / 4.0f});
+            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f, v2DisplaySize.y * 0.5f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Too Expensive Prompt", nullptr, flags);
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
             // Show a message asking the player if they are okay with selling the item for less than its value
             ImGui::Text("You don't have enough gold to buy that.");
@@ -641,6 +682,11 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 // Close this prompt and process the sale
                 m_bShowTooExpensivePrompt = false;
             }
+
+            // Pop the message style vars and colors
+            ImGui::PopStyleVar(1);
+            ImGui::PopStyleColor(4);
+
             ImGui::End();
         }
 
@@ -649,10 +695,18 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             // You can't resize the window or move it
             ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
+            // Push the message style vars and colors
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({m_v2DrawPos.x - v2MainWindowSize.x / 4.0f, m_v2DrawPos.y + v2MainWindowSize.y / 4.0f});
+            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f, v2DisplaySize.y * 0.5f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Missing Schematic Prompt", nullptr, flags);
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
             // Show a message asking the player if they are okay with selling the item for less than its value
             ImGui::Text("You don't have a schematic to trade for that.");
@@ -665,6 +719,11 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 // Close this prompt and process the sale
                 m_bShowMissingSchematicPrompt = false;
             }
+
+            // Pop style vars and colors
+            ImGui::PopStyleVar(1);
+            ImGui::PopStyleColor(4);
+
             ImGui::End();
         }
     }
