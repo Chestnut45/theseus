@@ -264,7 +264,7 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
             return;
         }
         m_pCurrentAnim = animIt->second;
-        this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
+        this->SetTexture(m_pCurrentAnim->m_strItemsTexturePath, m_pCurrentAnim->m_v2FrameSize);
         this->SetOrigin(m_pCurrentAnim->m_v2Origin);
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[m_pCurrentAnim->m_iStartFrame];
@@ -289,7 +289,7 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
         }
 
         m_pCurrentAnim = animIt->second;
-        this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
+        this->SetTexture(m_pCurrentAnim->m_strItemsTexturePath, m_pCurrentAnim->m_v2FrameSize);
         this->SetOrigin(m_pCurrentAnim->m_v2Origin);
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame + p_iTargetAnimFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[iTargetFrame];
