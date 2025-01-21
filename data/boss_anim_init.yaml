@@ -1,0 +1,13 @@
+# UNFINISHED, DO NOT USE
+
+frame_size: {x: 32.0, y: 32.0}
+playback_speed: 6.0
+
+start_animation: {
+  texture: data/textures/Minitaur-Sheet.png,
+  name: StandSouth
+}
+
+animation_sets: [
+  data/minitaur_stand_anim_set.yaml,
+]
