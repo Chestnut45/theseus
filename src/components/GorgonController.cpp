@@ -476,6 +476,7 @@ void GorgonController::HandleAttackingState(float delta)
     }
 
     m_curentCrosshairColour.g -= delta * (1.0f / m_rangedCooldown);
+    IsTargetInLOS();
 }
 
 void GorgonController::HandlePetrifiedState(float delta)
@@ -673,10 +674,6 @@ void GorgonController::EnterAttackState()
         m_RNG.NextFloat(-4.0f, 4.0f),
         m_RNG.NextFloat(-4.0f, 4.0f)
         );
-}
-
-void GorgonController::EnterAttackState()
-{
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 }
 
@@ -710,9 +707,11 @@ void GorgonController::EnterDeathState()
     m_IsRenderingAttackIndicator = false;
     SetEmote(EnemyEmote::NONE);
 }
-m_curentCrosshairColour = CROSSHAIR_COLOUR;
+
 void GorgonController::ExitAttackState()
 {   
+    m_curentCrosshairColour = CROSSHAIR_COLOUR;
+
     if(m_pAnimComponent != nullptr)
     {
         m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
