@@ -44,12 +44,19 @@ void MainMenuState::Update(float delta)
     // Begin the window
     ImGui::Begin("Main Menu", nullptr, flags);
 
+    // Load the background image once
+    static ImTextureID backgroundTextureID = nullptr;
+    static wolf::Texture* pbackgroundTexture = nullptr;
+    if (!pbackgroundTexture) {
+        pbackgroundTexture = wolf::TextureManager::CreateTexture("data/textures/TheseusTitle.png");
+        backgroundTextureID = reinterpret_cast<void*>(pbackgroundTexture->GetID());
+    }
+
+    // Draw the background image
+    ImGui::Image(backgroundTextureID, ImGui::GetWindowSize(), ImVec2(0,0), ImVec2(1,1));
+
     // Centered title
     ImVec2 dimensions = ImGui::GetWindowSize();
-    float textWidth = ImGui::CalcTextSize("Theseus").x;
-    ImGui::SetCursorPosX((dimensions.x - textWidth) * 0.5f);
-    ImGui::SetCursorPosY((dimensions.y - (buttonHeight * 5)) * 0.5f);
-    ImGui::TextColored(ImColor(255, 215, 0, 255), "Theseus");
 
     // Spacing
     ImGui::NewLine();
