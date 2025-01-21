@@ -943,6 +943,44 @@ glm::vec2 ToGLMVec2(const ImVec2& vec) {
     return glm::vec2(vec.x, vec.y);
 }
 
+ImU32 GetTileColor(int tileID) {
+    switch (tileID) {
+        case Tile::WallBottomLeft:
+        case Tile::WallBottomRight:
+        case Tile::WallBottom:
+        case Tile::WallChest:
+        case Tile::WallHelmet:
+        case Tile::WallLeft:
+        case Tile::WallMaze:
+        case Tile::WallMinotaur:
+        case Tile::WallPillars:
+        case Tile::WallPot:
+        case Tile::WallRight:
+        case Tile::WallSpiral:
+        case Tile::WallSquare:
+        case Tile::WallTopLeft:
+        case Tile::WallTopRight:
+        case Tile::WallTop:
+            return IM_COL32(60, 60, 60, 255); // Walls
+        case Tile::BorderedGrass:
+        case Tile::Bricks:
+            return IM_COL32(180, 140, 90, 255); // Bricks/Grass
+        case Tile::FloorSmallSquares:
+            return IM_COL32(140, 140, 140, 255); // Small Squares
+        case Tile::FloorSmallSquaresGold:
+        case Tile::FloorSquareGold:
+        case Tile::FloorSpiralGold:
+            return IM_COL32(220, 180, 50, 255); // Gold Floors
+        case Tile::FloorSquare:
+        case Tile::FloorSpiral:
+            return IM_COL32(160, 160, 160, 255); // Normal Floors
+        case Tile::Grass:
+            return IM_COL32(50, 180, 50, 255); // Grass
+        default:
+            return IM_COL32(100, 100, 100, 255); // Default Color
+    }
+}
+
 
 void PlayState::RenderMinimap() {
     static float zoomScale = 1.0f;
@@ -963,10 +1001,14 @@ void PlayState::RenderMinimap() {
         ? ImVec2(ImGui::GetIO().DisplaySize.x / 2.0f, ImGui::GetIO().DisplaySize.y / 2.0f)
         : ImVec2(ImGui::GetIO().DisplaySize.x - minimapRadius - 20.0f, 20.0f + minimapRadius);
 
-    // Get player position
+    // Get player position and chunk
     const glm::vec2 playerPosition = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::ivec2 playerChunkID = m_pLabyrinthManager->GetChunkID(playerPosition);
 
-    // Start the minimap window
+    // Calculate visible chunks
+    const int chunkRadius = std::ceil(minimapRadius / (LabyrinthManager::CHUNK_SIZE * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE));
+
+    // Begin ImGui rendering
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(2 * minimapRadius, 2 * minimapRadius));
     ImGui::SetNextWindowPos(ImVec2(minimapCenter.x - minimapRadius, minimapCenter.y - minimapRadius));
@@ -978,6 +1020,7 @@ void PlayState::RenderMinimap() {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImVec2 windowPos = ImGui::GetWindowPos();
     ImVec2 center = ImVec2(windowPos.x + minimapRadius, windowPos.y + minimapRadius);
+    glm::vec2 centerGLM = ToGLMVec2(center);
 
     // Clip rendering to the circular area
     drawList->PushClipRect(
@@ -990,122 +1033,61 @@ void PlayState::RenderMinimap() {
     drawList->AddCircleFilled(center, minimapRadius, IM_COL32(30, 30, 30, 220)); // Background
     drawList->AddCircle(center, minimapRadius, IM_COL32(255, 255, 255, 255), 64, 3.0f); // Border
 
-    // Convert center to glm::vec2 for arithmetic
-    glm::vec2 centerGLM = ToGLMVec2(center);
+    // Render visible chunks
+    for (int cx = -chunkRadius; cx <= chunkRadius; ++cx) {
+        for (int cy = -chunkRadius; cy <= chunkRadius; ++cy) {
+            glm::ivec2 chunkID = playerChunkID + glm::ivec2(cx, cy);
+            wolf::GameObject* chunk = m_pLabyrinthManager->GetChunk(chunkID);
+            if (!chunk) continue; // Skip non-existent chunks
 
-    /// Render the labyrinth with detailed maze-like visuals on the minimap
-    for (int x = 0; x < m_pLabyrinthManager->m_width; ++x) {
-        for (int y = 0; y < m_pLabyrinthManager->m_height; ++y) {
-            int tileID = m_pLabyrinthManager->GetTile(x, y);
-            if (tileID == Tile::Empty) continue; // Skip empty tiles
+            // Render tiles within the chunk
+            for (int tx = 0; tx < LabyrinthManager::CHUNK_SIZE; ++tx) {
+                for (int ty = 0; ty < LabyrinthManager::CHUNK_SIZE; ++ty) {
+                    glm::ivec2 tilePos = chunkID * LabyrinthManager::CHUNK_SIZE + glm::ivec2(tx, ty);
+                    int tileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+                    if (tileID == Tile::Empty || tileID < 0) continue; // Skip invalid or empty tiles
 
-            // World position of the tile
-            glm::vec2 tileWorldPos = glm::vec2(
-                x * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE,
-                y * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE
-            );
+                    // Calculate relative position
+                    glm::vec2 tileWorldPos = glm::vec2(
+                        tilePos.x * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE,
+                        tilePos.y * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE
+                    );
+                    glm::vec2 relativePos = (tileWorldPos - playerPosition) * labyrinthScale;
+                    relativePos.y = -relativePos.y; // Invert Y-axis for rendering
+                    if (glm::length(relativePos) > minimapRadius) continue;
 
-            glm::vec2 relativePos = (tileWorldPos - playerPosition) * labyrinthScale;
-            relativePos.y = -relativePos.y; // Invert Y-axis for rendering
-
-            // Skip tiles outside the minimap radius (for non-expanded map)
-            if (glm::length(relativePos) > minimapRadius) continue;
-
-            ImVec2 tilePos = ToImVec2(centerGLM + relativePos);
-
-            // Map tile ID to specific colors and designs
-            ImU32 tileColor;
-            ImU32 borderColor = IM_COL32(0, 0, 0, 255); // Default border color (black)
-
-            switch (tileID) {
-                // Walls (rendered darker for a maze structure)
-                case Tile::WallBottomLeft:
-                case Tile::WallBottomRight:
-                case Tile::WallBottom:
-                case Tile::WallChest:
-                case Tile::WallHelmet:
-                case Tile::WallLeft:
-                case Tile::WallMaze:
-                case Tile::WallMinotaur:
-                case Tile::WallPillars:
-                case Tile::WallPot:
-                case Tile::WallRight:
-                case Tile::WallSpiral:
-                case Tile::WallSquare:
-                case Tile::WallTopLeft:
-                case Tile::WallTopRight:
-                case Tile::WallTop:
-                    tileColor = IM_COL32(60, 60, 60, 255); // Darker shade for walls
-                    break;
-
-                // Floors (rendered lighter and distinct for walkable areas)
-                case Tile::BorderedGrass:
-                case Tile::Bricks:
-                    tileColor = IM_COL32(180, 140, 90, 255); // Brownish shade for bricks/grass
-                    break;
-                case Tile::FloorSmallSquares:
-                    tileColor = IM_COL32(140, 140, 140, 255); // Neutral gray for small squares
-                    break;
-                case Tile::FloorSmallSquaresGold:
-                case Tile::FloorSquareGold:
-                case Tile::FloorSpiralGold:
-                    tileColor = IM_COL32(220, 180, 50, 255); // Gold for special floors
-                    break;
-                case Tile::FloorSquare:
-                case Tile::FloorSpiral:
-                    tileColor = IM_COL32(160, 160, 160, 255); // Light gray for normal floors
-                    break;
-                case Tile::Grass:
-                    tileColor = IM_COL32(50, 180, 50, 255); // Green for grassy floors
-                    break;
-
-                // Default case for any unrecognized tile
-                default:
-                    tileColor = IM_COL32(100, 100, 100, 255); // Fallback neutral shade
-                    break;
+                    // Render tile
+                    ImVec2 tileScreenPos = ToImVec2(centerGLM + relativePos);
+                    float tileSize = 6.0f * labyrinthScale;
+                    ImVec2 tileMin(tileScreenPos.x - tileSize / 2, tileScreenPos.y - tileSize / 2);
+                    ImVec2 tileMax(tileScreenPos.x + tileSize / 2, tileScreenPos.y + tileSize / 2);
+                    drawList->AddRectFilled(tileMin, tileMax, GetTileColor(tileID));
+                }
             }
-
-            // Define the size of each tile based on the minimap scale
-            float tileSize = 6.0f; // Tile size on the minimap (adjust for clarity)
-            ImVec2 tileMin(tilePos.x - tileSize / 2, tilePos.y - tileSize / 2);
-            ImVec2 tileMax(tilePos.x + tileSize / 2, tilePos.y + tileSize / 2);
-
-            // Draw the tile as a filled rectangle
-            drawList->AddRectFilled(tileMin, tileMax, tileColor);
-
-            // Optionally draw a border around tiles for clarity
-            drawList->AddRect(tileMin, tileMax, borderColor, 0.0f, 0, 1.0f);
         }
     }
 
     // Draw player icon
     drawList->AddCircleFilled(center, 6.0f, IM_COL32(0, 255, 0, 255)); // Player icon
 
-    // Draw enemies with a styled effect
+    // Render enemies
     for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>()) {
         glm::vec2 minitaurPos = minitaurController.GetGameObject()
                                                 ->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
 
         glm::vec2 relativePos = (minitaurPos - playerPosition) * labyrinthScale;
         relativePos.y = -relativePos.y; // Invert Y-axis for proper rendering
-
-        // Skip enemies outside the minimap radius
         if (glm::length(relativePos) > minimapRadius) continue;
 
+        // Render enemy
         ImVec2 enemyScreenPos = ToImVec2(centerGLM + relativePos);
-
-        // Draw an outer glowing ring (red glow)
-        drawList->AddCircle(enemyScreenPos, 7.0f, IM_COL32(255, 50, 50, 100), 32, 2.0f);
-
-        // Draw a middle ring for soft gradient effect
-        drawList->AddCircle(enemyScreenPos, 5.0f, IM_COL32(255, 100, 100, 150), 32, 2.0f);
-
-        // Draw the inner core (bright red)
-        drawList->AddCircleFilled(enemyScreenPos, 3.0f, IM_COL32(255, 0, 0, 255));
+        drawList->AddCircle(enemyScreenPos, 7.0f, IM_COL32(255, 50, 50, 100), 32, 2.0f); // Outer glow
+        drawList->AddCircle(enemyScreenPos, 5.0f, IM_COL32(255, 100, 100, 150), 32, 2.0f); // Middle ring
+        drawList->AddCircleFilled(enemyScreenPos, 3.0f, IM_COL32(255, 0, 0, 255));        // Inner core
     }
+
     // Pop the clip rect to restore normal rendering
     drawList->PopClipRect();
-
     ImGui::End();
     ImGui::PopStyleVar();
 }
