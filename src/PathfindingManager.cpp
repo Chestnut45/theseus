@@ -27,7 +27,7 @@ bool PathfindingManager::IsTileWalkable(int x, int y) const
     case Tile::Grass:
         return true;
     default:
-        printf("Unwalkable tile ID: %d at (%d, %d)\n", tileID, x, y);
+        // printf("Unwalkable tile ID: %d at (%d, %d)\n", tileID, x, y);
         return false;
     }
 }
