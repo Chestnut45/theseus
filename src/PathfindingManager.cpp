@@ -36,19 +36,25 @@ std::vector<glm::ivec2> PathfindingManager::GetNeighbors(const glm::ivec2& node)
 {
     std::vector<glm::ivec2> neighbors;
     std::vector<glm::ivec2> directions = {
-        {0, -1}, {0, 1}, {-1, 0}, {1, 0} // Cardinal directions only
+        {0, -1}, {0, 1}, {-1, 0}, {1, 0}, // Cardinal directions
+        {-1, -1}, {-1, 1}, {1, -1}, {1, 1} // Diagonal directions
     };
 
     for (const auto& dir : directions)
     {
         glm::ivec2 neighbor = node + dir;
+
+        // Check for walkability
         if (IsTileWalkable(neighbor.x, neighbor.y))
         {
+            // Disallow diagonal movement if adjacent walls block the path
+            if ((dir.x != 0 && dir.y != 0) &&  // Diagonal direction
+                (!IsTileWalkable(node.x + dir.x, node.y) || !IsTileWalkable(node.x, node.y + dir.y)))
+            {
+                continue; // Skip this diagonal neighbor
+            }
+
             neighbors.push_back(neighbor);
-        }
-        else
-        {
-            printf("Invalid neighbor tile: (%d, %d)\n", neighbor.x, neighbor.y);
         }
     }
 
@@ -58,15 +64,25 @@ std::vector<glm::ivec2> PathfindingManager::GetNeighbors(const glm::ivec2& node)
 
 float PathfindingManager::Heuristic(const glm::ivec2& a, const glm::ivec2& b) const
 {
-    return std::abs(a.x - b.x) + std::abs(a.y - b.y); // Manhattan distance
-}
+    int dx = std::abs(a.x - b.x);
+    int dy = std::abs(a.y - b.y);
 
+    // Octile distance
+    float diagonalCost = std::sqrt(2.0f);
+    return diagonalCost * std::min(dx, dy) + std::abs(dx - dy);
+}
 
 float PathfindingManager::Distance(const glm::ivec2& a, const glm::ivec2& b) const
 {
-    return 1.0f; // Cardinal movement only
-}
+    int dx = std::abs(a.x - b.x);
+    int dy = std::abs(a.y - b.y);
 
+    // Diagonal movement cost is sqrt(2), cardinal movement cost is 1
+    if (dx > 0 && dy > 0)
+        return std::sqrt(2.0f); // Diagonal movement
+    else
+        return 1.0f; // Cardinal movement
+}
 
 std::vector<glm::ivec2> PathfindingManager::ReconstructPath(
     const std::unordered_map<glm::ivec2, glm::ivec2>& cameFrom,
