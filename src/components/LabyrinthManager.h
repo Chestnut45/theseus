@@ -140,7 +140,7 @@ public:
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 16'383;
     static const inline int TILE_SIZE = 32;
-    static const inline int CHUNK_SIZE = 16;
+    static const inline int CHUNK_SIZE = 8;
     static const inline int SCALE = 3;
 
 // Implementation
@@ -152,6 +152,13 @@ private:
     // Labyrinth dimensions (in tiles)
     int m_width = 125;
     int m_height = 125;
+
+    // Hallway spawn parameters
+
+    // Ratio of spike traps to hallway floors
+    // NOTE: 0 = no spike traps, 1 = no floors
+    // NOTE: Doesn't apply to rooms
+    float m_spikeTrapFloorRatio = 0.0f;
 
     // Spawn area settings
     glm::ivec2 m_spawnPatchSize = glm::ivec2(25);
@@ -243,8 +250,11 @@ private:
             LegendaryChest,
             DaedalusDispensary, // !-- Aurora added this --!
             SpikeTrap,
+            DaedalusNPC,
+            AriadneNPC,
+            RandomNPC,
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary", "Spike Trap"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC"};
 
         enum class SpawnPosType
         {
@@ -310,6 +320,7 @@ private:
     {
         wolf::GameObject* m_pObject = nullptr;
         bool active = true;
+        std::vector<glm::ivec2> m_hallwaySpikeTraps;
     };
 
     // Map of chunk IDs to chunk game object pointers

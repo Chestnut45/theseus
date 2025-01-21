@@ -217,11 +217,18 @@ AnimatedSprite2D::~AnimatedSprite2D() {
         // So we can delete them
         s_pCurrentProgram = nullptr;
         wolf::ProgramManager::DestroyProgram(s_pProgram);
-        wolf::ProgramManager::DestroyProgram(s_pPetrifiedProgram);
+        wolf::ProgramManager::DestroyProgram(s_pGrayscaleProgram);
         wolf::ProgramManager::DestroyProgram(s_pWhiteProgram);
+        wolf::ProgramManager::DestroyProgram(s_pMultitexProgram);
+        wolf::ProgramManager::DestroyProgram(s_pMultitexPetrifiedProgram);
         wolf::BufferManager::DestroyBuffer(s_pVertexBuffer);
         wolf::BufferManager::DestroyBuffer(s_pIndexBuffer);
         delete s_pVAO;
+        for(auto texture : s_vMasks)
+        {
+            wolf::TextureManager::DestroyTexture(texture);
+        }
+        s_vMasks.clear();
     }
 }
 
@@ -257,7 +264,7 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
             return;
         }
         m_pCurrentAnim = animIt->second;
-        this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
+        this->SetTexture(m_pCurrentAnim->m_strItemsTexturePath, m_pCurrentAnim->m_v2FrameSize);
         this->SetOrigin(m_pCurrentAnim->m_v2Origin);
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[m_pCurrentAnim->m_iStartFrame];
@@ -282,7 +289,7 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
         }
 
         m_pCurrentAnim = animIt->second;
-        this->SetTexture(m_pCurrentAnim->m_strTexturePath, m_pCurrentAnim->m_v2FrameSize);
+        this->SetTexture(m_pCurrentAnim->m_strItemsTexturePath, m_pCurrentAnim->m_v2FrameSize);
         this->SetOrigin(m_pCurrentAnim->m_v2Origin);
         m_fCurrentFrame = m_pCurrentAnim->m_iStartFrame + p_iTargetAnimFrame;
         m_pCurrentFrameUVs = m_vpFrameUVCoords[iTargetFrame];
@@ -414,9 +421,17 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
     s_pCurrentProgram->SetUniform("model", model);
     s_pCurrentProgram->SetUniform("tint", chosenTint);
 
-    // Bind shader and texture
+
     s_pCurrentProgram->Bind();
     m_pTexture->Bind(0);
+    // If multitexturing
+    if(
+        m_specialEffectsType != SpecialEffectsType::NONE            && 
+        m_specialEffectsType >= SpecialEffectsType::MULTITEX_PETRIFIED
+        )
+    {   
+        s_vMasks.at(m_specialEffectsType - SpecialEffectsType::MULTITEX_PETRIFIED)->Bind(1);
+    }
 
     // Draw!
     s_pVAO->Bind();
@@ -483,8 +498,10 @@ void AnimatedSprite2D::IncreaseReferences()
             //  Added by Nhật  //
             //                 //
             //-----------------//
-            s_pPetrifiedProgram = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d_petrified.fs");
+            s_pGrayscaleProgram = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d_grayscale.fs");
             s_pWhiteProgram = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d_white.fs");
+            s_pMultitexProgram = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d_multitex.fs");
+            s_pMultitexPetrifiedProgram = wolf::ProgramManager::CreateProgram("data/shaders/animatedsprite2d.vs", "data/shaders/animatedsprite2d_multitex_petrified.fs");
             s_pCurrentProgram = s_pProgram;
 
         // Create vertex buffer
@@ -509,6 +526,18 @@ void AnimatedSprite2D::IncreaseReferences()
         s_pVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
         s_pVAO->End();
 
+        //-----------------//
+        //                 //
+        //  Added by Nhat  //
+        //                 //
+        //-----------------//
+        s_vMasks.push_back(wolf::TextureManager::CreateTexture("data/textures/stone.png"));
+
+        for(auto mask : s_vMasks)
+        {
+            mask->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+        }
+
         // *** End of borrowed code segment ***
     }
 
@@ -520,18 +549,32 @@ void AnimatedSprite2D::IncreaseReferences()
 //  Added by Nhật  //
 //                 //
 //-----------------//
+void AnimatedSprite2D::SetSpecialEffects(SpecialEffectsType p_spe_type, float p_gradual_in, float p_gradual_out) 
+{
+    m_specialEffectsType = p_spe_type;
+    m_fGradualFadeInTime = p_gradual_in;
+    m_fGradualFadeOutTime = p_gradual_out;
+}
+
 void AnimatedSprite2D::UpdateShaders()
 {
     switch (m_specialEffectsType)
     {
-        case SpecialEffectsType::PETRIFIED:
+        case SpecialEffectsType::GRAYSCALE:
         {
-            s_pCurrentProgram = s_pPetrifiedProgram;
+            s_pCurrentProgram = s_pGrayscaleProgram;
             break;
         }
         case SpecialEffectsType::WHITE:
+        {
             s_pCurrentProgram = s_pWhiteProgram;
             break;
+        }
+        case SpecialEffectsType::MULTITEX_PETRIFIED:
+        {
+            s_pCurrentProgram = s_pMultitexPetrifiedProgram;
+            break;
+        }
         case SpecialEffectsType::NONE:
         {
             s_pCurrentProgram = s_pProgram;
@@ -543,4 +586,5 @@ void AnimatedSprite2D::UpdateShaders()
             break;
         }
     }
+
 }

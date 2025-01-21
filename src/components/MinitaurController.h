@@ -34,6 +34,7 @@ private:
     void EnterAttackState();
     void EnterChasingState();
     void EnterIdleState();
+    void EnterPetrifiedState();
     void EnterProspectState();
     void EnterStunnedState();
     void EnterDeathState();
