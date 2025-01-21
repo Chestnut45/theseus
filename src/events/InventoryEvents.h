@@ -25,10 +25,6 @@ struct ApplyStatusEffectEvent {
     float fDuration;
 };
 
-struct GoldEvent {
-    int iAmt;
-};
-
 struct RemoveFromPlayerInventoryEvent {
     std::string strItemName;
 
@@ -42,6 +38,9 @@ struct RemoveFromPlayerInventoryEvent {
 };
 
 struct RemoveFromPlayerEquipmentEvent {
+    RemoveFromPlayerEquipmentEvent(int p_iSlot, int p_iSalePrice) : iEquipSlot(p_iSlot), iItemSoldFor(p_iSalePrice) {};
+    RemoveFromPlayerEquipmentEvent(int p_iSlot) : iEquipSlot(p_iSlot) {};
+
     int iEquipSlot;
 
     // If the equipment was sold to someone, we'll want to know how much it was sold for

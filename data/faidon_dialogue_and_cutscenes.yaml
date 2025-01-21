@@ -1,0 +1,10 @@
+CutscenesAndDialogues:
+  no_fear:
+    characters:
+      - name: "Faidon"
+        portraitPath: "data/textures/sPlayerTest.png"
+    sequence:
+      - type: "dialogue"
+        character: "Faidon"
+        text: "I no longer experience fear!"
+        duration: 2.0

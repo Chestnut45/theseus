@@ -16,6 +16,8 @@
 #include "inventory/ConsumableItem.h"
 #include "inventory/EquipmentItem.h"
 
+#include "events/InventoryEvents.h"
+
 enum InventoryType {
     BASIC_INVENTORY,
     CHEST_INVENTORY,
