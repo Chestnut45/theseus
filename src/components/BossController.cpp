@@ -9,6 +9,7 @@
 #include <StatusComponent.h>
 #include <ColliderComponent.h>
 #include <PlayerController.h>
+#include <LabyrinthManager.h>
 
 BossController::BossController()
 {
@@ -46,6 +47,7 @@ void BossController::Init()
     // Create transform
     pObject->DeleteComponent<wolf::Transform2D>();
     m_pTransform = &pObject->AddComponent<wolf::Transform2D>();
+    m_pTransform->SetScale(glm::vec2(LabyrinthManager::SCALE));
 
     // Create velocity
     pObject->DeleteComponent<VelocityComponent>();
@@ -66,6 +68,7 @@ void BossController::Init()
     // Create collider
     pObject->DeleteComponent<ColliderComponent>();
     m_pCollider = &pObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
+    m_pCollider->AddColliderBox(glm::vec2(111, 156), glm::vec2(-52, 32));
 
     // Find player controller
     for (auto&&[_, controller] : pObject->GetScene().Each<PlayerController>())
@@ -195,10 +198,12 @@ void BossController::UpdatePhase3(float delta)
     // - When player found, if close, do fire breath attack
     // - if far away, do charge attack
 
-    if (m_pHealth->GetHealth() < 0)
+    if (m_pHealth->GetHealth() <= 0 && m_state != State::DEAD)
     {
-        // TODO: Death logic + win the game!
+        m_state = State::DEAD;
         wolf::Log("It may have been the Minotaur's labyrinth but Theseus the GOAT");
+
+        // TODO: Death animation + ending cutscene!
     }
 }
 
