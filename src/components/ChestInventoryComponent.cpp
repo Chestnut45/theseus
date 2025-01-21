@@ -101,7 +101,7 @@ void ChestInventoryComponent::ShowInventoryGUI() {
 
         // Position the inventory
         ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
-        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.07f};
+        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.15f};
 
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos(v2WindowDrawPos);
@@ -325,8 +325,8 @@ void ChestInventoryComponent::SendItemToPlayer(int p_iItemIndex) {
 void ChestInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
     // If this chest is open
     if (m_bIsOpen) {
-        // And a different chest is opening
-        if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum != m_iIdNum) {
+        // And a different inventory that ISN'T the player's is opening
+        if (p_event.enType != PLAYER_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
             m_bIsOpen = false;
 

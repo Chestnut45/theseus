@@ -76,6 +76,14 @@ void PlayState::Enter()
         auto temp = glm::vec2(room.m_bounds.m_origin.x, room.m_bounds.m_origin.y);
         m_bossfightPlayerPos = temp * (float)(LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE) + (size * 0.5f);
         m_bossfightPlayerPos.y -= (size.y * 0.25f);
+
+        // Spawn the Minotaur Boss
+        auto& bossObject = scene.CreateObject2D();
+        auto& transform = *bossObject.GetComponent<wolf::Transform2D>();
+        transform.SetScale(glm::vec2(LabyrinthManager::SCALE));
+        transform.SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.25f));
+        auto& sprite = bossObject.AddComponent<AnimatedSprite2D>("data/boss_anim_init.yaml");
+
         break;
     }
 
@@ -139,6 +147,8 @@ void PlayState::Exit()
     GLShapesRenderer::DestroyInstance();
 
     ItemDropCreator::DestroyInstance();
+    
+    NPCBuilder::DestroyInstance();
 }
 
 void PlayState::Pause()
