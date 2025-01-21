@@ -121,7 +121,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
 
         // Position the inventory
         ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
-        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.07f};
+        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.15f};
 
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos(v2WindowDrawPos);
@@ -360,8 +360,8 @@ void DispensaryInventoryComponent::DispenseItem(int p_iItemIndex) {
 void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
     // If this dispensary is open
     if (m_bIsOpen) {
-        // And a different dispensary was just opened
-        if (p_event.enType == DISPENSARY_INVENTORY && p_event.iIdNum != m_iIdNum) {
+        // And a different inventory that ISN'T the player's was just opened
+        if (p_event.enType != PLAYER_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
             m_bIsOpen = false;
             AnimatedSprite2D* pAnim = this->GetGameObject()->GetComponent<AnimatedSprite2D>();

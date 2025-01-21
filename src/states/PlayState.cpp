@@ -144,6 +144,8 @@ void PlayState::Exit()
     GLShapesRenderer::DestroyInstance();
 
     ItemDropCreator::DestroyInstance();
+    
+    NPCBuilder::DestroyInstance();
 }
 
 void PlayState::Pause()
