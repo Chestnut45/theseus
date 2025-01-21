@@ -69,6 +69,9 @@ private:
     bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;
 
+    // Location to spawn player when bossfight starts
+    glm::vec2 m_bossfightPlayerPos;
+
     // Private helper methods
     void ConvertPlayerTileToGold();
 
