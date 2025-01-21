@@ -56,7 +56,28 @@ void PlayState::Enter()
     pathfindingManagerObject.AddComponent<PathfindingManager>(*m_pLabyrinthManager);
     m_pLabyrinthManager->GenerateLabyrinth();
 
+    // Place the bossfight trigger
+    const auto& rooms = m_pLabyrinthManager->GetRooms();
+    for (const auto& room : rooms)
+    {
+        if (room.m_name != "Minotaur's Chamber") continue;
 
+        // Create trigger object and collider
+        auto& object = scene.CreateObject2D();
+        auto& collider = object.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, false, false);
+        auto size = glm::vec2(room.m_bounds.m_size.x, room.m_bounds.m_size.y);
+        auto position = glm::vec2(room.m_bounds.m_origin.x, room.m_bounds.m_origin.y + size.y);
+        size *= LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE;
+        position *= LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE;
+        collider.AddColliderBox(size, position);
+        object.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::SINGLE_USE, TriggerPurpose::BOSS);
+
+        // Set the position to teleport the player to when the bossfight starts
+        auto temp = glm::vec2(room.m_bounds.m_origin.x, room.m_bounds.m_origin.y);
+        m_bossfightPlayerPos = temp * (float)(LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE) + (size * 0.5f);
+        m_bossfightPlayerPos.y -= (size.y * 0.25f);
+        break;
+    }
 
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
@@ -807,6 +828,12 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             boulderObj.AddComponent<BoulderTrapComponent>(triggerObject->GetComponent<TriggerComponent>(), m_pColliderManager, BoulderDirection::UP, 100.0f, 5.0f);
 
             // wolf::Log("Boulder trap triggered!");
+            break;
+        }
+        case TriggerPurpose::BOSS: {
+            // Begin the bossfight
+            wolf::Log("BOSSFIGHT STARTED");
+            m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
             break;
         }
         default:
