@@ -274,7 +274,7 @@ void MinitaurController::MoveTowardsTarget(float delta)
     // Check if start and target tiles are the same
     if (startTile == targetTile)
     {
-        printf("Start and goal tiles are the same. Falling back to direct movement.\n");
+        // printf("Start and goal tiles are the same. Falling back to direct movement.\n");
         FallbackToDistanceChecking();
         return;
     }
@@ -287,17 +287,17 @@ void MinitaurController::MoveTowardsTarget(float delta)
 
         if (m_path.empty())
         {
-            printf("No path found. Falling back to direct movement.\n");
+            // printf("No path found. Falling back to direct movement.\n");
             FallbackToDistanceChecking();
             return;
         }
 
-        printf("Path calculated: ");
+        // printf("Path calculated: ");
         for (const auto& tile : m_path)
         {
-            printf("(%d, %d) ", tile.x, tile.y);
+            // printf("(%d, %d) ", tile.x, tile.y);
         }
-        printf("\n");
+        // printf("\n");
     }
 
     // Move towards the next tile in the path
@@ -332,8 +332,8 @@ void MinitaurController::FallbackToDistanceChecking()
         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
 
         // Debug: Print fallback movement
-        printf("Moving directly towards target: (%f, %f) with velocity (%f, %f)\n",
-               targetPosition.x, targetPosition.y, direction.x, direction.y);
+        // printf("Moving directly towards target: (%f, %f) with velocity (%f, %f)\n",
+        //        targetPosition.x, targetPosition.y, direction.x, direction.y);
     }
     else
     {
