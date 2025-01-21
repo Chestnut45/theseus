@@ -418,8 +418,8 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
             ImGui::Text(strMessage.c_str());
             
             // Calculate the size of the window and the text we want to display
-            fWindowWidth = ImGui::GetWindowWidth();
-            fTextWidth = ImGui::CalcTextSize("Sell Anyway?").x;
+            float fWindowWidth = ImGui::GetWindowWidth();
+            float fTextWidth = ImGui::CalcTextSize("Sell Anyway?").x;
 
             // Set the cursor position and draw the text
             ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
