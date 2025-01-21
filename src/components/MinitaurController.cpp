@@ -256,6 +256,11 @@ void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
 }
 
+void MinitaurController::RenderDebugPath()
+{
+
+}
+
 void MinitaurController::MoveTowardsTarget(float delta)
 {
     if (!m_pTarget || !m_pVelocity || !m_pTransform || !m_pPathfindingManager)
