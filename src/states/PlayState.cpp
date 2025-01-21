@@ -512,6 +512,8 @@ void PlayState::Render()
     {
         status.RenderPlayerSEIcons();
     }
+
+    RenderMinimap();
 }
 
 void PlayState::BackgroundUpdate(float delta)
@@ -889,6 +891,115 @@ void PlayState::ShowTooltip(const std::string& text)
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(2);
 }
+
+ImVec2 ToImVec2(const glm::vec2& vec) {
+    return ImVec2(vec.x, vec.y);
+}
+
+glm::vec2 ToGLMVec2(const ImVec2& vec) {
+    return glm::vec2(vec.x, vec.y);
+}
+
+
+void PlayState::RenderMinimap() {
+    // Minimap configuration
+    const float minimapRadius = 100.0f;
+    const ImVec2 minimapCenter = ImVec2(
+        ImGui::GetIO().DisplaySize.x - minimapRadius - 20.0f,
+        20.0f + minimapRadius
+    );
+
+    const glm::vec2 playerPosition =
+        m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    const float labyrinthScale = 0.2f;
+
+    // Get labyrinth dimensions
+    int labyrinthWidth = m_pLabyrinthManager->m_width;
+    int labyrinthHeight = m_pLabyrinthManager->m_height;
+
+    // Begin minimap rendering
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, minimapRadius);
+    ImGui::SetNextWindowSize(ImVec2(2 * minimapRadius, 2 * minimapRadius));
+    ImGui::SetNextWindowPos(ImVec2(minimapCenter.x - minimapRadius, minimapCenter.y - minimapRadius));
+    ImGui::Begin("Minimap###", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 windowPos = ImGui::GetWindowPos();
+    ImVec2 center = ImVec2(windowPos.x + minimapRadius, windowPos.y + minimapRadius);
+
+    // Draw circular minimap boundary
+    drawList->AddCircleFilled(center, minimapRadius, IM_COL32(10, 10, 10, 200));
+    drawList->AddCircle(center, minimapRadius, IM_COL32(255, 255, 255, 255), 64, 2.0f);
+
+    // Convert center to glm for arithmetic
+    glm::vec2 centerGLM = ToGLMVec2(center);
+
+    // Render labyrinth tiles
+    for (int x = 0; x < labyrinthWidth; ++x) {
+        for (int y = 0; y < labyrinthHeight; ++y) {
+            int tileID = m_pLabyrinthManager->GetTile(x, y);
+            glm::vec2 tileWorldPos = glm::vec2(
+                x * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE,
+                y * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE
+            );
+
+            glm::vec2 relativePos = (tileWorldPos - playerPosition) * labyrinthScale;
+            glm::vec2 tilePosGLM = centerGLM + relativePos; // do arithmetic in glm
+
+            // Skip tiles outside the minimap radius
+            if (glm::length(relativePos) > minimapRadius) {
+                continue;
+            }
+
+            // Convert result back to ImVec2
+            ImVec2 tilePos = ToImVec2(tilePosGLM);
+
+            // Color tiles based on type
+            ImU32 tileColor = IM_COL32(50, 50, 50, 255);
+            if (tileID >= Tile::WallBottomLeft && tileID <= Tile::WallTop) {
+                tileColor = IM_COL32(100, 100, 100, 255);
+            } else if (tileID >= Tile::FloorSmallSquares && tileID <= Tile::Grass) {
+                tileColor = IM_COL32(150, 150, 150, 255);
+            }
+
+            // Draw the tile as a small rectangle
+            ImVec2 tilePosMin(tilePos.x - 2, tilePos.y - 2);
+            ImVec2 tilePosMax(tilePos.x + 2, tilePos.y + 2);
+            drawList->AddRectFilled(tilePosMin, tilePosMax, tileColor);
+        }
+    }
+
+    // Draw player icon
+    // (center is still an ImVec2 for AddCircleFilled, so no extra conversion needed)
+    drawList->AddCircleFilled(center, 5.0f, IM_COL32(0, 255, 0, 255));
+
+    // Draw enemies
+    for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>()) {
+        // Get the minitaur's position
+        glm::vec2 minitaurPos = minitaurController.GetGameObject()
+                                                ->GetComponent<wolf::Transform2D>()
+                                                ->GetGlobalPosition();
+
+        glm::vec2 relativePos = (minitaurPos - playerPosition) * labyrinthScale;
+        glm::vec2 minitaurPosGLM = centerGLM + relativePos;
+
+        // Skip if outside the minimap radius
+        if (glm::length(relativePos) > minimapRadius) {
+            continue;
+        }
+
+        // Convert to ImVec2, draw a red circle
+        ImVec2 minitaurScreenPos = ToImVec2(minitaurPosGLM);
+        drawList->AddCircleFilled(minitaurScreenPos, 3.0f, IM_COL32(255, 0, 0, 255));
+    }
+
+    ImGui::End();
+    ImGui::PopStyleVar(2);
+}
+
+
 
 
 
