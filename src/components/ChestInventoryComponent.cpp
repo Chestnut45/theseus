@@ -242,8 +242,8 @@ void ChestInventoryComponent::SendItemToPlayer(int p_iItemIndex) {
 void ChestInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
     // If this chest is open
     if (m_bIsOpen) {
-        // And a different chest is opening
-        if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum != m_iIdNum) {
+        // And a different inventory that ISN'T the player's is opening
+        if (p_event.enType != PLAYER_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
             m_bIsOpen = false;
 

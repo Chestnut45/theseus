@@ -51,8 +51,8 @@ bool MerchantInventoryComponent::CanAddItem(ItemBase* p_pItem) {
 void MerchantInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
     // If this merchant is open
     if (m_bIsOpen) {
-        // And another merchant just opened
-        if (p_event.enType == MERCHANT_INVENTORY && p_event.iIdNum != m_iIdNum) {
+        // And another inventory that ISN'T the player's or this one is opening
+        if (p_event.enType != PLAYER_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
             m_bIsOpen = false;
         }
