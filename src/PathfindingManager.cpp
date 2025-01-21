@@ -96,19 +96,19 @@ std::vector<glm::ivec2> PathfindingManager::ReconstructPath(
     {
         if (path.size() >= maxIterations)
         {
-            printf("Error: Path reconstruction exceeded maximum iterations.\n");
+            // printf("Error: Path reconstruction exceeded maximum iterations.\n");
             return {};
         }
 
         path.push_back(currentNode);
         currentNode = cameFrom.at(currentNode);
 
-        printf("Reconstructing path: (%d, %d)\n", currentNode.x, currentNode.y);
+        // printf("Reconstructing path: (%d, %d)\n", currentNode.x, currentNode.y);
     }
 
     if (path.empty() || cameFrom.find(path.front()) == cameFrom.end())
     {
-        printf("Error: Path reconstruction failed. Invalid 'cameFrom' map.\n");
+        // printf("Error: Path reconstruction failed. Invalid 'cameFrom' map.\n");
         return {};
     }
 
@@ -120,23 +120,23 @@ std::vector<glm::ivec2> PathfindingManager::ReconstructPath(
 std::vector<glm::ivec2> PathfindingManager::FindPath(
     const glm::ivec2& start, const glm::ivec2& goal)
 {
-    printf("Starting pathfinding from (%d, %d) to (%d, %d)\n", start.x, start.y, goal.x, goal.y);
+    // printf("Starting pathfinding from (%d, %d) to (%d, %d)\n", start.x, start.y, goal.x, goal.y);
 
     if (!IsTileWalkable(start.x, start.y))
     {
-        printf("Error: Start tile (%d, %d) is not walkable.\n", start.x, start.y);
+        // printf("Error: Start tile (%d, %d) is not walkable.\n", start.x, start.y);
         return {};
     }
 
     if (!IsTileWalkable(goal.x, goal.y))
     {
-        printf("Error: Goal tile (%d, %d) is not walkable.\n", goal.x, goal.y);
+        // printf("Error: Goal tile (%d, %d) is not walkable.\n", goal.x, goal.y);
         return {};
     }
 
     if (start == goal)
     {
-        printf("Start and goal are the same tile (%d, %d). Returning empty path.\n", start.x, start.y);
+        // printf("Start and goal are the same tile (%d, %d). Returning empty path.\n", start.x, start.y);
         return {start};
     }
 
@@ -161,7 +161,7 @@ std::vector<glm::ivec2> PathfindingManager::FindPath(
 
         if (current == goal)
         {
-            printf("Path found!\n");
+            // printf("Path found!\n");
             return ReconstructPath(cameFrom, current);
         }
 
@@ -185,6 +185,6 @@ std::vector<glm::ivec2> PathfindingManager::FindPath(
         }
     }
 
-    printf("No path found from (%d, %d) to (%d, %d)\n", start.x, start.y, goal.x, goal.y);
+    // printf("No path found from (%d, %d) to (%d, %d)\n", start.x, start.y, goal.x, goal.y);
     return {}; // Return an empty path if no path is found
 }
