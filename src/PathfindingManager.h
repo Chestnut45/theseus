@@ -7,10 +7,10 @@
 #include <vector>
 #include <algorithm>
 
-// PathfindingManager class declaration
 class PathfindingManager
 {
 public:
+    // Constructor
     PathfindingManager(const LabyrinthManager& labyrinthManager);
     ~PathfindingManager() = default;
 
@@ -21,10 +21,12 @@ public:
     // Finds the shortest path using the A* algorithm
     std::vector<glm::ivec2> FindPath(const glm::ivec2& start, const glm::ivec2& goal);
 
+
+
 private:
     const LabyrinthManager& m_labyrinthManager;
 
-    // Helper functions
+    // Helper methods
     bool IsTileWalkable(int x, int y) const;
     std::vector<glm::ivec2> GetNeighbors(const glm::ivec2& node) const;
     float Heuristic(const glm::ivec2& a, const glm::ivec2& b) const;

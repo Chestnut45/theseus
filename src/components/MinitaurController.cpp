@@ -75,6 +75,20 @@ void MinitaurController::Init(const EnemyData& data)
 
     // Initialise emotes-related variables
     m_fEmoteTimer = EMOTE_TIME;
+
+    // Find the PathfindingManager in the scene
+    bool pathfindingManagerFound = false;
+    for (auto&& [entity, pathfindingManager] : GetGameObject()->GetScene().Each<PathfindingManager>())
+    {
+        m_pPathfindingManager = &pathfindingManager;
+        pathfindingManagerFound = true;
+        break; // there's only one PathfindingManager in the scene
+    }
+
+    if (!pathfindingManagerFound)
+    {
+        wolf::Warning("MinitaurController: No PathfindingManager found in the scene!");
+    }
 }
 
 
@@ -244,20 +258,85 @@ void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
 
 void MinitaurController::MoveTowardsTarget(float delta)
 {
-    if (!m_pTarget || !m_pVelocity || !m_pTransform) return;
+    if (!m_pTarget || !m_pVelocity || !m_pTransform || !m_pPathfindingManager)
+        return;
 
-    // Calculate the direction towards the player and move the Minitaur
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+    // Constants
+    constexpr float TILE_CENTER_OFFSET = LabyrinthManager::TILE_SIZE / 2.0f; // Offset to center of tile
+    constexpr float TOLERANCE = 0.5f;                                        // Tolerance for reaching a tile
 
-    // Calculate direction vector
+    // Get current and target tiles
+    glm::ivec2 startTile = glm::ivec2(m_pTransform->GetGlobalPosition()) /
+                           (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+    glm::ivec2 targetTile = glm::ivec2(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
+                            (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+
+    // Check if start and target tiles are the same
+    if (startTile == targetTile)
+    {
+        printf("Start and goal tiles are the same. Falling back to direct movement.\n");
+        FallbackToDistanceChecking();
+        return;
+    }
+
+    // Recalculate path if empty
+    if (m_path.empty() || targetTile != m_lastTargetTile)
+    {
+        m_path = m_pPathfindingManager->FindPath(startTile, targetTile);
+        m_lastTargetTile = targetTile;
+
+        if (m_path.empty())
+        {
+            printf("No path found. Falling back to direct movement.\n");
+            FallbackToDistanceChecking();
+            return;
+        }
+
+        printf("Path calculated: ");
+        for (const auto& tile : m_path)
+        {
+            printf("(%d, %d) ", tile.x, tile.y);
+        }
+        printf("\n");
+    }
+
+    // Move towards the next tile in the path
+    glm::ivec2 nextTile = m_path.front();
+    glm::vec2 nextTileWorldPos = GetTileWorldPos(nextTile) + glm::vec2(TILE_CENTER_OFFSET, TILE_CENTER_OFFSET);
+    glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+    glm::vec2 direction = nextTileWorldPos - currentPosition;
+
+    if (glm::length(direction) > TOLERANCE)
+    {
+        // Normalize direction and move towards the next tile
+        direction = glm::normalize(direction);
+        m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+    }
+    else
+    {
+        // Reached the tile, move to the next one
+        m_path.erase(m_path.begin());
+    }
+}
+
+// Fallback to direct distance checking if pathfinding fails
+void MinitaurController::FallbackToDistanceChecking()
+{
+    glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+    glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 direction = targetPosition - currentPosition;
 
-    if (glm::length(direction) > 0.01f) {
+    if (glm::length(direction) > 0.01f)
+    {
         direction = glm::normalize(direction);
         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
 
-    } else {
+        // Debug: Print fallback movement
+        printf("Moving directly towards target: (%f, %f) with velocity (%f, %f)\n",
+               targetPosition.x, targetPosition.y, direction.x, direction.y);
+    }
+    else
+    {
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
     }
 }

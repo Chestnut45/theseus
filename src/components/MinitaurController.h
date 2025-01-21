@@ -7,6 +7,7 @@
 #include <components/ColliderComponent.h>
 #include <components/AnimatedSprite2D.h>
 #include <EnemyDataLoader.h>
+#include "PathfindingManager.h"
 
 class MinitaurController : public EnemyController
 {
@@ -50,6 +51,8 @@ private:
     bool IsTargetInLOS(); // Check if target is in line of sight
     bool IsWallTile(int p_tile_id);
     glm::vec2 GetTileWorldPos(glm::ivec2 p_tile_pos);
+    void FallbackToDistanceChecking();
+
     
     // Minitaur-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
@@ -63,6 +66,12 @@ private:
     float m_chaseSpeed;
     wolf::Timer m_transitionTimer;
     float m_transitionDelay = 0.2f; // Example delay for transitioning states
+    std::vector<glm::ivec2> m_path;               // Current path to the player
+    size_t m_currentPathIndex = 0;                // Index of the current tile in the path
+    PathfindingManager* m_pPathfindingManager = nullptr;  // Pointer to the pathfinding manager
+    glm::ivec2 m_lastTargetTile; // Tracks the last target tile
+    glm::ivec2 m_lastStartTile;  // Tracks the last start tile
+        
 
     //-----------------//
     //                 //

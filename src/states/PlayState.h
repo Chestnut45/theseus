@@ -28,6 +28,7 @@
 #include <HarpyBuilder.h>
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
+#include "PathfindingManager.h"
 
 #include <unordered_map>
 
