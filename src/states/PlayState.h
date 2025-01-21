@@ -80,6 +80,7 @@ private:
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
     void CreateGorgonEnemy();
+    void CreateTrappedChest();
 
 
     void CreateThrowableObject();

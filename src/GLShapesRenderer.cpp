@@ -64,6 +64,56 @@ void GLShapesRenderer::AddQuad(ColouredVertex2D p_coords_1, ColouredVertex2D p_c
     this->AddTriangle(p_coords_3, p_coords_4, p_coords_1);
 }
 
+void GLShapesRenderer::AddQuad(ColouredVertex2D p_lower_left, float p_width, float p_height)
+{
+    // Setup data
+    glm::vec4 colour = glm::vec4(p_lower_left.r, p_lower_left.g, p_lower_left.g, p_lower_left.a);
+    ColouredVertex2D upperLeft = {p_lower_left.x, p_lower_left.y + p_height, colour.r, colour.g, colour.b, colour.a};
+    ColouredVertex2D lowerRight = {p_lower_left.x + p_width, p_lower_left.y, colour.r, colour.g, colour.b, colour.a};
+    ColouredVertex2D upperRight = {p_lower_left.x + p_width, p_lower_left.y + p_height, colour.r, colour.g, colour.b, colour.a};
+    
+    this->AddTriangle(p_lower_left, upperLeft, upperRight);
+    this->AddTriangle(upperRight, lowerRight, p_lower_left);
+}
+
+// This method does not render the centre, despite taking a centre parameter
+// It instead uses the centre position for vertices calculations, and uses the colour data as the colour of the sides
+void GLShapesRenderer::AddRegularPolygon(ColouredVertex2D p_centre, float p_radius, int p_sides, float p_angle_offset)
+{
+    // Constants for degree & rad calculations
+    const float FULL_RAD = 2.0f * MATH_PI;
+    const float DEGREE_TO_RAD = MATH_PI / 180.0f;
+    const float RAD_OFFSET = fmod(abs(p_angle_offset), 360.0f) * DEGREE_TO_RAD;
+    const float DEGREE_INTERVAL = 360.0f / p_sides;
+    const float RAD_INTERVAL = DEGREE_INTERVAL * DEGREE_TO_RAD;
+    const float RAD_INTERVAL_SIN = glm::sin(RAD_INTERVAL);
+    const float RAD_INTERVAL_COS = glm::cos(RAD_INTERVAL);
+
+    // Setup data
+    glm::vec2 centrePos = glm::vec2(p_centre.x,  p_centre.y);
+    glm::vec2 firstVector = glm::vec2(p_radius, 0.0f);
+    float currentRadAngle = RAD_OFFSET;
+    glm::vec2 currentVertexPos = centrePos + this->GetRotatedVector(firstVector, RAD_OFFSET);
+    glm::vec2 lastVertexPos = currentVertexPos;
+
+    // Calculate vertices of polygon
+    for(int i = 0; i < p_sides; i ++)
+    {
+        // Increment angle
+        currentRadAngle = fmod(currentRadAngle + RAD_INTERVAL, FULL_RAD);
+        
+        // Calculate vertices of each side
+        lastVertexPos = currentVertexPos;
+        currentVertexPos = centrePos + this->GetRotatedVector(firstVector, currentRadAngle);
+
+        ColouredVertex2D lastPoint = {lastVertexPos.x, lastVertexPos.y, p_centre.r, p_centre.g, p_centre.b, p_centre.a};
+        ColouredVertex2D nextPoint = {currentVertexPos.x, currentVertexPos.y, p_centre.r, p_centre.g, p_centre.b, p_centre.a};
+        
+        m_vVertices_L.push_back(lastPoint);
+        m_vVertices_L.push_back(nextPoint);
+    }
+}
+
 void GLShapesRenderer::RenderAndDeleteLines()
 {
     if (!m_pProgram_L || m_vVertices_L.size() == 0)
@@ -139,4 +189,18 @@ GLShapesRenderer::~GLShapesRenderer()
     GLShapesRenderer::m_pProgram_T = nullptr;
     wolf::BufferManager::DestroyBuffer(GLShapesRenderer::m_pVB_T);
     GLShapesRenderer::m_pVB_T = nullptr;
+}
+
+glm::vec2 GLShapesRenderer::GetRotatedVector(glm::vec2 p_vector, float p_rad_angle)
+{
+    // Precalculate sin & cos of rad angle
+    const float RAD_ANGLE_SIN = glm::sin(p_rad_angle);
+    const float RAD_ANGLE_COS = glm::cos(p_rad_angle);
+
+    // Calculate rotated vector
+    glm::vec2 rotatedVector = glm::vec2(0.0f, 0.0f);
+    rotatedVector.x = p_vector.x * RAD_ANGLE_COS + p_vector.y * RAD_ANGLE_SIN;
+    rotatedVector.y = -p_vector.x * RAD_ANGLE_SIN + p_vector.y * RAD_ANGLE_COS;
+
+    return rotatedVector;
 }
