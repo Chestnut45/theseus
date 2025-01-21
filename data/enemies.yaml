@@ -12,6 +12,7 @@ enemies:
   - type: harpy
     health: 200
     armour: 2
+    ranged_range: 300
     melee_range: 100
     attack_cooldown: 2
     detection_range: 600
