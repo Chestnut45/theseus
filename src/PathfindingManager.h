@@ -1,45 +1,35 @@
 #pragma once
 
-#include <vector>
-#include <unordered_set>
-#include <glm/glm.hpp>
 #include "LabyrinthManager.h"
-#include "LabyrinthTiles.h"
+#include <glm/glm.hpp>
+#include <queue>
+#include <unordered_map>
+#include <vector>
+#include <algorithm>
 
-class PathfindingManager {
+// PathfindingManager class declaration
+class PathfindingManager
+{
 public:
-    explicit PathfindingManager(LabyrinthManager& labyrinthManager);
+    PathfindingManager(const LabyrinthManager& labyrinthManager);
+    ~PathfindingManager() = default;
 
-    // Finds a path from start to end positions (in tile coordinates)
-    std::vector<glm::ivec2> FindPath(const glm::ivec2& start, const glm::ivec2& end);
+    // Disable copying and moving
+    PathfindingManager(const PathfindingManager&) = delete;
+    PathfindingManager& operator=(const PathfindingManager&) = delete;
 
-    // Updates walkable tiles dynamically
-    void UpdateWalkableTiles(const std::unordered_set<Tile::type>& newWalkableTiles);
-
-    // Enables or disables diagonal movement
-    void SetDiagonalMovement(bool enable);
-
-    // Converts tile coordinates to world position
-    glm::vec2 GetTileWorldPosition(const glm::ivec2& tilePosition) const;
-
-    // Converts world position to tile coordinates
-    glm::ivec2 GetTilePosition(const glm::vec2& worldPosition) const;
+    // Finds the shortest path using the A* algorithm
+    std::vector<glm::ivec2> FindPath(const glm::ivec2& start, const glm::ivec2& goal);
 
 private:
-    struct Node {
-        glm::ivec2 position;
-        int gCost, hCost, fCost;
-        Node* parent = nullptr;
-
-        bool operator>(const Node& other) const { return fCost > other.fCost; }
-    };
+    const LabyrinthManager& m_labyrinthManager;
 
     // Helper functions
-    bool IsWalkable(const glm::ivec2& position) const;
-    int CalculateHeuristic(const glm::ivec2& start, const glm::ivec2& end) const;
-    std::vector<glm::ivec2> GetNeighbors(const glm::ivec2& position) const;
-
-    LabyrinthManager& m_labyrinthManager;
-    std::unordered_set<Tile::type> m_walkableTiles;
-    bool m_allowDiagonalMovement = false;
+    bool IsTileWalkable(int x, int y) const;
+    std::vector<glm::ivec2> GetNeighbors(const glm::ivec2& node) const;
+    float Heuristic(const glm::ivec2& a, const glm::ivec2& b) const;
+    float Distance(const glm::ivec2& a, const glm::ivec2& b) const;
+    std::vector<glm::ivec2> ReconstructPath(
+        const std::unordered_map<glm::ivec2, glm::ivec2>& cameFrom,
+        const glm::ivec2& current) const;
 };

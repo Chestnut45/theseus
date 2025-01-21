@@ -1,124 +1,127 @@
 #include "PathfindingManager.h"
-#include <queue>
-#include <unordered_map>
-#include <unordered_set>
-#include <iostream> // For debugging logs
+#include <cmath> // for abs and sqrt
 
-PathfindingManager::PathfindingManager(LabyrinthManager& labyrinthManager)
-    : m_labyrinthManager(labyrinthManager),
-      m_walkableTiles({
-          Tile::BorderedGrass, Tile::Bricks, Tile::FloorSmallSquares,
-          Tile::FloorSmallSquaresGold, Tile::FloorSpiralGold,
-          Tile::FloorSpiral, Tile::FloorSquareGold,
-          Tile::FloorSquare, Tile::Grass}) {}
+PathfindingManager::PathfindingManager(const LabyrinthManager& labyrinthManager)
+    : m_labyrinthManager(labyrinthManager) {}
 
-glm::ivec2 PathfindingManager::GetTilePosition(const glm::vec2& worldPosition) const {
-    return m_labyrinthManager.GetTilePosition(worldPosition);
-}
+bool PathfindingManager::IsTileWalkable(int x, int y) const
+{
+    int tileID = m_labyrinthManager.GetTile(x, y);
+    if (tileID < 0) // Out of bounds or empty
+        return false;
 
-glm::vec2 PathfindingManager::GetTileWorldPosition(const glm::ivec2& tilePosition) const {
-    // Use LabyrinthManager constants to calculate the world position
-    const int tileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
-    return glm::vec2(tilePosition) * glm::vec2(tileSize);
-}
-
-void PathfindingManager::UpdateWalkableTiles(const std::unordered_set<Tile::type>& newWalkableTiles) {
-    m_walkableTiles = newWalkableTiles;
-}
-
-void PathfindingManager::SetDiagonalMovement(bool enable) {
-    m_allowDiagonalMovement = enable;
-}
-
-bool PathfindingManager::IsWalkable(const glm::ivec2& position) const {
-    int tileID = m_labyrinthManager.GetTile(position.x, position.y);
-    return m_walkableTiles.count(tileID) > 0;
-}
-
-int PathfindingManager::CalculateHeuristic(const glm::ivec2& start, const glm::ivec2& end) const {
-    if (m_allowDiagonalMovement) {
-        // Euclidean distance for diagonal movement
-        return static_cast<int>(glm::distance(glm::vec2(start), glm::vec2(end)));
+    switch (tileID)
+    {
+    case Tile::BorderedGrass:
+    case Tile::Bricks:
+    case Tile::FloorSmallSquares:
+    case Tile::FloorSmallSquaresGold:
+    case Tile::FloorSpiralGold:
+    case Tile::FloorSpiral:
+    case Tile::FloorSquareGold:
+    case Tile::FloorSquare:
+    case Tile::Grass:
+        return true;
+    default:
+        return false;
     }
-    // Manhattan distance for orthogonal movement
-    return abs(start.x - end.x) + abs(start.y - end.y);
 }
 
-std::vector<glm::ivec2> PathfindingManager::GetNeighbors(const glm::ivec2& position) const {
-    static const glm::ivec2 orthogonalDirections[] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-    static const glm::ivec2 diagonalDirections[] = {{1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
-
+std::vector<glm::ivec2> PathfindingManager::GetNeighbors(const glm::ivec2& node) const
+{
     std::vector<glm::ivec2> neighbors;
+    // Include both cardinal and diagonal directions
+    std::vector<glm::ivec2> directions = {
+        {0, -1}, {0, 1}, {-1, 0}, {1, 0},   // Cardinal directions
+        {-1, -1}, {-1, 1}, {1, -1}, {1, 1} // Diagonal directions
+    };
 
-    // Add orthogonal neighbors
-    for (const auto& dir : orthogonalDirections) {
-        glm::ivec2 neighbor = position + dir;
-        if (IsWalkable(neighbor)) {
+    for (const auto& dir : directions)
+    {
+        glm::ivec2 neighbor = node + dir;
+        if (IsTileWalkable(neighbor.x, neighbor.y))
+        {
             neighbors.push_back(neighbor);
-        }
-    }
-
-    // Add diagonal neighbors if enabled
-    if (m_allowDiagonalMovement) {
-        for (const auto& dir : diagonalDirections) {
-            glm::ivec2 neighbor = position + dir;
-            if (IsWalkable(neighbor)) {
-                neighbors.push_back(neighbor);
-            }
         }
     }
 
     return neighbors;
 }
 
-std::vector<glm::ivec2> PathfindingManager::FindPath(const glm::ivec2& start, const glm::ivec2& end) {
-    using NodePtr = Node*;
+float PathfindingManager::Heuristic(const glm::ivec2& a, const glm::ivec2& b) const
+{
+    int dx = std::abs(a.x - b.x);
+    int dy = std::abs(a.y - b.y);
+    return (dx + dy) + (std::sqrt(2.0f) - 2.0f) * std::min(dx, dy);
+}
 
-    // Validate start and end positions
-    if (!IsWalkable(start) || !IsWalkable(end)) {
-        std::cerr << "Invalid start or end position for pathfinding.\n";
-        return {};
+float PathfindingManager::Distance(const glm::ivec2& a, const glm::ivec2& b) const
+{
+    if (a.x != b.x && a.y != b.y) // Diagonal movement
+    {
+        return 1.414f; // Approximation of √2
+    }
+    return 1.0f; // Cardinal movement
+}
+
+std::vector<glm::ivec2> PathfindingManager::ReconstructPath(
+    const std::unordered_map<glm::ivec2, glm::ivec2>& cameFrom,
+    const glm::ivec2& current) const
+{
+    std::vector<glm::ivec2> path;
+    glm::ivec2 currentNode = current;
+
+    while (cameFrom.find(currentNode) != cameFrom.end())
+    {
+        path.push_back(currentNode);
+        currentNode = cameFrom.at(currentNode);
     }
 
-    // Priority queue for the open set
-    std::priority_queue<NodePtr, std::vector<NodePtr>, std::greater<>> openList;
-    std::unordered_map<glm::ivec2, Node> allNodes;
-    std::unordered_set<glm::ivec2> closedList;
+    std::reverse(path.begin(), path.end());
+    return path;
+}
 
-    // Initialize the start node
-    Node& startNode = allNodes[start] = {start, 0, CalculateHeuristic(start, end), 0, nullptr};
-    startNode.fCost = startNode.gCost + startNode.hCost;
-    openList.push(&startNode);
+std::vector<glm::ivec2> PathfindingManager::FindPath(
+    const glm::ivec2& start, const glm::ivec2& goal)
+{
+    using Node = std::pair<glm::ivec2, float>;
 
-    while (!openList.empty()) {
-        Node* current = openList.top();
-        openList.pop();
+    auto compare = [](const Node& a, const Node& b) {
+        return a.second > b.second;
+    };
 
-        if (current->position == end) {
-            std::vector<glm::ivec2> path;
-            for (Node* node = current; node; node = node->parent) {
-                path.push_back(node->position);
-            }
-            std::reverse(path.begin(), path.end());
-            return path;
+    std::priority_queue<Node, std::vector<Node>, decltype(compare)> openSet(compare);
+    std::unordered_map<glm::ivec2, glm::ivec2> cameFrom;
+    std::unordered_map<glm::ivec2, float> gScore, fScore;
+
+    gScore[start] = 0.0f;
+    fScore[start] = Heuristic(start, goal);
+    openSet.emplace(start, fScore[start]);
+
+    while (!openSet.empty())
+    {
+        glm::ivec2 current = openSet.top().first;
+        openSet.pop();
+
+        if (current == goal)
+        {
+            return ReconstructPath(cameFrom, current);
         }
 
-        closedList.insert(current->position);
+        for (const auto& neighbor : GetNeighbors(current))
+        {
+            float tentativeG = gScore[current] + Distance(current, neighbor);
 
-        for (const auto& neighborPos : GetNeighbors(current->position)) {
-            if (closedList.count(neighborPos)) continue;
+            if (tentativeG < gScore[neighbor] || gScore.find(neighbor) == gScore.end())
+            {
+                cameFrom[neighbor] = current;
+                gScore[neighbor] = tentativeG;
+                fScore[neighbor] = tentativeG + Heuristic(neighbor, goal);
 
-            int tentativeGCost = current->gCost + 1;
-            Node& neighborNode = allNodes[neighborPos];
-
-            if (!neighborNode.parent || tentativeGCost < neighborNode.gCost) {
-                neighborNode = {neighborPos, tentativeGCost, CalculateHeuristic(neighborPos, end), 0, current};
-                neighborNode.fCost = neighborNode.gCost + neighborNode.hCost;
-                openList.push(&neighborNode);
+                openSet.emplace(neighbor, fScore[neighbor]);
             }
         }
     }
 
-    std::cerr << "Pathfinding failed: No path found.\n";
-    return {};
+    return {}; // Return an empty path if no path is found
 }

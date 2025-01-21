@@ -8,9 +8,6 @@
 #include <components/AnimatedSprite2D.h>
 #include <EnemyDataLoader.h>
 
-//youssef added this
-#include "PathfindingManager.h"
-
 class MinitaurController : public EnemyController
 {
 public:
@@ -66,14 +63,6 @@ private:
     float m_chaseSpeed;
     wolf::Timer m_transitionTimer;
     float m_transitionDelay = 0.2f; // Example delay for transitioning states
-
-    PathfindingManager* m_pPathfindingManager = nullptr;
-    std::vector<glm::ivec2> m_path; // Path to follow
-    size_t m_pathIndex = 0;         // Current step in the path
-    glm::ivec2 m_lastEndTile = glm::ivec2(-1, -1); // Initialize to an invalid tile
-
-    void DebugRenderPath();
-
 
     //-----------------//
     //                 //

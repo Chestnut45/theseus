@@ -75,16 +75,6 @@ void MinitaurController::Init(const EnemyData& data)
 
     // Initialise emotes-related variables
     m_fEmoteTimer = EMOTE_TIME;
-
-    //youssef added this
-    // Set PathfindingManager from the scene
-    for (auto&& [_, pathfindingManager] : GetGameObject()->GetScene().Each<PathfindingManager>()) {
-        m_pPathfindingManager = &pathfindingManager;
-        break;
-    }
-    if (!m_pPathfindingManager) {
-    wolf::Error("PathfindingManager not found in scene!");
-    }
 }
 
 
@@ -252,79 +242,25 @@ void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
 }
 
-void MinitaurController::MoveTowardsTarget(float delta) {
-    if (!m_pVelocity || !m_pTransform || m_path.empty() || m_pathIndex >= m_path.size()) {
-        m_pVelocity->SetVelocity(glm::vec2(0.0f)); // Stop if no path or invalid state
-        return;
-    }
+void MinitaurController::MoveTowardsTarget(float delta)
+{
+    if (!m_pTarget || !m_pVelocity || !m_pTransform) return;
 
-    glm::vec2 currentPos = m_pTransform->GetGlobalPosition();
-    glm::vec2 nextTileWorldPos = m_pPathfindingManager->GetTileWorldPosition(m_path[m_pathIndex]);
+    // Calculate the direction towards the player and move the Minitaur
+    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
 
-    // Calculate the direction to the next tile
-    glm::vec2 direction = nextTileWorldPos - currentPos;
+    // Calculate direction vector
+    glm::vec2 direction = targetPosition - currentPosition;
 
-    // Avoid jitter for very small movements
     if (glm::length(direction) > 0.01f) {
         direction = glm::normalize(direction);
         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+
     } else {
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
     }
-
-    // Advance to the next tile if close enough
-    if (glm::length(nextTileWorldPos - currentPos) < LabyrinthManager::TILE_SIZE * 0.25f) {
-        m_pathIndex++;
-        printf("Advancing to Path Index: %d, Total Steps: %zu\n", m_pathIndex, m_path.size());
-    }
-
-    // Stop moving if the end of the path is reached
-    if (m_pathIndex >= m_path.size()) {
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));
-        printf("MoveTowardsTarget: End of path reached.\n");
-    }
 }
-
-void MinitaurController::DebugRenderPath() {
-    if (!m_pPathfindingManager || m_path.empty()) {
-        wolf::Log("DebugRenderPath: No path to render or PathfindingManager is null.");
-        return;
-    }
-
-    glm::vec4 pathColor(0.0f, 1.0f, 0.0f, 1.0f); // Green for path
-    glm::vec4 currentTargetColor(1.0f, 0.0f, 0.0f, 1.0f); // Red for current step
-
-    // Render path as lines
-    for (size_t i = 0; i < m_path.size() - 1; ++i) {
-        glm::vec2 startWorldPos = m_pPathfindingManager->GetTileWorldPosition(m_path[i]);
-        glm::vec2 endWorldPos = m_pPathfindingManager->GetTileWorldPosition(m_path[i + 1]);
-
-        // Use the correct ColouredVertex2D format with six parameters
-        GLShapesRenderer::GetInstance()->AddLine(
-            {startWorldPos.x, startWorldPos.y, pathColor.r, pathColor.g, pathColor.b, pathColor.a},
-            {endWorldPos.x, endWorldPos.y, pathColor.r, pathColor.g, pathColor.b, pathColor.a}
-        );
-    }
-
-    // Highlight the current target tile
-    if (m_pathIndex < m_path.size()) {
-        glm::vec2 currentTileWorldPos = m_pPathfindingManager->GetTileWorldPosition(m_path[m_pathIndex]);
-
-        // Horizontal line across the current tile
-        GLShapesRenderer::GetInstance()->AddLine(
-            {currentTileWorldPos.x - 5.0f, currentTileWorldPos.y, currentTargetColor.r, currentTargetColor.g, currentTargetColor.b, currentTargetColor.a},
-            {currentTileWorldPos.x + 5.0f, currentTileWorldPos.y, currentTargetColor.r, currentTargetColor.g, currentTargetColor.b, currentTargetColor.a}
-        );
-
-        // Vertical line across the current tile
-        GLShapesRenderer::GetInstance()->AddLine(
-            {currentTileWorldPos.x, currentTileWorldPos.y - 5.0f, currentTargetColor.r, currentTargetColor.g, currentTargetColor.b, currentTargetColor.a},
-            {currentTileWorldPos.x, currentTileWorldPos.y + 5.0f, currentTargetColor.r, currentTargetColor.g, currentTargetColor.b, currentTargetColor.a}
-        );
-    }
-}
-
-
 
 void MinitaurController::HandleIdleState(float delta)
 {
@@ -408,60 +344,29 @@ void MinitaurController::HandleProspectState(float delta)
     }
 }
 
-void MinitaurController::HandleChasingState(float delta) {
-    if (!m_pTarget || !m_pPathfindingManager) {
-        printf("HandleChasingState: Target or PathfindingManager is missing.\n");
-        return;
-    }
-
-    glm::vec2 targetPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 currentPos = m_pTransform->GetGlobalPosition();
-
-    // Calculate tile positions
-    glm::ivec2 startTile = m_pPathfindingManager->GetTilePosition(currentPos);
-    glm::ivec2 endTile = m_pPathfindingManager->GetTilePosition(targetPos);
-
-    // Recalculate path only if:
-    // 1. Path is empty.
-    // 2. End tile has changed (target has moved to a different tile).
-    if (m_path.empty() || endTile != m_lastEndTile) {
-        printf("Recalculating path. Start Tile: (%d, %d), End Tile: (%d, %d)\n", startTile.x, startTile.y, endTile.x, endTile.y);
-
-        m_path = m_pPathfindingManager->FindPath(startTile, endTile);
-        m_lastEndTile = endTile; // Cache the last end tile
-
-        if (m_path.empty()) {
-            printf("Pathfinding failed: No path found from (%d, %d) to (%d, %d).\n", startTile.x, startTile.y, endTile.x, endTile.y);
-        } else {
-            printf("Path found with %zu steps.\n", m_path.size());
-        }
-
-        m_pathIndex = 0; // Reset path index to start
-    }
-
-    // Debug Render the Path
-    DebugRenderPath();
-
-    // Move towards the target along the path
+void MinitaurController::HandleChasingState(float delta)
+{
     MoveTowardsTarget(delta);
 
-    // Check for state transitions
-    float distanceToPlayer = glm::length(targetPos - currentPos);
-    if (distanceToPlayer > m_detectionRange) {
-        printf("Player out of detection range. Switching to prospect state.\n");
+    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+
+    // If player is out of detection range, emote & switch to prospect
+    if (distanceToPlayer > m_detectionRange)
+    {
         SetEmote(EnemyEmote::QUESTION);
-        ChangeState(EnemyState::PROSPECT);
+        ChangeState(EnemyState::PROSPECT);      
         return;
     }
-
-    if (distanceToPlayer <= m_meleeRange) {
-        printf("Player within melee range. Attempting to attack.\n");
-        if (m_transitionTimer.Elapsed() >= m_transitionDelay) {
+    if (distanceToPlayer <= m_meleeRange)
+    {
+        if (m_transitionTimer.Elapsed() >= m_transitionDelay)
+        {
             ChangeState(EnemyState::ATTACKING);
         }
     }
 }
-
 
 void MinitaurController::HandleAttackingState(float delta)
 {
