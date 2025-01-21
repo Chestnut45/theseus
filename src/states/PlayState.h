@@ -6,6 +6,7 @@
 // A class that's responsible for the Concrete Play State.
 //-----------------------------------------------------------------------------
 #pragma once
+#include "glm_hash.h"
 #include "GameState.h"
 #include <theseus.h> // Include the main game class
 #include <W_Sprite2D.h>
@@ -30,6 +31,7 @@
 #include "EnemyDataLoader.h"
 
 #include <unordered_map>
+#include <unordered_set>
 
 
 class LabyrinthManager;
@@ -94,5 +96,9 @@ private:
     void RenderMinimap();
 
     std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
+
+    std::unordered_set<glm::ivec2> m_visitedChunks; // Track visited chunks
+    bool m_isMapExpanded = false;                  // Toggle for expanded map
+    
 
 };
