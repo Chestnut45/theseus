@@ -97,12 +97,36 @@ void ChestInventoryComponent::ShowInventoryGUI() {
         pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
 
         // You can't resize the inventory or move it
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+
+        // Position the inventory
+        ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
+        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.07f};
 
         // By default, the inventory appears close to the middle of the screen
-        ImGui::SetNextWindowPos(m_v2DrawPos);
+        ImGui::SetNextWindowPos(v2WindowDrawPos);
         ImGui::SetNextWindowSize({0,0});
         ImGui::Begin("~ Chest ~", &m_bIsOpen, flags);
+
+        // Get the size of the window
+        ImVec2 v2WindowSize = ImGui::GetWindowSize();
+
+        // So that we can calculate how big the background image needs to be
+        ImVec2 v2BGMin = {v2WindowDrawPos.x, v2WindowDrawPos.y};
+        ImVec2 v2BGMax = {v2WindowDrawPos.x + v2WindowSize.x, v2WindowDrawPos.y + v2WindowSize.y};
+
+        // And then create the background image
+        ImGui::GetWindowDrawList()->AddImage((ImTextureID)(intptr_t)m_pFrameTexture->GetID(), v2BGMin, v2BGMax, m_vv2FrameTextureCoords[1]->m_v2TopLeft, m_vv2FrameTextureCoords[1]->m_v2BotRight);
+
+        // Newline for padding
+        ImGui::NewLine();
+
+        // Write the inventory title
+        float fWindowWidth = ImGui::GetWindowSize().x;
+        float fTextWidth = ImGui::CalcTextSize("~ Chest ~").x;
+
+        ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
+        ImGui::Text("~ Chest ~");
 
         // If we've closed the window using the ImGui button
         if (!m_bIsOpen) {
@@ -115,6 +139,13 @@ void ChestInventoryComponent::ShowInventoryGUI() {
 
         // We need to draw m_iSize number of slots
         for (int k = 0; k < m_iSize; k++) {
+            // If this is the first slot in this row
+            if (counter == 0) {
+                // Draw a single character for padding
+                ImGui::Text(" ");
+                ImGui::SameLine();
+            }
+
             // If there is an item (or stack of items as it were) in this slot
             if (!m_vvpContents[k].empty()) {
                 // We grab a reference to the top item and create a variable to hold the item's details
@@ -166,10 +197,26 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                 // so that we can create unique tooltips for each slot later
                 std::string strIndex = std::to_string(k);
 
+                // Push some style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 50.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.0f, 2.0f));
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
                 // Now we can start making the actual buttons
                 if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pItemsTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
                 }
+
+                // And then pop the vars
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(3);
                 
+                // Push the tooltip style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
                 // When we hover over an inventory slot
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     // We display the details string that we constructed earlier
@@ -187,12 +234,25 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                     ImGui::EndTooltip();
                 }
 
+                // Pop the tooltip style vars and colors
+                ImGui::PopStyleVar(1);
+                ImGui::PopStyleColor(1);
+
                 // When we click on an inventory slot
                 if (ImGui::IsItemClicked()) {
                     // We open a little pop-up menu
                     ImGui::OpenPopup(strIndex.c_str());
                 }
                 
+                // Push the pop-up style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 2.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
                 // The pop-up menu has different buttons based on what the item is and what "state" it's in
                 if (ImGui::BeginPopup(strIndex.c_str())) {
                     if (ImGui::Button("Take")) {
@@ -206,17 +266,37 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                     }
                     ImGui::EndPopup();
                 }
+
+                // Pop the pop-up style vars and colors
+                ImGui::PopStyleVar(1);
+                ImGui::PopStyleColor(5);
             }
             else { // Otherwise, this is an empty inventory slot
-                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pItemsTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
+                // Push some style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 50.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.0f, 2.0f));
 
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
+                // Draw the button
+                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pItemsTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
                 }
+
+                // And pop the style vars and colors
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(3);
             }
 
             // If we've drawn the maximum number of slots per row
             if (counter == m_iMaxPerRow - 1) {
                 // Reset the counter
                 counter = 0;
+
+                // And draw a single character for padding
+                ImGui::SameLine();
+                ImGui::Text(" ");
             }
             else {
                 // Otherwise, this slot needs to be drawn on the same line as the last one
@@ -224,6 +304,9 @@ void ChestInventoryComponent::ShowInventoryGUI() {
                 counter++;
             }
         }
+
+        // Newline for padding
+        ImGui::NewLine();
 
         // End of window
         ImGui::End();
