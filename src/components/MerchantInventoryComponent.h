@@ -44,7 +44,6 @@ class MerchantInventoryComponent : public InventoryComponent {
         void SetMarkup(float p_fMarkup) {m_fPercentMarkup = p_fMarkup;};
         float GetMarkup() const {return m_fPercentMarkup;};
 
-
         int GetGold() const {return m_iGold;};
 
         void SetGold(int p_iAmt) {
@@ -74,6 +73,7 @@ class MerchantInventoryComponent : public InventoryComponent {
         void HandleBoughtItemFromMerchantEvent(const BoughtItemFromMerchantEvent& p_event);
 
         virtual void ShowInventoryGUI();
+        virtual void Close();
 
     private:
         bool CanAddItem(ItemBase* p_pItem);
