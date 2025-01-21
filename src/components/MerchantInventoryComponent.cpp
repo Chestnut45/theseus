@@ -2,6 +2,7 @@
 
 #include <yaml-cpp/yaml.h>
 #include "inventory/ItemCreator.h"
+#include "NPCComponent.h"
 
 MerchantInventoryComponent::~MerchantInventoryComponent() {
     // Empty each of the stacks in the contents vector
@@ -59,13 +60,36 @@ void MerchantInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEve
     }
 }
 
+void MerchantInventoryComponent::Close() {
+    // Close the inventory and let anyone interested know it happened
+    m_bIsOpen = false;
+    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+
+    // Then check if there is an npc attached to our GameObject
+    NPCComponent* pNPC = this->GetGameObject()->GetComponent<NPCComponent>();
+    if (pNPC) {
+        // If there is, tell them to say goodbye
+        pNPC->SayGoodbye();
+    }
+}
+
 void MerchantInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
     // If the player just closed their inventory
     if (p_event.enType == PLAYER_INVENTORY) {
-        // And this chest is open
+        // And this merchant is open
         if (m_bIsOpen) {
             // Close it
             m_bIsOpen = false;
+
+            // Then check if there is an npc attached to our GameObject
+            NPCComponent* pNPC = this->GetGameObject()->GetComponent<NPCComponent>();
+            if (pNPC) {
+                // If there is, tell them to say goodbye
+                pNPC->SayGoodbye();
+            }
+
+            // Note that we do not use the Close() method to do this as we do not
+            // want to send off another inventory closed event
         }
     }
 }
@@ -83,7 +107,7 @@ void MerchantInventoryComponent::HandleSellItemToMerchantEvent(const SellItemToM
                 // We then need to check if the item was equipped or not
                 if (p_event.bWasEquipped) {
                     // If it was, we need to trigger a RemoveFromPlayerEquipmentEvent
-                    wolf::EventManager::TriggerEvent(RemoveFromPlayerEquipmentEvent(static_cast<EquipmentSlot>(p_event.iPlayerInventoryIndex), p_event.pItem->GetValue()));
+                    wolf::EventManager::TriggerEvent(RemoveFromPlayerEquipmentEvent(p_event.iPlayerInventoryIndex, p_event.pItem->GetValue()));
                 }
                 else {
                     // Otherwise, we trigger a RemoveFromPlayerInventoryEvent
@@ -178,25 +202,11 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
         ImGui::SetNextWindowSize({0,0});
         ImGui::Begin(strTitle.c_str(), &m_bIsOpen, flags);
 
-        // Get the size of the window
-        ImVec2 v2WindowSize = ImGui::GetWindowSize();
-
-        // So that we can calculate how big the background image needs to be
-        ImVec2 v2BGMin = {v2WindowDrawPos.x, v2WindowDrawPos.y};
-        ImVec2 v2BGMax = {v2WindowDrawPos.x + v2WindowSize.x, v2WindowDrawPos.y + v2WindowSize.y};
-
-        // And then create the background image
-        ImGui::GetWindowDrawList()->AddImage((ImTextureID)(intptr_t)m_pFrameTexture->GetID(), v2BGMin, v2BGMax, m_vv2FrameTextureCoords[1]->m_v2TopLeft, m_vv2FrameTextureCoords[1]->m_v2BotRight);
-
-        // Newline for padding
-        ImGui::NewLine();
-
-        // Write the inventory title
-        float fWindowWidth = ImGui::GetWindowSize().x;
-        float fTextWidth = ImGui::CalcTextSize(strTitle.c_str()).x;
-
-        ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
-        ImGui::Text(strTitle.c_str());
+        // If we closed the inventory using IMGUI
+        if (!m_bIsOpen) {
+            // Close it internally, too
+            this->Close();
+        }
 
         // This counter lets us control how many items are drawn in a row
         int counter = 0;

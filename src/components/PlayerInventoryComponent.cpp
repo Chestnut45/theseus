@@ -122,6 +122,7 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
     wolf::EventManager::RemoveListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
     wolf::EventManager::RemoveListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
+    wolf::EventManager::RemoveListener<RemoveFromPlayerEquipmentEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerEquipmentEvent>(*this);
 }
 
 void PlayerInventoryComponent::ShowToggleButtonGUI() {
@@ -934,10 +935,12 @@ void PlayerInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEve
     if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum == m_iOpenChestIdNum) {
         // Then we can safely discard the id number because we're done moving items between the two inventories
         m_iOpenChestIdNum = -1;
+        m_bIsOpen = false;
     }
     else if (p_event.enType == MERCHANT_INVENTORY && p_event.iIdNum == m_iOpenMerchantIdNum) {
         // We do the same with merchant inventories
         m_iOpenMerchantIdNum = -1;
+        m_bIsOpen = false;
     }
 }
 

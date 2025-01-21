@@ -1,0 +1,40 @@
+name: Ariadne
+loot_table_path: data/minitaur_loot.yaml
+
+dialogue_bank_path: data/ariadne_dialogue_and_cutscenes.yaml
+dialogue_entries: [
+  {
+    priority: 0,
+    entry_id: intro_cutscene,
+    has_trigger: false,
+    can_repeat: false
+  },
+  {
+    priority: 1,
+    entry_id: hello,
+    has_trigger: false,
+    can_repeat: true
+  },
+  {
+    priority: 2,
+    entry_id: test,
+    has_trigger: true,
+    can_repeat: true
+  }
+]
+
+can_be_merchant: false
+
+health: 100
+collider_size: {x: 13.0, y: 28.0}
+collider_offset: {x: -6.0, y: 14.0}
+
+animation_init: {
+  frame_size: {x: 32.0, y: 32.0},
+  playback_speed: 0.0,
+  texture: data/textures/AriadneAll-Sheet.png,
+  start_anim: StandSouth,
+  animation_sets: [
+    data/ariadne_stand_anim_set.yaml,
+  ]
+}
