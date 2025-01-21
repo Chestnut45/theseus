@@ -13,6 +13,7 @@
 #include "../components/DispensaryInventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/TimedDestroyerComponent.h"
+#include "../components/TrappedChestComponent.h"
 #include "../components/VelocityComponent.h"
 #include "../components/ThrowableObjectComponent.h"
 #include "../components/BoulderTrapComponent.h"
@@ -91,6 +92,7 @@ void PlayState::Enter()
     // this->CreateMinitaurEnemy();
     // this->CreateHarpyEnemy();
     // this->CreateGorgonEnemy();
+    this->CreateTrappedChest();
 }
 
 void PlayState::Exit()
@@ -304,6 +306,26 @@ void PlayState::Update(float delta)
                 auto name = sprite.GetCurrentAnimation()->m_strName;
                 sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
                 m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+            }
+        }
+    }
+
+    // Trapped chests
+    for (auto&&[_, trappedChest, transform, sprite] : m_pGameInstance->GetScene().Each<TrappedChestComponent, wolf::Transform2D, AnimatedSprite2D>())
+    {
+        // Update trapped chests
+        trappedChest.Update(delta);
+        // Distance checking
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+        {
+            if(trappedChest.IsOpen() == false)
+            {
+                std::string tooltip = "Press E to Open Chest";
+                ShowTooltip(tooltip);
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                {
+                    trappedChest.OpenTrappedChest();
+                }
             }
         }
     }
@@ -600,6 +622,31 @@ void PlayState::CreateGorgonEnemy()
     }
     auto* statusComponent = gorgon.GetComponent<StatusComponent>();
     // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3.0f);
+}
+
+void PlayState::CreateTrappedChest()
+{
+    // Create the chest object
+    wolf::GameObject* chest = &m_pGameInstance->GetScene().CreateObject2D();
+    
+    // Scale the chest
+    auto& transform = *chest->GetComponent<wolf::Transform2D>();
+    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 288.0f);
+    transform.SetPosition(position);
+    transform.SetScale(glm::vec2(3.0f));
+
+    // Add the sprite
+    auto& sprite = chest->AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+    sprite.SetAnimation("LegendaryClosed");
+    sprite.SetOriginToCenterOfFrame();
+
+    // Add the collider
+    auto& collider = chest->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
+
+    // Add the trapped chest component
+    auto& trappedChestComp = chest->AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::EXPLODE, true,  true);
+    trappedChestComp.Init();
 }
 
 void PlayState::CreateThrowableObject()
