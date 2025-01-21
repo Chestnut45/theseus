@@ -56,7 +56,7 @@ void PauseState::Update(float delta)
 
     // Centered buttons
 
-    // Push the message style vars and colors
+    // Push the button style vars and colors
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));

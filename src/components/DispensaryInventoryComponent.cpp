@@ -121,7 +121,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
 
         // Position the inventory
         ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
-        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.07f};
+        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.15f};
 
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos(v2WindowDrawPos);

@@ -195,12 +195,32 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
 
         // Figure out where we'll be drawing the inventory
         ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
-        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.07f};
+        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.15f};
 
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos(v2WindowDrawPos);
         ImGui::SetNextWindowSize({0,0});
         ImGui::Begin(strTitle.c_str(), &m_bIsOpen, flags);
+
+        // Get the size of the window
+        ImVec2 v2WindowSize = ImGui::GetWindowSize();
+
+        // So that we can calculate how big the background image needs to be
+        ImVec2 v2BGMin = {v2WindowDrawPos.x, v2WindowDrawPos.y};
+        ImVec2 v2BGMax = {v2WindowDrawPos.x + v2WindowSize.x, v2WindowDrawPos.y + v2WindowSize.y};
+
+        // And then create the background image
+        ImGui::GetWindowDrawList()->AddImage((ImTextureID)(intptr_t)m_pFrameTexture->GetID(), v2BGMin, v2BGMax, m_vv2FrameTextureCoords[1]->m_v2TopLeft, m_vv2FrameTextureCoords[1]->m_v2BotRight);
+
+        // Newline for padding
+        ImGui::NewLine();
+
+        // Write the inventory title
+        float fWindowWidth = ImGui::GetWindowSize().x;
+        float fTextWidth = ImGui::CalcTextSize(strTitle.c_str()).x;
+
+        ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
+        ImGui::Text(strTitle.c_str());
 
         // If we closed the inventory using IMGUI
         if (!m_bIsOpen) {
