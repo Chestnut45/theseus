@@ -1,61 +1,92 @@
 #include "PathfindingManager.h"
+#include <queue>
 #include <unordered_map>
 #include <unordered_set>
-#include <queue>
-#include <functional>
-#include <algorithm>
+#include <iostream> // For debugging logs
 
 PathfindingManager::PathfindingManager(LabyrinthManager& labyrinthManager)
-    : m_labyrinthManager(labyrinthManager) {}
+    : m_labyrinthManager(labyrinthManager),
+      m_walkableTiles({
+          Tile::BorderedGrass, Tile::Bricks, Tile::FloorSmallSquares,
+          Tile::FloorSmallSquaresGold, Tile::FloorSpiralGold,
+          Tile::FloorSpiral, Tile::FloorSquareGold,
+          Tile::FloorSquare, Tile::Grass}) {}
 
-bool PathfindingManager::IsWalkable(int x, int y) const {
-    int tileID = m_labyrinthManager.GetTile(x, y);
+glm::ivec2 PathfindingManager::GetTilePosition(const glm::vec2& worldPosition) const {
+    return m_labyrinthManager.GetTilePosition(worldPosition);
+}
 
-    // Check if the tile is valid and walkable
-    switch (tileID) {
-        case Tile::FloorSmallSquares:
-        case Tile::FloorSmallSquaresGold:
-        case Tile::FloorSpiral:
-        case Tile::FloorSpiralGold:
-        case Tile::FloorSquare:
-        case Tile::FloorSquareGold:
-        case Tile::Grass:
-            return true; // Walkable tiles
-        default:
-            return false; // Non-walkable tiles (e.g., walls, empty)
-    }
+glm::vec2 PathfindingManager::GetTileWorldPosition(const glm::ivec2& tilePosition) const {
+    // Use LabyrinthManager constants to calculate the world position
+    const int tileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    return glm::vec2(tilePosition) * glm::vec2(tileSize);
+}
+
+void PathfindingManager::UpdateWalkableTiles(const std::unordered_set<Tile::type>& newWalkableTiles) {
+    m_walkableTiles = newWalkableTiles;
+}
+
+void PathfindingManager::SetDiagonalMovement(bool enable) {
+    m_allowDiagonalMovement = enable;
+}
+
+bool PathfindingManager::IsWalkable(const glm::ivec2& position) const {
+    int tileID = m_labyrinthManager.GetTile(position.x, position.y);
+    return m_walkableTiles.count(tileID) > 0;
 }
 
 int PathfindingManager::CalculateHeuristic(const glm::ivec2& start, const glm::ivec2& end) const {
-    // Manhattan distance for a grid-based pathfinding
+    if (m_allowDiagonalMovement) {
+        // Euclidean distance for diagonal movement
+        return static_cast<int>(glm::distance(glm::vec2(start), glm::vec2(end)));
+    }
+    // Manhattan distance for orthogonal movement
     return abs(start.x - end.x) + abs(start.y - end.y);
 }
 
 std::vector<glm::ivec2> PathfindingManager::GetNeighbors(const glm::ivec2& position) const {
+    static const glm::ivec2 orthogonalDirections[] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+    static const glm::ivec2 diagonalDirections[] = {{1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
+
     std::vector<glm::ivec2> neighbors;
-    static const glm::ivec2 directions[] = { {1, 0}, {-1, 0}, {0, 1}, {0, -1} };
-    for (const auto& dir : directions) {
+
+    // Add orthogonal neighbors
+    for (const auto& dir : orthogonalDirections) {
         glm::ivec2 neighbor = position + dir;
-        if (IsWalkable(neighbor.x, neighbor.y)) {
+        if (IsWalkable(neighbor)) {
             neighbors.push_back(neighbor);
         }
     }
+
+    // Add diagonal neighbors if enabled
+    if (m_allowDiagonalMovement) {
+        for (const auto& dir : diagonalDirections) {
+            glm::ivec2 neighbor = position + dir;
+            if (IsWalkable(neighbor)) {
+                neighbors.push_back(neighbor);
+            }
+        }
+    }
+
     return neighbors;
 }
 
 std::vector<glm::ivec2> PathfindingManager::FindPath(const glm::ivec2& start, const glm::ivec2& end) {
     using NodePtr = Node*;
 
-    // Priority queue for the open set, sorted by fCost
-    std::priority_queue<NodePtr, std::vector<NodePtr>, std::function<bool(NodePtr, NodePtr)>> openList(
-        [](NodePtr a, NodePtr b) { return a->fCost > b->fCost; });
+    // Validate start and end positions
+    if (!IsWalkable(start) || !IsWalkable(end)) {
+        std::cerr << "Invalid start or end position for pathfinding.\n";
+        return {};
+    }
 
-    // Data structures for A* algorithm
+    // Priority queue for the open set
+    std::priority_queue<NodePtr, std::vector<NodePtr>, std::greater<>> openList;
     std::unordered_map<glm::ivec2, Node> allNodes;
     std::unordered_set<glm::ivec2> closedList;
 
     // Initialize the start node
-    Node& startNode = allNodes[start] = { start, 0, CalculateHeuristic(start, end), 0, nullptr };
+    Node& startNode = allNodes[start] = {start, 0, CalculateHeuristic(start, end), 0, nullptr};
     startNode.fCost = startNode.gCost + startNode.hCost;
     openList.push(&startNode);
 
@@ -63,10 +94,9 @@ std::vector<glm::ivec2> PathfindingManager::FindPath(const glm::ivec2& start, co
         Node* current = openList.top();
         openList.pop();
 
-        // Goal reached
         if (current->position == end) {
             std::vector<glm::ivec2> path;
-            for (Node* node = current; node != nullptr; node = node->parent) {
+            for (Node* node = current; node; node = node->parent) {
                 path.push_back(node->position);
             }
             std::reverse(path.begin(), path.end());
@@ -82,19 +112,13 @@ std::vector<glm::ivec2> PathfindingManager::FindPath(const glm::ivec2& start, co
             Node& neighborNode = allNodes[neighborPos];
 
             if (!neighborNode.parent || tentativeGCost < neighborNode.gCost) {
-                neighborNode.position = neighborPos;
-                neighborNode.gCost = tentativeGCost;
-                neighborNode.hCost = CalculateHeuristic(neighborPos, end);
+                neighborNode = {neighborPos, tentativeGCost, CalculateHeuristic(neighborPos, end), 0, current};
                 neighborNode.fCost = neighborNode.gCost + neighborNode.hCost;
-                neighborNode.parent = current;
-
-                // Add to open list if not already added
-                if (!neighborNode.parent || tentativeGCost < neighborNode.gCost) {
-                    openList.push(&neighborNode);
-                }
+                openList.push(&neighborNode);
             }
         }
     }
 
-    return {}; // Return an empty path if no path is found
+    std::cerr << "Pathfinding failed: No path found.\n";
+    return {};
 }

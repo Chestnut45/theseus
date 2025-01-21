@@ -63,6 +63,9 @@ private:
     // Manager for colliders
     ColliderManager* m_pColliderManager = nullptr;
 
+    //pathfinding manager
+    PathfindingManager* m_pPathfindingManager = nullptr;
+
     // Flags
     bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;

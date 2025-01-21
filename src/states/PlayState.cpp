@@ -49,7 +49,11 @@ void PlayState::Enter()
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    auto& pathfindingManagerObject = scene.CreateObject2D();
+    pathfindingManagerObject.AddComponent<PathfindingManager>(*m_pLabyrinthManager);
     m_pLabyrinthManager->GenerateLabyrinth();
+
+
 
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
 
@@ -99,7 +103,8 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
 
-
+    delete m_pPathfindingManager;
+    m_pPathfindingManager = nullptr;
 
     // Delete managers
     delete this->m_pColliderManager;
