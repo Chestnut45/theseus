@@ -14,10 +14,11 @@ enum class TriggerType {
 };
 
 enum class TriggerPurpose {
-    NONE,            // No specific action
-    SPIKE_TRAP,            // Triggers a trap
+    NONE,
+    SPIKE_TRAP,
     BOULDER_TRAP,
-    CUTSCENE         // Triggers a cutscene
+    CUTSCENE,
+    BOSS
 };
 
 // Bitfield of which entity types can activate the trigger

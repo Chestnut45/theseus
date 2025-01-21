@@ -32,6 +32,7 @@
 #include <GorgonBuilder.h>
 #include <PlayerController.h>
 #include <TriggerComponent.h>
+#include "../npcs/NPCBuilder.h"
 
 std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
 
@@ -1622,6 +1623,7 @@ void LabyrinthManager::GenerateChunks()
                     unsigned char mask = 0;
                     switch (logicalTile)
                     {
+                        default:
                         case LogicalTile::Unvisited:
                             
                             // Do nothing
@@ -2059,6 +2061,46 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add the object to the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(trap);
+                        break;
+                    }
+
+                    case Room::EntityType::DaedalusNPC:
+                    case Room::EntityType::AriadneNPC:
+                    {
+                        // Figure out which yaml file we should use based on which NPC we're building
+                        std::string strNPCYamlFile;
+                        if (entity.m_type == Room::EntityType::DaedalusNPC) {
+                            strNPCYamlFile = "data/daedalus_init.yaml";
+                        }
+                        else if (entity.m_type == Room::EntityType::AriadneNPC) {
+                            strNPCYamlFile = "data/ariadne_init.yaml";
+                        }
+
+                        // Create The NPC using the NPCBuilder
+                        wolf::GameObject& pNPC = *NPCBuilder::Instance()->BuildNPC(strNPCYamlFile);
+
+                        // Set the NPC's position and scale
+                        auto& transform = *pNPC.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add them to the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(pNPC);
+                        break;
+                    }
+
+                    case Room::EntityType::RandomNPC:
+                    {
+                        // Create The NPC using the NPCBuilder
+                        wolf::GameObject& pNPC = *NPCBuilder::Instance()->BuildRandomNPC();
+
+                        // Set the NPC's position and scale
+                        auto& transform = *pNPC.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add them to the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(pNPC);
                         break;
                     }
                 }
