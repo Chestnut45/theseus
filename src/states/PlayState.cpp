@@ -20,6 +20,8 @@
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
 #include "GLShapesRenderer.h"
+#include "../npcs/NPCBuilder.h"
+#include "../components/NPCComponent.h"
 
 void PlayState::Enter()
 {
@@ -53,6 +55,7 @@ void PlayState::Enter()
     m_pLabyrinthManager->GenerateLabyrinth();
 
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+    NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
 
     // CreateThrowableObject();
     
@@ -253,6 +256,10 @@ void PlayState::Update(float delta)
         itemDrop.Update(delta);
     }
 
+    // Update the NPCs
+    for (auto&&[_, npc] : m_pGameInstance->GetScene().Each<NPCComponent>()) {
+        npc.Update(delta);
+    }
 
     // Inflict status effects upon the player
     for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
@@ -321,14 +328,6 @@ void PlayState::Update(float delta)
                 }
             }
         }
-    }
-
-    auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
-    if (merchant) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            merchant->ToggleOpen();
-        }
-        merchant->ShowInventoryGUI();
     }
 
     // Display all open dispensary GUIs
@@ -422,11 +421,48 @@ void PlayState::Update(float delta)
         }
     }
 
+    for (auto&&[_, npc, transform] : m_pGameInstance->GetScene().Each<NPCComponent, wolf::Transform2D>()) {
+        // Distance check
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f) {
+            // Player is in range of the NPC so we display the tooltip
+            std::string tooltip = "Press E to talk to " + npc.GetName();
+            ShowTooltip(tooltip);
+
+            // And if the player interacts with the NPC we play their next dialogue/cutscene
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+                npc.PlayNextDialogue();
+                break;
+            }
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_V)) {
+            npc.QueueDialogue("test");
+        }
+    }
+
+    // Display all open merchant GUIs
+    for (auto&&[_, merchantInventory, transform, sprite] : m_pGameInstance->GetScene().Each<MerchantInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
+    {
+        // Show GUI
+        merchantInventory.ShowInventoryGUI();
+
+        // If the player walks too far away
+        if (!(glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f))
+        {
+            // And the merchant GUI is open
+            if (merchantInventory.IsOpen()) {
+                // Close it (and the player's inventory)
+                merchantInventory.Close();
+                m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+            }
+        }
+    }
+
     // Trigger CutsceneDialogueEvent when pressing 9
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Trigger both cutscene and dialogue with IDs
-        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_cutscene"));
+        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
     }
 
         // Update velocity components to apply friction and decelerate objects
@@ -520,15 +556,6 @@ void PlayState::CreatePlayer()
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
-
-
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 3.0f);
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 7.0f);
-
-    // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
-    MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, ImVec2(800, 200), "Merchant Guy", 0.1f, 50);
-    pMerchant->FillInventoryFromFile("data/test_chest_contents.yaml");
 }
 
 void PlayState::CreateMinitaurEnemy()
@@ -659,11 +686,10 @@ void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& e
     std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
 
     // Push the DialogueAndCutsceneState onto the game state stack
-    auto* dialogueAndCutsceneState = new DialogueAndCutsceneState(m_pStateManager, m_pGameInstance, "data/DialogueAndCutscenes.yaml");
+    auto* dialogueAndCutsceneState = new DialogueAndCutsceneState(m_pStateManager, m_pGameInstance, event.dialogueFilePath, event.triggerNPCID);
     dialogueAndCutsceneState->LoadSequence(event.sequenceID);  // Start the specific sequence
     m_pStateManager->PushState(dialogueAndCutsceneState);
 }
-
 
 wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
 {

@@ -1,5 +1,5 @@
 CutscenesAndDialogues:
-  intro_sequence:
+  intro_cutscene:
     characters:
       - name: "Ariadne"
         portraitPath: "data/textures/sPlayerTest.png"
@@ -26,7 +26,6 @@ CutscenesAndDialogues:
         character: "Ariadne"
         text: "Thank the gods."
         duration: 3.0
-
   hello:
     characters:
       - name: "Ariadne"
