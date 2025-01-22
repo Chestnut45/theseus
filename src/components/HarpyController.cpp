@@ -539,6 +539,11 @@ void HarpyController::EnterDeathState()
 
 void HarpyController::ExitAttackState()
 {
+    if(m_pAnimComponent != nullptr)
+    {
+        m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+    }
+    
     m_rangedTimer = m_rangedCooldown;
     m_rangedWindupTimer = m_rangedWindupTime;
 }

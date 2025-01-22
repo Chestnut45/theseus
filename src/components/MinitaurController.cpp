@@ -621,6 +621,11 @@ void MinitaurController::EnterDeathState()
 
 void MinitaurController::ExitAttackState()
 {
+    if(m_pAnimComponent != nullptr)
+    {
+        m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+    }
+    
     m_meleeTimer = m_meleeCooldown;
     m_meleeWindupTimer = m_meleeWindupTime;
 }
