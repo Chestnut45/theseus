@@ -302,9 +302,10 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
 // *** This method was heavily informed by Jason Gregory's "Game Engine Architecture" 3rd Ed.
 // and Carol Boers' UPEI CS-4650 Animation Controller Component ***
 void AnimatedSprite2D::Update(float p_fDelta) {
-    // Quick check to make sure that we have an animation
+    // Check if the animation is paused
     if(!m_bIsAnimPaused)
     {
+        // Quick check to make sure that we have an animation
         if (m_pCurrentAnim) {
             // Advance the current frame
             m_fCurrentFrame += p_fDelta * m_fPlaybackSpeed;
@@ -341,6 +342,21 @@ void AnimatedSprite2D::Update(float p_fDelta) {
             // Keep track of which animation frame we played last so that
             // we are only changing the UV coordinates when necessary
             m_fLastFrame = m_fCurrentFrame;
+        }        
+    }
+
+
+    // Update fade-in timer
+    if(m_fGradualFadeInTime > 0.0f)
+    {
+        //     std::cout << "AS2D - id: " << GetGameObject()->GetID() << ", fadein: " << m_fGradualFadeInTime << std::endl; 
+        if(m_fGradualFadeInTimer < m_fGradualFadeInTime)
+        {
+            m_fGradualFadeInTimer += p_fDelta;
+        }
+        else
+        {
+            m_fGradualFadeInTimer = m_fGradualFadeInTime;
         }
     }  
 }
@@ -400,38 +416,14 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
     // Grab the texture size
     const glm::vec2 texSize = glm::vec2(m_pTexture->GetWidth(), m_pTexture->GetHeight());
 
-    // Determine tint to use
-    const glm::vec3& chosenTint = tint == glm::vec3(-1.0f) ? m_tint : tint;
-
-    // Build model matrix
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(position - m_origin * scale, 0.0f));
-    model = glm::rotate(model, rotationRadians, glm::vec3(0.0f, 0.0f, 1.0f));
-    model = glm::scale(model, glm::vec3(scale * m_v2FrameSize, 1.0f));
-
-        //-----------------//
-        //                 //
-        //  Added by Nhật  //
-        //                 //
-        //-----------------//
-        // Update shaders based on current special effects
-        UpdateShaders();
-
-    // Set model uniform
-    s_pCurrentProgram->SetUniform("model", model);
-    s_pCurrentProgram->SetUniform("tint", chosenTint);
-
-
-    s_pCurrentProgram->Bind();
-    m_pTexture->Bind(0);
-    // If multitexturing
-    if(
-        m_specialEffectsType != SpecialEffectsType::NONE            && 
-        m_specialEffectsType >= SpecialEffectsType::MULTITEX_PETRIFIED
-        )
-    {   
-        s_vMasks.at(m_specialEffectsType - SpecialEffectsType::MULTITEX_PETRIFIED)->Bind(1);
-    }
+    //-----------------//
+    //                 //
+    //  Added by Nhật  //
+    //                 //
+    //-----------------//
+    // Update shaders based on current special effects
+    UpdateShaders();
+    BindUniformsAndTextures(position, rotationRadians, scale, tint);
 
     // Draw!
     s_pVAO->Bind();
@@ -553,7 +545,7 @@ void AnimatedSprite2D::SetSpecialEffects(SpecialEffectsType p_spe_type, float p_
 {
     m_specialEffectsType = p_spe_type;
     m_fGradualFadeInTime = p_gradual_in;
-    m_fGradualFadeOutTime = p_gradual_out;
+    m_fGradualFadeInTimer = 0.0f;
 }
 
 void AnimatedSprite2D::UpdateShaders()
@@ -586,5 +578,42 @@ void AnimatedSprite2D::UpdateShaders()
             break;
         }
     }
+}
 
+void AnimatedSprite2D::BindUniformsAndTextures(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint)
+{
+    // Determine tint to use
+    const glm::vec3& chosenTint = tint == glm::vec3(-1.0f) ? m_tint : tint;
+
+    // Build model matrix
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(position - m_origin * scale, 0.0f));
+    model = glm::rotate(model, rotationRadians, glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::scale(model, glm::vec3(scale * m_v2FrameSize, 1.0f));
+
+        // Set model uniform
+    s_pCurrentProgram->SetUniform("model", model);
+    s_pCurrentProgram->SetUniform("tint", chosenTint);
+
+    if(m_fGradualFadeInTime == 0.0f)
+    {
+        s_pCurrentProgram->SetUniform("fadeinTime", 1.0f);
+
+    }
+    else
+    {
+        s_pCurrentProgram->SetUniform("fadeinTime", (float)(m_fGradualFadeInTimer / m_fGradualFadeInTime));
+
+    }
+
+    s_pCurrentProgram->Bind();
+    m_pTexture->Bind(0);
+    // If multitexturing
+    if(
+        m_specialEffectsType != SpecialEffectsType::NONE            && 
+        m_specialEffectsType >= SpecialEffectsType::MULTITEX_PETRIFIED
+        )
+    {   
+        s_vMasks.at(m_specialEffectsType - SpecialEffectsType::MULTITEX_PETRIFIED)->Bind(1);
+    }
 }

@@ -229,9 +229,16 @@ void PlayerController::Update(float delta)
 
         // Check if player is petrified
         StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+        if
+        (
+            statusComponent != nullptr                                                          &&
+            statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)
+        )
         {
-            SetAction(PlayerAction::PETRIFIED);
+            if(m_action != PlayerAction::PETRIFIED)
+            {
+                SetAction(PlayerAction::PETRIFIED);
+            }
         }
         else
         {
@@ -802,7 +809,7 @@ void PlayerController::StartAttack()
 
 void PlayerController::StartPetrified()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED);
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED, 0.2f);
     m_pAnimComponent->SetAnimPaused(true);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }
