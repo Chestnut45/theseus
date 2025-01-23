@@ -22,6 +22,7 @@
 #include "GLShapesRenderer.h"
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
+#include <BossController.h>
 
 void PlayState::Enter()
 {
@@ -79,10 +80,11 @@ void PlayState::Enter()
 
         // Spawn the Minotaur Boss
         auto& bossObject = scene.CreateObject2D();
-        auto& transform = *bossObject.GetComponent<wolf::Transform2D>();
-        transform.SetScale(glm::vec2(LabyrinthManager::SCALE));
-        transform.SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.25f));
-        auto& sprite = bossObject.AddComponent<AnimatedSprite2D>("data/boss_anim_init.yaml");
+        auto& controller = bossObject.AddComponent<BossController>();  
+        controller.Init();
+
+        // Move boss to initial location
+        bossObject.GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.25f));
 
         break;
     }
@@ -236,6 +238,12 @@ void PlayState::Update(float delta)
 
     // Update all player controllers
     for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<PlayerController>())
+    {
+        controller.Update(delta);
+    }
+
+    // Update boss controller
+    for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<BossController>())
     {
         controller.Update(delta);
     }
