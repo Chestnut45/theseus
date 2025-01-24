@@ -46,6 +46,8 @@ protected:
     ColliderComponent* m_pCollider = nullptr;
 
     EnemyState m_state = EnemyState::IDLE;
+    EnemyState m_last_state = EnemyState::IDLE;
+
     ColliderManager* m_pColliderManager = nullptr;
     wolf::GameObject* m_pTarget = nullptr;  // Target (usually the player)
 

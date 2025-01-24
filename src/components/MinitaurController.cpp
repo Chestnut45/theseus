@@ -31,6 +31,7 @@ void MinitaurController::Init(const EnemyData& data)
     // Assign enemy data
     m_meleeRange = data.meleeRange;
     m_meleeCooldown = data.attackCooldown;
+    m_meleeWindupTime = data.meleeWindup;
     m_detectionRange = data.detectionRange;
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
@@ -61,6 +62,9 @@ void MinitaurController::Init(const EnemyData& data)
     {
         wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
     }
+
+    // Init attack state members
+    m_meleeWindupTimer = m_meleeWindupTime;
 
     // Init emotes object
     m_pEmoteObj = &pGameObject->GetScene().CreateObject2D();
@@ -99,12 +103,18 @@ void MinitaurController::Update(float delta)
         }         
     }
 
-
-    // Check if health is below or equal to 0 and transition to the DEATH state
-    if (m_pHealth->GetHealth() <= 0)
+    // Check if health is below or equal to 0 and not already dying, transition to the DEATH state
+    if (m_pHealth->GetHealth() <= 0 && m_state != EnemyState::DEATH)
     {
         // Switch to the DEATH state if the health is depleted
         ChangeState(EnemyState::DEATH);
+        return;
+    }
+
+    if(m_meleeTimer > 0.0f)
+    {
+        // Cooldown timer for next attack
+        m_meleeTimer -= delta;
     }
 
     // Update based on the current state
@@ -194,6 +204,11 @@ void MinitaurController::ChangeState(EnemyState newState)
     // Enter new state
         switch (newState)
     {
+        case EnemyState::ATTACKING:
+        {
+            EnterAttackState();
+            break;
+        }
         case EnemyState::CHASING:
         {
             EnterChasingState();
@@ -219,11 +234,18 @@ void MinitaurController::ChangeState(EnemyState newState)
             EnterStunnedState();
             break;
         }
+        case EnemyState::DEATH:
+        {
+            EnterDeathState();
+            break;
+        }
         default:
         {         
             break;
         }
     }
+
+    m_last_state = m_state;
     m_state = newState;
 }
 
@@ -361,21 +383,41 @@ void MinitaurController::HandleChasingState(float delta)
     }
     if (distanceToPlayer <= m_meleeRange)
     {
-        if (m_transitionTimer.Elapsed() >= m_transitionDelay)
+        if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_meleeTimer <= 0.0f)
         {
             ChangeState(EnemyState::ATTACKING);
+            return;
         }
     }
 }
 
 void MinitaurController::HandleAttackingState(float delta)
 {
-    if (!m_pTarget) return;
-
-    // Stop Minitaur's movement during attack
-    m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    if(m_meleeTimer <= 0.0f)
+    if (!m_pTarget)
     {
+        ChangeState(EnemyState::IDLE);
+        return;
+    }
+
+    // If winding up attack
+    if(m_meleeWindupTimer > 0.0f)
+    {
+        // Brighten sprite to indicate attack
+        if(m_pAnimComponent != nullptr)
+        {
+            glm::vec3 currentTint = m_pAnimComponent->GetTint();
+            glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_meleeWindupTime * 0.5f));
+            m_pAnimComponent->SetTint(nextTint);
+        }
+
+        m_meleeWindupTimer -= delta;
+    }
+
+    // Else, strike
+    else
+    {
+        m_pAnimComponent->SetTint(glm::vec3(1.0f)); // Reset windup tint
+
         // Check distance to player
         const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
@@ -384,13 +426,13 @@ void MinitaurController::HandleAttackingState(float delta)
         // Apply damage if player is within melee range and attack cooldown is over
         if (distanceToPlayer <= m_meleeRange)
         {
+
             // Apply damage to the player
             auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
             if (playerHealth)
             {
                 playerHealth->Damage(m_baseDamage);
                 wolf::Audio::Play("data/sounds/hurt.wav");
-
             }
 
             // Apply strong knockback to the player
@@ -403,19 +445,16 @@ void MinitaurController::HandleAttackingState(float delta)
                 playerVelocity->ApplyKnockback(knockbackDirection, knockbackStrength);
             }
 
+            // Chain another attack
+            ChangeState(EnemyState::ATTACKING);
+            return;
         }
         else
         {
             // Return to chasing if player moves out of range
             ChangeState(EnemyState::CHASING);
+            return;
         }
-
-        // Reset attack cooldown timer
-        m_meleeTimer = m_meleeCooldown;
-    }
-    else
-    {
-        m_meleeTimer -= delta;
     }
 }
 
@@ -429,7 +468,24 @@ void MinitaurController::HandleStunnedState(float delta)
 {
     if(m_stunnedTimer >= m_stunnedTime)
     {
+        if
+        (IsTargetDetected())
+        {
+            if
+            (
+            m_last_state != EnemyState::CHASING     &&
+            m_last_state != EnemyState::ATTACKING
+            )
+            {
+                SetEmote(EnemyEmote::EXCLAMATION);
+            }
+            ChangeState(EnemyState::CHASING);
+            return;
+        }
+        
+        SetEmote(EnemyEmote::QUESTION);
         ChangeState(EnemyState::PROSPECT);
+        return;
     }
     else
     {
@@ -530,6 +586,11 @@ void MinitaurController::HandleDeathState(float delta)
     }  
 }
 
+void MinitaurController::EnterAttackState()
+{
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+}
+
 void MinitaurController::EnterChasingState()
 {
     m_transitionTimer.Reset();
@@ -553,15 +614,20 @@ void MinitaurController::EnterStunnedState()
 {
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
 }
+void MinitaurController::EnterDeathState()
+{
+    SetEmote(EnemyEmote::NONE);
+}
 
 void MinitaurController::ExitAttackState()
 {
-    m_meleeTimer = m_meleeCooldown;
-    
     if(m_pAnimComponent != nullptr)
     {
         m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
     }
+    
+    m_meleeTimer = m_meleeCooldown;
+    m_meleeWindupTimer = m_meleeWindupTime;
 }
 
 void MinitaurController::ExitChasingState()
