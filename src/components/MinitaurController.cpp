@@ -714,11 +714,6 @@ bool MinitaurController::IsTargetInLOS()
     return false;
 }
 
-bool MinitaurController::IsWallTile(int p_tile_id)
-{
-    return (p_tile_id >= Tile::WallBottomLeft) && (p_tile_id <= Tile::WallTop);
-}
-
 glm::vec2 MinitaurController::GetTileWorldPos(glm::ivec2 p_tile_pos)
 {
     glm::vec2 res = glm::vec2(

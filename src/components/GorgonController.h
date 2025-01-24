@@ -51,7 +51,6 @@ private:
 
     bool IsTargetDetected();
     bool IsTargetInLOS(); // Check if target is in line of sight
-    bool IsWallTile(int p_tile_id);
     void RenderIndicator();
     
     // Gorgon-specific properties
