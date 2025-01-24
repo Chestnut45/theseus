@@ -1401,7 +1401,7 @@ void PlayerController::RenderDeathScreen() {
 
         // "Return to Main Menu" button
         if (ImGui::Button("Return to Main Menu", ImVec2(240, 50))) {
-            wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::MAIN_MENU));
+            wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
             ResetDeathScreenState();
         }
 
