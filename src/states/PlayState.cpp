@@ -22,6 +22,7 @@
 #include "GLShapesRenderer.h"
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
+#include <BossController.h>
 
 void PlayState::Enter()
 {
@@ -74,6 +75,15 @@ void PlayState::Enter()
         auto temp = glm::vec2(room.m_bounds.m_origin.x, room.m_bounds.m_origin.y);
         m_bossfightPlayerPos = temp * (float)(LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE) + (size * 0.5f);
         m_bossfightPlayerPos.y -= (size.y * 0.25f);
+
+        // Spawn the Minotaur Boss
+        auto& bossObject = scene.CreateObject2D();
+        auto& controller = bossObject.AddComponent<BossController>();  
+        controller.Init();
+
+        // Move boss to initial location
+        bossObject.GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.25f));
+
         break;
     }
 
@@ -225,6 +235,12 @@ void PlayState::Update(float delta)
 
     // Update all player controllers
     for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<PlayerController>())
+    {
+        controller.Update(delta);
+    }
+
+    // Update boss controller
+    for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<BossController>())
     {
         controller.Update(delta);
     }
@@ -503,6 +519,18 @@ void PlayState::Update(float delta)
         transform.Translate(velocity.GetVelocity() * delta);
     }
     ConvertPlayerTileToGold();
+
+    auto playerPosition = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::ivec2 currentChunk = m_pLabyrinthManager->GetChunkID(playerPosition);
+
+    if (m_visitedChunks.find(currentChunk) == m_visitedChunks.end()) {
+        m_visitedChunks.insert(currentChunk);
+    }
+
+    // Toggle expanded map view
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_M)) {
+        m_isMapExpanded = !m_isMapExpanded;
+    }
     
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
@@ -537,6 +565,8 @@ void PlayState::Render()
     {
         status.RenderPlayerSEIcons();
     }
+
+    RenderMinimap();
 }
 
 void PlayState::BackgroundUpdate(float delta)
@@ -920,6 +950,170 @@ void PlayState::ShowTooltip(const std::string& text)
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(2);
 }
+
+ImVec2 ToImVec2(const glm::vec2& vec) {
+    return ImVec2(vec.x, vec.y);
+}
+
+glm::vec2 ToGLMVec2(const ImVec2& vec) {
+    return glm::vec2(vec.x, vec.y);
+}
+
+ImU32 GetTileColor(int tileID) {
+    switch (tileID) {
+        case Tile::WallBottomLeft:
+        case Tile::WallBottomRight:
+        case Tile::WallBottom:
+        case Tile::WallChest:
+        case Tile::WallHelmet:
+        case Tile::WallLeft:
+        case Tile::WallMaze:
+        case Tile::WallMinotaur:
+        case Tile::WallPillars:
+        case Tile::WallPot:
+        case Tile::WallRight:
+        case Tile::WallSpiral:
+        case Tile::WallSquare:
+        case Tile::WallTopLeft:
+        case Tile::WallTopRight:
+        case Tile::WallTop:
+            return IM_COL32(60, 60, 60, 255); // Walls
+        case Tile::BorderedGrass:
+        case Tile::Bricks:
+            return IM_COL32(180, 140, 90, 255); // Bricks/Grass
+        case Tile::FloorSmallSquares:
+            return IM_COL32(140, 140, 140, 255); // Small Squares
+        case Tile::FloorSmallSquaresGold:
+        case Tile::FloorSquareGold:
+        case Tile::FloorSpiralGold:
+            return IM_COL32(220, 180, 50, 255); // Gold Floors
+        case Tile::FloorSquare:
+        case Tile::FloorSpiral:
+            return IM_COL32(160, 160, 160, 255); // Normal Floors
+        case Tile::Grass:
+            return IM_COL32(50, 180, 50, 255); // Grass
+        default:
+            return IM_COL32(100, 100, 100, 255); // Default Color
+    }
+}
+
+
+void PlayState::RenderMinimap() {
+    static float zoomScale = 1.0f;
+
+    // Handle scroll wheel input for zooming
+    if (m_isMapExpanded) {
+        float scrollDelta = ImGui::GetIO().MouseWheel;
+        zoomScale += scrollDelta * 0.1f; // Adjust zoom increment
+        zoomScale = glm::clamp(zoomScale, 0.5f, 2.0f); // Limit zoom range
+    }
+
+    // Determine minimap configuration
+    const float minimapRadius = m_isMapExpanded ? 300.0f : 100.0f;
+    const float labyrinthScale = (m_isMapExpanded ? zoomScale : 0.2f);
+
+    // Set the center of the map
+    ImVec2 minimapCenter = m_isMapExpanded
+        ? ImVec2(ImGui::GetIO().DisplaySize.x / 2.0f, ImGui::GetIO().DisplaySize.y / 2.0f)
+        : ImVec2(ImGui::GetIO().DisplaySize.x - minimapRadius - 20.0f, 20.0f + minimapRadius);
+
+    // Get player position and chunk
+    const glm::vec2 playerPosition = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::ivec2 playerChunkID = m_pLabyrinthManager->GetChunkID(playerPosition);
+
+    // Calculate visible chunks
+    const int chunkRadius = std::ceil(minimapRadius / (LabyrinthManager::CHUNK_SIZE * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE));
+
+    // Begin ImGui rendering
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImVec2(2 * minimapRadius, 2 * minimapRadius));
+    ImGui::SetNextWindowPos(ImVec2(minimapCenter.x - minimapRadius, minimapCenter.y - minimapRadius));
+    ImGui::Begin("Minimap###AlwaysVisible", nullptr,
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs |
+                 ImGuiWindowFlags_NoBackground);
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 windowPos = ImGui::GetWindowPos();
+    ImVec2 center = ImVec2(windowPos.x + minimapRadius, windowPos.y + minimapRadius);
+    glm::vec2 centerGLM = ToGLMVec2(center);
+
+    // Clip rendering to the circular area
+    drawList->PushClipRect(
+        ImVec2(center.x - minimapRadius, center.y - minimapRadius),
+        ImVec2(center.x + minimapRadius, center.y + minimapRadius),
+        true // Intersect with existing clip rect
+    );
+
+    // Draw circular boundary
+    drawList->AddCircleFilled(center, minimapRadius, IM_COL32(30, 30, 30, 220)); // Background
+    drawList->AddCircle(center, minimapRadius, IM_COL32(255, 255, 255, 255), 64, 3.0f); // Border
+
+    // Render visible chunks
+    for (int cx = -chunkRadius; cx <= chunkRadius; ++cx) {
+        for (int cy = -chunkRadius; cy <= chunkRadius; ++cy) {
+            glm::ivec2 chunkID = playerChunkID + glm::ivec2(cx, cy);
+            wolf::GameObject* chunk = m_pLabyrinthManager->GetChunk(chunkID);
+            if (!chunk) continue; // Skip non-existent chunks
+
+            // Render tiles within the chunk
+            for (int tx = 0; tx < LabyrinthManager::CHUNK_SIZE; ++tx) {
+                for (int ty = 0; ty < LabyrinthManager::CHUNK_SIZE; ++ty) {
+                    glm::ivec2 tilePos = chunkID * LabyrinthManager::CHUNK_SIZE + glm::ivec2(tx, ty);
+                    int tileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+                    if (tileID == Tile::Empty || tileID < 0) continue; // Skip invalid or empty tiles
+
+                    // Calculate relative position
+                    glm::vec2 tileWorldPos = glm::vec2(
+                        tilePos.x * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE,
+                        tilePos.y * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE
+                    );
+                    glm::vec2 relativePos = (tileWorldPos - playerPosition) * labyrinthScale;
+                    relativePos.y = -relativePos.y; // Invert Y-axis for rendering
+                    if (glm::length(relativePos) > minimapRadius) continue;
+
+                    // Render tile
+                    ImVec2 tileScreenPos = ToImVec2(centerGLM + relativePos);
+                    float tileSize = 6.0f * labyrinthScale;
+                    ImVec2 tileMin(tileScreenPos.x - tileSize / 2, tileScreenPos.y - tileSize / 2);
+                    ImVec2 tileMax(tileScreenPos.x + tileSize / 2, tileScreenPos.y + tileSize / 2);
+                    drawList->AddRectFilled(tileMin, tileMax, GetTileColor(tileID));
+                }
+            }
+        }
+    }
+
+    // Draw player icon
+    drawList->AddCircleFilled(center, 6.0f, IM_COL32(0, 255, 0, 255)); // Player icon
+
+    // Render enemies
+    for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>()) {
+        glm::vec2 minitaurPos = minitaurController.GetGameObject()
+                                                ->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+        glm::vec2 relativePos = (minitaurPos - playerPosition) * labyrinthScale;
+        relativePos.y = -relativePos.y; // Invert Y-axis for proper rendering
+        if (glm::length(relativePos) > minimapRadius) continue;
+
+        // Render enemy
+        ImVec2 enemyScreenPos = ToImVec2(centerGLM + relativePos);
+        drawList->AddCircle(enemyScreenPos, 7.0f, IM_COL32(255, 50, 50, 100), 32, 2.0f); // Outer glow
+        drawList->AddCircle(enemyScreenPos, 5.0f, IM_COL32(255, 100, 100, 150), 32, 2.0f); // Middle ring
+        drawList->AddCircleFilled(enemyScreenPos, 3.0f, IM_COL32(255, 0, 0, 255));        // Inner core
+    }
+
+    // Pop the clip rect to restore normal rendering
+    drawList->PopClipRect();
+    ImGui::End();
+    ImGui::PopStyleVar();
+}
+
+
+
+
+
+
+
 
 
 
