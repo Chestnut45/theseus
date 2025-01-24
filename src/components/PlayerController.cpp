@@ -809,7 +809,9 @@ void PlayerController::StartAttack()
 
 void PlayerController::StartPetrified()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED, 0.2f);
+    // Values hardcoded based on 5s petrification attack from GorgonController, perhaps more sensible to centralise & handle effects in StatusComponent
+    // TODO: Move SetSpecialEffects() calls involving petrification from PlayerController & all EnemyControllers to StatusComponent
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED, 0.1f, 4.8f, 0.1f);
     m_pAnimComponent->SetAnimPaused(true);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }

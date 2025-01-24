@@ -9,8 +9,8 @@ layout(binding = 0) uniform sampler2D spriteTexture;
 // Blending texture
 layout(binding = 1) uniform sampler2D multiTex;
 
-// Fade-in timer
-uniform float fadeinTime;
+// Calculates fading in/out of texture
+uniform float fadingTime;
 
 // Tint
 uniform vec3 tint;
@@ -30,15 +30,15 @@ void main()
 
     // Sample other texture
     vec4 multiTexColor = texture(multiTex, texCoords);
-    multiTexColor.a = fadeinTime;
+    multiTexColor.a = fadingTime;
 
     // Mix textures over time
-    color = mixColours(textureColor, multiTexColor, fadeinTime - 0.25);
+    color = mixColours(textureColor, multiTexColor, fadingTime - 0.25);
 
     // Tinting
     color = color * (tint, 1.0);
 
     //Grayscaling for better effect
     vec3 gray = vec3(0.299 * color.r + 0.587 * color.g + 0.114 * color.b);
-    color = mixColours(color, vec4(gray, 1.0), fadeinTime);
+    color = mixColours(color, vec4(gray, 1.0), fadingTime);
 }

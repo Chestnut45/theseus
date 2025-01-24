@@ -133,7 +133,9 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         //-----------------//
         
         void SetAnimPaused(bool p_bPaused){m_bIsAnimPaused = p_bPaused;};
-        void SetSpecialEffects(SpecialEffectsType p_spe_type, float p_gradual_in = 0.0f, float p_gradual_out = 0.0f, float p_se_duration = 0.0f);
+        // Set duration to be negative for infinite duration
+        // Fade-ins/Fade-outs will be disrupted if another SetSpecialEffects() calls happens before they are finished
+        void SetSpecialEffects(SpecialEffectsType p_spe_type, float p_gradual_in = 0.0f, float p_se_duration = -1.0f, float p_gradual_out = 0.0f);
         void UpdateShaders();
         void BindUniformsAndTextures(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint);
 

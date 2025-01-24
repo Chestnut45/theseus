@@ -570,16 +570,20 @@ void AnimatedSprite2D::IncreaseReferences()
 //  Added by Nhật  //
 //                 //
 //-----------------//
-void AnimatedSprite2D::SetSpecialEffects(SpecialEffectsType p_spe_type, float p_gradual_in, float p_gradual_out, float p_se_duration) 
+void AnimatedSprite2D::SetSpecialEffects(SpecialEffectsType p_spe_type, float p_gradual_in, float p_se_duration, float p_gradual_out) 
 {
     m_specialEffectsType = p_spe_type;
-
+    
+    // Fade-in
     m_fGradualFadeInTime = p_gradual_in;
     m_fGradualFadeInTimer = 0.0f;
+    
+    // Fade-out
     m_fGradualFadeOutTime = p_gradual_out;
     m_fGradualFadeOutTimer = p_gradual_out;
     
-    m_fSEDurationTime = p_se_duration;
+    // Duration
+    m_fSEDurationTime = p_se_duration < 0.0f ? std::numeric_limits<float>::infinity() : p_se_duration;  
     m_fSEDurationTimer = 0.0f;
 }
 
@@ -634,38 +638,29 @@ void AnimatedSprite2D::BindUniformsAndTextures(const glm::vec2& position, float 
     if(m_fGradualFadeInTimer >= m_fGradualFadeInTime)
     {
         // Hard-set uniform to 1
-        s_pCurrentProgram->SetUniform("fadeinTime", 1.0f);
+        s_pCurrentProgram->SetUniform("fadingTime", 1.0f);
         
         // State 2 - If special effects duration has expired
         if(m_fSEDurationTimer >= m_fSEDurationTime)
         {
-            // State 3 - If fade-out duration has expired
+            // State 3 - If fade-out timer has expired
             if(m_fGradualFadeOutTimer <= 0.0f)
             {
-                // if fade-out is set to never happen
-                if(m_fGradualFadeOutTime < 0.0f)
-                {
-                    // Hard-set uniform to 1
-                    s_pCurrentProgram->SetUniform("fadeinTime", 1.0f);
-                }
-                else
-                {
-                    // Hard-set uniform to 0
-                    s_pCurrentProgram->SetUniform("fadeinTime", 0.0f);
-                }
+                // Hard-set uniform to 0
+                s_pCurrentProgram->SetUniform("fadingTime", 0.0f);
             }
-
+            // State 3 - Fade-out timer still active
             else
             {
                 // Set uniform to normalised time
-                s_pCurrentProgram->SetUniform("fadeinTime", (float)(m_fGradualFadeOutTimer / m_fGradualFadeOutTime));
+                s_pCurrentProgram->SetUniform("fadingTime", (float)(m_fGradualFadeOutTimer / m_fGradualFadeOutTime));
             }
         }
         // State 2 - Duration timer still active
         else
         {
             // Hard-set uniform to 1
-            s_pCurrentProgram->SetUniform("fadeinTime", 1.0f);
+            s_pCurrentProgram->SetUniform("fadingTime", 1.0f);
         }
         
     }
@@ -673,7 +668,7 @@ void AnimatedSprite2D::BindUniformsAndTextures(const glm::vec2& position, float 
     else
     {
         // Set uniform to normalised time
-        s_pCurrentProgram->SetUniform("fadeinTime", (float)(m_fGradualFadeInTimer / m_fGradualFadeInTime));
+        s_pCurrentProgram->SetUniform("fadingTime", (float)(m_fGradualFadeInTimer / m_fGradualFadeInTime));
         
     }
 
