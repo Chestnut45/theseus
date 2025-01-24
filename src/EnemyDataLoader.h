@@ -14,8 +14,10 @@ struct EnemyData
     float meleeRange = 1.0f;
     float rangedRange = -1.0f;
     float attackCooldown = 1.0f;
-    float meleeCooldown = 1.0f;
-    float rangedCooldown = 1.0f;
+    float meleeCooldown = 1.0f; // Delay between melee attacks
+    float rangedCooldown = 1.0f; // Delay between ranged attacks
+    float meleeWindup = 1.0f; // Melee windup time
+    float rangedWindup = 1.0f; // Ranged windup time
     float detectionRange = 1.0f;
     float baseDamage = 0.0f;
     float chaseSpeed = 1.0f;
