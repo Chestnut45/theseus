@@ -18,6 +18,8 @@ void EnemyDataLoader::LoadAllEnemyData(const std::string& filepath) {
             data.rangedRange = enemyNode["ranged_range"] ? enemyNode["ranged_range"].as<float>() : 1.0f;
             data.meleeCooldown = enemyNode["melee_cooldown"] ? enemyNode["melee_cooldown"].as<float>() : 1.0f;
             data.rangedCooldown = enemyNode["ranged_cooldown"] ? enemyNode["ranged_cooldown"].as<float>() : 1.0f;
+            data.meleeWindup = enemyNode["melee_windup"] ? enemyNode["melee_windup"].as<float>() : 1.0f;
+            data.rangedWindup = enemyNode["ranged_windup"] ? enemyNode["ranged_windup"].as<float>() : 1.0f;
             data.detectionRange = enemyNode["detection_range"].as<float>();
             data.baseDamage = enemyNode["base_damage"].as<float>();
             data.chaseSpeed = enemyNode["chase_speed"].as<float>();

@@ -31,11 +31,13 @@ private:
     void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
 
+    void EnterAttackState();
     void EnterChasingState();
     void EnterIdleState();
     void EnterPetrifiedState();
     void EnterProspectState();
     void EnterStunnedState();
+    void EnterDeathState();
 
     void ExitAttackState();
     void ExitChasingState();
@@ -56,7 +58,7 @@ private:
     wolf::GameObject* m_pTarget = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
     float m_meleeRange;
-    float m_meleeCooldown;
+    float m_meleeCooldown;  // Delay between 2 melee attacks
     float m_meleeTimer = 0.0f;
     float m_detectionRange;
     float m_baseDamage;
@@ -74,15 +76,21 @@ private:
 
     float m_targetDetectionTimer = 0.0f; // Taget detecction reaction delay
 
+    // Prospect state members
     float m_prospectCounter = 0.0f;
     float m_prospectStandingCounter = 2.0f;
     float m_stunnedTime = 0.3f;
     float m_stunnedTimer = 0.0f;
     
+    // Death state members
     float m_fallDeadTimer = 0.0f;
     float m_lieDeadTimer = 0.0f;
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
+
+    // Attack state members
+    float m_meleeWindupTime = 1.0f; // Windup Time
+    float m_meleeWindupTimer = 0.0f;
 
     EnemyEmote m_emote = EnemyEmote::NONE; // Current emote
     const float EMOTE_TIME = 1.0f;
