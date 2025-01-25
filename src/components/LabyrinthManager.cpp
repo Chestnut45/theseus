@@ -925,6 +925,11 @@ glm::ivec2 LabyrinthManager::GetTilePosition(const glm::vec2& worldPosition) con
     return worldPosition / glm::vec2(SCALE * TILE_SIZE);
 }
 
+glm::vec2 LabyrinthManager::GetWorldPosition(const glm::ivec2& tilePosition) const
+{
+    return glm::vec2(SCALE * TILE_SIZE) * glm::vec2(tilePosition);
+}
+
 int LabyrinthManager::GetTile(int x, int y) const
 {
     // Validate position
