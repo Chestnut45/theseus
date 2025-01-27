@@ -12,8 +12,7 @@ rooms: [
 		position: {type: manual, origin: {x: 31, y: 31}},
 		size: {type: manual, value: {x: 15, y: 15}},
 		entities: [
-			{type: legendary_chest, amount: 1, placement: center},
-			{type: minitaur, amount: 8, placement: random},
+			{type: legendary_chest, amount: 1, placement: manual, position: {x: 7, y: 12}},
 		]
 	},
 	{
