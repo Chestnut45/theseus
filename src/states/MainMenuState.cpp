@@ -29,14 +29,14 @@ void MainMenuState::Update(float delta)
 
     // Button sizes
     const int buttonWidth = 128;
-    const int buttonHeight = 32;
+    const int buttonHeight = 48;
 
     // Set the UI window to cover the screen
     ImGui::SetNextWindowPos({0.0f, 0.0f});
     ImGui::SetNextWindowSize({(float)w, (float)h});
 
     // Make the window non-resizeable, remove toolbar, etc.
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
     // Set a background color for now until we make a splash screen
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.096f, 0.088f, 0.196f, 1.0f));
@@ -63,27 +63,41 @@ void MainMenuState::Update(float delta)
 
     // Centered buttons
 
+    // Push the button style vars and colors
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
     ImGui::SetCursorPosX((dimensions.x - buttonWidth) * 0.5f);
+    ImGui::SetCursorPosY(dimensions.y * 0.75f);
     if (ImGui::Button("Play", {buttonWidth, buttonHeight}))
     {
         m_pStateManager->PushState(new PlayState(m_pStateManager, m_pGameInstance, &m_pGameInstance->GetDialogueManager()));
     }
 
-    ImGui::SetCursorPosX((dimensions.x - buttonWidth) * 0.5f);
+    ImGui::SetCursorPosX((dimensions.x - 4*buttonWidth) * 0.5f);
+    ImGui::SetCursorPosY(dimensions.y * 0.75f);
     if (ImGui::Button("Options", {buttonWidth, buttonHeight}))
     {
         // TODO: Options menu (when necessary)
     }
 
-    ImGui::SetCursorPosX((dimensions.x - buttonWidth) * 0.5f);
+    ImGui::SetCursorPosX((dimensions.x + 2*buttonWidth) * 0.5f);
+    ImGui::SetCursorPosY(dimensions.y * 0.75f);
     if (ImGui::Button("Quit", {buttonWidth, buttonHeight}))
     {
         m_pGameInstance->Shutdown();
     }
 
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(5);
+
     // Close window and pop vars
     ImGui::End();
-    ImGui::PopStyleColor();
 }
 
 void MainMenuState::Render()
