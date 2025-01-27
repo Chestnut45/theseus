@@ -9,7 +9,6 @@ class GorgonBuilder
 {
 public:
     explicit GorgonBuilder(wolf::Scene& scene) : m_scene(scene) {}
-    wolf::GameObject& BuildGorgon(const EnemyData& data, const glm::vec2& position, ColliderManager* pColliderManager);
     wolf::GameObject& BuildGorgon(const EnemyData& data, const glm::vec2& position);
 
 private:

@@ -49,7 +49,10 @@ bool TrapComponent::CheckForPlayerCollision(float delta)
         // Get player object
         auto* pObj = playerController.GetGameObject();
         auto* playerCollider = pObj->GetComponent<ColliderComponent>();
-        if (playerCollider && m_pColliderManager->IsColliding(*trapCollider, *playerCollider, delta))
+        if (playerCollider &&
+            playerCollider->IsActive() &&
+            playerCollider->IsHurtbox() &&
+            m_pColliderManager->IsColliding(*trapCollider, *playerCollider, delta))
         {
             auto* playerHealth = pObj->GetComponent<HealthComponent>();
             if (playerHealth) {

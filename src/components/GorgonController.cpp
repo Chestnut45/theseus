@@ -447,6 +447,7 @@ void GorgonController::HandleAttackingState(float delta)
         ChangeState(EnemyState::IDLE);
         return;
     }
+
     // If winding up attack
     if(m_rangedWindupTimer > 0.0f)
     {
@@ -466,11 +467,16 @@ void GorgonController::HandleAttackingState(float delta)
     {
         m_pAnimComponent->SetTint(glm::vec3(1.0f)); // Reset windup tint
 
+        // Determine if target's collider is active and a hurtbox
+        auto* pCollider = m_pTarget->GetComponent<ColliderComponent>();
+        const bool active = pCollider ? (pCollider->IsActive() && pCollider->IsHurtbox()) : false;
+
         // If target is in line of sight, petrify target and switch to prospect
-        if(m_pTargetStatusComponent != nullptr && IsTargetInLOS())
+        if(active && m_pTargetStatusComponent && IsTargetInLOS())
         {
             m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
         }
+        
         ChangeState(EnemyState::CHASING);
         return;
     }

@@ -420,11 +420,16 @@ void MinitaurController::HandleAttackingState(float delta)
 
         // Check distance to player
         const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+        // Determine if target's collider is active and a hurtbox
+        auto* pCollider = m_pTarget->GetComponent<ColliderComponent>();
+        const bool active = pCollider ? (pCollider->IsActive() && pCollider->IsHurtbox()) : false;
+        
         const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
         const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
         // Apply damage if player is within melee range and attack cooldown is over
-        if (distanceToPlayer <= m_meleeRange)
+        if (active && distanceToPlayer <= m_meleeRange)
         {
 
             // Apply damage to the player
