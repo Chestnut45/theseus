@@ -50,7 +50,6 @@ private:
 
     bool IsTargetDetected();
     bool IsTargetInLOS(); // Check if target is in line of sight
-    bool IsWallTile(int p_tile_id);
     glm::vec2 GetTileWorldPos(glm::ivec2 p_tile_pos);
     
     // Minitaur-specific properties
