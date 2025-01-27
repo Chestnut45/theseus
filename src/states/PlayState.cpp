@@ -24,6 +24,7 @@
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
 #include <BossController.h>
+#include <W_Audio.h>
 
 void PlayState::Enter()
 {
@@ -126,10 +127,16 @@ void PlayState::Enter()
     // this->CreateHarpyEnemy();
     // this->CreateGorgonEnemy();
     this->CreateTrappedChest();
+
+    // Stop all audio and begin the maze music
+    wolf::Audio::Stop();
+    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.8f, 0.0f, 0.0f, true, 13.714f);
 }
 
 void PlayState::Exit()
 {
+    wolf::Audio::Stop();
+
     // Delete objects / components from the scene
     m_pGameInstance->GetScene().Clear();
 
@@ -137,18 +144,12 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
 
-
-
     // Delete managers
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
-    
-    
     DDACalculator::DestroyInstance();
     GLShapesRenderer::DestroyInstance();
-
     ItemDropCreator::DestroyInstance();
-    
     NPCBuilder::DestroyInstance();
 }
 

@@ -1,15 +1,19 @@
 #include "MainMenuState.h"
 #include "PlayState.h"
 #include <imgui/imgui.h>
+#include <W_Audio.h>
 
 void MainMenuState::Enter()
 {
     // Initialize the main menu
+    wolf::Audio::Stop();
+    wolf::Audio::Play("data/sounds/bgm_title_screen.wav", 0.8f, 0.0f, 0.0f, true, 3.31f);
 }
 
 void MainMenuState::Exit()
 {
     // Clean up the main menu
+    wolf::Audio::Stop();
 }
 
 void MainMenuState::Update(float delta)
