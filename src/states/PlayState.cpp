@@ -20,6 +20,7 @@
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
 #include "GLShapesRenderer.h"
+#include "TileFireManager.h"
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
 #include <BossController.h>
@@ -54,6 +55,8 @@ void PlayState::Enter()
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
     m_pLabyrinthManager->GenerateLabyrinth();
+
+    TileFireManager::CreateInstance(m_pLabyrinthManager);
 
     // Place the bossfight trigger
     const auto& rooms = m_pLabyrinthManager->GetRooms();
@@ -142,6 +145,8 @@ void PlayState::Exit()
     this->m_pColliderManager = nullptr;
     
     GLShapesRenderer::DestroyInstance();
+
+    TileFireManager::DestroyInstance();
 
     ItemDropCreator::DestroyInstance();
     
@@ -537,6 +542,8 @@ void PlayState::Update(float delta)
     for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>()) {
         health.UpdateDamageIndicators(delta);
     }
+
+    TileFireManager::GetInstance()->Update(delta);
 
     // Dispatch events
     wolf::EventManager::Dispatch();
