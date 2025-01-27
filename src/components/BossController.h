@@ -63,8 +63,8 @@ public:
 private:
 
     // State information
-    FightPhase m_phase = FightPhase::PHASE_1;
-    State m_state = State::SIT;
+    FightPhase m_phase = FightPhase::PHASE_3;
+    State m_state = State::FIRE_BREATH_ATTACK;
 
     // Boss object component pointers
     wolf::Transform2D* m_pTransform = nullptr;
@@ -100,6 +100,8 @@ private:
     int m_chargeAttackRange;
     int m_stunTime;
 
+    float m_fireRange;
+
     // Updates the animated sprite based on state,
     // regardless of what phase of the fight we're in
     void UpdateAnimation();
@@ -119,6 +121,10 @@ private:
     // Phase 3 methods
     void EnterPhase3();
     void UpdatePhase3(float delta);
+
     void StartFireBreathAttack();
+    void AttackFireBreath(float delta);
+
     void StartChargeAttack();
+
 };

@@ -28,35 +28,22 @@ TileFireManager* TileFireManager::GetInstance()
 void TileFireManager::Update(float p_delta)
 {
 
-    for(auto itr = m_mVerticalFireStrips.begin(); itr != m_mVerticalFireStrips.end();)
+    for(auto itr = m_mVerticalFireStrips.begin(); itr != m_mVerticalFireStrips.end(); itr++)
     {
-        auto fireColumn = itr->second;
-
         // Update each fire tile
-        for (auto fireTile = fireColumn.begin(); fireTile != fireColumn.end();)
+        for (FireTile* fireTile : itr->second)
         {
-            fireTile->m_fLifespan -= p_delta;
-
-            // glm::vec2 worldpos = m_pLBMG->GetWorldPosition(fireTile->m_vTilePos);
+            glm::vec2 worldpos = m_pLBMG->GetWorldPosition(fireTile->m_vTilePos);
             // GLShapesRenderer::GetInstance()->AddQuad({worldpos.x, worldpos.y, 1, 0, 0, 1}, 96, 96);
             if(fireTile->m_fLifespan <= 0.0f)
             {
-                fireTile = fireColumn.erase(fireTile);
+                fireTile->m_pFireObj->GetComponent<wolf::Sprite2D>()->SetVisibility(false);
             }
             else
             {
+                fireTile->m_fLifespan -= p_delta;
                 fireTile++;
             }
-        }
-        
-        // If no fire tile remains in a column, erase the column
-        if(fireColumn.size() == 0)
-        {
-            m_mVerticalFireStrips.erase(itr->first);
-        }
-        else
-        {
-            itr++;
         }
     }
 }
@@ -85,19 +72,17 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan)
         for(auto fireTile : m_mVerticalFireStrips.at(column))
         {
             // Reset timer of matching fire tile
-            if(fireTile.m_vTilePos.y == p_tile_pos.y)
+            if(fireTile->m_vTilePos.y == p_tile_pos.y)
             {
-                fireTile.m_fLifespan = p_lifespan;
+                fireTile->m_fLifespan = p_lifespan;
+                fireTile->m_pFireObj->GetComponent<wolf::Sprite2D>()->SetVisibility(true);
                 return;
             }
         }
     }
 
     // Create new fire tile if column is empty
-    m_mVerticalFireStrips.at(column).emplace_back(FireTile(m_pLBMG, p_tile_pos, p_lifespan));
-    int index = m_mVerticalFireStrips.at(column).size() - 1;
-    FireTile* fireTile = &m_mVerticalFireStrips.at(column).at(index);
-
+    m_mVerticalFireStrips.at(column).emplace_back(new FireTile(m_pLBMG, p_tile_pos, p_lifespan));
     return;
 }
 
@@ -106,7 +91,7 @@ TileFireManager::TileFireManager(LabyrinthManager* p_lbmg)
     m_pLBMG = p_lbmg;
     m_pScene = &m_pLBMG->GetGameObject()->GetScene();
 
-    AddFireTile(m_pLBMG->GetTilePosition(m_pLBMG->GetSpawnLocation() + glm::vec2(0.0f, 480.0f)) , 100.0f);
+    // AddFireTile(m_pLBMG->GetTilePosition(m_pLBMG->GetSpawnLocation() + glm::vec2(0.0f, 480.0f)) , 5.0f);
 }
 
 TileFireManager::~TileFireManager()
@@ -131,7 +116,7 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
     m_pFireObj->GetComponent<wolf::Transform2D>()->SetPosition(p_lbmg->GetWorldPosition(m_vTilePos));
     m_pFireObj->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f, 3.0f));
     wolf::Sprite2D* sprite = &m_pFireObj->AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
-    sprite->SetLayer(100);
+    // sprite->SetLayer(100);
     std::cout << "TFMG - FireObjID: " << m_pFireObj->GetID() << std::endl;
 }
 

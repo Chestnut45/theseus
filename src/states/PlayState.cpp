@@ -184,6 +184,8 @@ void PlayState::Update(float delta)
     // Update the labyrinth manager
     m_pLabyrinthManager->Update(delta);
 
+    TileFireManager::GetInstance()->Update(delta);
+
     // Update timed destroyer components
     for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
     {
@@ -566,8 +568,6 @@ void PlayState::Update(float delta)
     for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>()) {
         health.UpdateDamageIndicators(delta);
     }
-
-    TileFireManager::GetInstance()->Update(delta);
 
     // Dispatch events
     wolf::EventManager::Dispatch();

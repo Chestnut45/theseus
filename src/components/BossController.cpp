@@ -11,6 +11,9 @@
 #include <PlayerController.h>
 #include <LabyrinthManager.h>
 
+#include "../DDACalculator.h"
+#include "../TileFireManager.h"
+
 BossController::BossController()
 {
 }
@@ -40,6 +43,8 @@ void BossController::Init()
     m_chargeAttackDamage = 60;
     m_chargeAttackRange = 2000;
     m_stunTime = 4; // Seconds
+    
+    m_fireRange = 300.0f;
 
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
@@ -198,6 +203,8 @@ void BossController::UpdatePhase3(float delta)
     // - When player found, if close, do fire breath attack
     // - if far away, do charge attack
 
+    AttackFireBreath(delta);
+
     if (m_pHealth->GetHealth() <= 0 && m_state != State::DEAD)
     {
         m_state = State::DEAD;
@@ -207,12 +214,26 @@ void BossController::UpdatePhase3(float delta)
     }
 }
 
+void BossController::StartChargeAttack()
+{
+
+}
+
 void BossController::StartFireBreathAttack()
 {
 
 }
 
-void BossController::StartChargeAttack()
+void BossController::AttackFireBreath(float delta)
 {
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 targetPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 targetVector = glm::normalize(targetPos - thisPos);
 
+    std::vector<glm::ivec2> tiles = DDACalculator::GetInstance()->GetTraversedTiles(thisPos, thisPos + targetVector * m_fireRange, true);
+
+    for (glm::ivec2 tile : tiles)
+    {
+        TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
+    }
 }
