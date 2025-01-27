@@ -19,6 +19,7 @@
 #include "../components/BoulderTrapComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
+#include "DDACalculator.h"
 #include "GLShapesRenderer.h"
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
@@ -36,8 +37,6 @@ void PlayState::Enter()
  
     this->m_pColliderManager = new ColliderManager(&scene);
 
-    GLShapesRenderer::CreateInstance();
-
     // Initialize the player object
     CreatePlayer();
 
@@ -54,6 +53,9 @@ void PlayState::Enter()
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
     m_pLabyrinthManager->GenerateLabyrinth();
+
+    GLShapesRenderer::CreateInstance();
+    DDACalculator::CreateInstance(&scene);
 
     // Place the bossfight trigger
     const auto& rooms = m_pLabyrinthManager->GetRooms();
@@ -122,7 +124,7 @@ void PlayState::Enter()
     
     // this->CreateMinitaurEnemy();
     // this->CreateHarpyEnemy();
-    // this->CreateGorgonEnemy();
+    this->CreateGorgonEnemy();
     this->CreateTrappedChest();
 }
 
@@ -141,6 +143,8 @@ void PlayState::Exit()
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
     
+    
+    DDACalculator::DestroyInstance();
     GLShapesRenderer::DestroyInstance();
 
     ItemDropCreator::DestroyInstance();
@@ -682,7 +686,7 @@ void PlayState::CreateGorgonEnemy()
 
     GorgonBuilder gorgonBuilder(m_pGameInstance->GetScene());
 
-    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 580.0f);
+    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 720.0f);
 
     EnemyData gorgonData = loader.LoadEnemyData("gorgon");
     auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position);
