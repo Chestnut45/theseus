@@ -66,16 +66,14 @@ void PlayState::Enter()
         // Create trigger object and collider
         auto& object = scene.CreateObject2D();
         auto& collider = object.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, false, false);
-        auto size = glm::vec2(room.m_bounds.m_size.x, room.m_bounds.m_size.y);
-        auto position = glm::vec2(room.m_bounds.m_origin.x, room.m_bounds.m_origin.y + size.y);
-        size *= LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE;
+        auto size = glm::vec2(room.m_bounds.m_size.x, room.m_bounds.m_size.y) * (float)(LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+        auto position = glm::vec2(room.m_bounds.m_origin.x, room.m_bounds.m_origin.y + room.m_bounds.m_size.y);
         position *= LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE;
         collider.AddColliderBox(size, position);
         object.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::SINGLE_USE, TriggerPurpose::BOSS);
 
         // Set the position to teleport the player to when the bossfight starts
-        auto temp = glm::vec2(room.m_bounds.m_origin.x, room.m_bounds.m_origin.y);
-        m_bossfightPlayerPos = temp * (float)(LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE) + (size * 0.5f);
+        m_bossfightPlayerPos = m_pLabyrinthManager->GetWorldPosition(room.m_bounds.m_origin) + size * 0.5f;
         m_bossfightPlayerPos.y -= (size.y * 0.25f);
 
         // Spawn the Minotaur Boss

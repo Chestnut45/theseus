@@ -114,6 +114,10 @@ public:
     // NOTE: Returns (-1, -1) if the position is not on a valid tile
     glm::ivec2 GetTilePosition(const glm::vec2& worldPosition) const;
 
+    // Converts a tile position to a world space position
+    // NOTE: Does not validate tile position
+    glm::vec2 GetWorldPosition(const glm::ivec2& tilePosition) const;
+
     // Gets the tile ID at the given tile position of the labyrinth
     // NOTE: Returns -1 if the tile is empty
     // NOTE: Returns -2 if out of bounds or not yet generated
