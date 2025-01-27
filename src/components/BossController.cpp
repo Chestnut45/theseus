@@ -12,6 +12,7 @@
 #include <LabyrinthManager.h>
 
 #include "../DDACalculator.h"
+#include "GLShapesRenderer.h"
 #include "../TileFireManager.h"
 
 BossController::BossController()
@@ -88,13 +89,14 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase1();
+    EnterPhase3();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
 
 void BossController::Update(float delta)
 {
+    
     // Call phase-specific update method
     switch (m_phase)
     {
@@ -202,7 +204,6 @@ void BossController::UpdatePhase3(float delta)
     // - Stand in place and search for player when in neutral (can only see forward, rotate around?)
     // - When player found, if close, do fire breath attack
     // - if far away, do charge attack
-
     AttackFireBreath(delta);
 
     if (m_pHealth->GetHealth() <= 0 && m_state != State::DEAD)
@@ -226,11 +227,15 @@ void BossController::StartFireBreathAttack()
 
 void BossController::AttackFireBreath(float delta)
 {
+    
     glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 targetPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 targetVector = glm::normalize(targetPos - thisPos);
+    glm::vec2 endPos = thisPos + targetVector * m_fireRange;
 
-    std::vector<glm::ivec2> tiles = DDACalculator::GetInstance()->GetTraversedTiles(thisPos, thisPos + targetVector * m_fireRange, true);
+    GLShapesRenderer::GetInstance()->AddLine({thisPos.x, thisPos.y, 1, 0, 0 , 1}, {endPos.x, endPos.y, 1, 0, 0 , 1});
+
+    std::vector<glm::ivec2> tiles = DDACalculator::GetInstance()->GetTraversedTiles(thisPos, endPos, true);
 
     for (glm::ivec2 tile : tiles)
     {

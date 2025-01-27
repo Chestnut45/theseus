@@ -1,6 +1,9 @@
 #include "TileFireManager.h"
 #include "GLShapesRenderer.h"
 
+#include "components/StatusComponent.h"
+#include "components/PlayerController.h"
+
 TileFireManager* TileFireManager::s_pTFMG = nullptr;
 
 void TileFireManager::CreateInstance(LabyrinthManager* p_lbmg)
@@ -27,7 +30,7 @@ TileFireManager* TileFireManager::GetInstance()
 
 void TileFireManager::Update(float p_delta)
 {
-
+    // Go through each fire column
     for(auto itr = m_mVerticalFireStrips.begin(); itr != m_mVerticalFireStrips.end(); itr++)
     {
         // Update each fire tile
@@ -46,6 +49,24 @@ void TileFireManager::Update(float p_delta)
             }
         }
     }
+
+    // Check if player is in a tile
+    glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(m_pPlayerObj->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+    int playerTileColumn = playerTilePos.x;
+
+    auto itr = m_mVerticalFireStrips.find(playerTileColumn);
+    if(itr != m_mVerticalFireStrips.end())
+    {
+        for(FireTile* firetile : m_mVerticalFireStrips.at(playerTileColumn))
+        {
+            if(firetile->m_vTilePos == playerTilePos)
+            {
+                m_pPlayerObj->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+            }
+        }
+    }
+
+    
 }
 
 void TileFireManager::Render()
@@ -90,6 +111,11 @@ TileFireManager::TileFireManager(LabyrinthManager* p_lbmg)
 {
     m_pLBMG = p_lbmg;
     m_pScene = &m_pLBMG->GetGameObject()->GetScene();
+    for(auto&& [_, playerController] : m_pScene->Each<PlayerController>())
+    {
+        m_pPlayerObj = playerController.GetGameObject();
+        break;
+    }
 
     // AddFireTile(m_pLBMG->GetTilePosition(m_pLBMG->GetSpawnLocation() + glm::vec2(0.0f, 480.0f)) , 5.0f);
 }

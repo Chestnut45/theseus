@@ -63,8 +63,8 @@ public:
 private:
 
     // State information
-    FightPhase m_phase = FightPhase::PHASE_3;
-    State m_state = State::FIRE_BREATH_ATTACK;
+    FightPhase m_phase = FightPhase::PHASE_1;
+    State m_state = State::SIT;
 
     // Boss object component pointers
     wolf::Transform2D* m_pTransform = nullptr;

@@ -37,6 +37,7 @@ private:
     std::map<int, std::vector<FireTile*>> m_mVerticalFireStrips;
     LabyrinthManager* m_pLBMG = nullptr;
     wolf::Scene* m_pScene = nullptr;
+    wolf::GameObject* m_pPlayerObj = nullptr;
     
     static TileFireManager* s_pTFMG;
 
