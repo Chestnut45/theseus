@@ -51,8 +51,7 @@ private:
 
     bool IsTargetDetected();
     bool IsTargetInLOS(); // Check if target is in line of sight
-    bool IsWallTile(int p_tile_id);
-    glm::vec2 GetTileWorldPos(glm::ivec2 p_tile_pos);
+    void RenderIndicator();
     
     // Gorgon-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
@@ -103,6 +102,7 @@ private:
     float m_fEmoteTimer = 0.0f;
     wolf::GameObject* m_pEmoteObj = nullptr;
 
+    glm::vec2 m_vLinecheckEndpoint = glm::vec2(0.0f, 0.0f);
     bool m_IsRenderingAttackIndicator = false;
 
     const glm::vec4 CROSSHAIR_COLOUR = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);

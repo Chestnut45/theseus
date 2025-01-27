@@ -68,6 +68,7 @@ private:
     // Flags
     bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;
+    bool m_noClip = false;
 
     // Location to spawn player when bossfight starts
     glm::vec2 m_bossfightPlayerPos;
