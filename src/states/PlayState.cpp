@@ -626,7 +626,7 @@ void PlayState::CreatePlayer()
     auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, ImVec2(50, 50));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
-    collider.AddColliderBox(glm::vec2(7.0f, 10.0f), glm::vec2(-4.0f, -2.0f));
+    collider.AddColliderBox(glm::vec2(7.0f, 10.0f), glm::vec2(-4.0f, -3.0f));
 
     // Add health
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
