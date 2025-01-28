@@ -12,6 +12,8 @@
 #include <W_Scene.h>
 #include <string>
 
+#include "ColliderComponent.h"
+
 struct AABBCorners {
     AABBCorners(const glm::vec2& p_v2TopLeft, const glm::vec2& p_v2BottomLeft, const glm::vec2& p_v2BottomRight, const glm::vec2& p_v2TopRight)
         : v2TopLeft(p_v2TopLeft), v2BottomLeft(p_v2BottomLeft), v2BottomRight(p_v2BottomRight), v2TopRight(p_v2TopRight) {}
@@ -59,6 +61,8 @@ class LightComponent : public wolf::BaseComponent {
         // Corner points are adjusted based on the radius so they don't need a setter
         inline AABBCorners& GetCornerPoints() const {return *m_pCornerPoints;};
 
+        bool AABBCollisionTest(wolf::Rectangle p_pRectangle);
+
     private:
         static int m_iNextIDNum;
         const int m_iIDNum;
@@ -69,8 +73,10 @@ class LightComponent : public wolf::BaseComponent {
         glm::vec2 m_v2Radius;
         glm::vec2 m_v2Origin;
 
-        const wolf::Scene* m_pScene;
+        wolf::Scene* m_pScene;
         
         wolf::Transform2D* m_pTransform;
         AABBCorners* m_pCornerPoints;
+
+        std::vector<wolf::Rectangle*> m_vpCollidersInAOE;
 };

@@ -1,4 +1,5 @@
 #include "LightComponent.h"
+#include <vector>
 
 int LightComponent::m_iNextIDNum = 0;
 
@@ -25,13 +26,30 @@ void LightComponent::Update(float p_fDelta) {
     // Update the origin point of the light's radius
     m_v2Origin = m_pTransform->GetGlobalPosition();
 
-    // Find the colliders that are inside the area of effect
+    // Empty out the vector of colliders in the light's AOE
+    m_vpCollidersInAOE.empty();
+
+    // Find the colliders that are inside the area of effect by iterating through the colliders in the scene
+    for (auto&& [_, collider] : m_pScene->Each<ColliderComponent>()) {
+        // If the collider is active
+        if (collider.IsActive()) {
+            // Get all of it's collider boxes
+            std::vector<wolf::Rectangle> vColliderBoxes = collider.GetColliderBoxes();
+            
+            // Iterate through and figure out which ones are in the area of effect
+            for (wolf::Rectangle rect : vColliderBoxes) {
+                if (AABBCollisionTest(rect)) {
+                    m_vpCollidersInAOE.push_back(&rect);
+                }
+            }
+        }
+    }
+
+    // Do a "sweep" around the light and check what corner points collide with it
+    float fSweepLineLength = std::max(m_v2Radius.x, m_v2Radius.y);
+
+    std::vector<glm::vec2> vv2CollidingPoints;
     
-
-    // Do a "sweep" around the light and check what intersects it
-    // If something intersects with the line, do not check behind it
-
-    // Find the corner points of the colliders that intersected with the sweep line
 
     // Figure out which "sides" of the object are closest to the light
 
