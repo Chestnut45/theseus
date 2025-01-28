@@ -13,7 +13,12 @@ void EnemyController::Init()
         m_pHealth = pGameObject->GetComponent<HealthComponent>();
         m_pCollider = pGameObject->GetComponent<ColliderComponent>();
 
-        // Ensure all the necessary components are initialized
+        // Initialize the chunk id if possible
+        for (auto&&[_, lm] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+        {
+            m_chunkID = lm.GetChunkID(m_pTransform->GetGlobalPosition());
+            break;
+        }
     }
 }
 
@@ -30,7 +35,6 @@ void EnemyController::Update(float delta)
             {
                 pChunk->AddChild(*GetGameObject());
                 m_chunkID = newChunkID;
-                wolf::Log("YEUP");
             }
         }
         break;
