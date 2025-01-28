@@ -83,7 +83,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase1();
+    EnterPhase2();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -164,9 +164,9 @@ void BossController::UpdatePhase2(float delta)
     // - If player attacks and we are idle, attempt to dodge
     // - Periodically execute axe attack patterns
 
-    if (m_pHealth->GetHealth() < m_maxHealth / 3)
+    // Under half health, change to phase 3
+    if (m_pHealth->GetHealth() < m_maxHealth / 2)
     {
-        // TODO: Exit phase 2 logic
         EnterPhase3();
     }
 }
