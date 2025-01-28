@@ -88,8 +88,11 @@ void GorgonController::Init(const EnemyData& data)
 void GorgonController::Update(float delta)
 {
     // Ensure components and target are initialized before performing any updates
-    if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
+    if (!m_active || !m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
+    
+    // Update the base class
+    EnemyController::Update(delta);
 
     // Check if gorgon is petrified
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
@@ -666,6 +669,12 @@ void GorgonController::HandleDeathState(float delta)
                     // that caluclates which direction the item should ACTUALLY be pushed in to get it out of the
                     // wall
                     pItemVel->ApplyKnockback(glm::vec2(1.0f, 0.0f), 10.0f);
+                }
+                ColliderComponent* pItemCollider = pItem->GetComponent<ColliderComponent>();
+                if (pItemCollider)
+                {
+                    // Disable the collider after knockback
+                    pItemCollider->SetActive(false);
                 }
             }
             GetGameObject()->Delete();
