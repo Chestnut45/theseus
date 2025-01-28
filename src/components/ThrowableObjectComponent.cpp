@@ -2,6 +2,7 @@
 #include "PlayerController.h"
 #include "GorgonController.h"
 #include "HarpyController.h"
+#include "AttackDamageComponent.h"
 #include <imgui/imgui.h>
 #include <iostream>
 
@@ -37,7 +38,14 @@ void ThrowableObjectComponent::Update(float delta) {
 
         case ThrowableState::THROWN:
             m_pCollider->SetActive(true);
-            HandleCollision();
+            // Add the AttackDamageComponent to the GameObject
+            if (!GetGameObject()->HasAll<AttackDamageComponent>()) {
+                auto& attackDamageComponent = GetGameObject()->AddComponent<AttackDamageComponent>(
+                    m_damage,            // Damage dealt by the throwable object
+                    m_pColliderManager,  // Collider manager for collision handling
+                    200.0f                // Knockback magnitude (set to 0.0f if not needed)
+                );
+            }
             CheckLifetime(delta);
             break;
     }
@@ -130,53 +138,6 @@ void ThrowableObjectComponent::FollowPlayer() {
 
 void ThrowableObjectComponent::SetState(ThrowableState newState) {
     m_state = newState;
-}
-
-void ThrowableObjectComponent::HandleCollision() {
-    if (m_hasCollided) return; // Prevent double collision handling
-
-    // Check collision with Minotaurs
-    for (auto&& [_, minitaurController] : GetGameObject()->GetScene().Each<MinitaurController>()) {
-        auto* minitaurObject = minitaurController.GetGameObject();
-        auto* minitaurCollider = minitaurObject->GetComponent<ColliderComponent>();
-
-        if (minitaurCollider && m_pCollider && m_pColliderManager->IsColliding(*m_pCollider, *minitaurCollider, 0.0f)) {
-            HandleEnemyCollision(minitaurObject, 200.0f); // Apply damage to Minotaur
-            return;
-        }
-    }
-
-    // Check collision with Gorgons
-    for (auto&& [_, gorgonController] : GetGameObject()->GetScene().Each<GorgonController>()) {
-        auto* gorgonObject = gorgonController.GetGameObject();
-        auto* gorgonCollider = gorgonObject->GetComponent<ColliderComponent>();
-
-        if (gorgonCollider && m_pCollider && m_pColliderManager->IsColliding(*m_pCollider, *gorgonCollider, 0.0f)) {
-            HandleEnemyCollision(gorgonObject, 150.0f); // Apply damage to Gorgon
-            return;
-        }
-    }
-
-    // Check collision with Harpies
-    for (auto&& [_, harpyController] : GetGameObject()->GetScene().Each<HarpyController>()) {
-        auto* harpyObject = harpyController.GetGameObject();
-        auto* harpyCollider = harpyObject->GetComponent<ColliderComponent>();
-
-        if (harpyCollider && m_pCollider && m_pColliderManager->IsColliding(*m_pCollider, *harpyCollider, 0.0f)) {
-            HandleEnemyCollision(harpyObject, 100.0f); // Apply damage to Harpy
-            return;
-        }
-    }
-}
-
-void ThrowableObjectComponent::HandleEnemyCollision(wolf::GameObject* enemyObject, float damage) {
-    auto* healthComponent = enemyObject->GetComponent<HealthComponent>();
-    if (healthComponent) {
-        healthComponent->Damage(damage); // Apply specified damage
-        // std::cout << "Collision with enemy! Damage dealt: " << damage << std::endl;
-    }
-    m_hasCollided = true;
-    GetGameObject()->Delete(); // Mark the throwable object for deletion
 }
 
 void ThrowableObjectComponent::CheckLifetime(float delta) {

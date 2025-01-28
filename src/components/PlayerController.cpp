@@ -350,8 +350,8 @@ void PlayerController::HandlePlayerInput(float delta)
     }
     glm::vec2 direction = GetLastFacingDirectionVector();
 
-    // Only start roll if a direction is being held and sufficient stamina is available
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_action != PlayerAction::ROLLING && m_action != PlayerAction::ATTACKING && m_stamina >= 15.0f)
+    // Only start roll if a direction is being held, sufficient stamina is available, and the player is not holding an object
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_action != PlayerAction::ROLLING && m_action != PlayerAction::ATTACKING && m_stamina >= 15.0f && !m_isHoldingObject)
     {
         SetAction(PlayerAction::ROLLING);
     }
@@ -373,6 +373,12 @@ void PlayerController::HandlePlayerInput(float delta)
 }
 
 void PlayerController::PickUpObject() {
+    // If the player is rolling, reset the rolling state before picking up an object
+    if (m_action == PlayerAction::ROLLING) {
+        EndRoll(); // Ensure rolling-related mechanics are stopped
+        SetAction(PlayerAction::NONE);
+    }
+
     // Attempt to pick up a nearby throwable object
     for (auto&& [entity, throwable] : GetGameObject()->GetScene().Each<ThrowableObjectComponent>()) {
         if (throwable.IsCloseToPlayer(150.0f)) {  // Check proximity
@@ -380,7 +386,6 @@ void PlayerController::PickUpObject() {
             m_pHeldObject = &throwable;           // Store reference to the held object
             m_isHoldingObject = true;
             SetAction(PlayerAction::PICKING_UP);  // Temporary state while picking up
-            // std::cout << "Picked up object!" << std::endl;
             return;
         }
     }
