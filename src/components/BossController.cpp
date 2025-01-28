@@ -24,7 +24,7 @@ void BossController::Init()
 {
     // Initialize stats
     m_active = false;
-    m_maxHealth = 10000;
+    m_maxHealth = 8000;
 
     // Phase 1 stats
     m_throneBlockRange = 300;
@@ -33,11 +33,11 @@ void BossController::Init()
     // Phase 2 stats
     m_axeAttackDamage = 80;
     m_axePunishDamage = 100;
-    m_minDistToPlayer = 200;
-    m_maxDistToPlayer = 300;
+    m_minDistToPlayer = 160;
+    m_maxDistToPlayer = 240;
     m_strafeClockwise = true;
-    m_strafeSpeed = 200.0f;
-    m_chaseSpeed = 300.0f;
+    m_strafeSpeed = 150.0f;
+    m_chaseSpeed = 250.0f;
     m_strafeSwap = 0.0f;
 
     // Phase 3 stats
