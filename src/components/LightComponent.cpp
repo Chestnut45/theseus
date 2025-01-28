@@ -28,7 +28,7 @@ void LightComponent::Update(float p_fDelta) {
     m_v2Origin = m_pTransform->GetGlobalPosition();
 
     // Empty out the map of last frame's ray end points
-    m_iv2CollidingPoints.empty();
+    m_iv2CollidingPoints.clear();
 
     // Create a vector to hold all of the colliders that are in the light's AOE
     std::vector<wolf::Rectangle> m_vpCollidersInAOE;
@@ -42,7 +42,7 @@ void LightComponent::Update(float p_fDelta) {
             
             // Iterate through and figure out which ones are in the area of effect
             for (wolf::Rectangle rect : vColliderBoxes) {
-                if (AABBCollisionTest(rect)) {
+                if (m_pRadiusRectangle->Intersects(rect)) {
                     m_vpCollidersInAOE.push_back(rect);
                 }
             }
@@ -91,10 +91,6 @@ void LightComponent::Update(float p_fDelta) {
         if the nearest wall changed:
             fill the current triangle and begin a new one
     */
-}
-
-bool LightComponent::AABBCollisionTest(wolf::Rectangle p_pRect) {
-
 }
 
 bool LightComponent::SweepLinePointCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2Point) {
