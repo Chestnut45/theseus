@@ -258,7 +258,13 @@ void HealthComponent::DamageIndicator::Render()
         screenpos.y = (worldpos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
                 
         // Setup
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar;
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground |
+                         ImGuiWindowFlags_NoMouseInputs |
+                         ImGuiWindowFlags_NoResize |
+                         ImGuiWindowFlags_NoSavedSettings |
+                         ImGuiWindowFlags_NoTitleBar |
+                         ImGuiWindowFlags_NoFocusOnAppearing | // Prevent focus
+                         ImGuiWindowFlags_NoBringToFrontOnFocus; // Prevent altering window order        
         ImGui::SetNextWindowPos({screenpos.x, screenpos.y});
         ImGui::SetNextWindowSize(DamageIndicator::WINDOW_SIZE);
         ImGui::Begin(id.c_str(), nullptr, flags);
