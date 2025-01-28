@@ -271,7 +271,7 @@ void BossController::StartChargeAttack()
 
 void BossController::StartFireBreathAttack()
 {
-    m_fireAttackDuration = 210.0f;
+    m_fireAttackDuration = 20.0f;
     GetGameObject()->GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
     glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -321,6 +321,7 @@ void BossController::TurnToPlayer(float delta)
     // Reset timer
     this->m_turningTimer = 0.0f;
 
+    // Get data
     glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
     float playerDistance = glm::length(thisPos - playerPos);
@@ -328,6 +329,8 @@ void BossController::TurnToPlayer(float delta)
     if(playerDistance > 0.0f)
     {
         glm::vec2 playerDirection = glm::normalize(playerPos - thisPos);   
+        
+        // Calculate angle 
         float dotProduct = glm::dot(m_lastDirection, playerDirection);
         float cos = glm::clamp(dotProduct, -1.0f, 1.0f);
         float radAngle = glm::acos(cos);
@@ -340,25 +343,23 @@ void BossController::TurnToPlayer(float delta)
 
         else
         {
+            // Calculate rotation side
             float side = glm::cross(glm::vec3(m_lastDirection.x, m_lastDirection.y, 0), glm::vec3(playerDirection.x, playerDirection.y, 0)).z;
             glm::vec2 newDirection = glm::vec2(0.0f, 0.0f);
 
-            float capSinPos = glm::sin(m_turningCapRadian);
-            float capCosPos = glm::cos(m_turningCapRadian);
-
-            float capSinNeg = glm::sin(-m_turningCapRadian);
-            float capCosNeg = glm::cos(-m_turningCapRadian);
+            float capSin = glm::sin(m_turningCapRadian);
+            float capCos = glm::cos(m_turningCapRadian);
             // Left
             if(side >= 0.0f)
             {
-                newDirection.x = m_lastDirection.x * capCosPos - m_lastDirection.y * capSinPos;
-                newDirection.y = m_lastDirection.x * capSinPos + m_lastDirection.y * capCosPos;
+                newDirection.x = m_lastDirection.x * capCos - m_lastDirection.y * capSin;
+                newDirection.y = m_lastDirection.y * capCos + m_lastDirection.x * capSin;
             }
             // Right
             else
             {
-                newDirection.x = m_lastDirection.x * capCosNeg - m_lastDirection.y * capSinNeg;
-                newDirection.y = m_lastDirection.x * capSinNeg + m_lastDirection.y * capCosNeg;
+                newDirection.x = m_lastDirection.x * capCos + m_lastDirection.y * capSin;
+                newDirection.y = m_lastDirection.y * capCos - m_lastDirection.x * capSin;
             }
 
             m_lastDirection = newDirection;
