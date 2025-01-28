@@ -23,6 +23,7 @@ BossController::~BossController()
 void BossController::Init()
 {
     // Initialize stats
+    m_active = false;
     m_maxHealth = 1000;
 
     // Phase 1 stats
@@ -98,6 +99,8 @@ void BossController::Init()
 
 void BossController::Update(float delta)
 {
+    if (!m_active) return;
+
     // Call phase-specific update method
     switch (m_phase)
     {
