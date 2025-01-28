@@ -29,6 +29,9 @@ public:
     void SetPlayerID(wolf::GameObjectID p_uiGOId);
     wolf::GameObjectID const GetPlayerID();
 
+    void SetActive(bool active) { m_active = active; }
+    bool IsActive() const { return m_active; }
+
 protected:
     enum EnemyEmote
     {
@@ -54,4 +57,7 @@ protected:
     float m_fCountdownToDeath = 2.0f;
 
     wolf::GameObjectID m_uiPlayerGOId;
+
+    bool m_active = true;
+    glm::ivec2 m_chunkID;
 };

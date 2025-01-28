@@ -7,6 +7,8 @@
 #include "HealthComponent.h"
 #include "PlayerInventoryComponent.h"
 #include "../inventory/ArmourItem.h"
+#include <DamageEvent.h>
+#include <W_EventManager.h>
 
 // Constructor for custom health
 HealthComponent::HealthComponent(int p_health)
@@ -82,6 +84,13 @@ void HealthComponent::Damage(float p_damage)
         this->m_health -= finalDamage;
         if (m_health < 0) m_health = 0;
         this->AddDamageIndicator(finalDamage, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+        
+        // Send out a damage event
+        DamageEvent event;
+        event.m_damage = p_damage;
+        event.m_pierce = false;
+        event.m_pDamagedObject = GetGameObject();
+        wolf::EventManager::TriggerEvent(event);
     }
 }
 
@@ -93,6 +102,13 @@ void HealthComponent::Pierce(float p_damage)
         this->m_health -= p_damage;
         if (m_health < 0) m_health = 0;
         this->AddDamageIndicator(p_damage, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+
+        // Send out a damage event
+        DamageEvent event;
+        event.m_damage = p_damage;
+        event.m_pierce = true;
+        event.m_pDamagedObject = GetGameObject();
+        wolf::EventManager::TriggerEvent(event);
     }
 }
 
@@ -258,7 +274,13 @@ void HealthComponent::DamageIndicator::Render()
         screenpos.y = (worldpos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
                 
         // Setup
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar;
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground |
+                         ImGuiWindowFlags_NoMouseInputs |
+                         ImGuiWindowFlags_NoResize |
+                         ImGuiWindowFlags_NoSavedSettings |
+                         ImGuiWindowFlags_NoTitleBar |
+                         ImGuiWindowFlags_NoFocusOnAppearing | // Prevent focus
+                         ImGuiWindowFlags_NoBringToFrontOnFocus; // Prevent altering window order        
         ImGui::SetNextWindowPos({screenpos.x, screenpos.y});
         ImGui::SetNextWindowSize(DamageIndicator::WINDOW_SIZE);
         ImGui::Begin(id.c_str(), nullptr, flags);
