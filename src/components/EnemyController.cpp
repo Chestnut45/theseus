@@ -1,6 +1,6 @@
 #include "EnemyController.h"
 #include <cassert>
-
+#include <LabyrinthManager.h>
 
 
 void EnemyController::Init()
@@ -19,6 +19,23 @@ void EnemyController::Init()
 
 void EnemyController::Update(float delta)
 {
+    // Update chunk
+    for (auto&&[_, lm] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+    {
+        glm::ivec2 newChunkID = lm.GetChunkID(m_pTransform->GetGlobalPosition());
+        if (m_chunkID != newChunkID)
+        {
+            wolf::GameObject* pChunk = lm.GetChunk(newChunkID);
+            if (pChunk)
+            {
+                pChunk->AddChild(*GetGameObject());
+                m_chunkID = newChunkID;
+                wolf::Log("YEUP");
+            }
+        }
+        break;
+    }
+    
     // General state update logic (but nothing specific to movement, animations, or attacks)
     switch (m_state)
     {

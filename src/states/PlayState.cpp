@@ -538,6 +538,7 @@ void PlayState::Update(float delta)
     
     // Apply velocity for all objects with Transform2D and VelocityComponent
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
+        if (!velocity.IsActive()) continue;
         transform.Translate(velocity.GetVelocity() * delta);
     }
     ConvertPlayerTileToGold();
