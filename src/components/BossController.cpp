@@ -32,7 +32,9 @@ void BossController::Init()
     m_axeAttackDamage = 80;
     m_axePunishDamage = 100;
     m_minDistToPlayer = 200;
-    m_maxDistToPlayer = 600;
+    m_maxDistToPlayer = 300;
+    m_strafeClockwise = true;
+    m_strafeSpeed = 200.0f;
 
     // Phase 3 stats
     m_fireBreathDamage = 10; // Per projectile
@@ -163,6 +165,12 @@ void BossController::UpdatePhase2(float delta)
     // - Approach player and strafe when in neutral
     // - If player attacks and we are idle, attempt to dodge
     // - Periodically execute axe attack patterns
+
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 dirToPlayer = glm::normalize(playerPos - m_pTransform->GetGlobalPosition());
+    glm::mat4 rotation = glm::rotate(glm::radians(90.0f), glm::vec3(0, 0, 1));
+    glm::vec2 rotated = glm::vec2(rotation * glm::vec4(dirToPlayer.x, dirToPlayer.y, 0, 1));
+    m_pVelocity->SetVelocity(rotated * 20.0f);
 
     // Under half health, change to phase 3
     if (m_pHealth->GetHealth() < m_maxHealth / 2)

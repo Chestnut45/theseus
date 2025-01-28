@@ -92,6 +92,8 @@ private:
     int m_axePunishDamage;
     int m_minDistToPlayer;
     int m_maxDistToPlayer;
+    bool m_strafeClockwise;
+    float m_strafeSpeed;
 
     // Phase 3 stats
     int m_fireBreathDamage;
