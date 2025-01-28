@@ -9,6 +9,7 @@
 #include <StatusComponent.h>
 #include <ColliderComponent.h>
 #include <PlayerController.h>
+#include <HomingComponent.h>
 #include <LabyrinthManager.h>
 
 BossController::BossController()
@@ -40,6 +41,9 @@ void BossController::Init()
     m_chargeAttackDamage = 60;
     m_chargeAttackRange = 2000;
     m_stunTime = 4; // Seconds
+    m_chargeTurningCapDegree = 6.0f; // Degrees
+    m_chargeTurningDelay = 0.2f; // Seconds
+    m_chargeVelocity = 400.0f;
 
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
@@ -70,6 +74,8 @@ void BossController::Init()
     m_pCollider = &pObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
     m_pCollider->AddColliderBox(glm::vec2(111, 156), glm::vec2(-52, 32));
 
+
+    
     // Find player controller
     for (auto&&[_, controller] : pObject->GetScene().Each<PlayerController>())
     {
@@ -77,13 +83,15 @@ void BossController::Init()
         m_pPlayerObject = controller.GetGameObject();
         break;
     }
-
+        // Create homing - Added by Nhật
+    pObject->DeleteComponent<HomingComponent>();
+    m_pHoming = &pObject->AddComponent<HomingComponent>(m_pPlayerObject, m_chargeTurningCapDegree, m_chargeTurningDelay, false);
     if (!m_pPlayerController)
     {
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase1();
+    EnterPhase3();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -189,6 +197,7 @@ void BossController::EnterPhase3()
     m_state = State::SEARCHING;
 
     // TODO: Phase 3 initialization logic
+    ChangeStatesPhase3(State::CHARGE_ATTACK);
 }
 
 void BossController::UpdatePhase3(float delta)
@@ -203,8 +212,66 @@ void BossController::UpdatePhase3(float delta)
         m_state = State::DEAD;
         wolf::Log("It may have been the Minotaur's labyrinth but Theseus the GOAT");
 
+            switch (m_state)
+    {
+        case State::DEAD:
+        {
+            break;
+        }
+
+        case State::CHARGE_ATTACK:
+        {
+            AttackCharge(delta);
+            break;
+        }
+
+        case State::FIRE_BREATH_ATTACK:
+        {
+            break;
+        }
+        default:
+        break;
+
+    }
+
         // TODO: Death animation + ending cutscene!
     }
+}
+
+void BossController::ChangeStatesPhase3(State p_state)
+{
+    // Return if state is not in phase 3
+    if(p_state < State::SEARCHING)
+    {
+        return;
+    }
+
+    // End old state
+    switch (m_state)
+    {
+        default:
+        break;
+    }
+
+    // Start new state
+    switch (p_state)
+    {
+        case State::CHARGE_ATTACK:
+        {
+            StartChargeAttack();
+            break;
+        }
+        case State::FIRE_BREATH_ATTACK:
+        {
+            StartFireBreathAttack();
+            break;
+        }
+
+        default:
+        break;
+    }
+
+    m_state = p_state;
 }
 
 void BossController::StartFireBreathAttack()
@@ -213,6 +280,16 @@ void BossController::StartFireBreathAttack()
 }
 
 void BossController::StartChargeAttack()
+{
+    // Get data
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+    glm::vec2 velo = glm::normalize(playerPos - thisPos) * m_chargeVelocity;
+    m_pVelocity->SetVelocity(velo);
+    m_pHoming->SetActive(true);
+}
+
+void BossController::AttackCharge(float delta)
 {
 
 }
