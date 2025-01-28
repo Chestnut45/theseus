@@ -41,6 +41,8 @@ void VelocityComponent::ApplyKnockback(const glm::vec2& direction, float magnitu
 
 void VelocityComponent::Update(float deltaTime)
 {
+    if (!m_active) return;
+    
     // Handle knockback fade-out effect
     if (m_knockbackRecoveryTime > 0.0f)
     {

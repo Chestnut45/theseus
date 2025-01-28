@@ -18,6 +18,8 @@
 // !-- Death Screen Handling --!
 #include "../events/GameOverEvent.h"
 
+#include <DamageEvent.h>
+
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
 // Original Author: Youssef Ashraf
@@ -113,6 +115,9 @@ private:
     void HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event);
     void HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event);
     void HandleArmourUnequippedEvent(const ArmourUnequippedEvent& p_event);
+
+    void OnDamageEvent(const DamageEvent& event);
+
     // Manage and transition different player states
     void StartAttack();
     void StartPetrified();
@@ -151,6 +156,7 @@ private:
     VelocityComponent* m_pVelocity = nullptr;
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     ThrowableObjectComponent* m_pHeldObject = nullptr;
+    ColliderComponent* m_pCollider = nullptr;
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
@@ -194,6 +200,10 @@ private:
     glm::vec2 m_attackDir = glm::vec2(0.0f, 0.0f);
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
+
+    // Invulnerability after taking damage
+    float m_invulnSeconds = 1.0f;
+    wolf::Timer m_invulnTimer;
 
     //picking up management
     bool m_isHoldingObject = false;
