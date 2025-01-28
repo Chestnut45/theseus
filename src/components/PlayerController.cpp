@@ -15,6 +15,7 @@
 
 #include <W_Input.h>
 #include <W_Logging.h>
+#include <W_EventManager.h>
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
@@ -29,6 +30,7 @@ PlayerController::~PlayerController() {
     wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::RemoveListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
+    wolf::EventManager::RemoveListener<DamageEvent, PlayerController, &PlayerController::OnDamageEvent>(*this);
     if (m_deathScreenTexture) {
         wolf::TextureManager::DestroyTexture(m_deathScreenTexture);
         m_deathScreenTexture = nullptr;
@@ -132,7 +134,10 @@ void PlayerController::LateInitialize()
         wolf::Error("LateInitialize failed: PlayerController not attached to GameObject!");
         return;
     }
-    m_runtimeTimer.Start(); // Start runtime timer 
+    m_runtimeTimer.Start(); // Start runtime timer
+
+    // Grab collider component
+    m_pCollider = pGameObject->GetComponent<ColliderComponent>();
 
     InitializeAnimations();
 
@@ -141,6 +146,9 @@ void PlayerController::LateInitialize()
     wolf::EventManager::AddListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
+
+    // Listen for damage events
+    wolf::EventManager::AddListener<DamageEvent, PlayerController, &PlayerController::OnDamageEvent>(*this);
 }
 
 glm::vec2 PlayerController::GetLastFacingDirectionVector() const 
@@ -200,6 +208,13 @@ void PlayerController::Update(float delta)
         return;
     }
 
+    // Update invulnerability window
+    if (!m_pCollider->IsHurtbox() && m_invulnTimer.Elapsed() > m_invulnSeconds)
+    {
+        m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITHURTBOXDR);
+        m_invulnTimer.Reset();
+    }
+
     auto* pInventory = pGameObject->GetComponent<PlayerInventoryComponent>();
     if (pInventory)
     {
@@ -229,9 +244,16 @@ void PlayerController::Update(float delta)
 
         // Check if player is petrified
         StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+        if
+        (
+            statusComponent != nullptr                                                          &&
+            statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)
+        )
         {
-            SetAction(PlayerAction::PETRIFIED);
+            if(m_action != PlayerAction::PETRIFIED)
+            {
+                SetAction(PlayerAction::PETRIFIED);
+            }
         }
         else
         {
@@ -350,8 +372,8 @@ void PlayerController::HandlePlayerInput(float delta)
     }
     glm::vec2 direction = GetLastFacingDirectionVector();
 
-    // Only start roll if a direction is being held and sufficient stamina is available
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_action != PlayerAction::ROLLING && m_action != PlayerAction::ATTACKING && m_stamina >= 15.0f)
+    // Only start roll if a direction is being held, sufficient stamina is available, and the player is not holding an object
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_action != PlayerAction::ROLLING && m_action != PlayerAction::ATTACKING && m_stamina >= 15.0f && !m_isHoldingObject)
     {
         SetAction(PlayerAction::ROLLING);
     }
@@ -373,6 +395,12 @@ void PlayerController::HandlePlayerInput(float delta)
 }
 
 void PlayerController::PickUpObject() {
+    // If the player is rolling, reset the rolling state before picking up an object
+    if (m_action == PlayerAction::ROLLING) {
+        EndRoll(); // Ensure rolling-related mechanics are stopped
+        SetAction(PlayerAction::NONE);
+    }
+
     // Attempt to pick up a nearby throwable object
     for (auto&& [entity, throwable] : GetGameObject()->GetScene().Each<ThrowableObjectComponent>()) {
         if (throwable.IsCloseToPlayer(150.0f)) {  // Check proximity
@@ -380,7 +408,6 @@ void PlayerController::PickUpObject() {
             m_pHeldObject = &throwable;           // Store reference to the held object
             m_isHoldingObject = true;
             SetAction(PlayerAction::PICKING_UP);  // Temporary state while picking up
-            // std::cout << "Picked up object!" << std::endl;
             return;
         }
     }
@@ -490,12 +517,11 @@ void PlayerController::ThrowHeldObject() {
     glm::vec2 playerVelocity = playerVelocityComponent ? playerVelocityComponent->GetVelocity() : glm::vec2(0.0f);
 
     // Set the object's velocity based on throw direction, throw power, and player's velocity
-    if (auto* throwableVelocity = m_pHeldObject->GetGameObject()->GetComponent<VelocityComponent>()) {
-        glm::vec2 finalVelocity = throwDirection * m_throwPower + playerVelocity;
-        throwableVelocity->SetVelocity(finalVelocity);
-        // std::cout << "[DEBUG] Object thrown with velocity: (" 
-                //   << finalVelocity.x << ", " << finalVelocity.y << ")" << std::endl;
-    }
+    auto* throwableVelocity = m_pHeldObject->GetGameObject()->GetComponent<VelocityComponent>();
+    if (!throwableVelocity) throwableVelocity = &m_pHeldObject->GetGameObject()->AddComponent<VelocityComponent>();
+    
+    glm::vec2 finalVelocity = throwDirection * m_throwPower * 3.0f + playerVelocity;
+    throwableVelocity->SetVelocity(finalVelocity);
 
     // Set the state of the held object to THROWN and reset holding variables
     m_pHeldObject->SetState(ThrowableState::THROWN);
@@ -806,7 +832,9 @@ void PlayerController::StartAttack()
 
 void PlayerController::StartPetrified()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED);
+    // Values hardcoded based on 5s petrification attack from GorgonController, perhaps more sensible to centralise & handle effects in StatusComponent
+    // TODO: Move SetSpecialEffects() calls involving petrification from PlayerController & all EnemyControllers to StatusComponent
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED, 0.1f, 4.8f, 0.1f);
     m_pAnimComponent->SetAnimPaused(true);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }
@@ -1216,6 +1244,16 @@ void PlayerController::HandleArmourUnequippedEvent(const ArmourUnequippedEvent& 
             StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
             statusComponent->SetStatusEffectResistance(seType, 0);
         }
+    }
+}
+
+void PlayerController::OnDamageEvent(const DamageEvent& event)
+{
+    // React to damage and reset invulnerability timer
+    if (event.m_pDamagedObject == GetGameObject())
+    {
+        m_invulnTimer.Restart();
+        m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
     }
 }
 

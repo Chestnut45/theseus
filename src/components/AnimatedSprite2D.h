@@ -133,8 +133,11 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         //-----------------//
         
         void SetAnimPaused(bool p_bPaused){m_bIsAnimPaused = p_bPaused;};
-        void SetSpecialEffects(SpecialEffectsType p_spe_type, float p_gradual_in = 0.0f, float p_gradual_out = 0.0f);
+        // Set duration to be negative for infinite duration
+        // Fade-ins/Fade-outs will be disrupted if another SetSpecialEffects() calls happens before they are finished
+        void SetSpecialEffects(SpecialEffectsType p_spe_type, float p_gradual_in = 0.0f, float p_se_duration = -1.0f, float p_gradual_out = 0.0f);
         void UpdateShaders();
+        void BindUniformsAndTextures(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint);
 
     private:
         bool SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize);
@@ -186,7 +189,11 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         bool m_bIsAnimPaused = false;
         SpecialEffectsType m_specialEffectsType = SpecialEffectsType::NONE;
         float m_fGradualFadeInTime = 0.0f;
+        float m_fGradualFadeInTimer = 0.0f;
         float m_fGradualFadeOutTime = 0.0f;
+        float m_fGradualFadeOutTimer = 0.0f;
+        float m_fSEDurationTime = 0.0f;  // Duration in which the special effect is in full effect: after the fade-in and before the fade-out
+        float m_fSEDurationTimer = 0.0f;
 
         static const float m_arBaseVertexData[]; // Array to hold geometry and base UV coordinates for all AnimatedSprite2Ds
 

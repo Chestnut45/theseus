@@ -85,6 +85,9 @@ void PlayState::Enter()
         // Move boss to initial location
         bossObject.GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.25f));
 
+        // Grab pointer to boss controller
+        m_pBoss = &bossObject;
+
         break;
     }
 
@@ -172,6 +175,10 @@ void PlayState::Update(float delta)
     // Toggle Labyrinth Manager GUI with the semicolon key
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) 
         m_showLabyrinthManager = !m_showLabyrinthManager;
+    
+    // DEBUG: Teleport to bossfight
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT))
+        m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
 
     // Show the Labyrinth Manager debug GUI
     if (m_showLabyrinthManager) 
@@ -539,6 +546,7 @@ void PlayState::Update(float delta)
     
     // Apply velocity for all objects with Transform2D and VelocityComponent
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
+        if (!velocity.IsActive()) continue;
         transform.Translate(velocity.GetVelocity() * delta);
     }
     ConvertPlayerTileToGold();
@@ -612,14 +620,6 @@ void PlayState::CreatePlayer()
     // Register the player (Theseus) in the shared context
     m_pGameInstance->GetSharedContext().RegisterEntity("Theseus", m_pPlayerObject->GetID());
 
-    // Add player controller and initialize
-    // NOTE: This manages all player animations and the animated sprite component for the player
-    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
-    playerController.LateInitialize();
-    // Start player at the labyrinth spawn location and scale appropriately
-    auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
-    transform.SetScale(glm::vec2(3));
-
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
@@ -634,6 +634,14 @@ void PlayState::CreatePlayer()
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
+
+    // Add player controller and initialize
+    // NOTE: This manages all player animations and the animated sprite component for the player
+    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
+    playerController.LateInitialize();
+    // Start player at the labyrinth spawn location and scale appropriately
+    auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
+    transform.SetScale(glm::vec2(3));
 }
 
 void PlayState::CreateMinitaurEnemy()
@@ -789,7 +797,7 @@ wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
     collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
 
     // Add the TriggerComponent
-    trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP);
+    trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING);
 
     return trap;
 }
@@ -886,6 +894,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             // Begin the bossfight
             wolf::Log("BOSSFIGHT STARTED");
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
+            m_pBoss->GetComponent<BossController>()->SetActive(true);
             break;
         }
         default:
@@ -1130,13 +1139,3 @@ void PlayState::RenderMinimap() {
     ImGui::End();
     ImGui::PopStyleVar();
 }
-
-
-
-
-
-
-
-
-
-
