@@ -321,6 +321,9 @@ void PlayerController::HandlePlayerInput(float delta)
             m_rollSpeed = 400.0f;
             m_inventoryMoveSpeed = 100.0f;
         }
+
+        // Update current speed
+        m_currentMoveSpeed = m_action == PlayerAction::IN_INVENTORY ? m_inventoryMoveSpeed : m_normalMoveSpeed;
     }
 
     // Teleport to labyrinth spawn location hotkey

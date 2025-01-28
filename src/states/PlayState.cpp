@@ -19,6 +19,7 @@
 #include "../components/BoulderTrapComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
+#include "DDACalculator.h"
 #include "GLShapesRenderer.h"
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
@@ -36,8 +37,6 @@ void PlayState::Enter()
  
     this->m_pColliderManager = new ColliderManager(&scene);
 
-    GLShapesRenderer::CreateInstance();
-
     // Initialize the player object
     CreatePlayer();
 
@@ -54,6 +53,9 @@ void PlayState::Enter()
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
     m_pLabyrinthManager->GenerateLabyrinth();
+
+    GLShapesRenderer::CreateInstance();
+    DDACalculator::CreateInstance(&scene);
 
     // Place the bossfight trigger
     const auto& rooms = m_pLabyrinthManager->GetRooms();
@@ -141,6 +143,8 @@ void PlayState::Exit()
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
     
+    
+    DDACalculator::DestroyInstance();
     GLShapesRenderer::DestroyInstance();
 
     ItemDropCreator::DestroyInstance();
@@ -229,6 +233,26 @@ void PlayState::Update(float delta)
 
         playerInventory->ShowToggleButtonGUI();
         playerInventory->ShowInventoryGUI();
+    }
+
+    // DEBUG: Noclip hotkey
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SLASH))
+    {
+        auto* pCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
+        if (pCollider)
+        {
+            m_noClip = !m_noClip;
+            if (m_noClip)
+            {
+                pCollider->SetActive(false);
+                pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
+            }
+            else
+            {
+                pCollider->SetActive(true);
+                pCollider->SetColliderType(ColliderComponent::ColliderType::HITHURTBOXDR);
+            }
+        }
     }
 
     // Update all player controllers
@@ -602,7 +626,7 @@ void PlayState::CreatePlayer()
     auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, ImVec2(50, 50));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
-    collider.AddColliderBox(glm::vec2(7.0f, 8.0f), glm::vec2(-4.0f, -4.0f));
+    collider.AddColliderBox(glm::vec2(7.0f, 10.0f), glm::vec2(-4.0f, -3.0f));
 
     // Add health
     auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
@@ -621,7 +645,7 @@ void PlayState::CreateMinitaurEnemy()
     glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 240.0f); 
 
     EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-    auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, position, m_pColliderManager);
+    auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, position);
     
     // Set the scale of each Minitaur to 3
     auto* transform = minitaur.GetComponent<wolf::Transform2D>();
@@ -642,7 +666,7 @@ void PlayState::CreateHarpyEnemy()
     glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 360.0f);
 
     EnemyData harpyData = loader.LoadEnemyData("harpy");
-    auto& harpy = harpyBuilder.BuildHarpy(harpyData, position, m_pColliderManager);
+    auto& harpy = harpyBuilder.BuildHarpy(harpyData, position);
     
     // Set the scale of each Minitaur to 3
     auto* transform = harpy.GetComponent<wolf::Transform2D>();
@@ -662,10 +686,10 @@ void PlayState::CreateGorgonEnemy()
 
     GorgonBuilder gorgonBuilder(m_pGameInstance->GetScene());
 
-    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 580.0f);
+    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 720.0f);
 
     EnemyData gorgonData = loader.LoadEnemyData("gorgon");
-    auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position, m_pColliderManager);
+    auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position);
     
     // Set the scale of each Gorgon to 3
     auto* transform = gorgon.GetComponent<wolf::Transform2D>();
@@ -761,7 +785,7 @@ wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
 
     // Add a collider for interaction
     auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+    collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
 
     // Add the TriggerComponent
     trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP);
@@ -785,7 +809,7 @@ wolf::GameObject& PlayState::CreateBoulderTrap(const glm::vec2& position)
 
     // Add a collider for interaction
     auto& collider = bouldertrap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+    collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
 
     // Add the TriggerComponent
     bouldertrap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::BOULDER_TRAP);
@@ -824,7 +848,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
             // Add collider for the trap
             auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-            trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+            trapCollider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
             // Add TrapComponent with some parameters (e.g., 50 damage, 5 seconds lifespan)
             trapObj.AddComponent<TrapComponent>(triggerObject->GetComponent<TriggerComponent>(), 50.0f, 1.0f, m_pColliderManager, 0.0f);
             // wolf::Log("Spike trap triggered!");

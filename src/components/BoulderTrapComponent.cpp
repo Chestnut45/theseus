@@ -127,7 +127,10 @@ bool BoulderTrapComponent::CheckForPlayerCollision(float delta) {
         auto* playerObj = playerController.GetGameObject();
         auto* playerCollider = playerObj->GetComponent<ColliderComponent>();
 
-        if (playerCollider && m_colliderManager->IsColliding(*boulderCollider, *playerCollider, delta)) {
+        if (playerCollider &&
+            playerCollider->IsActive() &&
+            playerCollider->IsHurtbox() &&
+            m_colliderManager->IsColliding(*boulderCollider, *playerCollider, delta)) {
             auto* playerHealth = playerObj->GetComponent<HealthComponent>();
             if (playerHealth) {
                 // Damage the player
