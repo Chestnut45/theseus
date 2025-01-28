@@ -9,8 +9,7 @@ class MinitaurBuilder
 {
 public:
     explicit MinitaurBuilder(wolf::Scene& scene) : m_scene(scene) {}
-    wolf::GameObject& BuildMinitaur(const EnemyData& data, const glm::vec2& position, ColliderManager* pColliderManager);
-
+    wolf::GameObject& BuildMinitaur(const EnemyData& data, const glm::vec2& position);
 
 private:
     // Reference to the scene where the Minitaur will be created

@@ -10,6 +10,7 @@
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
 
+#include "../GLShapesRenderer.h"
 #include "../inventory/ItemCreator.h"
 
 #include <W_Input.h>
@@ -198,6 +199,14 @@ void PlayerController::Update(float delta)
         wolf::Error("PlayerController missing essential components!");
         return;
     }
+
+    auto* pInventory = pGameObject->GetComponent<PlayerInventoryComponent>();
+    if (pInventory)
+    {
+        m_inventoryOpen = pInventory->IsOpen();
+        m_inventoryHovered = pInventory->IsToggleButtonHovered();
+    }
+
     if (m_action != PlayerAction::DEAD)
     {
         RegenerateStamina(delta);
@@ -272,11 +281,28 @@ void PlayerController::HandlePlayerInput(float delta)
         m_godmode = !m_godmode;
     }
 
-    // Burning hotkey
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_B))
+    // Status effect hotkeys
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_UP))
+    {
+        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::HEALING, 5.0f);
+    }
+
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_DOWN))
+    {
+        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
+    }
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_LEFT))
     {
         StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
         statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+    }
+
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT))
+    {
+        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
     }
 
     // Super speed hotkey
@@ -295,6 +321,9 @@ void PlayerController::HandlePlayerInput(float delta)
             m_rollSpeed = 400.0f;
             m_inventoryMoveSpeed = 100.0f;
         }
+
+        // Update current speed
+        m_currentMoveSpeed = m_action == PlayerAction::IN_INVENTORY ? m_inventoryMoveSpeed : m_normalMoveSpeed;
     }
 
     // Teleport to labyrinth spawn location hotkey
@@ -313,12 +342,10 @@ void PlayerController::HandlePlayerInput(float delta)
     if (wolf::Input::IsKeyDown(GLFW_KEY_LEFT_ALT)) {
         if (m_action != PlayerAction::IN_INVENTORY) {
             playerInventory->Open();
-            SetAction(PlayerAction::IN_INVENTORY);
             m_currentMoveSpeed = m_inventoryMoveSpeed;
         }
     } else if (wolf::Input::IsKeyReleased(GLFW_KEY_LEFT_ALT)) {
         playerInventory->Close();
-        SetAction(PlayerAction::NONE);
         m_currentMoveSpeed = m_normalMoveSpeed;
     }
     glm::vec2 direction = GetLastFacingDirectionVector();
@@ -331,7 +358,7 @@ void PlayerController::HandlePlayerInput(float delta)
 
     // Start the attack if the left mouse button is pressed and the player is not currently attacking.
     // !-- Aurora added a m_pCurrentWeapon != nullptr check here --!
-    if (wolf::Input::IsLMBJustDown() && m_action != PlayerAction::ATTACKING && m_pCurrentWeapon)
+    if (wolf::Input::IsLMBJustDown() && m_pCurrentWeapon && m_action != PlayerAction::ATTACKING && !m_inventoryOpen && !m_inventoryHovered)
     {
         SetAction(PlayerAction::ATTACKING);
     }
@@ -777,7 +804,7 @@ void PlayerController::StartAttack()
 
 void PlayerController::StartPetrified()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::PETRIFIED);
+    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED);
     m_pAnimComponent->SetAnimPaused(true);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }
@@ -1048,13 +1075,13 @@ void PlayerController::Render()
         return;
     }
 
-    float barWidth = 180.0f;
+    float barWidth = 256.0f;
     float barHeight = 18.0f;
-    float verticalOffset = 10.0f;  // Offset between health and stamina bars
+    float verticalOffset = 20.0f;  // Offset between health and stamina bars
 
     // Position both bars at the top-center of the screen
     ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-    ImVec2 basePos = ImVec2(displaySize.x / 2.0f - barWidth / 2.0f, 20.0f);
+    ImVec2 basePos = ImVec2(10.0f, 10.0f);
 
     // Push ImGui style variables for a more polished and "arty" look
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);          // Rounded corners
@@ -1077,8 +1104,26 @@ void PlayerController::Render()
         ImGui::End();
     }
 
+    // Load the health bar frame image once
+    static ImTextureID healthBarTextureID = nullptr;
+    static wolf::Texture* pHealthBarTexture = nullptr;
+    if (!pHealthBarTexture) {
+        pHealthBarTexture = wolf::TextureManager::CreateTexture("data/textures/HealthBarFrame.png");
+        healthBarTextureID = reinterpret_cast<void*>(pHealthBarTexture->GetID());
+    }
+
+    // Render the health bar frame on top of the actual bar
+    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pHealthBarTexture->GetWidth() - 9.0f, basePos.y - barHeight});
+    ImGui::SetNextWindowSize({0,0});
+    ImGui::Begin("HealthBarFrame", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
+    ImGui::Image(healthBarTextureID, ImVec2(pHealthBarTexture->GetWidth(), pHealthBarTexture->GetHeight()), ImVec2(0, 0), ImVec2(1, 1));
+    ImGui::End();
+
     // Move the position down for the stamina bar
     basePos.y += (barHeight + verticalOffset);
+
+    // Change the stamina bar height to be slightly smaller
+    barHeight = 15.0f;
 
     // Render the stamina bar below the health bar
     ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for stamina bar
@@ -1087,6 +1132,21 @@ void PlayerController::Render()
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.0f, 1.0f, 0.0f, 1.0f)); // Green stamina color
     ImGui::ProgressBar(m_stamina / m_maxStamina, ImVec2(-1, barHeight)); // Full width, defined height
     ImGui::PopStyleColor(); // Pop color for stamina bar
+    ImGui::End();
+
+    // Load the stamina bar frame image once
+    static ImTextureID staminaBarTextureID = nullptr;
+    static wolf::Texture* pStaminaBarTexture = nullptr;
+    if (!pStaminaBarTexture) {
+        pStaminaBarTexture = wolf::TextureManager::CreateTexture("data/textures/StaminaBarFrame.png");
+        staminaBarTextureID = reinterpret_cast<void*>(pStaminaBarTexture->GetID());
+    }
+
+    // Render the stamina bar frame on top of the actual bar
+    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pStaminaBarTexture->GetWidth() - 9.0f, basePos.y - barHeight - (barHeight / 2.0f)});
+    ImGui::SetNextWindowSize({0,0});
+    ImGui::Begin("StaminaBarFrame", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
+    ImGui::Image(staminaBarTextureID, ImVec2(pStaminaBarTexture->GetWidth(), pStaminaBarTexture->GetHeight()), ImVec2(0, 0), ImVec2(1, 1));
     ImGui::End();
 
     if (m_isHoldingObject && wolf::Input::IsLMBHeld()) {
@@ -1203,7 +1263,7 @@ void PlayerController::CheckHealth() {
     {
         if (m_godmode)
         {
-            healthComponent->Heal(healthComponent->GetMaxHealth());
+            healthComponent->GodmodeHeal();
         }
         else
         {
@@ -1332,10 +1392,10 @@ void PlayerController::RenderDeathScreen() {
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 15.0f));
 
         // Button colors with gradient effect
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.5f, m_optionsOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.3f, 0.8f, m_optionsOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.0f, 0.6f, m_optionsOpacity));
-        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.3f, 0.3f, 1.0f, m_optionsOpacity));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, m_optionsOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.286f, 0.286f, 0.286f, m_optionsOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.14f, 0.14f, m_optionsOpacity));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, m_optionsOpacity));
         ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0.0f, 0.0f, 0.0f, m_optionsOpacity * 0.6f));
 
         // Enable border and shadow for a polished look
@@ -1343,7 +1403,7 @@ void PlayerController::RenderDeathScreen() {
 
         // "Return to Main Menu" button
         if (ImGui::Button("Return to Main Menu", ImVec2(240, 50))) {
-            wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::MAIN_MENU));
+            wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
             ResetDeathScreenState();
         }
 

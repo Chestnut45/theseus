@@ -56,11 +56,23 @@ void PauseState::Update(float delta)
 
     // Centered buttons
 
+    // Push the button style vars and colors
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
     ImGui::SetCursorPosX((dimensions.x - buttonWidth) * 0.5f);
     if (ImGui::Button("Resume", {buttonWidth, buttonHeight}))
     {
         resume = true;
     }
+
+    // Single character for spacing
+    ImGui::Text(" ");
 
     ImGui::SetCursorPosX((dimensions.x - buttonWidth) * 0.5f);
     if (ImGui::Button("Main Menu", {buttonWidth, buttonHeight}))
@@ -68,9 +80,11 @@ void PauseState::Update(float delta)
         m_pStateManager->ClearAndPushState(new MainMenuState(m_pStateManager, m_pGameInstance));
     }
 
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(5);
+
     // Close window and pop vars
     ImGui::End();
-    ImGui::PopStyleColor();
 
     // Resume if flag is set
     if (resume) m_pStateManager->PopState();

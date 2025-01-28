@@ -1,0 +1,19 @@
+CutscenesAndDialogues:
+  hello:
+    characters:
+      - name: "Vasilios"
+        portraitPath: "data/textures/sPlayerTest.png"
+    sequence:
+      - type: "dialogue"
+        character: "Vasilios"
+        text: "Hello there! Care to buy something?"
+        duration: 2.0
+  goodbye:
+    characters:
+      - name: "Vasilios"
+        portraitPath: "data/textures/sPlayerTest.png"
+    sequence:
+      - type: "dialogue"
+        character: "Vasilios"
+        text: "Come again! It's not like I'm going anywhere..."
+        duration: 2.0

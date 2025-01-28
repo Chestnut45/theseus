@@ -68,6 +68,7 @@ void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifesp
     this->m_aStatusEffects[p_se_type].m_isActive = true;
     this->m_aStatusEffects[p_se_type].m_timer.Restart();
     this->m_aStatusEffects[p_se_type].m_fLifespan = p_lifespan;
+    
 }
 
 void StatusComponent::SetStatusEffectResistance(StatusEffectType p_se_type, float p_resistance_value)
@@ -96,8 +97,16 @@ void StatusComponent::Update(float p_delta)
         
         // Apply status effect
         if(statusEffect.m_isActive)
-        {
-            statusEffect.ApplyStatusEffect(p_delta);
+        {   
+            // Count down timer
+            statusEffect.m_fSEApplicationTimer -= p_delta;
+            
+            // If application interval expired, deal damage & reset timer
+            if(statusEffect.m_fSEApplicationTimer <= 0.0f)
+            {            
+                statusEffect.ApplyStatusEffect(p_delta);
+                statusEffect.m_fSEApplicationTimer = StatusEffect::SE_APPLICATION_INTERVALS[statusEffect.m_StatusEffectType];
+            }
 
             // If lifetime expired, remove status effect
             if(statusEffect.m_fLifespan >= 0 && statusEffect.m_timer.Elapsed() >= statusEffect.m_fLifespan)
@@ -116,6 +125,7 @@ float StatusComponent::GetStatusEffectResistance(StatusEffectType p_se_type) con
 void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 {
     this->m_aStatusEffects[p_se_type].m_isActive = false;
+    this->m_aStatusEffects[p_se_type].m_fSEApplicationTimer = StatusEffect::SE_APPLICATION_INTERVALS[this->m_aStatusEffects[p_se_type].m_StatusEffectType];
 }
 
 void StatusComponent::RenderPlayerSEIcons()
@@ -169,7 +179,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             if(health != nullptr)
             {
                 float resistance = m_OwnerComponent->m_aStatusEffectResistance[StatusEffectType::BURNING];
-                health->Pierce(100.0f * p_delta * (1.0f - resistance));
+                health->Pierce(16.0f * (1.0f - resistance));
             }
             else
             {
@@ -183,7 +193,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
-                health->Heal(25.0f * p_delta);
+                health->Heal(8.0f);
             }
             else
             {
@@ -194,7 +204,6 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
 
         case StatusEffectType::PETRIFIED:
         {
-            // Handled in PlayerController or inheritors of EnemyController
             break;
         }      
         
@@ -204,7 +213,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             if(health != nullptr)
             {
                 float resistance = m_OwnerComponent->m_aStatusEffectResistance[StatusEffectType::POISONED];
-                health->Pierce(50.0f * p_delta * (1.0f - resistance));
+                health->Pierce(32.0f * (1.0f - resistance));
             }
             else
             {

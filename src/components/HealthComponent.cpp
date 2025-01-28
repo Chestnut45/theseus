@@ -13,7 +13,7 @@ HealthComponent::HealthComponent(int p_health)
 {
     this->m_health = p_health;
     this->m_cap = p_health;
-    this->m_vDamageIndicators;
+    this->m_vDamageIndicators = {};
 
     // Add Listeners for the healing events related to items
     wolf::EventManager::AddListener<PercentHealthItemEvent, HealthComponent, &HealthComponent::HandlePercentHealthItemEvent>(*this);
@@ -30,6 +30,11 @@ HealthComponent::~HealthComponent()
 
 void HealthComponent::Init()
 {
+}
+
+float HealthComponent::GetMaxHealth() const
+{
+    return m_cap;  
 }
 
 // Get health
@@ -76,7 +81,7 @@ void HealthComponent::Damage(float p_damage)
         float finalDamage = p_damage * (1.0f - damageReduction);
         this->m_health -= finalDamage;
         if (m_health < 0) m_health = 0;
-        this->AddDamageIndicator(finalDamage);
+        this->AddDamageIndicator(finalDamage, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
 }
 
@@ -87,7 +92,7 @@ void HealthComponent::Pierce(float p_damage)
     {
         this->m_health -= p_damage;
         if (m_health < 0) m_health = 0;
-        this->AddDamageIndicator(p_damage);
+        this->AddDamageIndicator(p_damage, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
     }
 }
 
@@ -99,12 +104,20 @@ void HealthComponent::Heal(float p_heal)
     {
         this->m_health = this->m_cap;
     }
+    this->AddDamageIndicator(std::string("+") + std::to_string((int)p_heal), ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 }
 
 // Increase cap & refill health
 void HealthComponent::Supercharge(float p_supercharge)
 {
     this->m_cap += p_supercharge;
+    this->m_health = this->m_cap;
+    this->AddDamageIndicator(std::string("+") + std::to_string((int)this->m_cap), ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+}
+
+// Only for use when in godmode
+void HealthComponent::GodmodeHeal()
+{
     this->m_health = this->m_cap;
 }
 
@@ -123,6 +136,7 @@ void HealthComponent::UpdateDamageIndicators(float p_delta)
             {
                 this->m_vDamageIndicators.erase(itr);
             }
+            // Else, update damage indicator
             else
             {
                 damageIndicator->Update(p_delta);
@@ -139,25 +153,49 @@ void HealthComponent::RenderDamageIndicators()
         // Render damage indicators
         for(DamageIndicator damageIndicator: this->m_vDamageIndicators)
         {
-            //damageIndicator.Render();
+            damageIndicator.Render();
         }
     }    
 }
 
-void HealthComponent::AddDamageIndicator(float p_damage)
+void HealthComponent::AddDamageIndicator(float p_damage, ImVec4 p_text_colour)
 {
-    this->m_vDamageIndicators.emplace_back(DamageIndicator{});
-    int pos = this->m_vDamageIndicators.size() - 1;
-
-    this->m_vDamageIndicators.at(pos).damageValue = std::to_string(p_damage);
-    this->m_vDamageIndicators.at(pos).ownerComponent = this;
-    this->m_vDamageIndicators.at(pos).currentPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    this->m_vDamageIndicators.at(pos).lifetime = 1.0f;
+    this->m_vDamageIndicators.emplace_back(DamageIndicator());
+    int index = this->m_vDamageIndicators.size() - 1;
+    wolf::Transform2D* gameobjTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
+    std::string damageValueString = std::to_string((int)p_damage);
+    DamageIndicator* dmg_ind = &this->m_vDamageIndicators.at(index);
+    // Setup
+    dmg_ind->id = std::to_string(DamageIndicator::idGenerator);
+    dmg_ind->damageValue = damageValueString;
+    dmg_ind->damageValueTextSize = ImGui::CalcTextSize(damageValueString.c_str());
+    dmg_ind->damageValueTextColour = p_text_colour;
+    dmg_ind->ownerComponent = this;
+    dmg_ind->currentPos = 
+                            gameobjTransform->GetGlobalPosition()                                                   +   // Set window position to position of gameobj
+                            glm::vec2(-DamageIndicator::WINDOW_SIZE.x, DamageIndicator::WINDOW_SIZE.y) * 0.5f       +   // Centre window
+                            glm::vec2(m_RNG.NextFloat(-8.0f, 8.0f) , 10.0f) * gameobjTransform->GetGlobalScale();       // Offset window
+    dmg_ind->lifetime = 1.0f;
 }
 
-float HealthComponent::GetMaxHealth() const
+void HealthComponent::AddDamageIndicator(std::string p_damage_str, ImVec4 p_text_colour)
 {
-    return m_cap;  
+    this->m_vDamageIndicators.emplace_back(DamageIndicator());
+    int index = this->m_vDamageIndicators.size() - 1;
+    wolf::Transform2D* gameobjTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
+    std::string damageValueString = p_damage_str;
+    DamageIndicator* dmg_ind = &this->m_vDamageIndicators.at(index);
+    // Setup
+    dmg_ind->id = std::to_string(DamageIndicator::idGenerator);
+    dmg_ind->damageValue = damageValueString;
+    dmg_ind->damageValueTextSize = ImGui::CalcTextSize(damageValueString.c_str());
+    dmg_ind->damageValueTextColour = p_text_colour;
+    dmg_ind->ownerComponent = this;
+    dmg_ind->currentPos = 
+                            gameobjTransform->GetGlobalPosition()                                                   +   // Set window position to position of gameobj
+                            glm::vec2(-DamageIndicator::WINDOW_SIZE.x, DamageIndicator::WINDOW_SIZE.y) * 0.5f       +   // Centre window
+                            glm::vec2(m_RNG.NextFloat(-8.0f, 8.0f) , 10.0f) * gameobjTransform->GetGlobalScale();       // Offset window
+    dmg_ind->lifetime = 1.0f;
 }
 
 // !-- Aurora added these events --!
@@ -182,7 +220,6 @@ void HealthComponent::HandleFlatHealthItemEvent(const FlatHealthItemEvent& p_eve
 void HealthComponent::DamageIndicator::Update(float p_delta)
 {
     lifetime -= p_delta;
-    // std::cout << "HealthComponent - Indicator Lifetime: " << lifetime << std::endl;
     if(ownerComponent != nullptr)
     {                
         
@@ -192,20 +229,22 @@ void HealthComponent::DamageIndicator::Update(float p_delta)
 
 void HealthComponent::DamageIndicator::Render()
 {
+    // Get data for calculations
     wolf::Scene* scene = &ownerComponent->GetGameObject()->GetScene();
     wolf::Camera2D* camera = scene->GetActiveCamera();
+    glm::vec2 cameraPos = camera->GetPosition();
     glm::vec2 viewSize = camera->GetViewSize();
+    glm::vec2 viewSizeHalf = glm::vec2(viewSize.x * 0.5f, viewSize.y * 0.5f);
     glm::vec2 worldpos = currentPos;
     
+    // Calculate boundaries of camera
     float l, r, t, b;
-    l = camera->GetPosition().x - viewSize.x * 0.5f;
-    r = camera->GetPosition().x + viewSize.x * 0.5f;
-    t = camera->GetPosition().y + viewSize.y * 0.5f;
-    b = camera->GetPosition().y - viewSize.y * 0.5f;
+    l = cameraPos.x - viewSizeHalf.x;
+    r = cameraPos.x + viewSizeHalf.x;
+    t = cameraPos.y + viewSizeHalf.y;
+    b = cameraPos.y - viewSizeHalf.y;
     
-    // std::cout << "HealthComponent - Camerapos - x: " << camera->GetPosition().x << ", y: " << camera->GetPosition().y << std::endl;
-    // std::cout << "HealthComponent - Indicatorpos - x: " << worldpos.x << ", y: " << worldpos.y << std::endl;
-    // Check if indicator is visible
+    // If indicator is visible, render
     if
     (
         worldpos.x >= l &&
@@ -215,17 +254,22 @@ void HealthComponent::DamageIndicator::Render()
     )
     {   
         glm::vec2 screenpos;
-        screenpos.x = (worldpos.x - (camera->GetPosition().x - viewSize.x * 0.5f));
-        screenpos.y = (worldpos.y - (camera->GetPosition().y - viewSize.y * 0.5f)) * (-1) + viewSize.y;
-        
+        screenpos.x = (worldpos.x - (cameraPos.x - viewSizeHalf.x));
+        screenpos.y = (worldpos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
+                
         // Setup
-        ImVec2 windowSize = ImVec2(640, 320);
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs;
-        ImGui::SetNextWindowPos({80, 80});
-        ImGui::SetNextWindowSize(windowSize);
-        ImGui::Begin("\t", nullptr, flags);
-        // std::cout << "HealthComponent - Screenpos - x: " << screenpos.x << ", y: " << screenpos.y << std::endl;
-        ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f),  damageValue.c_str());
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground |
+                         ImGuiWindowFlags_NoMouseInputs |
+                         ImGuiWindowFlags_NoResize |
+                         ImGuiWindowFlags_NoSavedSettings |
+                         ImGuiWindowFlags_NoTitleBar |
+                         ImGuiWindowFlags_NoFocusOnAppearing | // Prevent focus
+                         ImGuiWindowFlags_NoBringToFrontOnFocus; // Prevent altering window order        
+        ImGui::SetNextWindowPos({screenpos.x, screenpos.y});
+        ImGui::SetNextWindowSize(DamageIndicator::WINDOW_SIZE);
+        ImGui::Begin(id.c_str(), nullptr, flags);
+        ImGui::SetCursorPosX((DamageIndicator::WINDOW_SIZE.x - damageValueTextSize.x) * 0.5f);
+        ImGui::TextColored(damageValueTextColour, "%s", damageValue.c_str());
 
         // End rendering
         ImGui::End();

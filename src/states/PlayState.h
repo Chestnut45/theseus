@@ -6,6 +6,7 @@
 // A class that's responsible for the Concrete Play State.
 //-----------------------------------------------------------------------------
 #pragma once
+#include "glm_hash.h"
 #include "GameState.h"
 #include <theseus.h> // Include the main game class
 #include <W_Sprite2D.h>
@@ -30,6 +31,7 @@
 #include "EnemyDataLoader.h"
 
 #include <unordered_map>
+#include <unordered_set>
 
 
 class LabyrinthManager;
@@ -66,6 +68,10 @@ private:
     // Flags
     bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;
+    bool m_noClip = false;
+
+    // Location to spawn player when bossfight starts
+    glm::vec2 m_bossfightPlayerPos;
 
     // Private helper methods
     void ConvertPlayerTileToGold();
@@ -77,17 +83,26 @@ private:
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
     void CreateGorgonEnemy();
+    void CreateTrappedChest();
 
-    // Creates a pressure plate with specified position, trigger type, trap damage, lifespan, and offset.
-    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType);
+
     void CreateThrowableObject();
     wolf::GameObject& CreateSpikeTrap(const glm::vec2& position);
+    wolf::GameObject& CreateBoulderTrap(const glm::vec2& position);
 
     void OnGameOverEvent(const GameOverEvent& event);
+
+   // TO DO: New Helper Methods for BoulderTrap
 
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);
 
+    void RenderMinimap();
+
     std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
+
+    std::unordered_set<glm::ivec2> m_visitedChunks; // Track visited chunks
+    bool m_isMapExpanded = false;                  // Toggle for expanded map
+    
 
 };

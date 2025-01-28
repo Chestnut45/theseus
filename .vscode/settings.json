@@ -80,7 +80,6 @@
         "codecvt": "cpp",
         "csignal": "cpp",
         "future": "cpp",
-        "valarray": "cpp",
-        "cassert": "cpp"
-    }
+        "valarray": "cpp"
+    },
 }

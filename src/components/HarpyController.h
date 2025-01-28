@@ -29,9 +29,12 @@ private:
     void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
 
+    void EnterAttackState();
     void EnterChasingState();
+    void EnterPetrifiedState();
     void EnterIdleState();
     void EnterStunnedState();
+    void EnterDeathState();
 
     void ExitAttackState();
     void ExitChasingState();
@@ -58,17 +61,24 @@ private:
     //-----------------//
 
     wolf::RNG m_RNG;
-    float m_rangedCooldown;
+    float m_rangedCooldown;     // Delay between 2 ranged attacks
     float m_rangedTimer = 0.0f;
     float m_rangedRange = 1.0f;
     float m_stunnedTime = 0.5f;
     float m_stunnedTimer = 0.0f;
 
+    // Death state members
     float m_fallDeadTimer = 0.0f;
     float m_lieDeadTimer = 0.0f;
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
 
+    // Attack state members
+    float m_rangedWindupTime = 1.0f; // Windup Time
+    float m_rangedWindupTimer = 0.0f;
+    int m_attackChain = 0;
+
+    // Emote-related members
     EnemyEmote m_emote = EnemyEmote::NONE; // Current emote
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;

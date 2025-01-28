@@ -1,0 +1,28 @@
+name: Faidon
+loot_table_path: data/minitaur_loot.yaml
+
+dialogue_bank_path: data/faidon_dialogue_and_cutscenes.yaml
+dialogue_entries: [
+  {
+    priority: 0,
+    entry_id: no_fear,
+    has_trigger: false,
+    can_repeat: true
+  },
+]
+
+can_be_merchant: false
+
+health: 100
+collider_size: {x: 13.0, y: 28.0}
+collider_offset: {x: -6.0, y: 14.0}
+
+animation_init: {
+  frame_size: {x: 32.0, y: 32.0},
+  playback_speed: 0.0,
+  texture: data/textures/FaidonStand-Sheet.png,
+  start_anim: StandSouth,
+  animation_sets: [
+    data/faidon_stand_anim_set.yaml,
+  ]
+}
