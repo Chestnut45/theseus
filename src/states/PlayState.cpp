@@ -611,14 +611,6 @@ void PlayState::CreatePlayer()
     // Register the player (Theseus) in the shared context
     m_pGameInstance->GetSharedContext().RegisterEntity("Theseus", m_pPlayerObject->GetID());
 
-    // Add player controller and initialize
-    // NOTE: This manages all player animations and the animated sprite component for the player
-    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
-    playerController.LateInitialize();
-    // Start player at the labyrinth spawn location and scale appropriately
-    auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
-    transform.SetScale(glm::vec2(3));
-
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
@@ -633,6 +625,14 @@ void PlayState::CreatePlayer()
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
+
+    // Add player controller and initialize
+    // NOTE: This manages all player animations and the animated sprite component for the player
+    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
+    playerController.LateInitialize();
+    // Start player at the labyrinth spawn location and scale appropriately
+    auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
+    transform.SetScale(glm::vec2(3));
 }
 
 void PlayState::CreateMinitaurEnemy()
@@ -788,7 +788,7 @@ wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
     collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
 
     // Add the TriggerComponent
-    trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP);
+    trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING);
 
     return trap;
 }

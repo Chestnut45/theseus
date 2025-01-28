@@ -156,6 +156,7 @@ private:
     VelocityComponent* m_pVelocity = nullptr;
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     ThrowableObjectComponent* m_pHeldObject = nullptr;
+    ColliderComponent* m_pCollider = nullptr;
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
@@ -199,6 +200,10 @@ private:
     glm::vec2 m_attackDir = glm::vec2(0.0f, 0.0f);
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
+
+    // Invulnerability after taking damage
+    float m_invulnSeconds = 1.0f;
+    wolf::Timer m_invulnTimer;
 
     //picking up management
     bool m_isHoldingObject = false;
