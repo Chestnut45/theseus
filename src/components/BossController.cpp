@@ -10,6 +10,7 @@
 #include <ColliderComponent.h>
 #include <PlayerController.h>
 #include <LabyrinthManager.h>
+#include <W_Timer.h>
 
 BossController::BossController()
 {
@@ -23,7 +24,7 @@ void BossController::Init()
 {
     // Initialize stats
     m_active = false;
-    m_maxHealth = 1000;
+    m_maxHealth = 10000;
 
     // Phase 1 stats
     m_throneBlockRange = 300;
@@ -36,6 +37,8 @@ void BossController::Init()
     m_maxDistToPlayer = 300;
     m_strafeClockwise = true;
     m_strafeSpeed = 200.0f;
+    m_chaseSpeed = 300.0f;
+    m_strafeSwap = 0.0f;
 
     // Phase 3 stats
     m_fireBreathDamage = 10; // Per projectile
@@ -169,11 +172,43 @@ void BossController::UpdatePhase2(float delta)
     // - If player attacks and we are idle, attempt to dodge
     // - Periodically execute axe attack patterns
 
+    // Query player spatial info
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 dirToPlayer = glm::normalize(playerPos - m_pTransform->GetGlobalPosition());
-    glm::mat4 rotation = glm::rotate(glm::radians(90.0f), glm::vec3(0, 0, 1));
-    glm::vec2 rotated = glm::vec2(rotation * glm::vec4(dirToPlayer.x, dirToPlayer.y, 0, 1));
-    m_pVelocity->SetVelocity(rotated * 20.0f);
+    glm::vec2 toPlayer = playerPos - m_pTransform->GetGlobalPosition();
+    float distToPlayer = glm::length(toPlayer);
+    glm::vec2 dirToPlayer = glm::normalize(toPlayer);
+
+    if (distToPlayer > m_maxDistToPlayer)
+    {
+        m_pVelocity->SetVelocity(dirToPlayer * m_chaseSpeed);
+    }
+    else if (distToPlayer < m_minDistToPlayer)
+    {
+        m_pVelocity->SetVelocity(-dirToPlayer * m_chaseSpeed);
+    }
+    else
+    {
+        // Randomly change strafe direction
+        static wolf::Timer timer;
+        static wolf::RNG rng;
+        if (!timer.IsRunning())
+        {
+            timer.Restart();
+            m_strafeSwap = rng.NextFloat(0.5f, 3.0f);
+        }
+        else
+        {
+            if (timer.Elapsed() >= m_strafeSwap)
+            {
+                m_strafeClockwise = !m_strafeClockwise;
+                timer.Reset();
+            }
+        }
+        
+        glm::mat4 rotation = glm::rotate(glm::radians(m_strafeClockwise ? 90.0f : -90.0f), glm::vec3(0, 0, 1));
+        glm::vec2 rotated = glm::vec2(rotation * glm::vec4(dirToPlayer.x, dirToPlayer.y, 0, 1));
+        m_pVelocity->SetVelocity(rotated * m_strafeSpeed);
+    }
 
     // Under half health, change to phase 3
     if (m_pHealth->GetHealth() < m_maxHealth / 2)
