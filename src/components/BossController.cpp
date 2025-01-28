@@ -42,8 +42,8 @@ void BossController::Init()
     m_fireBreathDamage = 10; // Per projectile
     m_fireBreathRange = 300;
     m_fireAttackDuration = 10.0f;
-    m_turningCapRadian = 3.0f * (M_PI / 180.0f); // Maximum angle for each turn instance
-    m_turningDelay = 0.1f;      // Delay between each turn instance
+    m_turningCapRadian = 5.0f * (M_PI / 180.0f); // Maximum angle for each turn instance
+    m_turningDelay = 0.2f;      // Delay between each turn instance
     m_turningTimer = 0.0f;
     m_lastDirection = glm::vec2(1.0f, 0.0f);
     m_chargeAttackDamage = 60;
@@ -93,7 +93,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase1();
+    EnterPhase3();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -140,7 +140,7 @@ void BossController::UpdatePhase1(float delta)
     // TODO: Phase 1 update logic:
     // - Summon minitaurs periodically until limit reached
     // - Change to blocking animation when player attacks while close enough
-    EnterPhase3();
+
     if (m_pHealth->GetHealth() < 2 * m_maxHealth / 3)
     {
         // TODO: Exit phase 1 logic
@@ -217,8 +217,6 @@ void BossController::UpdatePhase3(float delta)
         // TODO: Death animation + ending cutscene!
     }
 
-    
-
     switch (m_state)
     {
         case State::DEAD:
@@ -282,7 +280,6 @@ void BossController::StartFireBreathAttack()
 
 void BossController::AttackFireBreath(float delta)
 {
-
     // Update attack timer & state
     if(m_fireAttackDuration <= 0.0f)
     {
@@ -290,9 +287,6 @@ void BossController::AttackFireBreath(float delta)
         return;    
     }
     m_fireAttackDuration -= delta;
-    
-    // Turn towards player
-    TurnToPlayer(delta);
 
     // Get data
     glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -300,71 +294,74 @@ void BossController::AttackFireBreath(float delta)
 
     // Add fire range indicator
     GLShapesRenderer::GetInstance()->AddLine({thisPos.x, thisPos.y, 1, 0, 0 , 1}, {endPos.x, endPos.y, 1, 0, 0 , 1});
-
-    // Get all tiles burnt
-    std::vector<glm::ivec2> tiles = DDACalculator::GetInstance()->GetTraversedTiles(thisPos, endPos, true);
-
-    // Add fire tiles
-    for (glm::ivec2 tile : tiles)
-    {
-        TileFireManager::GetInstance()->AddFireTile(tile, 5.0f);
-    }
-}
-
-void BossController::TurnToPlayer(float delta)
-{
+    
     // If turning delay expired
     if(this->m_turningTimer >= this->m_turningDelay)
     {
-        // Reset timer
-        this->m_turningTimer = 0.0f;
-
-        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
-        float playerDistance = glm::length(thisPos - playerPos);
+        // Turn towards player
+        TurnToPlayer(delta);
         
-        if(playerDistance > 0.0f)
+        // Get all tiles burnt
+        std::vector<glm::ivec2> tiles = DDACalculator::GetInstance()->GetTraversedTiles(thisPos, endPos, true);
+
+        // Add fire tiles
+        for (glm::ivec2 tile : tiles)
         {
-            glm::vec2 playerDirection = glm::normalize(playerPos - thisPos);   
-            float dotProduct = glm::dot(m_lastDirection, playerDirection);
-            float cos = glm::clamp(dotProduct, -1.0f, 1.0f);
-            float radAngle = glm::acos(cos);
-
-            // If turning angle is smaller than cap
-            if(std::abs(radAngle) <= std::abs(m_turningCapRadian))
-            {
-                m_lastDirection = playerDirection;
-            }
-
-            else
-            {
-                float side = glm::cross(glm::vec3(m_lastDirection.x, m_lastDirection.y, 0), glm::vec3(playerDirection.x, playerDirection.y, 0)).z;
-                glm::vec2 newDirection = glm::vec2(0.0f, 0.0f);
-
-                float capSinPos = glm::sin(m_turningCapRadian);
-                float capCosPos = glm::cos(m_turningCapRadian);
-
-                float capSinNeg = glm::sin(-m_turningCapRadian);
-                float capCosNeg = glm::cos(-m_turningCapRadian);
-                // Left
-                if(side >= 0.0f)
-                {
-                    newDirection.x = m_lastDirection.x * capCosPos - m_lastDirection.y * capSinPos;
-                    newDirection.y = m_lastDirection.x * capSinPos + m_lastDirection.y * capCosPos;
-                }
-                // Right
-                else
-                {
-                    newDirection.x = m_lastDirection.x * capCosNeg - m_lastDirection.y * capSinNeg;
-                    newDirection.y = m_lastDirection.x * capSinNeg + m_lastDirection.y * capCosNeg;
-                }
-
-                m_lastDirection = newDirection;
-            }
+            TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
         }
     }
     else
     {
         this->m_turningTimer += delta;
+    }
+}
+
+void BossController::TurnToPlayer(float delta)
+{
+    // Reset timer
+    this->m_turningTimer = 0.0f;
+
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+    float playerDistance = glm::length(thisPos - playerPos);
+    
+    if(playerDistance > 0.0f)
+    {
+        glm::vec2 playerDirection = glm::normalize(playerPos - thisPos);   
+        float dotProduct = glm::dot(m_lastDirection, playerDirection);
+        float cos = glm::clamp(dotProduct, -1.0f, 1.0f);
+        float radAngle = glm::acos(cos);
+
+        // If turning angle is smaller than cap
+        if(std::abs(radAngle) <= std::abs(m_turningCapRadian))
+        {
+            m_lastDirection = playerDirection;
+        }
+
+        else
+        {
+            float side = glm::cross(glm::vec3(m_lastDirection.x, m_lastDirection.y, 0), glm::vec3(playerDirection.x, playerDirection.y, 0)).z;
+            glm::vec2 newDirection = glm::vec2(0.0f, 0.0f);
+
+            float capSinPos = glm::sin(m_turningCapRadian);
+            float capCosPos = glm::cos(m_turningCapRadian);
+
+            float capSinNeg = glm::sin(-m_turningCapRadian);
+            float capCosNeg = glm::cos(-m_turningCapRadian);
+            // Left
+            if(side >= 0.0f)
+            {
+                newDirection.x = m_lastDirection.x * capCosPos - m_lastDirection.y * capSinPos;
+                newDirection.y = m_lastDirection.x * capSinPos + m_lastDirection.y * capCosPos;
+            }
+            // Right
+            else
+            {
+                newDirection.x = m_lastDirection.x * capCosNeg - m_lastDirection.y * capSinNeg;
+                newDirection.y = m_lastDirection.x * capSinNeg + m_lastDirection.y * capCosNeg;
+            }
+
+            m_lastDirection = newDirection;
+        }
     }
 }

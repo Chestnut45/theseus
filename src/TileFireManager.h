@@ -38,6 +38,7 @@ private:
     LabyrinthManager* m_pLBMG = nullptr;
     wolf::Scene* m_pScene = nullptr;
     wolf::GameObject* m_pPlayerObj = nullptr;
+    bool m_isPlayerChecked = false;
     
     static TileFireManager* s_pTFMG;
 

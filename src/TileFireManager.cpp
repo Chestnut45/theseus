@@ -30,14 +30,17 @@ TileFireManager* TileFireManager::GetInstance()
 
 void TileFireManager::Update(float p_delta)
 {
+    // Check if player is in a tile
+    glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(m_pPlayerObj->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+    int playerTileColumn = playerTilePos.x;
+    // std::cout << "playerpos - x: " << playerTilePos.x << ", y: " << playerTilePos.y << std::endl;
+    
     // Go through each fire column
-    for(auto itr = m_mVerticalFireStrips.begin(); itr != m_mVerticalFireStrips.end(); itr++)
+    for(auto const& [key, val] : m_mVerticalFireStrips)
     {
         // Update each fire tile
-        for (FireTile* fireTile : itr->second)
+        for (FireTile* fireTile : val)
         {
-            glm::vec2 worldpos = m_pLBMG->GetWorldPosition(fireTile->m_vTilePos);
-            // GLShapesRenderer::GetInstance()->AddQuad({worldpos.x, worldpos.y, 1, 0, 0, 1}, 96, 96);
             if(fireTile->m_fLifespan <= 0.0f)
             {
                 fireTile->m_pFireObj->GetComponent<wolf::Sprite2D>()->SetVisibility(false);
@@ -45,28 +48,24 @@ void TileFireManager::Update(float p_delta)
             else
             {
                 fireTile->m_fLifespan -= p_delta;
-                fireTile++;
             }
-        }
-    }
-
-    // Check if player is in a tile
-    glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(m_pPlayerObj->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
-    int playerTileColumn = playerTilePos.x;
-
-    auto itr = m_mVerticalFireStrips.find(playerTileColumn);
-    if(itr != m_mVerticalFireStrips.end())
-    {
-        for(FireTile* firetile : m_mVerticalFireStrips.at(playerTileColumn))
-        {
-            if(firetile->m_vTilePos == playerTilePos)
+            // std::cout << "tilepos - x: " << fireTile->m_vTilePos.x << ", y: " << fireTile->m_vTilePos.y << std::endl;
+            if(m_isPlayerChecked == false)
             {
-                m_pPlayerObj->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+                if(fireTile->m_vTilePos == playerTilePos)
+                {   
+                    m_isPlayerChecked = true;
+                    if(fireTile->m_fLifespan > 0.0f)
+                    {
+                        m_pPlayerObj->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+                    }
+                }
             }
+
         }
     }
 
-    
+    m_isPlayerChecked = false;
 }
 
 void TileFireManager::Render()
@@ -117,7 +116,7 @@ TileFireManager::TileFireManager(LabyrinthManager* p_lbmg)
         break;
     }
 
-    // AddFireTile(m_pLBMG->GetTilePosition(m_pLBMG->GetSpawnLocation() + glm::vec2(0.0f, 480.0f)) , 5.0f);
+    m_isPlayerChecked = false;
 }
 
 TileFireManager::~TileFireManager()
@@ -136,7 +135,6 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
 {
     m_vTilePos = p_tile_pos;
     m_fLifespan = p_lifespan;
-
     wolf::Scene* scene = &p_lbmg->GetGameObject()->GetScene();
     m_pFireObj = &scene->CreateObject2D();
     m_pFireObj->GetComponent<wolf::Transform2D>()->SetPosition(p_lbmg->GetWorldPosition(m_vTilePos));
