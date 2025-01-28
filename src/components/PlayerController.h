@@ -18,6 +18,8 @@
 // !-- Death Screen Handling --!
 #include "../events/GameOverEvent.h"
 
+#include <DamageEvent.h>
+
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
 // Original Author: Youssef Ashraf
@@ -113,6 +115,9 @@ private:
     void HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event);
     void HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event);
     void HandleArmourUnequippedEvent(const ArmourUnequippedEvent& p_event);
+
+    void OnDamageEvent(const DamageEvent& event);
+
     // Manage and transition different player states
     void StartAttack();
     void StartPetrified();

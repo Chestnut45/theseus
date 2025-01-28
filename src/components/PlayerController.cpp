@@ -15,6 +15,7 @@
 
 #include <W_Input.h>
 #include <W_Logging.h>
+#include <W_EventManager.h>
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
@@ -29,6 +30,7 @@ PlayerController::~PlayerController() {
     wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::RemoveListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
+    wolf::EventManager::RemoveListener<DamageEvent, PlayerController, &PlayerController::OnDamageEvent>(*this);
     if (m_deathScreenTexture) {
         wolf::TextureManager::DestroyTexture(m_deathScreenTexture);
         m_deathScreenTexture = nullptr;
@@ -141,6 +143,9 @@ void PlayerController::LateInitialize()
     wolf::EventManager::AddListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
+
+    // Listen for damage events
+    wolf::EventManager::AddListener<DamageEvent, PlayerController, &PlayerController::OnDamageEvent>(*this);
 }
 
 glm::vec2 PlayerController::GetLastFacingDirectionVector() const 
@@ -1215,6 +1220,15 @@ void PlayerController::HandleArmourUnequippedEvent(const ArmourUnequippedEvent& 
             StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
             statusComponent->SetStatusEffectResistance(seType, 0);
         }
+    }
+}
+
+void PlayerController::OnDamageEvent(const DamageEvent& event)
+{
+    // React to damage and reset invulnerability timer
+    if (event.m_pDamagedObject == GetGameObject())
+    {
+        
     }
 }
 
