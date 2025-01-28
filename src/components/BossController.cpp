@@ -1,5 +1,4 @@
 #include "BossController.h"
-
 #include <W_GameObject.h>
 #include <W_Transform2D.h>
 
@@ -11,6 +10,8 @@
 #include <PlayerController.h>
 #include <HomingComponent.h>
 #include <LabyrinthManager.h>
+
+#include "../ColliderManager.h"
 
 BossController::BossController()
 {
@@ -45,6 +46,7 @@ void BossController::Init()
     m_chargeTurningCapDegree = 6.0f; // Degrees
     m_chargeTurningDelay = 0.2f; // Seconds
     m_chargeVelocity = 400.0f;
+    m_knockBackForce = 25000.0f;
 
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
@@ -195,12 +197,12 @@ void BossController::DodgePlayerAttack()
 // <----------------- PHASE 3 METHODS ----------------->
 
 void BossController::EnterPhase3()
-{
+{   
     m_phase = FightPhase::PHASE_3;
     m_state = State::SEARCHING;
 
+    m_active = true;
     // TODO: Phase 3 initialization logic
-    ChangeStatesPhase3(State::CHARGE_ATTACK);
 }
 
 void BossController::UpdatePhase3(float delta)
@@ -210,12 +212,21 @@ void BossController::UpdatePhase3(float delta)
     // - When player found, if close, do fire breath attack
     // - if far away, do charge attack
 
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+
+    if(m_state != State::CHARGE_ATTACK && glm::distance(playerPos, thisPos) <= m_chargeAttackRange)
+    {
+        ChangeStatesPhase3(State::CHARGE_ATTACK);
+    }
+
     if (m_pHealth->GetHealth() <= 0 && m_state != State::DEAD)
     {
         m_state = State::DEAD;
         wolf::Log("It may have been the Minotaur's labyrinth but Theseus the GOAT");
+    }
 
-            switch (m_state)
+    switch (m_state)
     {
         case State::DEAD:
         {
@@ -233,9 +244,9 @@ void BossController::UpdatePhase3(float delta)
             break;
         }
         default:
-        break;
-
-    }
+        {
+            break;
+        }
 
         // TODO: Death animation + ending cutscene!
     }
@@ -295,4 +306,28 @@ void BossController::StartChargeAttack()
 void BossController::AttackCharge(float delta)
 {
 
+    for (auto&&[id, collider] : this->GetGameObject()->GetScene().Each<ColliderComponent>())
+    {
+        // If other collider is not the same collider, is active & is hitbox
+        if (GetGameObject()->GetID() != id && collider.IsActive() && collider.IsHitbox())
+        {
+            // If colliders colliding
+            if (ColliderManager::StaticMethodIsColliding(*m_pCollider, collider, delta))
+            {
+                // If player, damge player
+                if(id == m_pPlayerObject->GetID())
+                {
+                    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+                    glm::vec2 playerDirection = (playerPos - thisPos) == glm::vec2(0.0f) ? 
+                                                                                            glm::vec2(1.0f, 0.0f):
+                                                                                            glm::normalize(playerPos - thisPos);
+                    m_pPlayerObject->GetComponent<HealthComponent>()->Damage(100.0f);
+                    m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(playerDirection, m_knockBackForce);
+                }
+                m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+                ChangeStatesPhase3(State::SEARCHING);
+            }
+        }
+    }
 }

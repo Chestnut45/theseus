@@ -109,7 +109,7 @@ private:
     float m_chargeTurningCapDegree;
     float m_chargeTurningDelay;
     float m_chargeVelocity;
-
+    float m_knockBackForce;
     // Updates the animated sprite based on state,
     // regardless of what phase of the fight we're in
     void UpdateAnimation();
@@ -135,4 +135,5 @@ private:
     void StartFireBreathAttack();
     void StartChargeAttack();
     void AttackCharge(float delta);
+
 };
