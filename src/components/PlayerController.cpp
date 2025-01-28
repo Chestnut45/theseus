@@ -328,6 +328,9 @@ void PlayerController::HandlePlayerInput(float delta)
             m_rollSpeed = 400.0f;
             m_inventoryMoveSpeed = 100.0f;
         }
+
+        // Update current speed
+        m_currentMoveSpeed = m_action == PlayerAction::IN_INVENTORY ? m_inventoryMoveSpeed : m_normalMoveSpeed;
     }
 
     // Teleport to labyrinth spawn location hotkey
@@ -1410,7 +1413,7 @@ void PlayerController::RenderDeathScreen() {
 
         // "Return to Main Menu" button
         if (ImGui::Button("Return to Main Menu", ImVec2(240, 50))) {
-            wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::MAIN_MENU));
+            wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
             ResetDeathScreenState();
         }
 

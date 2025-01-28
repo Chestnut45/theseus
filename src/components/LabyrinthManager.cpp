@@ -925,6 +925,11 @@ glm::ivec2 LabyrinthManager::GetTilePosition(const glm::vec2& worldPosition) con
     return worldPosition / glm::vec2(SCALE * TILE_SIZE);
 }
 
+glm::vec2 LabyrinthManager::GetWorldPosition(const glm::ivec2& tilePosition) const
+{
+    return glm::vec2(SCALE * TILE_SIZE) * glm::vec2(tilePosition);
+}
+
 int LabyrinthManager::GetTile(int x, int y) const
 {
     // Validate position
@@ -1780,7 +1785,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
             // Add a collider for interaction
             auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-            collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+            collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
 
             // Add the TriggerComponent
             trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);
@@ -1857,7 +1862,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     case Room::EntityType::Minitaur:
                     {
                         // Build Minitaur at the given position
-                        wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, pos, m_pColliderManager);
+                        wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, pos);
 
                         // Scale the minitaur
                         minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
@@ -1883,7 +1888,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     case Room::EntityType::Harpy:
                     {
                         // Build Harpy at the given position
-                        wolf::GameObject& harpy = harpyBuilder.BuildHarpy(harpyData, pos, m_pColliderManager);
+                        wolf::GameObject& harpy = harpyBuilder.BuildHarpy(harpyData, pos);
 
                         // Scale the harpy
                         harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
@@ -1909,7 +1914,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     case Room::EntityType::Gorgon:
                     {
                         // Build Gorgon at the given position
-                        wolf::GameObject& gorgon = gorgonBuilder.BuildGorgon(gorgonData, pos, m_pColliderManager);
+                        wolf::GameObject& gorgon = gorgonBuilder.BuildGorgon(gorgonData, pos);
 
                         // Scale the gorgon
                         gorgon.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
@@ -2054,7 +2059,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a collider for interaction
                         auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-                        collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+                        collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
 
                         // Add the TriggerComponent
                         trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);

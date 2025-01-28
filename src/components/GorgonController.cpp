@@ -2,6 +2,7 @@
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
 #include "../GLShapesRenderer.h"
+#include "../DDACalculator.h"
 
 #include <cassert>
 
@@ -447,6 +448,7 @@ void GorgonController::HandleAttackingState(float delta)
         ChangeState(EnemyState::IDLE);
         return;
     }
+
     // If winding up attack
     if(m_rangedWindupTimer > 0.0f)
     {
@@ -466,17 +468,22 @@ void GorgonController::HandleAttackingState(float delta)
     {
         m_pAnimComponent->SetTint(glm::vec3(1.0f)); // Reset windup tint
 
+        // Determine if target's collider is active and a hurtbox
+        auto* pCollider = m_pTarget->GetComponent<ColliderComponent>();
+        const bool active = pCollider ? (pCollider->IsActive() && pCollider->IsHurtbox()) : false;
+
         // If target is in line of sight, petrify target and switch to prospect
-        if(m_pTargetStatusComponent != nullptr && IsTargetInLOS())
+        if(active && m_pTargetStatusComponent && IsTargetInLOS())
         {
             m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
         }
+        
         ChangeState(EnemyState::CHASING);
         return;
     }
 
     m_curentCrosshairColour.g -= delta * (1.0f / m_rangedCooldown);
-    IsTargetInLOS();
+    RenderIndicator();
 }
 
 void GorgonController::HandlePetrifiedState(float delta)
@@ -797,166 +804,28 @@ bool GorgonController::IsTargetDetected()
 
 bool GorgonController::IsTargetInLOS()
 {
-    // Get labyrinth manager
-    LabyrinthManager* lbmg = nullptr;
-    for (auto&& [_, labyrinthManager] : GetGameObject()->GetScene().Each<LabyrinthManager>())
-    {
-        lbmg = &labyrinthManager;
-        break;
-    }
     glm::vec2 thisPos = m_pTransform->GetGlobalPosition();
     glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec4 colour = m_curentCrosshairColour;
 
-    if(m_IsRenderingAttackIndicator == true)
+    if(DDACalculator::GetInstance()->GetEndpoint(thisPos, targetPos) == targetPos)
     {
-        // Add indicator for rendering
-        glm::vec2 targetScale = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalScale();
-        float halfWidth = 2.0f * targetScale.x;
-        float halfHeight = 2.0f * targetScale.y;
-        
-
-        glm::vec2 tr = targetPos + m_crosshairOffset + glm::vec2(halfWidth, halfHeight) ;
-        glm::vec2 tl = targetPos + m_crosshairOffset + glm::vec2(-halfWidth, halfHeight);
-        glm::vec2 bl = targetPos + m_crosshairOffset + glm::vec2(-halfWidth, -halfHeight);
-        glm::vec2 br = targetPos + m_crosshairOffset + glm::vec2(halfWidth, -halfHeight);
-
-        GLShapesRenderer::GetInstance()->AddQuad(
-                            {tr.x, tr.y, colour.r, colour.g, colour.b, colour.a},
-                            {tl.x, tl.y, colour.r, colour.g, colour.b, colour.a},
-                            {bl.x, bl.y, colour.r, colour.g, colour.b, colour.a},
-                            {br.x, br.y, colour.r, colour.g, colour.b, colour.a}
-                            );
+        return true;
     }
 
-    // Check
-    if(lbmg != nullptr)
-    {
-        glm::ivec2 thisTilePos = lbmg->GetTilePosition(thisPos);
-        int thisTileID = lbmg->GetTile(thisTilePos.x, thisTilePos.y);
+    return false;
+    
+}
 
-        glm::ivec2 targetTilePos = lbmg->GetTilePosition(targetPos);
-        int targetTileID = lbmg->GetTile(targetTilePos.x, targetTilePos.y);
-
-        // If either entity or target is inside wall (somehow), return false
-        if(this->IsWallTile(thisTileID) || this->IsWallTile(targetTileID))
-        {
-            return false;
-        }
-
-        if(thisTilePos == targetTilePos && !this->IsWallTile(thisTileID))
-        {
-            return true;
-        }
-
-        const int tileSize = (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
-
-        glm::vec2 line = targetPos - thisPos;
-        glm::vec2 normalisedLine = glm::normalize(line);
-        float distance = glm::length(line);
-
-        glm::ivec2 currentTilePos = thisTilePos;
-        int currentTileID = thisTileID;
-        glm::vec2 rayLength = glm::vec2(0.0f, 0.0f);
-        glm::ivec2 tileStep = glm::vec2(0, 0);
-        glm::vec2 rayStep = glm::vec2(
-            sqrt(1 + (normalisedLine.y / normalisedLine.x) * (normalisedLine.y / normalisedLine.x)),
-            sqrt(1 + (normalisedLine.x / normalisedLine.y) * (normalisedLine.x / normalisedLine.y))
-        );
-        if(line.x > 0.0f)
-        {
-            tileStep.x = 1;
-            rayLength.x = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x + 1, thisTilePos.y)).x - thisPos.x) * rayStep.x;
-        }
-        else
-        {
-            tileStep.x = -1;
-            rayLength.x = abs(thisPos.x - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).x) * rayStep.x;
-        }
-
-        if(line.y > 0.0f)
-        {
-            tileStep.y = 1;
-            rayLength.y = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y + 1)).y - thisPos.y) * rayStep.y;
-        }
-        else
-        {
-            tileStep.y = -1;
-            rayLength.y = abs(thisPos.y - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).y) * rayStep.y;
-        }
-        
-        rayStep *= tileSize;
-        
-        // Iterate until target tile is reached
-        bool isTargetSpotted = true;
-        bool isIterating = true;
-        float distanceCheck = 0.0f;
-
-        while(distanceCheck < distance)
-        {
-
-            if(rayLength.x < rayLength.y)
-            {
-                currentTilePos.x += tileStep.x;
-                distanceCheck = rayLength.x;
-                rayLength.x += rayStep.x;
-            }
-            else
-            {
-                currentTilePos.y += tileStep.y;
-                distanceCheck = rayLength.y;
-                rayLength.y += rayStep.y;
-            }
-
-            currentTileID = lbmg->GetTile(currentTilePos.x, currentTilePos.y);
-            
-
-            if(this->IsWallTile(currentTileID))
-            {
-                if(distanceCheck < distance)
-                {
-                    // printf("GorgonController - Blocked\n");
-                    if(m_IsRenderingAttackIndicator == true)
-                    {
-                        glm::vec2 endpoint = normalisedLine * distanceCheck + thisPos;
-                        GLShapesRenderer::GetInstance()->AddLine(
-                                                                {thisPos.x, thisPos.y, colour.r, colour.g, colour.b, colour.a},
-                                                                {endpoint.x, endpoint.y, colour.r, colour.g, colour.b, colour.a}
-                                                                );
-                    }
-                    return false;
-
-                }
-                // printf("GorgonController - Length Exceeded\n");
-                break;
-            }
-            if(distanceCheck >= distance)
-            {
-                // printf("GorgonController - Length Exceeded\n");
-            }
-        }
-    }
-    // printf("GorgonController - Detected\n");
-    if(m_IsRenderingAttackIndicator == true)
-    {
-        GLShapesRenderer::GetInstance()->AddLine(
+void GorgonController::RenderIndicator()
+{
+    glm::vec2 thisPos = m_pTransform->GetGlobalPosition();
+    glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 endPos = DDACalculator::GetInstance()->GetEndpoint(thisPos, targetPos);
+    glm::vec4 colour = this->m_curentCrosshairColour;
+    
+    DDACalculator::GetInstance()->GetEndpoint(thisPos, targetPos);
+    GLShapesRenderer::GetInstance()->AddLine(
                                             {thisPos.x, thisPos.y, colour.r, colour.g, colour.b, colour.a},
-                                            {targetPos.x, targetPos.y, colour.r, colour.g, colour.b, colour.a}
+                                            {endPos.x, endPos.y, colour.r, colour.g, colour.b, colour.a}
                                             );
-    }
-    return true;
-}
-
-bool GorgonController::IsWallTile(int p_tile_id)
-{
-    return (p_tile_id >= Tile::WallBottomLeft) && (p_tile_id <= Tile::WallTop);
-}
-
-glm::vec2 GorgonController::GetTileWorldPos(glm::ivec2 p_tile_pos)
-{
-    glm::vec2 res = glm::vec2(
-        p_tile_pos.x * (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE), 
-        p_tile_pos.y * (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE)
-    );
-    return res;
 }
