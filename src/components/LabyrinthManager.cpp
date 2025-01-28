@@ -2183,6 +2183,9 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                             }
                         }
 
+                        auto& colliderComp = throwableGO.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+                        colliderComp.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
+
                         // Add the throwable component
                         auto& throwableComp = throwableGO.AddComponent<ThrowableObjectComponent>(20.0f, m_pColliderManager);
 
