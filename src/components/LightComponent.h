@@ -61,22 +61,30 @@ class LightComponent : public wolf::BaseComponent {
         // Corner points are adjusted based on the radius so they don't need a setter
         inline AABBCorners& GetCornerPoints() const {return *m_pCornerPoints;};
 
-        bool AABBCollisionTest(wolf::Rectangle p_pRectangle);
+        bool AABBCollisionTest(wolf::Rectangle p_pRect);
+        bool SweepLinePointCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2Point);
 
     private:
+        // ID number to discern between lights
         static int m_iNextIDNum;
         const int m_iIDNum;
         
+        // Bool to determine whether or not this light can move
         bool m_bCanMove;
 
+        // Color, radius, and origin point of the light
         glm::vec4 m_v4Color;
         glm::vec2 m_v2Radius;
         glm::vec2 m_v2Origin;
 
+        // Pointer to the scene this light is in
         wolf::Scene* m_pScene;
         
+        // This light's transform and the four corners at the edges of its radius
         wolf::Transform2D* m_pTransform;
         AABBCorners* m_pCornerPoints;
 
-        std::vector<wolf::Rectangle*> m_vpCollidersInAOE;
+        // Map to hold all of the points this light's rays are colliding with
+        std::map<int, glm::vec2> m_iv2CollidingPoints;
+        int m_iEndOfCollidingPointsMap = 0;
 };
