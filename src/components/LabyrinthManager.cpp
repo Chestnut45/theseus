@@ -34,6 +34,9 @@
 #include <PlayerController.h>
 #include <TriggerComponent.h>
 #include "../npcs/NPCBuilder.h"
+#include <HarpyController.h>
+#include <MinitaurController.h>
+#include <GorgonController.h>
 
 std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
 
@@ -174,6 +177,14 @@ void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
         auto* pTrigger = pObject->GetComponent<TriggerComponent>();
         if (pTrigger) pTrigger->SetActive(true);
 
+        // Activate enemy controllers
+        auto* pController = pObject->GetComponent<HarpyController>();
+        if (pController) pController->SetActive(true);
+
+        // Activate velocities
+        auto* pVelocity = pObject->GetComponent<VelocityComponent>();
+        if (pVelocity) pVelocity->SetActive(true);
+
         // Recursively activate all child objects and compatible components
         for (auto* pChild : pObject->GetChildren())
         {
@@ -205,6 +216,14 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
         // Deactivate triggers
         auto* pTrigger = pObject->GetComponent<TriggerComponent>();
         if (pTrigger) pTrigger->SetActive(false);
+        
+        // Deactivate enemy controllers
+        auto* pController = pObject->GetComponent<HarpyController>();
+        if (pController) pController->SetActive(false);
+
+        // Deactivate velocities
+        auto* pVelocity = pObject->GetComponent<VelocityComponent>();
+        if (pVelocity) pVelocity->SetActive(false);
 
         // Recursively deactivate all child objects and compatible components
         for (auto* pChild : pObject->GetChildren())

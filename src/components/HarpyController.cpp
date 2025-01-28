@@ -85,8 +85,12 @@ void HarpyController::Init(const EnemyData& data)
 void HarpyController::Update(float delta)
 {
     // Ensure components and target are initialized before performing any updates
-    if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
+    if (!m_active || !m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
+    
+    // Update the base class
+    EnemyController::Update(delta);
+    
     // Check if minitaur is petrified
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
     if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))

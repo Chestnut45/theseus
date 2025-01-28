@@ -15,6 +15,7 @@
 
 #include <W_Input.h>
 #include <W_Logging.h>
+#include <W_EventManager.h>
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
@@ -29,6 +30,7 @@ PlayerController::~PlayerController() {
     wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::RemoveListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
+    wolf::EventManager::RemoveListener<DamageEvent, PlayerController, &PlayerController::OnDamageEvent>(*this);
     if (m_deathScreenTexture) {
         wolf::TextureManager::DestroyTexture(m_deathScreenTexture);
         m_deathScreenTexture = nullptr;
@@ -132,7 +134,10 @@ void PlayerController::LateInitialize()
         wolf::Error("LateInitialize failed: PlayerController not attached to GameObject!");
         return;
     }
-    m_runtimeTimer.Start(); // Start runtime timer 
+    m_runtimeTimer.Start(); // Start runtime timer
+
+    // Grab collider component
+    m_pCollider = pGameObject->GetComponent<ColliderComponent>();
 
     InitializeAnimations();
 
@@ -141,6 +146,9 @@ void PlayerController::LateInitialize()
     wolf::EventManager::AddListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
+
+    // Listen for damage events
+    wolf::EventManager::AddListener<DamageEvent, PlayerController, &PlayerController::OnDamageEvent>(*this);
 }
 
 glm::vec2 PlayerController::GetLastFacingDirectionVector() const 
@@ -198,6 +206,13 @@ void PlayerController::Update(float delta)
     {
         wolf::Error("PlayerController missing essential components!");
         return;
+    }
+
+    // Update invulnerability window
+    if (!m_pCollider->IsHurtbox() && m_invulnTimer.Elapsed() > m_invulnSeconds)
+    {
+        m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITHURTBOXDR);
+        m_invulnTimer.Reset();
     }
 
     auto* pInventory = pGameObject->GetComponent<PlayerInventoryComponent>();
@@ -1219,6 +1234,16 @@ void PlayerController::HandleArmourUnequippedEvent(const ArmourUnequippedEvent& 
             StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
             statusComponent->SetStatusEffectResistance(seType, 0);
         }
+    }
+}
+
+void PlayerController::OnDamageEvent(const DamageEvent& event)
+{
+    // React to damage and reset invulnerability timer
+    if (event.m_pDamagedObject == GetGameObject())
+    {
+        m_invulnTimer.Restart();
+        m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
     }
 }
 
