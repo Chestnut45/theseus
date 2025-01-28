@@ -520,7 +520,7 @@ void PlayerController::ThrowHeldObject() {
     auto* throwableVelocity = m_pHeldObject->GetGameObject()->GetComponent<VelocityComponent>();
     if (!throwableVelocity) throwableVelocity = &m_pHeldObject->GetGameObject()->AddComponent<VelocityComponent>();
     
-    glm::vec2 finalVelocity = throwDirection * m_throwPower + playerVelocity;
+    glm::vec2 finalVelocity = throwDirection * m_throwPower * 3.0f + playerVelocity;
     throwableVelocity->SetVelocity(finalVelocity);
 
     // Set the state of the held object to THROWN and reset holding variables
