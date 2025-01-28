@@ -1,9 +1,11 @@
 #include "HarpyBuilder.h"
 #include "HarpyController.h"
+#include "StatusComponent.h"
 #include <cassert>
 
 // Build the Harpy GameObject and initialize its components
-wolf::GameObject& HarpyBuilder::BuildHarpy(const EnemyData& data, const glm::vec2& position, ColliderManager* pColliderManager) {
+wolf::GameObject& HarpyBuilder::BuildHarpy(const EnemyData& data, const glm::vec2& position)
+{
     // Create the Harpy GameObject
     wolf::GameObject* harpyObject = &m_scene.CreateObject2D();
 
@@ -17,15 +19,15 @@ wolf::GameObject& HarpyBuilder::BuildHarpy(const EnemyData& data, const glm::vec
     harpyObject->AddComponent<HealthComponent>(data.health);
     harpyObject->AddComponent<VelocityComponent>();
     auto& collider = harpyObject->AddComponent<ColliderComponent>(ColliderComponent::HURTBOXDR, false, true);
-    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, 14.0f));
+    collider.AddColliderBox(glm::vec2(18.0f, 20.0f), glm::vec2(-9.0f, 10.0f));
 
-    // Add ArmourComponent
-    // auto& armourComponent = harpyObject->AddComponent<ArmourComponent>();
-    // armourComponent.CollectArmour(data.armour);
+    // Add status component
+    auto& statusComponent = harpyObject->AddComponent<StatusComponent>();
 
     // Add HarpyController and initialize it with data
     auto& controller = harpyObject->AddComponent<HarpyController>();
     controller.Init(data);
+    controller.SetPlayerID(m_scene.GetPlayerID());
 
     return *harpyObject;
 }

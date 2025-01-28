@@ -12,6 +12,7 @@
 //-----------------------------------------------------------------------------
 
 #include <cstdint>
+#include <optional>
 #include <unordered_map>
 
 // Needed for std::hash implementation for glm vector types
@@ -31,6 +32,22 @@
 
 class LabyrinthManager : public wolf::BaseComponent
 {
+// Public types
+public:
+
+    // Useful data for rooms that have been generated
+    struct RoomData
+    {
+        // Identifier (non-unique)
+        std::string m_name;
+
+        // Bounds of the room in labyrinth-space (0,0 is bottom-left tile of labyrinth)
+        wolf::IRectangle m_bounds;
+
+        // Labyrinth-space tile positions for each doorway tile
+        // connecting this room to another part of the labyrinth
+        std::vector<glm::ivec2> m_doors;
+    };
 
 // Public interface
 public:
@@ -76,6 +93,13 @@ public:
     // NOTE: Returns (0, 0) if the labyrinth is not yet generated
     glm::vec2 GetSpawnLocation() const;
 
+    // Gets the room data for a given tile in labyrinth-space
+    // Returns an empty optional if the tile isn't in a room
+    std::optional<RoomData> GetRoom(const glm::ivec2& tilePosition);
+
+    // Gets the list of rooms that were successfully generated into the labyrinth
+    const std::vector<RoomData>& GetRooms() const { return m_generatedRooms; }
+
     // Gets the chunk ID for the chunk containing a given world space position
     glm::ivec2 GetChunkID(const glm::vec2& worldPosition) const;
 
@@ -89,6 +113,10 @@ public:
     // Converts a world space position to tile coordinates
     // NOTE: Returns (-1, -1) if the position is not on a valid tile
     glm::ivec2 GetTilePosition(const glm::vec2& worldPosition) const;
+
+    // Converts a tile position to a world space position
+    // NOTE: Does not validate tile position
+    glm::vec2 GetWorldPosition(const glm::ivec2& tilePosition) const;
 
     // Gets the tile ID at the given tile position of the labyrinth
     // NOTE: Returns -1 if the tile is empty
@@ -116,7 +144,7 @@ public:
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 16'383;
     static const inline int TILE_SIZE = 32;
-    static const inline int CHUNK_SIZE = 16;
+    static const inline int CHUNK_SIZE = 8;
     static const inline int SCALE = 3;
 
 // Implementation
@@ -128,6 +156,13 @@ private:
     // Labyrinth dimensions (in tiles)
     int m_width = 125;
     int m_height = 125;
+
+    // Hallway spawn parameters
+
+    // Ratio of spike traps to hallway floors
+    // NOTE: 0 = no spike traps, 1 = no floors
+    // NOTE: Doesn't apply to rooms
+    float m_spikeTrapFloorRatio = 0.0f;
 
     // Spawn area settings
     glm::ivec2 m_spawnPatchSize = glm::ivec2(25);
@@ -152,8 +187,6 @@ private:
 
     // Grid of logical tiles
     wolf::Grid2D<LogicalTile> m_labyrinthGrid{m_width, m_height, LogicalTile::Unvisited};
-
-    // Room data
 
     // Definition of a room to be generated into the labyrinth
     struct Room
@@ -221,8 +254,12 @@ private:
             LegendaryChest,
             DaedalusDispensary, // !-- Aurora added this --!
             ThrowableObject,
+            SpikeTrap,
+            DaedalusNPC,
+            AriadneNPC,
+            RandomNPC,
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary", "Throwable Object"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC"};
 
         enum class SpawnPosType
         {
@@ -245,8 +282,12 @@ private:
         std::vector<EntitySpawnData> m_entitySpawns;
     };
 
+    // Map of string names to entity IDs
+    static std::unordered_map<std::string, Room::EntityType> s_entityIDs;
+
     // List of all rooms to be generated in the labyrinth
     std::vector<Room> m_rooms;
+    std::vector<RoomData> m_generatedRooms;
 
     // Non-owning pointer to collider manager. Necessary for building minitaurs
     ColliderManager* m_pColliderManager = nullptr;
@@ -254,6 +295,9 @@ private:
 
     // Map of tile positions to section numbers
     std::unordered_map<glm::ivec2, int> m_tileSectionMap;
+    
+    // Map of tile positions to m_generatedRooms index
+    std::unordered_map<glm::ivec2, int> m_tileRoomMap;
 
     // Data structure for a connector
     struct Connector
@@ -281,6 +325,7 @@ private:
     {
         wolf::GameObject* m_pObject = nullptr;
         bool active = true;
+        std::vector<glm::ivec2> m_hallwaySpikeTraps;
     };
 
     // Map of chunk IDs to chunk game object pointers

@@ -18,6 +18,8 @@
 // !-- Death Screen Handling --!
 #include "../events/GameOverEvent.h"
 
+#include <DamageEvent.h>
+
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
 // Original Author: Youssef Ashraf
@@ -38,6 +40,7 @@ public:
         IN_INVENTORY,
         PICKING_UP,
         THROWING,
+        PETRIFIED,
         DEAD
     };
 
@@ -70,6 +73,7 @@ public:
     void LateInitialize();
     void Update(float delta);
     void Render();
+    
     void SetAnimationComponent(AnimatedSprite2D* animComponent);
 
     // Overloaded << operator for printing directions
@@ -78,20 +82,18 @@ public:
     void SetColliderManager(ColliderManager* pColliderManager);
     //get the collider manager (verification)
     ColliderManager* GetColliderManager() const;
-
-
+    //get player action
+    PlayerAction GetPlayerAction() const;
 
     //set player action
     void SetAction(PlayerAction action);
 
     // setting the holding object bool variable
     void SetHoldingObject(bool isHolding);
-
-    
+ 
     // This getter simply returns the current value of m_lastFaceDirectionEnum, allowing ThrowableObjectComponent to access it.
     PlayerDirection GetLastFacingDirection() const { return m_lastFaceDirectionEnum; }
-
-    // Weapon & Attack functions
+    glm::vec2 GetLastFacingDirectionVector() const;
 
 private:
     // Initialization and animation management
@@ -103,26 +105,34 @@ private:
     void HandleRolling(float delta);     // Declaration for HandleRolling
     void HandleJumping(float delta);     // Declaration for HandleJumping
     void HandleAttacking(float delta);   // Declaration for HandleAttacking
-    void HandleThrowing(float delta);  // New method to handle throwing
-    
+    void HandleThrowing(float delta);  // Method to handle throwing
+    void HandlePetrified(float delta);  // Method to handle being petrified
+    void HandleDeath(float delta);  // New method to handle the existential fear of death
 
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
     void HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event);
     void HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event);
+    void HandleArmourUnequippedEvent(const ArmourUnequippedEvent& p_event);
+
+    void OnDamageEvent(const DamageEvent& event);
 
     // Manage and transition different player states
     void StartAttack();
-    void UpdateAttackState(float delta);
-    void StartRoll();       // Starts a rolling action
-    void EndRoll();         // Ends a rolling action
+    void StartPetrified();
     void StartJump();       // Starts a jumping action
+    void StartRoll();       // Starts a rolling action
+    void StartDeath();
+    
+    void EndAttacking();
     void EndJump();         // Ends a jumping action
+    void EndPetrified();
+    void EndRoll();         // Ends a rolling action
+    
     void ThrowHeldObject();
     void PickUpObject();
     void DropObject();
-    void EnterDeathState();
 
     // Utility functions
     void ApplyDamageToEnemy(); // Applies damage to enemies
@@ -146,21 +156,27 @@ private:
     VelocityComponent* m_pVelocity = nullptr;
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     ThrowableObjectComponent* m_pHeldObject = nullptr;
+    ColliderComponent* m_pCollider = nullptr;
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
+    PlayerAction m_lastAction = PlayerAction::NONE;
     PlayerDirection m_lastMoveDirectionEnum = PlayerDirection::SOUTH;
     PlayerDirection m_lastFaceDirectionEnum = PlayerDirection::SOUTH;
     std::vector<int> m_heldKeys;  // List of currently held keys
-    float m_moveSpeed = 200.0f;
+    float m_currentMoveSpeed = 200.0f;
+    float m_normalMoveSpeed = 200.0f;
     float m_inventoryMoveSpeed = 100.0f;
 
     // Sound effect properties
     wolf::Timer m_walkSoundTimer;
     float m_walkSoundInterval = 0.333333333f;
 
+    // DEBUG: Godmode flags
+    bool m_godmode = false;
+    bool m_superSpeed = false;
+
     // Stamina management
-    bool m_isRolling = false;
     float m_rollSpeed = 400.0f;
     float m_rollTimer = 0.0f;
     float m_rollDuration = 0.5f;
@@ -178,12 +194,16 @@ private:
 
     // Attacking management
     bool m_hasAppliedDamage = false;
-    bool m_isAttacking = false;
     float m_attackCooldown = 0.5f;
     float m_attackDamage = 50.0f;
     float m_attackRange = 100.0f;
+    glm::vec2 m_attackDir = glm::vec2(0.0f, 0.0f);
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
+
+    // Invulnerability after taking damage
+    float m_invulnSeconds = 1.0f;
+    wolf::Timer m_invulnTimer;
 
     //picking up management
     bool m_isHoldingObject = false;
@@ -194,21 +214,28 @@ private:
     const float m_powerChargeRate = 25.0f; // Rate at which power increases
 
     // Animation and state tracking flags
-    bool m_animationFinished = false;
     std::string m_currentAnimation;
     PlayerAction m_previousAction = PlayerAction::NONE;
     PlayerDirection m_previousDirection = PlayerDirection::NONE;
 
+    bool m_inventoryOpen = false;
+    bool m_inventoryHovered = false;
+
     ColliderManager* m_pColliderManager = nullptr;
 
-    // Default weapon if no weapon equipped
-    WeaponItem* m_pDefaultWeapon = nullptr;
+    // Equipped weapon (no default)
     WeaponItem* m_pCurrentWeapon = nullptr;
 
     // Death screen related variables
     wolf::Timer m_runtimeTimer;
     double m_deathRuntime = 0.0; // Store the runtime once when player dies
     wolf::Texture* m_deathScreenTexture = nullptr; //death screen texture
+
+    float m_fallDeadTimer = 0.0f;
+    float m_lieDeadTimer = 0.0f;
+    float m_timeToFallDead = 0.6f;
+    float m_timeToLieDead = 0.8f;
+    
     // fade transitions
     float m_fadeOpacity = 0.0f; 
     bool m_fadeComplete = false;

@@ -14,6 +14,8 @@ public:
         PROSPECT,
         CHASING,
         ATTACKING,
+        PETRIFIED,
+        STUNNED,
         DEATH
     };
     EnemyController() = default;    
@@ -24,17 +26,38 @@ public:
     void SetColliderManager(ColliderManager* pColliderManager);  // Set the ColliderManager, general for all enemies
     ColliderManager* GetColliderManager() const;
 
-protected:
-    void ChangeState(EnemyState newState); // General state transition logic shared by all enemies
+    void SetPlayerID(wolf::GameObjectID p_uiGOId);
+    wolf::GameObjectID const GetPlayerID();
 
+    void SetActive(bool active) { m_active = active; }
+    bool IsActive() const { return m_active; }
+
+protected:
+    enum EnemyEmote
+    {
+        EXCLAMATION,
+        QUESTION,
+        NONE
+    };
+    void ChangeState(EnemyState newState); // General state transition logic shared by all enemies
+    
+
+protected:
     // These components are common to all enemies and will be initialized here, but used in specific enemy classes
     wolf::Transform2D* m_pTransform = nullptr;
     HealthComponent* m_pHealth = nullptr;
     ColliderComponent* m_pCollider = nullptr;
 
     EnemyState m_state = EnemyState::IDLE;
+    EnemyState m_last_state = EnemyState::IDLE;
+
     ColliderManager* m_pColliderManager = nullptr;
     wolf::GameObject* m_pTarget = nullptr;  // Target (usually the player)
 
     float m_fCountdownToDeath = 2.0f;
+
+    wolf::GameObjectID m_uiPlayerGOId;
+
+    bool m_active = true;
+    glm::ivec2 m_chunkID;
 };

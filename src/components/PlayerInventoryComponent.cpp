@@ -2,6 +2,111 @@
 
 #include "../inventory/ArmourItem.h"
 
+std::vector<ImGuiUVSet*> PlayerInventoryComponent::m_vv2ToggleTextureCoords;
+const std::string PlayerInventoryComponent::m_strToggleTexturePath = "data/textures/InventoryToggleButton-Sheet.png";
+
+const int PlayerInventoryComponent::TOG_BUTTON_CLOSED = 1;
+const int PlayerInventoryComponent::TOG_BUTTON_CLOSED_HOVER = 2;
+const int PlayerInventoryComponent::TOG_BUTTON_OPEN = 3;
+const int PlayerInventoryComponent::TOG_BUTTON_OPEN_HOVER = 4;
+
+PlayerInventoryComponent::PlayerInventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos) : InventoryComponent(p_iSize, p_iSlotsPerRow, p_v2DrawPos) {
+    m_enType = PLAYER_INVENTORY;
+
+    // If this is the first PlayerInventory
+    if (!m_pToggleTexture) {
+        // We need to initalize the shared toggle button texture
+        wolf::Texture* pNewTexture = wolf::TextureManager::CreateTexture(m_strToggleTexturePath);
+        if (pNewTexture) {
+            if ((pNewTexture->GetWidth() * pNewTexture->GetHeight()) % (int)(m_v2TexFrameSize.x * m_v2TexFrameSize.y) != 0) {
+                // If the new texture doesn't match the frame size then we delete it and leave the current texture unchanged
+                wolf::TextureManager::DestroyTexture(pNewTexture);
+                wolf::Error("Incorrectly sized texture file \"", m_strToggleTexturePath, "\" passed to InventoryComponent.");
+            }
+
+            // Then we need to know how many frames are in the texture
+            int iNumFramesX = pNewTexture->GetWidth() / m_v2TexFrameSize.x;
+            int iNumFramesY = pNewTexture->GetHeight() / m_v2TexFrameSize.y;
+
+            int iWidth = iNumFramesX + 1;
+            int iHeight = iNumFramesY + 1;
+
+            // We can use those values to create UV coordinates by treating them
+            // as points between 0 and 1 on the X and Y axes
+
+            // So we make a place to store them
+            ImVec2 av2WorkingUVCoords[iWidth * iHeight];
+
+            // Figure out how much we'll be incrementing each X and Y by
+            float fIncX = 1.0f / iNumFramesX;
+            float fIncY = 1.0f / iNumFramesY;
+
+            // And start calculating them
+            for (int i = 0; i <= iNumFramesY; i++) {
+                // A V coordinate would be calculated as:
+                float fVCord = i * fIncY;
+
+                for (int j = 0; j <= iNumFramesX; j++) {
+                    // And a U coordinate would be calculated the same way, but with x
+                    float fUCord = j * fIncX;
+
+                    // Once we have a UV coordinate set we store it for later
+                    av2WorkingUVCoords[(i * iWidth) + j] = ImVec2(fUCord, fVCord);
+
+                }
+            }
+
+            // Because frames are numbered 1-n but vectors are index 0-n, we need an offset
+            // frame coordinate set that occupies the first index.
+            ImGuiUVSet* pOffsetCoord = new ImGuiUVSet(ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+            m_vv2ToggleTextureCoords.push_back(pOffsetCoord);
+
+            // Now that we have all our UV coordinates, we're going to assign them to frames
+            for (int p = 0; p <= iNumFramesY - 1; p++) {
+                for (int q = 0; q <= iNumFramesX - 1; q++) {
+                    int iOriginPoint = (p * iWidth) + q;
+
+                    // First we find the four UV coordinates that will be used to render this frame
+                    // and store them in a struct that holds four glm::vec2s
+                    ImGuiUVSet* pTexFrameCords = new ImGuiUVSet(av2WorkingUVCoords[iOriginPoint], av2WorkingUVCoords[iOriginPoint + iWidth + 1]);
+
+                    // Then we store 'em
+                    m_vv2ToggleTextureCoords.push_back(pTexFrameCords);
+                }
+            }
+
+            pNewTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+            m_pToggleTexture = pNewTexture;
+        }
+    }
+
+    // Display the closed button
+    m_iToggleButtonIndex = TOG_BUTTON_CLOSED;
+
+    // We need to fill the equipment array with nullptrs because we don't have anything equipped, yet
+    for (int i = 0; i < END_OF_EQUIPMENT; i++) {
+        m_pEquipment[i] = nullptr;
+    }
+
+    // We need to fill the schematics array with zeros because we don't have any schematics, yet
+    for (int j = 0; j < END_OF_RARITIES; j++) {
+        m_iSchematics[j] = 0;
+    }
+
+    // Start with exactly one common schematic
+    m_iSchematics[0] = 1;
+
+    // We also need to register for events related to the player's inventory
+    wolf::EventManager::AddListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
+    wolf::EventManager::AddListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
+    wolf::EventManager::AddListener<SellItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleSellItemToPlayerEvent>(*this);
+    wolf::EventManager::AddListener<PickupDroppedItemEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandlePickupDroppedItemEvent>(*this);
+    wolf::EventManager::AddListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
+    wolf::EventManager::AddListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
+    wolf::EventManager::AddListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
+    wolf::EventManager::AddListener<RemoveFromPlayerEquipmentEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerEquipmentEvent>(*this);
+}
+
 PlayerInventoryComponent::~PlayerInventoryComponent() {
     // Empty each of the stacks in the contents vector
     this->EmptyInventory();
@@ -17,6 +122,60 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
     wolf::EventManager::RemoveListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
     wolf::EventManager::RemoveListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
+    wolf::EventManager::RemoveListener<RemoveFromPlayerEquipmentEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerEquipmentEvent>(*this);
+}
+
+void PlayerInventoryComponent::ShowToggleButtonGUI() {
+    ImGuiStyle* pStyle = &ImGui::GetStyle();
+    pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
+
+    // You can't resize the inventory or move it
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground;
+
+    ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
+    ImVec2 v2ButtonDrawPos = {10.0f, v2DisplaySize.y - 100.0f};
+
+    // By default, the inventory appears close to the middle of the screen
+    ImGui::SetNextWindowPos(v2ButtonDrawPos);
+    ImGui::SetNextWindowSize({0,0});
+    ImGui::Begin("InventoryToggleButton", nullptr, flags);
+
+    // Get rid of ImGui's automatic button coloring so we can do it by swapping textures
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.f, 0.f, 0.f));
+
+    // Scale the button
+    ImVec2 v2ButtonSize = {m_v2TexFrameSize.x * 2.0f, m_v2TexFrameSize.y * 2.0f};
+
+    // Create the button
+    if (ImGui::ImageButton("InventoryToggleButton", (void*)(intptr_t)m_pToggleTexture->GetID(), v2ButtonSize, m_vv2ToggleTextureCoords[m_iToggleButtonIndex]->m_v2TopLeft, m_vv2ToggleTextureCoords[m_iToggleButtonIndex]->m_v2BotRight)) {
+        this->ToggleOpen();
+    }
+
+    // Update whether the image button is hovered or not
+    m_bToggleButtonHovered = ImGui::IsItemHovered();
+
+    // If we are hovering over the button
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+        if (m_bIsOpen) {
+            m_iToggleButtonIndex = TOG_BUTTON_OPEN_HOVER;
+        }
+        else {
+            m_iToggleButtonIndex = TOG_BUTTON_CLOSED_HOVER;
+        }
+    }
+    else {
+        if (m_bIsOpen) {
+            m_iToggleButtonIndex = TOG_BUTTON_OPEN;
+        }
+        else {
+            m_iToggleButtonIndex = TOG_BUTTON_CLOSED;
+        }
+    }
+
+    ImGui::PopStyleColor(3);
+    ImGui::End();
 }
 
 void PlayerInventoryComponent::ShowInventoryGUI() {
@@ -25,12 +184,35 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
         pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
 
         // You can't resize the inventory or move it
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
-        // By default, the inventory appears close to the middle of the screen
-        ImGui::SetNextWindowPos(m_v2DrawPos);
+        // Position the inventory
+        ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
+        ImVec2 v2WindowDrawPos = {10.0f, v2DisplaySize.y * 0.15f};
+        
+        ImGui::SetNextWindowPos(v2WindowDrawPos);
         ImGui::SetNextWindowSize({0,0});
         ImGui::Begin("~ Inventory ~", &m_bIsOpen, flags);
+
+        // Get the size of the window
+        ImVec2 v2WindowSize = ImGui::GetWindowSize();
+
+        // So that we can calculate how big the background image needs to be
+        ImVec2 v2BGMin = {v2WindowDrawPos.x, v2WindowDrawPos.y};
+        ImVec2 v2BGMax = {v2WindowDrawPos.x + v2WindowSize.x, v2WindowDrawPos.y + v2WindowSize.y};
+
+        // And then create the background image
+        ImGui::GetWindowDrawList()->AddImage((ImTextureID)(intptr_t)m_pFrameTexture->GetID(), v2BGMin, v2BGMax, m_vv2FrameTextureCoords[1]->m_v2TopLeft, m_vv2FrameTextureCoords[1]->m_v2BotRight);
+
+        // Newline for padding
+        ImGui::NewLine();
+
+        // Write the inventory title
+        float fWindowWidth = ImGui::GetWindowSize().x;
+        float fTextWidth = ImGui::CalcTextSize("~ Inventory ~").x;
+
+        ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
+        ImGui::Text("~ Inventory ~");
 
         // If we closed the inventory
         if (!m_bIsOpen) {
@@ -43,6 +225,13 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
         // We need to draw m_iSize number of slots
         for (int k = 0; k < m_iSize; k++) {
+            // If this is the first slot in this row
+            if (counter == 0) {
+                // Draw a single character for padding
+                ImGui::Text(" ");
+                ImGui::SameLine();
+            }
+
             // If there is an item (or stack of items as it were) in this slot
             if (!m_vvpContents[k].empty()) {
                 // We grab a reference to the top item and create a variable to hold the item's details
@@ -52,9 +241,6 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
                 // There are different rules for drawing Consumables and Equipment Items so we need to figure out
                 // what this particular item is before we go any further
-
-                // There's a chance we won't need this value but if we do then we need it to survive the if ID == EQUIPMENT scope
-                bool bIsEquipped = false;
 
                 // If this is a consumable item
                 if (pItem->GetID() == CONSUMABLE) {
@@ -78,12 +264,6 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     
                     // Then start constructing the string that will be used to display the item's name
                     strTooltipName = pEquipment->GetName();
-
-                    // If this item is equipped then we want to show that in the details string
-                    if (pEquipment->IsEquipped()) {
-                        strTooltipName += " (E)";
-                        bIsEquipped = true; // (And we'll need to remember that it's equipped later on)
-                    }
                     
                 }
                 else { // If for some reason this item isn't Consumable OR Equipment
@@ -94,10 +274,26 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 // so that we can create unique tooltips for each slot later
                 std::string strIndex = std::to_string(k);
 
-                // Now we can start making the actual buttons
-                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
+                // Push some style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 50.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.0f, 2.0f));
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
+                // Draw the actual button
+                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pItemsTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
                 }
+
+                // And then pop the vars
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(3);
                 
+                // Push the tooltip style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
                 // When we hover over an inventory slot
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     // We display the details string that we constructed earlier
@@ -115,12 +311,26 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     ImGui::EndTooltip();
                 }
 
+                // Pop the tooltip style vars and colors
+                ImGui::PopStyleVar(1);
+                ImGui::PopStyleColor(1);
+
                 // When we click on an inventory slot
                 if (ImGui::IsItemClicked()) {
-                    // We open a little pop-up menu
+
+                    // And then open a little pop-up menu
                     ImGui::OpenPopup(strIndex.c_str());
                 }
                 
+                // Push the pop-up style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 2.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
                 // The pop-up menu has different buttons based on what the item is and what "state" it's in
                 if (ImGui::BeginPopup(strIndex.c_str())) {
                     if (pItem->GetID() == CONSUMABLE) { // If the item is Consumable
@@ -131,19 +341,10 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                         }
                     }
                     else if (pItem->GetID() == EQUIPMENT) { // If the item is a piece of Equipment
-                        if (!bIsEquipped) { // We need to know if it is equipped
-                            // If it isn't, we need to be able to put it on
-                            if (ImGui::Button("Equip")) {
-                                this->EquipItem(pItem, k);
-                                ImGui::CloseCurrentPopup();
-                            }
-                        }
-                        else {
-                            // And if it IS equipped, we need to be able to take it off
-                            if (ImGui::Button("Unequip")) {
-                                this->UnequipItem(pItem);
-                                ImGui::CloseCurrentPopup();
-                            }
+                        // We need to be able to equip it
+                        if (ImGui::Button("Equip")) {
+                            this->EquipItem(pItem, k);
+                            ImGui::CloseCurrentPopup();
                         }
                     }
 
@@ -194,17 +395,195 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     }
                     ImGui::EndPopup();
                 }
+
+                // Pop the pop-up style vars and colors
+                ImGui::PopStyleVar(1);
+                ImGui::PopStyleColor(5);
+
             }
             else { // Otherwise, this is an empty inventory slot
-                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
+                // Push some style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 50.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.0f, 2.0f));
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
+                // Draw the button
+                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pItemsTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
 
                 }
+
+                // And pop the style vars and colors
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(3);
             }
 
             // If we've drawn the maximum number of slots per row
             if (counter == m_iMaxPerRow - 1) {
                 // Reset the counter
                 counter = 0;
+
+                // And draw a single character for padding
+                ImGui::SameLine();
+                ImGui::Text(" ");
+            }
+            else {
+                // Otherwise, this slot needs to be drawn on the same line as the last one
+                ImGui::SameLine();
+                counter++;
+            }
+        }
+
+        // Reset the counter because we're moving on to a new section of the inventory
+        counter = 0;
+
+        // Draw the equipped items
+        fTextWidth = ImGui::CalcTextSize("Equipment").x;
+        ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
+        ImGui::Text("Equipment");
+
+        for (int t = 0; t < END_OF_EQUIPMENT; t++) {
+            // If this is the first slot in this row
+            if (counter == 0) {
+                // Draw a single character for padding
+                ImGui::Text(" ");
+                ImGui::SameLine();
+            }
+
+            // Get the item equipped in this slot
+            EquipmentItem* pEquipItem = m_pEquipment[t];
+
+            // If there is an item equipped in the slot
+            if (pEquipItem) {
+                // Get the name and item details
+                std::string strEquipName = pEquipItem->GetName();
+                std::string strEquipTooltip = pEquipItem->GetToolTipText();
+
+                // Push some style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 50.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.0f, 2.0f));
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
+                // Draw the inventory slot
+                if (ImGui::ImageButton("Equipment Slot", (void*)(intptr_t)m_pItemsTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[pEquipItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2ItemTextureCoords[pEquipItem->GetTextureFrameIndex()]->m_v2BotRight)) {
+                }
+
+                // Pop the style vars and colors
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(3);
+
+                // Same as a regular item, when we hover over an equipment slot we display the item's details in a tooltip
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    // We display the details string that we constructed earlier
+                    ImGui::BeginTooltip();
+
+                    // Display the item name in the color that corresponds to its rarity level
+                    RGBIntColor equipNameColor = RarityColors[pEquipItem->GetRarity()];
+                    ImGui::TextColored(ImColor(equipNameColor.r, equipNameColor.g, equipNameColor.b), "%s", strEquipName.c_str());
+
+                    // Display the item's description
+                    ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + TOOLTIP_WRAP_POS);
+                    ImGui::TextWrapped("%s", strEquipTooltip.c_str());
+                    ImGui::PopTextWrapPos();
+
+                    ImGui::EndTooltip();
+                }
+
+                // We need a way for ImGui to differientiate between equipment slots so we make an id string
+                std::string strPopUpID = "E:" + std::to_string(t);
+
+                // When we click on an equipped item
+                if (ImGui::IsItemClicked()) {
+                    // We open a little pop-up menu
+                    ImGui::OpenPopup(strPopUpID.c_str());
+                }
+                
+                // The pop-up menu has different buttons based on what "state" the game is in
+                if (ImGui::BeginPopup(strPopUpID.c_str())) {
+                    // We can unequip items
+                    if (ImGui::Button("Unequip")) {
+                        this->UnequipItem(pEquipItem);
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    // If we currently have a chest open
+                    if (m_iOpenChestIdNum != -1) {
+                        // Then we need to be able to move items into it
+                        if (ImGui::Button("Store")) {
+                            // We move items by sending an event to the open chest
+                            // !-- Note that we send along the "index" or slot that the item is equipped at and a flag
+                            // indicating that the item is/was equipped--!
+                            wolf::EventManager::TriggerEvent(SendItemToChestEvent(m_iOpenChestIdNum, pEquipItem, t, true));
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+
+                    // If we are currently talking to a merchant
+                    if (m_iOpenMerchantIdNum != -1) {
+                        // The we need to be able to sell items to them
+                        if (ImGui::Button("Sell")) {
+                            // We sell an item by sending an event to the merchant we're talking to
+                            // !-- Note that we send along the "index" or slot that the item is equipped at and a flag
+                            // indicating that the item is/was equipped--!
+                            wolf::EventManager::TriggerEvent(SellItemToMerchantEvent(m_iOpenMerchantIdNum, pEquipItem, t, true));
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+
+                    // We can drop equipment
+                    if (ImGui::Button("Drop")) {
+                        wolf::Transform2D* pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
+                        if (pTransform) {
+                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pEquipItem, pTransform->GetGlobalPosition(), 5.0f);
+                        }
+                        this->RemoveEquippedItem(pEquipItem->GetEquipmentSlot());
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    // We can discard equipment
+                    if (ImGui::Button("Discard")) {
+                        this->DiscardEquipment(pEquipItem->GetEquipmentSlot());
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    // And we can close the pop-up menu whenever we like
+                    if (ImGui::Button("Close")) {
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
+                }
+            }
+            else { // Otherwise, this slot is empty
+                // Push some style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 50.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.0f, 2.0f));
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
+                // Draw the button
+                if (ImGui::ImageButton("Empty Equipment Slot", (void*)(intptr_t)m_pItemsTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
+                }
+
+                // Pop the style vars and colors
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(3);
+            }
+
+            // If we've drawn the maximum number of slots per row
+            if (counter == m_iMaxPerRow - 1) {
+                // Reset the counter
+                counter = 0;
+
+                // Draw a single character for padding
+                ImGui::SameLine();
+                ImGui::Text(" ");
             }
             else {
                 // Otherwise, this slot needs to be drawn on the same line as the last one
@@ -214,7 +593,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
         }
 
         // Iterate through the schematic counters
-        ImGui::Text("Schematics:");
+        ImGui::Text("  Schematics:");
         for (int p = 0; p < END_OF_RARITIES; p++) {
             // Retrieve the color associated with this rarity
             RGBIntColor color = RarityColors[p];
@@ -224,12 +603,16 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             ImGui::TextColored(ImColor(color.r, color.g, color.b), "%d", m_iSchematics[p]);
         }
 
-        // Draw the player's gold value
-        ImGui::Text("Gold:");
+        // Then draw a single character for padding
         ImGui::SameLine();
-        ImGui::TextColored(ImColor(255, 215, 0), "%d", m_iGold); // in gold (ha)
+        ImGui::Text(" ");
 
-        ImVec2 v2MainWindowSize = ImGui::GetWindowSize();
+        // Draw the player's gold value
+        ImGui::Text("  Gold:");
+        ImGui::SameLine();
+        ImGui::TextColored(ImColor(255, 215, 0), "%d ", m_iGold); // in gold (ha)
+
+        ImGui::NewLine();
 
         // End of window
         ImGui::End();
@@ -239,10 +622,20 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             // You can't resize the window or move it
             ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
+            // Push the message style vars and colors
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
+            float fMessageWidth = ImGui::CalcTextSize("Your inventory is full.").x;
+
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({m_v2DrawPos.x - v2MainWindowSize.x / 2.0f, m_v2DrawPos.y + v2MainWindowSize.y / 2.0f});
+            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f - (fMessageWidth / 2.0f), v2DisplaySize.y * 0.45f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Inventory Is Full Prompt", nullptr, flags);
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
             // Show a message asking the player if they are okay with selling the item for less than its value
             ImGui::Text("Your inventory is full.");
@@ -255,6 +648,11 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 // Close this prompt and process the sale
                 m_bShowFullInventoryPrompt = false;
             }
+
+            // Pop the style vars and colors
+            ImGui::PopStyleVar(1);
+            ImGui::PopStyleColor(4);
+
             ImGui::End();
         }
 
@@ -263,10 +661,20 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             // You can't resize the window or move it
             ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
+            // Push the message style vars and colors
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
+            float fTooExpensiveWidth = ImGui::CalcTextSize("You don't have enough gold to buy that.").x;
+
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({m_v2DrawPos.x - v2MainWindowSize.x / 4.0f, m_v2DrawPos.y + v2MainWindowSize.y / 4.0f});
+            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f - (fTooExpensiveWidth / 2.0f), v2DisplaySize.y * 0.45f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Too Expensive Prompt", nullptr, flags);
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
             // Show a message asking the player if they are okay with selling the item for less than its value
             ImGui::Text("You don't have enough gold to buy that.");
@@ -279,6 +687,11 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 // Close this prompt and process the sale
                 m_bShowTooExpensivePrompt = false;
             }
+
+            // Pop the message style vars and colors
+            ImGui::PopStyleVar(1);
+            ImGui::PopStyleColor(4);
+
             ImGui::End();
         }
 
@@ -287,10 +700,20 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
             // You can't resize the window or move it
             ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
 
+            // Push the message style vars and colors
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
+            float fMissingSchematicWidth = ImGui::CalcTextSize("You don't have a schematic to trade for that.").x;
+
             // By default, the prompt appears close to the middle of the screen
-            ImGui::SetNextWindowPos({m_v2DrawPos.x - v2MainWindowSize.x / 4.0f, m_v2DrawPos.y + v2MainWindowSize.y / 4.0f});
+            ImGui::SetNextWindowPos({v2DisplaySize.x * 0.5f - (fMissingSchematicWidth / 2.0f), v2DisplaySize.y * 0.45f});
             ImGui::SetNextWindowSize({0, 0});
             ImGui::Begin("Missing Schematic Prompt", nullptr, flags);
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
             // Show a message asking the player if they are okay with selling the item for less than its value
             ImGui::Text("You don't have a schematic to trade for that.");
@@ -303,6 +726,11 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 // Close this prompt and process the sale
                 m_bShowMissingSchematicPrompt = false;
             }
+
+            // Pop style vars and colors
+            ImGui::PopStyleVar(1);
+            ImGui::PopStyleColor(4);
+
             ImGui::End();
         }
     }
@@ -330,18 +758,25 @@ void PlayerInventoryComponent::EquipItem(ItemBase* p_pItem, int p_iItemIndex) {
             return; // Just return
         }
 
-        // First we need to figure out if there is already something equipped in the slot
-        // that the item we're trying to equip corresponds to
-        int iPrevItemIndex = m_iEquipmentSlots[pEquipment->GetEquipmentSlot()];
+        // When we equip an item we take it out of the "main" inventory and
+        // store it in a "sub-inventory" that is just for equipped items
+        this->RemoveItem(p_iItemIndex);
 
-        // If there is, the index will be a positive integer (or zero)
-        if (iPrevItemIndex >= 0) {
-            // So we need to retrieve and then unequip the item at that index
-            this->UnequipItem(this->GetItem(iPrevItemIndex));
+        // Before we can do that, though, we need to check if there is already
+        // something equipped in the slot that the item equips into
+        EquipmentItem* pPrevItem = m_pEquipment[pEquipment->GetEquipmentSlot()];
+
+        // If there is,
+        if (pPrevItem) {
+            // We need to unequip that item
+            pPrevItem->SetEquipped(false);
+
+            // And add it back into the player's inventory
+            this->AddItem(pPrevItem);
         }
 
-        // Then we can store the index of the newly equipped item
-        m_iEquipmentSlots[pEquipment->GetEquipmentSlot()] = p_iItemIndex;
+        // Then we can store the new item in corresponding equipment slot
+        m_pEquipment[pEquipment->GetEquipmentSlot()] = pEquipment;
 
         // And let the item know it has been equipped
         pEquipment->SetEquipped(true);
@@ -356,35 +791,62 @@ void PlayerInventoryComponent::UnequipItem(ItemBase* p_pItem) {
             return; // Just return
         }
 
-        // Figure out which slot this item equips into and "empty" that slot by setting it to an invalid index
-        m_iEquipmentSlots[pEquipment->GetEquipmentSlot()] = -1;
+        // Because equipped items are stored in a sub-inventory,
+        // we can only unequip something if we have space to hold it
+        if (this->AddItem(m_pEquipment[pEquipment->GetEquipmentSlot()])) {
+            // If the item was added back into the main inventory successfully, we "empty" the sub-inventory slot
+            m_pEquipment[pEquipment->GetEquipmentSlot()] = nullptr;
 
-        // Then let the item know it's been unequipped
-        pEquipment->SetEquipped(false);
+            // And let the item know it's been unequipped
+            pEquipment->SetEquipped(false);
+        }
+        else {
+            // Otherwise, we want to let the player know that their inventory is too full to unequip the item
+            m_bShowFullInventoryPrompt = true;
+        }
     }
 }
 
 // This is a wrapper for GetItem that retrieves whichever item in the inventory is equipped
 // in a given equipment slot, or nullptr if there is no item currently equipped in that slot
 ItemBase* PlayerInventoryComponent::GetEquippedItem(EquipmentSlot p_enSlot) {
-    return GetItem(m_iEquipmentSlots[p_enSlot]);
+    return m_pEquipment[p_enSlot];
+}
+
+// This method DOES NOT delete the equipped item.
+// If you want to delete the item, retrieve it first using GetEquippedItem()
+void PlayerInventoryComponent::RemoveEquippedItem(EquipmentSlot p_enSlot) {
+    // If there is an item equipped in this slot
+    if (m_pEquipment[p_enSlot]) {
+        // Unequip it and "empty" the slot by setting it to nullptr
+        m_pEquipment[p_enSlot]->SetEquipped(false);
+        m_pEquipment[p_enSlot] = nullptr;
+    }
 }
 
 void PlayerInventoryComponent::DiscardItem(int p_iItemIndex) {
     // First find the item we want to discard
     ItemBase* pItem = m_vvpContents[p_iItemIndex].top();
 
-    // If it is an equipment item
-    if (pItem->GetID() == EQUIPMENT) {
-        // We need to make sure it is unequipped
-        this->UnequipItem(pItem);
-    }
-
-    // Then we can remove it from the inventory
+    // Then remove it from the inventory
     this->RemoveItem(p_iItemIndex);
 
     // And delete it!
     delete pItem;
+}
+
+void PlayerInventoryComponent::DiscardEquipment(EquipmentSlot p_enSlot) {
+    // Get the item that we want to discard
+    EquipmentItem* pEquipment = m_pEquipment[p_enSlot];
+
+    // Unequip it
+    pEquipment->SetEquipped(false);
+
+    // Empty the slot it was just in
+    m_pEquipment[p_enSlot] = nullptr;
+
+    // And delete it!
+    delete pEquipment;
 }
 
 void PlayerInventoryComponent::AddGold(int p_iAmt) {
@@ -473,10 +935,12 @@ void PlayerInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEve
     if (p_event.enType == CHEST_INVENTORY && p_event.iIdNum == m_iOpenChestIdNum) {
         // Then we can safely discard the id number because we're done moving items between the two inventories
         m_iOpenChestIdNum = -1;
+        m_bIsOpen = false;
     }
     else if (p_event.enType == MERCHANT_INVENTORY && p_event.iIdNum == m_iOpenMerchantIdNum) {
         // We do the same with merchant inventories
         m_iOpenMerchantIdNum = -1;
+        m_bIsOpen = false;
     }
 }
 
@@ -552,7 +1016,16 @@ void PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent(const Remove
         this->RemoveItem(p_event.strItemName);
     }
 
-    // If we were removing the item because we sold it to someone, then we'll want to add the amount we sold it for
+    // If we we're removing the item because we sold it to someone, then we'll want to add the amount we sold it for
+    // to our wallet. (If we didn't sell the item this is technically a pointless function call)
+    this->AddGold(p_event.iItemSoldFor);
+}
+
+void PlayerInventoryComponent::HandleRemoveFromPlayerEquipmentEvent(const RemoveFromPlayerEquipmentEvent& p_event) {
+    // Call the remove method for equipped items
+    this->RemoveEquippedItem(static_cast<EquipmentSlot>(p_event.iEquipSlot));
+
+    // If we we're removing the item because we sold it to someone, then we'll want to add the amount we sold it for
     // to our wallet. (If we didn't sell the item this is technically a pointless function call)
     this->AddGold(p_event.iItemSoldFor);
 }

@@ -117,31 +117,80 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
         }
 
         // You can't resize the inventory but you can move it around!
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar;
+
+        // Position the inventory
+        ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
+        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.15f};
 
         // By default, the inventory appears close to the middle of the screen
-        ImGui::SetNextWindowPos(m_v2DrawPos);
+        ImGui::SetNextWindowPos(v2WindowDrawPos);
         ImGui::SetNextWindowSize({0, 0});
         ImGui::Begin("~ Dispensary ~", nullptr, flags);
+
+        // Get the size of the window
+        ImVec2 v2WindowSize = ImGui::GetWindowSize();
+
+        // So that we can calculate how big the background image needs to be
+        ImVec2 v2BGMin = {v2WindowDrawPos.x, v2WindowDrawPos.y};
+        ImVec2 v2BGMax = {v2WindowDrawPos.x + v2WindowSize.x, v2WindowDrawPos.y + v2WindowSize.y};
+
+        // And then create the background image
+        ImGui::GetWindowDrawList()->AddImage((ImTextureID)(intptr_t)m_pFrameTexture->GetID(), v2BGMin, v2BGMax, m_vv2FrameTextureCoords[1]->m_v2TopLeft, m_vv2FrameTextureCoords[1]->m_v2BotRight);
+
+        // Newline for padding
+        ImGui::NewLine();
+
+        // Write the inventory title
+        float fWindowWidth = ImGui::GetWindowSize().x;
+        float fTextWidth = ImGui::CalcTextSize("~ Daedalus Dispensary ~").x;
+
+        ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
+        ImGui::Text("~ Daedalus Dispensary ~");
+
+        RGBIntColor color = RarityColors[COMMON];
 
         // Go through the list of rarities
         for (int i = 0; i < END_OF_RARITIES; i++) {
             // Each time we start a new rarity, create a new UI section beneath the rarity
             switch(i) {
-                case COMMON:
-                    ImGui::SeparatorText("COMMON");
+                case COMMON:;
+                    // Retrieve the color associated with this rarity
+                    color = RarityColors[COMMON];
+
+                    // And draw the counter's value in that color
+                    ImGui::TextColored(ImColor(color.r, color.g, color.b), "  COMMON");
+
+                    ImGui::Text(" ");
+                    ImGui::SameLine();
                 break;
                 case UNCOMMON:
-                    ImGui::SeparatorText("UNCOMMON");
+                    color = RarityColors[UNCOMMON];
+                    ImGui::TextColored(ImColor(color.r, color.g, color.b), "  UNCOMMON");
+
+                    ImGui::Text(" ");
+                    ImGui::SameLine();
                 break;
                 case RARE:
-                    ImGui::SeparatorText("RARE");
+                    color = RarityColors[RARE];
+                    ImGui::TextColored(ImColor(color.r, color.g, color.b), "  RARE");
+
+                    ImGui::Text(" ");
+                    ImGui::SameLine();
                 break;
                 case EPIC:
-                    ImGui::SeparatorText("EPIC");
+                    color = RarityColors[EPIC];
+                    ImGui::TextColored(ImColor(color.r, color.g, color.b), "  EPIC");
+
+                    ImGui::Text(" ");
+                    ImGui::SameLine();
                 break;
                 case LEGENDARY:
-                    ImGui::SeparatorText("LEGENDARY");
+                    color = RarityColors[LEGENDARY];
+                    ImGui::TextColored(ImColor(color.r, color.g, color.b), "  LEGENDARY");
+
+                    ImGui::Text(" ");
+                    ImGui::SameLine();
                 break;
             }
 
@@ -169,9 +218,25 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 strTooltipName = pEquipment->GetName();
                 std::string strIndex = std::to_string(index);
 
+                // Push some style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 50.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.0f, 2.0f));
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
                 // Then we make a button (UI inventory slot) for the item
-                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
+                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pItemsTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
                 }
+
+                // And then pop the vars
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(3);
+
+                // Push the tooltip style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
                     
                 // When we hover over an inventory slot
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
@@ -188,7 +253,19 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                     ImGui::PopTextWrapPos();
 
                     ImGui::EndTooltip();
+
+                    // Set the child's animation to be the item's icon
+                    for (auto& child : this->GetGameObject()->GetChildren()) {
+                        AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                        if (anim) {
+                            anim->SetAnimation(std::to_string(pItem->GetTextureFrameIndex()).c_str());
+                        }
+                    }
                 }
+
+                // Pop the tooltip style vars and colors
+                ImGui::PopStyleVar(1);
+                ImGui::PopStyleColor(1);
 
                 // When we click on an inventory slot
                 if (ImGui::IsItemClicked()) {
@@ -196,6 +273,15 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                     ImGui::OpenPopup(strIndex.c_str());
                 }
                         
+                // Push the pop-up style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 2.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
                 // The pop-up menu has different buttons based on what the item is and what "state" it's in
                 if (ImGui::BeginPopup(strIndex.c_str())) {
                     if (ImGui::Button("Trade")) {
@@ -210,6 +296,10 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                     ImGui::EndPopup();
                 }
 
+                // Pop the pop-up style vars and colors
+                ImGui::PopStyleVar(1);
+                ImGui::PopStyleColor(5);
+
                 // If we've drawn the maximum number of slots per row
                 if (counter == m_iMaxPerRow - 1) {
                     // Reset the counter
@@ -222,16 +312,32 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 }
             }
 
+            // Push some style vars and colors for the empty buttons
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 50.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.0f, 2.0f));
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
             // We want to make sure that the rows of items in the dispensary are uniform even if we have different numbers of items
             // at each rarity level, so if a rarity level doesn't use an entire row we fill the remaining space with empty slots
             for (int p = counter; p != m_iMaxPerRow; p++) {
-                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {}
+                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pItemsTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2ItemTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {}
                 ImGui::SameLine();
             }
 
-            // Then we start a new line for the next rarity level
-            ImGui::NewLine();
+            // Draw a newline character for padding
+            ImGui::Text(" ");
+
+            // And pop the style vars and colors
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(3);
         }
+
+        // Draw a newline for padding
+        ImGui::Text(" ");
+        ImGui::NewLine();
 
         ImGui::End();
     }
@@ -254,13 +360,13 @@ void DispensaryInventoryComponent::DispenseItem(int p_iItemIndex) {
 void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
     // If this dispensary is open
     if (m_bIsOpen) {
-        // And a different dispensary was just opened
-        if (p_event.enType == DISPENSARY_INVENTORY && p_event.iIdNum != m_iIdNum) {
+        // And a different inventory that ISN'T the player's was just opened
+        if (p_event.enType != PLAYER_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
             m_bIsOpen = false;
             AnimatedSprite2D* pAnim = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
             if (pAnim) {
-                pAnim->SetAnimation("Inactive");
+                pAnim->SetAnimation("Deactivate");
             }
         }
     }
@@ -275,7 +381,15 @@ void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventor
             m_bIsOpen = false;
             AnimatedSprite2D* pAnim = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
             if (pAnim) {
-                pAnim->SetAnimation("Inactive");
+                pAnim->SetAnimation("Deactivate");
+            }
+
+            // Hide the child icon
+            for (auto& child : this->GetGameObject()->GetChildren()) {
+                AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                if (anim) {
+                    anim->SetAnimation("Transparent");
+                }
             }
         }
     }

@@ -6,6 +6,7 @@
 // A class that's responsible for the Concrete Play State.
 //-----------------------------------------------------------------------------
 #pragma once
+#include "glm_hash.h"
 #include "GameState.h"
 #include <theseus.h> // Include the main game class
 #include <W_Sprite2D.h>
@@ -16,7 +17,7 @@
 #include "../inventory/StatusEffectItem.h"
 #include "../inventory/ItemCreator.h"
 #include "../inventory/ItemDropCreator.h"
-#include "../events/DialogueTriggerEvent.h"
+#include "../events/DialogueAndCutsceneEvent.h"
 #include "../ColliderManager.h"
 #include "../DialogueManager.h"
 #include "events/TriggerEvent.h"
@@ -29,6 +30,8 @@
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
 
+#include <unordered_map>
+#include <unordered_set>
 
 
 class LabyrinthManager;
@@ -48,11 +51,9 @@ public:
     void Render() override;
     void BackgroundUpdate(float delta) override;
     void BackgroundRender() override;
-    void OnDialogueTriggerEvent(const DialogueTriggerEvent& event);
+    void OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
-    void OnCutsceneTriggerEvent(const TriggerEvent& event);  // Listener for cutscene trigger
-
-
+    std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}
 
 private:
     
@@ -67,9 +68,12 @@ private:
     // Flags
     bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;
+    bool m_noClip = false;
+
+    // Location to spawn player when bossfight starts
+    glm::vec2 m_bossfightPlayerPos;
 
     // Private helper methods
-    void StartDialogue(const std::string& dialogueID);
     void ConvertPlayerTileToGold();
 
     // Creates the player object and all of its components
@@ -79,14 +83,26 @@ private:
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
     void CreateGorgonEnemy();
+    void CreateTrappedChest();
 
-    // Creates a pressure plate with specified position, trigger type, trap damage, lifespan, and offset.
-    void CreatePressurePlate(const glm::vec2& position, TriggerType triggerType);
+
     void CreateThrowableObject();
+    wolf::GameObject& CreateSpikeTrap(const glm::vec2& position);
+    wolf::GameObject& CreateBoulderTrap(const glm::vec2& position);
 
     void OnGameOverEvent(const GameOverEvent& event);
 
+   // TO DO: New Helper Methods for BoulderTrap
+
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);
-    void StartCutscene(const std::string& cutsceneID);
+
+    void RenderMinimap();
+
+    std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
+
+    std::unordered_set<glm::ivec2> m_visitedChunks; // Track visited chunks
+    bool m_isMapExpanded = false;                  // Toggle for expanded map
+    
+
 };

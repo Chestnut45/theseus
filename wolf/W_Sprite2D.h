@@ -62,11 +62,12 @@ public:
     const glm::vec3& GetTint() const { return m_tint; }
 
     // Set the layer of this sprite
-    // 0 is the topmost layer
-    // NOTE: Unused yet, will require the rendering system to iterate
-    // the used layers or use depth testing to sort the sprites.
+    // 0 is the bottommost layer
     void SetLayer(int layer) { m_layer = layer; }
     int GetLayer() const { return m_layer; }
+
+    bool IsVisible() const { return m_visible; }
+    void SetVisibility(bool visible) { m_visible = visible; }
 
     // Draw the sprite at the given position, rotation, and scale in world space
     // Multiplies final pixel color by provided tint color
@@ -91,8 +92,10 @@ private:
     glm::vec3 m_tint{1.0f};
 
     // The layer of the sprite
-    // Topmost layer is 0
+    // Bottommost layer is 0
     int m_layer = 0;
+
+    bool m_visible = true;
 
     // Static resources shared by all sprites
     static inline wolf::Program* s_pProgram = nullptr;

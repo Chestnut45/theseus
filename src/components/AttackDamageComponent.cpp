@@ -6,6 +6,11 @@
 
 #include "AttackDamageComponent.h"
 #include "ColliderComponent.h"
+#include "TimedDestroyerComponent.h"
+#include "EnemyController.h"
+#include "GorgonController.h"
+#include "HarpyController.h"
+#include "MinitaurController.h"
 
 AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects)
 {
@@ -49,14 +54,18 @@ void AttackDamageComponent::Update(float p_dt)
     wolf::Transform2D* thisTransform = thisObject->GetComponent<wolf::Transform2D>();
 
 
+    // If collider of this object is HurtboxDD
     if (thisCollider != nullptr && thisCollider->IsHurtboxDamageDealer())
     {
         for (auto&&[thatID, thatHealth, thatCollider] : this->GetGameObject()->GetScene().Each<HealthComponent, ColliderComponent>())
         {
+            // If collider of that object is HurtboxDR
             if (thatCollider.IsActive() && thatCollider.IsHurtboxDamageReceiver())
             {
+                // If colliders colliding
                 if (this->m_pColliderManager->IsColliding(*thisCollider, thatCollider, p_dt))
-                { 
+                {
+                    // Deal damage
                     thatHealth.Damage(m_fDamage);
                     
                     wolf::GameObject* thatObject = thatHealth.GetGameObject();
@@ -88,6 +97,41 @@ void AttackDamageComponent::Update(float p_dt)
                                 thatTransform->GetGlobalPosition() - thisTransform->GetGlobalPosition()
                             );
                             velocityComponent->ApplyKnockback(knockbackDirection, m_knockbackMagnitude);
+                        }
+                    }
+                    
+                    // Deactivate collider and add a timed destroyer component to the object
+                    // NOTE: A delayed destruction is used to ensure AOE attacks can affect all targets
+                    // in a single frame instead of immediately deleting the object on first contact.
+                    // Maybe this should be configurable in the future as a DamageType enum or similar?
+                    thisCollider->SetActive(false);
+
+                    // If another destroyer exists, this one should take precedence since it's for 0 frames
+                    thisObject->DeleteComponent<TimedDestroyerComponent>();
+                    thisObject->AddComponent<TimedDestroyerComponent>(0, true);
+
+                    // Stun target
+                    if(thatObject->HasAny<GorgonController, HarpyController, MinitaurController>())
+                    {
+                        GorgonController* gorgonController = thatObject->GetComponent<GorgonController>();
+                        if(gorgonController != nullptr)
+                        {
+                            gorgonController->ChangeState(EnemyController::EnemyState::STUNNED);
+                            return;
+                        }
+
+                        MinitaurController* minitaurController = thatObject->GetComponent<MinitaurController>();
+                        if(minitaurController != nullptr)
+                        {
+                            minitaurController->ChangeState(EnemyController::EnemyState::STUNNED);
+                            return;
+                        }
+
+                        HarpyController* harpyController = thatObject->GetComponent<HarpyController>();
+                        if(harpyController != nullptr)
+                        {
+                            harpyController->ChangeState(EnemyController::EnemyState::STUNNED);
+                            return;
                         }
                     }
                 }

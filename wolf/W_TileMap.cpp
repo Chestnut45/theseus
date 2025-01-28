@@ -260,7 +260,7 @@ void TileMap::SetTile(int x, int y, int tileID)
 
 void TileMap::Clear(int tile)
 {
-    // Set every tile to -1
+    // Set every tile
     m_tileGrid.Clear(tile);
 
     // Update flag

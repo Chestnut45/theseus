@@ -18,10 +18,10 @@
 
 struct SpriteAnimation2D {
     SpriteAnimation2D(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_v2FrameSize, int p_iStartFrame, int p_iEndFrame, const glm::vec2& p_v2Origin, bool p_bLoop, const std::string& p_strNextAnimName) :
-    m_strName(p_strName), m_strTexturePath(p_strTexturePath), m_v2FrameSize(p_v2FrameSize), m_iStartFrame(p_iStartFrame), m_iEndFrame(p_iEndFrame), m_v2Origin(p_v2Origin), m_bLoop(p_bLoop), m_strNextAnimName(p_strNextAnimName){};
+    m_strName(p_strName), m_strItemsTexturePath(p_strTexturePath), m_v2FrameSize(p_v2FrameSize), m_iStartFrame(p_iStartFrame), m_iEndFrame(p_iEndFrame), m_v2Origin(p_v2Origin), m_bLoop(p_bLoop), m_strNextAnimName(p_strNextAnimName){};
     
     std::string m_strName;  // What is this an animation of?
-    std::string m_strTexturePath; // What is the texture this animation draws from?
+    std::string m_strItemsTexturePath; // What is the texture this animation draws from?
 
     glm::vec2 m_v2FrameSize;
     glm::vec2 m_v2Origin{0.0f};
@@ -46,7 +46,15 @@ struct FrameUVCoordSet {
 
 class AnimatedSprite2D : public wolf::BaseComponent {
     public:
-        
+
+        enum SpecialEffectsType
+        {
+            GRAYSCALE,
+            WHITE,
+            MULTITEX_PETRIFIED,
+            NONE
+        };
+
         // Creates an animated sprite component from a yaml config file (new API)
         AnimatedSprite2D(const std::string& p_strPathToInit);
 
@@ -108,10 +116,28 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         bool IsVisible() const { return m_visible; }
         inline void SetVisibility(bool visible) { m_visible = visible; }
 
+        // Set the layer of this sprite
+        // 0 is the bottommost layer
+        void SetLayer(int layer) { m_layer = layer; }
+        int GetLayer() const { return m_layer; }
+
         // Draw the sprite at the given position, rotation, and scale in world space
         // Multiplies final pixel color by provided tint color
         // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
         void Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint = glm::vec3(-1.0f));
+
+        //-----------------//
+        //                 //
+        //  Added by Nhật  //
+        //                 //
+        //-----------------//
+        
+        void SetAnimPaused(bool p_bPaused){m_bIsAnimPaused = p_bPaused;};
+        // Set duration to be negative for infinite duration
+        // Fade-ins/Fade-outs will be disrupted if another SetSpecialEffects() calls happens before they are finished
+        void SetSpecialEffects(SpecialEffectsType p_spe_type, float p_gradual_in = 0.0f, float p_se_duration = -1.0f, float p_gradual_out = 0.0f);
+        void UpdateShaders();
+        void BindUniformsAndTextures(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint);
 
     private:
         bool SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize);
@@ -134,6 +160,10 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         // Tint color of the animated sprite
         glm::vec3 m_tint{1.0f};
 
+        // The layer of the sprite
+        // Bottommost layer is 0
+        int m_layer = 0;
+
         float m_fPlaybackSpeed; // How fast is the animation playing?
         float m_fCurrentFrame; // Which animation frame are we currently on?
         float m_fLastFrame = 0.0f; // Which animation frame were we on last Update
@@ -150,6 +180,21 @@ class AnimatedSprite2D : public wolf::BaseComponent {
 
         glm::vec2 m_v2FrameSize; // This vector represents the size of a single animation frame in a spritesheet
 
+        //-----------------//
+        //                 //
+        //  Added by Nhật  //
+        //                 //
+        //-----------------//
+        // Bool for pausing animations & special effects
+        bool m_bIsAnimPaused = false;
+        SpecialEffectsType m_specialEffectsType = SpecialEffectsType::NONE;
+        float m_fGradualFadeInTime = 0.0f;
+        float m_fGradualFadeInTimer = 0.0f;
+        float m_fGradualFadeOutTime = 0.0f;
+        float m_fGradualFadeOutTimer = 0.0f;
+        float m_fSEDurationTime = 0.0f;  // Duration in which the special effect is in full effect: after the fade-in and before the fade-out
+        float m_fSEDurationTimer = 0.0f;
+
         static const float m_arBaseVertexData[]; // Array to hold geometry and base UV coordinates for all AnimatedSprite2Ds
 
         // Array to hold the geometry and UV coordinates that we'll be sub-buffering to the Vertex Buffer when we change frames
@@ -162,6 +207,24 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         static inline wolf::VertexBuffer* s_pVertexBuffer = nullptr;
         static inline wolf::IndexBuffer* s_pIndexBuffer = nullptr;
         static inline wolf::VertexDeclaration* s_pVAO = nullptr;
+        
+        //-----------------//
+        //                 //
+        //  Added by Nhat  //
+        //                 //
+        //-----------------//
+        static inline std::vector<wolf::Texture*> s_vMasks;
+        static inline wolf::Program* s_pMultitexProgram = nullptr;
+        static inline wolf::Program* s_pMultitexPetrifiedProgram = nullptr;
+
+        //-----------------//
+        //                 //
+        //  Added by Nhật  //
+        //                 //
+        //-----------------//
+        static inline wolf::Program* s_pCurrentProgram = nullptr;
+        static inline wolf::Program* s_pGrayscaleProgram = nullptr;
+        static inline wolf::Program* s_pWhiteProgram = nullptr;
 
         // Reference counting helper
         static void IncreaseReferences();

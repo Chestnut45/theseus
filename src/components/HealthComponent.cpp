@@ -7,12 +7,15 @@
 #include "HealthComponent.h"
 #include "PlayerInventoryComponent.h"
 #include "../inventory/ArmourItem.h"
+#include <DamageEvent.h>
+#include <W_EventManager.h>
 
 // Constructor for custom health
 HealthComponent::HealthComponent(int p_health)
 {
     this->m_health = p_health;
     this->m_cap = p_health;
+    this->m_vDamageIndicators = {};
 
     // Add Listeners for the healing events related to items
     wolf::EventManager::AddListener<PercentHealthItemEvent, HealthComponent, &HealthComponent::HandlePercentHealthItemEvent>(*this);
@@ -31,6 +34,11 @@ void HealthComponent::Init()
 {
 }
 
+float HealthComponent::GetMaxHealth() const
+{
+    return m_cap;  
+}
+
 // Get health
 float HealthComponent::GetHealth() const
 {
@@ -42,7 +50,6 @@ void HealthComponent::Damage(float p_damage)
 {
     if(this->m_health > 0)
     {
-        float finalDamage = p_damage;
         float damageReduction = 0.0f;
 
         // Get armour for damage reduction
@@ -67,23 +74,23 @@ void HealthComponent::Damage(float p_damage)
             ArmourItem* feetgear = static_cast<ArmourItem*>(pic->GetEquippedItem(EquipmentSlot::FEET));
             damageReduction += feetgear != nullptr ? feetgear->GetDamageReduction() : 0;
 
+            ArmourItem* accessorygear = static_cast<ArmourItem*>(pic->GetEquippedItem(EquipmentSlot::ACCESSORY));
+            damageReduction += accessorygear != nullptr ? accessorygear->GetDamageReduction() : 0;
+
             // std::cout << "HealthComponent - damred: " << damageReduction << std::endl;
         }
 
-
-        this->m_health -= p_damage * (1.0f - damageReduction);
-
+        float finalDamage = p_damage * (1.0f - damageReduction);
+        this->m_health -= finalDamage;
         if (m_health < 0) m_health = 0;
-
-
-        if(this->m_health <= 0)
-        {
-            //---------------------------------------//
-            //                                       //
-            // SEND EVENT TO INDICATE ENTITY IS DEAD //
-            //                                       //
-            //---------------------------------------//
-        }
+        this->AddDamageIndicator(finalDamage, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+        
+        // Send out a damage event
+        DamageEvent event;
+        event.m_damage = p_damage;
+        event.m_pierce = false;
+        event.m_pDamagedObject = GetGameObject();
+        wolf::EventManager::TriggerEvent(event);
     }
 }
 
@@ -94,6 +101,14 @@ void HealthComponent::Pierce(float p_damage)
     {
         this->m_health -= p_damage;
         if (m_health < 0) m_health = 0;
+        this->AddDamageIndicator(p_damage, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+
+        // Send out a damage event
+        DamageEvent event;
+        event.m_damage = p_damage;
+        event.m_pierce = true;
+        event.m_pDamagedObject = GetGameObject();
+        wolf::EventManager::TriggerEvent(event);
     }
 }
 
@@ -105,6 +120,7 @@ void HealthComponent::Heal(float p_heal)
     {
         this->m_health = this->m_cap;
     }
+    this->AddDamageIndicator(std::string("+") + std::to_string((int)p_heal), ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 }
 
 // Increase cap & refill health
@@ -112,11 +128,90 @@ void HealthComponent::Supercharge(float p_supercharge)
 {
     this->m_cap += p_supercharge;
     this->m_health = this->m_cap;
+    this->AddDamageIndicator(std::string("+") + std::to_string((int)this->m_cap), ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 }
 
-float HealthComponent::GetMaxHealth() const
+// Only for use when in godmode
+void HealthComponent::GodmodeHeal()
 {
-    return m_cap;  
+    this->m_health = this->m_cap;
+}
+
+void HealthComponent::UpdateDamageIndicators(float p_delta)
+{
+    if(this->m_vDamageIndicators.size() > 0)
+    {
+        // printf("HealthComponent - Update\n");
+        std::vector<DamageIndicator>::iterator itr = this->m_vDamageIndicators.begin();
+        while(itr != this->m_vDamageIndicators.end())
+        {
+            DamageIndicator* damageIndicator = &(*itr);
+
+            // If lifetime expired, remove indicator
+            if(damageIndicator->lifetime <= 0.0f)
+            {
+                this->m_vDamageIndicators.erase(itr);
+            }
+            // Else, update damage indicator
+            else
+            {
+                damageIndicator->Update(p_delta);
+                itr++;
+            }
+        }
+    }
+}
+
+void HealthComponent::RenderDamageIndicators()
+{
+    if(this->m_vDamageIndicators.size() > 0)
+    {        
+        // Render damage indicators
+        for(DamageIndicator damageIndicator: this->m_vDamageIndicators)
+        {
+            damageIndicator.Render();
+        }
+    }    
+}
+
+void HealthComponent::AddDamageIndicator(float p_damage, ImVec4 p_text_colour)
+{
+    this->m_vDamageIndicators.emplace_back(DamageIndicator());
+    int index = this->m_vDamageIndicators.size() - 1;
+    wolf::Transform2D* gameobjTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
+    std::string damageValueString = std::to_string((int)p_damage);
+    DamageIndicator* dmg_ind = &this->m_vDamageIndicators.at(index);
+    // Setup
+    dmg_ind->id = std::to_string(DamageIndicator::idGenerator);
+    dmg_ind->damageValue = damageValueString;
+    dmg_ind->damageValueTextSize = ImGui::CalcTextSize(damageValueString.c_str());
+    dmg_ind->damageValueTextColour = p_text_colour;
+    dmg_ind->ownerComponent = this;
+    dmg_ind->currentPos = 
+                            gameobjTransform->GetGlobalPosition()                                                   +   // Set window position to position of gameobj
+                            glm::vec2(-DamageIndicator::WINDOW_SIZE.x, DamageIndicator::WINDOW_SIZE.y) * 0.5f       +   // Centre window
+                            glm::vec2(m_RNG.NextFloat(-8.0f, 8.0f) , 10.0f) * gameobjTransform->GetGlobalScale();       // Offset window
+    dmg_ind->lifetime = 1.0f;
+}
+
+void HealthComponent::AddDamageIndicator(std::string p_damage_str, ImVec4 p_text_colour)
+{
+    this->m_vDamageIndicators.emplace_back(DamageIndicator());
+    int index = this->m_vDamageIndicators.size() - 1;
+    wolf::Transform2D* gameobjTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
+    std::string damageValueString = p_damage_str;
+    DamageIndicator* dmg_ind = &this->m_vDamageIndicators.at(index);
+    // Setup
+    dmg_ind->id = std::to_string(DamageIndicator::idGenerator);
+    dmg_ind->damageValue = damageValueString;
+    dmg_ind->damageValueTextSize = ImGui::CalcTextSize(damageValueString.c_str());
+    dmg_ind->damageValueTextColour = p_text_colour;
+    dmg_ind->ownerComponent = this;
+    dmg_ind->currentPos = 
+                            gameobjTransform->GetGlobalPosition()                                                   +   // Set window position to position of gameobj
+                            glm::vec2(-DamageIndicator::WINDOW_SIZE.x, DamageIndicator::WINDOW_SIZE.y) * 0.5f       +   // Centre window
+                            glm::vec2(m_RNG.NextFloat(-8.0f, 8.0f) , 10.0f) * gameobjTransform->GetGlobalScale();       // Offset window
+    dmg_ind->lifetime = 1.0f;
 }
 
 // !-- Aurora added these events --!
@@ -136,4 +231,64 @@ void HealthComponent::HandleFlatHealthItemEvent(const FlatHealthItemEvent& p_eve
     else {
         this->Damage(-p_event.fHealthChangeAmt);
     }
+}
+
+void HealthComponent::DamageIndicator::Update(float p_delta)
+{
+    lifetime -= p_delta;
+    if(ownerComponent != nullptr)
+    {                
+        
+        currentPos.y += p_delta * 10.0f; // Indicator floats upwards
+    }
+}
+
+void HealthComponent::DamageIndicator::Render()
+{
+    // Get data for calculations
+    wolf::Scene* scene = &ownerComponent->GetGameObject()->GetScene();
+    wolf::Camera2D* camera = scene->GetActiveCamera();
+    glm::vec2 cameraPos = camera->GetPosition();
+    glm::vec2 viewSize = camera->GetViewSize();
+    glm::vec2 viewSizeHalf = glm::vec2(viewSize.x * 0.5f, viewSize.y * 0.5f);
+    glm::vec2 worldpos = currentPos;
+    
+    // Calculate boundaries of camera
+    float l, r, t, b;
+    l = cameraPos.x - viewSizeHalf.x;
+    r = cameraPos.x + viewSizeHalf.x;
+    t = cameraPos.y + viewSizeHalf.y;
+    b = cameraPos.y - viewSizeHalf.y;
+    
+    // If indicator is visible, render
+    if
+    (
+        worldpos.x >= l &&
+        worldpos.x <= r &&
+        worldpos.y <= t &&
+        worldpos.y >= b
+    )
+    {   
+        glm::vec2 screenpos;
+        screenpos.x = (worldpos.x - (cameraPos.x - viewSizeHalf.x));
+        screenpos.y = (worldpos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
+                
+        // Setup
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground |
+                         ImGuiWindowFlags_NoMouseInputs |
+                         ImGuiWindowFlags_NoResize |
+                         ImGuiWindowFlags_NoSavedSettings |
+                         ImGuiWindowFlags_NoTitleBar |
+                         ImGuiWindowFlags_NoFocusOnAppearing | // Prevent focus
+                         ImGuiWindowFlags_NoBringToFrontOnFocus; // Prevent altering window order        
+        ImGui::SetNextWindowPos({screenpos.x, screenpos.y});
+        ImGui::SetNextWindowSize(DamageIndicator::WINDOW_SIZE);
+        ImGui::Begin(id.c_str(), nullptr, flags);
+        ImGui::SetCursorPosX((DamageIndicator::WINDOW_SIZE.x - damageValueTextSize.x) * 0.5f);
+        ImGui::TextColored(damageValueTextColour, "%s", damageValue.c_str());
+
+        // End rendering
+        ImGui::End();
+    }
+
 }

@@ -1,9 +1,10 @@
 #include "MinitaurBuilder.h"
 #include "MinitaurController.h"
+#include "StatusComponent.h"
 #include <cassert>
 
-// Build the Minitaur GameObject and initialize its components
-wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, const glm::vec2& position, ColliderManager* pColliderManager) {
+wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, const glm::vec2& position)
+{
     // Create the Minitaur GameObject
     wolf::GameObject* minitaurObject = &m_scene.CreateObject2D();
 
@@ -17,15 +18,15 @@ wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, const gl
     minitaurObject->AddComponent<HealthComponent>(data.health);
     minitaurObject->AddComponent<VelocityComponent>();
     auto& collider = minitaurObject->AddComponent<ColliderComponent>(ColliderComponent::HITHURTBOXDR, false, true);
-    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, 14.0f));
+    collider.AddColliderBox(glm::vec2(11.0f, 16.0f), glm::vec2(-6.0f, 7.0f));
 
-    // Add ArmourComponent
-    // auto& armourComponent = minitaurObject->AddComponent<ArmourComponent>();
-    // armourComponent.CollectArmour(data.armour);
+    // Add status component
+    auto& statusComponent = minitaurObject->AddComponent<StatusComponent>();
 
     // Add MinitaurController and initialize it with data
     auto& controller = minitaurObject->AddComponent<MinitaurController>();
     controller.Init(data);
+    controller.SetPlayerID(m_scene.GetPlayerID());
 
     return *minitaurObject;
 }

@@ -9,10 +9,13 @@ int InventoryComponent::m_iNextIdNum = 0;
 const float InventoryComponent::TOOLTIP_WRAP_POS = 176.0f;
 
 // Shared texture resources
-const std::string InventoryComponent::m_strTexturePath = "data/textures/ItemIcons-Sheet.png";
+const std::string InventoryComponent::m_strItemsTexturePath = "data/textures/ItemIcons-Sheet.png";
 const ImVec2 InventoryComponent::m_v2TexFrameSize = {32.0f, 32.0f};
-const int InventoryComponent::m_iEmptySlotIndex = 22;
-std::vector<ImGuiUVSet*> InventoryComponent::m_vv2TextureCoords;
+const int InventoryComponent::m_iEmptySlotIndex = 25;
+std::vector<ImGuiUVSet*> InventoryComponent::m_vv2ItemTextureCoords;
+
+const std::string InventoryComponent::m_strFrameTexturePath = "data/textures/InventoryUI.png";
+std::vector<ImGuiUVSet*> InventoryComponent::m_vv2FrameTextureCoords;
 
 InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow), m_iIdNum(m_iNextIdNum), m_v2DrawPos(p_v2DrawPos){
     // Reserve the amount of space we've been asked for
@@ -25,72 +28,82 @@ InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p
     }
 
     // If this is the first InventoryComponent that is created
-    if (!m_pTexture) {
-        // We need to initalize the shared texture
-        wolf::Texture* pNewTexture = wolf::TextureManager::CreateTexture(m_strTexturePath);
-        if (pNewTexture) {
-            if ((pNewTexture->GetWidth() * pNewTexture->GetHeight()) % (int)(m_v2TexFrameSize.x * m_v2TexFrameSize.y) != 0) {
-                // If the new texture doesn't match the frame size then we delete it and leave the current texture unchanged
-                wolf::TextureManager::DestroyTexture(pNewTexture);
-                wolf::Error("Incorrectly sized texture file \"", m_strTexturePath, "\" passed to InventoryComponent.");
-            }
-            // Then we need to know how many frames are in the texture
-            int iNumFramesX = pNewTexture->GetWidth() / m_v2TexFrameSize.x;
-            int iNumFramesY = pNewTexture->GetHeight() / m_v2TexFrameSize.y;
+    if (!m_pItemsTexture) {
+        m_pItemsTexture = this->InitTexture(m_strItemsTexturePath, m_vv2ItemTextureCoords);
+    }
 
-            int iWidth = iNumFramesX + 1;
-            int iHeight = iNumFramesY + 1;
-
-            // We can use those values to create UV coordinates by treating them
-            // as points between 0 and 1 on the X and Y axes
-
-            // So we make a place to store them
-            ImVec2 av2WorkingUVCoords[iWidth * iHeight];
-
-            // Figure out how much we'll be incrementing each X and Y by
-            float fIncX = 1.0f / iNumFramesX;
-            float fIncY = 1.0f / iNumFramesY;
-
-            // And start calculating them
-            for (int i = 0; i <= iNumFramesY; i++) {
-                // A V coordinate would be calculated as:
-                float fVCord = i * fIncY;
-
-                for (int j = 0; j <= iNumFramesX; j++) {
-                    // And a U coordinate would be calculated the same way, but with x
-                    float fUCord = j * fIncX;
-
-                    // Once we have a UV coordinate set we store it for later
-                    av2WorkingUVCoords[(i * iWidth) + j] = ImVec2(fUCord, fVCord);
-
-                }
-            }
-
-            // Because frames are numbered 1-n but vectors are index 0-n, we need an offset
-            // frame coordinate set that occupies the first index.
-            ImGuiUVSet* pOffsetCoord = new ImGuiUVSet(ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
-            m_vv2TextureCoords.push_back(pOffsetCoord);
-
-            // Now that we have all our UV coordinates, we're going to assign them to frames
-            for (int p = 0; p <= iNumFramesY - 1; p++) {
-                for (int q = 0; q <= iNumFramesX - 1; q++) {
-                    int iOriginPoint = (p * iWidth) + q;
-
-                    // First we find the four UV coordinates that will be used to render this frame
-                    // and store them in a struct that holds four glm::vec2s
-                    ImGuiUVSet* pTexFrameCords = new ImGuiUVSet(av2WorkingUVCoords[iOriginPoint], av2WorkingUVCoords[iOriginPoint + iWidth + 1]);
-
-                    // Then we store 'em
-                    m_vv2TextureCoords.push_back(pTexFrameCords);
-                }
-            }
-
-            pNewTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
-            m_pTexture = pNewTexture;
-        }
+    if (!m_pFrameTexture) {
+        m_pFrameTexture = this->InitTexture(m_strFrameTexturePath, m_vv2FrameTextureCoords);
     }
 
     m_iNextIdNum++;
+}
+
+wolf::Texture* InventoryComponent::InitTexture(const std::string& p_strTexturePath, std::vector<ImGuiUVSet*>& p_vv2TextureCoords) {
+    // We need to initalize the shared textures
+    wolf::Texture* pNewTexture = wolf::TextureManager::CreateTexture(p_strTexturePath);
+    if (pNewTexture) {
+        if ((pNewTexture->GetWidth() * pNewTexture->GetHeight()) % (int)(m_v2TexFrameSize.x * m_v2TexFrameSize.y) != 0) {
+            // If the new texture doesn't match the frame size then we delete it and leave the current texture unchanged
+            wolf::TextureManager::DestroyTexture(pNewTexture);
+            wolf::Error("Incorrectly sized texture file \"", p_strTexturePath, "\" passed to InventoryComponent.");
+        }
+        // Then we need to know how many frames are in the texture
+        int iNumFramesX = pNewTexture->GetWidth() / m_v2TexFrameSize.x;
+        int iNumFramesY = pNewTexture->GetHeight() / m_v2TexFrameSize.y;
+
+        int iWidth = iNumFramesX + 1;
+        int iHeight = iNumFramesY + 1;
+
+        // We can use those values to create UV coordinates by treating them
+        // as points between 0 and 1 on the X and Y axes
+
+        // So we make a place to store them
+        ImVec2 av2WorkingUVCoords[iWidth * iHeight];
+
+        // Figure out how much we'll be incrementing each X and Y by
+        float fIncX = 1.0f / iNumFramesX;
+        float fIncY = 1.0f / iNumFramesY;
+
+        // And start calculating them
+        for (int i = 0; i <= iNumFramesY; i++) {
+            // A V coordinate would be calculated as:
+            float fVCord = i * fIncY;
+
+            for (int j = 0; j <= iNumFramesX; j++) {
+                // And a U coordinate would be calculated the same way, but with x
+                float fUCord = j * fIncX;
+
+                // Once we have a UV coordinate set we store it for later
+                av2WorkingUVCoords[(i * iWidth) + j] = ImVec2(fUCord, fVCord);
+
+            }
+        }
+
+        // Because frames are numbered 1-n but vectors are index 0-n, we need an offset
+        // frame coordinate set that occupies the first index.
+        ImGuiUVSet* pOffsetCoord = new ImGuiUVSet(ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+        p_vv2TextureCoords.push_back(pOffsetCoord);
+
+        // Now that we have all our UV coordinates, we're going to assign them to frames
+        for (int p = 0; p <= iNumFramesY - 1; p++) {
+            for (int q = 0; q <= iNumFramesX - 1; q++) {
+                int iOriginPoint = (p * iWidth) + q;
+
+                // First we find the four UV coordinates that will be used to render this frame
+                // and store them in a struct that holds four glm::vec2s
+                ImGuiUVSet* pTexFrameCords = new ImGuiUVSet(av2WorkingUVCoords[iOriginPoint], av2WorkingUVCoords[iOriginPoint + iWidth + 1]);
+
+                // Then we store 'em
+                p_vv2TextureCoords.push_back(pTexFrameCords);
+            }
+        }
+
+        pNewTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest);
+        return pNewTexture;
+    }
+
+    return nullptr;
 }
 
 InventoryComponent::~InventoryComponent() {
@@ -405,7 +418,7 @@ void InventoryComponent::ShowInventoryGUI() {
                 std::string strIndex = std::to_string(k);
 
                 // Now we can start making the actual buttons
-                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2TextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
+                if (ImGui::ImageButton("Filled Slot", (void*)(intptr_t)m_pItemsTexture->GetID(), m_v2TexFrameSize, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2TopLeft, m_vv2ItemTextureCoords[pItem->GetTextureFrameIndex()]->m_v2BotRight)) {
                 }
                 
                 // When we hover over an inventory slot
@@ -426,7 +439,7 @@ void InventoryComponent::ShowInventoryGUI() {
                 }
             }
             else { // Otherwise, this is an empty inventory slot
-            if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pTexture->GetID(), m_v2TexFrameSize, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2TextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
+            if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pFrameTexture->GetID(), m_v2TexFrameSize, m_vv2FrameTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2FrameTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
 
             }
             }

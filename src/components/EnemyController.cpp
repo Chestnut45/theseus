@@ -1,6 +1,6 @@
 #include "EnemyController.h"
 #include <cassert>
-
+#include <LabyrinthManager.h>
 
 
 void EnemyController::Init()
@@ -13,12 +13,33 @@ void EnemyController::Init()
         m_pHealth = pGameObject->GetComponent<HealthComponent>();
         m_pCollider = pGameObject->GetComponent<ColliderComponent>();
 
-        // Ensure all the necessary components are initialized
+        // Initialize the chunk id if possible
+        for (auto&&[_, lm] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+        {
+            m_chunkID = lm.GetChunkID(m_pTransform->GetGlobalPosition());
+            break;
+        }
     }
 }
 
 void EnemyController::Update(float delta)
 {
+    // Update chunk
+    for (auto&&[_, lm] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+    {
+        glm::ivec2 newChunkID = lm.GetChunkID(m_pTransform->GetGlobalPosition());
+        if (m_chunkID != newChunkID)
+        {
+            wolf::GameObject* pChunk = lm.GetChunk(newChunkID);
+            if (pChunk)
+            {
+                pChunk->AddChild(*GetGameObject());
+                m_chunkID = newChunkID;
+            }
+        }
+        break;
+    }
+    
     // General state update logic (but nothing specific to movement, animations, or attacks)
     switch (m_state)
     {
@@ -49,4 +70,13 @@ ColliderManager* EnemyController::GetColliderManager() const
 void EnemyController::ChangeState(EnemyState newState)
 {
     m_state = newState;
+}
+
+
+void EnemyController::SetPlayerID(wolf::GameObjectID p_uiGOId) {
+    m_uiPlayerGOId = p_uiGOId;
+}
+
+wolf::GameObjectID const EnemyController::GetPlayerID() {
+    return m_uiPlayerGOId;
 }
