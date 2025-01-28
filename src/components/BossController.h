@@ -60,6 +60,9 @@ public:
 
     void Update(float delta);
 
+    void SetActive(bool active) { m_active = active; }
+    bool IsActive() const { return m_active; }
+
 private:
 
     // State information
@@ -81,6 +84,7 @@ private:
     // NOTE: All stats are initialized in Init() so changes only cause a single file to recompile
 
     // General stats
+    bool m_active;
     int m_maxHealth;
     
     // Phase 1 stats
