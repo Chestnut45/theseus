@@ -1,7 +1,7 @@
 #pragma once
 
 #include <W_BaseComponent.h>
-
+#include <glm/glm.hpp>
 // Forward declarations
 class VelocityComponent;
 class AnimatedSprite2D;
@@ -94,13 +94,16 @@ private:
     int m_maxDistToPlayer;
 
     // Phase 3 stats
-    int m_fireBreathDamage;
-    int m_fireBreathRange;
-    int m_chargeAttackDamage;
+    int m_fireBreathDamage;     // Fire attack-specific members
+    float m_fireBreathRange;
+    float m_fireAttackDuration;
+    float m_turningCapRadian;
+    float m_turningDelay;
+    float m_turningTimer;
+    glm::vec2 m_lastDirection;
+    int m_chargeAttackDamage;   // Charge attack-specific members
     int m_chargeAttackRange;
     int m_stunTime;
-
-    float m_fireRange;
 
     // Updates the animated sprite based on state,
     // regardless of what phase of the fight we're in
@@ -122,8 +125,11 @@ private:
     void EnterPhase3();
     void UpdatePhase3(float delta);
 
+    void ChangeStatesPhase3(State p_state);
+
     void StartFireBreathAttack();
     void AttackFireBreath(float delta);
+    void TurnToPlayer(float delta);
 
     void StartChargeAttack();
 

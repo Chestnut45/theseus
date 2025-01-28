@@ -40,12 +40,16 @@ void BossController::Init()
 
     // Phase 3 stats
     m_fireBreathDamage = 10; // Per projectile
-    m_fireBreathRange = 400;
+    m_fireBreathRange = 300;
+    m_fireAttackDuration = 10.0f;
+    m_turningCapRadian = 0.001f * (M_PI / 180.0f); // Maximum angle for each turn instance
+    m_turningDelay = 0.0f;      // Delay between each turn instance
+    m_turningTimer = 0.0f;
+    m_lastDirection = glm::vec2(1.0f, 0.0f);
     m_chargeAttackDamage = 60;
     m_chargeAttackRange = 2000;
     m_stunTime = 4; // Seconds
     
-    m_fireRange = 300.0f;
 
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
@@ -194,6 +198,7 @@ void BossController::EnterPhase3()
 {
     m_phase = FightPhase::PHASE_3;
     m_state = State::SEARCHING;
+    ChangeStatesPhase3(State::FIRE_BREATH_ATTACK);
 
     // TODO: Phase 3 initialization logic
 }
@@ -204,8 +209,6 @@ void BossController::UpdatePhase3(float delta)
     // - Stand in place and search for player when in neutral (can only see forward, rotate around?)
     // - When player found, if close, do fire breath attack
     // - if far away, do charge attack
-    AttackFireBreath(delta);
-
     if (m_pHealth->GetHealth() <= 0 && m_state != State::DEAD)
     {
         m_state = State::DEAD;
@@ -213,6 +216,54 @@ void BossController::UpdatePhase3(float delta)
 
         // TODO: Death animation + ending cutscene!
     }
+
+    
+
+    switch (m_state)
+    {
+        case State::DEAD:
+        {
+            break;
+        }
+
+        case State::FIRE_BREATH_ATTACK:
+        {
+            AttackFireBreath(delta);
+            break;
+        }
+        default:
+        break;
+
+    }
+    
+}
+
+void BossController::ChangeStatesPhase3(State p_state)
+{
+    // Return if state is not in phase 3
+    if(p_state < State::SEARCHING)
+    {
+        return;
+    }
+
+    // End old state
+    switch (m_state)
+    {
+        default:
+        break;
+    }
+
+    // Start new state
+    switch (p_state)
+    {
+        case State::FIRE_BREATH_ATTACK:
+        StartFireBreathAttack();
+
+        default:
+        break;
+    }
+
+    m_state = p_state;
 }
 
 void BossController::StartChargeAttack()
@@ -222,23 +273,97 @@ void BossController::StartChargeAttack()
 
 void BossController::StartFireBreathAttack()
 {
-
+    m_fireAttackDuration = 210.0f;
+    GetGameObject()->GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    m_lastDirection = glm::normalize(playerPos - thisPos);
 }
 
 void BossController::AttackFireBreath(float delta)
 {
-    
-    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 targetPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 targetVector = glm::normalize(targetPos - thisPos);
-    glm::vec2 endPos = thisPos + targetVector * m_fireRange;
 
+    // Update attack timer & state
+    if(m_fireAttackDuration <= 0.0f)
+    {
+        ChangeStatesPhase3(State::SEARCHING);
+        return;    
+    }
+    m_fireAttackDuration -= delta;
+    
+    // Turn towards player
+    TurnToPlayer(delta);
+
+    // Get data
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 endPos = thisPos + m_lastDirection * m_fireBreathRange;
+
+    // Add fire range indicator
     GLShapesRenderer::GetInstance()->AddLine({thisPos.x, thisPos.y, 1, 0, 0 , 1}, {endPos.x, endPos.y, 1, 0, 0 , 1});
 
+    // Get all tiles burnt
     std::vector<glm::ivec2> tiles = DDACalculator::GetInstance()->GetTraversedTiles(thisPos, endPos, true);
 
+    // Add fire tiles
     for (glm::ivec2 tile : tiles)
     {
         TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
+    }
+}
+
+void BossController::TurnToPlayer(float delta)
+{
+    // If turning delay expired
+    if(this->m_turningTimer >= this->m_turningDelay)
+    {
+        // Reset timer
+        this->m_turningTimer = 0.0f;
+        
+        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 playerDirection = glm::normalize(playerPos - thisPos);
+        std::cout << "lastDir - x: " << m_lastDirection.x << ", y: " << m_lastDirection.y << std::endl;
+        std::cout << "playDir - x: " << playerDirection.x << ", y: " << playerDirection.y << std::endl;
+        float playerDistance = glm::length(playerPos - thisPos);
+
+        if(playerDistance > 0.0f && m_lastDirection != playerDirection)
+        {
+            float dot = glm::dot(m_lastDirection, playerDirection);
+            float cosine = std::clamp(dot, -1.0f, 1.0f); // Removed vector length multiplication as all are normalised
+            float radAngle = std::acos(cosine);
+
+            //std::cout << "angle: " << radAngle * (180.0f / M_PI) << std::endl;
+            // If turning angle is smaller than cap
+            if(std::abs(radAngle) <= std::abs(m_turningCapRadian))
+            {
+                printf("VALID\n");
+                m_lastDirection = glm::normalize(playerDirection);
+            }
+            else
+            {
+                printf("CAPPED\n");
+                float side = glm::cross(glm::vec3(m_lastDirection.x, m_lastDirection.y, 0), glm::vec3(playerDirection.x, playerDirection.y, 0)).z;
+                glm::vec2 newDirection = glm::vec2(0.0f, 0.0f);
+                // Left
+                if(side >= 0.0f)
+                {
+                    newDirection.x = m_lastDirection.x * glm::cos(m_turningCapRadian) - m_lastDirection.y * glm::sin(m_turningCapRadian);
+                    newDirection.y = m_lastDirection.x * glm::sin(m_turningCapRadian) + m_lastDirection.y * glm::cos(m_turningCapRadian);
+                    m_lastDirection = newDirection;
+                }
+                // Right
+                else
+                {
+                    newDirection.x = m_lastDirection.x * glm::cos(-m_turningCapRadian) - m_lastDirection.y * glm::sin(-m_turningCapRadian);
+                    newDirection.y = m_lastDirection.x * glm::sin(-m_turningCapRadian) + m_lastDirection.y * glm::cos(-m_turningCapRadian);
+                    m_lastDirection = newDirection;
+                }
+            }
+        }
+        
+    }
+    else
+    {
+        this->m_turningTimer += delta;
     }
 }

@@ -142,8 +142,6 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
     m_pFireObj->GetComponent<wolf::Transform2D>()->SetPosition(p_lbmg->GetWorldPosition(m_vTilePos));
     m_pFireObj->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f, 3.0f));
     wolf::Sprite2D* sprite = &m_pFireObj->AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
-    // sprite->SetLayer(100);
-    std::cout << "TFMG - FireObjID: " << m_pFireObj->GetID() << std::endl;
 }
 
 TileFireManager::FireTile::~FireTile()
