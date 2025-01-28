@@ -42,8 +42,8 @@ void BossController::Init()
     m_fireBreathDamage = 10; // Per projectile
     m_fireBreathRange = 300;
     m_fireAttackDuration = 10.0f;
-    m_turningCapRadian = 0.001f * (M_PI / 180.0f); // Maximum angle for each turn instance
-    m_turningDelay = 0.0f;      // Delay between each turn instance
+    m_turningCapRadian = 3.0f * (M_PI / 180.0f); // Maximum angle for each turn instance
+    m_turningDelay = 0.1f;      // Delay between each turn instance
     m_turningTimer = 0.0f;
     m_lastDirection = glm::vec2(1.0f, 0.0f);
     m_chargeAttackDamage = 60;
@@ -93,7 +93,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase3();
+    EnterPhase1();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -140,7 +140,7 @@ void BossController::UpdatePhase1(float delta)
     // TODO: Phase 1 update logic:
     // - Summon minitaurs periodically until limit reached
     // - Change to blocking animation when player attacks while close enough
-
+    EnterPhase3();
     if (m_pHealth->GetHealth() < 2 * m_maxHealth / 3)
     {
         // TODO: Exit phase 1 logic
@@ -307,7 +307,7 @@ void BossController::AttackFireBreath(float delta)
     // Add fire tiles
     for (glm::ivec2 tile : tiles)
     {
-        TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
+        TileFireManager::GetInstance()->AddFireTile(tile, 5.0f);
     }
 }
 
@@ -318,49 +318,50 @@ void BossController::TurnToPlayer(float delta)
     {
         // Reset timer
         this->m_turningTimer = 0.0f;
-        
+
         glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        glm::vec2 playerDirection = glm::normalize(playerPos - thisPos);
-        std::cout << "lastDir - x: " << m_lastDirection.x << ", y: " << m_lastDirection.y << std::endl;
-        std::cout << "playDir - x: " << playerDirection.x << ", y: " << playerDirection.y << std::endl;
-        float playerDistance = glm::length(playerPos - thisPos);
-
-        if(playerDistance > 0.0f && m_lastDirection != playerDirection)
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+        float playerDistance = glm::length(thisPos - playerPos);
+        
+        if(playerDistance > 0.0f)
         {
-            float dot = glm::dot(m_lastDirection, playerDirection);
-            float cosine = std::clamp(dot, -1.0f, 1.0f); // Removed vector length multiplication as all are normalised
-            float radAngle = std::acos(cosine);
+            glm::vec2 playerDirection = glm::normalize(playerPos - thisPos);   
+            float dotProduct = glm::dot(m_lastDirection, playerDirection);
+            float cos = glm::clamp(dotProduct, -1.0f, 1.0f);
+            float radAngle = glm::acos(cos);
 
-            //std::cout << "angle: " << radAngle * (180.0f / M_PI) << std::endl;
             // If turning angle is smaller than cap
             if(std::abs(radAngle) <= std::abs(m_turningCapRadian))
             {
-                printf("VALID\n");
-                m_lastDirection = glm::normalize(playerDirection);
+                m_lastDirection = playerDirection;
             }
+
             else
             {
-                printf("CAPPED\n");
                 float side = glm::cross(glm::vec3(m_lastDirection.x, m_lastDirection.y, 0), glm::vec3(playerDirection.x, playerDirection.y, 0)).z;
                 glm::vec2 newDirection = glm::vec2(0.0f, 0.0f);
+
+                float capSinPos = glm::sin(m_turningCapRadian);
+                float capCosPos = glm::cos(m_turningCapRadian);
+
+                float capSinNeg = glm::sin(-m_turningCapRadian);
+                float capCosNeg = glm::cos(-m_turningCapRadian);
                 // Left
                 if(side >= 0.0f)
                 {
-                    newDirection.x = m_lastDirection.x * glm::cos(m_turningCapRadian) - m_lastDirection.y * glm::sin(m_turningCapRadian);
-                    newDirection.y = m_lastDirection.x * glm::sin(m_turningCapRadian) + m_lastDirection.y * glm::cos(m_turningCapRadian);
-                    m_lastDirection = newDirection;
+                    newDirection.x = m_lastDirection.x * capCosPos - m_lastDirection.y * capSinPos;
+                    newDirection.y = m_lastDirection.x * capSinPos + m_lastDirection.y * capCosPos;
                 }
                 // Right
                 else
                 {
-                    newDirection.x = m_lastDirection.x * glm::cos(-m_turningCapRadian) - m_lastDirection.y * glm::sin(-m_turningCapRadian);
-                    newDirection.y = m_lastDirection.x * glm::sin(-m_turningCapRadian) + m_lastDirection.y * glm::cos(-m_turningCapRadian);
-                    m_lastDirection = newDirection;
+                    newDirection.x = m_lastDirection.x * capCosNeg - m_lastDirection.y * capSinNeg;
+                    newDirection.y = m_lastDirection.x * capSinNeg + m_lastDirection.y * capCosNeg;
                 }
+
+                m_lastDirection = newDirection;
             }
         }
-        
     }
     else
     {

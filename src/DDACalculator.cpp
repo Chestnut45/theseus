@@ -162,16 +162,17 @@ glm::vec2 DDACalculator::GetEndpoint(glm::vec2 p_src_pos, glm::vec2 p_dst_pos)
 std::vector<glm::ivec2> DDACalculator::GetTraversedTiles(glm::vec2 p_src_pos, glm::vec2 p_dst_pos, bool p_is_blocked)
 {
     std::vector<glm::ivec2> tiles;
-    tiles.push_back(p_src_pos);
 
     // Check
     if(this->m_pLBMG != nullptr)
     {
         glm::ivec2 srcTilePos = this->m_pLBMG->GetTilePosition(p_src_pos);
         int srcTileID = this->m_pLBMG->GetTile(srcTilePos.x, srcTilePos.y);
-
+        
         glm::ivec2 dstTilePos = this->m_pLBMG->GetTilePosition(p_dst_pos);
         int dstTileID = this->m_pLBMG->GetTile(dstTilePos.x, dstTilePos.y);
+
+        tiles.push_back(srcTilePos);
 
         // If src is on wall tile
         if
@@ -270,7 +271,6 @@ std::vector<glm::ivec2> DDACalculator::GetTraversedTiles(glm::vec2 p_src_pos, gl
             {
                 if(distanceCheck < distance)
                 {
-                    glm::vec2 endpoint = normalisedLine * distanceCheck + p_src_pos;
                     return tiles;
                 }
                 break;
@@ -279,10 +279,13 @@ std::vector<glm::ivec2> DDACalculator::GetTraversedTiles(glm::vec2 p_src_pos, gl
             {
                 tiles.push_back(currentTilePos);
             }
+
+            if(currentTilePos == dstTilePos)
+            {
+                break;
+            }
         }
     }
-
-    tiles.push_back(p_dst_pos);
     return tiles;
 }
 
