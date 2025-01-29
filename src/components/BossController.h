@@ -46,6 +46,7 @@ public:
         SEARCHING,
         FIRE_BREATH_ATTACK,
         CHARGE_ATTACK,
+        STUNNED,
 
         // Special states
         TAUNT, // Could play an animation when the player dies
@@ -104,12 +105,14 @@ private:
     int m_fireBreathRange;
     int m_chargeAttackDamage;
     int m_chargeAttackRange;
-    int m_stunTime;
+    float m_stunTime;
 
     float m_chargeTurningCapDegree;
     float m_chargeTurningDelay;
     float m_chargeVelocity;
-    float m_knockBackForce;
+    float m_chargeKnockbackForce;
+    int m_chargeChainCount;
+
     // Updates the animated sprite based on state,
     // regardless of what phase of the fight we're in
     void UpdateAnimation();
@@ -132,8 +135,14 @@ private:
 
     void ChangeStatesPhase3(State p_state);
 
+    void Search(float delta);
+
+    void StartStunned();
+    void Stunned(float delta);
+
     void StartFireBreathAttack();
+    
     void StartChargeAttack();
     void AttackCharge(float delta);
-
+    void EndChargeAttack();
 };

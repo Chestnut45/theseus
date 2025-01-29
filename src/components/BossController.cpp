@@ -42,11 +42,12 @@ void BossController::Init()
     m_fireBreathRange = 400;
     m_chargeAttackDamage = 60;
     m_chargeAttackRange = 2000;
-    m_stunTime = 4; // Seconds
+    m_stunTime = 1; // Seconds
     m_chargeTurningCapDegree = 6.0f; // Degrees
     m_chargeTurningDelay = 0.2f; // Seconds
     m_chargeVelocity = 400.0f;
-    m_knockBackForce = 25000.0f;
+    m_chargeKnockbackForce = 25000.0f;
+    m_chargeChainCount = 1;
 
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
@@ -202,6 +203,7 @@ void BossController::EnterPhase3()
     m_state = State::SEARCHING;
 
     m_active = true;
+
     // TODO: Phase 3 initialization logic
 }
 
@@ -211,14 +213,6 @@ void BossController::UpdatePhase3(float delta)
     // - Stand in place and search for player when in neutral (can only see forward, rotate around?)
     // - When player found, if close, do fire breath attack
     // - if far away, do charge attack
-
-    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
-
-    if(m_state != State::CHARGE_ATTACK && glm::distance(playerPos, thisPos) <= m_chargeAttackRange)
-    {
-        ChangeStatesPhase3(State::CHARGE_ATTACK);
-    }
 
     if (m_pHealth->GetHealth() <= 0 && m_state != State::DEAD)
     {
@@ -243,6 +237,19 @@ void BossController::UpdatePhase3(float delta)
         {
             break;
         }
+
+        case State::SEARCHING:
+        {
+            Search(delta);
+            break;
+        }
+
+        case State::STUNNED:
+        {
+            Stunned(delta);
+            break;
+        }
+
         default:
         {
             break;
@@ -263,6 +270,11 @@ void BossController::ChangeStatesPhase3(State p_state)
     // End old state
     switch (m_state)
     {
+        case State::CHARGE_ATTACK:
+        {
+            EndChargeAttack();
+            break;
+        }
         default:
         break;
     }
@@ -281,11 +293,58 @@ void BossController::ChangeStatesPhase3(State p_state)
             break;
         }
 
+        case State::STUNNED:
+        {
+            StartStunned();
+            break;
+        }
+
         default:
         break;
     }
 
     m_state = p_state;
+}
+
+void BossController::Search(float delta)
+{
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+    float playerDistance = glm::distance(thisPos, playerPos);
+    
+    if(playerDistance <= m_chargeAttackRange)
+    {
+        ChangeStatesPhase3(State::CHARGE_ATTACK);
+    }
+}
+
+void BossController::StartStunned()
+{
+    m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+}
+
+void BossController::Stunned(float delta)
+{
+    if(m_stunTime <= 0.0f)
+    {
+        printf("EndStun\n");
+
+        if(m_chargeChainCount > 0)
+        {
+            ChangeStatesPhase3(State::CHARGE_ATTACK);
+        }
+        else
+        {
+            ChangeStatesPhase3(State::SEARCHING);
+        }
+
+        m_stunTime = 1.0f;
+        return;
+    }
+    else
+    {
+        m_stunTime -= delta;
+    }
 }
 
 void BossController::StartFireBreathAttack()
@@ -301,11 +360,13 @@ void BossController::StartChargeAttack()
     glm::vec2 velo = glm::normalize(playerPos - thisPos) * m_chargeVelocity;
     m_pVelocity->SetVelocity(velo);
     m_pHoming->SetActive(true);
+    m_chargeChainCount <= 0 ? 3 : m_chargeChainCount;
 }
 
 void BossController::AttackCharge(float delta)
 {
-
+    m_pVelocity->SetVelocity(glm::normalize(m_pVelocity->GetVelocity()) * m_chargeVelocity);
+    
     for (auto&&[id, collider] : this->GetGameObject()->GetScene().Each<ColliderComponent>())
     {
         // If other collider is not the same collider, is active & is hitbox
@@ -323,11 +384,22 @@ void BossController::AttackCharge(float delta)
                                                                                             glm::vec2(1.0f, 0.0f):
                                                                                             glm::normalize(playerPos - thisPos);
                     m_pPlayerObject->GetComponent<HealthComponent>()->Damage(100.0f);
-                    m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(playerDirection, m_knockBackForce);
+                    m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(playerDirection, m_chargeKnockbackForce);
                 }
-                m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
-                ChangeStatesPhase3(State::SEARCHING);
+                ChangeStatesPhase3(State::STUNNED);
+                return;
             }
         }
+    }
+}
+
+void BossController::EndChargeAttack()
+{
+    m_pHoming->SetActive(false);
+    m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+
+    if(m_chargeChainCount > 0)
+    {
+        m_chargeChainCount--;
     }
 }
