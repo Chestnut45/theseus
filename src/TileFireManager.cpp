@@ -62,17 +62,10 @@ void TileFireManager::Update(float p_delta)
                 }
             }
         }
-        else
-        {
-            // Skip check if player column has no active tile
-            if(column == playerTileColumn)
-            {
-                m_isPlayerChecked = true;
-            }
-        }
     }
 
-    if(m_isPlayerChecked == false)
+    // If player column has any active fire tile
+    if(m_vActiveFireColumnsTracker[playerTileColumn] > 0)
     {
         for (FireTile* fireTile : m_mFireColumns[playerTileColumn])
         {
@@ -83,8 +76,6 @@ void TileFireManager::Update(float p_delta)
             }
         }
     }
-
-    m_isPlayerChecked = false;
 }
 
 void TileFireManager::Render()
@@ -145,8 +136,6 @@ TileFireManager::TileFireManager(LabyrinthManager* p_lbmg)
         m_pPlayerObj = playerController.GetGameObject();
         break;
     }
-
-    m_isPlayerChecked = false;
 
     m_vActiveFireColumnsTracker.resize(LabyrinthManager::MAX_LABYRINTH_DIM);
     for(int i = 0; i < LabyrinthManager::MAX_LABYRINTH_DIM; i++)
