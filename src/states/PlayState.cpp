@@ -133,7 +133,7 @@ void PlayState::Enter()
 
     // Stop all audio and begin the maze music
     wolf::Audio::Stop();
-    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.8f, 0.0f, 0.0f, true, 13.714f);
+    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.75f, 0.0f, 0.0f, true, 13.714f);
 }
 
 void PlayState::Exit()
@@ -841,6 +841,10 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
     switch (purpose) {
         case TriggerPurpose::SPIKE_TRAP: {
+
+            // Play sound effect
+            wolf::Audio::Play("data/sounds/sfx_spike_trap.wav", 0.75f);
+
             auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
             auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/SpikesExtended.png");
             trapSprite.SetOriginToCenterOfTexture();
