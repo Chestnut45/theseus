@@ -131,7 +131,7 @@ private:
     void StartSearch();
     void Search(float delta);
     void EndSearch();
-    void MoveTowardsTarget(float delta);
+    void MoveTowardsPlayer(float delta);
 
     void StartFireBreathAttack();
     void StartChargeAttack();
