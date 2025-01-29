@@ -60,20 +60,25 @@ void TileFireManager::Update(float p_delta)
                         fireTile->m_pFireObj->GetComponent<wolf::Sprite2D>()->SetVisibility(false);
                     }
                 }
+            }
+        }
+        else
+        {
+            // Skip check if player column has no active tile
+            if(column == playerTileColumn)
+            {
+                m_isPlayerChecked = true;
+            }
+        }
+    }
 
-                // Burn player if not already burnt & on fire tile
-                if(m_isPlayerChecked == false)
-                {
-                    if(fireTile->m_vTilePos == playerTilePos)
-                    {   
-                        m_isPlayerChecked = true;
-                        if(fireTile->m_fLifespan > 0.0f)
-                        {
-                            m_pPlayerObj->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
-                        }
-                    }
-                }
-
+    if(m_isPlayerChecked == false)
+    {
+        for (FireTile* fireTile : m_mFireColumns[playerTileColumn])
+        {
+            if(playerTilePos.y == fireTile->m_vTilePos.y)
+            {
+                m_pPlayerObj->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
             }
         }
     }
