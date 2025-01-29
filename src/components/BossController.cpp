@@ -11,6 +11,8 @@
 #include <PlayerController.h>
 #include <LabyrinthManager.h>
 
+#include <wolf.h>
+
 BossController::BossController()
 {
 }
@@ -42,7 +44,8 @@ void BossController::Init()
     m_chargeAttackRange = 2000;
     m_stunTime = 4; // Seconds
 
-    m_roamSpeed = 200.0f;
+    m_searchSpeed = 200.0f;
+    m_searchTimer = 5.0f; // Seconds
 
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
@@ -256,6 +259,11 @@ void BossController::ChangeStatesPhase3(State p_state)
         {
             break;
         }
+        case State::SEARCHING:
+        {
+            EndSearch();
+            break;
+        }
         default:
         break;
     }
@@ -273,7 +281,11 @@ void BossController::ChangeStatesPhase3(State p_state)
             StartFireBreathAttack();
             break;
         }
-
+        case State::SEARCHING:
+        {
+            StartSearch();
+            break;
+        }
         default:
         break;
     }
@@ -281,13 +293,35 @@ void BossController::ChangeStatesPhase3(State p_state)
     m_state = p_state;
 }
 
+void BossController::StartSearch()
+{
+    wolf::RNG rng;
+    m_searchTimer = rng.NextFloat(4.0f, 6.0f);
+}
+
 void BossController::Search(float delta)
 {
-    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
-    float playerDistance = glm::distance(thisPos, playerPos);
+    // If search timer expired
+    if(m_searchTimer <= 0.0f)
+    {
+        // Decide next attack
+        ChangeStatesPhase3(State::CHARGE_ATTACK);
+    }
+    else
+    {
+        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+        float playerDistance = glm::distance(thisPos, playerPos);
 
-    MoveTowardsTarget(delta);
+        MoveTowardsTarget(delta);
+        m_searchTimer -= delta;
+    }
+
+
+}
+
+void BossController::EndSearch()
+{
 
 }
 
@@ -305,7 +339,7 @@ void BossController::MoveTowardsTarget(float delta)
 
     if (glm::length(direction) > 0.01f) {
         direction = glm::normalize(direction);
-        m_pVelocity->SetVelocity(direction * m_roamSpeed);
+        m_pVelocity->SetVelocity(direction * m_searchSpeed);
 
     } 
     else {
