@@ -38,7 +38,7 @@ void TileFireManager::Update(float p_delta)
     for(auto const& [column, columnVector] : m_mFireColumns)
     {
         // If column has any active fire tile
-        if(m_vActiveFireColumnsTracker.at(column) > 0)
+        if(m_vActiveFireColumnsTracker[column] > 0)
         {
             // Update each fire tile
             for (FireTile* fireTile : columnVector)
@@ -46,20 +46,22 @@ void TileFireManager::Update(float p_delta)
                 // If fire tile expired
                 if(fireTile->m_fLifespan <= 0.0f)
                 {
+                    continue;
                 }
                 else
                 {
+                    // Update lifespan timer
                     fireTile->m_fLifespan -= p_delta;
                 
                     // If fire tile will expire, update tracker & deactivate fire sprite
                     if(fireTile->m_fLifespan <= 0.0f)
                     {
-                        m_vActiveFireColumnsTracker.at(column) -= 1;
+                        m_vActiveFireColumnsTracker[column] -= 1;
                         fireTile->m_pFireObj->GetComponent<wolf::Sprite2D>()->SetVisibility(false);
                     }
                 }
 
-                // Damage player if on fire tile
+                // Burn player if not already burnt & on fire tile
                 if(m_isPlayerChecked == false)
                 {
                     if(fireTile->m_vTilePos == playerTilePos)
@@ -98,20 +100,22 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan)
     }
 
     // If column has 1 or more fire tile
-    if(m_mFireColumns.at(column).size() > 0)
+    
+    if(m_mFireColumns[column].size() > 0)
     {
-        for(auto fireTile : m_mFireColumns.at(column))
+        for(auto fireTile : m_mFireColumns[column])
         {
-            // Reset timer of matching fire tile
+            // If matching fire tile
             if(fireTile->m_vTilePos.y == p_tile_pos.y)
             {
                 
                 if(fireTile->m_fLifespan <= 0.0f)
                 {
                     // Update tracker & turn on sprite
-                    m_vActiveFireColumnsTracker.at(column) += 1;
+                    m_vActiveFireColumnsTracker[column] += 1;
                     fireTile->m_pFireObj->GetComponent<wolf::Sprite2D>()->SetVisibility(true);
                 }
+                // Reset lifespan timer
                 fireTile->m_fLifespan = p_lifespan;
                 
                 return;
@@ -119,9 +123,9 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan)
         }
     }
 
-    // Create new fire tile if column is empty && update tracker
-    m_mFireColumns.at(column).emplace_back(new FireTile(m_pLBMG, p_tile_pos, p_lifespan));
-    m_vActiveFireColumnsTracker.at(column) += 1;
+    // Create new fire tile if column is empty & update tracker
+    m_mFireColumns[column].emplace_back(new FireTile(m_pLBMG, p_tile_pos, p_lifespan));
+    m_vActiveFireColumnsTracker[column] += 1;
 
     return;
 }
@@ -141,7 +145,7 @@ TileFireManager::TileFireManager(LabyrinthManager* p_lbmg)
     m_vActiveFireColumnsTracker.resize(LabyrinthManager::MAX_LABYRINTH_DIM);
     for(int i = 0; i < LabyrinthManager::MAX_LABYRINTH_DIM; i++)
     {
-        m_vActiveFireColumnsTracker.at(i) = 0;
+        m_vActiveFireColumnsTracker[i] = 0;
     }
 }
 

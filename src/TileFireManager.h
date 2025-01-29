@@ -34,8 +34,8 @@ private:
     };
 
     
-    std::map<int, std::vector<FireTile*>> m_mFireColumns;
-    std::vector<int> m_vActiveFireColumnsTracker;
+    std::map<int, std::vector<FireTile*>> m_mFireColumns;   // Arranges fire tiles in columns
+    std::vector<int> m_vActiveFireColumnsTracker;   // Keeps track which column has active fire tile(s)
     LabyrinthManager* m_pLBMG = nullptr;
     wolf::Scene* m_pScene = nullptr;
     wolf::GameObject* m_pPlayerObj = nullptr;
