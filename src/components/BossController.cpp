@@ -327,8 +327,6 @@ void BossController::Stunned(float delta)
 {
     if(m_stunTime <= 0.0f)
     {
-        printf("EndStun\n");
-
         if(m_chargeChainCount > 0)
         {
             ChangeStatesPhase3(State::CHARGE_ATTACK);
@@ -360,7 +358,10 @@ void BossController::StartChargeAttack()
     glm::vec2 velo = glm::normalize(playerPos - thisPos) * m_chargeVelocity;
     m_pVelocity->SetVelocity(velo);
     m_pHoming->SetActive(true);
-    m_chargeChainCount <= 0 ? 3 : m_chargeChainCount;
+    if(m_chargeChainCount <= 0)
+    {
+        m_chargeChainCount = 3;
+    }
 }
 
 void BossController::AttackCharge(float delta)
