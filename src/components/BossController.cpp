@@ -311,6 +311,9 @@ void BossController::AttackFireBreath(float delta)
         {
             TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
         }
+
+        // Reset timer
+        this->m_turningTimer = 0.0f;
     }
     else
     {
@@ -320,9 +323,6 @@ void BossController::AttackFireBreath(float delta)
 
 void BossController::TurnToPlayer(float delta)
 {
-    // Reset timer
-    this->m_turningTimer = 0.0f;
-
     // Get data
     glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
@@ -331,6 +331,11 @@ void BossController::TurnToPlayer(float delta)
     if(playerDistance > 0.0f)
     {
         glm::vec2 playerDirection = glm::normalize(playerPos - thisPos);   
+        
+        if(m_lastDirection == playerDirection)
+        {
+            return;
+        }
         
         // Calculate angle 
         float dotProduct = glm::dot(m_lastDirection, playerDirection);
