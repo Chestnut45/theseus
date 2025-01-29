@@ -1,6 +1,7 @@
 #pragma once
 
 #include <W_BaseComponent.h>
+#include <glm/glm.hpp>
 
 // Forward declarations
 class VelocityComponent;
@@ -103,15 +104,23 @@ private:
     // Phase 3 stats
     int m_fireBreathDamage;
     int m_fireBreathRange;
+
     int m_chargeAttackDamage;
     int m_chargeAttackRange;
     float m_stunTime;
 
+    float m_chargeWindupTime;
+    float m_chargeWindupTimer;
+    glm::vec3 m_chargeWindupTint;
+
     float m_chargeTurningCapDegree;
     float m_chargeTurningDelay;
-    float m_chargeVelocity;
+    float m_chargeSpeed;
     float m_chargeKnockbackForce;
     int m_chargeChainCount;
+
+    float m_searchSpeed;
+    float m_searchTimer;
 
     // Updates the animated sprite based on state,
     // regardless of what phase of the fight we're in
@@ -136,7 +145,7 @@ private:
     void ChangeStatesPhase3(State p_state);
 
     void Search(float delta);
-
+    void MoveTowardsPlayer(float delta);
     void StartStunned();
     void Stunned(float delta);
 

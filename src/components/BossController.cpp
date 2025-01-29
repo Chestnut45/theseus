@@ -40,14 +40,20 @@ void BossController::Init()
     // Phase 3 stats
     m_fireBreathDamage = 10; // Per projectile
     m_fireBreathRange = 400;
+    m_chargeWindupTime = 1.0f; // Seconds
+    m_chargeWindupTimer = 1.0f; // Seconds
+    m_chargeWindupTint = glm::vec3(4.0f, 4.0f, 4.0f);
     m_chargeAttackDamage = 60;
     m_chargeAttackRange = 2000;
     m_stunTime = 1; // Seconds
-    m_chargeTurningCapDegree = 6.0f; // Degrees
+    m_chargeTurningCapDegree = 9.0f; // Degrees
     m_chargeTurningDelay = 0.2f; // Seconds
-    m_chargeVelocity = 400.0f;
-    m_chargeKnockbackForce = 25000.0f;
-    m_chargeChainCount = 1;
+    m_chargeSpeed = 480.0f;
+    m_chargeKnockbackForce = 10000.0f;
+    m_chargeChainCount = 3;
+
+    m_searchSpeed = 160.0f;
+    m_searchTimer = 5.0f;
 
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
@@ -95,7 +101,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase3();
+    EnterPhase1();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -308,13 +314,46 @@ void BossController::ChangeStatesPhase3(State p_state)
 
 void BossController::Search(float delta)
 {
-    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
-    float playerDistance = glm::distance(thisPos, playerPos);
-    
-    if(playerDistance <= m_chargeAttackRange)
+    if(m_searchTimer <= 0.0f)
     {
-        ChangeStatesPhase3(State::CHARGE_ATTACK);
+        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+        float playerDistance = glm::distance(thisPos, playerPos);
+        
+        if(playerDistance <= m_chargeAttackRange)
+        {
+            ChangeStatesPhase3(State::CHARGE_ATTACK);
+        }
+        m_searchTimer = 5.0f;
+    }
+    else
+    {
+        m_searchTimer -= delta;
+
+        MoveTowardsPlayer(delta);
+    }
+
+}
+
+// Resued from GorgonController
+void BossController::MoveTowardsPlayer(float delta)
+{
+    if (!m_pPlayerObject || !m_pVelocity || !m_pTransform) return;
+
+    // Calculate the direction towards the player and move the Gorgon
+        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+
+    // Calculate direction vector
+    glm::vec2 direction = playerPos - thisPos;
+
+    if (glm::length(direction) > 0.01f) {
+        direction = glm::normalize(direction);
+        m_pVelocity->SetVelocity(direction * m_searchSpeed);
+
+    } 
+    else {
+        m_pVelocity->SetVelocity(glm::vec2(0.0f));
     }
 }
 
@@ -352,46 +391,80 @@ void BossController::StartFireBreathAttack()
 
 void BossController::StartChargeAttack()
 {
-    // Get data
-    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
-    glm::vec2 velo = glm::normalize(playerPos - thisPos) * m_chargeVelocity;
-    m_pVelocity->SetVelocity(velo);
-    m_pHoming->SetActive(true);
-    if(m_chargeChainCount <= 0)
-    {
-        m_chargeChainCount = 3;
-    }
+    m_chargeWindupTimer = m_chargeWindupTime;
+    m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }
 
 void BossController::AttackCharge(float delta)
 {
-    m_pVelocity->SetVelocity(glm::normalize(m_pVelocity->GetVelocity()) * m_chargeVelocity);
-    
-    for (auto&&[id, collider] : this->GetGameObject()->GetScene().Each<ColliderComponent>())
+    // If windup expired
+    if(m_chargeWindupTimer <= 0.0f)
     {
-        // If other collider is not the same collider, is active & is hitbox
-        if (GetGameObject()->GetID() != id && collider.IsActive() && collider.IsHitbox())
+        m_pVelocity->SetVelocity(glm::normalize(m_pVelocity->GetVelocity()) * m_chargeSpeed);
+
+        // Get all colliders 
+        for (auto&&[id, collider] : this->GetGameObject()->GetScene().Each<ColliderComponent>())
         {
-            // If colliders colliding
-            if (ColliderManager::StaticMethodIsColliding(*m_pCollider, collider, delta))
+            // If other collider is not the same collider, is active & is hitbox
+            if (GetGameObject()->GetID() != id && collider.IsActive() && collider.IsHitbox())
             {
-                // If player, damge player
-                if(id == m_pPlayerObject->GetID())
+                // If colliders colliding
+                if (ColliderManager::StaticMethodIsColliding(*m_pCollider, collider, delta))
                 {
-                    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-                    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
-                    glm::vec2 playerDirection = (playerPos - thisPos) == glm::vec2(0.0f) ? 
-                                                                                            glm::vec2(1.0f, 0.0f):
-                                                                                            glm::normalize(playerPos - thisPos);
-                    m_pPlayerObject->GetComponent<HealthComponent>()->Damage(100.0f);
-                    m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(playerDirection, m_chargeKnockbackForce);
+                    // If player, damge player
+                    if(id == m_pPlayerObject->GetID())
+                    {
+                        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+                        glm::vec2 playerDirection = (playerPos - thisPos) == glm::vec2(0.0f) ? 
+                                                                                                glm::vec2(1.0f, 0.0f):
+                                                                                                glm::normalize(playerPos - thisPos);
+                        m_pPlayerObject->GetComponent<HealthComponent>()->Damage(100.0f);
+                        m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(playerDirection, m_chargeKnockbackForce);
+                    }
+
+                    // Change to STUNNED state
+                    ChangeStatesPhase3(State::STUNNED);
+                    return;
                 }
-                ChangeStatesPhase3(State::STUNNED);
-                return;
             }
         }
     }
+    else
+    {
+        // Update windup timer
+        m_chargeWindupTimer -= delta;
+
+        // If entering attack
+        if(m_chargeWindupTimer <= 0.0f)
+        {
+            m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+
+            // Calculate celocity
+            glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+            glm::vec2 velo = glm::normalize(playerPos - thisPos) * m_chargeSpeed;
+            
+            // Set components for charge attack
+            m_pVelocity->SetVelocity(velo);
+            m_pHoming->SetActive(true);
+            
+            // Reset chain count
+            if(m_chargeChainCount <= 0)
+            {
+                m_chargeChainCount = 3;
+            }
+        }
+        // If still windup
+        else
+        {
+            glm::vec3 currentTint = m_pAnimSprite->GetTint();
+            glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_chargeWindupTime * 0.5f));
+            m_pAnimSprite->SetTint(nextTint);
+        }
+
+    }
+    
 }
 
 void BossController::EndChargeAttack()
