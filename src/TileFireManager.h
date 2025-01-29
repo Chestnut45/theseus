@@ -34,7 +34,8 @@ private:
     };
 
     
-    std::map<int, std::vector<FireTile*>> m_mVerticalFireStrips;
+    std::map<int, std::vector<FireTile*>> m_mFireColumns;
+    std::vector<int> m_vActiveFireColumnsTracker;
     LabyrinthManager* m_pLBMG = nullptr;
     wolf::Scene* m_pScene = nullptr;
     wolf::GameObject* m_pPlayerObj = nullptr;
