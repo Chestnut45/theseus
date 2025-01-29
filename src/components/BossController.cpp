@@ -42,6 +42,8 @@ void BossController::Init()
     m_chargeAttackRange = 2000;
     m_stunTime = 4; // Seconds
 
+    m_roamSpeed = 200.0f;
+
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
 
@@ -84,7 +86,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase1();
+    EnterPhase3();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -207,6 +209,107 @@ void BossController::UpdatePhase3(float delta)
         wolf::Log("It may have been the Minotaur's labyrinth but Theseus the GOAT");
 
         // TODO: Death animation + ending cutscene!
+    }
+
+    switch (m_state)
+    {
+        case State::DEAD:
+        {
+            break;
+        }
+
+        case State::CHARGE_ATTACK:
+        {
+            break;
+        }
+
+        case State::FIRE_BREATH_ATTACK:
+        {
+            break;
+        }
+
+        case State::SEARCHING:
+        {
+            Search(delta);
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+}
+
+void BossController::ChangeStatesPhase3(State p_state)
+{
+    // Return if state is not in phase 3
+    if(p_state < State::SEARCHING)
+    {
+        return;
+    }
+
+    // End old state
+    switch (m_state)
+    {
+        case State::CHARGE_ATTACK:
+        {
+            break;
+        }
+        default:
+        break;
+    }
+
+    // Start new state
+    switch (p_state)
+    {
+        case State::CHARGE_ATTACK:
+        {
+            StartChargeAttack();
+            break;
+        }
+        case State::FIRE_BREATH_ATTACK:
+        {
+            StartFireBreathAttack();
+            break;
+        }
+
+        default:
+        break;
+    }
+
+    m_state = p_state;
+}
+
+void BossController::Search(float delta)
+{
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+    float playerDistance = glm::distance(thisPos, playerPos);
+
+    MoveTowardsTarget(delta);
+
+}
+
+// Resued from GorgonController
+void BossController::MoveTowardsTarget(float delta)
+{
+    if (!m_pPlayerObject || !m_pVelocity || !m_pTransform) return;
+
+    // Calculate the direction towards the player and move the Gorgon
+        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+
+    // Calculate direction vector
+    glm::vec2 direction = playerPos - thisPos;
+
+    if (glm::length(direction) > 0.01f) {
+        direction = glm::normalize(direction);
+        m_pVelocity->SetVelocity(direction * m_roamSpeed);
+
+    } 
+    else {
+        m_pVelocity->SetVelocity(glm::vec2(0.0f));
     }
 }
 

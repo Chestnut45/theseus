@@ -104,6 +104,8 @@ private:
     int m_chargeAttackRange;
     int m_stunTime;
 
+    float m_roamSpeed;
+
     // Updates the animated sprite based on state,
     // regardless of what phase of the fight we're in
     void UpdateAnimation();
@@ -123,6 +125,11 @@ private:
     // Phase 3 methods
     void EnterPhase3();
     void UpdatePhase3(float delta);
+    void ChangeStatesPhase3(State p_state);
+
+    void Search(float delta);
+    void MoveTowardsTarget(float delta);
+
     void StartFireBreathAttack();
     void StartChargeAttack();
 };
