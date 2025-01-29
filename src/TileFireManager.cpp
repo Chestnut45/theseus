@@ -79,6 +79,7 @@ void TileFireManager::Update(float p_delta)
             if(playerTilePos.y == fireTile->m_vTilePos.y)
             {
                 m_pPlayerObj->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+                break;
             }
         }
     }
