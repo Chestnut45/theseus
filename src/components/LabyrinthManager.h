@@ -252,6 +252,10 @@ private:
             RareChest,
             EpicChest,
             LegendaryChest,
+            TrappedChestExplode,
+            TrappedChestGorgon,
+            TrappedChestHarpy,
+            TrappedChestMinitaur,
             DaedalusDispensary, // !-- Aurora added this --!
             ThrowableObject,
             SpikeTrap,
