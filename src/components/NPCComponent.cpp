@@ -53,24 +53,20 @@ void NPCComponent::Update(float p_fDelta) {
         return;
     }
 
-    // Chunk update code taken from D'Anyil in EnemyController.cpp   
+    // Update chunk
     for (auto&&[_, lm] : GetGameObject()->GetScene().Each<LabyrinthManager>())
     {
-        // Get the ID of the chunk that the NPC is currently in
         glm::ivec2 newChunkID = lm.GetChunkID(m_pTransform->GetGlobalPosition());
-        // If the new ID is different from the previous ID
         if (m_chunkID != newChunkID)
         {
-            // Then we get the new chunk
             wolf::GameObject* pChunk = lm.GetChunk(newChunkID);
-            // If the chunk exists
             if (pChunk)
-            {   
-                // Then we add the NPC object as a child of the chunk & update the chunk ID
+            {
                 pChunk->AddChild(*GetGameObject());
                 m_chunkID = newChunkID;
+                // std::cout << "Chunk ID - x: " << m_chunkID.x << ", y: " << m_chunkID.y << std::endl;
             }
-        } 
+        }
         break;
     }
 
@@ -294,6 +290,7 @@ void NPCComponent::StunNPC()
 
 void NPCComponent::SetActive(bool p_active)
 {
+    // std::cout << "Set Active: " << p_active << std::endl;
     m_isActive = p_active;
 }
 
