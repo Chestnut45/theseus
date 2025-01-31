@@ -1,6 +1,6 @@
 #include <NPCComponent.h>
 #include <ColliderComponent.h>
-
+#include <LabyrinthManager.h>
 int NPCComponent::m_iNextID = 0;
 wolf::RNG NPCComponent::s_RNG;
 
@@ -51,6 +51,27 @@ void NPCComponent::Update(float p_fDelta) {
     if (!m_isActive)
     {    
         return;
+    }
+
+    // Chunk update code taken from D'Anyil in EnemyController.cpp   
+    for (auto&&[_, lm] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+    {
+        // Get the ID of the chunk that the NPC is currently in
+        glm::ivec2 newChunkID = lm.GetChunkID(m_pTransform->GetGlobalPosition());
+        // If the new ID is different from the previous ID
+        if (m_chunkID != newChunkID)
+        {
+            // Then we get the new chunk
+            wolf::GameObject* pChunk = lm.GetChunk(newChunkID);
+            // If the chunk exists
+            if (pChunk)
+            {   
+                // Then we add the NPC object as a child of the chunk & update the chunk ID
+                pChunk->AddChild(*GetGameObject());
+                m_chunkID = newChunkID;
+            }
+        } 
+        break;
     }
 
     // If we have no health left
@@ -271,7 +292,7 @@ void NPCComponent::StunNPC()
     ChangeState(State::STUNNED);
 }
 
-void NPCComponent::SetActiveFlag(bool p_active)
+void NPCComponent::SetActive(bool p_active)
 {
     m_isActive = p_active;
 }

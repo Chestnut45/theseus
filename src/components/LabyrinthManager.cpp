@@ -37,6 +37,7 @@
 #include <HarpyController.h>
 #include <MinitaurController.h>
 #include <GorgonController.h>
+#include <NPCComponent.h>
 
 std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
 
@@ -181,6 +182,10 @@ void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
         auto* pController = pObject->GetComponent<HarpyController>();
         if (pController) pController->SetActive(true);
 
+        // Activate NPC components
+        auto* pNPCComp = pObject->GetComponent<NPCComponent>();
+        if(pNPCComp) pNPCComp->SetActive(true);
+
         // Activate velocities
         auto* pVelocity = pObject->GetComponent<VelocityComponent>();
         if (pVelocity) pVelocity->SetActive(true);
@@ -220,6 +225,10 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
         // Deactivate enemy controllers
         auto* pController = pObject->GetComponent<HarpyController>();
         if (pController) pController->SetActive(false);
+
+        // Deactivate NPC components
+        auto* pNPCComp = pObject->GetComponent<NPCComponent>();
+        if(pNPCComp) pNPCComp->SetActive(false);
 
         // Deactivate velocities
         auto* pVelocity = pObject->GetComponent<VelocityComponent>();

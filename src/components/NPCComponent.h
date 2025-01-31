@@ -137,8 +137,11 @@ class NPCComponent : public wolf::BaseComponent {
         void EmptyDialogueQueue();
         void SayGoodbye();
         
-        // Change NPC state to STUNNED if hit
+        // Changes NPC state to STUNNED if hit
         void StunNPC();
+
+        // Sets the active flag
+        void SetActive(bool p_active);
 
     private:
         void HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndEvent& p_event);
@@ -169,7 +172,7 @@ class NPCComponent : public wolf::BaseComponent {
         float m_fRoamSpeedCheckTime = 0.2f;
         float m_fRoamSpeedCheckTimer = 0.0f;
         float m_fRoamSpeed = 100.0f;
-        float m_RoamSpeedMin = 25.0f; // The minimum speed that determines if the NPC should change directions
+        float m_RoamSpeedMin = 50.0f; // The minimum speed that determines if the NPC should adjust their velocity
         int m_iRoamBlockedCounter = 0; // Counts how many times the NPC walks into a wall or corner and is blocked - reset in EnterIdleState()
         int m_iRoamBlockedLimit = 2; // The mumber of blocks allowed before the NPC is forced into IDLE
 
@@ -189,14 +192,15 @@ class NPCComponent : public wolf::BaseComponent {
         // Active flag - stops updating when the NPC is in a deactivated chunk
         bool m_isActive = true;
 
+        // The ID of the chunk the NPC is in
+        glm::ivec2 m_chunkID;
+
         // Pointers to other components that the NPCComponent will occasionally need to access
         HealthComponent* m_pHealthComp = nullptr;
         wolf::Transform2D* m_pTransform = nullptr;
         AnimatedSprite2D* m_pAnimSpriteComp = nullptr;
         MerchantInventoryComponent* m_pMerchInvComp = nullptr;
         VelocityComponent* m_pVeloComp = nullptr;
-        
-        void SetActiveFlag(bool p_active);
 
         // State entry methods
         void ChangeState(State p_state);
