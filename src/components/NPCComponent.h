@@ -14,9 +14,11 @@
 
 #include <W_Transform2D.h>
 #include <W_EventManager.h>
+#include <W_RNG.h>
 #include <HealthComponent.h>
 #include <AnimatedSprite2D.h>
 #include <MerchantInventoryComponent.h>
+#include <VelocityComponent.h>
 
 #include "../inventory/ItemDropCreator.h"
 #include "../events/DialogueAndCutsceneEvent.h"
@@ -68,6 +70,13 @@ struct ComparePriority {
 
 class NPCComponent : public wolf::BaseComponent {
     public:
+        enum State
+        {
+            IDLE,
+            ROAM,
+            DEAD
+        };
+
         NPCComponent(const std::string& p_strName, const std::string& p_strDialogueFilePath, std::unordered_map<std::string, NPCDialogueEntry*>& p_mDialogueEntries, const std::string& p_strDropTableFilePath, bool p_bIsMerchant, bool p_bCanBeMerchant);
         ~NPCComponent();
         
@@ -146,6 +155,17 @@ class NPCComponent : public wolf::BaseComponent {
         int m_iCurHighPriorityVal = 0;
 
         bool m_bPlayingDialogue = false; // Flag to check if the NPC can be talked to / interacted with
+        bool m_state = State::IDLE; //-------Added By Nhat-------//
+
+        // Member variables for states
+        float m_fIdleTimer = 0.0f;
+        float m_fRoamTimer = 0.0f;
+        float m_fRoamSpeedCheckTime = 0.2f;
+        float m_fRoamSpeedCheckTimer = 0.0f;
+        float m_fRoamSpeed = 100.0f;
+        float m_RoamSpeedMin = 10.0f; // The minimum speed that determines if the NPC should change directions
+        int m_iRoamBlockedCounter = 0; // Counts how many times the NPC walks into a wall or corner and is blocked
+        int m_iRoamBlockedLimit = 2;
 
         // Timers for the NPC death animation
         float m_fFallDeadTimer = 0.0f;
@@ -153,9 +173,31 @@ class NPCComponent : public wolf::BaseComponent {
         float m_fTimeToFallDead = 0.6f;
         float m_fTimeToLieDead = 0.8f;
 
+        // RNG generator
+        static wolf::RNG s_RNG;
+
+        // Active flag - stops updating when the NPC is in a deactivated chunk
+        bool m_isActive = true;
+
         // Pointers to other components that the NPCComponent will occasionally need to access
         HealthComponent* m_pHealthComp = nullptr;
         wolf::Transform2D* m_pTransform = nullptr;
         AnimatedSprite2D* m_pAnimSpriteComp = nullptr;
         MerchantInventoryComponent* m_pMerchInvComp = nullptr;
+        VelocityComponent* m_pVeloComp = nullptr;
+        
+        void SetActiveFlag(bool p_active);
+
+        // State-related methods
+        void ChangeState(State p_state);
+        void EnterIdleState();
+        void EnterRoamState();
+        void HandleIdleState(float p_fDelta);
+        void HandleRoamState(float p_fDelta);
+
+        void CheckRoamSpeed();
+        
+        // Methods for turning NPCs
+        void TurnTowardsPlayer();
+        void TurnToDirection(glm::vec2 p_vDirection);
 };
