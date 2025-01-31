@@ -52,6 +52,7 @@ class LightComponent : public wolf::BaseComponent {
         inline wolf::Rectangle& GetRadiusRectangle() const {return *m_pRadiusRectangle;};
 
         bool SweepLinePointCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2Point);
+        std::pair<bool, glm::vec2> SweepLineRectCollisionTest(const glm::vec2& p_v2LineEnd, const wolf::Rectangle& p_pRect);
 
     private:
         // ID number to discern between lights
