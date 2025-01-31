@@ -74,6 +74,7 @@ class NPCComponent : public wolf::BaseComponent {
         {
             IDLE,
             ROAM,
+            STUNNED,
             DEAD
         };
 
@@ -135,6 +136,9 @@ class NPCComponent : public wolf::BaseComponent {
 
         void EmptyDialogueQueue();
         void SayGoodbye();
+        
+        // Change NPC state to STUNNED if hit
+        void StunNPC();
 
     private:
         void HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndEvent& p_event);
@@ -155,17 +159,23 @@ class NPCComponent : public wolf::BaseComponent {
         int m_iCurHighPriorityVal = 0;
 
         bool m_bPlayingDialogue = false; // Flag to check if the NPC can be talked to / interacted with
-        bool m_state = State::IDLE; //-------Added By Nhat-------//
+        State m_state = State::IDLE; //-------Added By Nhat-------//
 
-        // Member variables for states
+        // Idle state members
         float m_fIdleTimer = 0.0f;
+        
+        // Roam state members
         float m_fRoamTimer = 0.0f;
         float m_fRoamSpeedCheckTime = 0.2f;
         float m_fRoamSpeedCheckTimer = 0.0f;
         float m_fRoamSpeed = 100.0f;
-        float m_RoamSpeedMin = 10.0f; // The minimum speed that determines if the NPC should change directions
-        int m_iRoamBlockedCounter = 0; // Counts how many times the NPC walks into a wall or corner and is blocked
-        int m_iRoamBlockedLimit = 2;
+        float m_RoamSpeedMin = 25.0f; // The minimum speed that determines if the NPC should change directions
+        int m_iRoamBlockedCounter = 0; // Counts how many times the NPC walks into a wall or corner and is blocked - reset in EnterIdleState()
+        int m_iRoamBlockedLimit = 2; // The mumber of blocks allowed before the NPC is forced into IDLE
+
+        // Stunned state members
+        float m_fStunnedTime = 0.5f;
+        float m_fStunnedTimer = 0.0f;
 
         // Timers for the NPC death animation
         float m_fFallDeadTimer = 0.0f;
@@ -188,13 +198,21 @@ class NPCComponent : public wolf::BaseComponent {
         
         void SetActiveFlag(bool p_active);
 
-        // State-related methods
+        // State entry methods
         void ChangeState(State p_state);
         void EnterIdleState();
         void EnterRoamState();
+        void EnterStunnedState();
+
+        // State handling methods
         void HandleIdleState(float p_fDelta);
         void HandleRoamState(float p_fDelta);
+        void HandleStunnedState(float p_fDelta);
 
+        // State exit methods
+        void ExitStunnedState();
+
+        // Adjusts NPC velocity in cases where the NPC is roaming to slowly - such as constantly colliding with a wall
         void CheckRoamSpeed();
         
         // Methods for turning NPCs

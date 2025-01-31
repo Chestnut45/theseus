@@ -80,10 +80,15 @@ void NPCComponent::Update(float p_fDelta) {
             HandleRoamState(p_fDelta);
             break;
         }
-
+        case State::STUNNED:
+        {
+            HandleStunnedState(p_fDelta);
+            break;
+        }
         case State::DEAD:
         {
             HandleDeadState(p_fDelta);
+            break;
         }
         default:
         {
@@ -261,6 +266,11 @@ void NPCComponent::SayGoodbye() {
     this->TriggerDialogue("goodbye");
 }
 
+void NPCComponent::StunNPC()
+{
+    ChangeState(State::STUNNED);
+}
+
 void NPCComponent::SetActiveFlag(bool p_active)
 {
     m_isActive = p_active;
@@ -277,6 +287,11 @@ void NPCComponent::ChangeState(State p_state)
         }
         case State::ROAM:
         {
+            break;
+        }
+        case State::STUNNED:
+        {
+            ExitStunnedState();
             break;
         }
         default:
@@ -298,6 +313,11 @@ void NPCComponent::ChangeState(State p_state)
             EnterRoamState();
             break;
         }
+        case State::STUNNED:
+        {
+            EnterStunnedState();
+            break;
+        }
         case State::DEAD:
         {
             break;
@@ -313,23 +333,24 @@ void NPCComponent::ChangeState(State p_state)
 
 void NPCComponent::EnterIdleState()
 {
-    m_fIdleTimer = s_RNG.NextFloat(2.0f, 4.0f);
-    m_pVeloComp->SetVelocity(glm::vec2(0.0f));
-    
-    //printf("IDLE\n");
+    m_fIdleTimer = s_RNG.NextFloat(2.0f, 4.0f); // Reset the idle timer
+    m_pVeloComp->SetVelocity(glm::vec2(0.0f)); // Set the NPC velocity to 0
+    m_iRoamBlockedCounter = 0;  // Reset the roam-blocked counter
 }
 
 void NPCComponent::EnterRoamState()
 {
-    m_fRoamTimer = s_RNG.NextFloat(3.0f, 4.5f);
-    glm::vec2 newVector = glm::normalize(glm::vec2(s_RNG.NextFloat(-5.0f, 5.0f), s_RNG.NextFloat(-5.0f, 5.0f))) * m_fRoamSpeed;
-    TurnToDirection(newVector);
-
-    m_pVeloComp->SetVelocity(newVector);
-
-    m_fRoamSpeedCheckTimer = 0.0f;
-
-    //printf("ROAM\n");
+    m_fRoamTimer = s_RNG.NextFloat(4.0f, 6.0f); // Reset the roam timer
+    glm::vec2 newVector = glm::normalize(glm::vec2(s_RNG.NextFloat(-5.0f, 5.0f), s_RNG.NextFloat(-5.0f, 5.0f))) * m_fRoamSpeed; // Get a random roam direction
+    TurnToDirection(newVector); // Set the NPC sprite to the new direction
+    m_pVeloComp->SetVelocity(newVector); // Set the NPC velocity to the new velocity
+    m_fRoamSpeedCheckTimer = 0.0f; // reset the speed-check timer
+}
+void NPCComponent::EnterStunnedState()
+{
+    m_fStunnedTimer = m_fStunnedTime; // Reset the stunned timer
+    m_pAnimSpriteComp->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE); // Set NPC sprite to be completely white
+    m_pVeloComp->SetVelocity(glm::vec2(0.0f, 0.0f)); // Set the NPC velocity to 0
 }
 
 void NPCComponent::HandleIdleState(float p_fDelta)
@@ -358,20 +379,36 @@ void NPCComponent::HandleRoamState(float p_fDelta)
     {
         m_fRoamTimer -= p_fDelta;
     
-        
-        // Checking the speed of the NPC
-        // If the check timer has expired
+        // If the speed-check timer has expired, reset the timer & check the roam speed
         if(m_fRoamSpeedCheckTimer <= 0.0f)
         {
             m_fRoamSpeedCheckTimer = m_fRoamSpeedCheckTime;
-
             CheckRoamSpeed();
         }
+        // If not, then update the timer
         else
         {
             m_fRoamSpeedCheckTimer -= p_fDelta;
         }
     }
+}
+
+void NPCComponent::HandleStunnedState(float p_fDelta)
+{
+    // If the stunned timer has expired, change to idle state
+    if(m_fStunnedTimer <= 0.0f)
+    {
+        ChangeState(State::IDLE);
+    }
+    else
+    {   
+        m_fStunnedTimer -= p_fDelta;
+    }
+}
+
+void NPCComponent::ExitStunnedState()
+{
+    m_pAnimSpriteComp->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
 }
 
 void NPCComponent::CheckRoamSpeed()
@@ -414,10 +451,9 @@ void NPCComponent::CheckRoamSpeed()
         // // If the NPC is being blocked still by a wall or corner
         else if (currentVelocity.x == 0.0f && currentVelocity.y == 0.0f)
         {
-            // If the NPC is blocked more times than the limit, reset counter & change to idle - avoids overly long roam chains
+            // If the NPC is blocked more times than the limit, reset counter & change to idle - prevents overly long roam chains
             if(m_iRoamBlockedCounter == m_iRoamBlockedLimit)
             {
-                m_iRoamBlockedCounter = 0;
                 ChangeState(State::IDLE);
                 return;
             }
@@ -430,6 +466,7 @@ void NPCComponent::CheckRoamSpeed()
             }
         }
 
+        // Apply calculated velocity to the component
         if(newVelocity != currentVelocity)
         {
             m_pVeloComp->SetVelocity(newVelocity);
