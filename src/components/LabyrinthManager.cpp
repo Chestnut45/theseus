@@ -949,10 +949,11 @@ wolf::GameObject* LabyrinthManager::GetChunk(const glm::ivec2& chunkID) const
 
 bool LabyrinthManager::IsChunkActive(const glm::ivec2& chunkID) const
 {
+    // Returns false if chunk cannot be found
     const auto& it = m_chunkMap.find(chunkID);
     if (it == m_chunkMap.end()) return false;
 
-    // Return if chunk already active
+    // Returns chunk active bool
     auto& chunk = it->second;
     return chunk.active;
 }

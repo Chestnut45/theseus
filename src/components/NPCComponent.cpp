@@ -53,20 +53,26 @@ void NPCComponent::Update(float p_fDelta) {
         return;
     }
 
-    // Update chunk
+    // Code taken from D'Anyil in EnemyController
     for (auto&&[_, lm] : GetGameObject()->GetScene().Each<LabyrinthManager>())
     {
+        // Get the ID of the chunk that the NPC is currently on
         glm::ivec2 newChunkID = lm.GetChunkID(m_pTransform->GetGlobalPosition());
+        // If the current ID is different from the previous one
         if (m_chunkID != newChunkID)
         {
+            // Get the chunk object
             wolf::GameObject* pChunk = lm.GetChunk(newChunkID);
+            
+            // if the chunk object exists
             if (pChunk)
-            {
-                pChunk->AddChild(*GetGameObject());
-                m_chunkID = newChunkID;
-                
-                m_isActive = lm.IsChunkActive(m_chunkID);
-                if(!m_isActive)
+            {   
+                pChunk->AddChild(*GetGameObject()); // Add the NPC object as a child of the chunk
+                m_chunkID = newChunkID; // Update the chunk ID
+                m_isActive = lm.IsChunkActive(m_chunkID); // Update active flag
+
+                // If the current chunk is not active, then change state to IDLE
+                if(!m_isActive) 
                 {
                     ChangeState(State::IDLE);
                 }
@@ -351,6 +357,7 @@ void NPCComponent::ChangeState(State p_state)
         }
     }
 
+    // Update the current state of the NPC
     m_state = p_state;
 }
 
@@ -423,6 +430,7 @@ void NPCComponent::HandleStunnedState(float p_fDelta)
     {
         ChangeState(State::IDLE);
     }
+    // If not, update the timer
     else
     {   
         m_fStunnedTimer -= p_fDelta;
@@ -431,6 +439,7 @@ void NPCComponent::HandleStunnedState(float p_fDelta)
 
 void NPCComponent::ExitStunnedState()
 {
+    // Disable the white sprite effect
     m_pAnimSpriteComp->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
 }
 
@@ -445,7 +454,7 @@ void NPCComponent::CheckRoamSpeed()
         // If the NPC is sliding along the X axis
         if(currentVelocity.x != 0.0f && currentVelocity.y == 0.0f)
         {
-            // Set velocity along X axis based on roaming direction, with a slight offset for Y axis
+            // Set the velocity along the X axis based on roaming direction, with a slight offset for the Y axis
             if(currentVelocity.x > 0.0f)
             {
                 newVelocity = glm::normalize(glm::vec2(m_fRoamSpeed, s_RNG.NextFloat(-20.0f, 20.0f))) * m_fRoamSpeed;
@@ -460,7 +469,7 @@ void NPCComponent::CheckRoamSpeed()
         // If the NPC is sliding along the Y axis
         else if(currentVelocity.y != 0.0f && currentVelocity.x == 0.0f)
         {
-            // Set velocity along Y axis based on roaming direction, with a slight offset for X axis
+            // Set the velocity along the Y axis based on roaming direction, with a slight offset for the X axis
             if(currentVelocity.y > 0.0f)
             {
                 newVelocity = glm::normalize(glm::vec2(s_RNG.NextFloat(-20.0f, 20.0f), m_fRoamSpeed)) * m_fRoamSpeed;
