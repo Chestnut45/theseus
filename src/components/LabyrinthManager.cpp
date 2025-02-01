@@ -947,6 +947,16 @@ wolf::GameObject* LabyrinthManager::GetChunk(const glm::ivec2& chunkID) const
     return it->second.m_pObject;
 }
 
+bool LabyrinthManager::IsChunkActive(const glm::ivec2& chunkID) const
+{
+    const auto& it = m_chunkMap.find(chunkID);
+    if (it == m_chunkMap.end()) return false;
+
+    // Return if chunk already active
+    auto& chunk = it->second;
+    return chunk.active;
+}
+
 void LabyrinthManager::DeleteChunk(const glm::ivec2& chunkID)
 {
     auto* pChunk = GetChunk(chunkID);

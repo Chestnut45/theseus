@@ -64,7 +64,12 @@ void NPCComponent::Update(float p_fDelta) {
             {
                 pChunk->AddChild(*GetGameObject());
                 m_chunkID = newChunkID;
-                // std::cout << "Chunk ID - x: " << m_chunkID.x << ", y: " << m_chunkID.y << std::endl;
+                
+                m_isActive = lm.IsChunkActive(m_chunkID);
+                if(!m_isActive)
+                {
+                    ChangeState(State::IDLE);
+                }
             }
         }
         break;
