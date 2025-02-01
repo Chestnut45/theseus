@@ -498,11 +498,11 @@ void NPCComponent::CheckRoamSpeed()
             }
         }
 
-        // Apply calculated velocity to the component
+        // If the new velocity is not the same as the current velocity
         if(newVelocity != currentVelocity)
         {
-            m_pVeloComp->SetVelocity(newVelocity);
-            TurnToDirection(newVelocity);
+            m_pVeloComp->SetVelocity(newVelocity); // Apply the new velocity
+            TurnToDirection(newVelocity); // Turn the NPC to the direction of movement
         }
     }
 }

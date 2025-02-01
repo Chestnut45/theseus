@@ -137,7 +137,7 @@ class NPCComponent : public wolf::BaseComponent {
         void EmptyDialogueQueue();
         void SayGoodbye();
         
-        // Changes NPC state to STUNNED if hit
+        // Changes NPC state to STUNNED
         void StunNPC();
 
         // Sets the active flag
@@ -216,7 +216,7 @@ class NPCComponent : public wolf::BaseComponent {
         // State exit methods
         void ExitStunnedState();
 
-        // Adjusts NPC velocity in cases where the NPC is roaming to slowly - such as constantly colliding with a wall
+        // Adjusts NPC velocity in cases where the NPC is roaming too slowly - such as constantly colliding with a wall
         void CheckRoamSpeed();
         
         // Methods for turning NPCs
