@@ -1138,13 +1138,3 @@ void PlayState::RenderMinimap() {
     ImGui::End();
     ImGui::PopStyleVar();
 }
-
-
-
-
-
-
-
-
-
-
