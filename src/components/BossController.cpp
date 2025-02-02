@@ -24,7 +24,7 @@ void BossController::Init()
 {
     // Initialize stats
     m_active = false;
-    m_maxHealth = 8000;
+    m_maxHealth = 6500;
 
     // Phase 1 stats
     m_throneBlockRange = 300;
@@ -34,7 +34,7 @@ void BossController::Init()
     m_axeAttackDamage = 80;
     m_axePunishDamage = 100;
     m_minDistToPlayer = 160;
-    m_maxDistToPlayer = 260;
+    m_maxDistToPlayer = 280;
     m_strafeClockwise = true;
     m_strafeSpeed = 160.0f;
     m_chaseSpeed = 240.0f;
@@ -172,11 +172,8 @@ void BossController::UpdatePhase2(float delta)
     // - Periodically execute axe attack patterns
 
     // Timing variables
-    static wolf::Timer dodgeTimer;
-    static wolf::Timer strafeSwapTimer;
     static wolf::RNG rng;
     static float nextStrafeSwap = 1.0f;
-    static glm::vec2 dodgeDir;
 
     // Query player spatial info
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -196,6 +193,14 @@ void BossController::UpdatePhase2(float delta)
     {
         case State::APPROACH:
 
+            // Dodge player attack
+            if (playerAttacking && distToPlayer < m_maxDistToPlayer)
+            {
+                DodgePlayerAttack(dirToPlayer);
+                break;
+            }
+
+            // Normal approach logic
             if (distToPlayer > m_maxDistToPlayer)
             {
                 // Approach player
@@ -210,21 +215,22 @@ void BossController::UpdatePhase2(float delta)
             {
                 // Switch to strafe state if within proper range
                 m_state = State::STRAFE;
+                m_strafeSwapTimer.Restart();
             }
             break;
         
         case State::STRAFE:
         {
             // Randomly change strafe direction
-            if (!strafeSwapTimer.IsRunning())
+            if (!m_strafeSwapTimer.IsRunning())
             {
-                strafeSwapTimer.Restart();
+                m_strafeSwapTimer.Restart();
                 nextStrafeSwap = rng.NextFloat(0.5f, 5.0f);
             }
-            if (strafeSwapTimer.Elapsed() >= nextStrafeSwap)
+            if (m_strafeSwapTimer.Elapsed() >= nextStrafeSwap)
             {
                 m_strafeClockwise = !m_strafeClockwise;
-                strafeSwapTimer.Reset();
+                m_strafeSwapTimer.Reset();
             }
             
             // Move along strafe direction
@@ -234,32 +240,21 @@ void BossController::UpdatePhase2(float delta)
             if (distToPlayer > m_maxDistToPlayer || distToPlayer < m_minDistToPlayer)
             {
                 m_state = State::APPROACH;
+                break;
             }
 
             // Dodge player attack
             if (playerAttacking)
             {
-                // Change state
-                m_state = State::DODGE;
-                dodgeTimer.Restart();
+                DodgePlayerAttack(dirToPlayer);
+                break;
+            }
 
-                // Choose dodge direction
-                WeaponItem* pWeapon = m_pPlayerController->GetHeldWeapon();
-                if (pWeapon)
-                {
-                    if (pWeapon->GetWeaponType() == WeaponType::BOW)
-                    {
-                        dodgeDir = -rotated;
-                    }
-                    else
-                    {
-                        dodgeDir = -dirToPlayer;
-                    }
-                }
-                else
-                {
-                    dodgeDir = -dirToPlayer;
-                }
+            // Start axe attack
+            if (!m_axeAttackTimer.IsRunning() || m_axeAttackTimer.Elapsed() > 2.0f)
+            {
+                StartAxeAttack();
+                break;
             }
 
             break;
@@ -267,25 +262,24 @@ void BossController::UpdatePhase2(float delta)
 
         case State::DODGE:
 
-            // Dodge away from player for melee, dodge sideways for the bow
-            m_pVelocity->SetVelocity(dodgeDir * m_chaseSpeed * 1.4f);
-
             // Return to approach state
-            if (dodgeTimer.Elapsed() > 0.5f)
+            if (m_dodgeTimer.Elapsed() > 0.6f)
             {
                 m_state = State::APPROACH;
-                dodgeTimer.Reset();
+                m_dodgeTimer.Reset();
             }
 
             break;
         
         case State::AXE_ATTACK:
 
+            // Stand still until axe returns
+
             break;
     }
 
     // Under half health, change to phase 3
-    if (m_pHealth->GetHealth() < m_maxHealth / 2)
+    if (m_pHealth->GetHealth() <= m_maxHealth / 2)
     {
         EnterPhase3();
     }
@@ -293,12 +287,26 @@ void BossController::UpdatePhase2(float delta)
 
 void BossController::StartAxeAttack()
 {
-
+    // Change state
+    m_state = State::AXE_ATTACK;
+    
 }
 
-void BossController::DodgePlayerAttack()
+void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)
 {
-    
+    // Change state
+    m_state = State::DODGE;
+    m_dodgeTimer.Restart();
+
+    // Get randomly rotated direction
+    static wolf::RNG rng;
+    glm::mat4 rotation = glm::rotate(glm::radians(rng.FlipCoin() ? 90.0f : -90.0f), glm::vec3(0, 0, 1));
+    glm::vec2 rotated = glm::vec2(rotation * glm::vec4(dirToPlayer.x, dirToPlayer.y, 0, 1));
+
+    // Dodge away from player for melee, dodge sideways for the bow
+    WeaponItem* pWeapon = m_pPlayerController->GetHeldWeapon();
+    m_dodgeDir = (pWeapon && pWeapon->GetWeaponType() == WeaponType::BOW) ? -rotated : -dirToPlayer;
+    m_pVelocity->SetVelocity(m_dodgeDir * m_chaseSpeed * 1.4f);
 }
 
 // <----------------- PHASE 3 METHODS ----------------->

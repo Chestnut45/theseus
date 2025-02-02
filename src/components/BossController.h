@@ -2,6 +2,9 @@
 
 #include <W_BaseComponent.h>
 
+#include <glm/vec2.hpp>
+#include <W_Timer.h>
+
 // Forward declarations
 class VelocityComponent;
 class AnimatedSprite2D;
@@ -99,6 +102,10 @@ private:
     bool m_strafeClockwise;
     float m_strafeSpeed;
     float m_chaseSpeed;
+    wolf::Timer m_dodgeTimer;
+    wolf::Timer m_strafeSwapTimer;
+    wolf::Timer m_axeAttackTimer;
+    glm::vec2 m_dodgeDir;
 
     // Phase 3 stats
     int m_fireBreathDamage;
@@ -121,7 +128,7 @@ private:
     void EnterPhase2();
     void UpdatePhase2(float delta);
     void StartAxeAttack();
-    void DodgePlayerAttack();
+    void DodgePlayerAttack(const glm::vec2& dirToPlayer);
 
     // Phase 3 methods
     void EnterPhase3();
