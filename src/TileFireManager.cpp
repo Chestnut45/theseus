@@ -69,7 +69,8 @@ void TileFireManager::Update(float p_delta)
     {
         for (FireTile* fireTile : m_mFireColumns[playerTileColumn])
         {
-            if(playerTilePos.y == fireTile->m_vTilePos.y)
+            // If matching tile position, and fire tile is still active, burn
+            if(playerTilePos.y == fireTile->m_vTilePos.y && fireTile->m_fLifespan > 0.0f)
             {
                 m_pPlayerObj->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
                 break;
