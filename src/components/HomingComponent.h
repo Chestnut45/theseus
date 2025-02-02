@@ -1,3 +1,5 @@
+#pragma once
+
 //-----------------------------------------------------------------------------
 // File: HomingComponent.h
 // Original Author: Nguyễn Minh Nhật
