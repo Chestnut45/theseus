@@ -72,6 +72,7 @@ private:
 
     // Location to spawn player when bossfight starts
     glm::vec2 m_bossfightPlayerPos;
+    wolf::GameObject* m_pBoss = nullptr;
 
     // Private helper methods
     void ConvertPlayerTileToGold();

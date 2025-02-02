@@ -1,17 +1,30 @@
 #include "ThrowableObjectComponent.h"
 #include "PlayerController.h"
+#include "GorgonController.h"
+#include "HarpyController.h"
+#include "AttackDamageComponent.h"
 #include <imgui/imgui.h>
 #include <iostream>
 
 ThrowableObjectComponent::ThrowableObjectComponent(float damage, ColliderManager* colliderManager)
-    : m_damage(damage), m_state(ThrowableState::IDLE), m_pColliderManager(colliderManager) {}
+    : m_damage(damage), m_state(ThrowableState::IDLE), m_pColliderManager(colliderManager) 
+{
+}
 
 void ThrowableObjectComponent::Update(float delta) {
+    m_uiPlayerGOId = GetGameObject()->GetScene().GetPlayerID();
+
     if (!m_pCollider) m_pCollider = GetGameObject()->GetComponent<ColliderComponent>();
     if (!m_pTransform) m_pTransform = GetGameObject()->GetComponent<wolf::Transform2D>();
 
+    if(m_pCollider != nullptr)
+    {
+        m_pCollider->SetIgnoreTag(m_uiPlayerGOId);
+    }
+
     switch (m_state) {
         case ThrowableState::IDLE:
+            m_pCollider->SetActive(false);
             if (IsCloseToPlayer(150.0f)) {
                 m_hoverAnimationOffset = sin(ImGui::GetTime() * 3.0f) * 5.0f;
                 RenderPickupPrompt();
@@ -19,11 +32,20 @@ void ThrowableObjectComponent::Update(float delta) {
             break;
 
         case ThrowableState::PICKED_UP:
+            m_pCollider->SetActive(false);
             FollowPlayer();
             break;
 
         case ThrowableState::THROWN:
-            HandleCollision();
+            m_pCollider->SetActive(true);
+            // Add the AttackDamageComponent to the GameObject
+            if (!GetGameObject()->HasAll<AttackDamageComponent>()) {
+                auto& attackDamageComponent = GetGameObject()->AddComponent<AttackDamageComponent>(
+                    m_damage,            // Damage dealt by the throwable object
+                    m_pColliderManager,  // Collider manager for collision handling
+                    200.0f                // Knockback magnitude (set to 0.0f if not needed)
+                );
+            }
             CheckLifetime(delta);
             break;
     }
@@ -116,27 +138,6 @@ void ThrowableObjectComponent::FollowPlayer() {
 
 void ThrowableObjectComponent::SetState(ThrowableState newState) {
     m_state = newState;
-}
-
-void ThrowableObjectComponent::HandleCollision() {
-    if (m_hasCollided) return; // Prevent double collision handling
-
-    for (auto&& [_, minitaurController] : GetGameObject()->GetScene().Each<MinitaurController>()) {
-        auto* minitaurObject = minitaurController.GetGameObject();
-        auto* minitaurCollider = minitaurObject->GetComponent<ColliderComponent>();
-
-        if (minitaurCollider && m_pCollider && m_pColliderManager->IsColliding(*m_pCollider, *minitaurCollider, 0.0f)) {
-            // Collision detected with Minitaur
-            auto* healthComponent = minitaurObject->GetComponent<HealthComponent>();
-            if (healthComponent) {
-                healthComponent->Damage(200.0f); // Apply damage to Minitaur's health
-                // std::cout << "Collision with Minitaur! Damage dealt: 200" << std::endl;
-            }
-            m_hasCollided = true;
-            GetGameObject()->Delete(); // Mark object for deletion
-            return;
-        }
-    }
 }
 
 void ThrowableObjectComponent::CheckLifetime(float delta) {

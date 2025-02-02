@@ -43,7 +43,7 @@ private:
     void RenderPickupPrompt();
     void HandleCollision();
     void CheckLifetime(float delta);
-
+    void HandleEnemyCollision(wolf::GameObject* enemyObject, float damage);
     float m_lifetime = 4.0f; // Timer for self-destruction
     bool m_hasCollided = false; // Flag to check if collision has already occurred
 
@@ -57,5 +57,8 @@ private:
     float m_damage;
 
     float m_hoverAnimationOffset = 0.0f; // Offset for floating prompt animation
+
+    wolf::GameObjectID m_uiPlayerGOId;
+
 
 };
