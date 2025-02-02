@@ -843,7 +843,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
         case TriggerPurpose::SPIKE_TRAP: {
 
             // Play sound effect
-            wolf::Audio::Play("data/sounds/sfx_spike_trap.wav", 0.75f);
+            wolf::Audio::Play("data/sounds/sfx_spike_trap.wav", 0.4f);
 
             auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
             auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/SpikesExtended.png");
