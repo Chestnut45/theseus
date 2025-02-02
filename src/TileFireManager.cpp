@@ -163,9 +163,11 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
     m_fLifespan = p_lifespan;
     wolf::Scene* scene = &p_lbmg->GetGameObject()->GetScene();
     m_pFireObj = &scene->CreateObject2D();
-    m_pFireObj->GetComponent<wolf::Transform2D>()->SetPosition(p_lbmg->GetWorldPosition(m_vTilePos));
+    m_pFireObj->GetComponent<wolf::Transform2D>()->SetPosition(p_lbmg->GetWorldPosition(m_vTilePos) + glm::vec2(LabyrinthManager::TILE_SIZE * 1.5f));
+
     m_pFireObj->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f, 3.0f));
     wolf::Sprite2D* sprite = &m_pFireObj->AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
+    sprite->SetOriginToCenterOfTexture();
 }
 
 TileFireManager::FireTile::~FireTile()

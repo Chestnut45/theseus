@@ -42,7 +42,7 @@ void BossController::Init()
     // Phase 3 stats
     m_fireBreathDamage = 10; // Per projectile
     m_fireBreathRange = 300;
-    m_fireAttackDuration = 20.0f;
+    m_fireAttackDuration = 15.0f;
     m_turningCapRadian = 5.0f * (M_PI / 180.0f); // Maximum angle for each turn instance
     m_turningDelay = 0.2f;      // Delay between each turn instance
     m_turningTimer = 0.0f;
@@ -273,7 +273,7 @@ void BossController::StartChargeAttack()
 
 void BossController::StartFireBreathAttack()
 {
-    m_fireAttackDuration = 250.0f;
+    m_fireAttackDuration = 15.0f;
     GetGameObject()->GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
     glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
