@@ -16,6 +16,7 @@
 
 class LightComponent : public wolf::BaseComponent {
     public:
+        // IMPORTANT: LightComponent::Init() MUST be called immediately after component creation
         LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2Radius, bool m_bCanMove);
         ~LightComponent();
 
@@ -27,6 +28,7 @@ class LightComponent : public wolf::BaseComponent {
         LightComponent(LightComponent&& other) = delete;
         LightComponent& operator=(LightComponent&& other) = delete;
 
+        void Init();
         void Update(float p_fDelta);
 
         inline int GetID() const {return m_iIDNum;};
@@ -55,6 +57,7 @@ class LightComponent : public wolf::BaseComponent {
         std::pair<bool, glm::vec2> SweepLineRectCollisionTest(const glm::vec2& p_v2LineEnd, const wolf::Rectangle& p_pRect);
 
     private:
+
         // ID number to discern between lights
         static int m_iNextIDNum;
         const int m_iIDNum;
@@ -68,11 +71,11 @@ class LightComponent : public wolf::BaseComponent {
         glm::vec2 m_v2Origin;
 
         // Pointer to the scene this light is in
-        wolf::Scene* m_pScene;
+        wolf::Scene* m_pScene = nullptr;
         
         // This light's transform and the four corners at the edges of its radius
-        wolf::Transform2D* m_pTransform;
-        wolf::Rectangle* m_pRadiusRectangle;
+        wolf::Transform2D* m_pTransform = nullptr;
+        wolf::Rectangle* m_pRadiusRectangle = nullptr;
 
         // Map to hold all of the points this light's rays are colliding with
         std::map<int, glm::vec2> m_iv2CollidingPoints;

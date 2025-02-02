@@ -24,6 +24,7 @@
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
 #include <BossController.h>
+#include <LightComponent.h>
 
 void PlayState::Enter()
 {
@@ -126,6 +127,15 @@ void PlayState::Enter()
     // this->CreateHarpyEnemy();
     // this->CreateGorgonEnemy();
     this->CreateTrappedChest();
+
+    // Create a test light
+    wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
+    auto& pLightTransform = *pLightGO->GetComponent<wolf::Transform2D>();
+    pLightTransform.SetPosition(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+    auto& pLightSprite = pLightGO->AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    pLightSprite.SetOriginToCenterOfTexture();
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec2(250.0f, 250.0f), false);
+    pLightComponent.Init();
 }
 
 void PlayState::Exit()
@@ -183,6 +193,11 @@ void PlayState::Update(float delta)
     for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
     {
         TimedDestroyerComponent.Update(delta);
+    }
+
+    // Update the lights in the scene
+    for (auto&& [_, LightComponent] : m_pGameInstance->GetScene().Each<LightComponent>()) {
+        LightComponent.Update(delta);
     }
 
     // INVENTORY TESTING
@@ -590,6 +605,8 @@ void PlayState::Render()
     }
 
     RenderMinimap();
+    GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
+    GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
 }
 
 void PlayState::BackgroundUpdate(float delta)
