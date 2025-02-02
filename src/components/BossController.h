@@ -99,7 +99,6 @@ private:
     bool m_strafeClockwise;
     float m_strafeSpeed;
     float m_chaseSpeed;
-    float m_strafeSwap;
 
     // Phase 3 stats
     int m_fireBreathDamage;

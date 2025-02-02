@@ -85,6 +85,9 @@ public:
     //get player action
     PlayerAction GetPlayerAction() const;
 
+    // Gets the player's currently held weapon item, or nullptr if empty
+    WeaponItem* GetHeldWeapon() const { return m_pCurrentWeapon; }
+
     //set player action
     void SetAction(PlayerAction action);
 
