@@ -107,7 +107,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase2();
+    EnterPhase1();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -184,14 +184,10 @@ void BossController::EnterPhase2()
 
 void BossController::UpdatePhase2(float delta)
 {
-    // TODO: Phase 2 update logic:
-    // - Approach player and strafe when in neutral
-    // - If player attacks and we are idle, attempt to dodge
-    // - Periodically execute axe attack patterns
-
     // Timing variables
     static wolf::RNG rng;
     static float nextStrafeSwap = 1.0f;
+    static float nextAttackTime = 1.0f;
 
     // Query player spatial info
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -252,9 +248,10 @@ void BossController::UpdatePhase2(float delta)
             }
 
             // Start axe attack
-            if (m_axeAttackTimer.Elapsed() > 2.0f && rng.NextInt(0, 100) < 5)
+            if (m_axeAttackTimer.Elapsed() > nextAttackTime)
             {
                 StartAxeAttack();
+                nextAttackTime = rng.NextFloat(2.0f, 6.0f);
                 break;
             }
 
@@ -310,9 +307,10 @@ void BossController::UpdatePhase2(float delta)
             }
 
             // Start axe attack
-            if (m_axeAttackTimer.Elapsed() > 2.0f && rng.NextInt(0, 100) < 5)
+            if (m_axeAttackTimer.Elapsed() > nextAttackTime)
             {
                 StartAxeAttack();
+                nextAttackTime = rng.NextFloat(2.0f, 6.0f);
                 break;
             }
 
