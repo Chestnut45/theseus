@@ -34,7 +34,7 @@ void BossController::Init()
     m_numSummons = 10;
 
     // Phase 2 stats
-    m_axeAttackDamage = 80;
+    m_axeAttackDamage = 125;
     m_axePunishDamage = 100;
     m_minDistToPlayer = 160;
     m_maxDistToPlayer = 280;
@@ -179,8 +179,7 @@ void BossController::EnterPhase2()
 {
     m_phase = FightPhase::PHASE_2;
     m_state = State::APPROACH;
-
-    // TODO: Phase 2 initialization logic
+    m_axeAttackTimer.Restart();
 }
 
 void BossController::UpdatePhase2(float delta)
@@ -207,15 +206,55 @@ void BossController::UpdatePhase2(float delta)
     // Query player controller state
     bool playerAttacking = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING;
 
+    // Update axe if it exists
+    if (m_pAxeCollider)
+    {
+        // Calculate vector from axe to player
+        glm::vec2 axePos = m_pAxeCollider->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 axeToPlayer = glm::normalize(playerPos - axePos);
+        
+        // Check for player collision
+        auto* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
+        if (pPlayerCollider->IsHurtbox() && ColliderManager::StaticMethodIsColliding(*m_pAxeCollider, *pPlayerCollider, delta))
+        {
+            auto* pPlayerHealth = m_pPlayerObject->GetComponent<HealthComponent>();
+            auto* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
+            if (pPlayerHealth && pPlayerVel)
+            {
+                pPlayerHealth->Damage(m_axeAttackDamage);
+                pPlayerVel->ApplyKnockback(axeToPlayer, 4500.0f);
+            }
+        }
+
+        // Collect axe and return to state
+        if (m_axeAttackTimer.Elapsed() > 1.0f && glm::distance(axePos, m_pTransform->GetGlobalPosition()) < 48.0f)
+        {
+            m_pAxeCollider->GetGameObject()->Delete();
+            m_pAxeCollider = nullptr;
+            m_state = State::APPROACH;
+            m_axeAttackTimer.Restart();
+            m_axeSummoned = false;
+            m_pAnimSprite->SetTint(glm::vec3(1.0f));
+        }
+    }
+
     // Update based on state
     switch (m_state)
     {
         case State::APPROACH:
 
             // Dodge player attack
-            if (playerAttacking && distToPlayer < m_maxDistToPlayer)
+            if (playerAttacking && (distToPlayer < m_maxDistToPlayer || m_pPlayerController->GetHeldWeapon()->GetWeaponType() == WeaponType::BOW))
             {
                 DodgePlayerAttack(dirToPlayer);
+                break;
+            }
+
+            // Start axe attack
+            if (m_axeAttackTimer.Elapsed() > 2.0f && rng.NextInt(0, 100) < 5)
+            {
+                StartAxeAttack();
                 break;
             }
 
@@ -236,6 +275,7 @@ void BossController::UpdatePhase2(float delta)
                 m_state = State::STRAFE;
                 m_strafeSwapTimer.Restart();
             }
+
             break;
         
         case State::STRAFE:
@@ -270,7 +310,7 @@ void BossController::UpdatePhase2(float delta)
             }
 
             // Start axe attack
-            if (!m_axeAttackTimer.IsRunning() || m_axeAttackTimer.Elapsed() > 2.0f)
+            if (m_axeAttackTimer.Elapsed() > 2.0f && rng.NextInt(0, 100) < 5)
             {
                 StartAxeAttack();
                 break;
@@ -286,6 +326,7 @@ void BossController::UpdatePhase2(float delta)
             {
                 m_state = State::APPROACH;
                 m_dodgeTimer.Reset();
+                m_pAnimSprite->SetTint(glm::vec3(1.0f));
             }
 
             break;
@@ -295,13 +336,13 @@ void BossController::UpdatePhase2(float delta)
             if (!m_axeSummoned)
             {
                 // Update tint for tell
-                m_pAnimSprite->SetTint(glm::vec3(1.0f) * (float)m_axeAttackTimer.Elapsed() * 2.0f);
+                m_pAnimSprite->SetTint(glm::vec3(1.0f) * (float)(m_axeAttackTimer.Elapsed() + 1.0f));
 
                 // Spawn projectile
-                if (m_axeAttackTimer.Elapsed() > 2.0f)
+                if (m_axeAttackTimer.Elapsed() > 1.0f)
                 {
                     // Update timer and flag
-                    m_axeAttackTimer.Reset();
+                    m_axeAttackTimer.Restart();
                     m_axeSummoned = true;
                     m_pAnimSprite->SetTint(glm::vec3(1.0f));
 
@@ -311,18 +352,21 @@ void BossController::UpdatePhase2(float delta)
                     transform.SetPosition(m_pTransform->GetGlobalPosition());
                     transform.SetScale(glm::vec2(3.0f));
                     auto& velocity = axe.AddComponent<VelocityComponent>();
-                    velocity.SetVelocity(dirToPlayer * 450.0f);
+                    velocity.SetVelocity(dirToPlayer * 640.0f);
                     auto& sprite = axe.AddComponent<AnimatedSprite2D>("data/axe_spin_anim_init.yaml");
                     sprite.SetOriginToCenterOfFrame();
                     auto& homing = axe.AddComponent<HomingComponent>(GetGameObject(), 8.0f, 0.1f);
-                    m_pAxeCollider = &axe.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, false, false, GetGameObject()->GetID());
+                    m_pAxeCollider = &axe.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, false, false);
                     m_pAxeCollider->AddColliderBox(glm::vec2(224), glm::vec2(-112, 112));
+
+                    // Change state
+                    m_state = State::APPROACH;
                 }
             }
             else
             {
-                // Axe has already been summoned, wait for return
-                
+                // We shouldn't reach here anyway, but safety!
+                m_state = State::APPROACH;
             }
 
             break;
@@ -331,16 +375,27 @@ void BossController::UpdatePhase2(float delta)
     // Under half health, change to phase 3
     if (m_pHealth->GetHealth() <= m_maxHealth / 2)
     {
+        // Cleanup
+        if (m_pAxeCollider)
+        {
+            m_pAxeCollider->GetGameObject()->Delete();
+            m_pAxeCollider = nullptr;
+        }
+
+        m_pAnimSprite->SetTint(glm::vec3(1.0f));
+
         EnterPhase3();
     }
 }
 
 void BossController::StartAxeAttack()
 {
+    // Can't spawn multiple axes!
+    if (m_pAxeCollider) return;
+
     // Change state
     m_state = State::AXE_ATTACK;
     m_axeAttackTimer.Restart();
-    
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 }
 
@@ -349,6 +404,7 @@ void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)
     // Change state
     m_state = State::DODGE;
     m_dodgeTimer.Restart();
+    m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 0.0f));
 
     // Get randomly rotated direction
     static wolf::RNG rng;
