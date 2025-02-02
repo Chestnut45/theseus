@@ -1,6 +1,7 @@
 #pragma once
 
 #include <W_BaseComponent.h>
+#include <glm/glm.hpp>
 
 // Forward declarations
 class VelocityComponent;
@@ -8,6 +9,7 @@ class AnimatedSprite2D;
 class HealthComponent;
 class StatusComponent;
 class ColliderComponent;
+class HomingComponent;
 class PlayerController;
 
 // NOTE: You can only forward declare from within the same namespace
@@ -45,6 +47,7 @@ public:
         SEARCHING,
         FIRE_BREATH_ATTACK,
         CHARGE_ATTACK,
+        STUNNED,
 
         // Special states
         TAUNT, // Could play an animation when the player dies
@@ -76,6 +79,7 @@ private:
     HealthComponent* m_pHealth = nullptr;
     StatusComponent* m_pStatus = nullptr;
     ColliderComponent* m_pCollider = nullptr;
+    HomingComponent* m_pHoming = nullptr;   // Added by Nhật
 
     // Cached player references
     wolf::GameObject* m_pPlayerObject = nullptr;
@@ -100,9 +104,23 @@ private:
     // Phase 3 stats
     int m_fireBreathDamage;
     int m_fireBreathRange;
+
     int m_chargeAttackDamage;
     int m_chargeAttackRange;
-    int m_stunTime;
+    float m_stunTime;
+
+    float m_chargeWindupTime;
+    float m_chargeWindupTimer;
+    glm::vec3 m_chargeWindupTint;
+
+    float m_chargeTurningCapDegree;
+    float m_chargeTurningDelay;
+    float m_chargeSpeed;
+    float m_chargeKnockbackForce;
+    int m_chargeChainCount;
+
+    float m_searchSpeed;
+    float m_searchTimer;
 
     // Updates the animated sprite based on state,
     // regardless of what phase of the fight we're in
@@ -123,6 +141,17 @@ private:
     // Phase 3 methods
     void EnterPhase3();
     void UpdatePhase3(float delta);
+
+    void ChangeStatesPhase3(State p_state);
+
+    void Search(float delta);
+    void MoveTowardsPlayer(float delta);
+    void StartStunned();
+    void Stunned(float delta);
+
     void StartFireBreathAttack();
+    
     void StartChargeAttack();
+    void AttackCharge(float delta);
+    void EndChargeAttack();
 };
