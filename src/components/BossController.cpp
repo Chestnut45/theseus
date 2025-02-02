@@ -224,7 +224,7 @@ void BossController::UpdatePhase2(float delta)
         }
 
         // Collect axe and return to state
-        if (m_axeAttackTimer.Elapsed() > 1.0f && glm::distance(axePos, m_pTransform->GetGlobalPosition()) < 48.0f)
+        if (m_axeAttackTimer.Elapsed() > 1.0f && glm::distance(axePos, m_pTransform->GetGlobalPosition()) < 128.0f)
         {
             m_pAxeCollider->GetGameObject()->Delete();
             m_pAxeCollider = nullptr;
