@@ -10,6 +10,7 @@
 #include <ColliderComponent.h>
 #include <PlayerController.h>
 #include <LabyrinthManager.h>
+#include <HomingComponent.h>
 #include <W_Timer.h>
 
 BossController::BossController()
@@ -36,6 +37,7 @@ void BossController::Init()
     m_minDistToPlayer = 160;
     m_maxDistToPlayer = 280;
     m_strafeClockwise = true;
+    m_axeSummoned = false;
     m_strafeSpeed = 160.0f;
     m_chaseSpeed = 240.0f;
 
@@ -273,7 +275,38 @@ void BossController::UpdatePhase2(float delta)
         
         case State::AXE_ATTACK:
 
-            // Stand still until axe returns
+            if (!m_axeSummoned)
+            {
+                // Update tint for tell
+                m_pAnimSprite->SetTint(glm::vec3(1.0f) * (float)m_axeAttackTimer.Elapsed() * 2.0f);
+
+                // Spawn projectile
+                if (m_axeAttackTimer.Elapsed() > 2.0f)
+                {
+                    // Update timer and flag
+                    m_axeAttackTimer.Reset();
+                    m_axeSummoned = true;
+                    m_pAnimSprite->SetTint(glm::vec3(1.0f));
+
+                    // Create the axe object
+                    auto& axe = GetGameObject()->GetScene().CreateObject2D();
+                    auto& transform = *axe.GetComponent<wolf::Transform2D>();
+                    transform.SetPosition(m_pTransform->GetGlobalPosition());
+                    transform.SetScale(glm::vec2(3.0f));
+                    auto& velocity = axe.AddComponent<VelocityComponent>();
+                    velocity.SetVelocity(dirToPlayer * 450.0f);
+                    auto& sprite = axe.AddComponent<AnimatedSprite2D>("data/axe_spin_anim_init.yaml");
+                    sprite.SetOriginToCenterOfFrame();
+                    auto& homing = axe.AddComponent<HomingComponent>(GetGameObject(), 8.0f, 0.1f);
+                    m_pAxeCollider = &axe.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, false, false, GetGameObject()->GetID());
+                    m_pAxeCollider->AddColliderBox(glm::vec2(224), glm::vec2(-112, 112));
+                }
+            }
+            else
+            {
+                // Axe has already been summoned, wait for return
+                
+            }
 
             break;
     }
@@ -289,7 +322,9 @@ void BossController::StartAxeAttack()
 {
     // Change state
     m_state = State::AXE_ATTACK;
+    m_axeAttackTimer.Restart();
     
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
 }
 
 void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)

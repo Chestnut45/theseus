@@ -100,12 +100,14 @@ private:
     int m_minDistToPlayer;
     int m_maxDistToPlayer;
     bool m_strafeClockwise;
+    bool m_axeSummoned;
     float m_strafeSpeed;
     float m_chaseSpeed;
     wolf::Timer m_dodgeTimer;
     wolf::Timer m_strafeSwapTimer;
     wolf::Timer m_axeAttackTimer;
     glm::vec2 m_dodgeDir;
+    ColliderComponent* m_pAxeCollider = nullptr;
 
     // Phase 3 stats
     int m_fireBreathDamage;
