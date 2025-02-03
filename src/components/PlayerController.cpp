@@ -553,9 +553,10 @@ void PlayerController::HandleMovement(float delta)
     }
 
     // Play walking sound effect
+    static wolf::RNG rng;
     if (!m_walkSoundTimer.IsRunning()) m_walkSoundTimer.Start();
     if (m_walkSoundTimer.Elapsed() > m_walkSoundInterval) {
-        wolf::Audio::Play("data/sounds/walk.wav");
+        wolf::Audio::Play("data/sounds/sfx_step.wav", 0.5f, rng.NextFloat(-10000.0f, -5000.0f));
         m_walkSoundTimer.Restart();
     }
 
