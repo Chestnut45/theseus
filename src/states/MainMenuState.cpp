@@ -7,7 +7,7 @@ void MainMenuState::Enter()
 {
     // Initialize the main menu
     wolf::Audio::Stop();
-    wolf::Audio::Play("data/sounds/bgm_title_screen.wav", 0.9f, 0.0f, 0.0f, true, 3.31f);
+    wolf::Audio::Play("data/sounds/bgm_title_screen.wav", 1.0f, 0.0f, 0.0f, true, 3.31f);
 }
 
 void MainMenuState::Exit()

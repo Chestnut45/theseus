@@ -1338,6 +1338,10 @@ void PlayerController::StartDeath() {
     m_deathRuntime = m_runtimeTimer.Elapsed(); // Capture elapsed time once
     m_pAnimComponent->SetAnimPaused(true);
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    
+    // Stop background music and play death music
+    wolf::Audio::Stop("data/sounds/bgm_maze.wav");
+    wolf::Audio::Play("data/sounds/bgm_death.wav", 0.75f, 0.0f, 0.0f, true, 27.428f);
 }
 
 void PlayerController::RenderDeathScreen() {
