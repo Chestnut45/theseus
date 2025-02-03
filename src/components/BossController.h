@@ -107,6 +107,7 @@ private:
     bool m_axeSummoned;
     float m_strafeSpeed;
     float m_chaseSpeed;
+    wolf::Timer m_whooshTimer;
     wolf::Timer m_dodgeTimer;
     wolf::Timer m_strafeSwapTimer;
     wolf::Timer m_axeAttackTimer;

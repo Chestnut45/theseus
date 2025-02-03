@@ -107,7 +107,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase1();
+    EnterPhase2();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -205,6 +205,13 @@ void BossController::UpdatePhase2(float delta)
     // Update axe if it exists
     if (m_pAxeCollider)
     {
+        // Play whoosh wfx
+        if (m_whooshTimer.Elapsed() >= 0.32)
+        {
+            wolf::Audio::Play("data/sounds/sfx_axe_whoosh.wav", 0.4f);
+            m_whooshTimer.Restart();
+        }
+
         // Calculate vector from axe to player
         glm::vec2 axePos = m_pAxeCollider->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -232,6 +239,7 @@ void BossController::UpdatePhase2(float delta)
             m_axeAttackTimer.Restart();
             m_axeSummoned = false;
             m_pAnimSprite->SetTint(glm::vec3(1.0f));
+            m_whooshTimer.Reset();
         }
     }
 
@@ -359,6 +367,9 @@ void BossController::UpdatePhase2(float delta)
 
                     // Change state
                     m_state = State::APPROACH;
+
+                    wolf::Audio::Play("data/sounds/sfx_axe_whoosh.wav", 0.4f);
+                    m_whooshTimer.Restart();
                 }
             }
             else
@@ -396,7 +407,7 @@ void BossController::StartAxeAttack()
     m_axeAttackTimer.Restart();
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
-    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 0.85f);
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f);
 }
 
 void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)

@@ -19,6 +19,7 @@ void Audio::Play(const std::string& filepath, float volume, float pitchOffset, f
     auto handle = s_core.play(sound);
     s_core.setVolume(handle, volume);
     s_core.setPan(handle, pan);
+    s_core.setProtectVoice(handle, true);
 
     // Dirty awful hack pitch shifting (barf)
     // TODO: Literally anything other than this
