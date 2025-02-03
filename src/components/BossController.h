@@ -140,6 +140,8 @@ private:
     float m_chargeKnockbackForce;
     int m_chargeChainCount;
 
+    float m_autoAttackRange;
+
     float m_stunTime;               // Stun state members
 
     float m_searchSpeed;            // Search state members
@@ -171,6 +173,7 @@ private:
     void Search(float delta);
     void EndSearch();
     void MoveTowardsPlayer(float delta);
+
     void StartStunned();
     void Stunned(float delta);
 
