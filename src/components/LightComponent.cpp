@@ -28,6 +28,11 @@ void LightComponent::Init() {
     // Retrieve the scene
     m_pScene = &this->GetGameObject()->GetScene();
 
+    // Add the light collider
+    m_pCollider = &this->GetGameObject()->AddComponent<ColliderComponent>();
+    m_pCollider->SetColliderType(ColliderComponent::NONE);
+    m_pCollider->AddColliderBox(m_v2Radius, glm::vec2(m_v2Origin.x - m_v2Radius.x / 2.0f, m_v2Origin.y + m_v2Radius.y / 2.0f));
+
     // Set up the radius rectangle
     m_pRadiusRectangle = new wolf::Rectangle(m_v2Origin.x - m_v2Radius.x / 2.0f, m_v2Origin.y + m_v2Radius.y / 2.0f,
                                                 m_v2Origin.x + m_v2Radius.x / 2.0f, m_v2Origin.y - m_v2Radius.y / 2.0f);
@@ -38,10 +43,10 @@ void LightComponent::Update(float p_fDelta) {
     m_v2Origin = m_pTransform->GetGlobalPosition();
 
     // FOR DEBUGGING: Show the area of effect lines
-    //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x - m_v2Radius.x / 2.0f, m_v2Origin.y}, {m_v2Origin.x + m_v2Radius.x / 2.0f, m_v2Origin.y});
-    //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y - m_v2Radius.y / 2.0f}, {m_v2Origin.x, m_v2Origin.y + m_v2Radius.y / 2.0f});
-    //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x - m_v2Radius.x / 2.0f, m_v2Origin.y - m_v2Radius.y / 2.0f}, {m_v2Origin.x + m_v2Radius.x / 2.0f, m_v2Origin.y + m_v2Radius.y / 2.0f});
-    //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x - m_v2Radius.x / 2.0f, m_v2Origin.y + m_v2Radius.y / 2.0f}, {m_v2Origin.x + m_v2Radius.x / 2.0f, m_v2Origin.y - m_v2Radius.y / 2.0f});
+    GLShapesRenderer::GetInstance()->AddLine({m_pRadiusRectangle->m_left, m_pRadiusRectangle->m_top}, {m_pRadiusRectangle->m_right, m_pRadiusRectangle->m_top});
+    GLShapesRenderer::GetInstance()->AddLine({m_pRadiusRectangle->m_left, m_pRadiusRectangle->m_top}, {m_pRadiusRectangle->m_left, m_pRadiusRectangle->m_bottom});
+    GLShapesRenderer::GetInstance()->AddLine({m_pRadiusRectangle->m_right, m_pRadiusRectangle->m_top}, {m_pRadiusRectangle->m_right, m_pRadiusRectangle->m_bottom});
+    GLShapesRenderer::GetInstance()->AddLine({m_pRadiusRectangle->m_left, m_pRadiusRectangle->m_bottom}, {m_pRadiusRectangle->m_right, m_pRadiusRectangle->m_bottom});
 
     // Empty out the map of last frame's ray end points
     m_iv2CollidingPoints.clear();
@@ -59,15 +64,19 @@ void LightComponent::Update(float p_fDelta) {
             // Iterate through and figure out which ones are in the area of effect
             for (wolf::Rectangle rect : vColliderBoxes) {
                 if (m_pRadiusRectangle->Intersects(rect)) {
+                    printf("A rectangle is colliding with the light!\n");
                     m_vpCollidersInAOE.push_back(rect);
                 }
             }
         }
     }
 
+    // !-- Need behavior for when there are no colliders intersecting with the light's AOE --!
+
     // Do a "sweep" around the light and check what corner points collide with it
     float fSweepLineLength = std::max(m_v2Radius.x / 2.0f, m_v2Radius.y / 2.0f);
-    glm::vec2 v2SweepLineEnd = {0.0f, 0.0f};
+    glm::vec2 v2BaseSweepLineEnd = {m_v2Origin.x, m_v2Origin.y + fSweepLineLength};
+    glm::vec2 v2CurSweepLineEnd = {m_v2Origin.x, m_v2Origin.y + fSweepLineLength};
 
     // Index var to make sure that all of the points in the colliding points map are unique
     m_iEndOfCollidingPointsMap = 0;
@@ -75,28 +84,28 @@ void LightComponent::Update(float p_fDelta) {
     // Sweep around the origin point
     for (int i = 0; i <= 360; i++) {
         // Compute the new end point of the line
-        v2SweepLineEnd.x = glm::cos(glm::radians(-i * 1.0f)) * (fSweepLineLength - m_v2Origin.x) - glm::sin(glm::radians(-i * 1.0f)) * (fSweepLineLength - m_v2Origin.y) + m_v2Origin.x;
-        v2SweepLineEnd.y = glm::sin(glm::radians(-i * 1.0f)) * (fSweepLineLength - m_v2Origin.x) + glm::cos(glm::radians(-i * 1.0f)) * (fSweepLineLength - m_v2Origin.y) + m_v2Origin.y;
+        v2CurSweepLineEnd.x = (glm::cos(glm::radians(-i * 1.0f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x) - glm::sin(glm::radians(-i * 1.0f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y)) + m_v2Origin.x;
+        v2CurSweepLineEnd.y = (glm::cos(glm::radians(-i * 1.0f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y) + glm::sin(glm::radians(-i * 1.0f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x)) + m_v2Origin.y;
 
         // If the main sweep line hits then we also want to shoot off two slightly offset
         // sweep lines to make sure that we hit the wall behind edge colliders
         glm::vec2 v2LeftOffsetSLEnd;
-        v2LeftOffsetSLEnd.x = glm::cos(glm::radians((-i * 1.0f) - 0.00001f)) * (fSweepLineLength - m_v2Origin.x) - glm::sin(glm::radians((-i * 1.0f) - 0.00001f)) * (fSweepLineLength - m_v2Origin.y) + m_v2Origin.x;
-        v2LeftOffsetSLEnd.y = glm::sin(glm::radians((-i * 1.0f) - 0.00001f)) * (fSweepLineLength - m_v2Origin.x) + glm::cos(glm::radians((-i * 1.0f) - 0.00001f)) * (fSweepLineLength - m_v2Origin.y) + m_v2Origin.y;
+        v2LeftOffsetSLEnd.x = (glm::cos(glm::radians((-i * 1.0f) - 0.00001f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x) - glm::sin(glm::radians((-i * 1.0f) - 0.00001f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y)) + m_v2Origin.x;
+        v2LeftOffsetSLEnd.y = (glm::cos(glm::radians((-i * 1.0f) - 0.00001f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y) + glm::sin(glm::radians((-i * 1.0f) - 0.00001f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x)) + m_v2Origin.y;
 
         glm::vec2 v2RightOffsetSLEnd;
-        v2RightOffsetSLEnd.x = glm::cos(glm::radians((-i * 1.0f) + 0.00001f)) * (fSweepLineLength - m_v2Origin.x) - glm::sin(glm::radians((-i * 1.0f) + 0.00001f)) * (fSweepLineLength - m_v2Origin.y) + m_v2Origin.x;
-        v2RightOffsetSLEnd.y = glm::sin(glm::radians((-i * 1.0f) + 0.00001f)) * (fSweepLineLength - m_v2Origin.x) + glm::cos(glm::radians((-i * 1.0f) + 0.00001f)) * (fSweepLineLength - m_v2Origin.y) + m_v2Origin.y;
+        v2RightOffsetSLEnd.x = (glm::cos(glm::radians((-i * 1.0f) + 0.00001f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x) - glm::sin(glm::radians((-i * 1.0f) + 0.00001f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y)) + m_v2Origin.x;
+        v2RightOffsetSLEnd.y = (glm::cos(glm::radians((-i * 1.0f) + 0.00001f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y) + glm::sin(glm::radians((-i * 1.0f) + 0.00001f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x)) + m_v2Origin.y;
 
         // FOR DEBUGGING: Draw the sweep lines
-        GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2SweepLineEnd.x, v2SweepLineEnd.y});
+        GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2CurSweepLineEnd.x, v2CurSweepLineEnd.y});
 
         // Go through all of the colliders in the AOE
         for (wolf::Rectangle rect : m_vpCollidersInAOE) {
             // Go through all of the corners in said collider
             for (glm::vec2 point : rect.GetCorners()) {
                 // If a corner intersects with the sweep line
-                if (SweepLinePointCollisionTest(v2SweepLineEnd, point)) {
+                if (SweepLinePointCollisionTest(v2CurSweepLineEnd, point)) {
                     // Check for collision points that are slightly to the left and right of it
                     std::pair<bool, glm::vec2> bv2LeftCollidingPoint = this->SweepLineRectCollisionTest(v2LeftOffsetSLEnd, rect);
                     std::pair<bool, glm::vec2> bv2RightCollidingPoint = this->SweepLineRectCollisionTest(v2RightOffsetSLEnd, rect);
@@ -123,6 +132,8 @@ void LightComponent::Update(float p_fDelta) {
         }
     }  
 
+    // !-- Need to sort the colliding points by angle --!
+
     // Form triangles using the two points that form each side and the origin
     for (int j = 0; j < m_iEndOfCollidingPointsMap - 1; j++) {
         // Get the points at j and j+1
@@ -132,6 +143,8 @@ void LightComponent::Update(float p_fDelta) {
         // Add a triangle to the render list
         GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
     }
+
+    // !-- Need to figure out why this is segfaulting --!
 
     // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
     //glm::vec2 v2FirstPoint = m_iv2CollidingPoints.at(0);
