@@ -302,7 +302,7 @@ void BossController::CheckWaveProgress(float delta)
         {
             // All waves completed, transition to Phase 2
             wolf::Log("All waves cleared! Transitioning to Phase 2...");
-            EnterPhase2();
+            // EnterPhase2();
         }
     }
 }
