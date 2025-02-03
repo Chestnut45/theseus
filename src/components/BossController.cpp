@@ -10,6 +10,8 @@
 #include <PlayerController.h>
 #include <HomingComponent.h>
 #include <LabyrinthManager.h>
+#include <HomingComponent.h>
+#include <W_Timer.h>
 
 #include "../ColliderManager.h"
 
@@ -29,17 +31,21 @@ void BossController::Init()
 {
     // Initialize stats
     m_active = false;
-    m_maxHealth = 1000;
+    m_maxHealth = 6500;
 
     // Phase 1 stats
     m_throneBlockRange = 300;
     m_numSummons = 10;
 
     // Phase 2 stats
-    m_axeAttackDamage = 80;
+    m_axeAttackDamage = 125;
     m_axePunishDamage = 100;
-    m_minDistToPlayer = 200;
-    m_maxDistToPlayer = 600;
+    m_minDistToPlayer = 160;
+    m_maxDistToPlayer = 280;
+    m_strafeClockwise = true;
+    m_axeSummoned = false;
+    m_strafeSpeed = 160.0f;
+    m_chaseSpeed = 240.0f;
 
     // Phase 3 stats
     m_fireBreathWindupTime = 0.75f; // Seconds
@@ -252,32 +258,238 @@ void BossController::EnterPhase2()
 {
     m_phase = FightPhase::PHASE_2;
     m_state = State::APPROACH;
-
-    // TODO: Phase 2 initialization logic
+    m_axeAttackTimer.Restart();
 }
 
 void BossController::UpdatePhase2(float delta)
 {
-    // TODO: Phase 2 update logic:
-    // - Approach player and strafe when in neutral
-    // - If player attacks and we are idle, attempt to dodge
-    // - Periodically execute axe attack patterns
+    // Timing variables
+    static float nextStrafeSwap = 1.0f;
+    static float nextAttackTime = 1.0f;
 
-    if (m_pHealth->GetHealth() < m_maxHealth / 3)
+    // Query player spatial info
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 toPlayer = playerPos - m_pTransform->GetGlobalPosition();
+    float distToPlayer = glm::length(toPlayer);
+    glm::vec2 dirToPlayer = glm::normalize(toPlayer);
+
+    // Get rotated direction
+    glm::mat4 rotation = glm::rotate(glm::radians(m_strafeClockwise ? 90.0f : -90.0f), glm::vec3(0, 0, 1));
+    glm::vec2 rotated = glm::vec2(rotation * glm::vec4(dirToPlayer.x, dirToPlayer.y, 0, 1));
+
+    // Query player controller state
+    bool playerAttacking = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING;
+
+    // Update axe if it exists
+    if (m_pAxeCollider)
     {
-        // TODO: Exit phase 2 logic
+        // Calculate vector from axe to player
+        glm::vec2 axePos = m_pAxeCollider->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 axeToPlayer = glm::normalize(playerPos - axePos);
+        
+        // Check for player collision
+        auto* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
+        if (pPlayerCollider->IsHurtbox() && ColliderManager::StaticMethodIsColliding(*m_pAxeCollider, *pPlayerCollider, delta))
+        {
+            auto* pPlayerHealth = m_pPlayerObject->GetComponent<HealthComponent>();
+            auto* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
+            if (pPlayerHealth && pPlayerVel)
+            {
+                pPlayerHealth->Damage(m_axeAttackDamage);
+                pPlayerVel->ApplyKnockback(axeToPlayer, 4500.0f);
+            }
+        }
+
+        // Collect axe and return to state
+        if (m_axeAttackTimer.Elapsed() > 1.0f && glm::distance(axePos, m_pTransform->GetGlobalPosition()) < 128.0f)
+        {
+            m_pAxeCollider->GetGameObject()->Delete();
+            m_pAxeCollider = nullptr;
+            m_state = State::APPROACH;
+            m_axeAttackTimer.Restart();
+            m_axeSummoned = false;
+            m_pAnimSprite->SetTint(glm::vec3(1.0f));
+        }
+    }
+
+    // Update based on state
+    switch (m_state)
+    {
+        case State::APPROACH:
+
+            // Dodge player attack
+            if (playerAttacking && (distToPlayer < m_maxDistToPlayer || m_pPlayerController->GetHeldWeapon()->GetWeaponType() == WeaponType::BOW))
+            {
+                DodgePlayerAttack(dirToPlayer);
+                break;
+            }
+
+            // Start axe attack
+            if (m_axeAttackTimer.Elapsed() > nextAttackTime)
+            {
+                StartAxeAttack();
+                nextAttackTime = m_rng.NextFloat(2.0f, 6.0f);
+                break;
+            }
+
+            // Normal approach logic
+            if (distToPlayer > m_maxDistToPlayer)
+            {
+                // Approach player
+                m_pVelocity->SetVelocity(dirToPlayer * m_chaseSpeed);
+            }
+            else if (distToPlayer < m_minDistToPlayer)
+            {
+                // Back away from player
+                m_pVelocity->SetVelocity(-dirToPlayer * m_chaseSpeed);
+            }
+            else
+            {
+                // Switch to strafe state if within proper range
+                m_state = State::STRAFE;
+                m_strafeSwapTimer.Restart();
+            }
+
+            break;
+        
+        case State::STRAFE:
+        {
+            // Randomly change strafe direction
+            if (!m_strafeSwapTimer.IsRunning())
+            {
+                m_strafeSwapTimer.Restart();
+                nextStrafeSwap = m_rng.NextFloat(0.5f, 5.0f);
+            }
+            if (m_strafeSwapTimer.Elapsed() >= nextStrafeSwap)
+            {
+                m_strafeClockwise = !m_strafeClockwise;
+                m_strafeSwapTimer.Reset();
+            }
+            
+            // Move along strafe direction
+            m_pVelocity->SetVelocity(rotated * m_strafeSpeed);
+
+            // Switch back to approach if necessary
+            if (distToPlayer > m_maxDistToPlayer || distToPlayer < m_minDistToPlayer)
+            {
+                m_state = State::APPROACH;
+                break;
+            }
+
+            // Dodge player attack
+            if (playerAttacking)
+            {
+                DodgePlayerAttack(dirToPlayer);
+                break;
+            }
+
+            // Start axe attack
+            if (m_axeAttackTimer.Elapsed() > nextAttackTime)
+            {
+                StartAxeAttack();
+                nextAttackTime = m_rng.NextFloat(2.0f, 6.0f);
+                break;
+            }
+
+            break;
+        }
+
+        case State::DODGE:
+
+            // Return to approach state
+            if (m_dodgeTimer.Elapsed() > 0.6f)
+            {
+                m_state = State::APPROACH;
+                m_dodgeTimer.Reset();
+                m_pAnimSprite->SetTint(glm::vec3(1.0f));
+            }
+
+            break;
+        
+        case State::AXE_ATTACK:
+
+            if (!m_axeSummoned)
+            {
+                // Update tint for tell
+                m_pAnimSprite->SetTint(glm::vec3(1.0f) * (float)(m_axeAttackTimer.Elapsed() + 1.0f));
+
+                // Spawn projectile
+                if (m_axeAttackTimer.Elapsed() > 1.0f)
+                {
+                    // Update timer and flag
+                    m_axeAttackTimer.Restart();
+                    m_axeSummoned = true;
+                    m_pAnimSprite->SetTint(glm::vec3(1.0f));
+
+                    // Create the axe object
+                    auto& axe = GetGameObject()->GetScene().CreateObject2D();
+                    auto& transform = *axe.GetComponent<wolf::Transform2D>();
+                    transform.SetPosition(m_pTransform->GetGlobalPosition());
+                    transform.SetScale(glm::vec2(3.0f));
+                    auto& velocity = axe.AddComponent<VelocityComponent>();
+                    velocity.SetVelocity(dirToPlayer * 640.0f);
+                    auto& sprite = axe.AddComponent<AnimatedSprite2D>("data/axe_spin_anim_init.yaml");
+                    sprite.SetOriginToCenterOfFrame();
+                    auto& homing = axe.AddComponent<HomingComponent>(GetGameObject(), 8.0f, 0.1f);
+                    m_pAxeCollider = &axe.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, false, false);
+                    m_pAxeCollider->AddColliderBox(glm::vec2(224), glm::vec2(-112, 112));
+
+                    // Change state
+                    m_state = State::APPROACH;
+                }
+            }
+            else
+            {
+                // We shouldn't reach here anyway, but safety!
+                m_state = State::APPROACH;
+            }
+
+            break;
+    }
+
+    // Under half health, change to phase 3
+    if (m_pHealth->GetHealth() <= m_maxHealth / 2)
+    {
+        // Cleanup
+        if (m_pAxeCollider)
+        {
+            m_pAxeCollider->GetGameObject()->Delete();
+            m_pAxeCollider = nullptr;
+        }
+
+        m_pAnimSprite->SetTint(glm::vec3(1.0f));
+
         EnterPhase3();
     }
 }
 
 void BossController::StartAxeAttack()
 {
+    // Can't spawn multiple axes!
+    if (m_pAxeCollider) return;
 
+    // Change state
+    m_state = State::AXE_ATTACK;
+    m_axeAttackTimer.Restart();
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
 }
 
-void BossController::DodgePlayerAttack()
+void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)
 {
+    // Change state
+    m_state = State::DODGE;
+    m_dodgeTimer.Restart();
+    m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 0.0f));
 
+    // Get randomly rotated direction
+    glm::mat4 rotation = glm::rotate(glm::radians(m_rng.FlipCoin() ? 90.0f : -90.0f), glm::vec3(0, 0, 1));
+    glm::vec2 rotated = glm::vec2(rotation * glm::vec4(dirToPlayer.x, dirToPlayer.y, 0, 1));
+
+    // Dodge away from player for melee, dodge sideways for the bow
+    WeaponItem* pWeapon = m_pPlayerController->GetHeldWeapon();
+    m_dodgeDir = (pWeapon && pWeapon->GetWeaponType() == WeaponType::BOW) ? -rotated : -dirToPlayer;
+    m_pVelocity->SetVelocity(m_dodgeDir * m_chaseSpeed * 1.4f);
 }
 
 // <----------------- PHASE 3 METHODS ----------------->
