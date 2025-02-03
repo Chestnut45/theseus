@@ -11,6 +11,7 @@
 #include "GorgonController.h"
 #include "HarpyController.h"
 #include "MinitaurController.h"
+#include "BossController.h"
 
 AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects)
 {
@@ -86,19 +87,23 @@ void AttackDamageComponent::Update(float p_dt)
                         }
                     }
 
-                    // Apply knockback if magnitude > 0
-                    if (m_knockbackMagnitude > 0.0f)
+                    // Skip knockback if object is Boss
+                    if(!thatObject->HasAny<BossController>())
                     {
-                        auto* thatTransform = thatObject->GetComponent<wolf::Transform2D>();
-                        auto* velocityComponent = thatObject->GetComponent<VelocityComponent>();
-                        if (thatTransform && velocityComponent)
+                        // Apply knockback if magnitude > 0
+                        if (m_knockbackMagnitude > 0.0f)
                         {
-                            glm::vec2 knockbackDirection = glm::normalize(
-                                thatTransform->GetGlobalPosition() - thisTransform->GetGlobalPosition()
-                            );
-                            velocityComponent->ApplyKnockback(knockbackDirection, m_knockbackMagnitude);
+                            auto* thatTransform = thatObject->GetComponent<wolf::Transform2D>();
+                            auto* velocityComponent = thatObject->GetComponent<VelocityComponent>();
+                            if (thatTransform && velocityComponent)
+                            {
+                                glm::vec2 knockbackDirection = glm::normalize(
+                                    thatTransform->GetGlobalPosition() - thisTransform->GetGlobalPosition()
+                                );
+                                velocityComponent->ApplyKnockback(knockbackDirection, m_knockbackMagnitude);
+                            }
                         }
-                    }
+                    }   
                     
                     // Deactivate collider and add a timed destroyer component to the object
                     // NOTE: A delayed destruction is used to ensure AOE attacks can affect all targets
