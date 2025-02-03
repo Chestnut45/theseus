@@ -198,7 +198,6 @@ void BossController::EnterPhase2()
 void BossController::UpdatePhase2(float delta)
 {
     // Timing variables
-    static wolf::RNG rng;
     static float nextStrafeSwap = 1.0f;
     static float nextAttackTime = 1.0f;
 
@@ -272,7 +271,7 @@ void BossController::UpdatePhase2(float delta)
             if (m_axeAttackTimer.Elapsed() > nextAttackTime)
             {
                 StartAxeAttack();
-                nextAttackTime = rng.NextFloat(2.0f, 6.0f);
+                nextAttackTime = m_rng.NextFloat(2.0f, 6.0f);
                 break;
             }
 
@@ -302,7 +301,7 @@ void BossController::UpdatePhase2(float delta)
             if (!m_strafeSwapTimer.IsRunning())
             {
                 m_strafeSwapTimer.Restart();
-                nextStrafeSwap = rng.NextFloat(0.5f, 5.0f);
+                nextStrafeSwap = m_rng.NextFloat(0.5f, 5.0f);
             }
             if (m_strafeSwapTimer.Elapsed() >= nextStrafeSwap)
             {
@@ -331,7 +330,7 @@ void BossController::UpdatePhase2(float delta)
             if (m_axeAttackTimer.Elapsed() > nextAttackTime)
             {
                 StartAxeAttack();
-                nextAttackTime = rng.NextFloat(2.0f, 6.0f);
+                nextAttackTime = m_rng.NextFloat(2.0f, 6.0f);
                 break;
             }
 
@@ -431,8 +430,7 @@ void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)
     m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 0.0f));
 
     // Get randomly rotated direction
-    static wolf::RNG rng;
-    glm::mat4 rotation = glm::rotate(glm::radians(rng.FlipCoin() ? 90.0f : -90.0f), glm::vec3(0, 0, 1));
+    glm::mat4 rotation = glm::rotate(glm::radians(m_rng.FlipCoin() ? 90.0f : -90.0f), glm::vec3(0, 0, 1));
     glm::vec2 rotated = glm::vec2(rotation * glm::vec4(dirToPlayer.x, dirToPlayer.y, 0, 1));
 
     // Dodge away from player for melee, dodge sideways for the bow
