@@ -24,6 +24,7 @@
 #include <GorgonBuilder.h>
 #include <MinitaurBuilder.h>
 #include <HarpyBuilder.h>
+#include "../LabyrinthTiles.h"
 
 BossController::BossController()
 {
@@ -174,25 +175,46 @@ void BossController::EnterPhase1()
     if (m_pVelocity){
         m_pVelocity->SetKnockbackEnabled(false);
     }
+
+    DDACalculator* dda = DDACalculator::GetInstance();
+    if (!dda)
+    {
+        wolf::Error("BossController: DDACalculator instance is null!");
+        return;
+    }
+
+    m_pLabyrinthManager = dda->GetLabyrinthManager();
+    if (!m_pLabyrinthManager)
+    {
+        wolf::Error("BossController: LabyrinthManager is null!");
+        return;
+    }
+
 }
 
 void BossController::UpdatePhase1(float delta)
 {
-    // TODO: Phase 1 update logic:
-    // - Summon minitaurs periodically until limit reached
-    // - Change to blocking animation when player attacks while close enough
+    // Handle forcefield and knockback
     HandleForcefield(delta);
     HandleKnockBackCollision(delta);
     CheckWaveProgress(delta);
+    CheckEnemyWaveHealth();
+    RenderImGui();
 
+    // **Trigger Wave 1 if the player attacks near the boss**
+    if (!m_waveActive && m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING)
+    {
+        wolf::Log("BossController: Player attacked, starting Wave 1...");
+        StartWave();
+    }
 
-
+    // Transition to phase 2 if boss health is low
     if (m_pHealth->GetHealth() < 2 * m_maxHealth / 3)
     {
-        // TODO: Exit phase 1 logic
         EnterPhase2();
     }
 }
+
 
 void BossController::HandleForcefield(float delta)
 {
@@ -232,6 +254,15 @@ void BossController::HandleForcefield(float delta)
         // Apply slowdown
         glm::vec2 newVelocity = currentVelocity * slowdownFactor;
         pPlayerVelocity->SetVelocity(newVelocity);
+
+        // **Trigger Wave 1 if not already active**
+        if (!m_waveActive)
+        {
+            wolf::Log("BossController: Player entered forcefield, starting Wave 1...");
+            StartWave();
+            m_waveActive = true;
+
+        }
     }
 }
 void BossController::HandleKnockBackCollision(float delta)
@@ -314,47 +345,251 @@ void BossController::StartWave()
     SpawnWave(1);
 }
 
+bool BossController::IsValidSpawnTile(glm::ivec2 tilePos)
+{
+    Tile::type tile = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+    
+    bool isValid = (tile == Tile::BorderedGrass || tile == Tile::Bricks ||
+                    tile == Tile::FloorSmallSquares || tile == Tile::FloorSmallSquaresGold ||
+                    tile == Tile::FloorSpiralGold || tile == Tile::FloorSpiral ||
+                    tile == Tile::FloorSquareGold || tile == Tile::FloorSquare ||
+                    tile == Tile::Grass);
+
+    wolf::Log("Checking tile at [%d, %d]: Type %d -> %s", tilePos.x, tilePos.y, tile, isValid ? "Valid" : "Invalid");
+
+    return isValid;
+}
+
+
 void BossController::SpawnWave(int waveIndex)
 {
     m_currentWave = waveIndex;
     m_waveActive = true;
-    m_waveTransitionTimer = 2.0f;  // Set wave delay
+    m_waveTransitionTimer = 2.0f;
+    m_enemyIDs.clear();
 
+    if (!m_pLabyrinthManager)
+    {
+        wolf::Error("BossController: LabyrinthManager not set!");
+        return;
+    }
+
+    // Load enemy data
+    EnemyDataLoader loader;
+    loader.LoadAllEnemyData("data/enemies.yaml");
+
+    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
+    EnemyData harpyData = loader.LoadEnemyData("harpy");
+    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+
+    // Scene reference
+    wolf::Scene& scene = GetGameObject()->GetScene();
+
+    // Create builders
+    MinitaurBuilder minitaurBuilder(scene);
+    HarpyBuilder harpyBuilder(scene);
+    GorgonBuilder gorgonBuilder(scene);
+
+    // Define how many enemies per wave
     int minitaurs = 0, gorgons = 0, harpies = 0;
     switch (waveIndex)
     {
-        case 1: minitaurs = 5; gorgons = 1; harpies = 1; break;
+        case 1: minitaurs = 4; harpies = 2; break;
         case 2: gorgons = 2; harpies = 2; break;
-        case 3: minitaurs = 10; break;
+        case 3: minitaurs = 15; break; // Swarm of minitaurs inside the bossfight room
     }
 
-    for (int i = 0; i < minitaurs; i++) SpawnEnemy<MinitaurBuilder>();
-    for (int i = 0; i < gorgons; i++) SpawnEnemy<GorgonBuilder>();
-    for (int i = 0; i < harpies; i++) SpawnEnemy<HarpyBuilder>();
+    // Get boss position
+    glm::vec2 bossPos = m_pTransform->GetGlobalPosition();
+    glm::ivec2 bossTilePos = m_pLabyrinthManager->GetTilePosition(bossPos);
 
-    m_remainingEnemies = minitaurs + gorgons + harpies;
+    // If first wave, determine and save spawn locations
+    static std::vector<glm::vec2> savedMinitaurSpawns;
+    static std::vector<glm::vec2> savedHarpySpawns;
+    
+    // Define Minitaur spawn locations (grouped left & right)
+    if (waveIndex == 1 || savedMinitaurSpawns.empty())
+    {
+        savedMinitaurSpawns.clear();
+        glm::ivec2 leftGroupStart = bossTilePos + glm::ivec2(-4, -3);
+        glm::ivec2 rightGroupStart = bossTilePos + glm::ivec2(4, -3);
+
+        for (int i = 0; i < minitaurs; i++)
+        {
+            glm::ivec2 spawnTile = (i % 2 == 0) ? leftGroupStart + glm::ivec2(i, 0)
+                                                : rightGroupStart + glm::ivec2(i, 0);
+            glm::vec2 spawnPos = m_pLabyrinthManager->GetWorldPosition(spawnTile);
+            if (IsValidSpawnTile(spawnTile)) savedMinitaurSpawns.push_back(spawnPos);
+        }
+    }
+
+    // Define Harpy spawn locations (split left & right)
+    if (waveIndex == 1 || savedHarpySpawns.empty())
+    {
+        savedHarpySpawns.clear();
+        glm::ivec2 leftHarpy = bossTilePos + glm::ivec2(-6, -7);
+        glm::ivec2 rightHarpy = bossTilePos + glm::ivec2(6, -7);
+
+        if (IsValidSpawnTile(leftHarpy))
+            savedHarpySpawns.push_back(m_pLabyrinthManager->GetWorldPosition(leftHarpy));
+        if (IsValidSpawnTile(rightHarpy))
+            savedHarpySpawns.push_back(m_pLabyrinthManager->GetWorldPosition(rightHarpy));
+    }
+
+    // Spawn Minitaurs (use saved positions for later waves)
+    if (waveIndex != 3) // Normal spawning for waves 1 & 2
+    {
+        for (size_t i = 0; i < savedMinitaurSpawns.size() && i < minitaurs; i++)
+        {
+            auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, savedMinitaurSpawns[i]);
+            minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+            m_enemyIDs.insert(minitaur.GetID());
+        }
+    }
+    else // Special spawning for **Wave 3** (random minitaurs inside bossfight room)
+    {
+        int spawned = 0;
+        while (spawned < minitaurs)
+        {
+            glm::vec2 spawnPos = GetRandomValidSpawnPosition();
+            if (spawnPos != glm::vec2(-1, -1)) // Ensure valid position
+            {
+                auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, spawnPos);
+                minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+                minitaur.GetComponent<VelocityComponent>()->ApplyKnockback(glm::vec2(2.0f,0.0f),1.0f);
+                m_enemyIDs.insert(minitaur.GetID());
+                spawned++;
+            }
+        }
+    }
+
+    // Spawn Harpies (use saved positions for later waves)
+    for (size_t i = 0; i < savedHarpySpawns.size() && i < harpies; i++)
+    {
+        auto& harpy = harpyBuilder.BuildHarpy(harpyData, savedHarpySpawns[i]);
+        harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+        m_enemyIDs.insert(harpy.GetID());
+    }
+
+    // Define Gorgon spawn locations **only for wave 2+**
+    if (waveIndex == 2 || waveIndex == 3)
+    {
+        glm::ivec2 leftGorgon = bossTilePos + glm::ivec2(-6, -5);
+        glm::ivec2 rightGorgon = bossTilePos + glm::ivec2(6, -5);
+
+        std::vector<glm::vec2> gorgonSpawns;
+        if (IsValidSpawnTile(leftGorgon))
+            gorgonSpawns.push_back(m_pLabyrinthManager->GetWorldPosition(leftGorgon));
+        if (IsValidSpawnTile(rightGorgon))
+            gorgonSpawns.push_back(m_pLabyrinthManager->GetWorldPosition(rightGorgon));
+
+        for (size_t i = 0; i < gorgonSpawns.size() && i < gorgons; i++)
+        {
+            auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, gorgonSpawns[i]);
+            gorgon.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+            m_enemyIDs.insert(gorgon.GetID());
+        }
+    }
+
+    // Update remaining enemy count
+    m_remainingEnemies = m_enemyIDs.size();
 }
 
-// Generic enemy spawn function
-template <typename T>
-void BossController::SpawnEnemy()
-{
-    glm::vec2 spawnPos = GetRandomValidSpawnPosition();
-    auto& enemy = GetGameObject()->GetScene().CreateObject2D();
-    T builder(spawnPos);
-    builder.Build(enemy);
-}
 
-// Called when an enemy dies
-void BossController::OnEnemyDefeated()
+
+
+void BossController::CheckEnemyWaveHealth()
 {
-    if (m_remainingEnemies > 0)
-        m_remainingEnemies--;
+     if (!m_waveActive) return;
+    // Iterate through a copy of the set to avoid modification during iteration
+    std::vector<int> toRemove;
+
+    for (int enemyID : m_enemyIDs)
+    {
+        wolf::GameObject* pEnemy = GetGameObject()->GetScene().GetObject(enemyID);
+
+        // If the object doesn't exist, it has been deleted
+        if (!pEnemy)
+        {
+            toRemove.push_back(enemyID); // Mark for removal
+            m_remainingEnemies--; // Decrement the remaining enemy count
+        }
+    }
+
+    // Remove all deleted enemies from the set
+    for (int enemyID : toRemove)
+    {
+        m_enemyIDs.erase(enemyID);
+    }
 }
 
 glm::vec2 BossController::GetRandomValidSpawnPosition()
 {
-    // to do.
+    if (!m_pLabyrinthManager || !m_pTransform)
+    {
+        wolf::Error("BossController: LabyrinthManager or Transform2D is null!");
+        return glm::vec2(-1, -1);
+    }
+
+    // **Get the boss's tile position**
+    glm::vec2 bossWorldPos = m_pTransform->GetGlobalPosition();
+    glm::ivec2 bossTilePos = m_pLabyrinthManager->GetTilePosition(bossWorldPos);
+
+    wolf::Log("BossController: Boss at tile position: [%d, %d]", bossTilePos.x, bossTilePos.y);
+
+    // **Find the boss's room**
+    std::optional<LabyrinthManager::RoomData> roomDataOpt = m_pLabyrinthManager->GetRoom(bossTilePos);
+    if (!roomDataOpt.has_value())
+    {
+        wolf::Warning("BossController: No room found for boss tile position!");
+        return glm::vec2(-1, -1);
+    }
+
+    LabyrinthManager::RoomData room = roomDataOpt.value();
+    glm::ivec2 roomMin = room.m_bounds.m_origin;
+    glm::ivec2 roomMax = room.m_bounds.m_origin + room.m_bounds.m_size;
+
+    wolf::Log("BossController: Room bounds - Min: [%d, %d], Max: [%d, %d]", 
+              roomMin.x, roomMin.y, roomMax.x, roomMax.y);
+
+    // **Try generating a valid spawn point within the room**
+    for (int attempts = 0; attempts < 10; ++attempts)
+    {
+        glm::ivec2 spawnTilePos(m_rng.NextInt(roomMin.x, roomMax.x), m_rng.NextInt(roomMin.y, roomMax.y));
+
+        if (IsValidSpawnTile(spawnTilePos))
+        {
+            glm::vec2 worldPos = m_pLabyrinthManager->GetWorldPosition(spawnTilePos);
+            wolf::Log("BossController: Spawned enemy at tile [%d, %d], world [%f, %f]", 
+                      spawnTilePos.x, spawnTilePos.y, worldPos.x, worldPos.y);
+            return worldPos;
+        }
+    }
+
+    wolf::Warning("BossController: No valid spawn tile found after 10 attempts!");
+    return glm::vec2(-1, -1);
+}
+
+
+
+void BossController::RenderImGui()
+{
+    if (!m_waveActive) return;  // Only render UI during waves
+
+    ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, 10), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.0f);  // Transparent background
+
+    ImGui::Begin("BossUI", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize);
+    
+    // Set text color to bright red
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.2f, 0.2f, 1.0f));  
+    
+    // Display wave number and enemies remaining
+    ImGui::Text("Wave %d", m_currentWave);
+    ImGui::Text("Enemies Remaining: %d", m_remainingEnemies);
+    
+    ImGui::PopStyleColor();
+    ImGui::End();
 }
 
 

@@ -1,12 +1,12 @@
 #pragma once
-
+#include <glm_hash.h>
 #include <W_BaseComponent.h>
 #include <glm/glm.hpp>
 #include <W_RNG.h>
 
 #include <glm/vec2.hpp>
 #include <W_Timer.h>
-
+#include <unordered_set>
 // Forward declarations
 class VelocityComponent;
 class AnimatedSprite2D;
@@ -15,6 +15,7 @@ class StatusComponent;
 class ColliderComponent;
 class HomingComponent;
 class PlayerController;
+class LabyrinthManager;
 
 // NOTE: You can only forward declare from within the same namespace
 namespace wolf
@@ -89,6 +90,9 @@ private:
     wolf::GameObject* m_pPlayerObject = nullptr;
     PlayerController* m_pPlayerController = nullptr;
 
+    //labyrinth reference (needed for spawns)
+    LabyrinthManager* m_pLabyrinthManager = nullptr;
+
     // Utility members
     wolf::RNG m_rng;
 
@@ -108,6 +112,7 @@ private:
     int m_remainingEnemies = 0;
     float m_waveTransitionTimer = 0.0f;
     bool m_waveActive = false;
+    std::unordered_set<int> m_enemyIDs;
     
 
 
@@ -168,10 +173,10 @@ private:
     void StartWave();
     void SpawnWave(int waveIndex);
     void CheckWaveProgress(float delta);
-    template <typename T>
-    void SpawnEnemy();
-    void OnEnemyDefeated();
+    void CheckEnemyWaveHealth();
     glm::vec2 GetRandomValidSpawnPosition();
+    void RenderImGui();
+    bool IsValidSpawnTile(glm::ivec2 tilePos);
 
 
     // Phase 2 methods
