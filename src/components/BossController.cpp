@@ -43,6 +43,12 @@ void BossController::Init()
     // Phase 1 stats
     m_throneBlockRange = 300;
     m_numSummons = 10;
+    m_forcefieldRadius = 300.0f;
+    m_slowdownFactor = 0.5f;
+    m_currentWave = 0;
+    m_remainingEnemies = 0;
+    m_waveTransitionTimer = 0.0f;
+    m_waveActive = false;
 
     // Phase 2 stats
     m_axeAttackDamage = 125;
@@ -204,7 +210,7 @@ void BossController::UpdatePhase1(float delta)
     // **Trigger Wave 1 if the player attacks near the boss**
     if (!m_waveActive && m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING)
     {
-        wolf::Log("BossController: Player attacked, starting Wave 1...");
+        // wolf::Log("BossController: Player attacked, starting Wave 1...");
         StartWave();
     }
 
@@ -258,7 +264,7 @@ void BossController::HandleForcefield(float delta)
         // **Trigger Wave 1 if not already active**
         if (!m_waveActive)
         {
-            wolf::Log("BossController: Player entered forcefield, starting Wave 1...");
+            // wolf::Log("BossController: Player entered forcefield, starting Wave 1...");
             StartWave();
             m_waveActive = true;
 
@@ -355,7 +361,7 @@ bool BossController::IsValidSpawnTile(glm::ivec2 tilePos)
                     tile == Tile::FloorSquareGold || tile == Tile::FloorSquare ||
                     tile == Tile::Grass);
 
-    wolf::Log("Checking tile at [%d, %d]: Type %d -> %s", tilePos.x, tilePos.y, tile, isValid ? "Valid" : "Invalid");
+    // wolf::Log("Checking tile at [%d, %d]: Type %d -> %s", tilePos.x, tilePos.y, tile, isValid ? "Valid" : "Invalid");
 
     return isValid;
 }
@@ -535,13 +541,13 @@ glm::vec2 BossController::GetRandomValidSpawnPosition()
     glm::vec2 bossWorldPos = m_pTransform->GetGlobalPosition();
     glm::ivec2 bossTilePos = m_pLabyrinthManager->GetTilePosition(bossWorldPos);
 
-    wolf::Log("BossController: Boss at tile position: [%d, %d]", bossTilePos.x, bossTilePos.y);
+    // wolf::Log("BossController: Boss at tile position: [%d, %d]", bossTilePos.x, bossTilePos.y);
 
     // **Find the boss's room**
     std::optional<LabyrinthManager::RoomData> roomDataOpt = m_pLabyrinthManager->GetRoom(bossTilePos);
     if (!roomDataOpt.has_value())
     {
-        wolf::Warning("BossController: No room found for boss tile position!");
+        // wolf::Warning("BossController: No room found for boss tile position!");
         return glm::vec2(-1, -1);
     }
 
@@ -549,8 +555,8 @@ glm::vec2 BossController::GetRandomValidSpawnPosition()
     glm::ivec2 roomMin = room.m_bounds.m_origin;
     glm::ivec2 roomMax = room.m_bounds.m_origin + room.m_bounds.m_size;
 
-    wolf::Log("BossController: Room bounds - Min: [%d, %d], Max: [%d, %d]", 
-              roomMin.x, roomMin.y, roomMax.x, roomMax.y);
+    // wolf::Log("BossController: Room bounds - Min: [%d, %d], Max: [%d, %d]", 
+    //           roomMin.x, roomMin.y, roomMax.x, roomMax.y);
 
     // **Try generating a valid spawn point within the room**
     for (int attempts = 0; attempts < 10; ++attempts)
@@ -560,37 +566,65 @@ glm::vec2 BossController::GetRandomValidSpawnPosition()
         if (IsValidSpawnTile(spawnTilePos))
         {
             glm::vec2 worldPos = m_pLabyrinthManager->GetWorldPosition(spawnTilePos);
-            wolf::Log("BossController: Spawned enemy at tile [%d, %d], world [%f, %f]", 
-                      spawnTilePos.x, spawnTilePos.y, worldPos.x, worldPos.y);
+            // wolf::Log("BossController: Spawned enemy at tile [%d, %d], world [%f, %f]", 
+            //           spawnTilePos.x, spawnTilePos.y, worldPos.x, worldPos.y);
             return worldPos;
         }
     }
 
-    wolf::Warning("BossController: No valid spawn tile found after 10 attempts!");
+    // wolf::Warning("BossController: No valid spawn tile found after 10 attempts!");
     return glm::vec2(-1, -1);
 }
 
 
-
 void BossController::RenderImGui()
 {
-    if (!m_waveActive) return;  // Only render UI during waves
+    if (!m_waveActive) return; // Only render during waves
 
-    ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, 10), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
-    ImGui::SetNextWindowBgAlpha(0.0f);  // Transparent background
+    ImGuiIO& io = ImGui::GetIO();
+    ImVec2 displaySize = io.DisplaySize;
 
-    ImGui::Begin("BossUI", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize);
-    
-    // Set text color to bright red
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.2f, 0.2f, 1.0f));  
-    
-    // Display wave number and enemies remaining
+    // Glow effect (static colors for a clean and consistent look)
+    ImVec4 waveGlow = ImVec4(1.0f, 0.3f, 0.3f, 1.0f);  // Bright red glow for wave text
+    ImVec4 enemiesGlow = ImVec4(0.3f, 0.9f, 1.0f, 1.0f); // Bright cyan glow for enemies text
+
+    // Add some subtle gradient-like styles for fun
+    ImVec4 backgroundColor = ImVec4(0.0f, 0.0f, 0.2f, 0.6f); // Dark blue with transparency
+    ImVec4 borderColor = ImVec4(1.0f, 0.5f, 0.0f, 1.0f);     // Bright orange for a striking border
+
+    // Push custom styles
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 6));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f); // Thicker border for emphasis
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, backgroundColor);
+    ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
+
+    // **Wave Text**
+    ImVec2 wavePos = ImVec2(displaySize.x * 0.5f, 40.0f);  // Top-center of the screen
+    ImGui::SetNextWindowPos(wavePos, ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    ImGui::Begin("WaveText", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::PushStyleColor(ImGuiCol_Text, waveGlow);
     ImGui::Text("Wave %d", m_currentWave);
-    ImGui::Text("Enemies Remaining: %d", m_remainingEnemies);
-    
     ImGui::PopStyleColor();
     ImGui::End();
+
+    // **Enemies Remaining Text**
+    ImVec2 enemiesPos = ImVec2(displaySize.x * 0.5f, 80.0f);  // Slightly below wave text
+    ImGui::SetNextWindowPos(enemiesPos, ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    ImGui::Begin("EnemiesText", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::PushStyleColor(ImGuiCol_Text, enemiesGlow);
+    ImGui::Text("Enemies Remaining: %d", m_remainingEnemies);
+    ImGui::PopStyleColor();
+    ImGui::End();
+
+    // Pop styles to clean up
+    ImGui::PopStyleColor(2); // Pop WindowBg and Border colors
+    ImGui::PopStyleVar(3);   // Pop WindowPadding, WindowRounding, and FrameBorderSize
 }
+
+
+
+
 
 
 void BossController::SummonMinitaur()

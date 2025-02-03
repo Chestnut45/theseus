@@ -1,5 +1,4 @@
 #pragma once
-#include <glm_hash.h>
 #include <W_BaseComponent.h>
 #include <glm/glm.hpp>
 #include <W_RNG.h>
@@ -105,13 +104,13 @@ private:
     // Phase 1 stats
     int m_throneBlockRange;
     int m_numSummons;
-    float m_forcefieldRadius = 300.0f;  // Defines the range where the forcefield affects the player
-    float m_slowdownFactor = 0.5f;      // Reduces the player's velocity when inside the forcefield
+    float m_forcefieldRadius;  // Defines the range where the forcefield affects the player
+    float m_slowdownFactor;      // Reduces the player's velocity when inside the forcefield
 
-    int m_currentWave = 0;
-    int m_remainingEnemies = 0;
-    float m_waveTransitionTimer = 0.0f;
-    bool m_waveActive = false;
+    int m_currentWave;
+    int m_remainingEnemies;
+    float m_waveTransitionTimer;
+    bool m_waveActive;
     std::unordered_set<int> m_enemyIDs;
     
 
