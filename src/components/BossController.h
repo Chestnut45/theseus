@@ -51,6 +51,7 @@ public:
         SEARCHING,
         FIRE_BREATH_ATTACK,
         CHARGE_ATTACK,
+        PULL,
         STUNNED,
 
         // Special states
@@ -140,7 +141,8 @@ private:
     float m_chargeKnockbackForce;
     int m_chargeChainCount;
 
-    float m_autoAttackRange;
+    float m_pullTime;               // Pull state members
+    float m_pullTimer;
 
     float m_stunTime;               // Stun state members
 
@@ -184,4 +186,7 @@ private:
     void StartChargeAttack();
     void AttackCharge(float delta);
     void EndChargeAttack();
+
+    void StartPull();
+    void Pull(float delta);
 };
