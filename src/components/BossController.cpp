@@ -395,6 +395,8 @@ void BossController::StartAxeAttack()
     m_state = State::AXE_ATTACK;
     m_axeAttackTimer.Restart();
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 0.85f);
 }
 
 void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)
