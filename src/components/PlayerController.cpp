@@ -10,6 +10,7 @@
 #include "GorgonController.h"
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
+#include "BossController.h"
 
 #include "../GLShapesRenderer.h"
 #include "../inventory/ItemCreator.h"
@@ -1268,9 +1269,9 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     {
         // TODO: Move out of here if we have time
         // Play hit sound effect when enemies are damaged
-        if (event.m_pDamagedObject->HasAny<MinitaurController, GorgonController, HarpyController>())
+        if (event.m_pDamagedObject->HasAny<MinitaurController, GorgonController, HarpyController, BossController>())
         {
-            wolf::Audio::Play("data/sounds/sfx_hit.wav", 0.35f);
+            wolf::Audio::Play("data/sounds/sfx_hit.wav", 0.15f);
         }
     }
 }

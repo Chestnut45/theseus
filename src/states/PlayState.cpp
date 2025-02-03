@@ -44,7 +44,7 @@ void PlayState::Enter()
 
     // Add the main camera as a child object of the player
     auto& cameraObj = scene.CreateObject2D();
-    auto& camera = cameraObj.AddComponent<wolf::Camera2D>(1280, 720);
+    auto& camera = cameraObj.AddComponent<wolf::Camera2D>(m_pGameInstance->GetWidth(), m_pGameInstance->GetHeight());
     m_pPlayerObject->AddChild(cameraObj);
     camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     camera.SetFollowSpeed(2.0f);
