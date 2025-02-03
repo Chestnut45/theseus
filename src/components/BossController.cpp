@@ -72,7 +72,7 @@ void BossController::Init()
     m_chargeTurningDelay = 0.2f; // Seconds
     m_chargeSpeed = 480.0f;
     m_chargeKnockbackForce = 10000.0f;
-    m_chargeChainCount = 3;
+    m_chargeChainCount = 0;
 
     m_pullTime = 1.5f;               // Pull state members
     m_pullTimer = 0.0f;
@@ -822,7 +822,7 @@ void BossController::StartChargeAttack()
     // Reset chain count
     if(m_chargeChainCount <= 0)
     {
-        m_chargeChainCount = 3;
+        m_chargeChainCount = m_rng.NextInt(1, 3);
     }
 }
 
