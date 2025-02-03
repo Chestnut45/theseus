@@ -24,6 +24,8 @@ const glm::vec2& VelocityComponent::GetVelocity() const
 
 void VelocityComponent::ApplyKnockback(const glm::vec2& direction, float magnitude)
 {
+    if (!m_knockbackEnabled) return;
+    
     // Ensure the direction is normalized
     glm::vec2 normalizedDirection = glm::dot(direction, direction) > 0.0f ? glm::normalize(direction) : glm::vec2(0.0f);
 
