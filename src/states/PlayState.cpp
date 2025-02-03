@@ -21,6 +21,7 @@
 #include "../inventory/ArmourItem.h"
 #include "DDACalculator.h"
 #include "GLShapesRenderer.h"
+#include "TileFireManager.h"
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
 #include <BossController.h>
@@ -57,6 +58,8 @@ void PlayState::Enter()
 
     GLShapesRenderer::CreateInstance();
     DDACalculator::CreateInstance(&scene);
+
+    TileFireManager::CreateInstance(m_pLabyrinthManager);
 
     // Place the bossfight trigger
     const auto& rooms = m_pLabyrinthManager->GetRooms();
@@ -152,6 +155,9 @@ void PlayState::Exit()
     this->m_pColliderManager = nullptr;
     DDACalculator::DestroyInstance();
     GLShapesRenderer::DestroyInstance();
+
+    TileFireManager::DestroyInstance();
+
     ItemDropCreator::DestroyInstance();
     NPCBuilder::DestroyInstance();
 }
@@ -186,6 +192,8 @@ void PlayState::Update(float delta)
     
     // Update the labyrinth manager
     m_pLabyrinthManager->Update(delta);
+
+    TileFireManager::GetInstance()->Update(delta);
 
     // Update timed destroyer components
     for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())

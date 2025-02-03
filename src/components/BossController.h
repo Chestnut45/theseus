@@ -2,6 +2,7 @@
 
 #include <W_BaseComponent.h>
 #include <glm/glm.hpp>
+#include <W_RNG.h>
 
 #include <glm/vec2.hpp>
 #include <W_Timer.h>
@@ -88,6 +89,9 @@ private:
     wolf::GameObject* m_pPlayerObject = nullptr;
     PlayerController* m_pPlayerController = nullptr;
 
+    // Utility members
+    wolf::RNG m_rng;
+
     // NOTE: All stats are initialized in Init() so changes only cause a single file to recompile
 
     // General stats
@@ -115,24 +119,31 @@ private:
     ColliderComponent* m_pAxeCollider = nullptr;
 
     // Phase 3 stats
-    int m_fireBreathDamage;
-    int m_fireBreathRange;
+    float m_fireBreathWindupTime;   // Fire breath state members
+    float m_fireBreathWindupTimer;
+    glm::vec3 m_fireBreathWindupTint;
+    int m_fireBreathDamage;     
+    float m_fireBreathRange;
+    float m_fireBreathDuration;
+    float m_fireBreathTurningCapRadian;
+    float m_fireBreathTurningDelay;
+    float m_fireBreathTurningTimer;
+    glm::vec2 m_lastDirection;
 
-    int m_chargeAttackDamage;
+    int m_chargeAttackDamage;       // Charge state members
     int m_chargeAttackRange;
-    float m_stunTime;
-
     float m_chargeWindupTime;
     float m_chargeWindupTimer;
     glm::vec3 m_chargeWindupTint;
-
     float m_chargeTurningCapDegree;
     float m_chargeTurningDelay;
     float m_chargeSpeed;
     float m_chargeKnockbackForce;
     int m_chargeChainCount;
 
-    float m_searchSpeed;
+    float m_stunTime;               // Stun state members
+
+    float m_searchSpeed;            // Search state members
     float m_searchTimer;
 
     // Updates the animated sprite based on state,
@@ -163,7 +174,9 @@ private:
     void Stunned(float delta);
 
     void StartFireBreathAttack();
-    
+    void AttackFireBreath(float delta);
+    void TurnToPlayer(float delta);
+
     void StartChargeAttack();
     void AttackCharge(float delta);
     void EndChargeAttack();
