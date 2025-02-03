@@ -74,8 +74,14 @@ void Sprite2D::SetOriginToCenterOfTexture()
 
 void Sprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint)
 {
+
     // Only render if texture was properly loaded
     if (!m_pTexture || !m_visible) return;
+
+    if(scale == glm::vec2(201.0f))
+    {
+        printf("CK\n");
+    }
 
     // Grab the texture size
     const glm::vec2 texSize = glm::vec2(m_pTexture->GetWidth(), m_pTexture->GetHeight());
