@@ -1,6 +1,11 @@
 #pragma once
 
 #include <W_BaseComponent.h>
+#include <glm/glm.hpp>
+#include <W_RNG.h>
+
+#include <glm/vec2.hpp>
+#include <W_Timer.h>
 
 // Forward declarations
 class VelocityComponent;
@@ -8,6 +13,7 @@ class AnimatedSprite2D;
 class HealthComponent;
 class StatusComponent;
 class ColliderComponent;
+class HomingComponent;
 class PlayerController;
 
 // NOTE: You can only forward declare from within the same namespace
@@ -45,6 +51,7 @@ public:
         SEARCHING,
         FIRE_BREATH_ATTACK,
         CHARGE_ATTACK,
+        STUNNED,
 
         // Special states
         TAUNT, // Could play an animation when the player dies
@@ -76,10 +83,14 @@ private:
     HealthComponent* m_pHealth = nullptr;
     StatusComponent* m_pStatus = nullptr;
     ColliderComponent* m_pCollider = nullptr;
+    HomingComponent* m_pHoming = nullptr;   // Added by Nhật
 
     // Cached player references
     wolf::GameObject* m_pPlayerObject = nullptr;
     PlayerController* m_pPlayerController = nullptr;
+
+    // Utility members
+    wolf::RNG m_rng;
 
     // NOTE: All stats are initialized in Init() so changes only cause a single file to recompile
 
@@ -96,13 +107,43 @@ private:
     int m_axePunishDamage;
     int m_minDistToPlayer;
     int m_maxDistToPlayer;
+    bool m_strafeClockwise;
+    bool m_axeSummoned;
+    float m_strafeSpeed;
+    float m_chaseSpeed;
+    wolf::Timer m_dodgeTimer;
+    wolf::Timer m_strafeSwapTimer;
+    wolf::Timer m_axeAttackTimer;
+    glm::vec2 m_dodgeDir;
+    ColliderComponent* m_pAxeCollider = nullptr;
 
     // Phase 3 stats
-    int m_fireBreathDamage;
-    int m_fireBreathRange;
-    int m_chargeAttackDamage;
+    float m_fireBreathWindupTime;   // Fire breath state members
+    float m_fireBreathWindupTimer;
+    glm::vec3 m_fireBreathWindupTint;
+    int m_fireBreathDamage;     
+    float m_fireBreathRange;
+    float m_fireBreathDuration;
+    float m_fireBreathTurningCapRadian;
+    float m_fireBreathTurningDelay;
+    float m_fireBreathTurningTimer;
+    glm::vec2 m_lastDirection;
+
+    int m_chargeAttackDamage;       // Charge state members
     int m_chargeAttackRange;
-    int m_stunTime;
+    float m_chargeWindupTime;
+    float m_chargeWindupTimer;
+    glm::vec3 m_chargeWindupTint;
+    float m_chargeTurningCapDegree;
+    float m_chargeTurningDelay;
+    float m_chargeSpeed;
+    float m_chargeKnockbackForce;
+    int m_chargeChainCount;
+
+    float m_stunTime;               // Stun state members
+
+    float m_searchSpeed;            // Search state members
+    float m_searchTimer;
 
     // Updates the animated sprite based on state,
     // regardless of what phase of the fight we're in
@@ -118,11 +159,24 @@ private:
     void EnterPhase2();
     void UpdatePhase2(float delta);
     void StartAxeAttack();
-    void DodgePlayerAttack();
+    void DodgePlayerAttack(const glm::vec2& dirToPlayer);
 
     // Phase 3 methods
     void EnterPhase3();
     void UpdatePhase3(float delta);
+
+    void ChangeStatesPhase3(State p_state);
+
+    void Search(float delta);
+    void MoveTowardsPlayer(float delta);
+    void StartStunned();
+    void Stunned(float delta);
+
     void StartFireBreathAttack();
+    void AttackFireBreath(float delta);
+    void TurnToPlayer(float delta);
+
     void StartChargeAttack();
+    void AttackCharge(float delta);
+    void EndChargeAttack();
 };
