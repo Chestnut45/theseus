@@ -15,7 +15,6 @@
 
 #include "../ColliderManager.h"
 
-#include "../DDACalculator.h"
 #include "GLShapesRenderer.h"
 #include "../TileFireManager.h"
 
@@ -525,6 +524,34 @@ void BossController::UpdatePhase3(float delta)
     }
 }
 
+// Resued from GorgonController
+void BossController::MoveTowardsPlayer(float delta)
+{
+    if (!m_pPlayerObject || !m_pVelocity || !m_pTransform) return;
+
+    // Calculate the direction towards the player and move the Gorgon
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+
+    // Calculate direction vector
+    glm::vec2 direction = playerPos - thisPos;
+
+    if (glm::length(direction) > 0.01f) {
+        direction = glm::normalize(direction);
+        m_pVelocity->SetVelocity(direction * m_searchSpeed);
+
+    } 
+    else {
+        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    }
+}
+
+void BossController::StartSearch()
+{
+    wolf::RNG rng;
+    m_searchTimer = rng.NextFloat(4.0f, 6.0f);
+}
+
 void BossController::ChangeStatesPhase3(State p_state)
 {
     // Return if state is not in phase 3
@@ -537,6 +564,11 @@ void BossController::ChangeStatesPhase3(State p_state)
     switch (m_state)
     {
         case State::CHARGE_ATTACK:
+        {
+            EndChargeAttack();
+            break;
+        }
+        case State::FIRE_BREATH_ATTACK:
         {
             break;
         }
@@ -567,147 +599,6 @@ void BossController::ChangeStatesPhase3(State p_state)
             StartSearch();
             break;
         }
-        default:
-        break;
-    }
-
-    m_state = p_state;
-}
-
-void BossController::StartSearch()
-{
-    wolf::RNG rng;
-    m_searchTimer = rng.NextFloat(4.0f, 6.0f);
-}
-
-void BossController::Search(float delta)
-{
-    // If search timer expired
-    if(m_searchTimer <= 0.0f)
-    {
-        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
-        float playerDistance = glm::distance(playerPos, thisPos);
-
-        // Decide next attack
-        wolf::RNG rng;
-        int res = rng.NextInt(1, 10);
-        std::cout << "RNG: " << res << std::endl;
-        // If RNG less than 5. perform fire breath attack
-        if(res <= 5)
-        {
-            //ChangeStatesPhase3(State::FIRE_BREATH_ATTACK);
-            ChangeStatesPhase3(State::SEARCHING);
-            printf("BossController - FireBreath\n");
-            return;
-        }
-        
-        // Else
-        else
-        {
-
-            
-            // If player in line of sight, perform charge attack
-            if(DDACalculator::GetInstance()->GetEndpoint(thisPos, playerPos) == playerPos)
-            {
-                //ChangeStatesPhase3(State::CHARGE_ATTACK);
-                ChangeStatesPhase3(State::SEARCHING);
-                printf("BossController - Charge\n");
-                return;
-            }
-            // Else, reroll RNG for fire attack or search
-            else
-            {
-                if(rng.NextInt(1, 10) <= 5)
-                {
-                    //ChangeStatesPhase3(State::FIRE_BREATH_ATTACK);
-                    ChangeStatesPhase3(State::SEARCHING);
-                    printf("BossController - FireBreathReroll\n");
-                    return;
-                }
-                else
-                {
-                    ChangeStatesPhase3(State::SEARCHING);
-                    return;
-                }
-
-            }
-        }
-    }
-    else
-    {
-        MoveTowardsPlayer(delta);
-        m_searchTimer -= delta;
-    }
-
-
-}
-
-void BossController::EndSearch()
-{
-
-}
-
-// Resued from GorgonController
-void BossController::MoveTowardsPlayer(float delta)
-{
-    if (!m_pPlayerObject || !m_pVelocity || !m_pTransform) return;
-
-    // Calculate the direction towards the player and move the Gorgon
-    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
-
-    // Calculate direction vector
-    glm::vec2 direction = playerPos - thisPos;
-
-    if (glm::length(direction) > 0.01f) {
-        direction = glm::normalize(direction);
-        m_pVelocity->SetVelocity(direction * m_searchSpeed);
-
-    } 
-    else {
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    }
-}
-
-void BossController::ChangeStatesPhase3(State p_state)
-{
-    // Return if state is not in phase 3
-    if(p_state < State::SEARCHING)
-    {
-        return;
-    }
-
-    // End old state
-    switch (m_state)
-    {
-        case State::CHARGE_ATTACK:
-        {
-            EndChargeAttack();
-            break;
-        }
-        case State::FIRE_BREATH_ATTACK:
-        {
-            break;
-        }
-        default:
-        break;
-    }
-
-    // Start new state
-    switch (p_state)
-    {
-        case State::CHARGE_ATTACK:
-        {
-            StartChargeAttack();
-            break;
-        }
-        case State::FIRE_BREATH_ATTACK:
-        {
-            StartFireBreathAttack();
-            break;
-        }
-
         case State::STUNNED:
         {
             StartStunned();
@@ -719,6 +610,11 @@ void BossController::ChangeStatesPhase3(State p_state)
     }
 
     m_state = p_state;
+}
+
+void BossController::EndSearch()
+{
+
 }
 
 void BossController::Search(float delta)
@@ -755,28 +651,6 @@ void BossController::Search(float delta)
         MoveTowardsPlayer(delta);
     }
 
-}
-
-// Resued from GorgonController
-void BossController::MoveTowardsPlayer(float delta)
-{
-    if (!m_pPlayerObject || !m_pVelocity || !m_pTransform) return;
-
-    // Calculate the direction towards the player and move the Gorgon
-        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
-
-    // Calculate direction vector
-    glm::vec2 direction = playerPos - thisPos;
-
-    if (glm::length(direction) > 0.01f) {
-        direction = glm::normalize(direction);
-        m_pVelocity->SetVelocity(direction * m_searchSpeed);
-
-    } 
-    else {
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    }
 }
 
 void BossController::StartStunned()

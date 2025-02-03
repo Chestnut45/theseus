@@ -167,17 +167,12 @@ private:
 
     void ChangeStatesPhase3(State p_state);
 
-    void Search(float delta);
-    void MoveTowardsPlayer(float delta);
-    void StartStunned();
-    void Stunned(float delta);
-
-    void ChangeStatesPhase3(State p_state);
-
     void StartSearch();
     void Search(float delta);
     void EndSearch();
     void MoveTowardsPlayer(float delta);
+    void StartStunned();
+    void Stunned(float delta);
 
     void StartFireBreathAttack();
     void AttackFireBreath(float delta);
