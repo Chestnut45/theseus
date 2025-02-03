@@ -545,6 +545,7 @@ void BossController::StartChargeAttack()
 {
     m_chargeWindupTimer = m_chargeWindupTime;
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+    m_pVelocity->SetKnockbackEnabled(false);
 }
 
 void BossController::AttackCharge(float delta)
@@ -619,6 +620,7 @@ void BossController::AttackCharge(float delta)
 
 void BossController::EndChargeAttack()
 {
+    m_pVelocity->SetKnockbackEnabled(true);
     m_pHoming->SetActive(false);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 
