@@ -162,11 +162,77 @@ void BossController::UpdatePhase1(float delta)
     // TODO: Phase 1 update logic:
     // - Summon minitaurs periodically until limit reached
     // - Change to blocking animation when player attacks while close enough
+    HandleForcefield(delta);
+    HandleKnockBackCollision(delta);
+
 
     if (m_pHealth->GetHealth() < 2 * m_maxHealth / 3)
     {
         // TODO: Exit phase 1 logic
         EnterPhase2();
+    }
+}
+
+void BossController::HandleForcefield(float delta)
+{
+    if (!m_pPlayerObject || !m_pTransform || !m_pPlayerController) return;
+
+    glm::vec2 bossPos = m_pTransform->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    float distance = glm::distance(playerPos, bossPos);
+
+    VelocityComponent* pPlayerVelocity = m_pPlayerObject->GetComponent<VelocityComponent>();
+    glm::vec2 currentVelocity = pPlayerVelocity->GetVelocity();
+
+    // Ignore slowdown if rolling
+    if (m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ROLLING)
+    {
+        return;
+    }
+
+    // Define slowdown effect range
+    float slowdownStart = m_forcefieldRadius * 0.9f; // Start slowing at 90% of forcefield radius
+    float fullStopDistance = m_forcefieldRadius * 0.25f; // Full stop effect closer at 25%
+
+    if (distance < m_forcefieldRadius)
+    {
+        // Gradual slowdown scaling with distance
+        float slowdownFactor = glm::smoothstep(fullStopDistance, slowdownStart, distance);
+        slowdownFactor = glm::clamp(slowdownFactor, 0.05f, 1.0f);  
+
+        // Apply pushback resistance if moving toward the boss
+        glm::vec2 directionToBoss = glm::normalize(bossPos - playerPos);
+        float forwardSpeed = glm::dot(currentVelocity, directionToBoss);
+        if (forwardSpeed > 0)  
+        {
+            currentVelocity -= directionToBoss * (forwardSpeed * 0.3f);
+        }
+
+        // Apply slowdown
+        glm::vec2 newVelocity = currentVelocity * slowdownFactor;
+        pPlayerVelocity->SetVelocity(newVelocity);
+    }
+}
+
+void BossController::HandleKnockBackCollision(float delta)
+{
+    if (!m_pPlayerObject || !m_pCollider || !m_pPlayerObject->HasAll<ColliderComponent>())
+        return;
+
+    ColliderComponent* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
+
+    // Check collision between boss and player
+    if (ColliderManager::StaticMethodIsColliding(*m_pCollider, *pPlayerCollider, delta))
+    {
+        glm::vec2 bossPos = m_pTransform->GetGlobalPosition();
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+        // Knockback direction: Push player away from boss
+        glm::vec2 knockbackDirection = glm::normalize(playerPos - bossPos);
+        
+        // Apply knockback force
+        float knockbackForce = 11000.0f;  // Adjust this for better balance
+        m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(knockbackDirection, knockbackForce);
     }
 }
 

@@ -98,6 +98,8 @@ private:
     // Phase 1 stats
     int m_throneBlockRange;
     int m_numSummons;
+    float m_forcefieldRadius = 300.0f;  // Defines the range where the forcefield affects the player
+    float m_slowdownFactor = 0.5f;      // Reduces the player's velocity when inside the forcefield
 
     // Phase 2 stats
     int m_axeAttackDamage;
@@ -142,6 +144,8 @@ private:
     void UpdatePhase1(float delta);
     void SummonMinitaur();
     void BlockPlayerAttack();
+    void HandleForcefield(float delta);
+    void HandleKnockBackCollision(float delta);
 
     // Phase 2 methods
     void EnterPhase2();
