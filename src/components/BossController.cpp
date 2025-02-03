@@ -239,6 +239,7 @@ void BossController::UpdatePhase2(float delta)
             {
                 pPlayerHealth->Damage(m_axeAttackDamage);
                 pPlayerVel->ApplyKnockback(axeToPlayer, 4500.0f);
+                wolf::Audio::Play("data/sounds/sfx_heavy_hit.wav", 0.5f);
             }
         }
 

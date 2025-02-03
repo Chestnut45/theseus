@@ -117,21 +117,18 @@ void AttackDamageComponent::Update(float p_dt)
                         if(gorgonController != nullptr)
                         {
                             gorgonController->ChangeState(EnemyController::EnemyState::STUNNED);
-                            return;
                         }
 
                         MinitaurController* minitaurController = thatObject->GetComponent<MinitaurController>();
                         if(minitaurController != nullptr)
                         {
                             minitaurController->ChangeState(EnemyController::EnemyState::STUNNED);
-                            return;
                         }
 
                         HarpyController* harpyController = thatObject->GetComponent<HarpyController>();
                         if(harpyController != nullptr)
                         {
                             harpyController->ChangeState(EnemyController::EnemyState::STUNNED);
-                            return;
                         }
                     }
                 }

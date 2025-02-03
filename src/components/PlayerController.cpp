@@ -7,6 +7,7 @@
 #include "TimedDestroyerComponent.h"
 #include "HarpyController.h"
 #include "MinitaurController.h"
+#include "GorgonController.h"
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
 
@@ -16,6 +17,7 @@
 #include <W_Input.h>
 #include <W_Logging.h>
 #include <W_EventManager.h>
+#include <W_Audio.h>
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
@@ -895,6 +897,8 @@ void PlayerController::ApplyDamageToEnemy()
         // Spawn projectile for bow
         case WeaponType::BOW:
         {
+            wolf::Audio::Play("data/sounds/sfx_arrow_shot.wav", 0.5f);
+
             // Set data for projectile collider
             ProjectileProperties projprop = m_pCurrentWeapon->GetProjectileProperties();
 
@@ -936,6 +940,8 @@ void PlayerController::ApplyDamageToEnemy()
         // Spawn melee collider for sword
         case WeaponType::SWORD:
         {
+            wolf::Audio::Play("data/sounds/sfx_sword_whoosh.wav", 0.7f);
+
             // Set & calculate data for melee collider
             glm::vec2 meleeDimensions = m_pCurrentWeapon->GetHurtBoxSize();
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
@@ -988,6 +994,8 @@ void PlayerController::ApplyDamageToEnemy()
         // Spawn melee collider for spear
         case WeaponType::SPEAR:
         {
+            wolf::Audio::Play("data/sounds/sfx_sword_whoosh.wav", 0.7f, -10000.0f);
+
             // Set & calculate data for melee collider
             glm::vec2 meleeDimensions = m_pCurrentWeapon->GetHurtBoxSize();
             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
@@ -1254,6 +1262,16 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     {
         m_invulnTimer.Restart();
         m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
+        wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f);
+    }
+    else
+    {
+        // TODO: Move out of here if we have time
+        // Play hit sound effect when enemies are damaged
+        if (event.m_pDamagedObject->HasAny<MinitaurController, GorgonController, HarpyController>())
+        {
+            wolf::Audio::Play("data/sounds/sfx_hit.wav", 0.35f);
+        }
     }
 }
 
