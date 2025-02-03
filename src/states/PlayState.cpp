@@ -136,7 +136,7 @@ void PlayState::Enter()
 
     // Stop all audio and begin the maze music
     wolf::Audio::Stop();
-    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.75f, 0.0f, 0.0f, true, 13.714f);
+    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, true, 13.714f);
 }
 
 void PlayState::Exit()
