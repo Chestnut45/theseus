@@ -4,6 +4,9 @@
 #include <glm/glm.hpp>
 #include <W_RNG.h>
 
+#include <glm/vec2.hpp>
+#include <W_Timer.h>
+
 // Forward declarations
 class VelocityComponent;
 class AnimatedSprite2D;
@@ -104,6 +107,15 @@ private:
     int m_axePunishDamage;
     int m_minDistToPlayer;
     int m_maxDistToPlayer;
+    bool m_strafeClockwise;
+    bool m_axeSummoned;
+    float m_strafeSpeed;
+    float m_chaseSpeed;
+    wolf::Timer m_dodgeTimer;
+    wolf::Timer m_strafeSwapTimer;
+    wolf::Timer m_axeAttackTimer;
+    glm::vec2 m_dodgeDir;
+    ColliderComponent* m_pAxeCollider = nullptr;
 
     // Phase 3 stats
     float m_fireBreathWindupTime;   // Fire breath state members
@@ -147,7 +159,7 @@ private:
     void EnterPhase2();
     void UpdatePhase2(float delta);
     void StartAxeAttack();
-    void DodgePlayerAttack();
+    void DodgePlayerAttack(const glm::vec2& dirToPlayer);
 
     // Phase 3 methods
     void EnterPhase3();
