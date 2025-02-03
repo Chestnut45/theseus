@@ -622,11 +622,6 @@ void BossController::RenderImGui()
     ImGui::PopStyleVar(3);   // Pop WindowPadding, WindowRounding, and FrameBorderSize
 }
 
-
-
-
-
-
 void BossController::SummonMinitaur()
 {
 
