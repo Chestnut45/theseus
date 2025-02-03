@@ -19,6 +19,12 @@
 #include "GLShapesRenderer.h"
 #include "../TileFireManager.h"
 
+#include <AttackDamageComponent.h>
+#include <TimedDestroyerComponent.h>
+#include <GorgonBuilder.h>
+#include <MinitaurBuilder.h>
+#include <HarpyBuilder.h>
+
 BossController::BossController()
 {
 }
@@ -161,6 +167,13 @@ void BossController::EnterPhase1()
     m_state = State::SIT;
 
     // TODO: Phase 1 initialization logic
+    if (m_pHealth){
+        m_pHealth->SetActive(false);
+    }
+
+    if (m_pVelocity){
+        m_pVelocity->SetKnockbackEnabled(false);
+    }
 }
 
 void BossController::UpdatePhase1(float delta)
@@ -170,6 +183,8 @@ void BossController::UpdatePhase1(float delta)
     // - Change to blocking animation when player attacks while close enough
     HandleForcefield(delta);
     HandleKnockBackCollision(delta);
+    CheckWaveProgress(delta);
+
 
 
     if (m_pHealth->GetHealth() < 2 * m_maxHealth / 3)
@@ -219,7 +234,6 @@ void BossController::HandleForcefield(float delta)
         pPlayerVelocity->SetVelocity(newVelocity);
     }
 }
-
 void BossController::HandleKnockBackCollision(float delta)
 {
     if (!m_pPlayerObject || !m_pCollider || !m_pPlayerObject->HasAll<ColliderComponent>())
@@ -227,20 +241,121 @@ void BossController::HandleKnockBackCollision(float delta)
 
     ColliderComponent* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
 
-    // Check collision between boss and player
+    // Apply knockback when physically colliding with the boss
     if (ColliderManager::StaticMethodIsColliding(*m_pCollider, *pPlayerCollider, delta))
     {
         glm::vec2 bossPos = m_pTransform->GetGlobalPosition();
         glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-
-        // Knockback direction: Push player away from boss
         glm::vec2 knockbackDirection = glm::normalize(playerPos - bossPos);
-        
-        // Apply knockback force
-        float knockbackForce = 11000.0f;  // Adjust this for better balance
+        float knockbackForce = 11000.0f;
+
         m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(knockbackDirection, knockbackForce);
     }
+
+    // Check if the player's melee attack hitbox collides with the boss
+    if (m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING)
+    {
+        for (auto&& [_, meleeObject] : m_pPlayerObject->GetScene().Each<wolf::GameObject>())
+        {
+            if (meleeObject.HasAll<ColliderComponent>())
+            {
+                ColliderComponent* pMeleeCollider = meleeObject.GetComponent<ColliderComponent>();
+
+                // Ensure this is the player's melee attack hitbox (HURTBOXDD)
+                if (pMeleeCollider->GetColliderType() == ColliderComponent::ColliderType::HURTBOXDD)
+                {
+                    if (ColliderManager::StaticMethodIsColliding(*pMeleeCollider, *m_pCollider, delta))
+                    {
+                        glm::vec2 bossPos = m_pTransform->GetGlobalPosition();
+                        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                        glm::vec2 knockbackDirection = glm::normalize(playerPos - bossPos);
+                        float knockbackForce = 11000.0f;
+
+                        // Apply knockback to player when melee attack collides with the boss
+                        m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(knockbackDirection, knockbackForce);
+                    }
+                }
+            }
+        }
+    }
 }
+
+void BossController::CheckWaveProgress(float delta)
+{
+    if (!m_waveActive) return;
+
+    // Wait for wave transition timer
+    if (m_remainingEnemies == 0)
+    {
+        if (m_waveTransitionTimer > 0.0f)
+        {
+            m_waveTransitionTimer -= delta;
+            return;
+        }
+
+        // Move to next wave
+        if (m_currentWave < 3)
+        {
+            SpawnWave(m_currentWave + 1);
+        }
+        else
+        {
+            // All waves completed, transition to Phase 2
+            wolf::Log("All waves cleared! Transitioning to Phase 2...");
+            EnterPhase2();
+        }
+    }
+}
+
+// Trigger Wave 1 when player approaches the boss
+void BossController::StartWave()
+{
+    if (m_waveActive) return;  // Prevent duplicate wave starts
+    SpawnWave(1);
+}
+
+void BossController::SpawnWave(int waveIndex)
+{
+    m_currentWave = waveIndex;
+    m_waveActive = true;
+    m_waveTransitionTimer = 2.0f;  // Set wave delay
+
+    int minitaurs = 0, gorgons = 0, harpies = 0;
+    switch (waveIndex)
+    {
+        case 1: minitaurs = 5; gorgons = 1; harpies = 1; break;
+        case 2: gorgons = 2; harpies = 2; break;
+        case 3: minitaurs = 10; break;
+    }
+
+    for (int i = 0; i < minitaurs; i++) SpawnEnemy<MinitaurBuilder>();
+    for (int i = 0; i < gorgons; i++) SpawnEnemy<GorgonBuilder>();
+    for (int i = 0; i < harpies; i++) SpawnEnemy<HarpyBuilder>();
+
+    m_remainingEnemies = minitaurs + gorgons + harpies;
+}
+
+// Generic enemy spawn function
+template <typename T>
+void BossController::SpawnEnemy()
+{
+    glm::vec2 spawnPos = GetRandomValidSpawnPosition();
+    auto& enemy = GetGameObject()->GetScene().CreateObject2D();
+    T builder(spawnPos);
+    builder.Build(enemy);
+}
+
+// Called when an enemy dies
+void BossController::OnEnemyDefeated()
+{
+    if (m_remainingEnemies > 0)
+        m_remainingEnemies--;
+}
+
+glm::vec2 BossController::GetRandomValidSpawnPosition()
+{
+}
+
 
 void BossController::SummonMinitaur()
 {

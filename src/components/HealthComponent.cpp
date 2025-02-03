@@ -48,6 +48,7 @@ float HealthComponent::GetHealth() const
 // Reduce health
 void HealthComponent::Damage(float p_damage)
 {
+    if(!m_active) return;
     if(this->m_health > 0)
     {
         float damageReduction = 0.0f;
@@ -97,6 +98,8 @@ void HealthComponent::Damage(float p_damage)
 // Reduce health & ignore armour
 void HealthComponent::Pierce(float p_damage)
 {
+    if(!m_active) return;
+    
     if(this->m_health > 0)
     {
         this->m_health -= p_damage;

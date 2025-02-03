@@ -104,6 +104,13 @@ private:
     float m_forcefieldRadius = 300.0f;  // Defines the range where the forcefield affects the player
     float m_slowdownFactor = 0.5f;      // Reduces the player's velocity when inside the forcefield
 
+    int m_currentWave = 0;
+    int m_remainingEnemies = 0;
+    float m_waveTransitionTimer = 0.0f;
+    bool m_waveActive = false;
+    
+
+
     // Phase 2 stats
     int m_axeAttackDamage;
     int m_axePunishDamage;
@@ -158,6 +165,14 @@ private:
     void BlockPlayerAttack();
     void HandleForcefield(float delta);
     void HandleKnockBackCollision(float delta);
+    void StartWave();
+    void SpawnWave(int waveIndex);
+    void CheckWaveProgress(float delta);
+    template <typename T>
+    void SpawnEnemy();
+    void OnEnemyDefeated();
+    glm::vec2 GetRandomValidSpawnPosition();
+
 
     // Phase 2 methods
     void EnterPhase2();
