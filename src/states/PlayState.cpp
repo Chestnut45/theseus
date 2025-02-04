@@ -92,6 +92,7 @@ void PlayState::Enter()
 
         break;
     }
+    
 
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
@@ -132,6 +133,69 @@ void PlayState::Enter()
     // this->CreateHarpyEnemy();
     // this->CreateGorgonEnemy();
     this->CreateTrappedChest();
+
+    glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
+
+    // Track all Minotaurs and their positions
+    std::unordered_map<MinitaurController*, glm::vec2> minitaurPositions;
+
+    // Find all "Basic Fight Rooms" and record Minotaurs' positions
+    for (const auto& room : m_pLabyrinthManager->GetRooms())
+    {
+        if (room.m_name == "Basic Fight Rooms")
+        {
+            glm::vec2 roomCenter = m_pLabyrinthManager->GetWorldPosition(glm::vec2(room.m_bounds.m_origin)) +
+                                   glm::vec2(room.m_bounds.m_size) * 0.5f;
+
+            // Record all Minotaurs in the room
+            for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
+            {
+                glm::vec2 minitaurPos = glm::vec2(minitaurController.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+                float distanceToRoom = glm::distance(roomCenter, minitaurPos);
+
+                // Ensure the Minotaur is within this room
+                if (distanceToRoom < glm::length(glm::vec2(room.m_bounds.m_size)) * LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE)
+                {
+                    minitaurPositions[&minitaurController] = minitaurPos;
+                }
+            }
+        }
+    }
+
+    if (minitaurPositions.empty())
+    {
+        wolf::Log("No Minotaurs found in Basic Fight Rooms!");
+        return;
+    }
+
+    // Find the closest Minotaur to the player
+    MinitaurController* closestMinitaur = nullptr;
+    float closestDistanceToPlayer = std::numeric_limits<float>::max();
+
+    for (const auto& [minitaurController, position] : minitaurPositions)
+    {
+        float distanceToPlayer = glm::distance(playerPosition, position);
+        if (distanceToPlayer < closestDistanceToPlayer)
+        {
+            closestMinitaur = minitaurController;
+            closestDistanceToPlayer = distanceToPlayer;
+        }
+    }
+
+    if (!closestMinitaur)
+    {
+        wolf::Log("Failed to find the closest Minotaur to the player!");
+        return;
+    }
+
+    // Register the closest Minotaur in the shared context
+    m_pGameInstance->GetSharedContext().RegisterEntity("Minotaur", closestMinitaur->GetGameObject()->GetID());
+
+    // Trigger the intro dialogue and cutscene
+    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+
+    // Log success
+    wolf::Log("Successfully found and registered the closest Minotaur to the player.");
 }
 
 void PlayState::Exit()

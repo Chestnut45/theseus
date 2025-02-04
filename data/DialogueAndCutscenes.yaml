@@ -1,31 +1,30 @@
 CutscenesAndDialogues:
   intro_sequence:
     characters:
-      - name: "Ariadne"
-        portraitPath: "data/textures/sPlayerTest.png"
       - name: "Theseus"
         portraitPath: "data/textures/sPlayerTest.png"
     sequence:
       - type: "dialogue"
-        character: "Ariadne"
-        text: "Hail stranger. Are you the one they call 'Theseus'?"
-        duration: 4.0
-      - type: "dialogue"
         character: "Theseus"
-        text: "I am."
-        duration: 2.0
-      - type: "dialogue"
-        character: "Ariadne"
-        text: "And are the rumours true? Have you come to free your people and slay the Minotaur?"
-        duration: 4.0
-      - type: "dialogue"
-        character: "Theseus"
-        text: "I have."
-        duration: 2.0
-      - type: "dialogue"
-        character: "Ariadne"
-        text: "Thank the gods."
+        text: "Where am I?"
         duration: 3.0
+      - type: "cutscene"
+        camera_keyframes:
+          - target: "Theseus" # Start at Theseus
+            zoom: 1.0
+            duration: 1.5
+          - target: "Minotaur" # Move to Minotaur
+            zoom: 1.5
+            duration: 2.5
+      - type: "dialogue"
+        character: "Theseus"
+        text: "A Minotaur?!"
+        duration: 2.5
+      - type: "combined"
+        dialogue:
+          character: "Theseus"
+          text: "This can't be. I'm in hell."
+          duration: 4.0
 
   hello:
     characters:
