@@ -7,11 +7,12 @@
 
 // Constructor
 DialogueAndCutsceneState::DialogueAndCutsceneState(GameStateManager* manager, Theseus* gameInstance, const std::string& yamlFilePath)
-    : GameState(manager, gameInstance), m_yamlFilePath(yamlFilePath), m_triggerNPCID(-1) {}
+    : GameState(manager, gameInstance), m_yamlFilePath(yamlFilePath), m_triggerNPCID(-1),
+      m_fadeAlpha(0.0f), m_fadeTimer(0.0f), m_fadeDuration(0.0f), m_fadingIn(false) {}
 
-// Constructor with optional NPC ID parameter (use when the dialogue was triggered by talking to an NPC)
 DialogueAndCutsceneState::DialogueAndCutsceneState(GameStateManager* manager, Theseus* gameInstance, const std::string& yamlFilePath, int npcID)
-    : GameState(manager, gameInstance), m_yamlFilePath(yamlFilePath), m_triggerNPCID(npcID) {}
+    : GameState(manager, gameInstance), m_yamlFilePath(yamlFilePath), m_triggerNPCID(npcID),
+      m_fadeAlpha(0.0f), m_fadeTimer(0.0f), m_fadeDuration(0.0f), m_fadingIn(false) {}
 
 // Enter
 void DialogueAndCutsceneState::Enter() {
@@ -19,7 +20,7 @@ void DialogueAndCutsceneState::Enter() {
         try {
             LoadFromYAML(m_yamlFilePath);
             m_isYAMLLoaded = true; // Mark as loaded
-            std::cout << "DialogueAndCutsceneState: YAML loaded successfully." << std::endl;
+            // std::cout << "DialogueAndCutsceneState: YAML loaded successfully." << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "Error loading YAML: " << e.what() << std::endl;
         }
@@ -99,12 +100,13 @@ void DialogueAndCutsceneState::StartSequence(const std::string& sequenceID) {
         m_cutsceneTimer = 0.0f;
         m_currentKeyframeIndex = 0;
 
-        std::cout << "Starting sequence: " << sequenceID << std::endl;
+        // std::cout << "Starting sequence: " << sequenceID << std::endl;
     } else {
         // Handle the case where the sequence ID is not found
         std::cerr << "Sequence ID '" << sequenceID << "' not found!" << std::endl;
     }
 }
+
 void DialogueAndCutsceneState::AdvanceSequence(float delta) {
     // Ensure there is a current sequence and it's within bounds
     if (!m_currentSequence || m_currentSequenceIndex >= m_currentSequence->size()) {
@@ -115,43 +117,58 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
 
     auto& currentItem = (*m_currentSequence)[m_currentSequenceIndex];
 
-    // Track the progress of dialogue and cutscene
+    // Track the progress of dialogue, cutscene, and fade
     bool dialogueFinished = false;
     bool cutsceneFinished = false;
+    bool fadeFinished = true;
+
+    // Handle fade transitions
+    if (currentItem.type == "fade") {
+        m_fadeTimer += delta;
+
+        // Update fade alpha based on fade direction
+        if (currentItem.fadeType == "to") {
+            m_fadeAlpha = glm::clamp(m_fadeTimer / currentItem.fadeDuration, 0.0f, 1.0f);
+        } else if (currentItem.fadeType == "from") {
+            m_fadeAlpha = glm::clamp(1.0f - (m_fadeTimer / currentItem.fadeDuration), 0.0f, 1.0f);
+        }
+
+        // Check if fade transition is complete
+        if (m_fadeTimer >= currentItem.fadeDuration) {
+            m_fadeAlpha = (currentItem.fadeType == "to") ? 1.0f : 0.0f;
+            m_fadeTimer = 0.0f;
+            m_currentSequenceIndex++;
+            ResetCutsceneState();
+            return;
+        }
+
+        fadeFinished = false;
+    }
 
     // Handle dialogue progression
-    if (currentItem.type == "dialogue" || currentItem.type == "combined") {
+    if ((currentItem.type == "dialogue" || currentItem.type == "combined") && fadeFinished) {
         m_timeSinceLastKeyframe += delta;
 
         const std::string& currentLine = GetCurrentDialogueLine();
         m_isLineFinished = (m_timeSinceLastKeyframe >= currentLine.length() * 0.05f || m_showFullText);
 
         // Check user input for skipping
-        bool isInputPressed = (m_lmbCooldown <= 0.0f) && 
+        bool isInputPressed = (m_lmbCooldown <= 0.0f) &&
                               (wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE));
-        bool isAnyButtonHovered = ImGui::IsAnyItemHovered();
-
         bool isLastLine = (m_currentSequenceIndex >= m_currentSequence->size() - 1);
 
-        if (isInputPressed && !isAnyButtonHovered) {
+        if (isInputPressed) {
             m_lmbCooldown = LMB_DELAY;
 
-            if (isLastLine) {
-                if (!m_showFullText) {
-                    m_showFullText = true;
-                } else if (!m_isLineFinished) {
-                    m_isLineFinished = true;
-                } else {
-                    dialogueFinished = true;
-                }
+            if (!m_showFullText) {
+                m_showFullText = true;
+            } else if (!m_isLineFinished) {
+                m_isLineFinished = true;
+            } else if (isLastLine) {
+                dialogueFinished = true;
             } else {
-                if (!m_showFullText && !m_isLineFinished) {
-                    m_showFullText = true;
-                } else if (m_showFullText && !m_isLineFinished) {
-                    m_isLineFinished = true;
-                } else if (m_isLineFinished) {
-                    dialogueFinished = true;
-                }
+                dialogueFinished = true;
+                m_timeSinceLastKeyframe = 0.0f;
             }
         }
 
@@ -159,13 +176,10 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
         if (m_autoplay && m_isLineFinished && m_timeSinceLastKeyframe > m_autoPlayDelay) {
             dialogueFinished = true;
         }
-
-        // Ensure dialogue sequence is finished only when explicitly marked
-        dialogueFinished = dialogueFinished && m_isLineFinished;
     }
 
     // Handle cutscene progression
-    if (currentItem.type == "cutscene" || currentItem.type == "combined") {
+    if ((currentItem.type == "cutscene" || currentItem.type == "combined") && fadeFinished) {
         if (m_currentKeyframeIndex >= currentItem.cutscene.size()) {
             cutsceneFinished = true;
         } else {
@@ -195,11 +209,6 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
                 camera->SetZoom(m_currentZoomLevel);
             }
 
-            if (wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE)) {
-                m_cutsceneTimer = targetKeyframe.duration;
-                t = 1.0f;
-            }
-
             if (t >= 1.0f) {
                 m_cutsceneTimer = 0.0f;
                 m_currentKeyframeIndex++;
@@ -211,21 +220,17 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
 
     // Combined logic
     if (currentItem.type == "combined") {
-        if (cutsceneFinished) {
-            if (dialogueFinished) {
-                m_timeSinceLastKeyframe = 0.0f;
-                m_showFullText = false;
-                m_currentSequenceIndex++;
-
-                ResetCutsceneState();
-            }
+        if (cutsceneFinished && dialogueFinished) {
+            m_timeSinceLastKeyframe = 0.0f;
+            m_showFullText = false;
+            m_currentSequenceIndex++;
+            ResetCutsceneState();
         }
     } else if ((currentItem.type == "dialogue" && dialogueFinished) ||
                (currentItem.type == "cutscene" && cutsceneFinished)) {
         m_timeSinceLastKeyframe = 0.0f;
         m_showFullText = false;
         m_currentSequenceIndex++;
-
         ResetCutsceneState();
     }
 }
@@ -345,6 +350,11 @@ void DialogueAndCutsceneState::LoadFromYAML(const std::string& yamlFilePath) {
                             }
                         }
                     }
+                    else if (item.type == "fade") {
+                        // Parse fade-specific data
+                        item.fadeType = seqNode["to"] ? "to" : "from";
+                        item.fadeDuration = seqNode["duration"] ? seqNode["duration"].as<float>() : 0.0f;
+                    }
 
                     // Add the item to this sequence's vector
                     sequenceItems.push_back(item);
@@ -357,11 +367,21 @@ void DialogueAndCutsceneState::LoadFromYAML(const std::string& yamlFilePath) {
     }
 }
 
+
 void DialogueAndCutsceneState::Render() {
     if (m_currentSequence && m_currentSequenceIndex < m_currentSequence->size()) {
         RenderSequence();
     }
+
+    // Render fade overlay if active
+    if (m_fadeAlpha > 0.0f) {
+        auto* drawList = ImGui::GetBackgroundDrawList();
+        ImVec2 screenSize = ImGui::GetIO().DisplaySize;
+        ImColor fadeColor = ImColor(0.0f, 0.0f, 0.0f, m_fadeAlpha); // Black fade
+        drawList->AddRectFilled(ImVec2(0, 0), screenSize, fadeColor);
+    }
 }
+    
 
 ImVec2 addImVec2(const ImVec2& a, const ImVec2& b) {
     return ImVec2(a.x + b.x, a.y + b.y);
