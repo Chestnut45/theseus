@@ -2443,3 +2443,19 @@ void LabyrinthManager::GenerateEntrance()
     iconTransform.SetPosition(glm::vec2(0.0f, 25.0f));
     iconTransform.SetScale(glm::vec2(0.5f, 0.5f));
 }
+
+glm::ivec2 LabyrinthManager::GetRandomRoomSpawnPosition(const RoomData& roomData)
+{
+    // Ensure the room has a valid size
+    if (roomData.m_bounds.m_size.x <= 0 || roomData.m_bounds.m_size.y <= 0)
+    {
+        wolf::Warning("GetRandomSpawnPosition called on an invalid room size.");
+        return glm::ivec2(-1, -1);
+    }
+
+    // Generate a random position within the room's bounds
+    int x = m_rng.NextInt(roomData.m_bounds.m_origin.x, roomData.m_bounds.m_origin.x + roomData.m_bounds.m_size.x - 1);
+    int y = m_rng.NextInt(roomData.m_bounds.m_origin.y, roomData.m_bounds.m_origin.y + roomData.m_bounds.m_size.y - 1);
+
+    return glm::ivec2(x, y);
+}
