@@ -103,6 +103,10 @@ public:
     // Gets the chunk ID for the chunk containing a given world space position
     glm::ivec2 GetChunkID(const glm::vec2& worldPosition) const;
 
+    // Returns a bool indicating if the given chunk is active or not
+    // NOTE: Returns false if no chunk exists with the given ID
+    bool IsChunkActive(const glm::ivec2& chunkID) const;
+
     // Gets a pointer to the chunk object with the given ID
     // NOTE: Returns nullptr if no chunk exists with the given ID
     wolf::GameObject* GetChunk(const glm::ivec2& chunkID) const;
@@ -139,6 +143,9 @@ public:
 
     // Gets the current seed used to generate the labyrinth
     inline int GetSeed() const { return m_rng.GetSeed(); };
+
+    //return a random valid spawn position within the room’s bounds
+    glm::ivec2 GetRandomRoomSpawnPosition(const RoomData& roomData);
 
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
@@ -252,6 +259,10 @@ private:
             RareChest,
             EpicChest,
             LegendaryChest,
+            TrappedChestExplode,
+            TrappedChestGorgon,
+            TrappedChestHarpy,
+            TrappedChestMinitaur,
             DaedalusDispensary, // !-- Aurora added this --!
             ThrowableObject,
             SpikeTrap,
@@ -259,7 +270,7 @@ private:
             AriadneNPC,
             RandomNPC,
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC"};
 
         enum class SpawnPosType
         {
