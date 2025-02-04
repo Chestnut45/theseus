@@ -94,7 +94,7 @@ rooms: [
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 4, y: 4}},
 		entities: [
-			{type: 1, placement: center},
+			{type: daedalus_npc, amount: 1, placement: center},
 			{type: throwable_object, amount: 2, placement: random},
 		]
 	}

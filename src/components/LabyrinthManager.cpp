@@ -58,6 +58,9 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["trapped_chest_minitaur"] = Room::EntityType::TrappedChestMinitaur;
     s_entityIDs["dispensary"] = Room::EntityType::DaedalusDispensary;
     s_entityIDs["spike_trap"] = Room::EntityType::SpikeTrap;
+    s_entityIDs["ariadne_npc"] = Room::EntityType::AriadneNPC;
+    s_entityIDs["daedalus_npc"] = Room::EntityType::DaedalusNPC;
+    s_entityIDs["random_npc"] = Room::EntityType::RandomNPC;
 }
 
 LabyrinthManager::~LabyrinthManager()
@@ -728,6 +731,9 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
                 if (eType == "trapped_chest_minitaur") data.m_type = Room::EntityType::TrappedChestMinitaur;
                 if (eType == "dispensary") data.m_type = Room::EntityType::DaedalusDispensary;
                 if (eType == "throwable_object") data.m_type = Room::EntityType::ThrowableObject;
+                if (eType == "ariadne_npc") data.m_type = Room::EntityType::AriadneNPC;
+                if (eType == "daedalus_npc") data.m_type = Room::EntityType::DaedalusNPC;
+                if (eType == "random_npc") data.m_type = Room::EntityType::RandomNPC;
                 
                 data.m_amount = entity["amount"] ? entity["amount"].as<int>() : data.m_amount;
 
@@ -902,6 +908,15 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
                     break;
                 case Room::EntityType::ThrowableObject:
                     file << "throwable_object, amount: ";
+                    break;
+                case Room::EntityType::AriadneNPC:
+                    file << "ariadne_npc, amount: ";
+                    break;
+                case Room::EntityType::DaedalusNPC:
+                    file << "daedalus_npc, amount: ";
+                    break;
+                case Room::EntityType::RandomNPC:
+                    file << "random_npc, amount: ";
                     break;
             }
             file << std::to_string(data.m_amount).c_str();
