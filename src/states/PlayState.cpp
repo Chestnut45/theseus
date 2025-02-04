@@ -1048,137 +1048,121 @@ void PlayState::RenderMap() {
     // Handle zooming when the map is expanded
     if (m_isMapExpanded) {
         float scrollDelta = ImGui::GetIO().MouseWheel;
-        zoomScale += scrollDelta * 0.1f;
-        zoomScale = glm::clamp(zoomScale, 0.5f, 2.0f);
+        zoomScale = glm::clamp(zoomScale + scrollDelta * 0.1f, 0.5f, 2.0f);
     }
 
     // Define map dimensions and scaling
     const float mapSize = m_isMapExpanded ? 600.0f : 200.0f; // Larger map when expanded
-    const float labyrinthScale = (m_isMapExpanded ? zoomScale : 0.2f);
+    const float labyrinthScale = m_isMapExpanded ? zoomScale : 0.2f;
 
     // Set map position to the top-right corner
-    ImVec2 mapPosition = ImVec2(ImGui::GetIO().DisplaySize.x - mapSize - 20.0f, 20.0f);
+    const ImVec2 mapPosition(ImGui::GetIO().DisplaySize.x - mapSize - 20.0f, 20.0f);
 
-    // Get player transform component
+    // Get player transform component and compute adjusted position
     const auto* playerTransform = m_pPlayerObject->GetComponent<wolf::Transform2D>();
     assert(playerTransform != nullptr && "Player Transform2D component is missing!");
+    const glm::vec2 playerPosition = playerTransform->GetGlobalPosition() + glm::vec2(-48.0f, -60.0f);
 
-    glm::vec2 playerPosition = playerTransform->GetGlobalPosition() + glm::vec2(-48.0f, -60.0f);
+    // Precompute constants for rendering
+    const float tileWorldSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    const float halfTileSizeScaled = (tileWorldSize * labyrinthScale) * 0.5f;
+    const float mapCenterX = mapPosition.x + mapSize / 2.0f;
+    const float mapCenterY = mapPosition.y + mapSize / 2.0f;
+    const glm::ivec2 playerChunk = glm::ivec2(playerPosition / (tileWorldSize * LabyrinthManager::CHUNK_SIZE));
 
-    // Begin ImGui rendering
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10)); // Add padding for better visuals
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);         // Add border thickness
-    ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 255, 255, 255)); // White border
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 255));     // Solid black background
+    // Start ImGui rendering
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 255, 255, 255));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 255));
     ImGui::SetNextWindowSize(ImVec2(mapSize, mapSize));
-    ImGui::SetNextWindowPos(mapPosition); // Position in top-right corner
+    ImGui::SetNextWindowPos(mapPosition);
     ImGui::Begin("ChunkMap###AlwaysVisible", nullptr,
                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-    // Adjust for tile alignment and scale
-    const float tileWorldSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
-    const int chunkSize = LabyrinthManager::CHUNK_SIZE;
-    glm::ivec2 playerChunk = glm::ivec2(playerPosition / (chunkSize * tileWorldSize));
+    // Helper lambda for rendering tiles
+    auto renderTile = [&](const glm::vec2& worldPos, ImU32 color) {
+        glm::vec2 relativePos = (worldPos - playerPosition) * labyrinthScale;
+        relativePos.y = -relativePos.y; // Invert Y-axis for rendering
+        const ImVec2 min(mapCenterX + relativePos.x - halfTileSizeScaled, 
+                         mapCenterY + relativePos.y - halfTileSizeScaled);
+        const ImVec2 max(mapCenterX + relativePos.x + halfTileSizeScaled, 
+                         mapCenterY + relativePos.y + halfTileSizeScaled);
+        drawList->AddRectFilled(min, max, color);
+        drawList->AddRect(min, max, IM_COL32(100, 100, 100, 255), 0.0f, 0, 1.0f);
+    };
 
-    // Render chunks within the radius
+    // Render chunks and tiles
     const int chunkRenderRadius = 1; // Render surrounding chunks within 1 chunk radius
     for (int cx = -chunkRenderRadius; cx <= chunkRenderRadius; ++cx) {
         for (int cy = -chunkRenderRadius; cy <= chunkRenderRadius; ++cy) {
             glm::ivec2 chunkID = playerChunk + glm::ivec2(cx, cy);
-            auto* chunk = m_pLabyrinthManager->GetChunk(chunkID);
-            if (!chunk) continue;
-
-            for (int tx = 0; tx < chunkSize; ++tx) {
-                for (int ty = 0; ty < chunkSize; ++ty) {
-                    glm::ivec2 tilePos = chunkID * chunkSize + glm::ivec2(tx, ty);
-                    int tileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
-                    if (tileID == Tile::Empty || tileID < 0) continue;
-
-                    glm::vec2 tileWorldPos = glm::vec2(tilePos) * tileWorldSize;
-                    glm::vec2 relativePos = (tileWorldPos - playerPosition) * labyrinthScale;
-                    relativePos.y = -relativePos.y; // Invert Y-axis
-
-                    ImVec2 tileScreenPosMin = ImVec2(mapPosition.x + mapSize / 2.0f + relativePos.x - tileWorldSize * labyrinthScale * 0.5f,
-                                                     mapPosition.y + mapSize / 2.0f + relativePos.y - tileWorldSize * labyrinthScale * 0.5f);
-                    ImVec2 tileScreenPosMax = ImVec2(mapPosition.x + mapSize / 2.0f + relativePos.x + tileWorldSize * labyrinthScale * 0.5f,
-                                                     mapPosition.y + mapSize / 2.0f + relativePos.y + tileWorldSize * labyrinthScale * 0.5f);
-
-                    // Render the tile
-                    ImU32 tileColor = GetTileColor(tileID);
-                    drawList->AddRectFilled(tileScreenPosMin, tileScreenPosMax, tileColor);
-
-                    // Add outline for wall and floor tiles
-                    drawList->AddRect(tileScreenPosMin, tileScreenPosMax, IM_COL32(100, 100, 100, 255), 0.0f, 0, 1.0f);
+            if (auto* chunk = m_pLabyrinthManager->GetChunk(chunkID)) {
+                for (int tx = 0; tx < LabyrinthManager::CHUNK_SIZE; ++tx) {
+                    for (int ty = 0; ty < LabyrinthManager::CHUNK_SIZE; ++ty) {
+                        glm::ivec2 tilePos = chunkID * LabyrinthManager::CHUNK_SIZE + glm::ivec2(tx, ty);
+                        int tileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+                        if (tileID > 0 && tileID != Tile::Empty) {
+                            renderTile(glm::vec2(tilePos) * tileWorldSize, GetTileColor(tileID));
+                        }
+                    }
                 }
             }
         }
     }
 
-    // Draw player position as a distinct marker
-    ImVec2 playerMarker = ImVec2(mapPosition.x + mapSize / 2.0f, mapPosition.y + mapSize / 2.0f);
-    drawList->AddCircleFilled(playerMarker, 5.0f, IM_COL32(0, 255, 0, 255)); // Green center
-    drawList->AddCircle(playerMarker, 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f); // White outline
+    // Render player position
+    drawList->AddCircleFilled(ImVec2(mapCenterX, mapCenterY), 5.0f, IM_COL32(0, 255, 0, 255));
+    drawList->AddCircle(ImVec2(mapCenterX, mapCenterY), 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f);
 
-    // Render all entities by iterating through their components
+    // Helper lambda for rendering entities
     auto renderEntity = [&](const glm::vec2& entityPos, ImU32 color) {
-        glm::vec2 relativePos = (entityPos - playerPosition) * labyrinthScale;
+        glm::vec2 relativePos = ((entityPos + glm::vec2(-48.0f, -60.0f)) - playerPosition) * labyrinthScale;
         relativePos.y = -relativePos.y; // Invert Y-axis
-
-        ImVec2 entityMarker = ImVec2(mapPosition.x + mapSize / 2.0f + relativePos.x,
-                                     mapPosition.y + mapSize / 2.0f + relativePos.y);
-
-        // Add outline for better visibility
-        drawList->AddCircle(entityMarker, 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f); // White outline
-        drawList->AddCircleFilled(entityMarker, 5.0f, color);                           // Entity marker
+        const ImVec2 entityMarker(mapCenterX + relativePos.x, mapCenterY + relativePos.y);
+        drawList->AddCircle(entityMarker, 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f); // Outline
+        drawList->AddCircleFilled(entityMarker, 5.0f, color);                           // Marker
     };
-    
-    // Render Minotaurs
+
+    // Render entities by type
     for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>()) {
         auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 0, 0, 255)); // Red
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 0, 0, 255));
     }
-
-    // Render Harpies
     for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<HarpyController>()) {
         auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 255, 0, 255)); // Yellow
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 255, 0, 255));
     }
-
-    // Render Gorgons
     for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>()) {
         auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(128, 0, 128, 255)); // Purple
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(128, 0, 128, 255));
     }
-
-    // Render NPCs
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>()) {
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 0, 255, 255)); // Blue
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 0, 255, 255));
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<DroppedItemComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 255, 255, 255));
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<ChestInventoryComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<TrappedChestComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
     }
 
-    // Render Chests
-    for (auto&& [_, chest] : m_pGameInstance->GetScene().Each<ChestInventoryComponent>()) {
-        auto* transform = chest.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
-    }
-    // Render Chests
-    for (auto&& [_, chest] : m_pGameInstance->GetScene().Each<TrappedChestComponent>()) {
-        auto* transform = chest.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
-    }
-    // Render Dropped Items
-    for (auto&& [_, item] : m_pGameInstance->GetScene().Each<DroppedItemComponent>()) {
-        auto* transform = item.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 255, 255, 255)); // Cyan
-    }
 
     ImGui::End();
-    ImGui::PopStyleVar(2); // Reset padding and border
-    ImGui::PopStyleColor(2); // Reset border and background color
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(2);
 }
+
 
 
 
