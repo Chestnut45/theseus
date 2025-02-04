@@ -49,12 +49,12 @@ void Theseus::Update(float delta)
     if (m_showDebug) ShowDebug();
 }
 
-void Theseus::Render()
+void Theseus::Render(float delta)
 {
     // Clear the framebuffer
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Render the current game state
-    m_pStateManager->Render();
+    m_pStateManager->Render(delta);
 }
