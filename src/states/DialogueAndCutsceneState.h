@@ -61,12 +61,15 @@ private:
     };
 
     struct DialogueAndCutsceneItem {
-        std::string sequenceID; // Identifier for the sequence
-        std::string type; // "dialogue" or "cutscene"
+        std::string sequenceID = ""; // Identifier for the sequence
+        std::string type = ""; // "dialogue", "cutscene", "combined", or "fade"
         DialogueLine dialogue; // For dialogue items
         std::vector<CameraKeyframe> cutscene; // For cutscene items
         std::vector<CharacterData> characters; // Associated characters
+        std::string fadeType = ""; // "to" or "from" for fade
+        float fadeDuration = 0.0f; // Duration of the fade
     };
+
 
     // Sequence management
     std::unordered_map<std::string, std::vector<DialogueAndCutsceneItem>> m_sequences; // Map of all sequences by ID
@@ -97,4 +100,11 @@ private:
 
     float m_lmbCooldown = 0.0f; // Cooldown timer for LMB input
     const float LMB_DELAY = 0.75f; // Delay duration in seconds
+
+    // Fade state variables
+    float m_fadeAlpha = 0.0f;         // Opacity of the fade (0.0f = transparent, 1.0f = opaque)
+    float m_fadeTimer = 0.0f;         // Timer for fade progression
+    float m_fadeDuration = 0.0f;      // Duration of the fade
+    bool m_fadingIn = false;          // Indicates whether the current fade is a fade-in or fade-out
+
 };

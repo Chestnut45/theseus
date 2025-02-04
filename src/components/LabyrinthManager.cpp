@@ -2448,6 +2448,7 @@ void LabyrinthManager::GenerateEntrance()
     // Add the collider
     auto& dispensaryCollider = dispensary.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
     dispensaryCollider.AddColliderBox(glm::vec2(22.0f, 29.0f), glm::vec2(-11.0f, 16.0f));
+    TheIdOfTheDispensaryObject = dispensary.GetID();
 
     // Create the icon
     auto& icon = pObject->GetScene().CreateObject2D();
