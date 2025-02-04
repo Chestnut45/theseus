@@ -1055,8 +1055,11 @@ void PlayState::RenderMap() {
     const float mapSize = m_isMapExpanded ? 600.0f : 200.0f; // Larger map when expanded
     const float labyrinthScale = m_isMapExpanded ? zoomScale : 0.2f;
 
-    // Set map position to the top-right corner
-    const ImVec2 mapPosition(ImGui::GetIO().DisplaySize.x - mapSize - 20.0f, 20.0f);
+    // Determine map position (top-right when small, center when expanded)
+    const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    const ImVec2 mapPosition = m_isMapExpanded 
+        ? ImVec2((displaySize.x - mapSize) * 0.5f, (displaySize.y - mapSize) * 0.5f) // Centered
+        : ImVec2(displaySize.x - mapSize - 20.0f, 20.0f); // Top-right corner
 
     // Get player transform component and compute adjusted position
     const auto* playerTransform = m_pPlayerObject->GetComponent<wolf::Transform2D>();
