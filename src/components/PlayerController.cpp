@@ -1106,7 +1106,7 @@ std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirecti
     return os;
 }
 
-void PlayerController::Render()
+void PlayerController::Render(float delta)
 {
     if (!m_pTransform) return;
     if (m_action == PlayerAction::DEAD) {
@@ -1134,13 +1134,26 @@ void PlayerController::Render()
     auto* healthComponent = GetGameObject()->GetComponent<HealthComponent>();
     if (healthComponent)
     {
+        float colorCoefficient = m_invulnTimer.IsRunning() ? 1.0f - m_invulnTimer.Elapsed() : 0.0f;
+
+        // Render previous health fraction underneath to indicate damage taken
+        m_prevHealthFraction += (healthComponent->GetHealth() / healthComponent->GetMaxHealth() - m_prevHealthFraction) * delta * 4.0f;
+
         ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for health bar
         ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
         ImGui::Begin("##HealthBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1.0f, 0.0f, 0.0f, 1.0f)); // Deep red health color
-        ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1, barHeight));
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1.0f, colorCoefficient, colorCoefficient, 1.0f)); // Deep red health color
+        ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1, barHeight), "");
         ImGui::PopStyleColor(); // Pop color for health bar
         ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for health bar
+        ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
+        ImGui::Begin("##HealthBar2", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1.0f, colorCoefficient, colorCoefficient, 1.0f));
+        ImGui::ProgressBar(m_prevHealthFraction, ImVec2(-1.0f, barHeight));
+        ImGui::PopStyleColor(); // Pop color for health bar
+        ImGui::End();  
     }
 
     // Load the health bar frame image once

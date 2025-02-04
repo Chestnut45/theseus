@@ -52,16 +52,16 @@ void GameStateManager::Update(float delta)
     if (!m_stateStack.empty()) m_stateStack.back()->Update(delta);
 }
 
-void GameStateManager::Render()
+void GameStateManager::Render(float delta)
 {
     // Background render all the lower states in the stack
     for (int i = 0; i < m_stateStack.size() - 1; ++i)
     {
-        m_stateStack[i]->BackgroundRender();
+        m_stateStack[i]->BackgroundRender(delta);
     }
 
     // Render the main active state at the top of the stack
-    if (!m_stateStack.empty()) m_stateStack.back()->Render();
+    if (!m_stateStack.empty()) m_stateStack.back()->Render(delta);
 }
 
 void GameStateManager::Clear()

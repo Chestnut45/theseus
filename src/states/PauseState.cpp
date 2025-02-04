@@ -90,7 +90,7 @@ void PauseState::Update(float delta)
     if (resume) m_pStateManager->PopState();
 }
 
-void PauseState::Render()
+void PauseState::Render(float delta)
 {
     // Pause state render logic
 }
@@ -100,7 +100,7 @@ void PauseState::BackgroundUpdate(float delta)
     // Update logic for when state is inactive
 }
 
-void PauseState::BackgroundRender()
+void PauseState::BackgroundRender(float delta)
 {
     // Render logic for when state is inactive
 }
