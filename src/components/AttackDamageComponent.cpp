@@ -11,6 +11,7 @@
 #include "GorgonController.h"
 #include "HarpyController.h"
 #include "MinitaurController.h"
+#include "NPCComponent.h"
 
 AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects)
 {
@@ -110,25 +111,35 @@ void AttackDamageComponent::Update(float p_dt)
                     thisObject->DeleteComponent<TimedDestroyerComponent>();
                     thisObject->AddComponent<TimedDestroyerComponent>(0, true);
 
-                    // Stun target
-                    if(thatObject->HasAny<GorgonController, HarpyController, MinitaurController>())
+                    // Stun target if it has any of the following controllers
+                    if(thatObject->HasAny<GorgonController, HarpyController, MinitaurController, NPCComponent>())
                     {
+                        // Stun gorgon
                         GorgonController* gorgonController = thatObject->GetComponent<GorgonController>();
                         if(gorgonController != nullptr)
                         {
                             gorgonController->ChangeState(EnemyController::EnemyState::STUNNED);
                         }
 
+                        // Stun Harpy
+                        HarpyController* harpyController = thatObject->GetComponent<HarpyController>();
+                        if(harpyController != nullptr)
+                        {
+                            harpyController->ChangeState(EnemyController::EnemyState::STUNNED);
+                        }
+
+                        // Stun Minitaur
                         MinitaurController* minitaurController = thatObject->GetComponent<MinitaurController>();
                         if(minitaurController != nullptr)
                         {
                             minitaurController->ChangeState(EnemyController::EnemyState::STUNNED);
                         }
 
-                        HarpyController* harpyController = thatObject->GetComponent<HarpyController>();
-                        if(harpyController != nullptr)
+                        // Stun NPC
+                        NPCComponent* npcComp = thatObject->GetComponent<NPCComponent>();
+                        if(npcComp != nullptr)
                         {
-                            harpyController->ChangeState(EnemyController::EnemyState::STUNNED);
+                            npcComp->StunNPC();
                         }
                     }
                 }

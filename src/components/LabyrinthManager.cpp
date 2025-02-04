@@ -38,6 +38,7 @@
 #include <HarpyController.h>
 #include <MinitaurController.h>
 #include <GorgonController.h>
+#include <NPCComponent.h>
 
 std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
 
@@ -186,6 +187,10 @@ void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
         auto* pController = pObject->GetComponent<HarpyController>();
         if (pController) pController->SetActive(true);
 
+        // Activate NPC components
+        auto* pNPCComp = pObject->GetComponent<NPCComponent>();
+        if(pNPCComp) pNPCComp->SetActive(true);
+
         // Activate velocities
         auto* pVelocity = pObject->GetComponent<VelocityComponent>();
         if (pVelocity) pVelocity->SetActive(true);
@@ -225,6 +230,10 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
         // Deactivate enemy controllers
         auto* pController = pObject->GetComponent<HarpyController>();
         if (pController) pController->SetActive(false);
+
+        // Deactivate NPC components
+        auto* pNPCComp = pObject->GetComponent<NPCComponent>();
+        if(pNPCComp) pNPCComp->SetActive(false);
 
         // Deactivate velocities
         auto* pVelocity = pObject->GetComponent<VelocityComponent>();
@@ -957,6 +966,17 @@ wolf::GameObject* LabyrinthManager::GetChunk(const glm::ivec2& chunkID) const
     const auto it = m_chunkMap.find(chunkID);
     if (it == m_chunkMap.end()) return nullptr;
     return it->second.m_pObject;
+}
+
+bool LabyrinthManager::IsChunkActive(const glm::ivec2& chunkID) const
+{
+    // Returns false if chunk cannot be found
+    const auto& it = m_chunkMap.find(chunkID);
+    if (it == m_chunkMap.end()) return false;
+
+    // Returns chunk active bool
+    auto& chunk = it->second;
+    return chunk.active;
 }
 
 void LabyrinthManager::DeleteChunk(const glm::ivec2& chunkID)
