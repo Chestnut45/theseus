@@ -509,10 +509,11 @@ void DialogueAndCutsceneState::RenderSequence() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 15.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(30, 25));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10, 15));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
 
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.4f, 0.5f, 0.7f, fadeOpacity));
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.95f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, fadeOpacity));
 
         ImGui::Begin("EnhancedDialogue", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
 
@@ -522,12 +523,12 @@ void DialogueAndCutsceneState::RenderSequence() {
             ImGui::SameLine();
         }
 
-        ImGui::TextColored(ImVec4(0.8f, 0.85f, 1.0f, 1.0f), "%s:", characterName.c_str());
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%s:", characterName.c_str());
 
         // Accent line above text
         ImVec2 start = addImVec2(ImGui::GetCursorScreenPos(), ImVec2(0, -10));
         ImVec2 end = addImVec2(ImGui::GetCursorScreenPos(), ImVec2(windowSize.x * 0.25f, -10));
-        drawList->AddLine(start, end, ImColor(0.5f, 0.7f, 1.0f, 0.6f), 2.0f);
+        drawList->AddLine(start, end, ImColor(0.5f, 0.5f, 0.5f, 0.6f), 2.0f);
 
         // Display dialogue text
         static float lineFade = 0.0f;
@@ -554,23 +555,32 @@ void DialogueAndCutsceneState::RenderSequence() {
         ImGui::SetCursorPosX((ImGui::GetWindowWidth() - totalButtonWidth) / 2);  // Center buttons
 
         // Button styling for a polished look
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.4f, 0.45f, fadeOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.3f, 0.35f, fadeOpacity));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, fadeOpacity));
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, fadeOpacity));
 
         // Autoplay button
         if (ImGui::Button(m_autoplay ? "Autoplay: ON" : "Autoplay: OFF", buttonSize)) {
             m_autoplay = !m_autoplay;
         }
 
-        ImGui::PopStyleColor(3);
+        ImGui::PopStyleColor(4);
+        ImGui::PopStyleVar(2);
         ImGui::SameLine();
 
         // Continue button (if not the last line or line is not finished)
         if (showContinueButton) {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.45f, 0.5f, fadeOpacity));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f, 0.55f, 0.6f, fadeOpacity));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, fadeOpacity));
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, fadeOpacity));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, fadeOpacity));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, fadeOpacity));
 
             if (ImGui::Button("Continue", buttonSize)) {
                 m_showFullText = true;
@@ -581,23 +591,29 @@ void DialogueAndCutsceneState::RenderSequence() {
                 }
             }
 
-            ImGui::PopStyleColor(3);
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(4);
             ImGui::SameLine();
         }
 
         // Exit button (always visible)
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.4f, 0.45f, fadeOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.3f, 0.35f, fadeOpacity));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, fadeOpacity));
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, fadeOpacity));
 
         if (ImGui::Button("Exit", buttonSize)) {
             OnExitButtonPressed();
         }
 
-        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar(2);
+        ImGui::PopStyleColor(4);
 
         ImGui::End();
-        ImGui::PopStyleVar(3);
+        ImGui::PopStyleVar(4);
         ImGui::PopStyleColor(3);
     }
 }
