@@ -54,6 +54,7 @@ void PlayState::Enter()
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     m_pLabyrinthManager->GenerateLabyrinth();
 
     GLShapesRenderer::CreateInstance();
@@ -97,7 +98,7 @@ void PlayState::Enter()
     
 
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
-    NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+    
 
     // CreateThrowableObject();
     
