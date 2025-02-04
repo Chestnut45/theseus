@@ -98,7 +98,8 @@ private:
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);
 
-    void RenderMinimap();
+    void RenderMap();
+    bool IsWallTile(int tileID);
 
     std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
 
