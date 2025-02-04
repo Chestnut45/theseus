@@ -2,6 +2,7 @@
 #include <vector>
 #include <map>
 #include <GLShapesRenderer.h>
+#include <ColliderManager.h>
 
 int LightComponent::m_iNextIDNum = 0;
 
@@ -13,10 +14,7 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
 }
 
 LightComponent::~LightComponent() {
-    // Delete the radius rectangle
-    delete(m_pRadiusRectangle);
-
-    // And clear out the colliding points map
+    // Clear out the colliding points map
     m_iv2CollidingPoints.clear();
 }
 
@@ -29,24 +27,21 @@ void LightComponent::Init() {
     m_pScene = &this->GetGameObject()->GetScene();
 
     // Add the light collider
-    m_pCollider = &this->GetGameObject()->AddComponent<ColliderComponent>();
-    m_pCollider->SetColliderType(ColliderComponent::NONE);
-    m_pCollider->AddColliderBox(m_v2Radius, glm::vec2(m_v2Origin.x - m_v2Radius.x / 2.0f, m_v2Origin.y + m_v2Radius.y / 2.0f));
+    m_pCollider = &this->GetGameObject()->AddComponent<ColliderComponent>(ColliderComponent::NONE, false, true);
+    m_pCollider->AddColliderBox(m_v2Radius, glm::vec2(-m_v2Radius.x / 2.0f, m_v2Radius.y / 2.0f));
+    m_pCollider->SetActive(false);
 
-    // Set up the radius rectangle
-    m_pRadiusRectangle = new wolf::Rectangle(m_v2Origin.x - m_v2Radius.x / 2.0f, m_v2Origin.y + m_v2Radius.y / 2.0f,
-                                                m_v2Origin.x + m_v2Radius.x / 2.0f, m_v2Origin.y - m_v2Radius.y / 2.0f);
+    for (wolf::Rectangle box : m_pCollider->GetColliderBoxes()) {
+        GLShapesRenderer::GetInstance()->AddLine({box.m_left, box.m_top}, {box.m_right, box.m_top});
+        GLShapesRenderer::GetInstance()->AddLine({box.m_right, box.m_top}, {box.m_right, box.m_bottom});
+        GLShapesRenderer::GetInstance()->AddLine({box.m_left, box.m_bottom}, {box.m_right, box.m_bottom});
+        GLShapesRenderer::GetInstance()->AddLine({box.m_left, box.m_top}, {box.m_left, box.m_bottom});
+    }
 }
 
 void LightComponent::Update(float p_fDelta) {
     // Update the origin point of the light's radius
     m_v2Origin = m_pTransform->GetGlobalPosition();
-
-    // FOR DEBUGGING: Show the area of effect lines
-    GLShapesRenderer::GetInstance()->AddLine({m_pRadiusRectangle->m_left, m_pRadiusRectangle->m_top}, {m_pRadiusRectangle->m_right, m_pRadiusRectangle->m_top});
-    GLShapesRenderer::GetInstance()->AddLine({m_pRadiusRectangle->m_left, m_pRadiusRectangle->m_top}, {m_pRadiusRectangle->m_left, m_pRadiusRectangle->m_bottom});
-    GLShapesRenderer::GetInstance()->AddLine({m_pRadiusRectangle->m_right, m_pRadiusRectangle->m_top}, {m_pRadiusRectangle->m_right, m_pRadiusRectangle->m_bottom});
-    GLShapesRenderer::GetInstance()->AddLine({m_pRadiusRectangle->m_left, m_pRadiusRectangle->m_bottom}, {m_pRadiusRectangle->m_right, m_pRadiusRectangle->m_bottom});
 
     // Empty out the map of last frame's ray end points
     m_iv2CollidingPoints.clear();
@@ -56,17 +51,14 @@ void LightComponent::Update(float p_fDelta) {
 
     // Find the colliders that are inside the area of effect by iterating through the colliders in the scene
     for (auto&& [_, collider] : m_pScene->Each<ColliderComponent>()) {
-        // If the collider is active
-        if (collider.IsActive()) {
+        // If the collider is active and in this area of effect
+        if (collider.IsActive() && collider.GetGameObject()->GetID() != this->GetGameObject()->GetID() && ColliderManager::StaticMethodIsColliding(*m_pCollider, collider, p_fDelta)) {
             // Get all of it's collider boxes
             std::vector<wolf::Rectangle> vColliderBoxes = collider.GetColliderBoxes();
             
-            // Iterate through and figure out which ones are in the area of effect
+            // Iterate through and add them all to the vector
             for (wolf::Rectangle rect : vColliderBoxes) {
-                if (m_pRadiusRectangle->Intersects(rect)) {
-                    printf("A rectangle is colliding with the light!\n");
-                    m_vpCollidersInAOE.push_back(rect);
-                }
+                m_vpCollidersInAOE.push_back(rect);
             }
         }
     }
@@ -98,7 +90,7 @@ void LightComponent::Update(float p_fDelta) {
         v2RightOffsetSLEnd.y = (glm::cos(glm::radians((-i * 1.0f) + 0.00001f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y) + glm::sin(glm::radians((-i * 1.0f) + 0.00001f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x)) + m_v2Origin.y;
 
         // FOR DEBUGGING: Draw the sweep lines
-        GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2CurSweepLineEnd.x, v2CurSweepLineEnd.y});
+        //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2CurSweepLineEnd.x, v2CurSweepLineEnd.y});
 
         // Go through all of the colliders in the AOE
         for (wolf::Rectangle rect : m_vpCollidersInAOE) {

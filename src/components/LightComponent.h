@@ -37,21 +37,9 @@ class LightComponent : public wolf::BaseComponent {
         inline void SetColor(const glm::vec4& p_v4Color) {m_v4Color = p_v4Color;};
 
         inline glm::vec2 GetRadius() const {return m_v2Radius;};
-        inline void SetRadius(const glm::vec2& p_v2Radius) {
-            m_v2Radius = p_v2Radius;
-
-            // If the radius has changed then so have the corner points
-            m_pRadiusRectangle->m_left = m_v2Origin.x - m_v2Radius.x / 2.0f;
-            m_pRadiusRectangle->m_top = m_v2Origin.y + m_v2Radius.y / 2.0f;
-            m_pRadiusRectangle->m_right = m_v2Origin.x + m_v2Radius.x / 2.0f;
-            m_pRadiusRectangle->m_bottom = m_v2Origin.y - m_v2Radius.y / 2.0f;
-        };
 
         inline bool CanMove() const {return m_bCanMove;};
         inline void SetCanMove(bool p_bCanMove) {m_bCanMove = p_bCanMove;};
-
-        // Corner points are adjusted based on the radius so they don't need a setter
-        inline wolf::Rectangle& GetRadiusRectangle() const {return *m_pRadiusRectangle;};
 
         bool SweepLinePointCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2Point);
         std::pair<bool, glm::vec2> SweepLineRectCollisionTest(const glm::vec2& p_v2LineEnd, const wolf::Rectangle& p_pRect);
@@ -75,7 +63,6 @@ class LightComponent : public wolf::BaseComponent {
         
         // This light's transform and the four corners at the edges of its radius
         wolf::Transform2D* m_pTransform = nullptr;
-        wolf::Rectangle* m_pRadiusRectangle = nullptr;
         ColliderComponent* m_pCollider = nullptr;
 
         // Map to hold all of the points this light's rays are colliding with
