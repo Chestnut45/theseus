@@ -51,6 +51,7 @@ public:
         SEARCHING,
         FIRE_BREATH_ATTACK,
         CHARGE_ATTACK,
+        IDLE,
         PULL,
         STUNNED,
 
@@ -156,11 +157,16 @@ private:
 
     float m_pullTime;               // Pull state members
     float m_pullTimer;
+    float m_pullForce;
 
-    float m_stunTime;               // Stun state members
+    float m_stunTimer;              // Stun state members
 
     float m_searchSpeed;            // Search state members
     float m_searchTimer;
+
+    float m_idleTimer;              // Idle state members
+
+    float m_autoAttackRange;
 
     // Updates the animated sprite based on state,
     // regardless of what phase of the fight we're in
@@ -197,6 +203,10 @@ private:
     void Search(float delta);
     void EndSearch();
     void MoveTowardsPlayer(float delta);
+
+    void StartIdle();
+    void Idle(float delta);
+    void EndIdle();
 
     void StartStunned();
     void Stunned(float delta);

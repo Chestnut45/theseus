@@ -80,7 +80,7 @@ void BossController::Init()
     m_chargeWindupTint = glm::vec3(4.0f, 4.0f, 4.0f);
     m_chargeAttackDamage = 60;
     m_chargeAttackRange = 2000;
-    m_stunTime = 1; // Seconds
+    m_stunTimer = 0.5f; // Seconds
     m_chargeTurningCapDegree = 9.0f; // Degrees
     m_chargeTurningDelay = 0.2f; // Seconds
     m_chargeSpeed = 480.0f;
@@ -89,10 +89,13 @@ void BossController::Init()
 
     m_pullTime = 1.5f;               // Pull state members
     m_pullTimer = 0.0f;
+    m_pullForce = 300.0f;
 
     m_searchSpeed = 250.0f;
     m_searchTimer = 2.0f; // Seconds
 
+    m_idleTimer = 2.0f;
+    m_autoAttackRange = 200.0f;
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
 
@@ -900,7 +903,7 @@ void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)
 void BossController::EnterPhase3()
 {   
     m_phase = FightPhase::PHASE_3;
-    ChangeStatesPhase3(State::SEARCHING);
+    ChangeStatesPhase3(State::IDLE);
     m_pVelocity->SetKnockbackEnabled(false);
 
 }
@@ -933,6 +936,12 @@ void BossController::UpdatePhase3(float delta)
         case State::FIRE_BREATH_ATTACK:
         {
             AttackFireBreath(delta);
+            break;
+        }
+
+        case State::IDLE:
+        {
+            Idle(delta);
             break;
         }
 
@@ -1005,6 +1014,11 @@ void BossController::ChangeStatesPhase3(State p_state)
         {
             break;
         }
+        case State::IDLE:
+        {
+            EndIdle();
+            break;
+        }
         case State::SEARCHING:
         {
             EndSearch();
@@ -1025,6 +1039,11 @@ void BossController::ChangeStatesPhase3(State p_state)
         case State::FIRE_BREATH_ATTACK:
         {
             StartFireBreathAttack();
+            break;
+        }
+        case State::IDLE:
+        {
+            StartIdle();
             break;
         }
         case State::PULL:
@@ -1053,7 +1072,7 @@ void BossController::ChangeStatesPhase3(State p_state)
 void BossController::StartSearch()
 {
     wolf::RNG rng;
-    m_searchTimer = rng.NextFloat(3.0f, 4.0f);
+    m_searchTimer = rng.NextFloat(2.5f, 3.5f);
 }
 
 void BossController::Search(float delta)
@@ -1063,12 +1082,13 @@ void BossController::Search(float delta)
     {
         // Decide next attack
         int rngAtk = m_rng.NextInt(1, 10);
-        // Fire breath
+        // Pull
         if(rngAtk <= 5)
         {
             ChangeStatesPhase3(State::PULL);
             return;
         }
+        // Charge
         else
         {
             ChangeStatesPhase3(State::CHARGE_ATTACK);
@@ -1083,7 +1103,8 @@ void BossController::Search(float delta)
         glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
         float playerDistance = glm::distance(thisPos, playerPos);
 
-        if(playerDistance < 200.0f)
+        // If player close enough
+        if(playerDistance <= m_autoAttackRange)
         {
             // Decide next attack
             int rngAtk = m_rng.NextInt(1, 10);
@@ -1117,30 +1138,91 @@ void BossController::EndSearch()
 
 }
 
+void BossController::StartIdle()
+{
+    m_idleTimer = m_rng.NextFloat(1.0f, 2.0f);
+}
+
+void BossController::Idle(float delta)
+{
+    if(m_idleTimer <= 0.0f)
+    {
+        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+        float playerDistance = glm::length(thisPos - playerPos);
+
+        // If player close enough
+        if(playerDistance <= m_autoAttackRange)
+        {
+            // Decide next attack
+            int rngAtk = m_rng.NextInt(1, 10);
+            // Fire breath
+            if(rngAtk <= 5)
+            {
+                ChangeStatesPhase3(State::FIRE_BREATH_ATTACK);
+                return;
+            }
+            // Charge
+            else
+            {
+                ChangeStatesPhase3(State::CHARGE_ATTACK);
+                return;
+            }
+        }
+        // If player is far away
+        else
+        {
+            // Decide next action
+            int rngAct = m_rng.NextInt(1, 10);
+            if(rngAct < 5)
+            {
+                ChangeStatesPhase3(State::SEARCHING);
+                return;
+            }
+            else
+            {
+                ChangeStatesPhase3(State::PULL);
+                return;
+            }
+        }
+    }
+    else
+    {
+        // TODO: Add sprites that turn towards player
+        m_idleTimer -= delta;
+    }
+
+}
+
+void BossController::EndIdle()
+{
+
+}
 
 void BossController::StartStunned()
 {
-    m_stunTime = 1.0f;
+    m_stunTimer = 0.5f;
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }
 
 void BossController::Stunned(float delta)
 {
-    if(m_stunTime <= 0.0f)
+    if(m_stunTimer <= 0.0f)
     {
         if(m_chargeChainCount > 0)
         {
             ChangeStatesPhase3(State::CHARGE_ATTACK);
+            return;
         }
         else
         {
-            ChangeStatesPhase3(State::SEARCHING);
+            ChangeStatesPhase3(State::IDLE);
+            return;
         }
-        return;
     }
     else
     {
-        m_stunTime -= delta;
+        m_stunTimer -= delta;
     }
 }
 
@@ -1164,7 +1246,7 @@ void BossController::AttackFireBreath(float delta)
         // If fire breath expired, change state to search
         if(m_fireBreathDuration <= 0.0f)
         {
-            ChangeStatesPhase3(State::SEARCHING);
+            ChangeStatesPhase3(State::IDLE);
             return;    
         }
 
@@ -1369,6 +1451,13 @@ void BossController::StartPull()
 
 void BossController::Pull(float delta)
 {
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+
+    // Add pull indicator
+    GLShapesRenderer::GetInstance()->AddLine({thisPos.x, thisPos.y, 1, 1, 0, 1}, {playerPos.x, playerPos.y, 1, 1, 0, 1});
+
+    // if pull timer expired
     if(m_pullTimer <= 0.0f)
     {
         // Decide next attack
@@ -1386,15 +1475,18 @@ void BossController::Pull(float delta)
             return;
         }
     }
+    // If still pulling time
     else
     {
+        // uupdate timer
         m_pullTimer -= delta;
 
+        // Pull if player is not rolling
         if(m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING)
         {
             glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
             glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(glm::normalize(glm::vec2(thisPos - playerPos)), 450.0f);
+            m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(glm::normalize(glm::vec2(thisPos - playerPos)), m_pullForce);
         }
     }
 }
