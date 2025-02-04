@@ -852,7 +852,7 @@ void PlayState::CreateThrowableObject()
 }
 
 void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {
-    std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
+    // std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
 
     // Push the DialogueAndCutsceneState onto the game state stack
     auto* dialogueAndCutsceneState = new DialogueAndCutsceneState(m_pStateManager, m_pGameInstance, event.dialogueFilePath, event.triggerNPCID);
@@ -1262,7 +1262,7 @@ wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
     // Optionally register Ariadne in the shared context for reference in cutscenes
     m_pGameInstance->GetSharedContext().RegisterEntity("Ariadne", ariadne.GetID());
 
-    wolf::Log("Ariadne created at position: (" + std::to_string(ariadnePosition.x) + ", " + std::to_string(ariadnePosition.y) + ").");
+    // wolf::Log("Ariadne created at position: (" + std::to_string(ariadnePosition.x) + ", " + std::to_string(ariadnePosition.y) + ").");
 
     return ariadne;
 }
