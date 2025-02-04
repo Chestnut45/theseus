@@ -147,12 +147,16 @@ public:
     //return a random valid spawn position within the room’s bounds
     glm::ivec2 GetRandomRoomSpawnPosition(const RoomData& roomData);
 
+    wolf::GameObjectID GetTheDispensaryObject() {
+        return TheIdOfTheDispensaryObject;
+    }
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 16'383;
     static const inline int TILE_SIZE = 32;
     static const inline int CHUNK_SIZE = 8;
     static const inline int SCALE = 3;
+    wolf::GameObjectID TheIdOfTheDispensaryObject;
 
 // Implementation
 private:

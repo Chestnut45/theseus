@@ -69,7 +69,7 @@ public:
     void Update(float delta);
 
     // Renders the scene using the currently active Camera2D
-    void Render();
+    void Render(float delta);
 
     // Helper function to iterate all components of any type(s) efficiently.
     // Returns an iterable container you can use in an auto for loop with structured binding.

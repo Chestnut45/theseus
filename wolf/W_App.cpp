@@ -164,7 +164,7 @@ void App::Run()
             m_lastUpdate = (float)(glfwGetTime() - currentTime);
 
             // Render
-            Render();
+            Render(m_elapsedTime);
             m_lastRender = (float)(glfwGetTime() - m_lastUpdate - currentTime);
         }
 
