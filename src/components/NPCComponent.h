@@ -154,6 +154,7 @@ class NPCComponent : public wolf::BaseComponent {
         std::string m_strDropTableFilePath;
 
         bool m_bIsMerchant; // Is this NPC currently a merchant? (they have a currently accessible MerchantInventoryComponent)
+        bool m_bIsMerching; // If this merchant NPC is pushing their ill-gotten wares to their unsuspecting customers
         const bool m_bCanBeMerchant;  // Can this NPC be a merchant? (they have a MerchantInventoryComponent that is -- or will be -- accessible)
 
         std::unordered_map<std::string, NPCDialogueEntry*> m_mDialogueEntries; // Map to hold all of the NPC's dialogues

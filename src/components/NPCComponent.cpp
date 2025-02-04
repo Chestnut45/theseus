@@ -19,6 +19,8 @@ NPCComponent::NPCComponent(const std::string& p_strName, const std::string& p_st
         m_bIsMerchant = false;
     }
 
+    m_bIsMerching = false;
+
     // Grab a reference to the dialogue entries map
     m_mDialogueEntries = p_mDialogueEntries;
 
@@ -284,6 +286,11 @@ void NPCComponent::HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndE
                 if (p_event.sequenceID != "goodbye") {
                     // Open the store
                     m_pMerchInvComp->Open();
+                    m_bIsMerching = true;
+                }
+                else
+                {
+                    m_bIsMerching = false;
                 }
             }
         }
@@ -385,6 +392,12 @@ void NPCComponent::EnterStunnedState()
 
 void NPCComponent::HandleIdleState(float p_fDelta)
 {
+    if(m_bIsMerching)
+    {
+        TurnTowardsPlayer();
+        return;
+    }
+
     // If the time for idling is over, change state to Rome
     if(m_fIdleTimer <= 0.0f)
     {
