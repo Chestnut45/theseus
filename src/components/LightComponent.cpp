@@ -29,41 +29,49 @@ void LightComponent::Init() {
     // Add the light collider
     m_pCollider = &this->GetGameObject()->AddComponent<ColliderComponent>(ColliderComponent::NONE, false, true);
     m_pCollider->AddColliderBox(m_v2Radius, glm::vec2(-m_v2Radius.x / 2.0f, m_v2Radius.y / 2.0f));
-    m_pCollider->SetActive(false);
-
-    for (wolf::Rectangle box : m_pCollider->GetColliderBoxes()) {
-        GLShapesRenderer::GetInstance()->AddLine({box.m_left, box.m_top}, {box.m_right, box.m_top});
-        GLShapesRenderer::GetInstance()->AddLine({box.m_right, box.m_top}, {box.m_right, box.m_bottom});
-        GLShapesRenderer::GetInstance()->AddLine({box.m_left, box.m_bottom}, {box.m_right, box.m_bottom});
-        GLShapesRenderer::GetInstance()->AddLine({box.m_left, box.m_top}, {box.m_left, box.m_bottom});
-    }
 }
 
 void LightComponent::Update(float p_fDelta) {
     // Update the origin point of the light's radius
     m_v2Origin = m_pTransform->GetGlobalPosition();
 
+    // std::vector<glm::vec2> vv2ColliderCorners = m_pCollider->GetWorldSpaceCorners();
+    // for (int k = 0; k < vv2ColliderCorners.size(); k += 4) {
+    //     glm::vec2 v2TopLeft = vv2ColliderCorners.at(k);
+    //     glm::vec2 v2TopRight = vv2ColliderCorners.at(k+1);
+    //     glm::vec2 v2BotLeft = vv2ColliderCorners.at(k+2);
+    //     glm::vec2 v2BotRight = vv2ColliderCorners.at(k+3);
+
+    //     // Draw the lines
+    //     GLShapesRenderer::GetInstance()->AddLine({v2TopLeft.x, v2TopLeft.y}, {v2TopRight.x, v2TopRight.y});
+    //     GLShapesRenderer::GetInstance()->AddLine({v2TopRight.x, v2TopRight.y}, {v2BotRight.x, v2BotRight.y});
+    //     GLShapesRenderer::GetInstance()->AddLine({v2BotLeft.x, v2BotLeft.y}, {v2BotRight.x, v2BotRight.y});
+    //     GLShapesRenderer::GetInstance()->AddLine({v2TopLeft.x, v2TopLeft.y}, {v2BotLeft.x, v2BotLeft.y});
+    // }
+
     // Empty out the map of last frame's ray end points
     m_iv2CollidingPoints.clear();
 
     // Create a vector to hold all of the colliders that are in the light's AOE
-    std::vector<wolf::Rectangle> m_vpCollidersInAOE;
+    std::vector<wolf::Rectangle> vpRectanglesInAOE;
 
     // Find the colliders that are inside the area of effect by iterating through the colliders in the scene
     for (auto&& [_, collider] : m_pScene->Each<ColliderComponent>()) {
         // If the collider is active and in this area of effect
-        if (collider.IsActive() && collider.GetGameObject()->GetID() != this->GetGameObject()->GetID() && ColliderManager::StaticMethodIsColliding(*m_pCollider, collider, p_fDelta)) {
-            // Get all of it's collider boxes
-            std::vector<wolf::Rectangle> vColliderBoxes = collider.GetColliderBoxes();
+        if (collider.IsActive() && ColliderManager::StaticMethodIsColliding(*m_pCollider, collider, p_fDelta)) {
             
-            // Iterate through and add them all to the vector
-            for (wolf::Rectangle rect : vColliderBoxes) {
-                m_vpCollidersInAOE.push_back(rect);
+            // Go through the corner points of each rectangle in the collider
+            std::vector<glm::vec2> vv2ColliderCorners = collider.GetWorldSpaceCorners();
+            for (int k = 0; k < vv2ColliderCorners.size(); k += 4) {
+                // Find the top left and bottom right points
+                glm::vec2 v2TopLeft = vv2ColliderCorners.at(k);
+                glm::vec2 v2BotRight = vv2ColliderCorners.at(k + 3);
+
+                // And store those in a new rectangle
+                vpRectanglesInAOE.push_back(wolf::Rectangle(v2TopLeft.x, v2TopLeft.y, v2BotRight.x, v2BotRight.y));
             }
         }
     }
-
-    // !-- Need behavior for when there are no colliders intersecting with the light's AOE --!
 
     // Do a "sweep" around the light and check what corner points collide with it
     float fSweepLineLength = std::max(m_v2Radius.x / 2.0f, m_v2Radius.y / 2.0f);
@@ -93,7 +101,7 @@ void LightComponent::Update(float p_fDelta) {
         //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2CurSweepLineEnd.x, v2CurSweepLineEnd.y});
 
         // Go through all of the colliders in the AOE
-        for (wolf::Rectangle rect : m_vpCollidersInAOE) {
+        for (wolf::Rectangle rect : vpRectanglesInAOE) {
             // Go through all of the corners in said collider
             for (glm::vec2 point : rect.GetCorners()) {
                 // If a corner intersects with the sweep line
@@ -136,13 +144,11 @@ void LightComponent::Update(float p_fDelta) {
         GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
     }
 
-    // !-- Need to figure out why this is segfaulting --!
+    //Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
+    glm::vec2 v2FirstPoint = m_iv2CollidingPoints.at(0);
+    glm::vec2 v2LastPoint = m_iv2CollidingPoints.at(m_iEndOfCollidingPointsMap - 1);
 
-    // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
-    //glm::vec2 v2FirstPoint = m_iv2CollidingPoints.at(0);
-    //glm::vec2 v2LastPoint = m_iv2CollidingPoints.at(m_iEndOfCollidingPointsMap);
-
-    //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
+    GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
 }
 
 bool LightComponent::SweepLinePointCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2Point) {

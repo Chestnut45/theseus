@@ -211,3 +211,33 @@ bool ColliderComponent::IsActive() const {
     return m_active;
 }
 
+std::vector<glm::vec2> ColliderComponent::GetWorldSpaceCorners() {
+    // Iterate through the boxes that makeup this collider
+    glm::vec2 translation = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    std::vector<glm::vec2> vv2CorrectVertices;
+
+    for(wolf::Rectangle colliderBox : this->m_vColliderBoxes)
+    {
+        glm::vec2 dimensions = glm::vec2(colliderBox.GetWidth(), colliderBox.GetHeight());
+        glm::vec2 offset = colliderBox.GetPosition();
+
+        for(Vertex2D vertex : vertices)
+        {
+            glm::vec2 v2CorrectVertex;
+            if(this->m_bIsRelative)
+            {
+                glm::vec2 scale = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+                v2CorrectVertex.x = vertex.x * dimensions.x * scale.x + translation.x + offset.x * scale.x;
+                v2CorrectVertex.y = vertex.y * dimensions.y * scale.y + translation.y + offset.y * scale.y;
+            }
+            else{
+                v2CorrectVertex.x = vertex.x * dimensions.x + translation.x + offset.x;
+                v2CorrectVertex.y = vertex.y * dimensions.y + translation.y + offset.y;
+            }  
+            
+            vv2CorrectVertices.push_back(v2CorrectVertex);
+        }
+    }
+
+    return vv2CorrectVertices;
+}
