@@ -12,7 +12,6 @@ rooms: [
 		position: {type: manual, origin: {x: 31, y: 31}},
 		size: {type: manual, value: {x: 15, y: 15}},
 		entities: [
-			{type: legendary_chest, amount: 1, placement: manual, position: {x: 7, y: 12}},
 		]
 	},
 	{
@@ -32,7 +31,7 @@ rooms: [
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
-			{type: spike_trap, amount: 1, placement: center},
+			{type: minitaur, amount: 1, placement: center},
 			{type: minitaur, amount: 3, placement: random},
 		]
 	},
@@ -46,6 +45,46 @@ rooms: [
 			{type: rare_chest, amount: 1, placement: center},
 			{type: harpy, amount: 1, placement: random},
 			{type: gorgon, amount: 1, placement: random},
+		]
+	},
+	{
+		name: Explode Trapped Chest Rooms,
+		instances: 3,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		entities: [
+			{type: trapped_chest_explode, amount: 1, placement: center},
+		]
+	},
+	{
+		name: Gorgon Trapped Chest Rooms,
+		instances: 3,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		entities: [
+			{type: trapped_chest_gorgon, amount: 1, placement: center},
+		]
+	},
+	{
+		name: Harpy Trapped Chest Rooms,
+		instances: 3,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		entities: [
+			{type: trapped_chest_harpy, amount: 1, placement: center},
+		]
+	},
+	{
+		name: Minitaur Trapped Chest Rooms,
+		instances: 3,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		entities: [
+			{type: trapped_chest_minitaur, amount: 1, placement: center},
 		]
 	}
 ]
