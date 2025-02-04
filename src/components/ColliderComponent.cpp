@@ -221,21 +221,28 @@ std::vector<glm::vec2> ColliderComponent::GetWorldSpaceCorners() {
         glm::vec2 dimensions = glm::vec2(colliderBox.GetWidth(), colliderBox.GetHeight());
         glm::vec2 offset = colliderBox.GetPosition();
 
+        bool bSkip = false;
         for(Vertex2D vertex : vertices)
         {
-            glm::vec2 v2CorrectVertex;
-            if(this->m_bIsRelative)
-            {
-                glm::vec2 scale = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
-                v2CorrectVertex.x = vertex.x * dimensions.x * scale.x + translation.x + offset.x * scale.x;
-                v2CorrectVertex.y = vertex.y * dimensions.y * scale.y + translation.y + offset.y * scale.y;
+            if (bSkip) {
+                bSkip = false;
             }
-            else{
-                v2CorrectVertex.x = vertex.x * dimensions.x + translation.x + offset.x;
-                v2CorrectVertex.y = vertex.y * dimensions.y + translation.y + offset.y;
-            }  
-            
-            vv2CorrectVertices.push_back(v2CorrectVertex);
+            else {
+                glm::vec2 v2CorrectVertex;
+                if(this->m_bIsRelative)
+                {
+                    glm::vec2 scale = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale();
+                    v2CorrectVertex.x = vertex.x * dimensions.x * scale.x + translation.x + offset.x * scale.x;
+                    v2CorrectVertex.y = vertex.y * dimensions.y * scale.y + translation.y + offset.y * scale.y;
+                }
+                else{
+                    v2CorrectVertex.x = vertex.x * dimensions.x + translation.x + offset.x;
+                    v2CorrectVertex.y = vertex.y * dimensions.y + translation.y + offset.y;
+                }  
+                
+                vv2CorrectVertices.push_back(v2CorrectVertex);
+                bSkip = true;
+            }
         }
     }
 

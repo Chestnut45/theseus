@@ -38,15 +38,15 @@ void LightComponent::Update(float p_fDelta) {
     // std::vector<glm::vec2> vv2ColliderCorners = m_pCollider->GetWorldSpaceCorners();
     // for (int k = 0; k < vv2ColliderCorners.size(); k += 4) {
     //     glm::vec2 v2TopLeft = vv2ColliderCorners.at(k);
-    //     glm::vec2 v2TopRight = vv2ColliderCorners.at(k+1);
-    //     glm::vec2 v2BotLeft = vv2ColliderCorners.at(k+2);
-    //     glm::vec2 v2BotRight = vv2ColliderCorners.at(k+3);
+    //     glm::vec2 v2BotLeft = vv2ColliderCorners.at(k+1);
+    //     glm::vec2 v2BotRight = vv2ColliderCorners.at(k+2);
+    //     glm::vec2 v2TopRight = vv2ColliderCorners.at(k+3);
 
     //     // Draw the lines
-    //     GLShapesRenderer::GetInstance()->AddLine({v2TopLeft.x, v2TopLeft.y}, {v2TopRight.x, v2TopRight.y});
-    //     GLShapesRenderer::GetInstance()->AddLine({v2TopRight.x, v2TopRight.y}, {v2BotRight.x, v2BotRight.y});
-    //     GLShapesRenderer::GetInstance()->AddLine({v2BotLeft.x, v2BotLeft.y}, {v2BotRight.x, v2BotRight.y});
-    //     GLShapesRenderer::GetInstance()->AddLine({v2TopLeft.x, v2TopLeft.y}, {v2BotLeft.x, v2BotLeft.y});
+    //     GLShapesRenderer::GetInstance()->AddLine({v2TopLeft.x, v2TopLeft.y}, {v2TopRight.x, v2TopRight.y}); // Top
+    //     GLShapesRenderer::GetInstance()->AddLine({v2TopLeft.x, v2TopLeft.y}, {v2BotLeft.x, v2BotLeft.y}); // Left
+    //     GLShapesRenderer::GetInstance()->AddLine({v2BotLeft.x, v2BotLeft.y}, {v2BotRight.x, v2BotRight.y}); // Bottom
+    //     GLShapesRenderer::GetInstance()->AddLine({v2TopRight.x, v2TopRight.y}, {v2BotRight.x, v2BotRight.y}); // Right
     // }
 
     // Empty out the map of last frame's ray end points
@@ -65,7 +65,7 @@ void LightComponent::Update(float p_fDelta) {
             for (int k = 0; k < vv2ColliderCorners.size(); k += 4) {
                 // Find the top left and bottom right points
                 glm::vec2 v2TopLeft = vv2ColliderCorners.at(k);
-                glm::vec2 v2BotRight = vv2ColliderCorners.at(k + 3);
+                glm::vec2 v2BotRight = vv2ColliderCorners.at(k + 2);
 
                 // And store those in a new rectangle
                 vpRectanglesInAOE.push_back(wolf::Rectangle(v2TopLeft.x, v2TopLeft.y, v2BotRight.x, v2BotRight.y));
@@ -83,19 +83,21 @@ void LightComponent::Update(float p_fDelta) {
 
     // Sweep around the origin point
     for (int i = 0; i <= 360; i++) {
+        float fAngle = glm::radians(-i * 1.0f);
+
         // Compute the new end point of the line
-        v2CurSweepLineEnd.x = (glm::cos(glm::radians(-i * 1.0f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x) - glm::sin(glm::radians(-i * 1.0f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y)) + m_v2Origin.x;
-        v2CurSweepLineEnd.y = (glm::cos(glm::radians(-i * 1.0f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y) + glm::sin(glm::radians(-i * 1.0f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x)) + m_v2Origin.y;
+        v2CurSweepLineEnd.x = (glm::cos(fAngle) * (v2BaseSweepLineEnd.x - m_v2Origin.x) - glm::sin(fAngle) * (v2BaseSweepLineEnd.y - m_v2Origin.y)) + m_v2Origin.x;
+        v2CurSweepLineEnd.y = (glm::cos(fAngle) * (v2BaseSweepLineEnd.y - m_v2Origin.y) + glm::sin(fAngle) * (v2BaseSweepLineEnd.x - m_v2Origin.x)) + m_v2Origin.y;
 
         // If the main sweep line hits then we also want to shoot off two slightly offset
         // sweep lines to make sure that we hit the wall behind edge colliders
         glm::vec2 v2LeftOffsetSLEnd;
-        v2LeftOffsetSLEnd.x = (glm::cos(glm::radians((-i * 1.0f) - 0.00001f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x) - glm::sin(glm::radians((-i * 1.0f) - 0.00001f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y)) + m_v2Origin.x;
-        v2LeftOffsetSLEnd.y = (glm::cos(glm::radians((-i * 1.0f) - 0.00001f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y) + glm::sin(glm::radians((-i * 1.0f) - 0.00001f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x)) + m_v2Origin.y;
+        v2LeftOffsetSLEnd.x = (glm::cos(fAngle - 0.00001f) * (v2BaseSweepLineEnd.x - m_v2Origin.x) - glm::sin(fAngle - 0.00001f) * (v2BaseSweepLineEnd.y - m_v2Origin.y)) + m_v2Origin.x;
+        v2LeftOffsetSLEnd.y = (glm::cos(fAngle - 0.00001f) * (v2BaseSweepLineEnd.y - m_v2Origin.y) + glm::sin(fAngle - 0.00001f) * (v2BaseSweepLineEnd.x - m_v2Origin.x)) + m_v2Origin.y;
 
         glm::vec2 v2RightOffsetSLEnd;
-        v2RightOffsetSLEnd.x = (glm::cos(glm::radians((-i * 1.0f) + 0.00001f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x) - glm::sin(glm::radians((-i * 1.0f) + 0.00001f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y)) + m_v2Origin.x;
-        v2RightOffsetSLEnd.y = (glm::cos(glm::radians((-i * 1.0f) + 0.00001f)) * (v2BaseSweepLineEnd.y - m_v2Origin.y) + glm::sin(glm::radians((-i * 1.0f) + 0.00001f)) * (v2BaseSweepLineEnd.x - m_v2Origin.x)) + m_v2Origin.y;
+        v2RightOffsetSLEnd.x = (glm::cos(fAngle + 0.00001f) * (v2BaseSweepLineEnd.x - m_v2Origin.x) - glm::sin(fAngle + 0.00001f) * (v2BaseSweepLineEnd.y - m_v2Origin.y)) + m_v2Origin.x;
+        v2RightOffsetSLEnd.y = (glm::cos(fAngle + 0.00001f) * (v2BaseSweepLineEnd.y - m_v2Origin.y) + glm::sin(fAngle + 0.00001f) * (v2BaseSweepLineEnd.x - m_v2Origin.x)) + m_v2Origin.y;
 
         // FOR DEBUGGING: Draw the sweep lines
         //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2CurSweepLineEnd.x, v2CurSweepLineEnd.y});
@@ -103,30 +105,30 @@ void LightComponent::Update(float p_fDelta) {
         // Go through all of the colliders in the AOE
         for (wolf::Rectangle rect : vpRectanglesInAOE) {
             // Go through all of the corners in said collider
+            // Check for collision points that are slightly to the left and right of it
+            std::pair<bool, glm::vec2> bv2LeftCollidingPoint = this->SweepLineRectCollisionTest(v2LeftOffsetSLEnd, rect);
+            std::pair<bool, glm::vec2> bv2RightCollidingPoint = this->SweepLineRectCollisionTest(v2RightOffsetSLEnd, rect);
+
+            // Left collision point
+            if (bv2LeftCollidingPoint.first) {
+                m_iv2CollidingPoints.insert({m_iEndOfCollidingPointsMap, bv2LeftCollidingPoint.second});
+                m_iEndOfCollidingPointsMap++;
+            }
+
+            // Right collison point
+            if (bv2RightCollidingPoint.first) {
+                m_iv2CollidingPoints.insert({m_iEndOfCollidingPointsMap, bv2RightCollidingPoint.second});
+                m_iEndOfCollidingPointsMap++;
+            }
+
             for (glm::vec2 point : rect.GetCorners()) {
                 // If a corner intersects with the sweep line
                 if (SweepLinePointCollisionTest(v2CurSweepLineEnd, point)) {
-                    // Check for collision points that are slightly to the left and right of it
-                    std::pair<bool, glm::vec2> bv2LeftCollidingPoint = this->SweepLineRectCollisionTest(v2LeftOffsetSLEnd, rect);
-                    std::pair<bool, glm::vec2> bv2RightCollidingPoint = this->SweepLineRectCollisionTest(v2RightOffsetSLEnd, rect);
-
                     // Then add the points that we found to the collision map (if they exist)
-
-                    // Left collision point
-                    if (bv2LeftCollidingPoint.first) {
-                        m_iv2CollidingPoints.insert({m_iEndOfCollidingPointsMap, bv2LeftCollidingPoint.second});
-                        m_iEndOfCollidingPointsMap++;
-                    }
 
                     // Corner collision point
                     m_iv2CollidingPoints.insert({m_iEndOfCollidingPointsMap, point});
                     m_iEndOfCollidingPointsMap++;
-
-                    // Right collison point
-                    if (bv2RightCollidingPoint.first) {
-                        m_iv2CollidingPoints.insert({m_iEndOfCollidingPointsMap, bv2RightCollidingPoint.second});
-                        m_iEndOfCollidingPointsMap++;
-                    }
                 }
             }
         }

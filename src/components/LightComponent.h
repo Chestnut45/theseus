@@ -65,7 +65,6 @@ class LightComponent : public wolf::BaseComponent {
         wolf::Transform2D* m_pTransform = nullptr;
         ColliderComponent* m_pCollider = nullptr;
 
-        // Map to hold all of the points this light's rays are colliding with
         std::map<int, glm::vec2> m_iv2CollidingPoints;
         int m_iEndOfCollidingPointsMap = 0;
 };
