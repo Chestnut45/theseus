@@ -165,8 +165,6 @@ private:
     // Phase 1 methods
     void EnterPhase1();
     void UpdatePhase1(float delta);
-    void SummonMinitaur();
-    void BlockPlayerAttack();
     void HandleForcefield(float delta);
     void HandleKnockBackCollision(float delta);
     void StartWave();

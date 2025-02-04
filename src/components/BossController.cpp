@@ -43,7 +43,7 @@ void BossController::Init()
     // Phase 1 stats
     m_throneBlockRange = 300;
     m_numSummons = 10;
-    m_forcefieldRadius = 300.0f;
+    m_forcefieldRadius = 500.0f;
     m_slowdownFactor = 0.5f;
     m_currentWave = 0;
     m_remainingEnemies = 0;
@@ -587,7 +587,8 @@ glm::vec2 BossController::GetRandomValidSpawnPosition()
 
         if (IsValidSpawnTile(spawnTilePos))
         {
-            glm::vec2 worldPos = m_pLabyrinthManager->GetWorldPosition(spawnTilePos);
+            //Add a half-tile offset to center the spawn position within the tile
+            glm::vec2 worldPos = m_pLabyrinthManager->GetWorldPosition(spawnTilePos) + glm::vec2(48.0f, 48.0f);
             // wolf::Log("BossController: Spawned enemy at tile [%d, %d], world [%f, %f]", 
             //           spawnTilePos.x, spawnTilePos.y, worldPos.x, worldPos.y);
             return worldPos;
@@ -644,15 +645,7 @@ void BossController::RenderImGui()
     ImGui::PopStyleVar(3);   // Pop WindowPadding, WindowRounding, and FrameBorderSize
 }
 
-void BossController::SummonMinitaur()
-{
 
-}
-
-void BossController::BlockPlayerAttack()
-{
-
-}
 
 // <----------------- PHASE 2 METHODS ----------------->
 
