@@ -359,7 +359,7 @@ void BossController::CheckWaveProgress(float delta)
         {
             // All waves completed
             m_waveActive = false; // Mark waves as inactive
-            wolf::Log("All waves cleared! Transitioning to Phase 2...");
+            // wolf::Log("All waves cleared! Transitioning to Phase 2...");
             CleanupPhase1(); // Cleanup Phase 1 specific elements
             EnterPhase2();
         }
