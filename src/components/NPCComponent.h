@@ -14,9 +14,11 @@
 
 #include <W_Transform2D.h>
 #include <W_EventManager.h>
+#include <W_RNG.h>
 #include <HealthComponent.h>
 #include <AnimatedSprite2D.h>
 #include <MerchantInventoryComponent.h>
+#include <VelocityComponent.h>
 
 #include "../inventory/ItemDropCreator.h"
 #include "../events/DialogueAndCutsceneEvent.h"
@@ -68,6 +70,14 @@ struct ComparePriority {
 
 class NPCComponent : public wolf::BaseComponent {
     public:
+        enum State
+        {
+            IDLE,
+            ROAM,
+            STUNNED,
+            DEAD
+        };
+
         NPCComponent(const std::string& p_strName, const std::string& p_strDialogueFilePath, std::unordered_map<std::string, NPCDialogueEntry*>& p_mDialogueEntries, const std::string& p_strDropTableFilePath, bool p_bIsMerchant, bool p_bCanBeMerchant);
         ~NPCComponent();
         
@@ -126,6 +136,12 @@ class NPCComponent : public wolf::BaseComponent {
 
         void EmptyDialogueQueue();
         void SayGoodbye();
+        
+        // Changes NPC state to STUNNED
+        void StunNPC();
+
+        // Sets the active flag
+        void SetActive(bool p_active);
 
     private:
         void HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndEvent& p_event);
@@ -138,6 +154,7 @@ class NPCComponent : public wolf::BaseComponent {
         std::string m_strDropTableFilePath;
 
         bool m_bIsMerchant; // Is this NPC currently a merchant? (they have a currently accessible MerchantInventoryComponent)
+        bool m_bIsMerching; // If this merchant NPC is pushing their ill-gotten wares to their unsuspecting customers
         const bool m_bCanBeMerchant;  // Can this NPC be a merchant? (they have a MerchantInventoryComponent that is -- or will be -- accessible)
 
         std::unordered_map<std::string, NPCDialogueEntry*> m_mDialogueEntries; // Map to hold all of the NPC's dialogues
@@ -146,6 +163,23 @@ class NPCComponent : public wolf::BaseComponent {
         int m_iCurHighPriorityVal = 0;
 
         bool m_bPlayingDialogue = false; // Flag to check if the NPC can be talked to / interacted with
+        State m_state = State::IDLE; //-------Added By Nhat-------//
+
+        // Idle state members
+        float m_fIdleTimer = 0.0f;
+        
+        // Roam state members
+        float m_fRoamTimer = 0.0f;
+        float m_fRoamSpeedCheckTime = 0.2f;
+        float m_fRoamSpeedCheckTimer = 0.0f;
+        float m_fRoamSpeed = 100.0f;
+        float m_RoamSpeedMin = 50.0f; // The minimum speed that determines if the NPC should adjust their velocity
+        int m_iRoamBlockedCounter = 0; // Counts how many times the NPC walks into a wall or corner and is blocked - reset in EnterIdleState()
+        int m_iRoamBlockedLimit = 2; // The mumber of blocks allowed before the NPC is forced into IDLE
+
+        // Stunned state members
+        float m_fStunnedTime = 0.5f;
+        float m_fStunnedTimer = 0.0f;
 
         // Timers for the NPC death animation
         float m_fFallDeadTimer = 0.0f;
@@ -153,9 +187,40 @@ class NPCComponent : public wolf::BaseComponent {
         float m_fTimeToFallDead = 0.6f;
         float m_fTimeToLieDead = 0.8f;
 
+        // RNG generator
+        static wolf::RNG s_RNG;
+
+        // Active flag - stops updating when the NPC is in a deactivated chunk
+        bool m_isActive = true;
+
+        // The ID of the chunk the NPC is in
+        glm::ivec2 m_chunkID;
+
         // Pointers to other components that the NPCComponent will occasionally need to access
         HealthComponent* m_pHealthComp = nullptr;
         wolf::Transform2D* m_pTransform = nullptr;
         AnimatedSprite2D* m_pAnimSpriteComp = nullptr;
         MerchantInventoryComponent* m_pMerchInvComp = nullptr;
+        VelocityComponent* m_pVeloComp = nullptr;
+
+        // State entry methods
+        void ChangeState(State p_state);
+        void EnterIdleState();
+        void EnterRoamState();
+        void EnterStunnedState();
+
+        // State handling methods
+        void HandleIdleState(float p_fDelta);
+        void HandleRoamState(float p_fDelta);
+        void HandleStunnedState(float p_fDelta);
+
+        // State exit methods
+        void ExitStunnedState();
+
+        // Adjusts NPC velocity in cases where the NPC is roaming too slowly - such as constantly colliding with a wall
+        void CheckRoamSpeed();
+        
+        // Methods for turning NPCs
+        void TurnTowardsPlayer();
+        void TurnToDirection(glm::vec2 p_vDirection);
 };
