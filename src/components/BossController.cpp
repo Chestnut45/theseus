@@ -77,7 +77,7 @@ void BossController::Init()
     m_pullTime = 1.5f;               // Pull state members
     m_pullTimer = 0.0f;
 
-    m_searchSpeed = 200.0f;
+    m_searchSpeed = 250.0f;
     m_searchTimer = 2.0f; // Seconds
 
     // Create components and cache pointers
@@ -438,7 +438,8 @@ void BossController::EnterPhase3()
 {   
     m_phase = FightPhase::PHASE_3;
     ChangeStatesPhase3(State::SEARCHING);
-    // TODO: Phase 3 initialization logic
+    m_pVelocity->SetKnockbackEnabled(false);
+
 }
 
 void BossController::UpdatePhase3(float delta)
@@ -589,7 +590,7 @@ void BossController::ChangeStatesPhase3(State p_state)
 void BossController::StartSearch()
 {
     wolf::RNG rng;
-    m_searchTimer = rng.NextFloat(4.0f, 6.0f);
+    m_searchTimer = rng.NextFloat(3.0f, 4.0f);
 }
 
 void BossController::Search(float delta)
@@ -600,7 +601,7 @@ void BossController::Search(float delta)
         // Decide next attack
         int rngAtk = m_rng.NextInt(1, 10);
         // Fire breath
-        if(rngAtk <= 3)
+        if(rngAtk <= 5)
         {
             ChangeStatesPhase3(State::PULL);
             return;
@@ -656,6 +657,7 @@ void BossController::EndSearch()
 
 void BossController::StartStunned()
 {
+    m_stunTime = 1.0f;
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }
 
@@ -671,8 +673,6 @@ void BossController::Stunned(float delta)
         {
             ChangeStatesPhase3(State::SEARCHING);
         }
-
-        m_stunTime = m_chargeChainCount == 1 ? 3.0f : 1.0f;
         return;
     }
     else
@@ -691,8 +691,6 @@ void BossController::StartFireBreathAttack()
     glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     m_lastDirection = glm::normalize(playerPos - thisPos);
-
-    m_pVelocity->SetKnockbackEnabled(false);
 }
 
 void BossController::AttackFireBreath(float delta)
@@ -817,7 +815,6 @@ void BossController::StartChargeAttack()
 {
     m_chargeWindupTimer = m_chargeWindupTime;
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
-    m_pVelocity->SetKnockbackEnabled(false);
 
     // Reset chain count
     if(m_chargeChainCount <= 0)
@@ -892,7 +889,6 @@ void BossController::AttackCharge(float delta)
 
 void BossController::EndChargeAttack()
 {
-    m_pVelocity->SetKnockbackEnabled(true);
     m_pHoming->SetActive(false);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 
@@ -904,8 +900,6 @@ void BossController::EndChargeAttack()
 
 void BossController::StartPull()
 {
-    printf("START - PULL\n");
-
     m_pullTimer = m_pullTime;
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }
@@ -914,7 +908,20 @@ void BossController::Pull(float delta)
 {
     if(m_pullTimer <= 0.0f)
     {
-        ChangeStatesPhase3(State::CHARGE_ATTACK);
+        // Decide next attack
+        int rngAtk = m_rng.NextInt(1, 10);
+        // Fire breath
+        if(rngAtk <= 5)
+        {
+            ChangeStatesPhase3(State::FIRE_BREATH_ATTACK);
+            return;
+        }
+        // Charge
+        else
+        {
+            ChangeStatesPhase3(State::CHARGE_ATTACK);
+            return;
+        }
     }
     else
     {
