@@ -35,6 +35,7 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+    
  
     this->m_pColliderManager = new ColliderManager(&scene);
 
@@ -89,6 +90,7 @@ void PlayState::Enter()
 
         // Grab pointer to boss controller
         m_pBoss = &bossObject;
+        m_pGameInstance->GetSharedContext().RegisterEntity("Minotaur", m_pBoss->GetID());
 
         break;
     }
@@ -135,6 +137,7 @@ void PlayState::Enter()
     this->CreateTrappedChest();
 
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
+    wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
 
     // Track all Minotaurs and their positions
     std::unordered_map<MinitaurController*, glm::vec2> minitaurPositions;
@@ -189,13 +192,23 @@ void PlayState::Enter()
     }
 
     // Register the closest Minotaur in the shared context
-    m_pGameInstance->GetSharedContext().RegisterEntity("Minotaur", closestMinitaur->GetGameObject()->GetID());
+    m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
+    m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
+
 
     // Trigger the intro dialogue and cutscene
-    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
 
     // Log success
     // wolf::Log("Successfully found and registered the closest Minotaur to the player.");
+    // Schedule her movement
+    auto* transform = ariadne.GetComponent<wolf::Transform2D>();
+    if (transform) {
+        glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
+        transform->SetPosition(newPosition);
+    }
+    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+
+
 }
 
 void PlayState::Exit()
@@ -1209,3 +1222,29 @@ void PlayState::RenderMinimap() {
     ImGui::End();
     ImGui::PopStyleVar();
 }
+
+wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
+{
+    // Offset position to place Ariadne on top of the player by one tile
+    glm::vec2 ariadnePosition = playerPosition + glm::vec2(0.0f, LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
+
+    // Specify the YAML file for Ariadne's NPC data
+    std::string ariadneYamlFile = "data/ariadne_init.yaml";
+
+    // Create Ariadne using the NPCBuilder
+    wolf::GameObject& ariadne = *NPCBuilder::Instance()->BuildNPC(ariadneYamlFile);
+
+    // Set Ariadne's position and scale
+    auto& transform = *ariadne.GetComponent<wolf::Transform2D>();
+    transform.SetPosition(ariadnePosition);
+    transform.SetScale(glm::vec2(LabyrinthManager::SCALE));
+
+    // Optionally register Ariadne in the shared context for reference in cutscenes
+    m_pGameInstance->GetSharedContext().RegisterEntity("Ariadne", ariadne.GetID());
+
+    wolf::Log("Ariadne created at position: (" + std::to_string(ariadnePosition.x) + ", " + std::to_string(ariadnePosition.y) + ").");
+
+    return ariadne;
+}
+
+
