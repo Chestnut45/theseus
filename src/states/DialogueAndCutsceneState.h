@@ -17,9 +17,9 @@ public:
     void Pause() override;
     void Resume() override;
     void Update(float delta) override;
-    void Render() override;
+    void Render(float delta) override;
     void BackgroundUpdate(float delta) override {}
-    void BackgroundRender() override {}
+    void BackgroundRender(float delta) override {}
     void StartSequence(const std::string& sequenceID); // Start a sequence (dialogues and cutscenes)
     // New function to handle the lifecycle of sequence loading
     void LoadSequence(const std::string& sequenceID);
@@ -27,7 +27,7 @@ public:
 private:
     // Unified logic for sequences
     void AdvanceSequence(float delta); // Handles both dialogue and cutscene progression
-    void RenderSequence();            // Handles rendering for both dialogue and cutscene
+    void RenderSequence(float delta);            // Handles rendering for both dialogue and cutscene
 
     // YAML Parsing
     void LoadFromYAML(const std::string& yamlFilePath);

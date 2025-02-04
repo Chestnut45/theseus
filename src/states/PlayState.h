@@ -48,9 +48,9 @@ public:
     void Pause() override;
     void Resume() override;
     void Update(float delta) override;
-    void Render() override;
+    void Render(float delta) override;
     void BackgroundUpdate(float delta) override;
-    void BackgroundRender() override;
+    void BackgroundRender(float delta) override;
     void OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
     std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}

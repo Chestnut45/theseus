@@ -14,7 +14,7 @@ public:
     void Update(float delta) override;
     
     // Rendering logic, called every frame
-    void Render() override;
+    void Render(float delta) override;
 
     // Cleanly shut down the game
     // NOTE: This will trigger the App's destructor, so

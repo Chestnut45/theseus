@@ -357,9 +357,9 @@ void DialogueAndCutsceneState::LoadFromYAML(const std::string& yamlFilePath) {
     }
 }
 
-void DialogueAndCutsceneState::Render() {
+void DialogueAndCutsceneState::Render(float delta) {
     if (m_currentSequence && m_currentSequenceIndex < m_currentSequence->size()) {
-        RenderSequence();
+        RenderSequence(delta);
     }
 }
 
@@ -424,7 +424,7 @@ void DialogueAndCutsceneState::EndDialogue() {
 }
 
 
-void DialogueAndCutsceneState::RenderSequence() {
+void DialogueAndCutsceneState::RenderSequence(float delta) {
     // Ensure we're within valid sequence bounds
     if (!m_currentSequence || m_currentSequenceIndex >= m_currentSequence->size()) {
         return; 
@@ -437,7 +437,7 @@ void DialogueAndCutsceneState::RenderSequence() {
         auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
         if (camera) {
             // Render the scene with the current camera transformations
-            m_pGameInstance->GetScene().Render();
+            m_pGameInstance->GetScene().Render(delta);
         }
     }
 

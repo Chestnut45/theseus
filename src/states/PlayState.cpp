@@ -583,13 +583,13 @@ void PlayState::Update(float delta)
     // ImGui::ShowDemoWindow();
 }
 
-void PlayState::Render()
+void PlayState::Render(float delta)
 {
     // Render the game's scene
-    m_pGameInstance->GetScene().Render();
+    m_pGameInstance->GetScene().Render(delta);
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
-        playerController->Render();
+        playerController->Render(delta);
     
     // Render damage indicators
     for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>())
@@ -612,9 +612,9 @@ void PlayState::BackgroundUpdate(float delta)
         m_pLabyrinthManager->ShowGUI();
 }
 
-void PlayState::BackgroundRender()
+void PlayState::BackgroundRender(float delta)
 {
-    m_pGameInstance->GetScene().Render();
+    m_pGameInstance->GetScene().Render(delta);
 }
 
 void PlayState::CreatePlayer()
@@ -636,7 +636,7 @@ void PlayState::CreatePlayer()
     collider.AddColliderBox(glm::vec2(7.0f, 10.0f), glm::vec2(-4.0f, -3.0f));
 
     // Add health
-    auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
+    auto& health = m_pPlayerObject->AddComponent<HealthComponent>(500);
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();

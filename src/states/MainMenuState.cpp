@@ -100,7 +100,7 @@ void MainMenuState::Update(float delta)
     ImGui::End();
 }
 
-void MainMenuState::Render()
+void MainMenuState::Render(float delta)
 {
 }
 
@@ -108,6 +108,6 @@ void MainMenuState::BackgroundUpdate(float delta)
 {
 }
 
-void MainMenuState::BackgroundRender()
+void MainMenuState::BackgroundRender(float delta)
 {
 }
