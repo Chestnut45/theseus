@@ -1120,21 +1120,31 @@ ImU32 GetTileColor(int tileID) {
 }
 
 void PlayState::RenderMap() {
-    static float zoomScale = 1.0f;
+    static float defaultZoomScale = 0.5f; // Default zoom level when not expanded
+    static float expandedZoomScale = 1.0f; // Persisted zoom level for expanded map
+    static bool isExpandedPrev = false; // Tracks if the map was expanded in the previous frame
 
-    // Handle zooming when the map is expanded
+    // Determine the zoom level based on whether the map is expanded
     if (m_isMapExpanded) {
         float scrollDelta = ImGui::GetIO().MouseWheel;
-        zoomScale = glm::clamp(zoomScale + scrollDelta * 0.1f, 0.5f, 2.0f);
+        expandedZoomScale = glm::clamp(expandedZoomScale + scrollDelta * 0.1f, 0.2f, 2.0f); // Adjust expanded zoom
     }
 
+    // Update the zoom scale and reset if switching between states
+    float zoomScale = m_isMapExpanded ? expandedZoomScale : defaultZoomScale;
+
+    if (!m_isMapExpanded && isExpandedPrev) {
+        defaultZoomScale = glm::clamp(expandedZoomScale * 0.5f, 0.2f, 1.0f); // Adjust default zoom to see more
+    }
+    isExpandedPrev = m_isMapExpanded;
+
     // Define map dimensions and scaling
-    const float mapSize = m_isMapExpanded ? 600.0f : 200.0f; // Larger map when expanded
-    const float labyrinthScale = m_isMapExpanded ? zoomScale : 0.2f;
+    const float mapSize = m_isMapExpanded ? 600.0f : 300.0f; // Larger default map size for expanded view
+    const float labyrinthScale = zoomScale;
 
     // Determine map position (top-right when small, center when expanded)
     const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-    const ImVec2 mapPosition = m_isMapExpanded 
+    const ImVec2 mapPosition = m_isMapExpanded
         ? ImVec2((displaySize.x - mapSize) * 0.5f, (displaySize.y - mapSize) * 0.5f) // Centered
         : ImVec2(displaySize.x - mapSize - 20.0f, 20.0f); // Top-right corner
 
