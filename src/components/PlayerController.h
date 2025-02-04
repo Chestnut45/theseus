@@ -72,7 +72,7 @@ public:
 
     void LateInitialize();
     void Update(float delta);
-    void Render();
+    void Render(float delta);
     
     void SetAnimationComponent(AnimatedSprite2D* animComponent);
 
@@ -205,6 +205,7 @@ private:
     wolf::Timer m_attackTimer;
 
     // Invulnerability after taking damage
+    float m_prevHealthFraction = 1.0f;
     float m_invulnSeconds = 1.0f;
     wolf::Timer m_invulnTimer;
 
