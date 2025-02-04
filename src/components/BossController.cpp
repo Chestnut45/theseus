@@ -142,7 +142,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase3();
+    EnterPhase1();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
