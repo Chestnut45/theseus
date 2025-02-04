@@ -86,7 +86,7 @@ void PlayState::Enter()
         controller.Init();
 
         // Move boss to initial location
-        bossObject.GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.25f));
+        bossObject.GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.5f));
 
         // Grab pointer to boss controller
         m_pBoss = &bossObject;

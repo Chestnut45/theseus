@@ -1,12 +1,11 @@
 #pragma once
-
 #include <W_BaseComponent.h>
 #include <glm/glm.hpp>
 #include <W_RNG.h>
 
 #include <glm/vec2.hpp>
 #include <W_Timer.h>
-
+#include <unordered_set>
 // Forward declarations
 class VelocityComponent;
 class AnimatedSprite2D;
@@ -15,6 +14,7 @@ class StatusComponent;
 class ColliderComponent;
 class HomingComponent;
 class PlayerController;
+class LabyrinthManager;
 
 // NOTE: You can only forward declare from within the same namespace
 namespace wolf
@@ -89,6 +89,9 @@ private:
     wolf::GameObject* m_pPlayerObject = nullptr;
     PlayerController* m_pPlayerController = nullptr;
 
+    //labyrinth reference (needed for spawns)
+    LabyrinthManager* m_pLabyrinthManager = nullptr;
+
     // Utility members
     wolf::RNG m_rng;
 
@@ -101,6 +104,16 @@ private:
     // Phase 1 stats
     int m_throneBlockRange;
     int m_numSummons;
+    float m_forcefieldRadius;  // Defines the range where the forcefield affects the player
+    float m_slowdownFactor;      // Reduces the player's velocity when inside the forcefield
+
+    int m_currentWave;
+    int m_remainingEnemies;
+    float m_waveTransitionTimer;
+    bool m_waveActive;
+    std::unordered_set<int> m_enemyIDs;
+    
+
 
     // Phase 2 stats
     int m_axeAttackDamage;
@@ -153,8 +166,17 @@ private:
     // Phase 1 methods
     void EnterPhase1();
     void UpdatePhase1(float delta);
-    void SummonMinitaur();
-    void BlockPlayerAttack();
+    void HandleForcefield(float delta);
+    void HandleKnockBackCollision(float delta);
+    void StartWave();
+    void SpawnWave(int waveIndex);
+    void CheckWaveProgress(float delta);
+    void CheckEnemyWaveHealth();
+    glm::vec2 GetRandomValidSpawnPosition();
+    void RenderImGui();
+    bool IsValidSpawnTile(glm::ivec2 tilePos);
+    void CleanupPhase1();
+
 
     // Phase 2 methods
     void EnterPhase2();
