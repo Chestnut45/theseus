@@ -103,6 +103,10 @@ public:
     // Gets the chunk ID for the chunk containing a given world space position
     glm::ivec2 GetChunkID(const glm::vec2& worldPosition) const;
 
+    // Returns a bool indicating if the given chunk is active or not
+    // NOTE: Returns false if no chunk exists with the given ID
+    bool IsChunkActive(const glm::ivec2& chunkID) const;
+
     // Gets a pointer to the chunk object with the given ID
     // NOTE: Returns nullptr if no chunk exists with the given ID
     wolf::GameObject* GetChunk(const glm::ivec2& chunkID) const;

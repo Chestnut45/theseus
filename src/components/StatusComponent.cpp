@@ -130,43 +130,40 @@ void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 
 void StatusComponent::RenderPlayerSEIcons()
 {
-    if(this->GetGameObject()->HasAny<PlayerController>())
+    // Setup
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar |  ImGuiWindowFlags_NoBackground;
+    ImVec2 windowSize = ImVec2((s_vTextureSize.x + 16) * (float)StatusEffectType::NONE + 8, s_vTextureSize.y + 24);
+    ImGui::SetNextWindowPos({10, 10});
+    ImGui::SetNextWindowSize(windowSize);
+    ImGui::Begin("\t", nullptr, flags);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
+
+    // Render icons
+    for (int i = 0; i < StatusEffectType::NONE; i++)
     {
-        // Setup
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar |  ImGuiWindowFlags_NoBackground;
-        ImVec2 windowSize = ImVec2((s_vTextureSize.x + 16) * (float)StatusEffectType::NONE + 8, s_vTextureSize.y + 24);
-        ImGui::SetNextWindowPos({10, 10});
-        ImGui::SetNextWindowSize(windowSize);
-        ImGui::Begin("\t", nullptr, flags);
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
-
-        // Render icons
-        for (int i = 0; i < StatusEffectType::NONE; i++)
+        StatusEffectType seType = static_cast<StatusEffectType>(i);
+        if(this->IsStatusEffectActive(seType))
         {
-            StatusEffectType seType = static_cast<StatusEffectType>(i);
-            if(this->IsStatusEffectActive(seType))
-            {
-                if (ImGui::ImageButton(std::to_string(seType).c_str(), (void*)(intptr_t)s_pTextures[seType]->GetID(), s_vTextureSize)) {
-                }
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) 
-                {
-                    float lifetime = m_aStatusEffects[seType].m_timer.Elapsed();
-                    float lifespan = m_aStatusEffects[seType].m_fLifespan;
-                    ImGui::BeginTooltip();
-                    if(lifespan > lifetime) ImGui::Text("%s\n%.1f", s_aStatusEffectDescriptions[seType].c_str(), lifespan - lifetime);
-                    else ImGui::Text("%s\n%s", s_aStatusEffectDescriptions[seType].c_str(),"inf");
-                    ImGui::EndTooltip();
-                }
+            if (ImGui::ImageButton(std::to_string(seType).c_str(), (void*)(intptr_t)s_pTextures[seType]->GetID(), s_vTextureSize)) {
             }
-            ImGui::SameLine();
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) 
+            {
+                float lifetime = m_aStatusEffects[seType].m_timer.Elapsed();
+                float lifespan = m_aStatusEffects[seType].m_fLifespan;
+                ImGui::BeginTooltip();
+                if(lifespan > lifetime) ImGui::Text("%s\n%.1f", s_aStatusEffectDescriptions[seType].c_str(), lifespan - lifetime);
+                else ImGui::Text("%s\n%s", s_aStatusEffectDescriptions[seType].c_str(),"inf");
+                ImGui::EndTooltip();
+            }
         }
-
-        // End rendering
-        ImGui::PopStyleColor(3);  
-        ImGui::End();
+        ImGui::SameLine();
     }
+
+    // End rendering
+    ImGui::PopStyleColor(3);  
+    ImGui::End();
 }
 
 void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
