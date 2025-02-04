@@ -215,12 +215,34 @@ void BossController::UpdatePhase1(float delta)
     }
 
     // Transition to phase 2 if boss health is low
-    if (m_pHealth->GetHealth() < 2 * m_maxHealth / 3)
-    {
-        EnterPhase2();
-    }
+    // if (m_pHealth->GetHealth() < 2 * m_maxHealth / 3)
+    // {
+    //     EnterPhase2();
+    // }
+
 }
 
+void BossController::CleanupPhase1()
+{
+    // Clear any remaining enemies from the scene
+    for (const auto& enemyID : m_enemyIDs)
+    {
+        auto enemy = GetGameObject()->GetScene().GetObject(enemyID);
+        if (enemy)
+        {
+            enemy->Delete();
+        }
+    }
+    m_enemyIDs.clear();
+
+    // Reset wave-related variables
+    m_currentWave = 0;
+    m_waveActive = false;
+    m_waveTransitionTimer = 0.0f;
+
+    // Log cleanup
+    // wolf::Log("BossController: Phase 1 cleanup complete.");
+}
 
 void BossController::HandleForcefield(float delta)
 {
@@ -273,12 +295,12 @@ void BossController::HandleForcefield(float delta)
 }
 void BossController::HandleKnockBackCollision(float delta)
 {
-    if (!m_pPlayerObject || !m_pCollider || !m_pPlayerObject->HasAll<ColliderComponent>())
+    if (!m_pPlayerObject || !m_pCollider || !m_pPlayerController || !m_pPlayerObject->HasAll<ColliderComponent>())
         return;
 
     ColliderComponent* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
 
-    // Apply knockback when physically colliding with the boss
+    // 1. Check if the player physically collides with the boss
     if (ColliderManager::StaticMethodIsColliding(*m_pCollider, *pPlayerCollider, delta))
     {
         glm::vec2 bossPos = m_pTransform->GetGlobalPosition();
@@ -287,31 +309,28 @@ void BossController::HandleKnockBackCollision(float delta)
         float knockbackForce = 11000.0f;
 
         m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(knockbackDirection, knockbackForce);
+        return; // No need to continue after this
     }
 
-    // Check if the player's melee attack hitbox collides with the boss
+    // 2. Check if the player is attacking with a non-bow weapon and is close to the boss
     if (m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING)
     {
-        for (auto&& [_, meleeObject] : m_pPlayerObject->GetScene().Each<wolf::GameObject>())
+        // Retrieve the player's current weapon
+        WeaponItem* pWeapon = dynamic_cast<WeaponItem*>(m_pPlayerController->GetHeldWeapon());
+        if (pWeapon && !pWeapon->GetHasProjectiles()) // Ensure the weapon is not a bow
         {
-            if (meleeObject.HasAll<ColliderComponent>())
+            glm::vec2 bossPos = m_pTransform->GetGlobalPosition();
+            glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            float distance = glm::distance(playerPos, bossPos);
+
+            // Apply knockback if the player is within a close range to the boss
+            const float meleeRange = 50.0f; // Define the melee attack range
+            if (distance <= meleeRange)
             {
-                ColliderComponent* pMeleeCollider = meleeObject.GetComponent<ColliderComponent>();
+                glm::vec2 knockbackDirection = glm::normalize(playerPos - bossPos);
+                float knockbackForce = 11000.0f;
 
-                // Ensure this is the player's melee attack hitbox (HURTBOXDD)
-                if (pMeleeCollider->GetColliderType() == ColliderComponent::ColliderType::HURTBOXDD)
-                {
-                    if (ColliderManager::StaticMethodIsColliding(*pMeleeCollider, *m_pCollider, delta))
-                    {
-                        glm::vec2 bossPos = m_pTransform->GetGlobalPosition();
-                        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-                        glm::vec2 knockbackDirection = glm::normalize(playerPos - bossPos);
-                        float knockbackForce = 11000.0f;
-
-                        // Apply knockback to player when melee attack collides with the boss
-                        m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(knockbackDirection, knockbackForce);
-                    }
-                }
+                m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(knockbackDirection, knockbackForce);
             }
         }
     }
@@ -333,13 +352,16 @@ void BossController::CheckWaveProgress(float delta)
         // Move to next wave
         if (m_currentWave < 3)
         {
-            SpawnWave(m_currentWave + 1);
+            m_currentWave++;  // Increment the wave
+            SpawnWave(m_currentWave);
         }
         else
         {
-            // All waves completed, transition to Phase 2
+            // All waves completed
+            m_waveActive = false; // Mark waves as inactive
             wolf::Log("All waves cleared! Transitioning to Phase 2...");
-            // EnterPhase2();
+            CleanupPhase1(); // Cleanup Phase 1 specific elements
+            EnterPhase2();
         }
     }
 }

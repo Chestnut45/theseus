@@ -176,6 +176,7 @@ private:
     glm::vec2 GetRandomValidSpawnPosition();
     void RenderImGui();
     bool IsValidSpawnTile(glm::ivec2 tilePos);
+    void CleanupPhase1();
 
 
     // Phase 2 methods
