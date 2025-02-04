@@ -654,6 +654,8 @@ void BossController::EnterPhase2()
     m_phase = FightPhase::PHASE_2;
     m_state = State::APPROACH;
     m_axeAttackTimer.Restart();
+    m_pHealth->SetActive(true);
+    m_pVelocity->SetKnockbackEnabled(true);
 }
 
 void BossController::UpdatePhase2(float delta)
