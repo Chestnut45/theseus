@@ -19,7 +19,7 @@ void DialogueAndCutsceneState::Enter() {
         try {
             LoadFromYAML(m_yamlFilePath);
             m_isYAMLLoaded = true; // Mark as loaded
-            std::cout << "DialogueAndCutsceneState: YAML loaded successfully." << std::endl;
+            // std::cout << "DialogueAndCutsceneState: YAML loaded successfully." << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "Error loading YAML: " << e.what() << std::endl;
         }
@@ -99,7 +99,7 @@ void DialogueAndCutsceneState::StartSequence(const std::string& sequenceID) {
         m_cutsceneTimer = 0.0f;
         m_currentKeyframeIndex = 0;
 
-        std::cout << "Starting sequence: " << sequenceID << std::endl;
+        // std::cout << "Starting sequence: " << sequenceID << std::endl;
     } else {
         // Handle the case where the sequence ID is not found
         std::cerr << "Sequence ID '" << sequenceID << "' not found!" << std::endl;

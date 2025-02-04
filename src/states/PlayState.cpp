@@ -184,7 +184,7 @@ void PlayState::Enter()
 
     if (!closestMinitaur)
     {
-        wolf::Log("Failed to find the closest Minotaur to the player!");
+        // wolf::Log("Failed to find the closest Minotaur to the player!");
         return;
     }
 
@@ -195,7 +195,7 @@ void PlayState::Enter()
     wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
 
     // Log success
-    wolf::Log("Successfully found and registered the closest Minotaur to the player.");
+    // wolf::Log("Successfully found and registered the closest Minotaur to the player.");
 }
 
 void PlayState::Exit()
