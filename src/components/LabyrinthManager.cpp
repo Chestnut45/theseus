@@ -33,6 +33,7 @@
 #include <GorgonBuilder.h>
 #include <PlayerController.h>
 #include <TriggerComponent.h>
+#include <TrappedChestComponent.h>
 #include "../npcs/NPCBuilder.h"
 #include <HarpyController.h>
 #include <MinitaurController.h>
@@ -50,6 +51,10 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["rare_chest"] = Room::EntityType::RareChest;
     s_entityIDs["epic_chest"] = Room::EntityType::EpicChest;
     s_entityIDs["legendary_chest"] = Room::EntityType::LegendaryChest;
+    s_entityIDs["trapped_chest_explode"] = Room::EntityType::TrappedChestExplode;
+    s_entityIDs["trapped_chest_gorgon"] = Room::EntityType::TrappedChestGorgon;
+    s_entityIDs["trapped_chest_harpy"] = Room::EntityType::TrappedChestHarpy;
+    s_entityIDs["trapped_chest_minitaur"] = Room::EntityType::TrappedChestMinitaur;
     s_entityIDs["dispensary"] = Room::EntityType::DaedalusDispensary;
     s_entityIDs["spike_trap"] = Room::EntityType::SpikeTrap;
 }
@@ -708,6 +713,10 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
                 if (eType == "rare_chest") data.m_type = Room::EntityType::RareChest;
                 if (eType == "epic_chest") data.m_type = Room::EntityType::EpicChest;
                 if (eType == "legendary_chest") data.m_type = Room::EntityType::LegendaryChest;
+                if (eType == "trapped_chest_explode") data.m_type = Room::EntityType::TrappedChestExplode;
+                if (eType == "trapped_chest_gorgon") data.m_type = Room::EntityType::TrappedChestGorgon;
+                if (eType == "trapped_chest_harpy") data.m_type = Room::EntityType::TrappedChestHarpy;
+                if (eType == "trapped_chest_minitaur") data.m_type = Room::EntityType::TrappedChestMinitaur;
                 if (eType == "dispensary") data.m_type = Room::EntityType::DaedalusDispensary;
                 if (eType == "throwable_object") data.m_type = Room::EntityType::ThrowableObject;
                 
@@ -863,6 +872,18 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
                     break;
                 case Room::EntityType::LegendaryChest:
                     file << "legendary_chest, amount: ";
+                    break;
+                case Room::EntityType::TrappedChestExplode:
+                    file << "trapped_chest_explode, amount: ";
+                    break;
+                case Room::EntityType::TrappedChestGorgon:
+                    file << "trapped_chest_gorgon, amount: ";
+                    break;
+                case Room::EntityType::TrappedChestHarpy:
+                    file << "trapped_chest_harpy, amount: ";
+                    break;
+                case Room::EntityType::TrappedChestMinitaur:
+                    file << "trapped_chest_minitaur, amount: ";
                     break;
                 case Room::EntityType::DaedalusDispensary:
                     file << "dispensary, amount: ";
@@ -2029,6 +2050,122 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         GetChunk(GetChunkID(pos))->AddChild(chest);
                         break;
                     }
+                    
+                    //-------Added By Nhat-------//
+                    case Room::EntityType::TrappedChestExplode:
+                    {
+                        // Create the chest object
+                        auto& chest = pObject->GetScene().CreateObject2D();
+
+                        // Scale the chest
+                        auto& transform = *chest.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add the sprite
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        sprite.SetAnimation("LegendaryClosed");
+                        sprite.SetOriginToCenterOfFrame();
+                        
+                        // Add collider
+                        auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+                        collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
+
+                        // Add trap
+                        auto& tcComp = chest.AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::EXPLODE);
+                        tcComp.Init();
+
+                        // Add chest as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        break;
+                    }
+
+                    //-------Added By Nhat-------//
+                    case Room::EntityType::TrappedChestGorgon:
+                    {
+                        // Create the chest object
+                        auto& chest = pObject->GetScene().CreateObject2D();
+
+                        // Scale the chest
+                        auto& transform = *chest.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add the sprite
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        sprite.SetAnimation("RareClosed");
+                        sprite.SetOriginToCenterOfFrame();
+                        
+                        // Add collider
+                        auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+                        collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
+
+                        // Add trap
+                        auto& tcComp = chest.AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::TRANSFORM_GORGON);
+                        tcComp.Init();
+
+                        // Add chest as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        break;
+                    }
+
+                    //-------Added By Nhat-------//
+                    case Room::EntityType::TrappedChestHarpy:
+                    {
+                        // Create the chest object
+                        auto& chest = pObject->GetScene().CreateObject2D();
+
+                        // Scale the chest
+                        auto& transform = *chest.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add the sprite
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        sprite.SetAnimation("EpicClosed");
+                        sprite.SetOriginToCenterOfFrame();
+                        
+                        // Add collider
+                        auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+                        collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
+
+                        // Add trap
+                        auto& tcComp = chest.AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::TRANSFORM_HARPY);
+                        tcComp.Init();
+
+                        // Add chest as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        break;
+                    }
+
+                    //-------Added By Nhat-------//
+                    case Room::EntityType::TrappedChestMinitaur:
+                    {
+                        // Create the chest object
+                        auto& chest = pObject->GetScene().CreateObject2D();
+
+                        // Scale the chest
+                        auto& transform = *chest.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add the sprite
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        sprite.SetAnimation("UncommonClosed");
+                        sprite.SetOriginToCenterOfFrame();
+                        
+                        // Add collider
+                        auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+                        collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
+
+                        // Add trap
+                        auto& tcComp = chest.AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::TRANSFORM_MINITAUR);
+                        tcComp.Init();
+
+                        // Add chest as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        break;
+                    }
 
                     // !-- Aurora added this --!
                     case Room::EntityType::DaedalusDispensary:
@@ -2305,4 +2442,20 @@ void LabyrinthManager::GenerateEntrance()
     auto& iconTransform = *icon.GetComponent<wolf::Transform2D>();
     iconTransform.SetPosition(glm::vec2(0.0f, 25.0f));
     iconTransform.SetScale(glm::vec2(0.5f, 0.5f));
+}
+
+glm::ivec2 LabyrinthManager::GetRandomRoomSpawnPosition(const RoomData& roomData)
+{
+    // Ensure the room has a valid size
+    if (roomData.m_bounds.m_size.x <= 0 || roomData.m_bounds.m_size.y <= 0)
+    {
+        wolf::Warning("GetRandomSpawnPosition called on an invalid room size.");
+        return glm::ivec2(-1, -1);
+    }
+
+    // Generate a random position within the room's bounds
+    int x = m_rng.NextInt(roomData.m_bounds.m_origin.x, roomData.m_bounds.m_origin.x + roomData.m_bounds.m_size.x - 1);
+    int y = m_rng.NextInt(roomData.m_bounds.m_origin.y, roomData.m_bounds.m_origin.y + roomData.m_bounds.m_size.y - 1);
+
+    return glm::ivec2(x, y);
 }

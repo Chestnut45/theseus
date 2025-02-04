@@ -16,6 +16,9 @@ public:
     static DDACalculator* GetInstance();
 
     glm::vec2 GetEndpoint(glm::vec2 p_src_pos, glm::vec2 p_dst_pos);
+    std::vector<glm::ivec2> GetTraversedTiles(glm::vec2 p_src_pos, glm::vec2 p_dst_pos, bool p_is_blocked);
+    LabyrinthManager* GetLabyrinthManager() const { return m_pLBMG; }
+
 
 private:
     wolf::Scene* m_pScene = nullptr;

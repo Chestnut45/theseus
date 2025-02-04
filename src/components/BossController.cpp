@@ -10,8 +10,21 @@
 #include <PlayerController.h>
 #include <HomingComponent.h>
 #include <LabyrinthManager.h>
+#include <HomingComponent.h>
+#include <W_Timer.h>
 
 #include "../ColliderManager.h"
+
+#include "../DDACalculator.h"
+#include "GLShapesRenderer.h"
+#include "../TileFireManager.h"
+
+#include <AttackDamageComponent.h>
+#include <TimedDestroyerComponent.h>
+#include <GorgonBuilder.h>
+#include <MinitaurBuilder.h>
+#include <HarpyBuilder.h>
+#include "../LabyrinthTiles.h"
 
 BossController::BossController()
 {
@@ -25,21 +38,40 @@ void BossController::Init()
 {
     // Initialize stats
     m_active = false;
-    m_maxHealth = 1000;
+    m_maxHealth = 6500;
 
     // Phase 1 stats
     m_throneBlockRange = 300;
     m_numSummons = 10;
+    m_forcefieldRadius = 500.0f;
+    m_slowdownFactor = 0.5f;
+    m_currentWave = 0;
+    m_remainingEnemies = 0;
+    m_waveTransitionTimer = 0.0f;
+    m_waveActive = false;
 
     // Phase 2 stats
-    m_axeAttackDamage = 80;
+    m_axeAttackDamage = 125;
     m_axePunishDamage = 100;
-    m_minDistToPlayer = 200;
-    m_maxDistToPlayer = 600;
+    m_minDistToPlayer = 160;
+    m_maxDistToPlayer = 280;
+    m_strafeClockwise = true;
+    m_axeSummoned = false;
+    m_strafeSpeed = 160.0f;
+    m_chaseSpeed = 240.0f;
 
     // Phase 3 stats
+    m_fireBreathWindupTime = 0.75f; // Seconds
+    m_fireBreathWindupTimer = 1.0f; // Seconds
+    m_chargeWindupTint = glm::vec3(3.0f, 1.0f, 1.0f);
     m_fireBreathDamage = 10; // Per projectile
-    m_fireBreathRange = 400;
+    m_fireBreathRange = 300;
+    m_fireBreathDuration = 10.0f;
+    m_fireBreathTurningCapRadian = 7.5f * (M_PI / 180.0f); // Maximum angle for each turn instance
+    m_fireBreathTurningDelay = 0.2f;      // Delay between each turn instance
+    m_fireBreathTurningTimer = 0.0f;
+    m_lastDirection = glm::vec2(1.0f, 0.0f);
+
     m_chargeWindupTime = 1.0f; // Seconds
     m_chargeWindupTimer = 1.0f; // Seconds
     m_chargeWindupTint = glm::vec3(4.0f, 4.0f, 4.0f);
@@ -142,30 +174,478 @@ void BossController::EnterPhase1()
     m_state = State::SIT;
 
     // TODO: Phase 1 initialization logic
+    if (m_pHealth){
+        m_pHealth->SetActive(false);
+    }
+
+    if (m_pVelocity){
+        m_pVelocity->SetKnockbackEnabled(false);
+    }
+
+    DDACalculator* dda = DDACalculator::GetInstance();
+    if (!dda)
+    {
+        wolf::Error("BossController: DDACalculator instance is null!");
+        return;
+    }
+
+    m_pLabyrinthManager = dda->GetLabyrinthManager();
+    if (!m_pLabyrinthManager)
+    {
+        wolf::Error("BossController: LabyrinthManager is null!");
+        return;
+    }
+
 }
 
 void BossController::UpdatePhase1(float delta)
 {
-    // TODO: Phase 1 update logic:
-    // - Summon minitaurs periodically until limit reached
-    // - Change to blocking animation when player attacks while close enough
+    // Handle forcefield and knockback
+    HandleForcefield(delta);
+    HandleKnockBackCollision(delta);
+    CheckWaveProgress(delta);
+    CheckEnemyWaveHealth();
+    RenderImGui();
 
-    if (m_pHealth->GetHealth() < 2 * m_maxHealth / 3)
+    // **Trigger Wave 1 if the player attacks near the boss**
+    if (!m_waveActive && m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING)
     {
-        // TODO: Exit phase 1 logic
-        EnterPhase2();
+        // wolf::Log("BossController: Player attacked, starting Wave 1...");
+        StartWave();
+    }
+
+    // Transition to phase 2 if boss health is low
+    // if (m_pHealth->GetHealth() < 2 * m_maxHealth / 3)
+    // {
+    //     EnterPhase2();
+    // }
+
+}
+
+void BossController::CleanupPhase1()
+{
+    // Clear any remaining enemies from the scene
+    for (const auto& enemyID : m_enemyIDs)
+    {
+        auto enemy = GetGameObject()->GetScene().GetObject(enemyID);
+        if (enemy)
+        {
+            enemy->Delete();
+        }
+    }
+    m_enemyIDs.clear();
+
+    // Reset wave-related variables
+    m_currentWave = 0;
+    m_waveActive = false;
+    m_waveTransitionTimer = 0.0f;
+
+    // Log cleanup
+    // wolf::Log("BossController: Phase 1 cleanup complete.");
+}
+
+void BossController::HandleForcefield(float delta)
+{
+    if (!m_pPlayerObject || !m_pTransform || !m_pPlayerController) return;
+
+    glm::vec2 bossPos = m_pTransform->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    float distance = glm::distance(playerPos, bossPos);
+
+    VelocityComponent* pPlayerVelocity = m_pPlayerObject->GetComponent<VelocityComponent>();
+    glm::vec2 currentVelocity = pPlayerVelocity->GetVelocity();
+
+    // Ignore slowdown if rolling
+    if (m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ROLLING)
+    {
+        return;
+    }
+
+    // Define slowdown effect range
+    float slowdownStart = m_forcefieldRadius * 0.9f; // Start slowing at 90% of forcefield radius
+    float fullStopDistance = m_forcefieldRadius * 0.25f; // Full stop effect closer at 25%
+
+    if (distance < m_forcefieldRadius)
+    {
+        // Gradual slowdown scaling with distance
+        float slowdownFactor = glm::smoothstep(fullStopDistance, slowdownStart, distance);
+        slowdownFactor = glm::clamp(slowdownFactor, 0.05f, 1.0f);  
+
+        // Apply pushback resistance if moving toward the boss
+        glm::vec2 directionToBoss = glm::normalize(bossPos - playerPos);
+        float forwardSpeed = glm::dot(currentVelocity, directionToBoss);
+        if (forwardSpeed > 0)  
+        {
+            currentVelocity -= directionToBoss * (forwardSpeed * 0.3f);
+        }
+
+        // Apply slowdown
+        glm::vec2 newVelocity = currentVelocity * slowdownFactor;
+        pPlayerVelocity->SetVelocity(newVelocity);
+
+        // **Trigger Wave 1 if not already active**
+        if (!m_waveActive)
+        {
+            // wolf::Log("BossController: Player entered forcefield, starting Wave 1...");
+            StartWave();
+            m_waveActive = true;
+
+        }
+    }
+}
+void BossController::HandleKnockBackCollision(float delta)
+{
+    if (!m_pPlayerObject || !m_pCollider || !m_pPlayerController || !m_pPlayerObject->HasAll<ColliderComponent>())
+        return;
+
+    ColliderComponent* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
+
+    // 1. Check if the player physically collides with the boss
+    if (ColliderManager::StaticMethodIsColliding(*m_pCollider, *pPlayerCollider, delta))
+    {
+        glm::vec2 bossPos = m_pTransform->GetGlobalPosition();
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 knockbackDirection = glm::normalize(playerPos - bossPos);
+        float knockbackForce = 11000.0f;
+
+        m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(knockbackDirection, knockbackForce);
+        return; // No need to continue after this
+    }
+
+    // 2. Check if the player is attacking with a non-bow weapon and is close to the boss
+    if (m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING)
+    {
+        // Retrieve the player's current weapon
+        WeaponItem* pWeapon = dynamic_cast<WeaponItem*>(m_pPlayerController->GetHeldWeapon());
+        if (pWeapon && !pWeapon->GetHasProjectiles()) // Ensure the weapon is not a bow
+        {
+            glm::vec2 bossPos = m_pTransform->GetGlobalPosition();
+            glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            float distance = glm::distance(playerPos, bossPos);
+
+            // Apply knockback if the player is within a close range to the boss
+            const float meleeRange = 50.0f; // Define the melee attack range
+            if (distance <= meleeRange)
+            {
+                glm::vec2 knockbackDirection = glm::normalize(playerPos - bossPos);
+                float knockbackForce = 11000.0f;
+
+                m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(knockbackDirection, knockbackForce);
+            }
+        }
     }
 }
 
-void BossController::SummonMinitaur()
+void BossController::CheckWaveProgress(float delta)
 {
+    if (!m_waveActive) return;
 
+    // Wait for wave transition timer
+    if (m_remainingEnemies == 0)
+    {
+        if (m_waveTransitionTimer > 0.0f)
+        {
+            m_waveTransitionTimer -= delta;
+            return;
+        }
+
+        // Move to next wave
+        if (m_currentWave < 3)
+        {
+            m_currentWave++;  // Increment the wave
+            SpawnWave(m_currentWave);
+        }
+        else
+        {
+            // All waves completed
+            m_waveActive = false; // Mark waves as inactive
+            // wolf::Log("All waves cleared! Transitioning to Phase 2...");
+            CleanupPhase1(); // Cleanup Phase 1 specific elements
+            EnterPhase2();
+        }
+    }
 }
 
-void BossController::BlockPlayerAttack()
+// Trigger Wave 1 when player approaches the boss
+void BossController::StartWave()
 {
-
+    if (m_waveActive) return;  // Prevent duplicate wave starts
+    SpawnWave(1);
 }
+
+bool BossController::IsValidSpawnTile(glm::ivec2 tilePos)
+{
+    Tile::type tile = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+    
+    bool isValid = (tile == Tile::BorderedGrass || tile == Tile::Bricks ||
+                    tile == Tile::FloorSmallSquares || tile == Tile::FloorSmallSquaresGold ||
+                    tile == Tile::FloorSpiralGold || tile == Tile::FloorSpiral ||
+                    tile == Tile::FloorSquareGold || tile == Tile::FloorSquare ||
+                    tile == Tile::Grass);
+
+    // wolf::Log("Checking tile at [%d, %d]: Type %d -> %s", tilePos.x, tilePos.y, tile, isValid ? "Valid" : "Invalid");
+
+    return isValid;
+}
+
+
+void BossController::SpawnWave(int waveIndex)
+{
+    m_currentWave = waveIndex;
+    m_waveActive = true;
+    m_waveTransitionTimer = 2.0f;
+    m_enemyIDs.clear();
+
+    if (!m_pLabyrinthManager)
+    {
+        wolf::Error("BossController: LabyrinthManager not set!");
+        return;
+    }
+
+    // Load enemy data
+    EnemyDataLoader loader;
+    loader.LoadAllEnemyData("data/enemies.yaml");
+
+    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
+    EnemyData harpyData = loader.LoadEnemyData("harpy");
+    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+
+    // Scene reference
+    wolf::Scene& scene = GetGameObject()->GetScene();
+
+    // Create builders
+    MinitaurBuilder minitaurBuilder(scene);
+    HarpyBuilder harpyBuilder(scene);
+    GorgonBuilder gorgonBuilder(scene);
+
+    // Define how many enemies per wave
+    int minitaurs = 0, gorgons = 0, harpies = 0;
+    switch (waveIndex)
+    {
+        case 1: minitaurs = 4; harpies = 2; break;
+        case 2: gorgons = 2; harpies = 2; break;
+        case 3: minitaurs = 15; break; // Swarm of minitaurs inside the bossfight room
+    }
+
+    // Get boss position
+    glm::vec2 bossPos = m_pTransform->GetGlobalPosition();
+    glm::ivec2 bossTilePos = m_pLabyrinthManager->GetTilePosition(bossPos);
+
+    // If first wave, determine and save spawn locations
+    static std::vector<glm::vec2> savedMinitaurSpawns;
+    static std::vector<glm::vec2> savedHarpySpawns;
+    
+    // Define Minitaur spawn locations (grouped left & right)
+    if (waveIndex == 1 || savedMinitaurSpawns.empty())
+    {
+        savedMinitaurSpawns.clear();
+        glm::ivec2 leftGroupStart = bossTilePos + glm::ivec2(-4, -3);
+        glm::ivec2 rightGroupStart = bossTilePos + glm::ivec2(4, -3);
+
+        for (int i = 0; i < minitaurs; i++)
+        {
+            glm::ivec2 spawnTile = (i % 2 == 0) ? leftGroupStart + glm::ivec2(i, 0)
+                                                : rightGroupStart + glm::ivec2(i, 0);
+            glm::vec2 spawnPos = m_pLabyrinthManager->GetWorldPosition(spawnTile);
+            if (IsValidSpawnTile(spawnTile)) savedMinitaurSpawns.push_back(spawnPos);
+        }
+    }
+
+    // Define Harpy spawn locations (split left & right)
+    if (waveIndex == 1 || savedHarpySpawns.empty())
+    {
+        savedHarpySpawns.clear();
+        glm::ivec2 leftHarpy = bossTilePos + glm::ivec2(-6, -7);
+        glm::ivec2 rightHarpy = bossTilePos + glm::ivec2(6, -7);
+
+        if (IsValidSpawnTile(leftHarpy))
+            savedHarpySpawns.push_back(m_pLabyrinthManager->GetWorldPosition(leftHarpy));
+        if (IsValidSpawnTile(rightHarpy))
+            savedHarpySpawns.push_back(m_pLabyrinthManager->GetWorldPosition(rightHarpy));
+    }
+
+    // Spawn Minitaurs (use saved positions for later waves)
+    if (waveIndex != 3) // Normal spawning for waves 1 & 2
+    {
+        for (size_t i = 0; i < savedMinitaurSpawns.size() && i < minitaurs; i++)
+        {
+            auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, savedMinitaurSpawns[i]);
+            minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+            m_enemyIDs.insert(minitaur.GetID());
+        }
+    }
+    else // Special spawning for **Wave 3** (random minitaurs inside bossfight room)
+    {
+        int spawned = 0;
+        while (spawned < minitaurs)
+        {
+            glm::vec2 spawnPos = GetRandomValidSpawnPosition();
+            if (spawnPos != glm::vec2(-1, -1)) // Ensure valid position
+            {
+                auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, spawnPos);
+                minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+                minitaur.GetComponent<VelocityComponent>()->ApplyKnockback(glm::vec2(2.0f,0.0f),1.0f);
+                m_enemyIDs.insert(minitaur.GetID());
+                spawned++;
+            }
+        }
+    }
+
+    // Spawn Harpies (use saved positions for later waves)
+    for (size_t i = 0; i < savedHarpySpawns.size() && i < harpies; i++)
+    {
+        auto& harpy = harpyBuilder.BuildHarpy(harpyData, savedHarpySpawns[i]);
+        harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+        m_enemyIDs.insert(harpy.GetID());
+    }
+
+    // Define Gorgon spawn locations **only for wave 2+**
+    if (waveIndex == 2 || waveIndex == 3)
+    {
+        glm::ivec2 leftGorgon = bossTilePos + glm::ivec2(-6, -5);
+        glm::ivec2 rightGorgon = bossTilePos + glm::ivec2(6, -5);
+
+        std::vector<glm::vec2> gorgonSpawns;
+        if (IsValidSpawnTile(leftGorgon))
+            gorgonSpawns.push_back(m_pLabyrinthManager->GetWorldPosition(leftGorgon));
+        if (IsValidSpawnTile(rightGorgon))
+            gorgonSpawns.push_back(m_pLabyrinthManager->GetWorldPosition(rightGorgon));
+
+        for (size_t i = 0; i < gorgonSpawns.size() && i < gorgons; i++)
+        {
+            auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, gorgonSpawns[i]);
+            gorgon.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+            m_enemyIDs.insert(gorgon.GetID());
+        }
+    }
+
+    // Update remaining enemy count
+    m_remainingEnemies = m_enemyIDs.size();
+}
+
+
+
+
+void BossController::CheckEnemyWaveHealth()
+{
+     if (!m_waveActive) return;
+    // Iterate through a copy of the set to avoid modification during iteration
+    std::vector<int> toRemove;
+
+    for (int enemyID : m_enemyIDs)
+    {
+        wolf::GameObject* pEnemy = GetGameObject()->GetScene().GetObject(enemyID);
+
+        // If the object doesn't exist, it has been deleted
+        if (!pEnemy)
+        {
+            toRemove.push_back(enemyID); // Mark for removal
+            m_remainingEnemies--; // Decrement the remaining enemy count
+        }
+    }
+
+    // Remove all deleted enemies from the set
+    for (int enemyID : toRemove)
+    {
+        m_enemyIDs.erase(enemyID);
+    }
+}
+
+glm::vec2 BossController::GetRandomValidSpawnPosition()
+{
+    if (!m_pLabyrinthManager || !m_pTransform)
+    {
+        wolf::Error("BossController: LabyrinthManager or Transform2D is null!");
+        return glm::vec2(-1, -1);
+    }
+
+    // **Get the boss's tile position**
+    glm::vec2 bossWorldPos = m_pTransform->GetGlobalPosition();
+    glm::ivec2 bossTilePos = m_pLabyrinthManager->GetTilePosition(bossWorldPos);
+
+    // wolf::Log("BossController: Boss at tile position: [%d, %d]", bossTilePos.x, bossTilePos.y);
+
+    // **Find the boss's room**
+    std::optional<LabyrinthManager::RoomData> roomDataOpt = m_pLabyrinthManager->GetRoom(bossTilePos);
+    if (!roomDataOpt.has_value())
+    {
+        // wolf::Warning("BossController: No room found for boss tile position!");
+        return glm::vec2(-1, -1);
+    }
+
+    LabyrinthManager::RoomData room = roomDataOpt.value();
+    glm::ivec2 roomMin = room.m_bounds.m_origin;
+    glm::ivec2 roomMax = room.m_bounds.m_origin + room.m_bounds.m_size;
+
+    // wolf::Log("BossController: Room bounds - Min: [%d, %d], Max: [%d, %d]", 
+    //           roomMin.x, roomMin.y, roomMax.x, roomMax.y);
+
+    // **Try generating a valid spawn point within the room**
+    for (int attempts = 0; attempts < 10; ++attempts)
+    {
+        glm::ivec2 spawnTilePos(m_rng.NextInt(roomMin.x, roomMax.x), m_rng.NextInt(roomMin.y, roomMax.y));
+
+        if (IsValidSpawnTile(spawnTilePos))
+        {
+            //Add a half-tile offset to center the spawn position within the tile
+            glm::vec2 worldPos = m_pLabyrinthManager->GetWorldPosition(spawnTilePos) + glm::vec2(48.0f, 48.0f);
+            // wolf::Log("BossController: Spawned enemy at tile [%d, %d], world [%f, %f]", 
+            //           spawnTilePos.x, spawnTilePos.y, worldPos.x, worldPos.y);
+            return worldPos;
+        }
+    }
+
+    // wolf::Warning("BossController: No valid spawn tile found after 10 attempts!");
+    return glm::vec2(-1, -1);
+}
+
+
+void BossController::RenderImGui()
+{
+    if (!m_waveActive) return; // Only render during waves
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImVec2 displaySize = io.DisplaySize;
+
+    // Glow effect (static colors for a clean and consistent look)
+    ImVec4 waveGlow = ImVec4(1.0f, 0.3f, 0.3f, 1.0f);  // Bright red glow for wave text
+    ImVec4 enemiesGlow = ImVec4(0.3f, 0.9f, 1.0f, 1.0f); // Bright cyan glow for enemies text
+
+    // Add some subtle gradient-like styles for fun
+    ImVec4 backgroundColor = ImVec4(0.0f, 0.0f, 0.2f, 0.6f); // Dark blue with transparency
+    ImVec4 borderColor = ImVec4(1.0f, 0.5f, 0.0f, 1.0f);     // Bright orange for a striking border
+
+    // Push custom styles
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 6));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f); // Thicker border for emphasis
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, backgroundColor);
+    ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
+
+    // **Wave Text**
+    ImVec2 wavePos = ImVec2(displaySize.x * 0.5f, 40.0f);  // Top-center of the screen
+    ImGui::SetNextWindowPos(wavePos, ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    ImGui::Begin("WaveText", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::PushStyleColor(ImGuiCol_Text, waveGlow);
+    ImGui::Text("Wave %d", m_currentWave);
+    ImGui::PopStyleColor();
+    ImGui::End();
+
+    // **Enemies Remaining Text**
+    ImVec2 enemiesPos = ImVec2(displaySize.x * 0.5f, 80.0f);  // Slightly below wave text
+    ImGui::SetNextWindowPos(enemiesPos, ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    ImGui::Begin("EnemiesText", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::PushStyleColor(ImGuiCol_Text, enemiesGlow);
+    ImGui::Text("Enemies Remaining: %d", m_remainingEnemies);
+    ImGui::PopStyleColor();
+    ImGui::End();
+
+    // Pop styles to clean up
+    ImGui::PopStyleColor(2); // Pop WindowBg and Border colors
+    ImGui::PopStyleVar(3);   // Pop WindowPadding, WindowRounding, and FrameBorderSize
+}
+
+
 
 // <----------------- PHASE 2 METHODS ----------------->
 
@@ -173,32 +653,240 @@ void BossController::EnterPhase2()
 {
     m_phase = FightPhase::PHASE_2;
     m_state = State::APPROACH;
-
-    // TODO: Phase 2 initialization logic
+    m_axeAttackTimer.Restart();
+    m_pHealth->SetActive(true);
+    m_pVelocity->SetKnockbackEnabled(true);
 }
 
 void BossController::UpdatePhase2(float delta)
 {
-    // TODO: Phase 2 update logic:
-    // - Approach player and strafe when in neutral
-    // - If player attacks and we are idle, attempt to dodge
-    // - Periodically execute axe attack patterns
+    // Timing variables
+    static float nextStrafeSwap = 1.0f;
+    static float nextAttackTime = 1.0f;
 
-    if (m_pHealth->GetHealth() < m_maxHealth / 3)
+    // Query player spatial info
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 toPlayer = playerPos - m_pTransform->GetGlobalPosition();
+    float distToPlayer = glm::length(toPlayer);
+    glm::vec2 dirToPlayer = glm::normalize(toPlayer);
+
+    // Get rotated direction
+    glm::mat4 rotation = glm::rotate(glm::radians(m_strafeClockwise ? 90.0f : -90.0f), glm::vec3(0, 0, 1));
+    glm::vec2 rotated = glm::vec2(rotation * glm::vec4(dirToPlayer.x, dirToPlayer.y, 0, 1));
+
+    // Query player controller state
+    bool playerAttacking = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING;
+
+    // Update axe if it exists
+    if (m_pAxeCollider)
     {
-        // TODO: Exit phase 2 logic
+        // Calculate vector from axe to player
+        glm::vec2 axePos = m_pAxeCollider->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 axeToPlayer = glm::normalize(playerPos - axePos);
+        
+        // Check for player collision
+        auto* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
+        if (pPlayerCollider->IsHurtbox() && ColliderManager::StaticMethodIsColliding(*m_pAxeCollider, *pPlayerCollider, delta))
+        {
+            auto* pPlayerHealth = m_pPlayerObject->GetComponent<HealthComponent>();
+            auto* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
+            if (pPlayerHealth && pPlayerVel)
+            {
+                pPlayerHealth->Damage(m_axeAttackDamage);
+                pPlayerVel->ApplyKnockback(axeToPlayer, 4500.0f);
+            }
+        }
+
+        // Collect axe and return to state
+        if (m_axeAttackTimer.Elapsed() > 1.0f && glm::distance(axePos, m_pTransform->GetGlobalPosition()) < 128.0f)
+        {
+            m_pAxeCollider->GetGameObject()->Delete();
+            m_pAxeCollider = nullptr;
+            m_state = State::APPROACH;
+            m_axeAttackTimer.Restart();
+            m_axeSummoned = false;
+            m_pAnimSprite->SetTint(glm::vec3(1.0f));
+        }
+    }
+
+    // Update based on state
+    switch (m_state)
+    {
+        case State::APPROACH:
+
+            // Dodge player attack
+            if (playerAttacking && (distToPlayer < m_maxDistToPlayer || m_pPlayerController->GetHeldWeapon()->GetWeaponType() == WeaponType::BOW))
+            {
+                DodgePlayerAttack(dirToPlayer);
+                break;
+            }
+
+            // Start axe attack
+            if (m_axeAttackTimer.Elapsed() > nextAttackTime)
+            {
+                StartAxeAttack();
+                nextAttackTime = m_rng.NextFloat(2.0f, 6.0f);
+                break;
+            }
+
+            // Normal approach logic
+            if (distToPlayer > m_maxDistToPlayer)
+            {
+                // Approach player
+                m_pVelocity->SetVelocity(dirToPlayer * m_chaseSpeed);
+            }
+            else if (distToPlayer < m_minDistToPlayer)
+            {
+                // Back away from player
+                m_pVelocity->SetVelocity(-dirToPlayer * m_chaseSpeed);
+            }
+            else
+            {
+                // Switch to strafe state if within proper range
+                m_state = State::STRAFE;
+                m_strafeSwapTimer.Restart();
+            }
+
+            break;
+        
+        case State::STRAFE:
+        {
+            // Randomly change strafe direction
+            if (!m_strafeSwapTimer.IsRunning())
+            {
+                m_strafeSwapTimer.Restart();
+                nextStrafeSwap = m_rng.NextFloat(0.5f, 5.0f);
+            }
+            if (m_strafeSwapTimer.Elapsed() >= nextStrafeSwap)
+            {
+                m_strafeClockwise = !m_strafeClockwise;
+                m_strafeSwapTimer.Reset();
+            }
+            
+            // Move along strafe direction
+            m_pVelocity->SetVelocity(rotated * m_strafeSpeed);
+
+            // Switch back to approach if necessary
+            if (distToPlayer > m_maxDistToPlayer || distToPlayer < m_minDistToPlayer)
+            {
+                m_state = State::APPROACH;
+                break;
+            }
+
+            // Dodge player attack
+            if (playerAttacking)
+            {
+                DodgePlayerAttack(dirToPlayer);
+                break;
+            }
+
+            // Start axe attack
+            if (m_axeAttackTimer.Elapsed() > nextAttackTime)
+            {
+                StartAxeAttack();
+                nextAttackTime = m_rng.NextFloat(2.0f, 6.0f);
+                break;
+            }
+
+            break;
+        }
+
+        case State::DODGE:
+
+            // Return to approach state
+            if (m_dodgeTimer.Elapsed() > 0.6f)
+            {
+                m_state = State::APPROACH;
+                m_dodgeTimer.Reset();
+                m_pAnimSprite->SetTint(glm::vec3(1.0f));
+            }
+
+            break;
+        
+        case State::AXE_ATTACK:
+
+            if (!m_axeSummoned)
+            {
+                // Update tint for tell
+                m_pAnimSprite->SetTint(glm::vec3(1.0f) * (float)(m_axeAttackTimer.Elapsed() + 1.0f));
+
+                // Spawn projectile
+                if (m_axeAttackTimer.Elapsed() > 1.0f)
+                {
+                    // Update timer and flag
+                    m_axeAttackTimer.Restart();
+                    m_axeSummoned = true;
+                    m_pAnimSprite->SetTint(glm::vec3(1.0f));
+
+                    // Create the axe object
+                    auto& axe = GetGameObject()->GetScene().CreateObject2D();
+                    auto& transform = *axe.GetComponent<wolf::Transform2D>();
+                    transform.SetPosition(m_pTransform->GetGlobalPosition());
+                    transform.SetScale(glm::vec2(3.0f));
+                    auto& velocity = axe.AddComponent<VelocityComponent>();
+                    velocity.SetVelocity(dirToPlayer * 640.0f);
+                    auto& sprite = axe.AddComponent<AnimatedSprite2D>("data/axe_spin_anim_init.yaml");
+                    sprite.SetOriginToCenterOfFrame();
+                    auto& homing = axe.AddComponent<HomingComponent>(GetGameObject(), 8.0f, 0.1f);
+                    m_pAxeCollider = &axe.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, false, false);
+                    m_pAxeCollider->AddColliderBox(glm::vec2(224), glm::vec2(-112, 112));
+
+                    // Change state
+                    m_state = State::APPROACH;
+                }
+            }
+            else
+            {
+                // We shouldn't reach here anyway, but safety!
+                m_state = State::APPROACH;
+            }
+
+            break;
+    }
+
+    // Under half health, change to phase 3
+    if (m_pHealth->GetHealth() <= m_maxHealth / 2)
+    {
+        // Cleanup
+        if (m_pAxeCollider)
+        {
+            m_pAxeCollider->GetGameObject()->Delete();
+            m_pAxeCollider = nullptr;
+        }
+
+        m_pAnimSprite->SetTint(glm::vec3(1.0f));
+
         EnterPhase3();
     }
 }
 
 void BossController::StartAxeAttack()
 {
+    // Can't spawn multiple axes!
+    if (m_pAxeCollider) return;
 
+    // Change state
+    m_state = State::AXE_ATTACK;
+    m_axeAttackTimer.Restart();
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
 }
 
-void BossController::DodgePlayerAttack()
+void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)
 {
+    // Change state
+    m_state = State::DODGE;
+    m_dodgeTimer.Restart();
+    m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 0.0f));
 
+    // Get randomly rotated direction
+    glm::mat4 rotation = glm::rotate(glm::radians(m_rng.FlipCoin() ? 90.0f : -90.0f), glm::vec3(0, 0, 1));
+    glm::vec2 rotated = glm::vec2(rotation * glm::vec4(dirToPlayer.x, dirToPlayer.y, 0, 1));
+
+    // Dodge away from player for melee, dodge sideways for the bow
+    WeaponItem* pWeapon = m_pPlayerController->GetHeldWeapon();
+    m_dodgeDir = (pWeapon && pWeapon->GetWeaponType() == WeaponType::BOW) ? -rotated : -dirToPlayer;
+    m_pVelocity->SetVelocity(m_dodgeDir * m_chaseSpeed * 1.4f);
 }
 
 // <----------------- PHASE 3 METHODS ----------------->
@@ -206,10 +894,7 @@ void BossController::DodgePlayerAttack()
 void BossController::EnterPhase3()
 {   
     m_phase = FightPhase::PHASE_3;
-    m_state = State::SEARCHING;
-
-    m_active = true;
-
+    ChangeStatesPhase3(State::SEARCHING);
     // TODO: Phase 3 initialization logic
 }
 
@@ -219,7 +904,6 @@ void BossController::UpdatePhase3(float delta)
     // - Stand in place and search for player when in neutral (can only see forward, rotate around?)
     // - When player found, if close, do fire breath attack
     // - if far away, do charge attack
-
     if (m_pHealth->GetHealth() <= 0 && m_state != State::DEAD)
     {
         m_state = State::DEAD;
@@ -241,6 +925,7 @@ void BossController::UpdatePhase3(float delta)
 
         case State::FIRE_BREATH_ATTACK:
         {
+            AttackFireBreath(delta);
             break;
         }
 
@@ -281,6 +966,10 @@ void BossController::ChangeStatesPhase3(State p_state)
             EndChargeAttack();
             break;
         }
+        case State::FIRE_BREATH_ATTACK:
+        {
+            break;
+        }
         default:
         break;
     }
@@ -319,12 +1008,25 @@ void BossController::Search(float delta)
         glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
         float playerDistance = glm::distance(thisPos, playerPos);
+
+        m_searchTimer = 4.0f;
         
-        if(playerDistance <= m_chargeAttackRange)
+        // Decide next attack
+        int rngInt = m_rng.NextInt(1, 10);
+
+        // Fire breath
+        if(rngInt <= 5)
+        {
+            ChangeStatesPhase3(State::FIRE_BREATH_ATTACK);
+            return;
+        }
+        
+        // Charge
+        else
         {
             ChangeStatesPhase3(State::CHARGE_ATTACK);
+            return;
         }
-        m_searchTimer = 5.0f;
     }
     else
     {
@@ -386,13 +1088,139 @@ void BossController::Stunned(float delta)
 
 void BossController::StartFireBreathAttack()
 {
+    m_fireBreathWindupTimer = m_fireBreathWindupTime;
+    m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 
+    m_fireBreathDuration = 7.0f;
+    GetGameObject()->GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    m_lastDirection = glm::normalize(playerPos - thisPos);
+}
+
+void BossController::AttackFireBreath(float delta)
+{
+    // If windup expired
+    if(m_fireBreathWindupTimer <= 0.0f)
+    {
+        // If fire breath expired, change state to search
+        if(m_fireBreathDuration <= 0.0f)
+        {
+            ChangeStatesPhase3(State::SEARCHING);
+            return;    
+        }
+
+        // Update attack timer & state
+        m_fireBreathDuration -= delta;
+
+        // Get data
+        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 endPos = thisPos + m_lastDirection * m_fireBreathRange;
+
+        // Add fire range indicator
+        GLShapesRenderer::GetInstance()->AddLine({thisPos.x, thisPos.y, 1, 0, 0 , 1}, {endPos.x, endPos.y, 1, 0, 0 , 1});
+
+        // If turning delay expired
+        if(this->m_fireBreathTurningTimer >= this->m_fireBreathTurningDelay)
+        {
+            // Turn towards player
+            TurnToPlayer(delta);
+            
+            // Get all tiles burnt
+            std::vector<glm::ivec2> tiles = DDACalculator::GetInstance()->GetTraversedTiles(thisPos, endPos, true);
+
+            // Add fire tiles
+            for (glm::ivec2 tile : tiles)
+            {
+                TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
+            }
+
+            // Reset timer
+            this->m_fireBreathTurningTimer = 0.0f;
+        }
+        else
+        {
+            this->m_fireBreathTurningTimer += delta;
+        }
+    }
+    else
+    {
+        m_fireBreathWindupTimer -= delta;
+        
+        // If entering attack
+        if(m_fireBreathWindupTimer <= 0.0f)
+        {
+            m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+
+        }
+        // If still windup
+        else
+        {
+            glm::vec3 currentTint = m_pAnimSprite->GetTint();
+            glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_fireBreathWindupTime * 0.5f), 0.0f, 0.0f);
+            m_pAnimSprite->SetTint(nextTint);
+        }        
+    }
+}
+
+void BossController::TurnToPlayer(float delta)
+{
+    // Get data
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+    float playerDistance = glm::length(thisPos - playerPos);
+    
+    if(playerDistance > 0.0f)
+    {
+        glm::vec2 playerDirection = glm::normalize(playerPos - thisPos);   
+        
+        if(m_lastDirection == playerDirection)
+        {
+            return;
+        }
+        
+        // Calculate angle 
+        float dotProduct = glm::dot(m_lastDirection, playerDirection);
+        float cos = glm::clamp(dotProduct, -1.0f, 1.0f);
+        float radAngle = glm::acos(cos);
+
+        // If turning angle is smaller than cap
+        if(std::abs(radAngle) <= std::abs(m_fireBreathTurningCapRadian))
+        {
+            m_lastDirection = playerDirection;
+        }
+
+        else
+        {
+            // Calculate rotation side
+            float side = glm::cross(glm::vec3(m_lastDirection.x, m_lastDirection.y, 0), glm::vec3(playerDirection.x, playerDirection.y, 0)).z;
+            glm::vec2 newDirection = glm::vec2(0.0f, 0.0f);
+
+            float capSin = glm::sin(m_fireBreathTurningCapRadian);
+            float capCos = glm::cos(m_fireBreathTurningCapRadian);
+            // Left
+            if(side >= 0.0f)
+            {
+                newDirection.x = m_lastDirection.x * capCos - m_lastDirection.y * capSin;
+                newDirection.y = m_lastDirection.y * capCos + m_lastDirection.x * capSin;
+            }
+            // Right
+            else
+            {
+                newDirection.x = m_lastDirection.x * capCos + m_lastDirection.y * capSin;
+                newDirection.y = m_lastDirection.y * capCos - m_lastDirection.x * capSin;
+            }
+
+            m_lastDirection = newDirection;
+        }
+    }
 }
 
 void BossController::StartChargeAttack()
 {
     m_chargeWindupTimer = m_chargeWindupTime;
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+    m_pVelocity->SetKnockbackEnabled(false);
 }
 
 void BossController::AttackCharge(float delta)
@@ -462,13 +1290,12 @@ void BossController::AttackCharge(float delta)
             glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_chargeWindupTime * 0.5f));
             m_pAnimSprite->SetTint(nextTint);
         }
-
     }
-    
 }
 
 void BossController::EndChargeAttack()
 {
+    m_pVelocity->SetKnockbackEnabled(true);
     m_pHoming->SetActive(false);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 

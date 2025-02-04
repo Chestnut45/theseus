@@ -1,8 +1,11 @@
 #pragma once
-
 #include <W_BaseComponent.h>
 #include <glm/glm.hpp>
+#include <W_RNG.h>
 
+#include <glm/vec2.hpp>
+#include <W_Timer.h>
+#include <unordered_set>
 // Forward declarations
 class VelocityComponent;
 class AnimatedSprite2D;
@@ -11,6 +14,7 @@ class StatusComponent;
 class ColliderComponent;
 class HomingComponent;
 class PlayerController;
+class LabyrinthManager;
 
 // NOTE: You can only forward declare from within the same namespace
 namespace wolf
@@ -85,6 +89,12 @@ private:
     wolf::GameObject* m_pPlayerObject = nullptr;
     PlayerController* m_pPlayerController = nullptr;
 
+    //labyrinth reference (needed for spawns)
+    LabyrinthManager* m_pLabyrinthManager = nullptr;
+
+    // Utility members
+    wolf::RNG m_rng;
+
     // NOTE: All stats are initialized in Init() so changes only cause a single file to recompile
 
     // General stats
@@ -94,32 +104,58 @@ private:
     // Phase 1 stats
     int m_throneBlockRange;
     int m_numSummons;
+    float m_forcefieldRadius;  // Defines the range where the forcefield affects the player
+    float m_slowdownFactor;      // Reduces the player's velocity when inside the forcefield
+
+    int m_currentWave;
+    int m_remainingEnemies;
+    float m_waveTransitionTimer;
+    bool m_waveActive;
+    std::unordered_set<int> m_enemyIDs;
+    
+
 
     // Phase 2 stats
     int m_axeAttackDamage;
     int m_axePunishDamage;
     int m_minDistToPlayer;
     int m_maxDistToPlayer;
+    bool m_strafeClockwise;
+    bool m_axeSummoned;
+    float m_strafeSpeed;
+    float m_chaseSpeed;
+    wolf::Timer m_dodgeTimer;
+    wolf::Timer m_strafeSwapTimer;
+    wolf::Timer m_axeAttackTimer;
+    glm::vec2 m_dodgeDir;
+    ColliderComponent* m_pAxeCollider = nullptr;
 
     // Phase 3 stats
-    int m_fireBreathDamage;
-    int m_fireBreathRange;
+    float m_fireBreathWindupTime;   // Fire breath state members
+    float m_fireBreathWindupTimer;
+    glm::vec3 m_fireBreathWindupTint;
+    int m_fireBreathDamage;     
+    float m_fireBreathRange;
+    float m_fireBreathDuration;
+    float m_fireBreathTurningCapRadian;
+    float m_fireBreathTurningDelay;
+    float m_fireBreathTurningTimer;
+    glm::vec2 m_lastDirection;
 
-    int m_chargeAttackDamage;
+    int m_chargeAttackDamage;       // Charge state members
     int m_chargeAttackRange;
-    float m_stunTime;
-
     float m_chargeWindupTime;
     float m_chargeWindupTimer;
     glm::vec3 m_chargeWindupTint;
-
     float m_chargeTurningCapDegree;
     float m_chargeTurningDelay;
     float m_chargeSpeed;
     float m_chargeKnockbackForce;
     int m_chargeChainCount;
 
-    float m_searchSpeed;
+    float m_stunTime;               // Stun state members
+
+    float m_searchSpeed;            // Search state members
     float m_searchTimer;
 
     // Updates the animated sprite based on state,
@@ -129,14 +165,23 @@ private:
     // Phase 1 methods
     void EnterPhase1();
     void UpdatePhase1(float delta);
-    void SummonMinitaur();
-    void BlockPlayerAttack();
+    void HandleForcefield(float delta);
+    void HandleKnockBackCollision(float delta);
+    void StartWave();
+    void SpawnWave(int waveIndex);
+    void CheckWaveProgress(float delta);
+    void CheckEnemyWaveHealth();
+    glm::vec2 GetRandomValidSpawnPosition();
+    void RenderImGui();
+    bool IsValidSpawnTile(glm::ivec2 tilePos);
+    void CleanupPhase1();
+
 
     // Phase 2 methods
     void EnterPhase2();
     void UpdatePhase2(float delta);
     void StartAxeAttack();
-    void DodgePlayerAttack();
+    void DodgePlayerAttack(const glm::vec2& dirToPlayer);
 
     // Phase 3 methods
     void EnterPhase3();
@@ -150,7 +195,9 @@ private:
     void Stunned(float delta);
 
     void StartFireBreathAttack();
-    
+    void AttackFireBreath(float delta);
+    void TurnToPlayer(float delta);
+
     void StartChargeAttack();
     void AttackCharge(float delta);
     void EndChargeAttack();
