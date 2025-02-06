@@ -97,7 +97,7 @@ void Scene::Update(float delta)
     }
 }
 
-void Scene::Render()
+void Scene::Render(float delta)
 {
     if (!m_pActiveCamera) return;
 

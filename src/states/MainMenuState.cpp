@@ -76,7 +76,7 @@ void MainMenuState::Update(float delta)
     ImGui::SetCursorPosY(dimensions.y * 0.75f);
     if (ImGui::Button("Play", {buttonWidth, buttonHeight}))
     {
-        m_pStateManager->PushState(new PlayState(m_pStateManager, m_pGameInstance, &m_pGameInstance->GetDialogueManager()));
+        m_pStateManager->PushState(new PlayState(m_pStateManager, m_pGameInstance));
     }
 
     ImGui::SetCursorPosX((dimensions.x - 4*buttonWidth) * 0.5f);
@@ -100,7 +100,7 @@ void MainMenuState::Update(float delta)
     ImGui::End();
 }
 
-void MainMenuState::Render()
+void MainMenuState::Render(float delta)
 {
 }
 
@@ -108,6 +108,6 @@ void MainMenuState::BackgroundUpdate(float delta)
 {
 }
 
-void MainMenuState::BackgroundRender()
+void MainMenuState::BackgroundRender(float delta)
 {
 }

@@ -36,6 +36,7 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+    
  
     this->m_pColliderManager = new ColliderManager(&scene);
 
@@ -54,6 +55,7 @@ void PlayState::Enter()
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     m_pLabyrinthManager->GenerateLabyrinth();
 
     GLShapesRenderer::CreateInstance();
@@ -90,12 +92,14 @@ void PlayState::Enter()
 
         // Grab pointer to boss controller
         m_pBoss = &bossObject;
+        m_pGameInstance->GetSharedContext().RegisterEntity("Minotaur", m_pBoss->GetID());
 
         break;
     }
+    
 
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
-    NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+    
 
     // CreateThrowableObject();
     
@@ -133,6 +137,80 @@ void PlayState::Enter()
     // this->CreateHarpyEnemy();
     // this->CreateGorgonEnemy();
     this->CreateTrappedChest();
+
+    glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
+    wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
+
+    // Track all Minotaurs and their positions
+    std::unordered_map<MinitaurController*, glm::vec2> minitaurPositions;
+
+    // Find all "Basic Fight Rooms" and record Minotaurs' positions
+    for (const auto& room : m_pLabyrinthManager->GetRooms())
+    {
+        if (room.m_name == "Basic Fight Rooms")
+        {
+            glm::vec2 roomCenter = m_pLabyrinthManager->GetWorldPosition(glm::vec2(room.m_bounds.m_origin)) +
+                                   glm::vec2(room.m_bounds.m_size) * 0.5f;
+
+            // Record all Minotaurs in the room
+            for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
+            {
+                glm::vec2 minitaurPos = glm::vec2(minitaurController.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+                float distanceToRoom = glm::distance(roomCenter, minitaurPos);
+
+                // Ensure the Minotaur is within this room
+                if (distanceToRoom < glm::length(glm::vec2(room.m_bounds.m_size)) * LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE)
+                {
+                    minitaurPositions[&minitaurController] = minitaurPos;
+                }
+            }
+        }
+    }
+
+    if (minitaurPositions.empty())
+    {
+        wolf::Log("No Minotaurs found in Basic Fight Rooms!");
+        return;
+    }
+
+    // Find the closest Minotaur to the player
+    MinitaurController* closestMinitaur = nullptr;
+    float closestDistanceToPlayer = std::numeric_limits<float>::max();
+
+    for (const auto& [minitaurController, position] : minitaurPositions)
+    {
+        float distanceToPlayer = glm::distance(playerPosition, position);
+        if (distanceToPlayer < closestDistanceToPlayer)
+        {
+            closestMinitaur = minitaurController;
+            closestDistanceToPlayer = distanceToPlayer;
+        }
+    }
+
+    if (!closestMinitaur)
+    {
+        // wolf::Log("Failed to find the closest Minotaur to the player!");
+        return;
+    }
+
+    // Register the closest Minotaur in the shared context
+    m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
+    m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
+
+
+    // Trigger the intro dialogue and cutscene
+
+    // Log success
+    // wolf::Log("Successfully found and registered the closest Minotaur to the player.");
+    // Schedule her movement
+    auto* transform = ariadne.GetComponent<wolf::Transform2D>();
+    if (transform) {
+        glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
+        transform->SetPosition(newPosition);
+    }
+    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+
+
 
     // Create a test light
     wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
@@ -598,13 +676,13 @@ void PlayState::Update(float delta)
     // ImGui::ShowDemoWindow();
 }
 
-void PlayState::Render()
+void PlayState::Render(float delta)
 {
     // Render the game's scene
-    m_pGameInstance->GetScene().Render();
+    m_pGameInstance->GetScene().Render(delta);
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
-        playerController->Render();
+        playerController->Render(delta);
     
     // Render damage indicators
     for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>())
@@ -618,7 +696,7 @@ void PlayState::Render()
         status.RenderPlayerSEIcons();
     }
 
-    RenderMinimap();
+    RenderMap();
     GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
     GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
 }
@@ -629,9 +707,9 @@ void PlayState::BackgroundUpdate(float delta)
         m_pLabyrinthManager->ShowGUI();
 }
 
-void PlayState::BackgroundRender()
+void PlayState::BackgroundRender(float delta)
 {
-    m_pGameInstance->GetScene().Render();
+    m_pGameInstance->GetScene().Render(delta);
 }
 
 void PlayState::CreatePlayer()
@@ -653,7 +731,7 @@ void PlayState::CreatePlayer()
     collider.AddColliderBox(glm::vec2(7.0f, 10.0f), glm::vec2(-4.0f, -3.0f));
 
     // Add health
-    auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
+    auto& health = m_pPlayerObject->AddComponent<HealthComponent>(800);
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
@@ -792,7 +870,7 @@ void PlayState::CreateThrowableObject()
 }
 
 void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {
-    std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
+    // std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
 
     // Push the DialogueAndCutsceneState onto the game state stack
     auto* dialogueAndCutsceneState = new DialogueAndCutsceneState(m_pStateManager, m_pGameInstance, event.dialogueFilePath, event.triggerNPCID);
@@ -1016,6 +1094,7 @@ glm::vec2 ToGLMVec2(const ImVec2& vec) {
 
 ImU32 GetTileColor(int tileID) {
     switch (tileID) {
+        // Walls
         case Tile::WallBottomLeft:
         case Tile::WallBottomRight:
         case Tile::WallBottom:
@@ -1032,133 +1111,188 @@ ImU32 GetTileColor(int tileID) {
         case Tile::WallTopLeft:
         case Tile::WallTopRight:
         case Tile::WallTop:
-            return IM_COL32(60, 60, 60, 255); // Walls
+            return IM_COL32(90, 90, 90, 255); // Dark Gray for Walls
+
+        // Floors and Bricks (Unified color with slight variations)
         case Tile::BorderedGrass:
         case Tile::Bricks:
-            return IM_COL32(180, 140, 90, 255); // Bricks/Grass
         case Tile::FloorSmallSquares:
-            return IM_COL32(140, 140, 140, 255); // Small Squares
+        case Tile::FloorSquare:
+        case Tile::FloorSpiral:
+            return IM_COL32(200, 200, 200, 255); // Soft Neutral Gray
+
+        // Gold Floors (Toned down)
         case Tile::FloorSmallSquaresGold:
         case Tile::FloorSquareGold:
         case Tile::FloorSpiralGold:
-            return IM_COL32(220, 180, 50, 255); // Gold Floors
-        case Tile::FloorSquare:
-        case Tile::FloorSpiral:
-            return IM_COL32(160, 160, 160, 255); // Normal Floors
+            return IM_COL32(220, 185, 60, 255); // Subtle Gold
+
+        // Grass
         case Tile::Grass:
-            return IM_COL32(50, 180, 50, 255); // Grass
+            return IM_COL32(34, 139, 34, 255); // Forest Green for Grass
+
+        // Default color
         default:
-            return IM_COL32(100, 100, 100, 255); // Default Color
+            return IM_COL32(128, 128, 128, 255); // Mid Gray for Default/Unknown Tiles
     }
 }
 
+void PlayState::RenderMap() {
+    static float defaultZoomScale = 0.5f; // Default zoom level when not expanded
+    static float expandedZoomScale = 1.0f; // Persisted zoom level for expanded map
+    static bool isExpandedPrev = false; // Tracks if the map was expanded in the previous frame
 
-void PlayState::RenderMinimap() {
-    static float zoomScale = 1.0f;
-
-    // Handle scroll wheel input for zooming
+    // Determine the zoom level based on whether the map is expanded
     if (m_isMapExpanded) {
         float scrollDelta = ImGui::GetIO().MouseWheel;
-        zoomScale += scrollDelta * 0.1f; // Adjust zoom increment
-        zoomScale = glm::clamp(zoomScale, 0.5f, 2.0f); // Limit zoom range
+        expandedZoomScale = glm::clamp(expandedZoomScale + scrollDelta * 0.1f, 0.2f, 2.0f); // Adjust expanded zoom
     }
 
-    // Determine minimap configuration
-    const float minimapRadius = m_isMapExpanded ? 300.0f : 100.0f;
-    const float labyrinthScale = (m_isMapExpanded ? zoomScale : 0.2f);
+    // Update the zoom scale and reset if switching between states
+    float zoomScale = m_isMapExpanded ? expandedZoomScale : defaultZoomScale;
 
-    // Set the center of the map
-    ImVec2 minimapCenter = m_isMapExpanded
-        ? ImVec2(ImGui::GetIO().DisplaySize.x / 2.0f, ImGui::GetIO().DisplaySize.y / 2.0f)
-        : ImVec2(ImGui::GetIO().DisplaySize.x - minimapRadius - 20.0f, 20.0f + minimapRadius);
+    if (!m_isMapExpanded && isExpandedPrev) {
+        defaultZoomScale = glm::clamp(expandedZoomScale * 0.5f, 0.2f, 1.0f); // Adjust default zoom to see more
+    }
+    isExpandedPrev = m_isMapExpanded;
 
-    // Get player position and chunk
-    const glm::vec2 playerPosition = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::ivec2 playerChunkID = m_pLabyrinthManager->GetChunkID(playerPosition);
+    // Define map dimensions and scaling
+    const float mapSize = m_isMapExpanded ? 600.0f : 300.0f; // Larger default map size for expanded view
+    const float labyrinthScale = zoomScale;
 
-    // Calculate visible chunks
-    const int chunkRadius = std::ceil(minimapRadius / (LabyrinthManager::CHUNK_SIZE * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE));
+    // Determine map position (top-right when small, center when expanded)
+    const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    const ImVec2 mapPosition = m_isMapExpanded
+        ? ImVec2((displaySize.x - mapSize) * 0.5f, (displaySize.y - mapSize) * 0.5f) // Centered
+        : ImVec2(displaySize.x - mapSize - 20.0f, 20.0f); // Top-right corner
 
-    // Begin ImGui rendering
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    ImGui::SetNextWindowSize(ImVec2(2 * minimapRadius, 2 * minimapRadius));
-    ImGui::SetNextWindowPos(ImVec2(minimapCenter.x - minimapRadius, minimapCenter.y - minimapRadius));
-    ImGui::Begin("Minimap###AlwaysVisible", nullptr,
+    // Get player transform component and compute adjusted position
+    const auto* playerTransform = m_pPlayerObject->GetComponent<wolf::Transform2D>();
+    assert(playerTransform != nullptr && "Player Transform2D component is missing!");
+    const glm::vec2 playerPosition = playerTransform->GetGlobalPosition() + glm::vec2(-48.0f, -60.0f);
+
+    // Precompute constants for rendering
+    const float tileWorldSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    const float halfTileSizeScaled = (tileWorldSize * labyrinthScale) * 0.5f;
+    const float mapCenterX = mapPosition.x + mapSize / 2.0f;
+    const float mapCenterY = mapPosition.y + mapSize / 2.0f;
+    const glm::ivec2 playerChunk = glm::ivec2(playerPosition / (tileWorldSize * LabyrinthManager::CHUNK_SIZE));
+
+    // Start ImGui rendering
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 255, 255, 255));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 255));
+    ImGui::SetNextWindowSize(ImVec2(mapSize, mapSize));
+    ImGui::SetNextWindowPos(mapPosition);
+    ImGui::Begin("ChunkMap###AlwaysVisible", nullptr,
                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
-                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs |
-                 ImGuiWindowFlags_NoBackground);
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-    ImVec2 windowPos = ImGui::GetWindowPos();
-    ImVec2 center = ImVec2(windowPos.x + minimapRadius, windowPos.y + minimapRadius);
-    glm::vec2 centerGLM = ToGLMVec2(center);
 
-    // Clip rendering to the circular area
-    drawList->PushClipRect(
-        ImVec2(center.x - minimapRadius, center.y - minimapRadius),
-        ImVec2(center.x + minimapRadius, center.y + minimapRadius),
-        true // Intersect with existing clip rect
-    );
+    // Helper lambda for rendering tiles
+    auto renderTile = [&](const glm::vec2& worldPos, ImU32 color) {
+        glm::vec2 relativePos = (worldPos - playerPosition) * labyrinthScale;
+        relativePos.y = -relativePos.y; // Invert Y-axis for rendering
+        const ImVec2 min(mapCenterX + relativePos.x - halfTileSizeScaled, 
+                         mapCenterY + relativePos.y - halfTileSizeScaled);
+        const ImVec2 max(mapCenterX + relativePos.x + halfTileSizeScaled, 
+                         mapCenterY + relativePos.y + halfTileSizeScaled);
+        drawList->AddRectFilled(min, max, color);
+        drawList->AddRect(min, max, IM_COL32(100, 100, 100, 255), 0.0f, 0, 1.0f);
+    };
 
-    // Draw circular boundary
-    drawList->AddCircleFilled(center, minimapRadius, IM_COL32(30, 30, 30, 220)); // Background
-    drawList->AddCircle(center, minimapRadius, IM_COL32(255, 255, 255, 255), 64, 3.0f); // Border
-
-    // Render visible chunks
-    for (int cx = -chunkRadius; cx <= chunkRadius; ++cx) {
-        for (int cy = -chunkRadius; cy <= chunkRadius; ++cy) {
-            glm::ivec2 chunkID = playerChunkID + glm::ivec2(cx, cy);
-            wolf::GameObject* chunk = m_pLabyrinthManager->GetChunk(chunkID);
-            if (!chunk) continue; // Skip non-existent chunks
-
-            // Render tiles within the chunk
-            for (int tx = 0; tx < LabyrinthManager::CHUNK_SIZE; ++tx) {
-                for (int ty = 0; ty < LabyrinthManager::CHUNK_SIZE; ++ty) {
-                    glm::ivec2 tilePos = chunkID * LabyrinthManager::CHUNK_SIZE + glm::ivec2(tx, ty);
-                    int tileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
-                    if (tileID == Tile::Empty || tileID < 0) continue; // Skip invalid or empty tiles
-
-                    // Calculate relative position
-                    glm::vec2 tileWorldPos = glm::vec2(
-                        tilePos.x * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE,
-                        tilePos.y * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE
-                    );
-                    glm::vec2 relativePos = (tileWorldPos - playerPosition) * labyrinthScale;
-                    relativePos.y = -relativePos.y; // Invert Y-axis for rendering
-                    if (glm::length(relativePos) > minimapRadius) continue;
-
-                    // Render tile
-                    ImVec2 tileScreenPos = ToImVec2(centerGLM + relativePos);
-                    float tileSize = 6.0f * labyrinthScale;
-                    ImVec2 tileMin(tileScreenPos.x - tileSize / 2, tileScreenPos.y - tileSize / 2);
-                    ImVec2 tileMax(tileScreenPos.x + tileSize / 2, tileScreenPos.y + tileSize / 2);
-                    drawList->AddRectFilled(tileMin, tileMax, GetTileColor(tileID));
+    // Render chunks and tiles
+    const int chunkRenderRadius = 1; // Render surrounding chunks within 1 chunk radius
+    for (int cx = -chunkRenderRadius; cx <= chunkRenderRadius; ++cx) {
+        for (int cy = -chunkRenderRadius; cy <= chunkRenderRadius; ++cy) {
+            glm::ivec2 chunkID = playerChunk + glm::ivec2(cx, cy);
+            if (auto* chunk = m_pLabyrinthManager->GetChunk(chunkID)) {
+                for (int tx = 0; tx < LabyrinthManager::CHUNK_SIZE; ++tx) {
+                    for (int ty = 0; ty < LabyrinthManager::CHUNK_SIZE; ++ty) {
+                        glm::ivec2 tilePos = chunkID * LabyrinthManager::CHUNK_SIZE + glm::ivec2(tx, ty);
+                        int tileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+                        if (tileID > 0 && tileID != Tile::Empty) {
+                            renderTile(glm::vec2(tilePos) * tileWorldSize, GetTileColor(tileID));
+                        }
+                    }
                 }
             }
         }
     }
 
-    // Draw player icon
-    drawList->AddCircleFilled(center, 6.0f, IM_COL32(0, 255, 0, 255)); // Player icon
+    // Render player position
+    drawList->AddCircleFilled(ImVec2(mapCenterX, mapCenterY), 5.0f, IM_COL32(0, 255, 0, 255));
+    drawList->AddCircle(ImVec2(mapCenterX, mapCenterY), 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f);
 
-    // Render enemies
-    for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>()) {
-        glm::vec2 minitaurPos = minitaurController.GetGameObject()
-                                                ->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    // Helper lambda for rendering entities
+    auto renderEntity = [&](const glm::vec2& entityPos, ImU32 color) {
+        glm::vec2 relativePos = ((entityPos + glm::vec2(-48.0f, -60.0f)) - playerPosition) * labyrinthScale;
+        relativePos.y = -relativePos.y; // Invert Y-axis
+        const ImVec2 entityMarker(mapCenterX + relativePos.x, mapCenterY + relativePos.y);
+        drawList->AddCircle(entityMarker, 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f); // Outline
+        drawList->AddCircleFilled(entityMarker, 5.0f, color);                           // Marker
+    };
 
-        glm::vec2 relativePos = (minitaurPos - playerPosition) * labyrinthScale;
-        relativePos.y = -relativePos.y; // Invert Y-axis for proper rendering
-        if (glm::length(relativePos) > minimapRadius) continue;
-
-        // Render enemy
-        ImVec2 enemyScreenPos = ToImVec2(centerGLM + relativePos);
-        drawList->AddCircle(enemyScreenPos, 7.0f, IM_COL32(255, 50, 50, 100), 32, 2.0f); // Outer glow
-        drawList->AddCircle(enemyScreenPos, 5.0f, IM_COL32(255, 100, 100, 150), 32, 2.0f); // Middle ring
-        drawList->AddCircleFilled(enemyScreenPos, 3.0f, IM_COL32(255, 0, 0, 255));        // Inner core
+    // Render entities by type
+    for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>()) {
+        auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 0, 0, 255));
+    }
+    for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<HarpyController>()) {
+        auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 255, 0, 255));
+    }
+    for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>()) {
+        auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(128, 0, 128, 255));
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 0, 255, 255));
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<DroppedItemComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 255, 255, 255));
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<ChestInventoryComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<TrappedChestComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
     }
 
-    // Pop the clip rect to restore normal rendering
-    drawList->PopClipRect();
+
     ImGui::End();
-    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(2);
 }
+
+wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
+{
+    // Offset position to place Ariadne on top of the player by one tile
+    glm::vec2 ariadnePosition = playerPosition + glm::vec2(0.0f, LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
+
+    // Specify the YAML file for Ariadne's NPC data
+    std::string ariadneYamlFile = "data/ariadne_init.yaml";
+
+    // Create Ariadne using the NPCBuilder
+    wolf::GameObject& ariadne = *NPCBuilder::Instance()->BuildNPC(ariadneYamlFile);
+
+    // Set Ariadne's position and scale
+    auto& transform = *ariadne.GetComponent<wolf::Transform2D>();
+    transform.SetPosition(ariadnePosition);
+    transform.SetScale(glm::vec2(LabyrinthManager::SCALE));
+
+    // Optionally register Ariadne in the shared context for reference in cutscenes
+    m_pGameInstance->GetSharedContext().RegisterEntity("Ariadne", ariadne.GetID());
+
+    // wolf::Log("Ariadne created at position: (" + std::to_string(ariadnePosition.x) + ", " + std::to_string(ariadnePosition.y) + ").");
+
+    return ariadne;
+}
+
+
