@@ -81,6 +81,7 @@
         "csignal": "cpp",
         "future": "cpp",
         "valarray": "cpp",
-        "cassert": "cpp"
+        "cassert": "cpp",
+        "shared_mutex": "cpp"
     }
 }

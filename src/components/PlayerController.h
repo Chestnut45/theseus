@@ -112,6 +112,13 @@ private:
     void HandlePetrified(float delta);  // Method to handle being petrified
     void HandleDeath(float delta);  // New method to handle the existential fear of death
 
+    void HandleBowAttack(float delta);
+    void HandleSpearAttack(float delta);
+    void HandleSwordAttack(float delta);
+    void HandleAttackAnimation();
+    void HandleBowAttackAnimation();
+    void CalculateAttackDirection();
+    void RenderBowPowerBar();
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
@@ -138,7 +145,7 @@ private:
     void DropObject();
 
     // Utility functions
-    void ApplyDamageToEnemy(); // Applies damage to enemies
+    //void ApplyDamageToEnemy(); // Applies damage to enemies
     void RegenerateStamina(float delta); // Regenerates stamina over time
     void CheckHealth();
     void RenderThrowPowerBar(); // rendering for the power bar
@@ -152,6 +159,7 @@ private:
     std::string GetWalkAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
     std::string GetIdleAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
     PlayerDirection GetDirectionFromVector(const glm::vec2& direction) const;
+    glm::vec2 GetVectorFromDirection(PlayerDirection direction) const;
 
     // Input tracking
     // Data members for components and state management
@@ -203,6 +211,13 @@ private:
     glm::vec2 m_attackDir = glm::vec2(0.0f, 0.0f);
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
+
+    // Bow attack members
+    float m_bowChargeScale = 0.0f;      // Current charge of the boe
+    float m_bowMaxChargeScale = 1.0f;   // Limit of the power of the charge
+    float m_bowChargeRate = 1.0f;       // Multiplier of delta for charge scale
+    float m_arrowRange = 0.0f;          // Current range of the arrow given the current charge
+    float m_arrowMaxRange = 600.0f;     // Max range
 
     // Invulnerability after taking damage
     float m_prevHealthFraction = 1.0f;

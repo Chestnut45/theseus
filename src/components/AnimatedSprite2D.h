@@ -132,7 +132,8 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         //                 //
         //-----------------//
         
-        void SetAnimPaused(bool p_bPaused){m_bIsAnimPaused = p_bPaused;};
+        void SetAnimPaused(bool p_bPaused){ m_bIsAnimPaused = p_bPaused; };
+        bool IsAnimPaused() const { return m_bIsAnimFinished; };
         // Set duration to be negative for infinite duration
         // Fade-ins/Fade-outs will be disrupted if another SetSpecialEffects() calls happens before they are finished
         void SetSpecialEffects(SpecialEffectsType p_spe_type, float p_gradual_in = 0.0f, float p_se_duration = -1.0f, float p_gradual_out = 0.0f);
