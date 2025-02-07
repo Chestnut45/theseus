@@ -64,32 +64,34 @@ void BossController::Init()
     m_chaseSpeed = 240.0f;
 
     // Phase 3 stats
-    m_fireBreathWindupTime = 0.75f; // Seconds
-    m_fireBreathWindupTimer = 1.0f; // Seconds
-    m_chargeWindupTint = glm::vec3(3.0f, 1.0f, 1.0f);
+    m_fireBreathWindupTime = 1.5f; // Seconds
+    m_fireBreathWindupTimer = 0.0f; // Seconds
+    m_fireBreathWindupTint = glm::vec3(3.0f, 1.0f, 1.0f);
     m_fireBreathDamage = 10; // Per projectile
-    m_fireBreathRange = 300;
-    m_fireBreathDuration = 10.0f;
-    m_fireBreathTurningCapRadian = 7.5f * (M_PI / 180.0f); // Maximum angle for each turn instance
+    m_fireBreathRange = 0.0f;
+    m_fireBreathRangeExtender = 750.0f;
+    m_fireBreathDuration = 1.5f;
+    m_fireBreathTimer = 0.0f;
+    m_fireBreathTurningCapRadian = 4.5f * (M_PI / 180.0f); // Maximum angle for each turn instance
     m_fireBreathTurningDelay = 0.2f;      // Delay between each turn instance
     m_fireBreathTurningTimer = 0.0f;
     m_lastDirection = glm::vec2(1.0f, 0.0f);
 
-    m_chargeWindupTime = 1.0f; // Seconds
-    m_chargeWindupTimer = 1.0f; // Seconds
+    m_chargeWindupTime = 1.5f; // Seconds
+    m_chargeWindupTimer = 1.5f; // Seconds
     m_chargeWindupTint = glm::vec3(4.0f, 4.0f, 4.0f);
-    m_chargeAttackDamage = 60;
+    m_chargeAttackDamage = 150;
     m_chargeAttackRange = 2000;
     m_stunTimer = 0.5f; // Seconds
     m_chargeTurningCapDegree = 9.0f; // Degrees
     m_chargeTurningDelay = 0.2f; // Seconds
-    m_chargeSpeed = 480.0f;
+    m_chargeSpeed = 600.0f;
     m_chargeKnockbackForce = 10000.0f;
     m_chargeChainCount = 0;
 
     m_pullTime = 1.5f;               // Pull state members
     m_pullTimer = 0.0f;
-    m_pullForce = 300.0f;
+    m_pullForce = 350.0f;
 
     m_searchSpeed = 250.0f;
     m_searchTimer = 2.0f; // Seconds
@@ -142,7 +144,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase1();
+    EnterPhase3();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -906,14 +908,14 @@ void BossController::EnterPhase3()
     ChangeStatesPhase3(State::IDLE);
     m_pVelocity->SetKnockbackEnabled(false);
 
+
+    m_pHealth->Pierce(m_maxHealth * 0.5f);
+    std::cout << "Boss Health: " << m_pHealth->GetHealth() << std::endl;
 }
 
 void BossController::UpdatePhase3(float delta)
-{
-    // TODO: Phase 3 update logic:
-    // - Stand in place and search for player when in neutral (can only see forward, rotate around?)
-    // - When player found, if close, do fire breath attack
-    // - if far away, do charge attack
+{   
+    std::cout << "Boss Health: " << m_pHealth->GetHealth() << std::endl;
     if (m_pHealth->GetHealth() <= 0 && m_state != State::DEAD)
     {
         m_state = State::DEAD;
@@ -1080,10 +1082,10 @@ void BossController::Search(float delta)
 
     if(m_searchTimer <= 0.0f)
     {
-        // Decide next attack
-        int rngAtk = m_rng.NextInt(1, 10);
+        // Decide if pulling
+        int rngPull = m_rng.NextInt(1, 10);
         // Pull
-        if(rngAtk <= 5)
+        if(rngPull <= 5)
         {
             ChangeStatesPhase3(State::PULL);
             return;
@@ -1091,8 +1093,22 @@ void BossController::Search(float delta)
         // Charge
         else
         {
-            ChangeStatesPhase3(State::CHARGE_ATTACK);
-            return;
+            // Decide next attack
+            int rngAtk = m_rng.NextInt(1, 10);
+
+            // Fire breath
+            if(rngAtk <= 5)
+            {
+                ChangeStatesPhase3(State::FIRE_BREATH_ATTACK);
+                return;
+            }
+            
+            // Charge
+            else
+            {
+                ChangeStatesPhase3(State::CHARGE_ATTACK);
+                return;
+            }
         }
         
     }
@@ -1228,30 +1244,41 @@ void BossController::Stunned(float delta)
 
 void BossController::StartFireBreathAttack()
 {
+    m_fireBreathTimer = m_fireBreathDuration;
+    m_fireBreathRange = 0.0f;
     m_fireBreathWindupTimer = m_fireBreathWindupTime;
-    m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 
-    m_fireBreathDuration = 7.0f;
+    m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
     GetGameObject()->GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
-    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    m_lastDirection = glm::normalize(playerPos - thisPos);
 }
 
 void BossController::AttackFireBreath(float delta)
 {
+    // If turning delay expired
+    if(this->m_fireBreathTurningTimer >= this->m_fireBreathTurningDelay)
+    {
+        // Turn towards player
+        TurnToPlayer(delta);
+        // Reset timer
+        this->m_fireBreathTurningTimer = 0.0f;
+    }
+    else
+    {
+        this->m_fireBreathTurningTimer += delta;
+    }
+
     // If windup expired
     if(m_fireBreathWindupTimer <= 0.0f)
     {
         // If fire breath expired, change state to search
-        if(m_fireBreathDuration <= 0.0f)
+        if(m_fireBreathTimer <= 0.0f)
         {
             ChangeStatesPhase3(State::IDLE);
             return;    
         }
-
+        m_fireBreathRange += m_fireBreathRangeExtender * delta;
         // Update attack timer & state
-        m_fireBreathDuration -= delta;
+        m_fireBreathTimer -= delta;
 
         // Get data
         glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -1260,12 +1287,9 @@ void BossController::AttackFireBreath(float delta)
         // Add fire range indicator
         GLShapesRenderer::GetInstance()->AddLine({thisPos.x, thisPos.y, 1, 0, 0 , 1}, {endPos.x, endPos.y, 1, 0, 0 , 1});
 
-        // If turning delay expired
+
         if(this->m_fireBreathTurningTimer >= this->m_fireBreathTurningDelay)
-        {
-            // Turn towards player
-            TurnToPlayer(delta);
-            
+        {   
             // Get all tiles burnt
             std::vector<glm::ivec2> tiles = DDACalculator::GetInstance()->GetTraversedTiles(thisPos, endPos, true);
 
@@ -1274,13 +1298,6 @@ void BossController::AttackFireBreath(float delta)
             {
                 TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
             }
-
-            // Reset timer
-            this->m_fireBreathTurningTimer = 0.0f;
-        }
-        else
-        {
-            this->m_fireBreathTurningTimer += delta;
         }
     }
     else
@@ -1291,7 +1308,9 @@ void BossController::AttackFireBreath(float delta)
         if(m_fireBreathWindupTimer <= 0.0f)
         {
             m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
-
+            glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            m_lastDirection = glm::normalize(playerPos - thisPos);
         }
         // If still windup
         else
@@ -1392,7 +1411,7 @@ void BossController::AttackCharge(float delta)
                         glm::vec2 playerDirection = (playerPos - thisPos) == glm::vec2(0.0f) ? 
                                                                                                 glm::vec2(1.0f, 0.0f):
                                                                                                 glm::normalize(playerPos - thisPos);
-                        m_pPlayerObject->GetComponent<HealthComponent>()->Damage(100.0f);
+                        m_pPlayerObject->GetComponent<HealthComponent>()->Damage(m_chargeAttackDamage);
                         m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(playerDirection, m_chargeKnockbackForce);
                     }
 
@@ -1478,15 +1497,12 @@ void BossController::Pull(float delta)
     // If still pulling time
     else
     {
-        // uupdate timer
+        // update timer
         m_pullTimer -= delta;
 
-        // Pull if player is not rolling
-        if(m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING)
-        {
-            glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(glm::normalize(glm::vec2(thisPos - playerPos)), m_pullForce);
-        }
+        // Pull
+        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(glm::normalize(glm::vec2(thisPos - playerPos)), m_pullForce);
     }
 }

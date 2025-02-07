@@ -138,7 +138,9 @@ private:
     glm::vec3 m_fireBreathWindupTint;
     int m_fireBreathDamage;     
     float m_fireBreathRange;
+    float m_fireBreathRangeExtender;
     float m_fireBreathDuration;
+    float m_fireBreathTimer;
     float m_fireBreathTurningCapRadian;
     float m_fireBreathTurningDelay;
     float m_fireBreathTurningTimer;

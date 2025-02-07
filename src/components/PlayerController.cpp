@@ -536,6 +536,13 @@ void PlayerController::HandleMovement(float delta)
 {
     if (m_action == PlayerAction::ROLLING) return;  // Skip movement if rolling 
 
+    // stop moving if the player is attacking with a bow
+    if (m_action == PlayerAction::ATTACKING && m_pCurrentWeapon->GetWeaponType() == WeaponType::BOW)
+    {
+        m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+        return;
+    }
+
     glm::vec2 direction(0.0f);
 
     // Track and update currently held keys for smooth directional input
@@ -614,10 +621,14 @@ void PlayerController::HandleRolling(float delta)
 {
     // Prevent rolling if the player is in the inventory state
     if (m_action == PlayerAction::IN_INVENTORY) return;
+    if (m_rollTimer <= 0.0f)
+    {
+        SetAction(PlayerAction::NONE);
+        return;
+    }
 
     m_rollTimer -= delta;
-    if (m_rollTimer <= 0.0f) SetAction(PlayerAction::NONE);
-    return;
+    m_pVelocity->SetVelocity(m_rollDirection);
 }
 
 // Manage jumping state transitions
@@ -1039,16 +1050,8 @@ void PlayerController::ApplyDamageToEnemy()
 void PlayerController::StartRoll()
 {
     m_rollTimer = m_rollDuration;
-    glm::vec2 rollDirection = glm::vec2(0.0f, 0.0f); // Get current movement direction
-    if (glm::length(rollDirection) > 0.0f)
-    {
-        rollDirection = glm::normalize(m_pVelocity->GetVelocity()) * m_rollSpeed; // Set velocity based on roll speed
-    }
-    else
-    {
-        rollDirection = GetLastFacingDirectionVector() * m_rollSpeed;
-    }
-    m_pVelocity->SetVelocity(rollDirection);
+    m_rollDirection = GetLastFacingDirectionVector() * m_rollSpeed;
+    m_pVelocity->SetVelocity(m_rollDirection);
     m_stamina -= 25.0f;
     m_staminaRegenTimer.Restart();
 }

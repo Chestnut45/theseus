@@ -183,6 +183,7 @@ private:
     float m_rollSpeed = 400.0f;
     float m_rollTimer = 0.0f;
     float m_rollDuration = 0.5f;
+    glm::vec2 m_rollDirection = glm::vec2(0.0f, 0.0f);
     float m_stamina = 100.0f;
     const float m_maxStamina = 100.0f;
     const float m_staminaRegenRate = 20.0f;
