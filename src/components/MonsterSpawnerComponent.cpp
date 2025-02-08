@@ -52,17 +52,17 @@ void MonsterSpawnerComponent::Update(float p_delta)
         // std::cout << "worldPos: " << worldPos.x << ", y: " << worldPos.y << std::endl;
         GLShapesRenderer::GetInstance()->AddQuad(
                                                 {worldPos.x, worldPos.y, 0, 1, 0, 1}, 
-                                                LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE,
-                                                LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE
+                                                m_MSData.spawnerSize.x * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE,
+                                                m_MSData.spawnerSize.y * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE
                                                 );
         
         // if player is on spawner tile, spawn monsters
         glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerControllerComp->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
         if(
-            playerTilePos.x < m_MSData.spawnerTilePos.x                             ||
-            playerTilePos.x > m_MSData.spawnerTilePos.x + m_MSData.spawnerSize.x    ||
-            playerTilePos.y < m_MSData.spawnerTilePos.y                             ||
-            playerTilePos.y > m_MSData.spawnerTilePos.y + m_MSData.spawnerSize.y
+            playerTilePos.x < m_MSData.spawnerTilePos.x                                 ||
+            playerTilePos.x > m_MSData.spawnerTilePos.x + (m_MSData.spawnerSize.x - 1)  ||
+            playerTilePos.y < m_MSData.spawnerTilePos.y                                 ||
+            playerTilePos.y > m_MSData.spawnerTilePos.y + (m_MSData.spawnerSize.y - 1)
         )
         {
             return;

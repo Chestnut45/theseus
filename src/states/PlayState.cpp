@@ -831,8 +831,9 @@ void PlayState::CreateMonsterSpawner()
     wolf::GameObject* monsterSpawnerObj = &m_pGameInstance->GetScene().CreateObject2D();
 
     MonsterSpawnerComponent::MonsterSpawnerData MSData;
-    MSData.spawnerTilePos = glm::ivec2(40, 2);
-    MSData.roomBottomLeftTilePos = glm::ivec2(1, 1);
+    MSData.spawnerTilePos = glm::ivec2(37, 1);
+    MSData.spawnerSize = glm::ivec2(5, 1);
+    MSData.roomBottomLeftTilePos = glm::ivec2(37, 1);
     MSData.roomSize = glm::ivec2(1, 1);
     MSData.spawnTrigger = MonsterSpawnerComponent::SpawnTrigger::ON_STEP;
     MSData.aMonsterCounts[MonsterSpawnerComponent::MonsterType::HARPY] = 1;
