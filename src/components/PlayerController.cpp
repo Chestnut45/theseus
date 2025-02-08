@@ -501,28 +501,34 @@ void PlayerController::HandleBowAttack(float delta)
 {    
     CalculateAttackDirection();
 
-    // If charging bow
-    if(wolf::Input::IsLMBHeld())
+    std::cout << "Mouse Released: " << m_bIsMouseReleased << std::endl;
+
+    // Charging bow
+    if(wolf::Input::IsLMBHeld() || wolf::Input::IsLMBJustDown())
     {
-        m_bowChargeScale += delta * m_bowChargeRate;
-        m_bowChargeScale = std::min(m_bowChargeScale, m_bowMaxChargeScale);
-
-        m_arrowRange += delta * m_bowChargeRate * m_arrowMaxRange;
-        m_arrowRange = std::min(m_arrowRange, m_arrowMaxRange);
-
-        // Pause animation on holding frame until left mouse release
-        int currentFrame = m_pAnimComponent->GetCurrentFrame();
-
-        if(currentFrame % BOW_ATTACK_FRAMES == BOW_HOLD_FRAME_COLUMN)
+        if(m_bIsMouseReleased == false)
         {
-            m_pAnimComponent->SetAnimPaused(true);
+            m_bowChargeScale += delta * m_bowChargeRate;
+            m_bowChargeScale = std::min(m_bowChargeScale, m_bowMaxChargeScale);
+
+            m_arrowRange += delta * m_bowChargeRate * m_arrowMaxRange;
+            m_arrowRange = std::min(m_arrowRange, m_arrowMaxRange);
+
+            // Pause animation on holding frame until left mouse release
+            int currentFrame = m_pAnimComponent->GetCurrentFrame();
+
+            if(currentFrame % BOW_ATTACK_FRAMES == BOW_HOLD_FRAME_COLUMN)
+            {
+                m_pAnimComponent->SetAnimPaused(true);
+            }
+            HandleBowRangeIndicator(delta);
         }
-        HandleBowRangeIndicator(delta);
     }
 
     // Firing arrow
     else 
     {
+        m_bIsMouseReleased = true;
         m_pAnimComponent->SetAnimPaused(false);
 
         if(m_pAnimComponent->IsAnimationFinished())
@@ -1200,6 +1206,7 @@ void PlayerController::StartAttack()
     // Reset bow attack-related members
     m_bowChargeScale = 0.0f;
     m_arrowRange = 0.0f;
+    m_bIsMouseReleased = false;
 }
 
 void PlayerController::StartPetrified()
