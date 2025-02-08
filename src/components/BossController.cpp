@@ -111,6 +111,7 @@ void BossController::Init()
     // Create sprite
     pObject->DeleteComponent<AnimatedSprite2D>();
     m_pAnimSprite = &pObject->AddComponent<AnimatedSprite2D>("data/boss_anim_init.yaml");
+    m_pAnimSprite->SetLayer(8);
 
     // Create health
     pObject->DeleteComponent<HealthComponent>();

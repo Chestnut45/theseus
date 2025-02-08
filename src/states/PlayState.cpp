@@ -68,6 +68,9 @@ void PlayState::Enter()
     {
         if (room.m_name != "Minotaur's Chamber") continue;
 
+        // Store door tile locations
+        m_bossRoomDoorTiles = room.m_doors;
+
         // Create trigger object and collider
         auto& object = scene.CreateObject2D();
         auto& collider = object.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, false, false);
@@ -89,9 +92,42 @@ void PlayState::Enter()
         // Move boss to initial location
         bossObject.GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.5f));
 
-        // Grab pointer to boss controller
+        // Grab pointer to boss object
         m_pBoss = &bossObject;
         m_pGameInstance->GetSharedContext().RegisterEntity("Minotaur", m_pBoss->GetID());
+
+        // Create other object groups
+        m_pBossWalls = &scene.CreateObject2D();
+        m_pBossPillarGroup = &scene.CreateObject2D();
+        m_bossRoomOrigin= room.m_bounds.m_origin;
+        m_bossRoomSize = room.m_bounds.m_size;
+
+        // Generate tile locations for pillars
+        const wolf::IRectangle& r = room.m_bounds;
+        glm::ivec2 locations[] =
+        {
+            glm::ivec2(r.m_origin.x + r.m_size.x * 0.25f, r.m_origin.y + r.m_size.y * 0.25f),
+            glm::ivec2(r.m_origin.x + r.m_size.x * 0.25f, r.m_origin.y + r.m_size.y * 0.75f),
+            glm::ivec2(r.m_origin.x + r.m_size.x * 0.75f, r.m_origin.y + r.m_size.y * 0.75f),
+            glm::ivec2(r.m_origin.x + r.m_size.x * 0.75f, r.m_origin.y + r.m_size.y * 0.25f)
+        };
+
+        for (const auto& tile : locations)
+        {
+            // Spawn a pillar as a child object of the boss
+            wolf::GameObject& pillar = scene.CreateObject2D();
+            m_pBossPillarGroup->AddChild(pillar);
+            pillar.AddComponent<wolf::Sprite2D>("data/textures/tile_wall_minotaur.png");
+            
+            // Set position and scale
+            auto& transform = *pillar.GetComponent<wolf::Transform2D>();
+            transform.SetPosition(m_pLabyrinthManager->GetWorldPosition(tile));
+            transform.SetScale(glm::vec2(3.0f));
+
+            // Create collider
+            auto& collider = pillar.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, false, false);
+            collider.AddColliderBox(glm::vec2(96.0f), glm::vec2(0.0f, 96.0f));
+        }
 
         break;
     }
@@ -975,10 +1011,36 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             break;
         }
         case TriggerPurpose::BOSS: {
+
             // Begin the bossfight
             wolf::Log("BOSSFIGHT STARTED");
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
             m_pBoss->GetComponent<BossController>()->SetActive(true);
+
+            // Set door areas to wall tiles
+            for (const auto& door : m_bossRoomDoorTiles)
+            {
+                m_pLabyrinthManager->SetTile(door.x, door.y, Tile::WallMinotaur);
+            }
+
+            // Create a collider that covers all walls of the boss room
+            auto& object = m_pBoss->GetScene().CreateObject2D();
+            m_pBossWalls->AddChild(object);
+
+            // Set scale
+            auto& transform = *object.GetComponent<wolf::Transform2D>();
+            transform.SetScale(glm::vec2(3.0f));
+
+            // Add colliders for boss room walls
+            auto& collider = object.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, false, false);
+            collider.AddColliderBox(glm::vec2((m_bossRoomSize.x + 2) * 96, 96), m_pLabyrinthManager->GetWorldPosition(m_bossRoomOrigin) + glm::vec2(-96.0f, 0.0f));
+            collider.AddColliderBox(glm::vec2((m_bossRoomSize.x + 2) * 96, 96), m_pLabyrinthManager->GetWorldPosition(m_bossRoomOrigin) + glm::vec2(-96, (m_bossRoomSize.y + 1) * 96));
+            collider.AddColliderBox(glm::vec2(96, (m_bossRoomSize.y + 2) * 96), m_pLabyrinthManager->GetWorldPosition(m_bossRoomOrigin) + glm::vec2(-96, (m_bossRoomSize.y + 1) * 96));
+            collider.AddColliderBox(glm::vec2(96, (m_bossRoomSize.y + 2) * 96), m_pLabyrinthManager->GetWorldPosition(m_bossRoomOrigin) + glm::vec2((m_bossRoomSize.x + 1) * 96 - 96, (m_bossRoomSize.y + 1) * 96));
+            
+            // Deactivate all chunks
+            m_pLabyrinthManager->StartBossfight();
+            
             break;
         }
         default:
