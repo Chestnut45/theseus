@@ -116,9 +116,10 @@ private:
     void HandleSpearAttack(float delta);
     void HandleSwordAttack(float delta);
     void HandleAttackAnimation();
-    void HandleBowAttackAnimation();
+    void HandleBowRangeIndicator(float delta);
     void CalculateAttackDirection();
     void RenderBowPowerBar();
+
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
@@ -145,7 +146,6 @@ private:
     void DropObject();
 
     // Utility functions
-    //void ApplyDamageToEnemy(); // Applies damage to enemies
     void RegenerateStamina(float delta); // Regenerates stamina over time
     void CheckHealth();
     void RenderThrowPowerBar(); // rendering for the power bar
@@ -213,11 +213,14 @@ private:
     wolf::Timer m_attackTimer;
 
     // Bow attack members
-    float m_bowChargeScale = 0.0f;      // Current charge of the boe
-    float m_bowMaxChargeScale = 1.0f;   // Limit of the power of the charge
-    float m_bowChargeRate = 1.0f;       // Multiplier of delta for charge scale
-    float m_arrowRange = 0.0f;          // Current range of the arrow given the current charge
-    float m_arrowMaxRange = 600.0f;     // Max range
+    float m_bowChargeScale = 0.0f;          // Current charge of the boe
+    float m_bowMaxChargeScale = 1.0f;       // Limit of the power of the charge
+    float m_bowChargeRate = 1.0f;           // Multiplier of delta for charge scale
+    float m_arrowRange = 0.0f;              // Current range of the arrow given the current charge
+    float m_arrowMaxRange = 600.0f;         // Max range
+    const int BOW_HOLD_FRAME_COLUMN = 4;    // The column in the bow attack sprite sheet where Theseus stretches his bow the furthest
+    const int BOW_ATTACK_FRAMES = 6;
+    glm::vec4 m_bowRangeIndicatorColour = glm::vec4(0.0f, 1.0f, 0.4f, 1.0f);
 
     // Invulnerability after taking damage
     float m_prevHealthFraction = 1.0f;

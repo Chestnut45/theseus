@@ -10,6 +10,8 @@
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
 
+#include "../DDACalculator.h"
+
 #include "../GLShapesRenderer.h"
 #include "../inventory/ItemCreator.h"
 
@@ -497,6 +499,8 @@ void PlayerController::HandleDeath(float delta)
 
 void PlayerController::HandleBowAttack(float delta)
 {    
+    CalculateAttackDirection();
+
     // If charging bow
     if(wolf::Input::IsLMBHeld())
     {
@@ -506,20 +510,23 @@ void PlayerController::HandleBowAttack(float delta)
         m_arrowRange += delta * m_bowChargeRate * m_arrowMaxRange;
         m_arrowRange = std::min(m_arrowRange, m_arrowMaxRange);
 
-        // Pause animation if finished until left mouse release
-        if(m_pAnimComponent->IsAnimationFinished())
+        // Pause animation on holding frame until left mouse release
+        int currentFrame = m_pAnimComponent->GetCurrentFrame();
+
+        if(currentFrame % BOW_ATTACK_FRAMES == BOW_HOLD_FRAME_COLUMN)
         {
             m_pAnimComponent->SetAnimPaused(true);
         }
+        HandleBowRangeIndicator(delta);
     }
 
     // Firing arrow
     else 
     {
-        CalculateAttackDirection();
+        m_pAnimComponent->SetAnimPaused(false);
+
         if(m_pAnimComponent->IsAnimationFinished())
-        {
-            m_pAnimComponent->SetAnimPaused(false);
+        {    
             // Attack
             auto* player = this->GetGameObject();
             if (!player || !m_pTransform) return;
@@ -565,7 +572,6 @@ void PlayerController::HandleBowAttack(float delta)
 
             // Add timed destroyer component
             float time = glm::max(m_arrowRange / arrowSpeed, 0.5f);
-            std::cout << "time: " << time << std::endl;
             auto& projectileTDComponent = projectile.AddComponent<TimedDestroyerComponent>(time);
 
             // Calculate how to rotate arrow sprite
@@ -575,12 +581,10 @@ void PlayerController::HandleBowAttack(float delta)
             projectile.GetComponent<wolf::Transform2D>()->SetRotation(angle);
 
             projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
-
-            SetAction(PlayerAction::NONE);
         }
         
     }
-    HandleBowAttackAnimation();
+    HandleAttackAnimation();
 
 }
 
@@ -741,14 +745,20 @@ void PlayerController::HandleAttackAnimation()
     }
 }
 
-void PlayerController::HandleBowAttackAnimation()
+void PlayerController::HandleBowRangeIndicator(float delta)
 {
-    // If the animation has finished, transition out of the attacking state
-    if (m_pAnimComponent->IsAnimationFinished() && !m_pAnimComponent->IsAnimPaused())
-    {
-        m_currentAnimation = "";
-        SetAnimationBasedOnState();
-    }
+    glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 endpoint = playerPos + m_attackDir * m_arrowRange;   // m_attackDir is already normalised
+    glm::vec2 trueEndpoint = DDACalculator::GetInstance()->GetEndpoint(playerPos, endpoint);
+
+    glm::vec4 colour = m_bowRangeIndicatorColour;
+    // std::cout << colour.r << ", " << colour.g << ", " << colour.b << ", " << colour.a << std::endl;
+
+    GLShapesRenderer::GetInstance()->AddLine(
+                                            {playerPos.x, playerPos.y, colour.r, colour.g, colour.b, colour.a}, 
+                                            {trueEndpoint.x, trueEndpoint.y, colour.r, colour.g, colour.b, colour.a}
+                                            );
+
 }
 
 void PlayerController::CalculateAttackDirection()
@@ -1180,6 +1190,7 @@ void PlayerController::StartAttack()
     // Store the current animation to handle transitions later.
     m_currentAnimation = attackAnimation;
 
+    // Reset bow attack-related members
     m_bowChargeScale = 0.0f;
     m_arrowRange = 0.0f;
 }
@@ -1192,205 +1203,6 @@ void PlayerController::StartPetrified()
     m_pAnimComponent->SetAnimPaused(true);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }
-
-// void PlayerController::ApplyDamageToEnemy()
-// {
-//     // Attack
-//     auto* player = this->GetGameObject();
-//     if (!player || !m_pTransform) return;
-
-//     glm::vec2 playerScale = player->GetComponent<wolf::Transform2D>()->GetGlobalScale();
-//     VelocityComponent* playerVelocityComponent = player->GetComponent<VelocityComponent>();
-//     glm::vec2 playerVelocity = playerVelocityComponent == nullptr ? glm::vec2(0.0f) : playerVelocityComponent->GetVelocity();
-//     glm::vec2 playerDirection;
-//     glm::vec2 spawnOffset;
-
-//     switch (this->m_lastFaceDirectionEnum)
-//     {
-//         case PlayerDirection::NORTH:       
-//             playerDirection = glm::normalize(glm::vec2(0.0f, 1.0f));
-//             break;
-
-//         case PlayerDirection::NORTH_EAST:  
-//             playerDirection = glm::normalize(glm::vec2(1.0f, 1.0f));
-//             break;
-
-//         case PlayerDirection::EAST:        
-//             playerDirection = glm::normalize(glm::vec2(1.0f, 0.0f));
-//             break;
-
-//         case PlayerDirection::SOUTH_EAST:  
-//             playerDirection = glm::normalize(glm::vec2(1.0f, -1.0f));
-//             break;
-
-//         case PlayerDirection::SOUTH:       
-//             playerDirection = glm::normalize(glm::vec2(0.0f, -1.0f));
-//             break;
-
-//         case PlayerDirection::SOUTH_WEST:  
-//             playerDirection = glm::normalize(glm::vec2(-1.0f, -1.0f));
-//             break;
-        
-//         case PlayerDirection::WEST:        
-//             playerDirection = glm::normalize(glm::vec2(-1.0f, 0.0f));
-//             break;
-
-//         case PlayerDirection::NORTH_WEST:  
-//             playerDirection = glm::normalize(glm::vec2(-1.0f, 1.0f));
-//             break;
-
-//         default:
-//             playerDirection = glm::vec2(0.0f, 0.0f);
-//             break;
-//     }
-
-//     switch(this->m_pCurrentWeapon->GetWeaponType())
-//     {
-//         // Spawn projectile for bow
-//         case WeaponType::BOW:
-//         {
-//             // Set data for projectile collider
-//             ProjectileProperties projprop = m_pCurrentWeapon->GetProjectileProperties();
-
-//             glm::vec2 projectileDimensions = projprop.v2HurtboxSize;
-//             glm::vec2 hurtboxOffset = glm::vec2(-projectileDimensions.x, projectileDimensions.y) * 0.5f;
-
-//             // Spawn projectile object & add components
-//             auto& scene = player->GetScene();
-//             auto& projectile = scene.CreateObject2D();
-
-//             auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>(projprop.strPathToSprite);
-//             projectileSprite.SetOriginToCenterOfTexture();
-            
-//             auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-//             projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
-//             projectileCollider.SetIgnoreTag(player->GetID());
-
-//             auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 200.0f);
-
-//             spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + projectileDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - projectileDimensions.x * 0.5f) : (spawnOffset.x));
-//             spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + projectileDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - projectileDimensions.y * 0.5f) : (spawnOffset.y));
-                        
-//             projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
-           
-//             auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
-            
-//             projectileVelocity.SetVelocity(m_attackDir * glm::length(projprop.v2Velocity) + playerVelocity);
-
-//             // Calculate how to rotate arrow sprite
-//             glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);
-//             float angle = std::acos(glm::dot(baseVector, m_attackDir) / (glm::length(baseVector) * glm::length(m_attackDir)));
-//             if(m_attackDir.y < 0.0f) angle *= -1;
-//             projectile.GetComponent<wolf::Transform2D>()->SetRotation(angle);
-        
-//             projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
-//             break;
-//         }
-        
-//         // Spawn melee collider for sword
-//         case WeaponType::SWORD:
-//         {
-//             // Set & calculate data for melee collider
-//             glm::vec2 meleeDimensions = m_pCurrentWeapon->GetHurtBoxSize();
-//             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
-            
-//             // Horizontal attack
-//             if(playerDirection.x != 0.0f && playerDirection.y == 0.0f)
-//             {  
-//                 meleeDimensions.y *= 1.25f;
-//                 offset.x = playerDirection.x > 0.0f ? 0.0f : -meleeDimensions.x;
-//                 offset.y = meleeDimensions.y * 0.5f;
-//             }
-
-//             // Vertical attack
-//             else if(playerDirection.x == 0.0f && playerDirection.y != 0.0f)
-//             {
-//                 meleeDimensions.x *= 1.25f;
-//                 offset.x = -meleeDimensions.x * 0.5f;
-//                 offset.y = playerDirection.y > 0.0f ? meleeDimensions.y : 0.0f;
-//             }
-            
-//             // Diagonal attack
-//             else if(playerDirection.x != 0.0f && playerDirection.y != 0.0f)
-//             {
-//                 offset.x = -meleeDimensions.x * 0.5f;
-//                 offset.x = playerDirection.x > 0.0f ? 0.0f : -meleeDimensions.x;
-//                 offset.y = meleeDimensions.y * 0.5f;
-//                 offset.y = playerDirection.y > 0.0f ? meleeDimensions.y : 0.0f;
-//             }
-
-//             // Scale offset by player scale
-//             offset *= playerScale;
-
-//             auto& scene = player->GetScene();
-
-//             // Create melee object & add components
-//             auto& melee = scene.CreateObject2D();
-
-//             auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 0);
-//             meleeCollider.AddColliderBox(meleeDimensions * playerScale, offset);
-//             meleeCollider.SetIgnoreTag(player->GetID());
-
-//             auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f);
-            
-//             melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
-//             melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
-//             auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
-//             break;
-//         }
-
-//         // Spawn melee collider for spear
-//         case WeaponType::SPEAR:
-//         {
-//             // Set & calculate data for melee collider
-//             glm::vec2 meleeDimensions = m_pCurrentWeapon->GetHurtBoxSize();
-//             glm::vec2 offset = glm::vec2(0.0f, 0.0f);
-            
-//             // Horizontal attack
-//             if(playerDirection.x != 0.0f && playerDirection.y == 0.0f)
-//             {
-//                 meleeDimensions.x *= 1.25f;
-//                 offset.x = playerDirection.x > 0.0f ? 0.0f : -meleeDimensions.x;
-//                 offset.y = meleeDimensions.y * 0.5f;
-//             }
-
-//             // Vertical attack
-//             else if(playerDirection.x == 0.0f && playerDirection.y != 0.0f)
-//             {
-//                 meleeDimensions.y *= 1.25f;
-//                 offset.x = -meleeDimensions.x * 0.5f;
-//                 offset.y = playerDirection.y > 0.0f ? meleeDimensions.y : 0.0f;
-//             }
-
-//             // Diagonal attack
-//             else if(playerDirection.x != 0.0f && playerDirection.y != 0.0f)
-//             {
-//                 offset.x = -meleeDimensions.x * 0.5f;
-//                 offset.x = playerDirection.x > 0.0f ? 0.0f : -meleeDimensions.x;
-//                 offset.y = meleeDimensions.y * 0.5f;
-//                 offset.y = playerDirection.y > 0.0f ? meleeDimensions.y : 0.0f;
-//             }
-
-//             // Scale offset by player scale
-//             offset *= playerScale;
-
-//             auto& scene = player->GetScene();
-
-//             // Create melee object & add components
-//             auto& melee = scene.CreateObject2D();
-
-//             auto& meleeCollider = melee.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 0);
-//             meleeCollider.AddColliderBox(meleeDimensions * playerScale, offset);
-//             meleeCollider.SetIgnoreTag(player->GetID());
-
-//             auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 3000.0f);
-            
-//             melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
-//             melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
-//             auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
-//         }
-//     }
-// }
 
 void PlayerController::StartRoll()
 {
