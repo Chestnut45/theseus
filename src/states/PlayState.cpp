@@ -17,6 +17,7 @@
 #include "../components/VelocityComponent.h"
 #include "../components/ThrowableObjectComponent.h"
 #include "../components/BoulderTrapComponent.h"
+#include "../components/MonsterSpawnerComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
 #include "DDACalculator.h"
@@ -136,6 +137,7 @@ void PlayState::Enter()
     // this->CreateHarpyEnemy();
     // this->CreateGorgonEnemy();
     this->CreateTrappedChest();
+    this->CreateMonsterSpawner();
 
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
     wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
@@ -655,6 +657,10 @@ void PlayState::Update(float delta)
         health.UpdateDamageIndicators(delta);
     }
 
+    for (auto&& [_, monsterSpawner] : m_pGameInstance->GetScene().Each<MonsterSpawnerComponent>()) {
+        monsterSpawner.Update(delta);
+    }
+
     // Dispatch events
     wolf::EventManager::Dispatch();
 
@@ -817,6 +823,22 @@ void PlayState::CreateTrappedChest()
     // Add the trapped chest component
     auto& trappedChestComp = chest->AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::EXPLODE, true,  true);
     trappedChestComp.Init();
+}
+
+void PlayState::CreateMonsterSpawner()
+{
+    // Create an object in the scene
+    wolf::GameObject* monsterSpawnerObj = &m_pGameInstance->GetScene().CreateObject2D();
+
+    MonsterSpawnerComponent::MonsterSpawnerData MSData;
+    MSData.spawnerTilePos = glm::ivec2(40, 2);
+    MSData.roomBottomLeftTilePos = glm::ivec2(1, 1);
+    MSData.roomSize = glm::ivec2(1, 1);
+    MSData.spawnTrigger = MonsterSpawnerComponent::SpawnTrigger::ON_STEP;
+    MSData.aMonsterCounts[MonsterSpawnerComponent::MonsterType::HARPY] = 1;
+
+    auto& msComp = monsterSpawnerObj->AddComponent<MonsterSpawnerComponent>(MSData);
+    msComp.Init();
 }
 
 void PlayState::CreateThrowableObject()

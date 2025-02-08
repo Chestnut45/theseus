@@ -67,7 +67,7 @@ void GLShapesRenderer::AddQuad(ColouredVertex2D p_coords_1, ColouredVertex2D p_c
 void GLShapesRenderer::AddQuad(ColouredVertex2D p_lower_left, float p_width, float p_height)
 {
     // Setup data
-    glm::vec4 colour = glm::vec4(p_lower_left.r, p_lower_left.g, p_lower_left.g, p_lower_left.a);
+    glm::vec4 colour = glm::vec4(p_lower_left.r, p_lower_left.g, p_lower_left.b, p_lower_left.a);
     ColouredVertex2D upperLeft = {p_lower_left.x, p_lower_left.y + p_height, colour.r, colour.g, colour.b, colour.a};
     ColouredVertex2D lowerRight = {p_lower_left.x + p_width, p_lower_left.y, colour.r, colour.g, colour.b, colour.a};
     ColouredVertex2D upperRight = {p_lower_left.x + p_width, p_lower_left.y + p_height, colour.r, colour.g, colour.b, colour.a};

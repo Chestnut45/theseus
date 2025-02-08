@@ -83,6 +83,7 @@ private:
     void CreateHarpyEnemy();
     void CreateGorgonEnemy();
     void CreateTrappedChest();
+    void CreateMonsterSpawner();
     wolf::GameObject& CreateAriadneAndReturn(glm::vec2 playerPosition);
 
 
