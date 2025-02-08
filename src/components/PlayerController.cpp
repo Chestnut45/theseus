@@ -584,8 +584,6 @@ void PlayerController::HandleBowAttack(float delta)
         }
         
     }
-    HandleAttackAnimation();
-
 }
 
 void PlayerController::HandleSpearAttack(float delta)
@@ -651,10 +649,6 @@ void PlayerController::HandleSpearAttack(float delta)
 
         m_attackTimer.Restart();
     }
-        
-
-    HandleAttackAnimation();
-
 }
 
 void PlayerController::HandleSwordAttack(float delta)
@@ -719,29 +713,6 @@ void PlayerController::HandleSwordAttack(float delta)
         auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);    
 
         m_attackTimer.Restart();
-    }
-    HandleAttackAnimation();
-}
-
-void PlayerController::HandleAttackAnimation()
-{
-    // If the animation has finished, transition out of the attacking state
-    if (m_pAnimComponent->IsAnimationFinished())
-    {
-        // Determine the next action based on the player's velocity
-        if (glm::length(m_pVelocity->GetVelocity()) < 0.01f)
-        {
-            SetAction(PlayerAction::NONE); // Set to idle state
-        }
-        else
-        {
-            SetAction(PlayerAction::WALKING); // Set to walking state
-        }
-
-        // Clear the current animation and set a new one based on the updated state
-        // This goes here rather than EndAttack() as SetAnimationBasedOnState() needs to happen before SetAction()
-        m_currentAnimation = "";
-        SetAnimationBasedOnState();
     }
 }
 
@@ -831,6 +802,42 @@ void PlayerController::RenderBowPowerBar()
     // Pop all the style vars and colors
     ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(2);
+}
+
+glm::vec2 PlayerController::ClampDirection(const glm::vec2& direction) const
+{
+    glm::vec2 finalDir = glm::vec2(0.0f, 0.0f);
+    float angle = std::atan2(direction.y, direction.x);
+    float eighthPi = std::numbers::pi / 8.0f;
+
+    if (angle >= -eighthPi && angle < eighthPi) 
+    {
+        finalDir = glm::normalize(glm::vec2(1.0f, 0.0f));    // East
+    }
+    else if (angle >= eighthPi && angle < 3.0f * eighthPi) 
+    {
+        finalDir = glm::normalize(glm::vec2(1.0f, 1.0f));    // NorthEast
+    }
+    else if (angle >= 3.0f * eighthPi && angle < 5.0f * eighthPi) {
+        finalDir = glm::normalize(glm::vec2(0.0f, 1.0f));    // North
+    }
+    else if (angle >= 5.0f * eighthPi && angle < 7.0f * eighthPi) {
+        finalDir = glm::normalize(glm::vec2(-1.0f, 1.0f));   // NorthWest
+    }
+    else if (angle >= 7.0f * eighthPi || angle < -7.0f * eighthPi) {
+        finalDir = glm::normalize(glm::vec2(-1.0f, 0.0f));   // West
+    }
+    else if (angle >= -7.0f * eighthPi && angle < -5.0f * eighthPi) {
+        finalDir = glm::normalize(glm::vec2(-1.0f, -1.0f));  // SouthWest
+    }
+    else if (angle >= -5.0f * eighthPi && angle < -3.0f * eighthPi) {
+        finalDir = glm::normalize(glm::vec2(0.0f, -1.0f));   // South
+    }
+    else if (angle >= -3.0f * eighthPi && angle < -eighthPi) {
+        finalDir = glm::normalize(glm::vec2(1.0f, -1.0f));   // SouthEast
+    }
+
+    return finalDir;
 }
 
 void PlayerController::EndPetrified()
@@ -955,6 +962,24 @@ void PlayerController::HandleAttacking(float delta)
             HandleSwordAttack(delta);
             break;
         }
+    }
+    // If the animation has finished, transition out of the attacking state
+    if (m_pAnimComponent->IsAnimationFinished())
+    {
+        // Determine the next action based on the player's velocity
+        if (glm::length(m_pVelocity->GetVelocity()) < 0.01f)
+        {
+            SetAction(PlayerAction::NONE); // Set to idle state
+        }
+        else
+        {
+            SetAction(PlayerAction::WALKING); // Set to walking state
+        }
+
+        // Clear the current animation and set a new one based on the updated state
+        // This goes here rather than EndAttack() as SetAnimationBasedOnState() needs to happen before SetAction()
+        m_currentAnimation = "";
+        SetAnimationBasedOnState();
     }
 }
 // Handle rolling logic based on player input and stamina
@@ -1155,37 +1180,7 @@ void PlayerController::RegenerateStamina(float delta)
 void PlayerController::StartAttack()
 {          
     CalculateAttackDirection();
-    glm::vec2 lastDir = glm::vec2(1.0f, 0.0f);
-    
-    float angle = std::atan2(m_attackDir.y, m_attackDir.x);
-    float eighthPi = std::numbers::pi / 8.0f;
-
-    if (angle >= -eighthPi && angle < eighthPi) 
-    {
-        lastDir = glm::normalize(glm::vec2(1.0f, 0.0f));    // East
-    }
-    else if (angle >= eighthPi && angle < 3.0f * eighthPi) 
-    {
-        lastDir = glm::normalize(glm::vec2(1.0f, 1.0f));    // NorthEast
-    }
-    else if (angle >= 3.0f * eighthPi && angle < 5.0f * eighthPi) {
-        lastDir = glm::normalize(glm::vec2(0.0f, 1.0f));    // North
-    }
-    else if (angle >= 5.0f * eighthPi && angle < 7.0f * eighthPi) {
-        lastDir = glm::normalize(glm::vec2(-1.0f, 1.0f));   // NorthWest
-    }
-    else if (angle >= 7.0f * eighthPi || angle < -7.0f * eighthPi) {
-        lastDir = glm::normalize(glm::vec2(-1.0f, 0.0f));   // West
-    }
-    else if (angle >= -7.0f * eighthPi && angle < -5.0f * eighthPi) {
-        lastDir = glm::normalize(glm::vec2(-1.0f, -1.0f));  // SouthWest
-    }
-    else if (angle >= -5.0f * eighthPi && angle < -3.0f * eighthPi) {
-        lastDir = glm::normalize(glm::vec2(0.0f, -1.0f));   // South
-    }
-    else if (angle >= -3.0f * eighthPi && angle < -eighthPi) {
-        lastDir = glm::normalize(glm::vec2(1.0f, -1.0f));   // SouthEast
-    }
+    glm::vec2 lastDir = ClampDirection(m_attackDir);
 
     m_lastFaceDirectionEnum = GetDirectionFromVector(lastDir);
 

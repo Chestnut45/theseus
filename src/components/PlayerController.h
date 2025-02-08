@@ -120,6 +120,7 @@ private:
     void CalculateAttackDirection();
     void RenderBowPowerBar();
 
+    glm::vec2 ClampDirection(const glm::vec2& direction) const;
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
