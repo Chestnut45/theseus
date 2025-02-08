@@ -221,6 +221,7 @@ private:
     const int BOW_HOLD_FRAME_COLUMN = 4;    // The column in the bow attack sprite sheet where Theseus stretches his bow the furthest
     const int BOW_ATTACK_FRAMES = 6;
     glm::vec4 m_bowRangeIndicatorColour = glm::vec4(0.0f, 1.0f, 0.4f, 1.0f);
+    const ImVec2 BOW_POWER_BAR_SIZE = ImVec2(100.0f, 15.0f);
 
     // Invulnerability after taking damage
     float m_prevHealthFraction = 1.0f;
@@ -234,6 +235,7 @@ private:
     float m_throwPower = 0.0f;       // Power for the throw
     const float m_maxThrowPower = 100.0f; // Max limit for the throw power
     const float m_powerChargeRate = 25.0f; // Rate at which power increases
+    const ImVec2 THROW_POWER_BAR_SIZE = ImVec2(100.0f, 15.0f);
 
     // Animation and state tracking flags
     std::string m_currentAnimation;

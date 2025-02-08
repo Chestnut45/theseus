@@ -782,9 +782,21 @@ void PlayerController::CalculateAttackDirection()
 // Code taken from RenderThrowPowerBar() by Youssef
 void PlayerController::RenderBowPowerBar()
 {
-    // Position the power bar on the right side of the screen
-    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-    ImVec2 basePos = ImVec2(displaySize.x - 120.0f, displaySize.y / 2.0f - 50.0f); // Right side, centered vertically
+    // Get positions
+    wolf::Scene* scene = &this->GetGameObject()->GetScene();
+    wolf::Camera2D* camera = scene->GetActiveCamera();
+    glm::vec2 cameraPos = camera->GetPosition();
+    glm::vec2 viewSize = camera->GetViewSize();
+    glm::vec2 viewSizeHalf = glm::vec2(viewSize.x * 0.5f, viewSize.y * 0.5f);
+    glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    // Calculate position of power bar in world space
+    glm::vec2 barPos = playerPos - glm::vec2(BOW_POWER_BAR_SIZE.x, BOW_POWER_BAR_SIZE.y) * 0.5f;
+    barPos.y += 32.0f * LabyrinthManager::SCALE;
+
+    glm::vec2 screenPos;
+    screenPos.x = (barPos.x - (cameraPos.x - viewSizeHalf.x));
+    screenPos.y = (barPos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
 
     // Push ImGui styles for a more vibrant look with background, rounded frame, and padding
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);           // Rounded corners for the frame
@@ -794,14 +806,14 @@ void PlayerController::RenderBowPowerBar()
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 1.0f, 1.0f, 0.5f));   // Soft white border
 
     // Render background bar with a slightly larger size for a frame effect
-    ImGui::SetNextWindowPos(ImVec2(basePos.x - 5.0f, basePos.y - 5.0f));
-    ImGui::SetNextWindowSize(ImVec2(110.0f, 18.0f));
+    ImGui::SetNextWindowPos(ImVec2(screenPos.x - 5.0f, screenPos.y - 5.0f));
+    ImGui::SetNextWindowSize(ImVec2(THROW_POWER_BAR_SIZE.x + 10.0f, THROW_POWER_BAR_SIZE.y + 3.0f));
     ImGui::Begin("##PowerBarBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
     ImGui::End();
 
-    // Render the throw power bar
-    ImGui::SetNextWindowPos(basePos);
-    ImGui::SetNextWindowSize(ImVec2(100.0f, 15.0f));
+    // Render the bow power bar
+    ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y));
+    ImGui::SetNextWindowSize(BOW_POWER_BAR_SIZE);
     ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
     ImVec4 barColor = ImVec4(1.0f - (m_bowChargeScale / m_bowMaxChargeScale), (m_bowChargeScale / m_bowMaxChargeScale), 0.0f, 1.0f); // Gradient from red to green
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
@@ -810,7 +822,7 @@ void PlayerController::RenderBowPowerBar()
     ImGui::End();
 
     // Render label "Power" below the bar
-    ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y - 20.0f));
+    ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y - 20.0f));
     ImGui::SetNextWindowSize(ImVec2(100.0f, 10.0f));
     ImGui::Begin("##PowerLabel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
     ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Power");
@@ -1443,9 +1455,21 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
 }
 
 void PlayerController::RenderThrowPowerBar() {
-    // Position the power bar on the right side of the screen
-    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-    ImVec2 basePos = ImVec2(displaySize.x - 120.0f, displaySize.y / 2.0f - 50.0f); // Right side, centered vertically
+        // Get positions
+        wolf::Scene* scene = &this->GetGameObject()->GetScene();
+        wolf::Camera2D* camera = scene->GetActiveCamera();
+        glm::vec2 cameraPos = camera->GetPosition();
+        glm::vec2 viewSize = camera->GetViewSize();
+        glm::vec2 viewSizeHalf = glm::vec2(viewSize.x * 0.5f, viewSize.y * 0.5f);
+        glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    
+        // Calculate position of power bar in world space
+        glm::vec2 barPos = playerPos - glm::vec2(BOW_POWER_BAR_SIZE.x, BOW_POWER_BAR_SIZE.y) * 0.5f;
+        barPos.y += 32.0f * LabyrinthManager::SCALE;
+    
+        glm::vec2 screenPos;
+        screenPos.x = (barPos.x - (cameraPos.x - viewSizeHalf.x));
+        screenPos.y = (barPos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
 
     // Push ImGui styles for a more vibrant look with background, rounded frame, and padding
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);           // Rounded corners for the frame
@@ -1455,14 +1479,14 @@ void PlayerController::RenderThrowPowerBar() {
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 1.0f, 1.0f, 0.5f));   // Soft white border
 
     // Render background bar with a slightly larger size for a frame effect
-    ImGui::SetNextWindowPos(ImVec2(basePos.x - 5.0f, basePos.y - 5.0f));
-    ImGui::SetNextWindowSize(ImVec2(110.0f, 18.0f));
+    ImGui::SetNextWindowPos(ImVec2(screenPos.x - 5.0f, screenPos.y - 5.0f));
+    ImGui::SetNextWindowSize(ImVec2(THROW_POWER_BAR_SIZE.x + 10.0f, THROW_POWER_BAR_SIZE.y + 3.0f));
     ImGui::Begin("##PowerBarBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
     ImGui::End();
 
     // Render the throw power bar
-    ImGui::SetNextWindowPos(basePos);
-    ImGui::SetNextWindowSize(ImVec2(100.0f, 15.0f));
+    ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y));
+    ImGui::SetNextWindowSize(THROW_POWER_BAR_SIZE);
     ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
     ImVec4 barColor = ImVec4(1.0f - (m_throwPower / m_maxThrowPower), (m_throwPower / m_maxThrowPower), 0.0f, 1.0f); // Gradient from red to green
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
@@ -1471,7 +1495,7 @@ void PlayerController::RenderThrowPowerBar() {
     ImGui::End();
 
     // Render label "Power" below the bar
-    ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y - 20.0f));
+    ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y - 20.0f));
     ImGui::SetNextWindowSize(ImVec2(100.0f, 10.0f));
     ImGui::Begin("##PowerLabel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
     ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Power");
