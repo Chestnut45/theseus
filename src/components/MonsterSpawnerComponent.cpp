@@ -6,9 +6,19 @@
 //-----------------------------------------------------------------------------
 
 #include "MonsterSpawnerComponent.h"
+
+#include <ChestInventoryComponent.h>
+#include <DispensaryInventoryComponent.h>
+#include <GorgonController.h>
+#include <HarpyController.h>
+#include <MinitaurController.h>
+#include <NPCComponent.h>
 #include <PlayerController.h>
+#include <TrappedChestComponent.h>
+
 #include <EnemyDataLoader.h>
 #include <GLShapesRenderer.h>
+
 #include <GorgonBuilder.h>
 #include <HarpyBuilder.h>
 #include <MinitaurBuilder.h>
@@ -215,13 +225,31 @@ void MonsterSpawnerComponent::QueryOccupiedTiles()
         {
             glm::ivec2 chunkID = glm::ivec2(i, j);
             wolf::GameObject* chunk =  m_pLBMG->GetChunk(chunkID);
-            std::vector<wolf::GameObject*> chunkChildren = chunk->GetChildren();
+            std::vector<wolf::GameObject*> chunkObjs = chunk->GetChildren();
             
             // Iterate through every object in a chunk
-            for (wolf::GameObject* child: chunkChildren)
+            for (wolf::GameObject* obj: chunkObjs)
             {
+                glm::vec2 objPos = obj->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                glm::ivec2 objTilePos = m_pLBMG->GetTilePosition(objPos);
+                
+                // Skip if object is outside of room
+                if(
+                    objTilePos.x < left     ||
+                    objTilePos.x > right    ||
+                    objTilePos.y < bottom   ||
+                    objTilePos.y > top      
+                )
+                {
+                    continue;
+                }
 
-            }
+                if(obj->HasAny<ChestInventoryComponent, DispensaryInventoryComponent, MinitaurController, NPCComponent, PlayerController, TrappedChestComponent>())
+                {
+                    m_vOccupiedTiles.push_back(objTilePos);
+                }
+
+            }   
         }   
     }
 }
