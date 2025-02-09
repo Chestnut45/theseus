@@ -28,7 +28,6 @@ public:
         glm::ivec2 roomBottomLeftTilePos = glm::ivec2(0, 0);
         glm::ivec2 roomSize = glm::ivec2(1, 1);
         int monsterCounts[MonsterType::NONE] = {0, 0, 0};
-        std::vector<glm::ivec2> occupiedTiles;
     };
 
     MonsterSpawnerComponent(MonsterSpawnerData p_msd);
@@ -41,6 +40,8 @@ private:
     LabyrinthManager* m_pLBMG = nullptr;
     MonsterSpawnerData m_MSData;
     static wolf::RNG s_RNG;
+    std::vector<glm::ivec2> m_vOccupiedTiles;
 
     void SpawnMonsters();
+    void QueryOccupiedTiles();
 };

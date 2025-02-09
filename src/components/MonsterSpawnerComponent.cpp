@@ -86,7 +86,7 @@ void MonsterSpawnerComponent::SpawnMonsters()
     glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerControllerComp->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     
 
-    m_MSData.occupiedTiles.push_back(playerTilePos);
+    m_vOccupiedTiles.push_back(playerTilePos);
     
     // Load enemy data
     EnemyDataLoader loader;
@@ -123,13 +123,13 @@ void MonsterSpawnerComponent::SpawnMonsters()
             pos.y = m_MSData.spawnerTilePos.y;
 
             // Regenerate until new tile position does not match an occupied one
-            while(std::find(m_MSData.occupiedTiles.begin(), m_MSData.occupiedTiles.end(), pos) != m_MSData.occupiedTiles.end())
+            while(std::find(m_vOccupiedTiles.begin(), m_vOccupiedTiles.end(), pos) != m_vOccupiedTiles.end())
             {
                 pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1);
                 pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1); 
             }
             // Add new tile position to list of occupied tiles
-            m_MSData.occupiedTiles.push_back(pos);
+            m_vOccupiedTiles.push_back(pos);
 
             // Calculate world position
             glm::vec2 worldPos = m_pLBMG->GetWorldPosition(pos);
@@ -164,12 +164,12 @@ void MonsterSpawnerComponent::SpawnMonsters()
             pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1);
 
             // Regenerate until new tile position does not match an occupied one
-            while(std::find(m_MSData.occupiedTiles.begin(), m_MSData.occupiedTiles.end(), pos) != m_MSData.occupiedTiles.end())
+            while(std::find(m_vOccupiedTiles.begin(), m_vOccupiedTiles.end(), pos) != m_vOccupiedTiles.end())
             {
                 pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1);
                 pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1); 
             }
-            m_MSData.occupiedTiles.push_back(pos);
+            m_vOccupiedTiles.push_back(pos);
             glm::vec2 worldPos = m_pLBMG->GetWorldPosition(glm::vec2(pos));
             worldPos += glm::vec2(0.5f * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
 
@@ -194,4 +194,34 @@ void MonsterSpawnerComponent::SpawnMonsters()
             harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE));  
         }
     } 
+}
+
+void MonsterSpawnerComponent::QueryOccupiedTiles()
+{
+    int left = m_MSData.roomBottomLeftTilePos.x;
+    int right = m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1;
+    int bottom = m_MSData.roomBottomLeftTilePos.y;
+    int top = m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1;
+
+    // Get chunk IDs of lef-bottom & right-top corners
+    glm::ivec2 chunkIDlb = m_pLBMG->GetChunkID(m_pLBMG->GetWorldPosition(glm::vec2(left, bottom)));  
+    glm::ivec2 chunkIDrt = m_pLBMG->GetChunkID(m_pLBMG->GetWorldPosition(glm::vec2(right, top)));
+
+    // Horizontal
+    for(int i = chunkIDlb.x; i <= chunkIDrt.x; i++)
+    {
+        // Vertical
+        for(int j = chunkIDlb.y; j <= chunkIDrt.y; j++)
+        {
+            glm::ivec2 chunkID = glm::ivec2(i, j);
+            wolf::GameObject* chunk =  m_pLBMG->GetChunk(chunkID);
+            std::vector<wolf::GameObject*> chunkChildren = chunk->GetChildren();
+            
+            // Iterate through every object in a chunk
+            for (wolf::GameObject* child: chunkChildren)
+            {
+
+            }
+        }   
+    }
 }
