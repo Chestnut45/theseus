@@ -170,8 +170,9 @@ private:
     float m_searchTimer;
 
     float m_idleTimer;              // Idle state members
-
     float m_autoAttackRange;
+    float m_boostHealthPercentage;
+    float m_isBoosted;
 
     // Updates the animated sprite based on state,
     // regardless of what phase of the fight we're in
@@ -218,6 +219,7 @@ private:
 
     void StartFireBreathAttack();
     void AttackFireBreath(float delta);
+    void BreatheFire();
     void TurnToPlayer(float delta);
 
     void StartChargeAttack();
@@ -226,4 +228,6 @@ private:
 
     void StartPull();
     void Pull(float delta);
+
+    void LastStandBoost();
 };

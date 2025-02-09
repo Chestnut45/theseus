@@ -85,7 +85,7 @@ void BossController::Init()
     m_stunTimer = 0.5f; // Seconds
     m_chargeTurningCapDegree = 9.0f; // Degrees
     m_chargeTurningDelay = 0.2f; // Seconds
-    m_chargeSpeed = 600.0f;
+    m_chargeSpeed = 550.0f;
     m_chargeKnockbackForce = 10000.0f;
     m_chargeChainCount = 0;
 
@@ -97,7 +97,9 @@ void BossController::Init()
     m_searchTimer = 2.0f; // Seconds
 
     m_idleTimer = 2.0f;
-    m_autoAttackRange = 200.0f;
+    m_autoAttackRange = 350.0f;
+    m_boostHealthPercentage = 10; // Percent
+    m_isBoosted = false;
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
 
@@ -1320,22 +1322,52 @@ void BossController::AttackFireBreath(float delta)
         // Get data
         glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::vec2 endPos = thisPos + m_lastDirection * m_fireBreathRange;
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::ivec2 playerTilePos = m_pLabyrinthManager->GetTilePosition(playerPos);
 
-        // Add fire range indicator
-        GLShapesRenderer::GetInstance()->AddLine({thisPos.x, thisPos.y, 1, 0, 0 , 1}, {endPos.x, endPos.y, 1, 0, 0 , 1});
-
+        bool isPlayerHit = false;
 
         if(this->m_fireBreathTurningTimer >= this->m_fireBreathTurningDelay)
         {   
             // Get all tiles burnt
             std::vector<glm::ivec2> tiles = DDACalculator::GetInstance()->GetTraversedTiles(thisPos, endPos, true);
 
+            bool isBlocked = false;
+            
             // Add fire tiles
             for (glm::ivec2 tile : tiles)
-            {
+            {   
+                for(wolf::GameObject* pillar : m_pBossPillarGroup->GetChildren())
+                {
+                    // Stop adding if blocked by pillar
+                    if(m_pLabyrinthManager->GetTilePosition(pillar->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) == tile)
+                    {   
+                        isBlocked = true;
+                        break;
+                    }
+                }
+                if(isBlocked == true)
+                {
+                    break;
+                }
+
+                // 
+                if(
+                    !isPlayerHit                                                                        &&
+                    m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING   &&
+                    tile == playerTilePos
+                )
+                {
+                    isPlayerHit = true;
+                    m_pPlayerObject->GetComponent<HealthComponent>()->Pierce(10.0f);
+                }
+
                 TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
             }
         }
+
+        // Add fire range indicator
+        GLShapesRenderer::GetInstance()->AddLine({thisPos.x, thisPos.y, 1, 0, 0 , 1}, {endPos.x, endPos.y, 1, 0, 0 , 1});
     }
     else
     {
@@ -1359,8 +1391,15 @@ void BossController::AttackFireBreath(float delta)
     }
 }
 
+void BossController::BreatheFire()
+{
+
+}
+
 void BossController::TurnToPlayer(float delta)
 {
+    if(std::abs(m_fireBreathTurningCapRadian) == 0) return;
+
     // Get data
     glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
@@ -1450,8 +1489,23 @@ void BossController::AttackCharge(float delta)
                                                                                                 glm::normalize(playerPos - thisPos);
                         m_pPlayerObject->GetComponent<HealthComponent>()->Damage(m_chargeAttackDamage);
                         m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(playerDirection, m_chargeKnockbackForce);
-                    }
+                    
 
+                    }
+                    else
+                    {
+                        // Break pillar if collided
+                        for(wolf::GameObject* pillar : m_pBossPillarGroup->GetChildren())
+                        {
+                            if(pillar->GetID() == id)
+                            {   
+                                this->GetGameObject()->GetScene().DeleteObject(pillar->GetID());
+                                break;
+                            }
+                        }
+                    }
+                    
+                    
                     // Change to STUNNED state
                     ChangeStatesPhase3(State::STUNNED);
                     return;
@@ -1542,4 +1596,9 @@ void BossController::Pull(float delta)
         glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(glm::normalize(glm::vec2(thisPos - playerPos)), m_pullForce);
     }
+}
+
+void BossController::LastStandBoost()
+{
+
 }
