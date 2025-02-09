@@ -17,6 +17,7 @@ wolf::RNG MonsterSpawnerComponent::s_RNG;
 
 MonsterSpawnerComponent::MonsterSpawnerComponent(MonsterSpawnerData p_msd)
 {
+    s_RNG.NextInt(1, 100);
     m_MSData = p_msd;
     glm::vec2 worldPos = m_pLBMG->GetWorldPosition(m_MSData.spawnerTilePos);
 }
@@ -37,54 +38,40 @@ void MonsterSpawnerComponent::Init()
 
 void MonsterSpawnerComponent::Update(float p_delta)
 {
-    // Update if on-step trigger
-    if(m_MSData.spawnTrigger == SpawnTrigger::ON_STEP)
+
+    // get player controller
+    PlayerController* playerControllerComp = nullptr;
+    for (auto&& [_, pcComp] : GetGameObject()->GetScene().Each<PlayerController>())
     {
-        // get player controller
-        PlayerController* playerControllerComp = nullptr;
-        for (auto&& [_, pcComp] : GetGameObject()->GetScene().Each<PlayerController>())
-        {
-            playerControllerComp = &pcComp;
-            break;
-        }
-
-        glm::vec2 worldPos = m_pLBMG->GetWorldPosition(m_MSData.spawnerTilePos);
-        // std::cout << "worldPos: " << worldPos.x << ", y: " << worldPos.y << std::endl;
-        GLShapesRenderer::GetInstance()->AddQuad(
-                                                {worldPos.x, worldPos.y, 0, 1, 0, 1}, 
-                                                m_MSData.spawnerSize.x * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE,
-                                                m_MSData.spawnerSize.y * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE
-                                                );
-        
-        // if player is on spawner tile, spawn monsters
-        glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerControllerComp->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
-        if(
-            playerTilePos.x < m_MSData.spawnerTilePos.x                                 ||
-            playerTilePos.x > m_MSData.spawnerTilePos.x + (m_MSData.spawnerSize.x - 1)  ||
-            playerTilePos.y < m_MSData.spawnerTilePos.y                                 ||
-            playerTilePos.y > m_MSData.spawnerTilePos.y + (m_MSData.spawnerSize.y - 1)
-        )
-        {
-            return;
-        }
-        else
-        {
-            SpawnMonsters();
-            this->GetGameObject()->GetScene().DeleteObject(this->GetGameObject()->GetID());
-            return;
-        }
+        playerControllerComp = &pcComp;
+        break;
     }
-    
-}
 
-void MonsterSpawnerComponent::CallSpawnMonsters()
-{
-    if(m_MSData.spawnTrigger != SpawnTrigger::ON_CALL)
+    glm::vec2 worldPos = m_pLBMG->GetWorldPosition(m_MSData.spawnerTilePos);
+    // std::cout << "worldPos: " << worldPos.x << ", y: " << worldPos.y << std::endl;
+    GLShapesRenderer::GetInstance()->AddQuad(
+                                            {worldPos.x, worldPos.y, 0, 1, 0, 1}, 
+                                            m_MSData.spawnerSize.x * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE,
+                                            m_MSData.spawnerSize.y * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE
+                                            );
+    
+    // if player is on spawner tile, spawn monsters
+    glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerControllerComp->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+    if(
+        playerTilePos.x < m_MSData.spawnerTilePos.x                                 ||
+        playerTilePos.x > m_MSData.spawnerTilePos.x + (m_MSData.spawnerSize.x - 1)  ||
+        playerTilePos.y < m_MSData.spawnerTilePos.y                                 ||
+        playerTilePos.y > m_MSData.spawnerTilePos.y + (m_MSData.spawnerSize.y - 1)
+    )
     {
         return;
     }
-
-    SpawnMonsters();
+    else
+    {
+        SpawnMonsters();
+        this->GetGameObject()->GetScene().DeleteObject(this->GetGameObject()->GetID());
+        return;
+    }
 }
 
 void MonsterSpawnerComponent::SpawnMonsters()
@@ -98,9 +85,8 @@ void MonsterSpawnerComponent::SpawnMonsters()
     }
     glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerControllerComp->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     
-    // Create vector of occupied tiles
-    std::vector<glm::ivec2> occupiedTiles;
-    occupiedTiles.push_back(playerTilePos);
+
+    m_MSData.occupiedTiles.push_back(playerTilePos);
     
     // Load enemy data
     EnemyDataLoader loader;
@@ -112,24 +98,100 @@ void MonsterSpawnerComponent::SpawnMonsters()
     HarpyBuilder harpyBuilder(GetGameObject()->GetScene());
     GorgonBuilder gorgonBuilder(GetGameObject()->GetScene());
 
-    int roomArea = m_MSData.roomSize.x * m_MSData.roomSize.y;
+    int availableTiles = m_MSData.roomSize.x * m_MSData.roomSize.y - 1;
+    
+    // Spawn gorgons
+    int gorgonCount = m_MSData.monsterCounts[MonsterSpawnerComponent::MonsterType::GORGON];
+    if(gorgonCount > 0)
+    {
+        for(int i = 0; i < gorgonCount; i++)
+        {
+            // Skip spawning if no tile left available
+            if(availableTiles <= 0)
+            {
+                break;
+                printf("NO EMPTY TILES\n");
+            }
+            // Update available tiles count
+            availableTiles--;
+
+            // Generate random tile position
+            glm::ivec2 pos;
+            pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1);
+            pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1);    
+            pos.x = m_MSData.spawnerTilePos.x;
+            pos.y = m_MSData.spawnerTilePos.y;
+
+            // Regenerate until new tile position does not match an occupied one
+            while(std::find(m_MSData.occupiedTiles.begin(), m_MSData.occupiedTiles.end(), pos) != m_MSData.occupiedTiles.end())
+            {
+                pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1);
+                pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1); 
+            }
+            // Add new tile position to list of occupied tiles
+            m_MSData.occupiedTiles.push_back(pos);
+
+            // Calculate world position
+            glm::vec2 worldPos = m_pLBMG->GetWorldPosition(pos);
+            worldPos += glm::vec2(0.5f * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
+
+            wolf::GameObject& gorgon = gorgonBuilder.BuildGorgon(gorgonData, worldPos);
+            gorgon.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE));
+        }
+    }
+
+    // Spawn minitaurs
+    int minitaurCount = m_MSData.monsterCounts[MonsterSpawnerComponent::MonsterType::MINITAUR];
+    
+    if(minitaurCount > 0)
+    {
+        for(int i = 0; i < minitaurCount; i++)
+        {
+            // Skip spawning if no tile left available
+            if(availableTiles <= 0)
+            {
+                
+                printf("NO EMPTY TILES\n");
+                break;
+            }
+
+            // Update available tiles count
+            availableTiles--;
+
+            // Generate random tile position
+            glm::ivec2 pos;
+            pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1);
+            pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1);
+
+            // Regenerate until new tile position does not match an occupied one
+            while(std::find(m_MSData.occupiedTiles.begin(), m_MSData.occupiedTiles.end(), pos) != m_MSData.occupiedTiles.end())
+            {
+                pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1);
+                pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1); 
+            }
+            m_MSData.occupiedTiles.push_back(pos);
+            glm::vec2 worldPos = m_pLBMG->GetWorldPosition(glm::vec2(pos));
+            worldPos += glm::vec2(0.5f * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
+
+            wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, worldPos);
+            minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE));
+        }
+    }
 
     // Spawn harpies
-    int harpyCount = m_MSData.aMonsterCounts[MonsterSpawnerComponent::MonsterType::HARPY];
+    int harpyCount = m_MSData.monsterCounts[MonsterSpawnerComponent::MonsterType::HARPY];   
     if(harpyCount > 0)
     {
         for(int i = 0; i < harpyCount; i++)
         {
             glm::vec2 pos;
-            pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x);
-            pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y);
-            
-            pos.x = m_MSData.spawnerTilePos.x;
-            pos.y = m_MSData.spawnerTilePos.y;
+            pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1);
+            pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1);
+
             pos = m_pLBMG->GetWorldPosition(pos);
 
             wolf::GameObject& harpy = harpyBuilder.BuildHarpy(harpyData, pos);
-            harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE));
+            harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE));  
         }
-    }
+    } 
 }
