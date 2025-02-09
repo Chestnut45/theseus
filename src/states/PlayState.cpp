@@ -87,10 +87,14 @@ void PlayState::Enter()
         // Spawn the Minotaur Boss
         auto& bossObject = scene.CreateObject2D();
         auto& controller = bossObject.AddComponent<BossController>();  
-        controller.Init();
 
         // Move boss to initial location
-        bossObject.GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.5f));
+        auto* pBossTransform = bossObject.GetComponent<wolf::Transform2D>();
+        pBossTransform->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.5f));
+        pBossTransform->SetScale(glm::vec2(3.0f));
+
+        // Then call init (uses location to access boss room)
+        controller.Init();
 
         // Grab pointer to boss object
         m_pBoss = &bossObject;
@@ -98,36 +102,8 @@ void PlayState::Enter()
 
         // Create other object groups
         m_pBossWalls = &scene.CreateObject2D();
-        m_pBossPillarGroup = &scene.CreateObject2D();
         m_bossRoomOrigin= room.m_bounds.m_origin;
         m_bossRoomSize = room.m_bounds.m_size;
-
-        // Generate tile locations for pillars
-        const wolf::IRectangle& r = room.m_bounds;
-        glm::ivec2 locations[] =
-        {
-            glm::ivec2(r.m_origin.x + r.m_size.x * 0.25f, r.m_origin.y + r.m_size.y * 0.25f),
-            glm::ivec2(r.m_origin.x + r.m_size.x * 0.25f, r.m_origin.y + r.m_size.y * 0.75f),
-            glm::ivec2(r.m_origin.x + r.m_size.x * 0.75f, r.m_origin.y + r.m_size.y * 0.75f),
-            glm::ivec2(r.m_origin.x + r.m_size.x * 0.75f, r.m_origin.y + r.m_size.y * 0.25f)
-        };
-
-        for (const auto& tile : locations)
-        {
-            // Spawn a pillar as a child object of the boss
-            wolf::GameObject& pillar = scene.CreateObject2D();
-            m_pBossPillarGroup->AddChild(pillar);
-            pillar.AddComponent<wolf::Sprite2D>("data/textures/tile_wall_minotaur.png");
-            
-            // Set position and scale
-            auto& transform = *pillar.GetComponent<wolf::Transform2D>();
-            transform.SetPosition(m_pLabyrinthManager->GetWorldPosition(tile));
-            transform.SetScale(glm::vec2(3.0f));
-
-            // Create collider
-            auto& collider = pillar.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, false, false);
-            collider.AddColliderBox(glm::vec2(96.0f), glm::vec2(0.0f, 96.0f));
-        }
 
         break;
     }

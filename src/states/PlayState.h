@@ -72,7 +72,6 @@ private:
     glm::vec2 m_bossfightPlayerPos;
     wolf::GameObject* m_pBoss = nullptr;
     wolf::GameObject* m_pBossWalls = nullptr;
-    wolf::GameObject* m_pBossPillarGroup = nullptr;
     std::vector<glm::ivec2> m_bossRoomDoorTiles;
     glm::ivec2 m_bossRoomOrigin;
     glm::ivec2 m_bossRoomSize;
