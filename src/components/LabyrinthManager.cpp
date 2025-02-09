@@ -41,6 +41,7 @@
 #include <NPCComponent.h>
 
 std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
+std::string LabyrinthManager::s_entityNames[(int)LabyrinthManager::Room::EntityType::ENTITY_COUNT];
 
 LabyrinthManager::LabyrinthManager()
 {
@@ -57,10 +58,17 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["trapped_chest_harpy"] = Room::EntityType::TrappedChestHarpy;
     s_entityIDs["trapped_chest_minitaur"] = Room::EntityType::TrappedChestMinitaur;
     s_entityIDs["dispensary"] = Room::EntityType::DaedalusDispensary;
+    s_entityIDs["throwable_object"] = Room::EntityType::ThrowableObject;
     s_entityIDs["spike_trap"] = Room::EntityType::SpikeTrap;
     s_entityIDs["ariadne_npc"] = Room::EntityType::AriadneNPC;
     s_entityIDs["daedalus_npc"] = Room::EntityType::DaedalusNPC;
     s_entityIDs["random_npc"] = Room::EntityType::RandomNPC;
+
+    // Auto generate ordered array of names
+    for (auto entry : s_entityIDs)
+    {
+        s_entityNames[(int)entry.second] = entry.first;
+    }
 }
 
 LabyrinthManager::~LabyrinthManager()
@@ -69,6 +77,9 @@ LabyrinthManager::~LabyrinthManager()
 
 void LabyrinthManager::Update(float delta)
 {
+    // Don't update chunks when in bossfight
+    if (m_inBossfight) return;
+
     auto* pObject = GetGameObject();
     auto* pPlayer = GetPlayer();
 
@@ -164,6 +175,19 @@ void LabyrinthManager::Update(float delta)
 
     // Update cached chunk ID
     m_prevChunk = chunkID;
+}
+
+void LabyrinthManager::StartBossfight()
+{
+    m_inBossfight = true;
+
+    // Deactivate all chunks
+    for (const auto& chunk : m_chunkMap)
+    {
+        DeactivateChunk(chunk.first);
+    }
+
+    m_prevChunk = glm::ivec2(-999, -999);
 }
 
 void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
@@ -714,27 +738,11 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
 
                 // Grab the entity node
                 YAML::Node entity = entities[e];
-                std::string eType = entity["type"] ? entity["type"].as<std::string>() : "";
 
-                // Parse data
-                if (eType == "minitaur") data.m_type = Room::EntityType::Minitaur;
-                if (eType == "harpy") data.m_type = Room::EntityType::Harpy;
-                if (eType == "gorgon") data.m_type = Room::EntityType::Gorgon;
-                if (eType == "common_chest") data.m_type = Room::EntityType::CommonChest;
-                if (eType == "uncommon_chest") data.m_type = Room::EntityType::UncommonChest;
-                if (eType == "rare_chest") data.m_type = Room::EntityType::RareChest;
-                if (eType == "epic_chest") data.m_type = Room::EntityType::EpicChest;
-                if (eType == "legendary_chest") data.m_type = Room::EntityType::LegendaryChest;
-                if (eType == "trapped_chest_explode") data.m_type = Room::EntityType::TrappedChestExplode;
-                if (eType == "trapped_chest_gorgon") data.m_type = Room::EntityType::TrappedChestGorgon;
-                if (eType == "trapped_chest_harpy") data.m_type = Room::EntityType::TrappedChestHarpy;
-                if (eType == "trapped_chest_minitaur") data.m_type = Room::EntityType::TrappedChestMinitaur;
-                if (eType == "dispensary") data.m_type = Room::EntityType::DaedalusDispensary;
-                if (eType == "throwable_object") data.m_type = Room::EntityType::ThrowableObject;
-                if (eType == "ariadne_npc") data.m_type = Room::EntityType::AriadneNPC;
-                if (eType == "daedalus_npc") data.m_type = Room::EntityType::DaedalusNPC;
-                if (eType == "random_npc") data.m_type = Room::EntityType::RandomNPC;
-                
+                // Lookup entity ID by the string name from yaml
+                std::string eType = entity["type"] ? entity["type"].as<std::string>() : "";
+                data.m_type = s_entityIDs.contains(eType) ? s_entityIDs[eType] : data.m_type;
+
                 data.m_amount = entity["amount"] ? entity["amount"].as<int>() : data.m_amount;
 
                 // Parse placement
@@ -862,63 +870,8 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
         {
             const auto& data = room.m_entitySpawns[e];
             file << "\t\t\t{type: ";
-            switch (data.m_type)
-            {
-                case Room::EntityType::Minitaur:
-                    file << "minitaur, amount: ";
-                    break;
-                case Room::EntityType::Harpy:
-                    file << "harpy, amount: ";
-                    break;
-                case Room::EntityType::Gorgon:
-                    file << "gorgon, amount: ";
-                    break;
-                case Room::EntityType::CommonChest:
-                    file << "common_chest, amount: ";
-                    break;
-                case Room::EntityType::UncommonChest:
-                    file << "uncommon_chest, amount: ";
-                    break;
-                case Room::EntityType::RareChest:
-                    file << "rare_chest, amount: ";
-                    break;
-                case Room::EntityType::EpicChest:
-                    file << "epic_chest, amount: ";
-                    break;
-                case Room::EntityType::LegendaryChest:
-                    file << "legendary_chest, amount: ";
-                    break;
-                case Room::EntityType::TrappedChestExplode:
-                    file << "trapped_chest_explode, amount: ";
-                    break;
-                case Room::EntityType::TrappedChestGorgon:
-                    file << "trapped_chest_gorgon, amount: ";
-                    break;
-                case Room::EntityType::TrappedChestHarpy:
-                    file << "trapped_chest_harpy, amount: ";
-                    break;
-                case Room::EntityType::TrappedChestMinitaur:
-                    file << "trapped_chest_minitaur, amount: ";
-                    break;
-                case Room::EntityType::DaedalusDispensary:
-                    file << "dispensary, amount: ";
-                    break;
-                case Room::EntityType::SpikeTrap:
-                    file << "spike_trap, amount: ";
-                    break;
-                case Room::EntityType::ThrowableObject:
-                    file << "throwable_object, amount: ";
-                    break;
-                case Room::EntityType::AriadneNPC:
-                    file << "ariadne_npc, amount: ";
-                    break;
-                case Room::EntityType::DaedalusNPC:
-                    file << "daedalus_npc, amount: ";
-                    break;
-                case Room::EntityType::RandomNPC:
-                    file << "random_npc, amount: ";
-                    break;
-            }
+            file << s_entityNames[(int)data.m_type];
+            file << ", amount: ";
             file << std::to_string(data.m_amount).c_str();
             file << ", placement: ";
             switch (data.m_spawnPosType)
