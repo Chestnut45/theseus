@@ -2,7 +2,6 @@
 // File: MonsterSpawnerComponent.cpp
 // Original Author: Nguyễn Minh Nhật
 // Spawns monsters in a room
-// Note: Game object must NOT move for the component to work
 //-----------------------------------------------------------------------------
 
 #include "MonsterSpawnerComponent.h"
@@ -57,13 +56,8 @@ void MonsterSpawnerComponent::Update(float p_delta)
         break;
     }
 
-    glm::vec2 worldPos = m_pLBMG->GetWorldPosition(m_MSData.spawnerTilePos);
     // std::cout << "worldPos: " << worldPos.x << ", y: " << worldPos.y << std::endl;
-    GLShapesRenderer::GetInstance()->AddQuad(
-                                            {worldPos.x, worldPos.y, 0, 1, 0, 1}, 
-                                            m_MSData.spawnerSize.x * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE,
-                                            m_MSData.spawnerSize.y * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE
-                                            );
+    HandleBoundLines();
     
     // if player is on spawner tile, spawn monsters
     glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerControllerComp->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
@@ -96,8 +90,9 @@ void MonsterSpawnerComponent::SpawnMonsters()
     glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerControllerComp->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     
 
-    m_vOccupiedTiles.push_back(playerTilePos);
-    
+    QueryOccupiedTiles();
+    QueryAvailableTiles();
+
     // Load enemy data
     EnemyDataLoader loader;
     loader.LoadAllEnemyData("data/enemies.yaml");
@@ -107,8 +102,6 @@ void MonsterSpawnerComponent::SpawnMonsters()
     MinitaurBuilder minitaurBuilder(GetGameObject()->GetScene());
     HarpyBuilder harpyBuilder(GetGameObject()->GetScene());
     GorgonBuilder gorgonBuilder(GetGameObject()->GetScene());
-
-    int availableTiles = m_MSData.roomSize.x * m_MSData.roomSize.y - 1;
     
     // Spawn gorgons
     int gorgonCount = m_MSData.monsterCounts[MonsterSpawnerComponent::MonsterType::GORGON];
@@ -117,29 +110,20 @@ void MonsterSpawnerComponent::SpawnMonsters()
         for(int i = 0; i < gorgonCount; i++)
         {
             // Skip spawning if no tile left available
-            if(availableTiles <= 0)
+            if(m_vAvailableTiles.size() <= 0)
             {
                 break;
-                printf("NO EMPTY TILES\n");
+                printf("GS - NO EMPTY TILES\n");
             }
             // Update available tiles count
-            availableTiles--;
 
             // Generate random tile position
-            glm::ivec2 pos;
-            pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1);
-            pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1);    
-            pos.x = m_MSData.spawnerTilePos.x;
-            pos.y = m_MSData.spawnerTilePos.y;
-
-            // Regenerate until new tile position does not match an occupied one
-            while(std::find(m_vOccupiedTiles.begin(), m_vOccupiedTiles.end(), pos) != m_vOccupiedTiles.end())
-            {
-                pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1);
-                pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1); 
-            }
-            // Add new tile position to list of occupied tiles
+            int randomIndex = s_RNG.NextInt(0, m_vAvailableTiles.size() - 1);
+            glm::ivec2 pos = m_vAvailableTiles.at(randomIndex);
+            
+            // Mark tile as occupied
             m_vOccupiedTiles.push_back(pos);
+            m_vAvailableTiles.erase(m_vAvailableTiles.begin() + randomIndex);
 
             // Calculate world position
             glm::vec2 worldPos = m_pLBMG->GetWorldPosition(pos);
@@ -158,28 +142,21 @@ void MonsterSpawnerComponent::SpawnMonsters()
         for(int i = 0; i < minitaurCount; i++)
         {
             // Skip spawning if no tile left available
-            if(availableTiles <= 0)
+            if(m_vAvailableTiles.size() <= 0)
             {
                 
-                printf("NO EMPTY TILES\n");
+                printf("MS - NO EMPTY TILES\n");
                 break;
             }
 
-            // Update available tiles count
-            availableTiles--;
-
             // Generate random tile position
-            glm::ivec2 pos;
-            pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1);
-            pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1);
-
-            // Regenerate until new tile position does not match an occupied one
-            while(std::find(m_vOccupiedTiles.begin(), m_vOccupiedTiles.end(), pos) != m_vOccupiedTiles.end())
-            {
-                pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1);
-                pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1); 
-            }
+            int randomIndex = s_RNG.NextInt(0, m_vAvailableTiles.size() - 1);
+            glm::ivec2 pos = m_vAvailableTiles.at(randomIndex);
+            
+            // Mark tile as occupied
             m_vOccupiedTiles.push_back(pos);
+            m_vAvailableTiles.erase(m_vAvailableTiles.begin() + randomIndex);
+            
             glm::vec2 worldPos = m_pLBMG->GetWorldPosition(glm::vec2(pos));
             worldPos += glm::vec2(0.5f * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
 
@@ -223,6 +200,7 @@ void MonsterSpawnerComponent::QueryOccupiedTiles()
         // Vertical
         for(int j = chunkIDlb.y; j <= chunkIDrt.y; j++)
         {
+            // Get chunk data 
             glm::ivec2 chunkID = glm::ivec2(i, j);
             wolf::GameObject* chunk =  m_pLBMG->GetChunk(chunkID);
             std::vector<wolf::GameObject*> chunkObjs = chunk->GetChildren();
@@ -246,10 +224,66 @@ void MonsterSpawnerComponent::QueryOccupiedTiles()
 
                 if(obj->HasAny<ChestInventoryComponent, DispensaryInventoryComponent, MinitaurController, NPCComponent, PlayerController, TrappedChestComponent>())
                 {
+                    std::cout <<"id: " << obj->GetID() << std::endl;
                     m_vOccupiedTiles.push_back(objTilePos);
                 }
 
             }   
         }   
     }
+}
+
+void MonsterSpawnerComponent::QueryAvailableTiles()
+{
+    glm::ivec2 roomSize = m_MSData.roomSize;
+    glm::ivec2 roomBottomLeftTilePos = m_MSData.roomBottomLeftTilePos;
+    
+    // Horizontal
+    for(int i = roomBottomLeftTilePos.x; i < roomBottomLeftTilePos.x + roomSize.x; i++)
+    {
+        // Vertical
+        for(int j = roomBottomLeftTilePos.y; j < roomBottomLeftTilePos.y + roomSize.y; j++)
+        {
+            glm::ivec2 tilePos = glm::ivec2(i, j);
+
+            // If tile is not occupied, add to available vector
+            if(std::find(m_vOccupiedTiles.begin(), m_vOccupiedTiles.end(), tilePos) == m_vOccupiedTiles.end())
+            {
+                m_vAvailableTiles.push_back(tilePos);
+            }
+        }
+    }
+}
+
+void MonsterSpawnerComponent::HandleBoundLines()
+{
+    glm::ivec2 roomSize = m_MSData.roomSize * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    glm::vec2 worldPos = m_pLBMG->GetWorldPosition(m_MSData.spawnerTilePos);
+
+    glm::vec2 lb = worldPos;
+    glm::vec2 lt = lb + glm::vec2(0.0f, roomSize.y);
+    glm::vec2 rb = lb + glm::vec2(roomSize.x, 0.0f);
+    glm::vec2 rt = lb + glm::vec2(roomSize);
+ 
+    glm::vec4 colour = glm::vec4(1, 1, 0, 1);
+
+    GLShapesRenderer::GetInstance()->AddLine(
+                                            {lb.x, lb.y, colour.r, colour.g, colour.b, colour.a},
+                                            {lt.x, lt.y, colour.r, colour.g, colour.b, colour.a}
+                                            );
+
+    GLShapesRenderer::GetInstance()->AddLine(
+                                            {lt.x, lt.y, colour.r, colour.g, colour.b, colour.a},
+                                            {rt.x, rt.y, colour.r, colour.g, colour.b, colour.a}
+                                            );
+
+    GLShapesRenderer::GetInstance()->AddLine(
+                                            {rt.x, rt.y, colour.r, colour.g, colour.b, colour.a},
+                                            {rb.x, rb.y, colour.r, colour.g, colour.b, colour.a}
+                                            );
+
+    GLShapesRenderer::GetInstance()->AddLine(
+                                            {rb.x, rb.y, colour.r, colour.g, colour.b, colour.a},
+                                            {lb.x, lb.y, colour.r, colour.g, colour.b, colour.a}
+                                            );
 }

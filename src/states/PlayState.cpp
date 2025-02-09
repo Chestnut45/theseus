@@ -832,7 +832,7 @@ void PlayState::CreateMonsterSpawner()
 
     MonsterSpawnerComponent::MonsterSpawnerData MSData;
     MSData.spawnerTilePos = glm::ivec2(37, 1);          // Bottom left tile
-    MSData.spawnerSize = glm::ivec2(5, 1);              
+    MSData.spawnerSize = glm::ivec2(5, 7);              
     MSData.roomBottomLeftTilePos = glm::ivec2(37, 1);
     MSData.roomSize = glm::ivec2(5, 7);
     

@@ -2,7 +2,6 @@
 // File: MonsterSpawnerComponent.h
 // Original Author: Nguyễn Minh Nhật
 // Spawns monsters in a room
-// Note: Game object must NOT move for the component to work
 //-----------------------------------------------------------------------------
 
 #pragma once
@@ -40,8 +39,12 @@ private:
     LabyrinthManager* m_pLBMG = nullptr;
     MonsterSpawnerData m_MSData;
     static wolf::RNG s_RNG;
+    std::vector<glm::ivec2> m_vAvailableTiles;
     std::vector<glm::ivec2> m_vOccupiedTiles;
 
     void SpawnMonsters();
     void QueryOccupiedTiles();
+    void QueryAvailableTiles();
+
+    void HandleBoundLines();
 };
