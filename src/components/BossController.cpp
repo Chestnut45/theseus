@@ -82,7 +82,8 @@ void BossController::Init()
     m_chargeWindupTint = glm::vec3(4.0f, 4.0f, 4.0f);
     m_chargeAttackDamage = 150;
     m_chargeAttackRange = 2000;
-    m_stunTimer = 0.5f; // Seconds
+    m_stunTime = 0.5f; // Seconds
+    m_stunTimer = 0.0f; // Seconds
     m_chargeTurningCapDegree = 9.0f; // Degrees
     m_chargeTurningDelay = 0.2f; // Seconds
     m_chargeSpeed = 550.0f;
@@ -97,9 +98,10 @@ void BossController::Init()
     m_searchTimer = 2.0f; // Seconds
 
     m_idleTimer = 2.0f;
+    m_idleTimeRange = glm::vec2(1.0f, 2.0f);
     m_autoAttackRange = 350.0f;
-    m_boostHealthPercentage = 10; // Percent
-    m_isBoosted = false;
+    m_superchargeHealthFraction = 0.1; // Percent
+    m_isSupercharged = false;
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
 
@@ -955,11 +957,20 @@ void BossController::EnterPhase3()
 void BossController::UpdatePhase3(float delta)
 {   
     std::cout << "Boss Health: " << m_pHealth->GetHealth() << std::endl;
+    
+    if(!m_isSupercharged && m_pHealth->GetHealth() <= m_pHealth->GetMaxHealth() * m_superchargeHealthFraction)
+    {
+        m_isSupercharged = true;
+        LastStandSupercharge();
+    }
+    
     if (m_pHealth->GetHealth() <= 0 && m_state != State::DEAD)
     {
         m_state = State::DEAD;
         wolf::Log("It may have been the Minotaur's labyrinth but Theseus the GOAT");
     }
+
+    
 
     switch (m_state)
     {
@@ -1195,7 +1206,7 @@ void BossController::EndSearch()
 
 void BossController::StartIdle()
 {
-    m_idleTimer = m_rng.NextFloat(1.0f, 2.0f);
+    m_idleTimer = m_rng.NextFloat(m_idleTimeRange.x, m_idleTimeRange.y);
 }
 
 void BossController::Idle(float delta)
@@ -1256,7 +1267,7 @@ void BossController::EndIdle()
 
 void BossController::StartStunned()
 {
-    m_stunTimer = 0.5f;
+    m_stunTimer = m_stunTime;
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }
 
@@ -1315,22 +1326,135 @@ void BossController::AttackFireBreath(float delta)
             ChangeStatesPhase3(State::IDLE);
             return;    
         }
-        m_fireBreathRange += m_fireBreathRangeExtender * delta;
-        // Update attack timer & state
-        m_fireBreathTimer -= delta;
 
-        // Get data
-        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        glm::vec2 endPos = thisPos + m_lastDirection * m_fireBreathRange;
-        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        glm::ivec2 playerTilePos = m_pLabyrinthManager->GetTilePosition(playerPos);
+        if(!m_isSupercharged)
+        {
+            BreatheFire(delta);
+        }
+        else
+        {
+            BreatheFireSupercharged(delta);
+        }   
+    }
+    else
+    {
+        m_fireBreathWindupTimer -= delta;
+        
+        // If entering attack
+        if(m_fireBreathWindupTimer <= 0.0f)
+        {
+            m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+            glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            m_lastDirection = glm::normalize(playerPos - thisPos);
+        }
+        // If still windup
+        else
+        {
+            glm::vec3 currentTint = m_pAnimSprite->GetTint();
+            glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_fireBreathWindupTime * 0.5f), 0.0f, 0.0f);
+            m_pAnimSprite->SetTint(nextTint);
+        }        
+    }
+}
 
+void BossController::BreatheFire(float delta)
+{
+    m_fireBreathRange += m_fireBreathRangeExtender * delta;
+    // Update attack timer & state
+    m_fireBreathTimer -= delta;
+
+    // Get data
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 endPos = thisPos + m_lastDirection * m_fireBreathRange;
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::ivec2 playerTilePos = m_pLabyrinthManager->GetTilePosition(playerPos);
+
+    bool isPlayerHit = false;
+
+    if(this->m_fireBreathTurningTimer >= this->m_fireBreathTurningDelay)
+    {   
+        // Get all tiles burnt
+        std::vector<glm::ivec2> tiles = DDACalculator::GetInstance()->GetTraversedTiles(thisPos, endPos, true);
+
+        bool isBlocked = false;
+        
+        // Add fire tiles
+        for (glm::ivec2 tile : tiles)
+        {   
+            for(wolf::GameObject* pillar : m_pBossPillarGroup->GetChildren())
+            {
+                // Stop adding if blocked by pillar
+                if(m_pLabyrinthManager->GetTilePosition(pillar->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) == tile)
+                {   
+                    isBlocked = true;
+                    break;
+                }
+            }
+            if(isBlocked == true)
+            {
+                break;
+            }
+
+            // 
+            if(
+                !isPlayerHit                                                                        &&
+                m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING   &&
+                tile == playerTilePos
+            )
+            {
+                isPlayerHit = true;
+                m_pPlayerObject->GetComponent<HealthComponent>()->Damage(10.0f);
+            }
+
+            TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
+        }
+    }
+
+    // Add fire range indicator
+    GLShapesRenderer::GetInstance()->AddLine({thisPos.x, thisPos.y, 1, 0, 0 , 1}, {endPos.x, endPos.y, 1, 0, 0 , 1});
+}
+
+void BossController::BreatheFireSupercharged(float delta)
+{
+    m_fireBreathRange += m_fireBreathRangeExtender * delta;
+    // Update attack timer & state
+    m_fireBreathTimer -= delta;
+
+    // Get data
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 endPosM = thisPos + m_lastDirection * m_fireBreathRange;
+    glm::vec2 jetM = endPosM - thisPos;
+    
+    //Calculate offset angle
+    float offsetAngleRad = 12.0f * (M_PI / 180.0f);
+    float offsetAngleSin = glm::sin(offsetAngleRad);
+    float offsetAngleCos = glm::cos(offsetAngleRad);
+    // Left jet
+    glm::vec2 jetL;
+    jetL.x = jetM.x * offsetAngleCos - jetM.y * offsetAngleSin;
+    jetL.y = jetM.y * offsetAngleCos + jetM.x * offsetAngleSin;
+    
+    // Right jet
+    glm::vec2 jetR;
+    jetR.x = jetM.x * offsetAngleCos + jetM.y * offsetAngleSin;
+    jetR.y = jetM.y * offsetAngleCos - jetM.x * offsetAngleSin;
+
+    std::vector<glm::vec2> jets = {jetL, jetR};
+
+    // Get player data
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::ivec2 playerTilePos = m_pLabyrinthManager->GetTilePosition(playerPos);
+
+    for(glm::vec2 jet : jets)
+    {
+        glm::vec2 endpoint = thisPos + jet;
         bool isPlayerHit = false;
 
         if(this->m_fireBreathTurningTimer >= this->m_fireBreathTurningDelay)
         {   
             // Get all tiles burnt
-            std::vector<glm::ivec2> tiles = DDACalculator::GetInstance()->GetTraversedTiles(thisPos, endPos, true);
+            std::vector<glm::ivec2> tiles = DDACalculator::GetInstance()->GetTraversedTiles(thisPos, endpoint, true);
 
             bool isBlocked = false;
             
@@ -1359,7 +1483,7 @@ void BossController::AttackFireBreath(float delta)
                 )
                 {
                     isPlayerHit = true;
-                    m_pPlayerObject->GetComponent<HealthComponent>()->Pierce(10.0f);
+                    m_pPlayerObject->GetComponent<HealthComponent>()->Damage(10.0f);
                 }
 
                 TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
@@ -1367,33 +1491,9 @@ void BossController::AttackFireBreath(float delta)
         }
 
         // Add fire range indicator
-        GLShapesRenderer::GetInstance()->AddLine({thisPos.x, thisPos.y, 1, 0, 0 , 1}, {endPos.x, endPos.y, 1, 0, 0 , 1});
+        GLShapesRenderer::GetInstance()->AddLine({thisPos.x, thisPos.y, 1, 0, 0 , 1}, {endpoint.x, endpoint.y, 1, 0, 0 , 1});
     }
-    else
-    {
-        m_fireBreathWindupTimer -= delta;
-        
-        // If entering attack
-        if(m_fireBreathWindupTimer <= 0.0f)
-        {
-            m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
-            glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            m_lastDirection = glm::normalize(playerPos - thisPos);
-        }
-        // If still windup
-        else
-        {
-            glm::vec3 currentTint = m_pAnimSprite->GetTint();
-            glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_fireBreathWindupTime * 0.5f), 0.0f, 0.0f);
-            m_pAnimSprite->SetTint(nextTint);
-        }        
-    }
-}
-
-void BossController::BreatheFire()
-{
-
+    
 }
 
 void BossController::TurnToPlayer(float delta)
@@ -1598,7 +1698,15 @@ void BossController::Pull(float delta)
     }
 }
 
-void BossController::LastStandBoost()
+void BossController::LastStandSupercharge()
 {
+    m_fireBreathTurningCapRadian = 0.0f;
+    m_fireBreathDuration += 0.5f;
+    
 
+    m_chargeSpeed += 200.0f;
+    m_chargeAttackDamage += 25;
+    m_chargeKnockbackForce += 5000;
+    m_stunTime *= 0.5f;
+    m_idleTimeRange = glm::vec2(0.5f, 1.0f);
 }
