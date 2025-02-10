@@ -6,6 +6,7 @@
 #include <glm/vec2.hpp>
 #include <W_Timer.h>
 #include <unordered_set>
+
 // Forward declarations
 class VelocityComponent;
 class AnimatedSprite2D;
