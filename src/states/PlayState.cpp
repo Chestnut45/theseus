@@ -55,6 +55,7 @@ void PlayState::Enter()
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     m_pLabyrinthManager->GenerateLabyrinth();
 
     GLShapesRenderer::CreateInstance();
@@ -67,6 +68,9 @@ void PlayState::Enter()
     for (const auto& room : rooms)
     {
         if (room.m_name != "Minotaur's Chamber") continue;
+
+        // Store door tile locations
+        m_bossRoomDoorTiles = room.m_doors;
 
         // Create trigger object and collider
         auto& object = scene.CreateObject2D();
@@ -84,21 +88,30 @@ void PlayState::Enter()
         // Spawn the Minotaur Boss
         auto& bossObject = scene.CreateObject2D();
         auto& controller = bossObject.AddComponent<BossController>();  
-        controller.Init();
 
         // Move boss to initial location
-        bossObject.GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.5f));
+        auto* pBossTransform = bossObject.GetComponent<wolf::Transform2D>();
+        pBossTransform->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.5f));
+        pBossTransform->SetScale(glm::vec2(3.0f));
 
-        // Grab pointer to boss controller
+        // Then call init (uses location to access boss room)
+        controller.Init();
+
+        // Grab pointer to boss object
         m_pBoss = &bossObject;
         m_pGameInstance->GetSharedContext().RegisterEntity("Minotaur", m_pBoss->GetID());
+
+        // Create other object groups
+        m_pBossWalls = &scene.CreateObject2D();
+        m_bossRoomOrigin= room.m_bounds.m_origin;
+        m_bossRoomSize = room.m_bounds.m_size;
 
         break;
     }
     
 
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
-    NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+    
 
     // CreateThrowableObject();
     
@@ -980,10 +993,36 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             break;
         }
         case TriggerPurpose::BOSS: {
+
             // Begin the bossfight
             wolf::Log("BOSSFIGHT STARTED");
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
             m_pBoss->GetComponent<BossController>()->SetActive(true);
+
+            // Set door areas to wall tiles
+            for (const auto& door : m_bossRoomDoorTiles)
+            {
+                m_pLabyrinthManager->SetTile(door.x, door.y, Tile::WallMinotaur);
+            }
+
+            // Create a collider that covers all walls of the boss room
+            auto& object = m_pBoss->GetScene().CreateObject2D();
+            m_pBossWalls->AddChild(object);
+
+            // Set scale
+            auto& transform = *object.GetComponent<wolf::Transform2D>();
+            transform.SetScale(glm::vec2(3.0f));
+
+            // Add colliders for boss room walls
+            auto& collider = object.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, false, false);
+            collider.AddColliderBox(glm::vec2((m_bossRoomSize.x + 2) * 96, 96), m_pLabyrinthManager->GetWorldPosition(m_bossRoomOrigin) + glm::vec2(-96.0f, 0.0f));
+            collider.AddColliderBox(glm::vec2((m_bossRoomSize.x + 2) * 96, 96), m_pLabyrinthManager->GetWorldPosition(m_bossRoomOrigin) + glm::vec2(-96, (m_bossRoomSize.y + 1) * 96));
+            collider.AddColliderBox(glm::vec2(96, (m_bossRoomSize.y + 2) * 96), m_pLabyrinthManager->GetWorldPosition(m_bossRoomOrigin) + glm::vec2(-96, (m_bossRoomSize.y + 1) * 96));
+            collider.AddColliderBox(glm::vec2(96, (m_bossRoomSize.y + 2) * 96), m_pLabyrinthManager->GetWorldPosition(m_bossRoomOrigin) + glm::vec2((m_bossRoomSize.x + 1) * 96 - 96, (m_bossRoomSize.y + 1) * 96));
+            
+            // Deactivate all chunks
+            m_pLabyrinthManager->StartBossfight();
+            
             break;
         }
         default:

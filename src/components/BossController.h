@@ -87,6 +87,9 @@ private:
     ColliderComponent* m_pCollider = nullptr;
     HomingComponent* m_pHoming = nullptr;   // Added by Nhật
 
+    // Pointer to game object that contains all pillar objects as child objects
+    wolf::GameObject* m_pBossPillarGroup = nullptr;
+
     // Cached player references
     wolf::GameObject* m_pPlayerObject = nullptr;
     PlayerController* m_pPlayerController = nullptr;
