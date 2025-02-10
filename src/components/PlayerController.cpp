@@ -499,14 +499,10 @@ void PlayerController::HandleDeath(float delta)
 
 void PlayerController::HandleBowAttack(float delta)
 {    
-    CalculateAttackDirection();
-
-    std::cout << "Mouse Released: " << m_bIsMouseReleased << std::endl;
-
     // Charging bow
     if(wolf::Input::IsLMBHeld() || wolf::Input::IsLMBJustDown())
     {
-        if(m_bIsMouseReleased == false)
+        if(m_bIsChargingOver == false)
         {
             m_bowChargeScale += delta * m_bowChargeRate;
             m_bowChargeScale = std::min(m_bowChargeScale, m_bowMaxChargeScale);
@@ -517,21 +513,22 @@ void PlayerController::HandleBowAttack(float delta)
             // Pause animation on holding frame until left mouse release
             int currentFrame = m_pAnimComponent->GetCurrentFrame();
 
-            if(currentFrame % BOW_ATTACK_FRAMES == BOW_HOLD_FRAME_COLUMN)
-            {
-                m_pAnimComponent->SetAnimPaused(true);
-            }
+            CalculateAttackDirection();
+            glm::vec2 lastDir = ClampDirection(m_attackDir);
+            m_lastFaceDirectionEnum = GetDirectionFromVector(lastDir);
+            
             HandleBowRangeIndicator(delta);
         }
     }
+    else
+    {
+        m_bIsChargingOver = true;
+    }
 
     // Firing arrow
-    else 
-    {
-        m_bIsMouseReleased = true;
-        m_pAnimComponent->SetAnimPaused(false);
-
-        if(m_pAnimComponent->IsAnimationFinished())
+    if(m_bIsChargingOver) 
+    {        
+        if(m_currentBowAnim == 1 && m_pAnimComponent->IsAnimationFinished() == true)
         {    
             // Attack
             auto* player = this->GetGameObject();
@@ -563,7 +560,7 @@ void PlayerController::HandleBowAttack(float delta)
             projectileCollider.SetIgnoreTag(player->GetID());
             
             // Add attack damage component
-            float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.2f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
+            float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.01f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
             auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200);
             
             // Calculate spawn offset
@@ -588,8 +585,8 @@ void PlayerController::HandleBowAttack(float delta)
 
             projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
         }
-        
     }
+    HandleBowAttackAnimation();
 }
 
 void PlayerController::HandleSpearAttack(float delta)
@@ -655,6 +652,7 @@ void PlayerController::HandleSpearAttack(float delta)
 
         m_attackTimer.Restart();
     }
+    HandleAttackAnimation();
 }
 
 void PlayerController::HandleSwordAttack(float delta)
@@ -719,6 +717,116 @@ void PlayerController::HandleSwordAttack(float delta)
         auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);    
 
         m_attackTimer.Restart();
+    }
+    HandleAttackAnimation();
+}
+
+void PlayerController::HandleAttackAnimation()
+{
+    // If the animation has finished, transition out of the attacking state
+    if (m_pAnimComponent->IsAnimationFinished())
+    {
+        // Determine the next action based on the player's velocity
+        if (glm::length(m_pVelocity->GetVelocity()) < 0.01f)
+        {
+            SetAction(PlayerAction::NONE); // Set to idle state
+        }
+        else
+        {
+            SetAction(PlayerAction::WALKING); // Set to walking state
+        }
+
+        // Clear the current animation and set a new one based on the updated state
+        // This goes here rather than EndAttack() as SetAnimationBasedOnState() needs to happen before SetAction()
+        m_currentAnimation = "";
+        SetAnimationBasedOnState();
+    }
+}
+
+void PlayerController::HandleBowAttackAnimation()
+{
+    // If charging over
+    if(m_bIsChargingOver)
+    {
+        // If loading anim
+        if(m_currentBowAnim == 0)
+        {
+            // If charging done but not switched anims yet
+            if(m_pAnimComponent->IsAnimationFinished() == true)
+            {
+                m_currentBowAnim = 1;
+
+                std::string sheet = "BowFire";
+                
+                switch (m_lastFaceDirectionEnum)
+                {
+                    case PlayerDirection::SOUTH:       {sheet += "South"; break;}
+                    case PlayerDirection::EAST:        {sheet += "East"; break;}
+                    case PlayerDirection::NORTH:       {sheet += "North"; break;}
+                    case PlayerDirection::WEST:        {sheet += "West"; break;}
+                    case PlayerDirection::NORTH_EAST:  {sheet += "East"; break;}
+                    case PlayerDirection::NORTH_WEST:  {sheet += "West"; break;}
+                    case PlayerDirection::SOUTH_EAST:  {sheet += "East"; break;}
+                    case PlayerDirection::SOUTH_WEST:  {sheet += "West"; break;}
+                    default:                           {sheet += "South"; break;}
+                }
+
+                m_pAnimComponent->SetAnimation(sheet);
+                m_pAnimComponent->SetAnimPaused(false);
+            }
+        }
+        else
+        {
+            m_pAnimComponent->SetAnimPaused(false);
+            if(m_pAnimComponent->IsAnimationFinished() == true)
+            {                
+                // Determine the next action based on the player's velocity
+                if (glm::length(m_pVelocity->GetVelocity()) < 0.01f)
+                {
+                    SetAction(PlayerAction::NONE); // Set to idle state
+                }
+                else
+                {
+                    SetAction(PlayerAction::WALKING); // Set to walking state
+                }
+
+                // Clear the current animation and set a new one based on the updated state
+                // This goes here rather than EndAttack() as SetAnimationBasedOnState() needs to happen before SetAction()
+                m_currentAnimation = "";
+                SetAnimationBasedOnState();
+            }
+        }
+    }
+    // if charging ongoing
+    else
+    {
+        // If loading anim
+        if(m_currentBowAnim == 0)
+        {
+            if(m_pAnimComponent->IsAnimationFinished() == true)
+            {
+                m_currentBowAnim = 1;
+                m_pAnimComponent->SetAnimPaused(true);
+            }
+        }
+        else
+        {
+            std::string sheet = "BowFire";
+                
+            switch (m_lastFaceDirectionEnum)
+            {
+                case PlayerDirection::SOUTH:       {sheet += "South"; break;}
+                case PlayerDirection::EAST:        {sheet += "East"; break;}
+                case PlayerDirection::NORTH:       {sheet += "North"; break;}
+                case PlayerDirection::WEST:        {sheet += "West"; break;}
+                case PlayerDirection::NORTH_EAST:  {sheet += "East"; break;}
+                case PlayerDirection::NORTH_WEST:  {sheet += "West"; break;}
+                case PlayerDirection::SOUTH_EAST:  {sheet += "East"; break;}
+                case PlayerDirection::SOUTH_WEST:  {sheet += "West"; break;}
+                default:                           {sheet += "South"; break;}
+            }            
+            m_pAnimComponent->SetAnimation(sheet);
+        }
     }
 }
 
@@ -969,24 +1077,7 @@ void PlayerController::HandleAttacking(float delta)
             break;
         }
     }
-    // If the animation has finished, transition out of the attacking state
-    if (m_pAnimComponent->IsAnimationFinished())
-    {
-        // Determine the next action based on the player's velocity
-        if (glm::length(m_pVelocity->GetVelocity()) < 0.01f)
-        {
-            SetAction(PlayerAction::NONE); // Set to idle state
-        }
-        else
-        {
-            SetAction(PlayerAction::WALKING); // Set to walking state
-        }
 
-        // Clear the current animation and set a new one based on the updated state
-        // This goes here rather than EndAttack() as SetAnimationBasedOnState() needs to happen before SetAction()
-        m_currentAnimation = "";
-        SetAnimationBasedOnState();
-    }
 }
 // Handle rolling logic based on player input and stamina
 void PlayerController::HandleRolling(float delta)
@@ -1155,22 +1246,37 @@ glm::vec2 PlayerController::GetVectorFromDirection(PlayerDirection direction) co
 std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection direction) const
 {
     std::string weaponType = "Sword";
+    std::string startingSheet = "Attack";
     WeaponType type = this->m_pCurrentWeapon->GetWeaponType();
-    if(type == WeaponType::BOW) weaponType = "Bow";
-    else if(type == WeaponType::SPEAR) weaponType = "Spear";
-    else if(type == WeaponType::SWORD) weaponType = "Sword";
+    
+    if(type == WeaponType::BOW) 
+    {
+        weaponType = "Bow";
+        startingSheet = "Load";
+    }
+    
+    else if(type == WeaponType::SPEAR)
+    {
+        weaponType = "Spear";
+        startingSheet = "Attack";
+    }
+    else if(type == WeaponType::SWORD) 
+    {
+        weaponType = "Sword";
+        startingSheet = "Attack";
+    }
 
     switch (direction)
     {
-        case PlayerDirection::SOUTH:       return weaponType + "AttackSouth";
-        case PlayerDirection::EAST:        return weaponType + "AttackEast";
-        case PlayerDirection::NORTH:       return weaponType + "AttackNorth";
-        case PlayerDirection::WEST:        return weaponType + "AttackWest";
-        case PlayerDirection::NORTH_EAST:  return weaponType + "AttackEast";
-        case PlayerDirection::NORTH_WEST:  return weaponType + "AttackWest";
-        case PlayerDirection::SOUTH_EAST:  return weaponType + "AttackEast";
-        case PlayerDirection::SOUTH_WEST:  return weaponType + "AttackWest";
-        default:                           return weaponType + "AttackSouth";
+        case PlayerDirection::SOUTH:       return weaponType + startingSheet + "South";
+        case PlayerDirection::EAST:        return weaponType + startingSheet + "East";
+        case PlayerDirection::NORTH:       return weaponType + startingSheet + "North";
+        case PlayerDirection::WEST:        return weaponType + startingSheet + "West";
+        case PlayerDirection::NORTH_EAST:  return weaponType + startingSheet + "East";
+        case PlayerDirection::NORTH_WEST:  return weaponType + startingSheet + "West";
+        case PlayerDirection::SOUTH_EAST:  return weaponType + startingSheet + "East";
+        case PlayerDirection::SOUTH_WEST:  return weaponType + startingSheet + "West";
+        default:                           return weaponType + startingSheet + "South";
     }
 }
 
@@ -1187,7 +1293,6 @@ void PlayerController::StartAttack()
 {          
     CalculateAttackDirection();
     glm::vec2 lastDir = ClampDirection(m_attackDir);
-
     m_lastFaceDirectionEnum = GetDirectionFromVector(lastDir);
 
     m_hasAppliedDamage = false;
@@ -1195,10 +1300,10 @@ void PlayerController::StartAttack()
     // Set the player action to attacking and reset attack-related timers.
     m_attackTimer.Restart();
 
-        // Choose the correct animation based on the player's direction.
-        std::string attackAnimation = GetAttackAnimationForDirection(m_lastFaceDirectionEnum);
-        // Set the attacking animation.
-        m_pAnimComponent->SetAnimation(attackAnimation);
+    // Choose the correct animation based on the player's direction.
+    std::string attackAnimation = GetAttackAnimationForDirection(m_lastFaceDirectionEnum);
+    // Set the attacking animation.
+    m_pAnimComponent->SetAnimation(attackAnimation);
 
     // Store the current animation to handle transitions later.
     m_currentAnimation = attackAnimation;
@@ -1206,7 +1311,8 @@ void PlayerController::StartAttack()
     // Reset bow attack-related members
     m_bowChargeScale = 0.0f;
     m_arrowRange = 0.0f;
-    m_bIsMouseReleased = false;
+    m_bIsChargingOver = false;
+    m_currentBowAnim = 0;
 }
 
 void PlayerController::StartPetrified()
