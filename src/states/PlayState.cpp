@@ -107,48 +107,9 @@ void PlayState::Enter()
 
         break;
     }
-    
 
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     
-
-    // CreateThrowableObject();
-    
-    // Create a test spike trap
-    CreateSpikeTrap(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f));
-    CreateBoulderTrap(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(-192.0f, 192.0f));
-
-    // Testing: Create a test projectile object
-    // auto& testObj = scene.CreateObject2D();
-    // testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));5
-    // testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
-    // auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    // auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-    // testCollider.SetDamage(10.0f);
-    // testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    // auto& testVelocity = testObj.AddComponent<VelocityComponent>();
-    //testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
-
-    // auto& testObj2 = scene.CreateObject2D();
-    // testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    // testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(6000.0f, 0.0f));
-
-    // auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    // testSprite2.SetOriginToCenterOfTexture();
-
-    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-    // testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
-    
-    // auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
-    // testVelocity2.SetVelocity(glm::vec2(0.0f, 128.0f));
-    
-    // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
-    
-    // this->CreateMinitaurEnemy();
-    // this->CreateHarpyEnemy();
-    // this->CreateGorgonEnemy();
-    this->CreateTrappedChest();
-
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
     wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
 
@@ -209,10 +170,7 @@ void PlayState::Enter()
     m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
 
 
-    // Trigger the intro dialogue and cutscene
-
-    // Log success
-    // wolf::Log("Successfully found and registered the closest Minotaur to the player.");
+   
     // Schedule her movement
     auto* transform = ariadne.GetComponent<wolf::Transform2D>();
     if (transform) {
