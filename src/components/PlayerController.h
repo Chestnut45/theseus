@@ -222,7 +222,7 @@ private:
     float m_arrowMaxRange = 600.0f;         // Max range
     const int BOW_HOLD_FRAME_COLUMN = 4;    // The column in the bow attack sprite sheet where Theseus stretches his bow the furthest
     const int BOW_ATTACK_FRAMES = 6;
-    bool m_bIsChargingOver = false;        // Prevents double-charging
+    bool m_bIsChargingOver = false;        // Prevents double-charging by clicking again after releasing mouse
     bool m_currentBowAnim = 0;
     glm::vec4 m_bowRangeIndicatorColour = glm::vec4(0.0f, 1.0f, 0.4f, 1.0f);
     const ImVec2 BOW_POWER_BAR_SIZE = ImVec2(100.0f, 15.0f);

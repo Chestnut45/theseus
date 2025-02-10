@@ -376,18 +376,25 @@ void PlayerController::HandlePlayerInput(float delta)
     }
     glm::vec2 direction = GetLastFacingDirectionVector();
 
-    // Only start roll if a direction is being held, sufficient stamina is available, and the player is not holding an object
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && m_action != PlayerAction::ROLLING && m_action != PlayerAction::ATTACKING && m_stamina >= 15.0f && !m_isHoldingObject)
+    // Only start roll if the following conditions are met
+    if (
+        wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE)  && 
+        m_action != PlayerAction::ROLLING           && 
+        m_action != PlayerAction::ATTACKING         && 
+        m_action != PlayerAction::PETRIFIED         && 
+        m_stamina >= 15.0f && !m_isHoldingObject
+    )
     {
         SetAction(PlayerAction::ROLLING);
     }
 
-    // Start the attack if the left mouse button is pressed and the player is not currently attacking.
+    // Start the attack if the following conditions are met
     // !-- Aurora added a m_pCurrentWeapon != nullptr check here --!
     if (
         wolf::Input::IsLMBJustDown()                            && 
         m_pCurrentWeapon                                        && 
         m_action != PlayerAction::ATTACKING                     &&
+        m_action != PlayerAction::PETRIFIED                     &&
         m_attackTimer.Elapsed() >= m_pCurrentWeapon->GetDelay() && 
         !m_inventoryOpen                                        && 
         !m_inventoryHovered)
@@ -504,19 +511,21 @@ void PlayerController::HandleBowAttack(float delta)
     {
         if(m_bIsChargingOver == false)
         {
+            // Calculate scale of charge power
             m_bowChargeScale += delta * m_bowChargeRate;
             m_bowChargeScale = std::min(m_bowChargeScale, m_bowMaxChargeScale);
 
+            // Calculate range of arrow
             m_arrowRange += delta * m_bowChargeRate * m_arrowMaxRange;
             m_arrowRange = std::min(m_arrowRange, m_arrowMaxRange);
 
-            // Pause animation on holding frame until left mouse release
-            int currentFrame = m_pAnimComponent->GetCurrentFrame();
-
             CalculateAttackDirection();
+            
+            // Update face direction
             glm::vec2 lastDir = ClampDirection(m_attackDir);
             m_lastFaceDirectionEnum = GetDirectionFromVector(lastDir);
             
+            // Calculate range indicator
             HandleBowRangeIndicator(delta);
         }
     }
@@ -748,10 +757,10 @@ void PlayerController::HandleBowAttackAnimation()
     // If charging over
     if(m_bIsChargingOver)
     {
-        // If loading anim
+        // If current anim is 'loading bow'
         if(m_currentBowAnim == 0)
         {
-            // If charging done but not switched anims yet
+            // If current anim finished, switch to 'firing bow'
             if(m_pAnimComponent->IsAnimationFinished() == true)
             {
                 m_currentBowAnim = 1;
@@ -775,9 +784,12 @@ void PlayerController::HandleBowAttackAnimation()
                 m_pAnimComponent->SetAnimPaused(false);
             }
         }
+        // If current anim is 'firing bow'
         else
         {
             m_pAnimComponent->SetAnimPaused(false);
+
+            // If current anim finished
             if(m_pAnimComponent->IsAnimationFinished() == true)
             {                
                 // Determine the next action based on the player's velocity
@@ -797,33 +809,35 @@ void PlayerController::HandleBowAttackAnimation()
             }
         }
     }
-    // if charging ongoing
+    // if still charging
     else
     {
-        // If loading anim
+        // If current anim is 'loading bow'
         if(m_currentBowAnim == 0)
         {
+            // If current anim finished, switch to 'firing bow' & pause
             if(m_pAnimComponent->IsAnimationFinished() == true)
             {
                 m_currentBowAnim = 1;
                 m_pAnimComponent->SetAnimPaused(true);
             }
         }
+        // If current anim is 'firing bow', update sprite to face direction of cursor
         else
         {
             std::string sheet = "BowFire";
                 
             switch (m_lastFaceDirectionEnum)
             {
-                case PlayerDirection::SOUTH:       {sheet += "South"; break;}
-                case PlayerDirection::EAST:        {sheet += "East"; break;}
-                case PlayerDirection::NORTH:       {sheet += "North"; break;}
-                case PlayerDirection::WEST:        {sheet += "West"; break;}
-                case PlayerDirection::NORTH_EAST:  {sheet += "East"; break;}
-                case PlayerDirection::NORTH_WEST:  {sheet += "West"; break;}
-                case PlayerDirection::SOUTH_EAST:  {sheet += "East"; break;}
-                case PlayerDirection::SOUTH_WEST:  {sheet += "West"; break;}
-                default:                           {sheet += "South"; break;}
+                case PlayerDirection::SOUTH:       { sheet += "South"; break; }
+                case PlayerDirection::EAST:        { sheet += "East"; break;  }
+                case PlayerDirection::NORTH:       { sheet += "North"; break; }
+                case PlayerDirection::WEST:        { sheet += "West"; break;  }
+                case PlayerDirection::NORTH_EAST:  { sheet += "East"; break;  }
+                case PlayerDirection::NORTH_WEST:  { sheet += "West"; break;  }
+                case PlayerDirection::SOUTH_EAST:  { sheet += "East"; break;  }
+                case PlayerDirection::SOUTH_WEST:  { sheet += "West"; break;  }
+                default:                           { sheet += "South"; break; }
             }            
             m_pAnimComponent->SetAnimation(sheet);
         }
