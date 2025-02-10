@@ -214,7 +214,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
         ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
         if (ImGui::Button("X", ImVec2(fWindowWidth * 0.10f, fWindowHeight * 0.064f))) {
-            m_bIsOpen = false;
+            this->Close();
         }
 
         ImGui::PopStyleColor(3);
@@ -224,12 +224,6 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
         ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
         ImGui::Text("~ Inventory ~");
-
-        // If we closed the inventory
-        if (!m_bIsOpen) {
-            // Let anyone interested know
-            wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
-        }
 
         // This counter lets us control how many items are drawn in a row
         int counter = 0;
@@ -916,14 +910,6 @@ int PlayerInventoryComponent::GetNumSchematics() {
 
     // Then return the count
     return iCount;
-}
-
-void PlayerInventoryComponent::Close() {
-    // Close the inventory
-    m_bIsOpen = false;
-
-    // Then let anyone interested know it happened
-    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
 }
 
 void PlayerInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {

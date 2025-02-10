@@ -148,7 +148,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
 
         ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
         if (ImGui::Button("X", ImVec2(fWindowWidth * 0.10f, fWindowHeight * 0.064f))) {
-            m_bIsOpen = false;
+            this->Close();
         }
 
         ImGui::PopStyleColor(3);
@@ -387,7 +387,7 @@ void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventor
     // If this dispensary is open
     if (m_bIsOpen) {
         // And the player just closed their inventory
-        if (p_event.enType == PLAYER_INVENTORY) {
+        if (p_event.enType == PLAYER_INVENTORY || p_event.enType == DISPENSARY_INVENTORY) {
             // Close the dispensary as well
             m_bIsOpen = false;
             AnimatedSprite2D* pAnim = this->GetGameObject()->GetComponent<AnimatedSprite2D>();

@@ -128,7 +128,7 @@ void ChestInventoryComponent::ShowInventoryGUI() {
 
         ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
         if (ImGui::Button("X", ImVec2(fWindowWidth * 0.10f, fWindowHeight * 0.064f))) {
-            m_bIsOpen = false;
+            this->Close();
         }
 
         ImGui::PopStyleColor(3);
@@ -138,12 +138,6 @@ void ChestInventoryComponent::ShowInventoryGUI() {
 
         ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
         ImGui::Text("~ Chest ~");
-
-        // If we've closed the window using the ImGui button
-        if (!m_bIsOpen) {
-            // We need to call the actual close method
-            this->Close();
-        }
 
         // This counter lets us control how many items are drawn in a row
         int counter = 0;
@@ -355,7 +349,7 @@ void ChestInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent&
 
 void ChestInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
     // If the player just closed their inventory
-    if (p_event.enType == PLAYER_INVENTORY) {
+    if (p_event.enType == PLAYER_INVENTORY || p_event.enType == CHEST_INVENTORY) {
         // And this chest is open
         if (m_bIsOpen) {
             // Close it

@@ -222,7 +222,7 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
 
         ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
         if (ImGui::Button("X", ImVec2(fWindowWidth * 0.10f, fWindowHeight * 0.064f))) {
-            m_bIsOpen = false;
+            this->Close();
         }
 
         ImGui::PopStyleColor(3);
@@ -232,12 +232,6 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
 
         ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
         ImGui::Text(strTitle.c_str());
-
-        // If we closed the inventory using IMGUI
-        if (!m_bIsOpen) {
-            // Close it internally, too
-            this->Close();
-        }
 
         // This counter lets us control how many items are drawn in a row
         int counter = 0;
