@@ -918,32 +918,178 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             break;
         }
         case TriggerPurpose::BOULDER_TRAP: {
+            // Retrieve the room data for the trigger's position
+            auto tilePosition = m_pLabyrinthManager->GetTilePosition(triggerPosition);
+            auto roomDataOpt = m_pLabyrinthManager->GetRoom(tilePosition);
+        
+            if (!roomDataOpt.has_value()) {
+                wolf::Log("Boulder trap triggered, but no valid room found!");
+                break;
+            }
+        
+            const auto& roomData = roomDataOpt.value();
+            const auto& roomBounds = roomData.m_bounds; // IRectangle struct
+        
+            // Create the boulder object
             auto& boulderObj = m_pGameInstance->GetScene().CreateObject2D();
+        
+            // Set up sprite
             auto& boulderSprite = boulderObj.AddComponent<wolf::Sprite2D>("data/textures/Boulder.png");
             boulderSprite.SetOriginToCenterOfTexture();
             boulderSprite.SetLayer(1);
+        
+            // Ensure the transform component exists
             auto* boulderTransform = boulderObj.GetComponent<wolf::Transform2D>();
             if (!boulderTransform) {
                 boulderTransform = &boulderObj.AddComponent<wolf::Transform2D>();
             }
-            // Set Position (spawn X + 192 units away, facing left)
-            glm::vec2 spawnPosition = triggerPosition + glm::vec2(192.0f, 0.0f);
+        
+            // Get the player's position
+            wolf::GameObject* player = m_pLabyrinthManager->GetPlayer();
+            glm::vec2 playerPosition = player ? player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() : triggerPosition;
+        
+            // Possible directions mapped to available space (how far it can go before hitting a wall)
+            std::vector<std::pair<BoulderDirection, int>> directionOptions;
+        
+            // Helper lambda to check how far the boulder can go in a direction
+            auto getDistance = [&](int dx, int dy) -> int {
+                glm::ivec2 checkPos = tilePosition;
+                int distance = 0;
+        
+                while (true) {
+                    checkPos += glm::ivec2(dx, dy);
+                    if (!m_pLabyrinthManager->GetRoom(checkPos).has_value()) {
+                        break; // Stop if we leave the room
+                    }
+                    distance++;
+                }
+                return distance;
+            };
+        
+            // Check each possible direction and measure its available distance
+            int upDist = getDistance(0, 1);
+            int downDist = getDistance(0, -1);
+            int leftDist = getDistance(-1, 0);
+            int rightDist = getDistance(1, 0);
+        
+            if (upDist > 0) directionOptions.emplace_back(BoulderDirection::UP, upDist);
+            if (downDist > 0) directionOptions.emplace_back(BoulderDirection::DOWN, downDist);
+            if (leftDist > 0) directionOptions.emplace_back(BoulderDirection::LEFT, leftDist);
+            if (rightDist > 0) directionOptions.emplace_back(BoulderDirection::RIGHT, rightDist);
+        
+            if (directionOptions.empty()) {
+                wolf::Log("No valid directions found for boulder trap!");
+                break;
+            }
+        
+            BoulderDirection chosenDirection;
+        
+            // **90% chance to go towards player, 10% to use weighted random**
+            if (m_pLabyrinthManager->m_rng.NextInt(0, 9) < 9 && player) { // 90% probability
+                glm::vec2 directionToPlayer = glm::normalize(playerPosition - triggerPosition);
+                BoulderDirection bestDirection = BoulderDirection::UP;
+                float bestAlignment = -1.0f;  // Tracks best alignment score
+
+                // Find the direction most aligned with the player
+                for (const auto& [dir, dist] : directionOptions) {
+                    glm::vec2 dirVec;
+                    switch (dir) {
+                        case BoulderDirection::UP: dirVec = {0.0f, 1.0f}; break;
+                        case BoulderDirection::DOWN: dirVec = {0.0f, -1.0f}; break;
+                        case BoulderDirection::LEFT: dirVec = {-1.0f, 0.0f}; break;
+                        case BoulderDirection::RIGHT: dirVec = {1.0f, 0.0f}; break;
+                    }
+
+                    float alignment = glm::dot(directionToPlayer, dirVec);
+                    if (alignment > bestAlignment) {
+                        bestAlignment = alignment;
+                        bestDirection = dir;
+                    }
+                }
+                chosenDirection = bestDirection;
+            } else {
+                // Weighted random selection favoring longer paths
+                std::vector<BoulderDirection> weightedDirections;
+                for (const auto& [dir, dist] : directionOptions) {
+                    for (int i = 0; i < dist; ++i) { // More distance = higher chance of selection
+                        weightedDirections.push_back(dir);
+                    }
+                }
+                chosenDirection = weightedDirections[m_pLabyrinthManager->m_rng.NextInt(0, static_cast<int>(weightedDirections.size()) - 1)];
+            }
+                    
+            // Assign velocity based on chosen direction
+            constexpr float boulderSpeed = 100.0f;
+            glm::vec2 velocity(0.0f);
+        
+            switch (chosenDirection) {
+                case BoulderDirection::UP:
+                    velocity = {0.0f, boulderSpeed};
+                    break;
+                case BoulderDirection::DOWN:
+                    velocity = {0.0f, -boulderSpeed};
+                    break;
+                case BoulderDirection::LEFT:
+                    velocity = {-boulderSpeed, 0.0f};
+                    break;
+                case BoulderDirection::RIGHT:
+                    velocity = {boulderSpeed, 0.0f};
+                    break;
+            }
+        
+            // **Smart Offset: Place it one tile away in the opposite direction**
+            constexpr float tileSize = 46.0f;
+            glm::vec2 spawnPosition = triggerPosition;
+        
+            // Convert room bounds to vec2 to ensure proper calculations
+            glm::vec2 roomOrigin = glm::vec2(roomBounds.m_origin);
+            glm::vec2 roomSize = glm::vec2(roomBounds.m_size);
+
+            // **Offset in the opposite direction of movement**
+            switch (chosenDirection) {
+                case BoulderDirection::UP:
+                    spawnPosition.y -= tileSize;
+                    break;
+                case BoulderDirection::DOWN:
+                    spawnPosition.y += tileSize;
+                    break;
+                case BoulderDirection::LEFT:
+                    spawnPosition.x += tileSize;
+                    break;
+                case BoulderDirection::RIGHT:
+                    spawnPosition.x -= tileSize;
+                    break;
+            }
+
+            glm::vec2 roomMin = glm::vec2(roomBounds.m_origin);
+            glm::vec2 roomMax = glm::vec2(roomBounds.m_origin) + glm::vec2(roomBounds.m_size) - glm::vec2(tileSize);
+
+            // **Check if the spawn position is outside the room bounds**
+            if (spawnPosition.x < roomMin.x || spawnPosition.x > roomMax.x ||
+                spawnPosition.y < roomMin.y || spawnPosition.y > roomMax.y) {
+                
+                spawnPosition = triggerPosition; // If out of bounds, spawn at the trigger position
+            }
+
+            // **Set the adjusted initial position**
             boulderTransform->SetPosition(spawnPosition);
             boulderTransform->SetScale(glm::vec2(3.0f)); // Scale the boulder
-
-            // Add Velocity Component (for optional movement logic)
-            auto& velocity = boulderObj.AddComponent<VelocityComponent>();
-            velocity.SetVelocity(glm::vec2(-100.0f, 0.0f)); // Initial velocity to move left
-
-            // Add Collider for the Boulder
+        
+            // Add Velocity Component for movement
+            auto& velocityComponent = boulderObj.AddComponent<VelocityComponent>();
+            velocityComponent.SetVelocity(velocity);
+        
+            // Add Collider
             auto& boulderCollider = boulderObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-            boulderCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f)); 
-
-            boulderObj.AddComponent<BoulderTrapComponent>(triggerObject->GetComponent<TriggerComponent>(), m_pColliderManager, BoulderDirection::UP, 100.0f, 5.0f);
-
-            // wolf::Log("Boulder trap triggered!");
+            boulderCollider.AddColliderBox(glm::vec2(16.0f, 16.0f), glm::vec2(-16.0f, 16.0f));
+        
+            // Add BoulderTrapComponent with the chosen direction
+            boulderObj.AddComponent<BoulderTrapComponent>(triggerObject->GetComponent<TriggerComponent>(), m_pColliderManager, chosenDirection, boulderSpeed, 5.0f);
+        
+            wolf::Log("Boulder trap triggered, rolling in direction: " + std::to_string(static_cast<int>(chosenDirection)));
             break;
-        }
+        }         
+
         case TriggerPurpose::BOSS: {
 
             // Begin the bossfight
