@@ -377,6 +377,10 @@ void NPCComponent::EnterIdleState()
 
 void NPCComponent::EnterRoamState()
 {
+    if (m_strName == "Daedalus" || m_strName == "Ariadne") {
+        ChangeState(IDLE); // Prevent roaming
+        return;
+    }
     m_fRoamTimer = s_RNG.NextFloat(4.0f, 6.0f); // Reset the roam timer
     glm::vec2 newVector = glm::normalize(glm::vec2(s_RNG.NextFloat(-5.0f, 5.0f), s_RNG.NextFloat(-5.0f, 5.0f))) * m_fRoamSpeed; // Get a random roam direction
     TurnToDirection(newVector); // Set the NPC sprite to the new direction
