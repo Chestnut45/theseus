@@ -138,11 +138,22 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
         // And then create the background image
         ImGui::GetWindowDrawList()->AddImage((ImTextureID)(intptr_t)m_pFrameTexture->GetID(), v2BGMin, v2BGMax, m_vv2FrameTextureCoords[1]->m_v2TopLeft, m_vv2FrameTextureCoords[1]->m_v2BotRight);
 
-        // Newline for padding
-        ImGui::NewLine();
+        float fWindowWidth = ImGui::GetWindowSize().x;
+        float fWindowHeight = ImGui::GetWindowSize().y;
+
+        // Push the colors for the X button
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 0.25f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.f, 0.f, 0.f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.f, 0.f, 0.f, 0.75f));
+
+        ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
+        if (ImGui::Button("X", ImVec2(fWindowWidth * 0.10f, fWindowHeight * 0.064f))) {
+            this->Close();
+        }
+
+        ImGui::PopStyleColor(3);
 
         // Write the inventory title
-        float fWindowWidth = ImGui::GetWindowSize().x;
         float fTextWidth = ImGui::CalcTextSize("~ Daedalus Dispensary ~").x;
 
         ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
@@ -376,7 +387,7 @@ void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventor
     // If this dispensary is open
     if (m_bIsOpen) {
         // And the player just closed their inventory
-        if (p_event.enType == PLAYER_INVENTORY) {
+        if (p_event.enType == PLAYER_INVENTORY || p_event.enType == DISPENSARY_INVENTORY) {
             // Close the dispensary as well
             m_bIsOpen = false;
             AnimatedSprite2D* pAnim = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
