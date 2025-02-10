@@ -953,7 +953,7 @@ void BossController::EnterPhase3()
     m_pVelocity->SetKnockbackEnabled(false);
 
 
-    m_pHealth->Pierce(m_maxHealth * 0.5f);
+    m_pHealth->Pierce(m_maxHealth * 0.9f); // REMOVE TIS LINE
     std::cout << "Boss Health: " << m_pHealth->GetHealth() << std::endl;
 }
 
@@ -1500,7 +1500,7 @@ void BossController::BreatheFireSupercharged(float delta)
     glm::vec2 jetM = endPosM - thisPos;
     
     //Calculate offset angle
-    float offsetAngleRad = 12.0f * (M_PI / 180.0f);
+    float offsetAngleRad = 15.0f * (M_PI / 180.0f);
     float offsetAngleSin = glm::sin(offsetAngleRad);
     float offsetAngleCos = glm::cos(offsetAngleRad);
     // Left jet
