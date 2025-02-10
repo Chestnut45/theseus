@@ -73,13 +73,6 @@ void LightComponent::Update(float p_fDelta) {
         }
     }
 
-    // !-- Note that the sweep lines go beyond the light's AOE so that they can reach the corners --!
-
-    // Do a "sweep" around the light and check what corner points collide with it
-    float fSweepLineLength = std::max(m_v2Radius.x, m_v2Radius.y);
-    glm::vec2 v2BaseSweepLineEnd = {m_v2Origin.x, m_v2Origin.y + fSweepLineLength};
-    glm::vec2 v2CurSweepLineEnd = {m_v2Origin.x, m_v2Origin.y + fSweepLineLength};
-
     // Go through all of the rectangles in the AOE
     for (wolf::Rectangle rect : vpRectanglesInAOE) {
         // Get the corners and use them to form the sides of the rectangle
@@ -98,41 +91,98 @@ void LightComponent::Update(float p_fDelta) {
         glm::vec2 v2RightStart = arv2Corners[1]; // Right
         glm::vec2 v2RightEnd = arv2Corners[3];
 
+        /*----------------------------------------------------------------------------------//
+        //    Because a light can't collide with a given side and the side directly across
+        //    from it at the same time, (if we collide with the left we CANNOT collide with
+        //    the right and if we collide with the top we CANNOT collide with the bottom)
+        //    we group these sides together and ensure that if a collision happens with one
+        //    the other is NOT checked. This will prevent the light from going through an
+        //    object as long as we check the side NEAREST to the light FIRST.
+        //---------------------------------------------------------------------------------*/
+       
+        // Figure out the approximate location of the object in relation to the light source
+        // so that we know which sides of the box should be prioritized
+        glm::vec2 v2RectPos = glm::vec4((v2TopStart.x + v2TopEnd.x) * 0.5f, (v2TopStart.y + v2BotStart.y) * 0.5f, 0, 1) * m_pTransform->GetGlobalMatrix();
+        glm::vec2 v2LightPos = m_pTransform->GetGlobalPosition();
+
+        // Bool variables to keep track of which sides should be checked first
+        bool bFavourLeft;
+        bool bFavourTop;
+
+        // If the light is to the left of the rectangle, favour the left
+        if (v2LightPos.x < v2RectPos.x) {
+            bFavourLeft = true;
+        }
+        else {
+            // Otherwise, favour the right
+            bFavourLeft = false;
+        }
+
+        // If the light is above the rectangle, favour the top
+        if (v2LightPos.y > v2RectPos.y) {
+            bFavourTop = true;
+        }
+        else {
+            // Otherwise, favour the bottom
+            bFavourTop = false;
+        }
+
         // Do a collision test between each of the corners and the four sides of the rectangle
         for (glm::vec2 v2Corner : arv2Corners) {
-            // !-- Because a light can't collide with a given side and the side directly across
-            //     from it at the same time, (if we collide with the left we CANNOT collide with
-            //     the right and if we collide with the top we CANNOT collide with the bottom)
-            //     we group these sides together and ensure that if a collision happens with one
-            //     the other is NOT checked. (This keeps the light from going through things) --!
-
-            // !-- Need a way to prefer left over right and vise versa depending on the distance to the light --!
-            // So if left is closer, check it first and take it if it collides, if right is closer check it first
-            // Do the same for top and bottom
-
-            // Left and right
+            // Perform the collision test for the left and right
             std::pair<bool, glm::vec2> bv2LeftResult = this->LineToCornerRectSideCollisionTest(v2Corner, v2LeftStart, v2LeftEnd);
             std::pair<bool, glm::vec2> bv2RightResult = this->LineToCornerRectSideCollisionTest(v2Corner, v2RightStart, v2RightEnd);
-            if (bv2LeftResult.first) {  // Check left
-                m_vv2CollidingPoints.push_back(bv2LeftResult.second);
+
+            // Check the favoured side first
+            if (bFavourLeft) {
+                // Prefer left
+                if (bv2LeftResult.first) {  // Check left
+                    m_vv2CollidingPoints.push_back(bv2LeftResult.second);
+                }
+                else if (bv2RightResult.first) { // Check right
+                    m_vv2CollidingPoints.push_back(bv2RightResult.second);
+                }
             }
-            else if (bv2RightResult.first) { // Check right
-                m_vv2CollidingPoints.push_back(bv2RightResult.second);
+            else {
+                // Prefer right
+                if (bv2RightResult.first) {  // Check right
+                    m_vv2CollidingPoints.push_back(bv2RightResult.second);
+                }
+                else if (bv2LeftResult.first) { // Check left
+                    m_vv2CollidingPoints.push_back(bv2LeftResult.second);
+                }
             }
 
-            // Top and bottom
+            // Do the same for the top and bottom
             std::pair<bool, glm::vec2> bv2TopResult = this->LineToCornerRectSideCollisionTest(v2Corner, v2TopStart, v2TopEnd);
             std::pair<bool, glm::vec2> bv2BotResult = this->LineToCornerRectSideCollisionTest(v2Corner, v2BotStart, v2BotEnd);
-            if (bv2TopResult.first) { // Check top
-                m_vv2CollidingPoints.push_back(bv2TopResult.second);
+
+            if (bFavourTop) {
+                // Prefer top
+                if (bv2TopResult.first) { // Check top
+                    m_vv2CollidingPoints.push_back(bv2TopResult.second);
+                }
+                else if (bv2BotResult.first) { // Check bottom
+                    m_vv2CollidingPoints.push_back(bv2BotResult.second);
+                }
             }
-            else if (bv2BotResult.first) { // Check bottom
-                m_vv2CollidingPoints.push_back(bv2BotResult.second);
+            else {
+                // Prefer bottom
+                if (bv2BotResult.first) { // Check bottom
+                    m_vv2CollidingPoints.push_back(bv2BotResult.second);
+                }
+                else if (bv2TopResult.first) { // Check top
+                    m_vv2CollidingPoints.push_back(bv2TopResult.second);
+                }
             }
         }
     }
 
     // !-- Need to sort the colliding points by angle --!
+
+    // Get the first collison point (we'll need it for the final triangle)
+    glm::vec2 v2FirstPoint = m_vv2CollidingPoints.back();
+    glm::vec2 v2LastPoint = m_vv2CollidingPoints.front();
 
     // Form triangles using the two points that form each side and the origin
     while (!m_vv2CollidingPoints.empty() && static_cast<int>(m_vv2CollidingPoints.size() % 2 == 0)) {
@@ -145,11 +195,8 @@ void LightComponent::Update(float p_fDelta) {
         GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
     }
 
-    //Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
-    // glm::vec2 v2FirstPoint = m_iv2CollidingPoints.at(0);
-    // glm::vec2 v2LastPoint = m_iv2CollidingPoints.at(m_iEndOfCollidingPointsMap - 1);
-
-    // GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
+    // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
+    GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
 
 }
 
