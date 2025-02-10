@@ -505,10 +505,9 @@ void InventoryComponent::Open() {
 }
 
 void InventoryComponent::Close() {
-    m_bIsOpen = false;
-
     // Let anyone interested know which specific chest was closed
     wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+    m_bIsOpen = false;
 }
 
 void InventoryComponent::ToggleOpen() {
