@@ -6,28 +6,28 @@ animations: [
     name: ChargeWest,
     start_frame: 1,
     end_frame: 4,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 22.0},
     loops: false
   },
   {
     name: ChargeSouth,
     start_frame: 5,
     end_frame: 8,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 22.0},
     loops: false
   },
   {
     name: ChargeEast,
     start_frame: 9,
     end_frame: 12,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 22.0},
     loops: false
   },
   {
     name: ChargeNorth,
     start_frame: 13,
     end_frame: 16,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 22.0},
     loops: false
   }
 ]

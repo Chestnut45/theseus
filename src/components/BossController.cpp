@@ -96,6 +96,7 @@ void BossController::Init()
 
     m_idleTimer = 2.0f;
     m_autoAttackRange = 200.0f;
+
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
 
@@ -122,7 +123,7 @@ void BossController::Init()
     // Create collider
     pObject->DeleteComponent<ColliderComponent>();
     m_pCollider = &pObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
-    m_pCollider->AddColliderBox(glm::vec2(111, 156), glm::vec2(-52, 32));
+    m_pCollider->AddColliderBox(glm::vec2(111, 182), glm::vec2(-52, 96));
 
     // Grab a reference to the labyrinth manager
     for (auto&&[_, manager] : pObject->GetScene().Each<LabyrinthManager>())
@@ -196,6 +197,9 @@ void BossController::Update(float delta)
 {
     if (!m_active) return;
 
+    // Update previous state
+    m_prevState = m_state;
+
     // Call phase-specific update method
     switch (m_phase)
     {
@@ -216,8 +220,63 @@ void BossController::Update(float delta)
 }
 
 void BossController::UpdateAnimation()
-{
+{   
+    // Only update animation if state has changed
+    if (m_state == m_prevState) return;
+
+    // TODO: Update direction
+
     // Set animation based on state, regardless of fight phase
+    std::string baseAnimName;
+    switch (m_state)
+    {
+        case State::SIT:
+            baseAnimName = "ThroneSitEyesClosed";
+            break;
+        case State::SUMMONING:
+            break;
+        case State::DEFLECT:
+            break;
+        case State::APPROACH:
+            baseAnimName = "WalkSouth";
+            break;
+        case State::STRAFE:
+            baseAnimName = "WalkSouth";
+            break;
+        case State::DODGE:
+            baseAnimName = "WalkSouth";
+            break;
+        case State::AXE_ATTACK:
+            baseAnimName = "GrowlSouth";
+            break;
+        case State::SEARCHING:
+            baseAnimName = "CrawlSouth";
+            break;
+        case State::FIRE_BREATH_ATTACK:
+            baseAnimName = "FireBreathSouth";
+            break;
+        case State::CHARGE_ATTACK:
+            baseAnimName = "ChargeSouth";
+            break;
+        case State::IDLE:
+            baseAnimName = "CrawlSouth";
+            break;
+        case State::PULL:
+            baseAnimName = "CrawlSouth";
+            break;
+        case State::STUNNED:
+            baseAnimName = "CrawlSouth";
+            break;
+        case State::TAUNT:
+            break;
+        case State::DEAD:
+            break;
+    }
+
+    if (baseAnimName != "")
+    {
+        m_pAnimSprite->SetAnimation(baseAnimName);
+    }
 }
 
 // <----------------- PHASE 1 METHODS ----------------->

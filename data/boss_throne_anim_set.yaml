@@ -6,14 +6,14 @@ animations: [
     name: ThroneSitEyesClosed,
     start_frame: 1,
     end_frame: 1,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 44.0},
     loops: false
   },
   {
     name: ThroneSitEyesOpen,
     start_frame: 2,
     end_frame: 2,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 44.0},
     loops: false
   }
 ]

@@ -2,8 +2,8 @@ frame_size: {x: 80.0, y: 112.0}
 playback_speed: 4.0
 
 start_animation: {
-  texture: data/textures/boss_walk_sheet.png,
-  name: WalkSouth
+  texture: data/textures/boss_throne_sit_sheet.png,
+  name: ThroneSitEyesClosed
 }
 
 animation_sets: [

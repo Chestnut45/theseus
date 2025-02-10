@@ -6,56 +6,56 @@ animations: [
     name: WalkWest,
     start_frame: 1,
     end_frame: 1,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 44.0},
     loops: false
   },
   {
     name: WalkSouth,
     start_frame: 2,
     end_frame: 2,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 44.0},
     loops: false
   },
   {
     name: WalkEast,
     start_frame: 3,
     end_frame: 3,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 44.0},
     loops: false
   },
   {
     name: WalkNorth,
     start_frame: 4,
     end_frame: 4,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 44.0},
     loops: false
   },
   {
     name: WalkNoAxeWest,
     start_frame: 5,
     end_frame: 5,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 44.0},
     loops: false
   },
   {
     name: WalkNoAxeSouth,
     start_frame: 6,
     end_frame: 6,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 44.0},
     loops: false
   },
   {
     name: WalkNoAxeEast,
     start_frame: 7,
     end_frame: 7,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 44.0},
     loops: false
   },
   {
     name: WalkNoAxeNorth,
     start_frame: 8,
     end_frame: 8,
-    origin: {x: 40.0, y: 93.0},
+    origin: {x: 40.0, y: 44.0},
     loops: false
   }
 ]
