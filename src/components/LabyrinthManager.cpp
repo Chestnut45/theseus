@@ -2240,7 +2240,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         }
 
                         // Create The NPC using the NPCBuilder
-                        wolf::GameObject& pNPC = *NPCBuilder::Instance()->BuildNPC(strNPCYamlFile);
+                        wolf::GameObject& pNPC = *NPCBuilder::Instance().BuildNPC(strNPCYamlFile);
 
                         // Set the NPC's position and scale
                         auto& transform = *pNPC.GetComponent<wolf::Transform2D>();
@@ -2255,7 +2255,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     case Room::EntityType::RandomNPC:
                     {
                         // Create The NPC using the NPCBuilder
-                        wolf::GameObject& pNPC = *NPCBuilder::Instance()->BuildRandomNPC();
+                        wolf::GameObject& pNPC = *NPCBuilder::Instance().BuildRandomNPC();
 
                         // Set the NPC's position and scale
                         auto& transform = *pNPC.GetComponent<wolf::Transform2D>();

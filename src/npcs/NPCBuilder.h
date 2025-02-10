@@ -28,9 +28,10 @@ class NPCBuilder {
     public:
         static void CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed);
         static void DestroyInstance();
-        static NPCBuilder* Instance();
+        static NPCBuilder& Instance();
 
         void SetScene(wolf::Scene* p_pScene);
+        void SetSeed(int p_iRNGSeed);
 
         wolf::GameObject* BuildNPC(const std::string& p_strFilePath);
         wolf::GameObject* BuildRandomNPC();

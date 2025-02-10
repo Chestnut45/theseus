@@ -1301,7 +1301,7 @@ wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
     std::string ariadneYamlFile = "data/ariadne_init.yaml";
 
     // Create Ariadne using the NPCBuilder
-    wolf::GameObject& ariadne = *NPCBuilder::Instance()->BuildNPC(ariadneYamlFile);
+    wolf::GameObject& ariadne = *NPCBuilder::Instance().BuildNPC(ariadneYamlFile);
 
     // Set Ariadne's position and scale
     auto& transform = *ariadne.GetComponent<wolf::Transform2D>();

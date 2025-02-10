@@ -26,9 +26,10 @@ class ItemDropCreator {
     public:
         static void CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed);
         static void DestroyInstance();
-        static ItemDropCreator* Instance();
+        static ItemDropCreator& Instance();
 
         void SetScene(wolf::Scene* m_pScene);
+        void SetSeed(int p_iRNGSeed);
 
         wolf::GameObject* CreateItemDropFromExistingItem(ItemBase* p_pItem, const glm::vec2& p_v2SpawnPos, float p_fLifespan);
         wolf::GameObject* CreateItemDropFromDirectory(const std::string& p_strItemName, const glm::vec2& p_v2SpawnPos, float p_fLifespan);

@@ -575,7 +575,7 @@ void MinitaurController::HandleDeathState(float delta)
         {
             // !-- Aurora added this --!
             // Spawn some loot
-            std::vector<wolf::GameObject*> pItemDrops = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
+            std::vector<wolf::GameObject*> pItemDrops = ItemDropCreator::Instance().CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
             
             // Harpies can be inside of the walls so we need to push the loot out. To do that,
             // we get the loot item's velocity component

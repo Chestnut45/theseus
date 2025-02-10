@@ -12,38 +12,43 @@ const ImVec2 NPCBuilder::NPC_INVENTORY_DRAW_POS = {800.0f, 200.0f};
 
 void NPCBuilder::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
     // If there is not already an existing instance
-    assert(m_pInstance == nullptr);
-
-    // Create one
-    m_pInstance = new NPCBuilder();
-    m_pRNG = new wolf::RNG(p_iRNGSeed);
-    m_pScene = p_pScene;
-    m_iRNGSeed = p_iRNGSeed;
+    if (!m_pInstance) {
+        // Create one
+        m_pInstance = new NPCBuilder();
+        m_pRNG = new wolf::RNG(p_iRNGSeed);
+        m_pScene = p_pScene;
+        m_iRNGSeed = p_iRNGSeed;
+    }
 }
 
 void NPCBuilder::DestroyInstance() {
     // If an instance exists
-    assert(m_pInstance != nullptr);
+    if (m_pInstance) {
+        // Delete it
+        delete(m_pInstance);
+        delete(m_pRNG);
 
-    // Delete it
-    delete(m_pInstance);
-    delete(m_pRNG);
-
-    m_pInstance = nullptr;
-    m_pScene = nullptr;
-    m_pRNG = nullptr;
+        m_pInstance = nullptr;
+        m_pScene = nullptr;
+        m_pRNG = nullptr;
+    }
 }
 
-NPCBuilder* NPCBuilder::Instance() {
-    // If an instance exists
-    assert(m_pInstance);
+NPCBuilder& NPCBuilder::Instance() {
+    if (!m_pInstance) {
+        m_pInstance = new NPCBuilder();
+    }
 
-    // Return it
-    return m_pInstance;
+    return *m_pInstance;
 }
 
 void NPCBuilder::SetScene(wolf::Scene* p_pScene) {
     m_pScene = p_pScene;
+}
+
+
+void NPCBuilder::SetSeed(int p_iRNGSeed) {
+    m_iRNGSeed = p_iRNGSeed;
 }
 
 // Use this method when you know which NPC you want to build and can provide

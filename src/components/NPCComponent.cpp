@@ -180,7 +180,7 @@ void NPCComponent::HandleDeadState(float p_fDelta) {
     {
         if(m_fLieDeadTimer >= m_fTimeToLieDead)
         {
-            ItemDropCreator::Instance()->CreateItemDropFromLootTable(m_strDropTableFilePath, m_pTransform->GetGlobalPosition(), -1.0f);
+            ItemDropCreator::Instance().CreateItemDropFromLootTable(m_strDropTableFilePath, m_pTransform->GetGlobalPosition(), -1.0f);
             GetGameObject()->Delete();
         }
         m_fLieDeadTimer += p_fDelta;

@@ -14,38 +14,45 @@ const std::string ItemDropCreator::ITEM_TEXTURE_PATH = "data/textures/ItemIcons-
 
 void ItemDropCreator::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
     // If there is not already an existing instance
-    assert(m_pInstance == nullptr);
-
-    // Create one
-    m_pInstance = new ItemDropCreator();
-    m_pRNG = new wolf::RNG(p_iRNGSeed); // This seed value is completely arbitrary
-    m_pScene = p_pScene;
-    m_iRNGSeed = p_iRNGSeed;
+    if (!m_pInstance) {
+        // Create one
+        m_pInstance = new ItemDropCreator();
+        m_pRNG = new wolf::RNG(p_iRNGSeed); // This seed value is completely arbitrary
+        m_pScene = p_pScene;
+        m_iRNGSeed = p_iRNGSeed;
+    }
 }
 
 void ItemDropCreator::DestroyInstance() {
     // If an instance exists
-    assert(m_pInstance != nullptr);
+    if (m_pInstance) {
+        // Delete it
+        delete(m_pInstance);
+        delete(m_pRNG);
 
-    // Delete it
-    delete(m_pInstance);
-    delete(m_pRNG);
-
-    m_pInstance = nullptr;
-    m_pScene = nullptr;
-    m_pRNG = nullptr;
+        m_pInstance = nullptr;
+        m_pScene = nullptr;
+        m_pRNG = nullptr;
+    }
 }
 
-ItemDropCreator* ItemDropCreator::Instance() {
-    // If an instance exists
-    assert(m_pInstance);
+ItemDropCreator& ItemDropCreator::Instance() {
+    // If an instance does not exist
+    if (!m_pInstance) {
+        // Create it
+        m_pInstance = new ItemDropCreator();
+    }
 
     // Return it
-    return m_pInstance;
+    return *m_pInstance;
 }
 
 void ItemDropCreator::SetScene(wolf::Scene* p_pScene) {
     m_pScene = p_pScene;
+}
+
+void ItemDropCreator::SetSeed(int p_iRNGSeed) {
+    m_iRNGSeed = p_iRNGSeed;
 }
 
 // Create a single drop item using a pointer to an existing item (use when you are dropping an item from an inventory)
