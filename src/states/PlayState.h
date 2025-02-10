@@ -71,6 +71,10 @@ private:
     // Location to spawn player when bossfight starts
     glm::vec2 m_bossfightPlayerPos;
     wolf::GameObject* m_pBoss = nullptr;
+    wolf::GameObject* m_pBossWalls = nullptr;
+    std::vector<glm::ivec2> m_bossRoomDoorTiles;
+    glm::ivec2 m_bossRoomOrigin;
+    glm::ivec2 m_bossRoomSize;
 
     // Private helper methods
     void ConvertPlayerTileToGold();
@@ -105,6 +109,4 @@ private:
 
     std::unordered_set<glm::ivec2> m_visitedChunks; // Track visited chunks
     bool m_isMapExpanded = false;                  // Toggle for expanded map
-    
-
 };
