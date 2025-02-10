@@ -35,8 +35,6 @@ class PlayerInventoryComponent : public InventoryComponent {
         ItemBase* GetEquippedItem(EquipmentSlot p_enSlot);
         void RemoveEquippedItem(EquipmentSlot p_enSlot);
 
-        virtual void Close();
-
         virtual void ShowInventoryGUI();
         void ShowToggleButtonGUI();
 
