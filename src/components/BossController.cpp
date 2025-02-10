@@ -92,14 +92,17 @@ void BossController::Init()
 
     m_pullTime = 1.5f;               // Pull state members
     m_pullTimer = 0.0f;
-    m_pullForce = 350.0f;
+    m_pullForce = 450.0f;
 
     m_searchSpeed = 250.0f;
     m_searchTimer = 2.0f; // Seconds
+    m_redirectTime = 1.0f;
+    m_redirectTimer = 0.0f;
+    m_redirectSpeedLimit = m_searchSpeed * 0.5f;
 
     m_idleTimer = 2.0f;
     m_idleTimeRange = glm::vec2(1.0f, 2.0f);
-    m_autoAttackRange = 350.0f;
+    m_autoAttackRange = 250.0f;
     m_superchargeHealthFraction = 0.1; // Percent
     m_isSupercharged = false;
     // Create components and cache pointers
@@ -1125,11 +1128,19 @@ void BossController::StartSearch()
 {
     wolf::RNG rng;
     m_searchTimer = rng.NextFloat(2.5f, 3.5f);
+    m_redirectTimer = 0.0f;
+    // Calculate the direction towards the player and move the Gorgon
+    glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+
+    // Calculate direction vector
+    glm::vec2 direction = glm::normalize(playerPos - thisPos);
+    m_pVelocity->SetVelocity(direction * m_searchSpeed);
 }
 
 void BossController::Search(float delta)
 {
-
+    // If search timer ended
     if(m_searchTimer <= 0.0f)
     {
         // Decide if pulling
@@ -1162,6 +1173,7 @@ void BossController::Search(float delta)
         }
         
     }
+    // If still searching
     else
     {
         m_searchTimer -= delta;
@@ -1192,8 +1204,69 @@ void BossController::Search(float delta)
         }
         else
         {
-            MoveTowardsPlayer(delta);
-            return; 
+            glm::vec2 currentVelocity = m_pVelocity->GetVelocity();
+            float currentSpeed = glm::length(currentVelocity);
+
+            // If current speed is below redirect limit
+            if(m_redirectTimer <= 0.0f && currentSpeed < m_redirectSpeedLimit)
+            {
+                glm::vec2 newVelocity = currentVelocity;
+                // If the Boss is sliding along the X axis
+                if(currentVelocity.x != 0.0f && currentVelocity.y == 0.0f)
+                {
+                    // Set the velocity along the X axis based on roaming direction, with a slight offset for the Y axis
+                    if(currentVelocity.x > 0.0f)
+                    {
+                        newVelocity = glm::normalize(glm::vec2(m_searchSpeed, m_rng.NextFloat(-20.0f, 20.0f))) * m_searchSpeed;
+                    }
+                    else
+                    {
+                        newVelocity = glm::normalize(glm::vec2(-m_searchSpeed, m_rng.NextFloat(-20.0f, 20.0f))) * m_searchSpeed;
+                    }
+                    
+                }
+                
+                // If the Boss is sliding along the Y axis
+                else if(currentVelocity.y != 0.0f && currentVelocity.x == 0.0f)
+                {
+                    // Set the velocity along the Y axis based on roaming direction, with a slight offset for the X axis
+                    if(currentVelocity.y > 0.0f)
+                    {
+                        newVelocity = glm::normalize(glm::vec2(m_rng.NextFloat(-20.0f, 20.0f), m_searchSpeed)) * m_searchSpeed;
+                    }
+                    else
+                    {
+                        newVelocity = glm::normalize(glm::vec2(m_rng.NextFloat(-20.0f, 20.0f), -m_searchSpeed)) * m_searchSpeed;
+                    }
+                }
+
+                // If the Boss is being blocked still by a wall or corner
+                else if (currentVelocity.x == 0.0f && currentVelocity.y == 0.0f)
+                {
+                }
+
+                // If the new velocity is not the same as the current velocity
+                if(newVelocity != currentVelocity)
+                {
+                    m_pVelocity->SetVelocity(newVelocity); // Apply the new velocity
+                    m_redirectTimer = m_redirectTime;
+                    m_searchTimer += m_redirectTime;
+                }
+
+            }
+
+            else
+            {
+                if(m_redirectTimer > 0.0f)
+                {
+                    m_redirectTimer -= delta;
+                }
+                else
+                {
+                    MoveTowardsPlayer(delta);
+                }
+                return;
+            } 
         }
     }
 
@@ -1240,7 +1313,7 @@ void BossController::Idle(float delta)
         {
             // Decide next action
             int rngAct = m_rng.NextInt(1, 10);
-            if(rngAct < 5)
+            if(rngAct < 7)
             {
                 ChangeStatesPhase3(State::SEARCHING);
                 return;
@@ -1701,7 +1774,6 @@ void BossController::Pull(float delta)
 void BossController::LastStandSupercharge()
 {
     m_fireBreathDuration += 0.5f;
-    
 
     m_chargeSpeed += 200.0f;
     m_chargeAttackDamage += 25;

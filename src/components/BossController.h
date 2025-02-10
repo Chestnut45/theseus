@@ -169,6 +169,9 @@ private:
 
     float m_searchSpeed;            // Search state members
     float m_searchTimer;
+    float m_redirectTime;
+    float m_redirectTimer;
+    float m_redirectSpeedLimit;
 
     float m_idleTimer;              // Idle state members
     glm::vec2 m_idleTimeRange;
