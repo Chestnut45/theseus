@@ -1,7 +1,7 @@
 random_seed: false
 seed: 1234
-width: 75
-height: 75
+width: 95
+height: 95
 spike_trap_ratio: 0.020000
 
 rooms: [
@@ -9,8 +9,8 @@ rooms: [
 		name: Minotaur's Chamber,
 		instances: 1,
 		force: false,
-		position: {type: manual, origin: {x: 31, y: 31}},
-		size: {type: manual, value: {x: 15, y: 15}},
+		position: {type: manual, origin: {x: 37, y: 37}},
+		size: {type: manual, value: {x: 21, y: 21}},
 		entities: [
 		]
 	},
@@ -103,7 +103,7 @@ rooms: [
 		instances: 5,
 		force: false,
 		position: {type: random},
-		size: {type: random_min_max, min: {x: 3, y: 2}, max: {x: 4, y: 4}},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: random_npc, amount: 1, placement: random},
 			{type: throwable_object, amount: 2, placement: random},
