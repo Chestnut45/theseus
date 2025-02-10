@@ -6,28 +6,56 @@ animations: [
     name: FireBreathWest,
     start_frame: 1,
     end_frame: 4,
-    origin: {x: 40.0, y: 22.0},
+    origin: {x: 39.0, y: 56.0},
     loops: false
   },
   {
     name: FireBreathSouth,
     start_frame: 5,
     end_frame: 8,
-    origin: {x: 40.0, y: 22.0},
+    origin: {x: 39.0, y: 56.0},
     loops: false
   },
   {
     name: FireBreathEast,
     start_frame: 9,
     end_frame: 12,
-    origin: {x: 40.0, y: 22.0},
+    origin: {x: 39.0, y: 56.0},
     loops: false
   },
   {
     name: FireBreathNorth,
     start_frame: 13,
     end_frame: 16,
-    origin: {x: 40.0, y: 22.0},
+    origin: {x: 39.0, y: 56.0},
+    loops: false
+  },
+  {
+    name: FireBreathLoopWest,
+    start_frame: 4,
+    end_frame: 4,
+    origin: {x: 39.0, y: 56.0},
+    loops: false
+  },
+  {
+    name: FireBreathLoopSouth,
+    start_frame: 8,
+    end_frame: 8,
+    origin: {x: 39.0, y: 56.0},
+    loops: false
+  },
+  {
+    name: FireBreathLoopEast,
+    start_frame: 12,
+    end_frame: 12,
+    origin: {x: 39.0, y: 56.0},
+    loops: false
+  },
+  {
+    name: FireBreathLoopNorth,
+    start_frame: 16,
+    end_frame: 16,
+    origin: {x: 39.0, y: 56.0},
     loops: false
   }
 ]

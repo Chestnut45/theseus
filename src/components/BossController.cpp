@@ -188,7 +188,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase2();
+    EnterPhase3();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -222,9 +222,23 @@ void BossController::Update(float delta)
 void BossController::UpdateAnimation()
 {   
     // Only update animation if state has changed
-    if (m_state == m_prevState) return;
+    // if (m_state == m_prevState) return;
 
-    // TODO: Update direction
+    // Compass direction animation names
+    static const char* s_dirNames[] =
+    {
+        "East",
+        "North",
+        "West",
+        "South"
+    };
+
+    // Query player spatial info
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 dirToPlayer = glm::normalize(playerPos - m_pTransform->GetGlobalPosition());
+    float angle = -glm::atan(dirToPlayer.x, dirToPlayer.y);
+    int dirIndex = (int)round(4 * angle / 6.28318530718f + 5) % 4;
+    const char* const dirText = s_dirNames[dirIndex];
 
     // Set animation based on state, regardless of fight phase
     std::string baseAnimName;
@@ -238,39 +252,37 @@ void BossController::UpdateAnimation()
         case State::DEFLECT:
             break;
         case State::APPROACH:
-            baseAnimName = "WalkSouth";
-            break;
         case State::STRAFE:
-            baseAnimName = "WalkSouth";
-            break;
         case State::DODGE:
-            baseAnimName = "WalkSouth";
+            baseAnimName = m_pAxeCollider ? "WalkNoAxe" : "Walk";
             break;
         case State::AXE_ATTACK:
-            baseAnimName = "GrowlSouth";
+            baseAnimName = "Growl";
             break;
         case State::SEARCHING:
-            baseAnimName = "CrawlSouth";
+            baseAnimName = "Crawl";
             break;
         case State::FIRE_BREATH_ATTACK:
-            baseAnimName = "FireBreathSouth";
+            baseAnimName = m_fireBreathWindupTimer <= 0.0f ? "FireBreathLoop" : "FireBreath";
             break;
         case State::CHARGE_ATTACK:
-            baseAnimName = "ChargeSouth";
+            baseAnimName = m_chargeWindupTimer <= 0.0f ? "ChargeLoop" : "Charge";
             break;
         case State::IDLE:
-            baseAnimName = "CrawlSouth";
-            break;
         case State::PULL:
-            baseAnimName = "CrawlSouth";
-            break;
         case State::STUNNED:
-            baseAnimName = "CrawlSouth";
+            baseAnimName = "Crawl";
             break;
         case State::TAUNT:
             break;
         case State::DEAD:
             break;
+    }
+
+    // Add direction to base anim name
+    if (m_state != State::SIT)
+    {
+        baseAnimName += dirText;
     }
 
     if (baseAnimName != "")

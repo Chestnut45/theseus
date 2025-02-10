@@ -6,28 +6,28 @@ animations: [
     name: CrawlWest,
     start_frame: 1,
     end_frame: 1,
-    origin: {x: 40.0, y: 22.0},
+    origin: {x: 39.0, y: 56.0},
     loops: false
   },
   {
     name: CrawlSouth,
     start_frame: 2,
     end_frame: 2,
-    origin: {x: 40.0, y: 22.0},
+    origin: {x: 39.0, y: 56.0},
     loops: false
   },
   {
     name: CrawlEast,
     start_frame: 3,
     end_frame: 3,
-    origin: {x: 40.0, y: 22.0},
+    origin: {x: 39.0, y: 56.0},
     loops: false
   },
   {
     name: CrawlNorth,
     start_frame: 4,
     end_frame: 4,
-    origin: {x: 40.0, y: 22.0},
+    origin: {x: 39.0, y: 56.0},
     loops: false
   }
 ]
