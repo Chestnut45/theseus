@@ -1,0 +1,19 @@
+texture: data/textures/boss_throne_sit_sheet.png
+frame_size: {x: 80.0, y: 112.0}
+
+animations: [
+  {
+    name: ThroneSitEyesClosed,
+    start_frame: 1,
+    end_frame: 1,
+    origin: {x: 40.0, y: 93.0},
+    loops: false
+  },
+  {
+    name: ThroneSitEyesOpen,
+    start_frame: 2,
+    end_frame: 2,
+    origin: {x: 40.0, y: 93.0},
+    loops: false
+  }
+]
