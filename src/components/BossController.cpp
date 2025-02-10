@@ -1700,7 +1700,6 @@ void BossController::Pull(float delta)
 
 void BossController::LastStandSupercharge()
 {
-    m_fireBreathTurningCapRadian = 0.0f;
     m_fireBreathDuration += 0.5f;
     
 
