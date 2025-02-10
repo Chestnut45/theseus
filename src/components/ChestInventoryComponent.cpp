@@ -118,11 +118,22 @@ void ChestInventoryComponent::ShowInventoryGUI() {
         // And then create the background image
         ImGui::GetWindowDrawList()->AddImage((ImTextureID)(intptr_t)m_pFrameTexture->GetID(), v2BGMin, v2BGMax, m_vv2FrameTextureCoords[1]->m_v2TopLeft, m_vv2FrameTextureCoords[1]->m_v2BotRight);
 
-        // Newline for padding
-        ImGui::NewLine();
+        float fWindowWidth = ImGui::GetWindowSize().x;
+        float fWindowHeight = ImGui::GetWindowSize().y;
+
+        // Push the colors for the X button
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 0.25f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.f, 0.f, 0.f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.f, 0.f, 0.f, 0.75f));
+
+        ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
+        if (ImGui::Button("X", ImVec2(fWindowWidth * 0.10f, fWindowHeight * 0.064f))) {
+            m_bIsOpen = false;
+        }
+
+        ImGui::PopStyleColor(3);
 
         // Write the inventory title
-        float fWindowWidth = ImGui::GetWindowSize().x;
         float fTextWidth = ImGui::CalcTextSize("~ Chest ~").x;
 
         ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
