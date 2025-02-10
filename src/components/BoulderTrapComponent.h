@@ -1,6 +1,7 @@
 #pragma once
 
 #include "W_BaseComponent.h"
+#include "LabyrinthManager.h"
 #include "ColliderManager.h"
 #include "TriggerComponent.h"
 #include "W_Timer.h"
@@ -41,5 +42,10 @@ private:
     int m_damage = 15; // Damage dealt to the player
     float m_knockbackForce = 1500.0f; // Knockback force applied to the player
 
-    bool CheckForPlayerCollision(float delta); // Method to check for collision and apply damage/knockback
+    bool CheckForEntityCollision(float delta); // Method to check for collision and apply damage/knockback
+    // Template function for checking collision with different entity types
+    template <typename T>
+    bool CheckAndHandleCollision(float delta, ColliderComponent* boulderCollider);
+
+    LabyrinthManager* m_pLabyrinthManager = nullptr; // Store a reference to LabyrinthManager
 };

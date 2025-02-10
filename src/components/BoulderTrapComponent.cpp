@@ -6,6 +6,8 @@
 #include "W_Sprite2D.h"
 #include "PlayerController.h"
 #include "TriggerPurposeFinishedEvent.h"
+#include "GorgonController.h"
+#include "MinitaurController.h"
 
 // Constants for effects
 constexpr float FADE_TRIGGER_THRESHOLD = 1.0f; // Time before lifespan ends to trigger cool effect
@@ -31,8 +33,8 @@ void BoulderTrapComponent::Update(float delta) {
 
     float elapsed = m_lifespanTimer.Elapsed();
 
-    // Check for player collision
-    if (CheckForPlayerCollision(delta)) {
+    // Check for Entity collision
+    if (CheckForEntityCollision(delta)) {
     }
 
     // Trigger cool effects if lifespan is near expiry
@@ -53,6 +55,14 @@ void BoulderTrapComponent::Update(float delta) {
 }
 
 void BoulderTrapComponent::InitializeBoulder() {
+    
+    if (!m_pLabyrinthManager) {
+        for (auto&& [_, lm] : GetGameObject()->GetScene().Each<LabyrinthManager>()) {
+            m_pLabyrinthManager = &lm;
+            break;
+        }
+    }
+
     m_lifespanTimer.Start();
     m_timerStarted = true;
 
@@ -118,39 +128,50 @@ void BoulderTrapComponent::ApplyCoolEffect(float delta, float elapsed) {
     // wolf::Log("BoulderTrapComponent: Glow effect applied with intensity: " + std::to_string(glowIntensity));
 }
 
-bool BoulderTrapComponent::CheckForPlayerCollision(float delta) {
+bool BoulderTrapComponent::CheckForEntityCollision(float delta) {
     auto* boulderCollider = GetGameObject()->GetComponent<ColliderComponent>();
     if (!boulderCollider) return false;
 
-    // Loop through all PlayerController instances in the scene
-    for (auto&& [_, playerController] : GetGameObject()->GetScene().Each<PlayerController>()) {
-        auto* playerObj = playerController.GetGameObject();
-        auto* playerCollider = playerObj->GetComponent<ColliderComponent>();
+    bool collisionDetected = false;
 
-        if (playerCollider &&
-            playerCollider->IsActive() &&
-            playerCollider->IsHurtbox() &&
-            m_colliderManager->IsColliding(*boulderCollider, *playerCollider, delta)) {
-            auto* playerHealth = playerObj->GetComponent<HealthComponent>();
-            if (playerHealth) {
-                // Damage the player
-                playerHealth->Damage(m_damage);
+    // Check collision for all damageable entities
+    collisionDetected |= CheckAndHandleCollision<PlayerController>(delta, boulderCollider);
+    collisionDetected |= CheckAndHandleCollision<MinitaurController>(delta, boulderCollider);
+    collisionDetected |= CheckAndHandleCollision<GorgonController>(delta, boulderCollider);
 
-                // Apply knockback to the player
-                auto* playerVelocity = playerObj->GetComponent<VelocityComponent>();
-                if (playerVelocity) {
-                    // Calculate knockback direction
-                    const glm::vec2 playerPosition = playerObj->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-                    const glm::vec2 boulderPosition = GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-                    glm::vec2 knockbackDirection = glm::normalize(playerPosition - boulderPosition);
-                    playerVelocity->ApplyKnockback(knockbackDirection, m_knockbackForce);
+    return collisionDetected;
+}
+
+template <typename T>
+bool BoulderTrapComponent::CheckAndHandleCollision(float delta, ColliderComponent* boulderCollider) {
+    bool detected = false;
+
+    for (auto&& [_, entityController] : GetGameObject()->GetScene().Each<T>()) {
+        auto* entityObj = entityController.GetGameObject();
+        auto* entityCollider = entityObj->template GetComponent<ColliderComponent>(); // FIXED
+
+        if (entityCollider &&
+            entityCollider->IsActive() &&
+            entityCollider->IsHurtbox() &&
+            m_colliderManager->IsColliding(*boulderCollider, *entityCollider, delta)) {
+
+            auto* entityHealth = entityObj->template GetComponent<HealthComponent>(); // FIXED
+            if (entityHealth) {
+                entityHealth->Damage(m_damage);
+                detected = true;
+
+                // Apply knockback
+                auto* entityVelocity = entityObj->template GetComponent<VelocityComponent>(); // FIXED
+                if (entityVelocity) {
+                    glm::vec2 entityPosition = entityObj->template GetComponent<wolf::Transform2D>()->GetGlobalPosition(); // FIXED
+                    glm::vec2 boulderPosition = GetGameObject()->template GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                    glm::vec2 knockbackDirection = glm::normalize(entityPosition - boulderPosition);
+                    entityVelocity->ApplyKnockback(knockbackDirection, m_knockbackForce);
                 }
-
-                // wolf::Log("BoulderTrapComponent: Player collided with boulder. Damage applied: " +
-                //           std::to_string(m_damage) + " Knockback applied.");
-                return true;
             }
         }
     }
-    return false;
+
+    return detected;
 }
+

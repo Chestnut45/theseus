@@ -1080,8 +1080,8 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             velocityComponent.SetVelocity(velocity);
         
             // Add Collider
-            auto& boulderCollider = boulderObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-            boulderCollider.AddColliderBox(glm::vec2(16.0f, 16.0f), glm::vec2(-16.0f, 16.0f));
+            auto& boulderCollider = boulderObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDR, 0, 1);
+            boulderCollider.AddColliderBox(glm::vec2(28.0f, 28.0f), glm::vec2(-14.0f, 14.0f));
         
             // Add BoulderTrapComponent with the chosen direction
             boulderObj.AddComponent<BoulderTrapComponent>(triggerObject->GetComponent<TriggerComponent>(), m_pColliderManager, chosenDirection, boulderSpeed, 5.0f);
