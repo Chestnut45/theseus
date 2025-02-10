@@ -89,6 +89,9 @@ private:
     ColliderComponent* m_pCollider = nullptr;
     HomingComponent* m_pHoming = nullptr;   // Added by Nhật
 
+    // Pointer to shadow sprite (only valid during phase 2!)
+    wolf::GameObject* m_pShadowObject = nullptr;
+
     // Pointer to game object that contains all pillar objects as child objects
     wolf::GameObject* m_pBossPillarGroup = nullptr;
 

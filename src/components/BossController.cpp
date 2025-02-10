@@ -188,7 +188,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase3();
+    EnterPhase2();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -773,6 +773,18 @@ void BossController::EnterPhase2()
     m_axeAttackTimer.Restart();
     m_pHealth->SetActive(true);
     m_pVelocity->SetKnockbackEnabled(true);
+
+    // Create the shadow sprite object
+    if (m_pShadowObject) m_pShadowObject->Delete();
+    m_pShadowObject = &GetGameObject()->GetScene().CreateObject2D();
+    GetGameObject()->AddChild(*m_pShadowObject);
+
+    auto& transform = *m_pShadowObject->GetComponent<wolf::Transform2D>();
+    transform.SetPosition(glm::vec2(0.0f, -26.0f));
+
+    // Add the sprite
+    wolf::Sprite2D& sprite = m_pShadowObject->AddComponent<wolf::Sprite2D>("data/textures/boss_shadow.png");
+    sprite.SetOriginToCenterOfTexture();
 }
 
 void BossController::UpdatePhase2(float delta)
@@ -984,7 +996,14 @@ void BossController::UpdatePhase2(float delta)
             m_pAxeCollider = nullptr;
         }
 
+        if (m_pShadowObject)
+        {
+            m_pShadowObject->Delete();
+            m_pShadowObject = nullptr;
+        }
+
         m_pAnimSprite->SetTint(glm::vec3(1.0f));
+        
 
         EnterPhase3();
     }
