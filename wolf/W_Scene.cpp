@@ -104,6 +104,12 @@ void Scene::Render(float delta)
     // Bind the active camera
     m_pActiveCamera->Bind();
 
+    // Render all tilemaps with transform components
+    for (auto&&[_, tilemap, transform] : Each<TileMap, Transform2D>())
+    {
+        tilemap.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
+    }
+
     // Build map of sprites to render by layer
     std::map<int, std::vector<std::pair<Sprite2D*, Transform2D*>>> sortedSprites;
     for (auto&&[_, sprite, transform] : Each<Sprite2D, Transform2D>())
@@ -118,7 +124,7 @@ void Scene::Render(float delta)
     }
 
     // Render all sprites in order
-    for (auto iter = sortedSprites.rbegin(); iter != sortedSprites.rend(); ++iter)
+    for (auto iter = sortedSprites.begin(); iter != sortedSprites.end(); ++iter)
     {
         auto& batch = iter->second;
         for (auto& pair : batch)
@@ -141,19 +147,13 @@ void Scene::Render(float delta)
     }
 
     // Render all animated sprites in order
-    for (auto iter = sortedAnimatedSprites.rbegin(); iter != sortedAnimatedSprites.rend(); ++iter)
+    for (auto iter = sortedAnimatedSprites.begin(); iter != sortedAnimatedSprites.end(); ++iter)
     {
         auto& batch = iter->second;
         for (auto& pair : batch)
         {
             pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
         }
-    }
-
-    // Render all tilemaps with transform components
-    for (auto&&[_, tilemap, transform] : Each<TileMap, Transform2D>())
-    {
-        tilemap.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
     }
 
     // Queue all colliders for debug rendering
@@ -163,12 +163,12 @@ void Scene::Render(float delta)
     }
 
     // Flush debug drawing (disable depth testing so it always renders on top)
-    glDisable(GL_DEPTH_TEST);
+    // glDisable(GL_DEPTH_TEST);
     ColliderComponent::DebugDrawAndFlush();
     // Render Shapes
     GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
     GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
-    glEnable(GL_DEPTH_TEST);
+    // glEnable(GL_DEPTH_TEST);
 }
 
 void _SceneTests()

@@ -100,9 +100,7 @@ void BossController::Init()
     wolf::GameObject* pObject = GetGameObject();
 
     // Create transform
-    pObject->DeleteComponent<wolf::Transform2D>();
-    m_pTransform = &pObject->AddComponent<wolf::Transform2D>();
-    m_pTransform->SetScale(glm::vec2(LabyrinthManager::SCALE));
+    m_pTransform = pObject->GetComponent<wolf::Transform2D>();
 
     // Create velocity
     pObject->DeleteComponent<VelocityComponent>();
@@ -111,6 +109,7 @@ void BossController::Init()
     // Create sprite
     pObject->DeleteComponent<AnimatedSprite2D>();
     m_pAnimSprite = &pObject->AddComponent<AnimatedSprite2D>("data/boss_anim_init.yaml");
+    m_pAnimSprite->SetLayer(8);
 
     // Create health
     pObject->DeleteComponent<HealthComponent>();
@@ -125,7 +124,53 @@ void BossController::Init()
     m_pCollider = &pObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
     m_pCollider->AddColliderBox(glm::vec2(111, 156), glm::vec2(-52, 32));
 
+    // Grab a reference to the labyrinth manager
+    for (auto&&[_, manager] : pObject->GetScene().Each<LabyrinthManager>())
+    {
+        m_pLabyrinthManager = &manager;
+        break;
+    }
+    if (!m_pLabyrinthManager)
+    {
+        wolf::Error("BossController couldn't find any labyrinth manager!");
+    }
 
+    // Grab a reference to the room the boss is currently in
+    auto roomOptional = m_pLabyrinthManager->GetRoom(m_pLabyrinthManager->GetTilePosition(m_pTransform->GetGlobalPosition()));
+    if (!roomOptional.has_value())
+    {
+        wolf::Error("BossController Init was called outside of a valid room!");
+    }
+
+    // Create the boss pillar group object
+    m_pBossPillarGroup = &pObject->GetScene().CreateObject2D();
+
+    // Generate tile locations for pillars
+    const wolf::IRectangle& r = roomOptional->m_bounds;
+    glm::ivec2 locations[] =
+    {
+        glm::ivec2(r.m_origin.x + r.m_size.x * 0.25f, r.m_origin.y + r.m_size.y * 0.25f),
+        glm::ivec2(r.m_origin.x + r.m_size.x * 0.25f, r.m_origin.y + r.m_size.y * 0.75f),
+        glm::ivec2(r.m_origin.x + r.m_size.x * 0.75f, r.m_origin.y + r.m_size.y * 0.75f),
+        glm::ivec2(r.m_origin.x + r.m_size.x * 0.75f, r.m_origin.y + r.m_size.y * 0.25f)
+    };
+
+    for (const auto& tile : locations)
+    {
+        // Spawn a pillar as a child object of the pillar group object
+        wolf::GameObject& pillar = pObject->GetScene().CreateObject2D();
+        m_pBossPillarGroup->AddChild(pillar);
+        pillar.AddComponent<wolf::Sprite2D>("data/textures/tile_wall_minotaur.png");
+        
+        // Set position and scale
+        auto& transform = *pillar.GetComponent<wolf::Transform2D>();
+        transform.SetPosition(m_pLabyrinthManager->GetWorldPosition(tile));
+        transform.SetScale(glm::vec2(3.0f));
+
+        // Create collider
+        auto& collider = pillar.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, false, false);
+        collider.AddColliderBox(glm::vec2(96.0f), glm::vec2(0.0f, 96.0f));
+    }
     
     // Find player controller
     for (auto&&[_, controller] : pObject->GetScene().Each<PlayerController>())
@@ -197,14 +242,6 @@ void BossController::EnterPhase1()
         wolf::Error("BossController: DDACalculator instance is null!");
         return;
     }
-
-    m_pLabyrinthManager = dda->GetLabyrinthManager();
-    if (!m_pLabyrinthManager)
-    {
-        wolf::Error("BossController: LabyrinthManager is null!");
-        return;
-    }
-
 }
 
 void BossController::UpdatePhase1(float delta)
