@@ -2186,6 +2186,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         
                         // Set up the icon's animated sprite
                         auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/item_icons_anim_init.yaml");
+                        iconSprite.SetLayer(9);
                         
                         // Add the icon as a child object of the dispensary
                         dispensary.AddChild(icon);
@@ -2423,6 +2424,7 @@ void LabyrinthManager::GenerateEntrance()
     
     // Set up the icon's animated sprite
     auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/item_icons_anim_init.yaml");
+    iconSprite.SetLayer(9);
     
     // Add the icon as a child object of the dispensary
     dispensary.AddChild(icon);

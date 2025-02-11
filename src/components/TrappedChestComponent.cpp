@@ -206,6 +206,9 @@ void TrappedChestComponent::Explode()
     
     explosion->AddComponent<TimedDestroyerComponent>(0.5f);
 
+    // Play explosion sfx
+    wolf::Audio::Play("data/sounds/sfx_explosion.wav", 0.7f);
+
     // Get player & player data
     // TODO - Apply damage to all nearby enemies
     PlayerController* playerController;

@@ -41,7 +41,7 @@ void BossController::Init()
 {
     // Initialize stats
     m_active = false;
-    m_maxHealth = 6500;
+    m_maxHealth = 6000;
 
     // Phase 1 stats
     m_throneBlockRange = 300;
@@ -810,7 +810,7 @@ void BossController::UpdatePhase2(float delta)
     if (m_pAxeCollider)
     {
         // Play whoosh wfx
-        if (m_whooshTimer.Elapsed() >= 0.32)
+        if (m_whooshTimer.Elapsed() >= 0.32f)
         {
             wolf::Audio::Play("data/sounds/sfx_axe_whoosh.wav", 0.4f);
             m_whooshTimer.Restart();
@@ -853,18 +853,11 @@ void BossController::UpdatePhase2(float delta)
     {
         case State::APPROACH:
 
-            // Dodge player attack
-            if (playerAttacking && (distToPlayer < m_maxDistToPlayer || m_pPlayerController->GetHeldWeapon()->GetWeaponType() == WeaponType::BOW))
-            {
-                DodgePlayerAttack(dirToPlayer);
-                break;
-            }
-
             // Start axe attack
             if (m_axeAttackTimer.Elapsed() > nextAttackTime)
             {
                 StartAxeAttack();
-                nextAttackTime = m_rng.NextFloat(2.0f, 6.0f);
+                nextAttackTime = m_rng.NextFloat(1.0f, 4.0f);
                 break;
             }
 
@@ -981,6 +974,7 @@ void BossController::UpdatePhase2(float delta)
             {
                 // We shouldn't reach here anyway, but safety!
                 m_state = State::APPROACH;
+                wolf::Log("AAA");
             }
 
             break;
@@ -1377,6 +1371,8 @@ void BossController::StartFireBreathAttack()
     glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     m_lastDirection = glm::normalize(playerPos - thisPos);
+
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -3000.0f);
 }
 
 void BossController::AttackFireBreath(float delta)
@@ -1413,7 +1409,7 @@ void BossController::AttackFireBreath(float delta)
             // Add fire tiles
             for (glm::ivec2 tile : tiles)
             {
-                TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
+                TileFireManager::GetInstance()->AddFireTile(tile, 8.0f);
             }
 
             // Reset timer
@@ -1432,6 +1428,7 @@ void BossController::AttackFireBreath(float delta)
         if(m_fireBreathWindupTimer <= 0.0f)
         {
             m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+            wolf::Audio::Play("data/sounds/sfx_fire.wav", 0.55f);
 
         }
         // If still windup
@@ -1507,6 +1504,9 @@ void BossController::StartChargeAttack()
     {
         m_chargeChainCount = m_rng.NextInt(1, 3);
     }
+
+    m_chargeStompSFXTimer.Restart();
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, 3000.0f);
 }
 
 void BossController::AttackCharge(float delta)
@@ -1514,6 +1514,13 @@ void BossController::AttackCharge(float delta)
     // If windup expired
     if(m_chargeWindupTimer <= 0.0f)
     {
+        // Play stomping sfx
+        if (m_chargeStompSFXTimer.Elapsed() > 0.25f)
+        {
+            wolf::Audio::Play("data/sounds/sfx_stomp.wav", 0.7f, m_rng.NextFloat(-4000, 4000));
+            m_chargeStompSFXTimer.Restart();
+        }
+
         m_pVelocity->SetVelocity(glm::normalize(m_pVelocity->GetVelocity()) * m_chargeSpeed);
 
         // Get all colliders 
@@ -1582,6 +1589,8 @@ void BossController::EndChargeAttack()
     {
         m_chargeChainCount--;
     }
+
+    m_chargeStompSFXTimer.Reset();
 }
 
 void BossController::StartPull()

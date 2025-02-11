@@ -2,6 +2,8 @@
 #include "inventory/ItemCreator.h"
 #include "AnimatedSprite2D.h"
 
+#include <W_Audio.h>
+
 DispensaryInventoryComponent::~DispensaryInventoryComponent() {
     // Deregister for events
     wolf::EventManager::RemoveListener<OpenInventoryEvent, DispensaryInventoryComponent, &DispensaryInventoryComponent::HandleOpenInventoryEvent>(*this);
@@ -369,6 +371,12 @@ void DispensaryInventoryComponent::DispenseItem(int p_iItemIndex) {
 }
 
 void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
+
+    if (p_event.enType == InventoryType::DISPENSARY_INVENTORY && p_event.iIdNum == m_iIdNum)
+    {
+        wolf::Audio::Play("data/sounds/sfx_dispensary_open.wav", 0.8f);
+    }
+
     // If this dispensary is open
     if (m_bIsOpen) {
         // And a different inventory that ISN'T the player's was just opened
@@ -384,6 +392,14 @@ void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryE
 }
 
 void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
+
+    bool sfxPlayed = false;
+    if (p_event.enType == InventoryType::DISPENSARY_INVENTORY && p_event.iIdNum == m_iIdNum)
+    {
+        wolf::Audio::Play("data/sounds/sfx_dispensary_close.wav", 0.8f);
+        sfxPlayed = true;
+    }
+
     // If this dispensary is open
     if (m_bIsOpen) {
         // And the player just closed their inventory
@@ -394,6 +410,9 @@ void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventor
             if (pAnim) {
                 pAnim->SetAnimation("Deactivate");
             }
+
+            // Play SFX in edge case where dispensary inventory is closed by walking away
+            if (!sfxPlayed) wolf::Audio::Play("data/sounds/sfx_dispensary_close.wav", 0.8f);
 
             // Hide the child icon
             for (auto& child : this->GetGameObject()->GetChildren()) {

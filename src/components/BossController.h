@@ -163,6 +163,7 @@ private:
     float m_chargeSpeed;
     float m_chargeKnockbackForce;
     int m_chargeChainCount;
+    wolf::Timer m_chargeStompSFXTimer;
 
     float m_pullTime;               // Pull state members
     float m_pullTimer;
