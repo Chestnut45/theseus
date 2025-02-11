@@ -246,11 +246,10 @@ std::pair<bool, glm::vec2> LightComponent::LineToCornerRectSideCollisionTest(con
 
 float LightComponent::CalculateCosAngleOfIntersection(const glm::vec2& p_v2Intersect) {
     // Calculate the slope of the line and use that as the hypotenuse
-    float fLength = std::sqrt(std::pow((p_v2Intersect.x - m_v2Origin.x), 2) + std::pow((p_v2Intersect.y - m_v2Origin.y), 2));
-    float fAdjacent = p_v2Intersect.x - m_v2Origin.x; // Use the x coordinate as the adjacent
+    glm::vec2 v2Direction = p_v2Intersect - m_v2Origin;
 
     // Calculate the cosine angle
-    float fAngle = glm::cos(fLength / fAdjacent);
+    float fAngle = glm::atan(v2Direction.x, v2Direction.y);
 
     // Return the angle
     return fAngle;
@@ -262,5 +261,5 @@ bool LightComponent::CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, st
         return true;
     }
 
-    return p_v2fA.first.y > p_v2fB.first.y;
+    return false;
 }
