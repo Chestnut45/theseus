@@ -94,7 +94,7 @@ void BossController::Init()
     m_pullTimer = 0.0f;
     m_pullForce = 450.0f;
 
-    m_searchSpeed = 250.0f;
+    m_searchSpeed = 300.0f;
     m_searchTimer = 2.0f; // Seconds
     m_redirectTime = 1.0f;
     m_redirectTimer = 0.0f;
@@ -953,7 +953,7 @@ void BossController::EnterPhase3()
     m_pVelocity->SetKnockbackEnabled(false);
 
 
-    m_pHealth->Pierce(m_maxHealth * 0.9f); // REMOVE TIS LINE
+    m_pHealth->Pierce(m_maxHealth * 0.9f); // REMOVE THIS LINE
     std::cout << "Boss Health: " << m_pHealth->GetHealth() << std::endl;
 }
 
@@ -1773,11 +1773,13 @@ void BossController::Pull(float delta)
 
 void BossController::LastStandSupercharge()
 {
-    m_fireBreathDuration += 0.5f;
+    m_fireBreathDuration -= 0.5f;
+    m_fireBreathRangeExtender += 150.0f;
 
     m_chargeSpeed += 200.0f;
     m_chargeAttackDamage += 25;
     m_chargeKnockbackForce += 5000;
+    m_searchSpeed += 100.0f;
     m_stunTime *= 0.5f;
-    m_idleTimeRange = glm::vec2(0.5f, 1.0f);
+    m_idleTimeRange *= 0.5f;
 }
