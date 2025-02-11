@@ -12,10 +12,12 @@
 
 HarpyController::HarpyController()
 {
+    wolf::EventManager::AddListener<InfightingEvent, HarpyController, &HarpyController::HandleInfighting>(*this);
 }  
 
 HarpyController::~HarpyController()
 {
+    wolf::EventManager::RemoveListener<InfightingEvent, HarpyController, &HarpyController::HandleInfighting>(*this);
 }
 
 void HarpyController::Init(const EnemyData& data)
@@ -357,7 +359,7 @@ void HarpyController::HandleAttackingState(float delta)
                 std::pair<StatusComponent::StatusEffectType, float>(StatusComponent::StatusEffectType::BURNING, 5.0f)
             };
 
-            auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(m_baseDamage, m_pColliderManager, 0.0f, statusEffects);
+            auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(m_baseDamage, m_pColliderManager,0.0f,statusEffects, GetGameObject());
 
             auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
             projectileSprite.SetOriginToCenterOfTexture();
@@ -606,4 +608,20 @@ void HarpyController::SetEmote(EnemyEmote p_emote)
     }
 
     m_emote = p_emote;
+}
+
+void HarpyController::HandleInfighting(const InfightingEvent& event)
+{
+    if (event.m_pVictim == GetGameObject()) // This Harpy got hit
+    {
+            // Ignore if already attacking this enemy
+            if (m_pTarget == event.m_pAttacker) return;
+
+            // **Switch target to the attacker and start fighting back**
+            m_pTarget = event.m_pAttacker;
+            ChangeState(EnemyState::CHASING);
+
+            wolf::Log("Harpy " + std::to_string(GetGameObject()->GetID()) + 
+                            " is now fighting " + std::to_string(m_pTarget->GetID()));
+    }
 }

@@ -11,10 +11,12 @@
 
 MinitaurController::MinitaurController()
 {
+    wolf::EventManager::AddListener<InfightingEvent, MinitaurController, &MinitaurController::HandleInfighting>(*this);
 }
 
 MinitaurController::~MinitaurController()
 {
+    wolf::EventManager::AddListener<InfightingEvent, MinitaurController, &MinitaurController::HandleInfighting>(*this);
 }
 
 void MinitaurController::Init(const EnemyData& data)
@@ -735,4 +737,20 @@ glm::vec2 MinitaurController::GetTileWorldPos(glm::ivec2 p_tile_pos)
         (float)p_tile_pos.y * (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE)
     );
     return res;
+}
+
+void MinitaurController::HandleInfighting(const InfightingEvent& event)
+{
+    if (event.m_pVictim == GetGameObject()) // This Minitaur got hit
+    {
+            // Ignore if already attacking this enemy
+            if (m_pTarget == event.m_pAttacker) return;
+
+            // **Minitaur fights back once hit**
+            m_pTarget = event.m_pAttacker;
+            ChangeState(EnemyState::CHASING);
+
+            wolf::Log("Minitaur " + std::to_string(GetGameObject()->GetID()) + 
+                            " is now fighting " + std::to_string(m_pTarget->GetID()));
+    }
 }
