@@ -1118,7 +1118,7 @@ void PlayState::RenderMap() {
     isExpandedPrev = m_isMapExpanded;
 
     // Define map dimensions and scaling
-    const float mapSize = m_isMapExpanded ? 600.0f : 300.0f; // Larger default map size for expanded view
+    const float mapSize = m_isMapExpanded ? 600.0f : 200.0f; // Larger default map size for expanded view
     const float labyrinthScale = zoomScale;
 
     // Determine map position (top-right when small, center when expanded)
