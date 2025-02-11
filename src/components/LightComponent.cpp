@@ -148,6 +148,8 @@ void LightComponent::Update(float p_fDelta) {
             std::pair<bool, glm::vec2> bv2LeftResult = this->LineToCornerRectSideCollisionTest(v2Corner, v2LeftStart, v2LeftEnd);
             std::pair<bool, glm::vec2> bv2RightResult = this->LineToCornerRectSideCollisionTest(v2Corner, v2RightStart, v2RightEnd);
 
+            // !-- Should only be adding points if they do not self-intersect --!
+
             // Check the favoured side first
             if (bFavourLeft) {
                 // Prefer left
@@ -174,37 +176,11 @@ void LightComponent::Update(float p_fDelta) {
                     m_vv2fCollidingPoints.push_back({bv2LeftResult.second, fAngleOfIntersect});
                 }
             }
-
-            // Do the same for the top and bottom
-            std::pair<bool, glm::vec2> bv2TopResult = this->LineToCornerRectSideCollisionTest(v2Corner, v2TopStart, v2TopEnd);
-            std::pair<bool, glm::vec2> bv2BotResult = this->LineToCornerRectSideCollisionTest(v2Corner, v2BotStart, v2BotEnd);
-
-            if (bFavourTop) {
-                // Prefer top
-                if (bv2TopResult.first) { // Check top
-                    fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2TopResult.second);
-                    m_vv2fCollidingPoints.push_back({bv2TopResult.second, fAngleOfIntersect});
-                }
-                else if (bv2BotResult.first) { // Check bottom
-                    fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2BotResult.second);
-                    m_vv2fCollidingPoints.push_back({bv2BotResult.second, fAngleOfIntersect});
-                }
-            }
-            else {
-                // Prefer bottom
-                if (bv2BotResult.first) { // Check bottom
-                    fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2BotResult.second);
-                    m_vv2fCollidingPoints.push_back({bv2BotResult.second, fAngleOfIntersect});
-                }
-                else if (bv2TopResult.first) { // Check top
-                    fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2TopResult.second);
-                    m_vv2fCollidingPoints.push_back({bv2TopResult.second, fAngleOfIntersect});
-                }
-            }
         }
     }
 
-    // !-- Need to drop points that are behind other colliders --!
+    // We don't want to draw light rays that go THROUGH the rectangles in the scene
+    // so we are going to need to check if any of our lines intersect with other colliders
     std::vector<std::pair<glm::vec2, float>> vv2fPointsToRemove;
 
     // Go through all of the rectangles in the AOE again
@@ -269,7 +245,9 @@ void LightComponent::Update(float p_fDelta) {
         glm::vec2 v2Point2 = m_vv2fCollidingPoints.back().first;
         // We don't pop the second point because we want the triangles to connect to each other
 
-        GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
+        GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y});
+
+        //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
     }
 
     // Pop the last point and use it to form the final triangle
@@ -277,7 +255,8 @@ void LightComponent::Update(float p_fDelta) {
     m_vv2fCollidingPoints.pop_back();
 
     // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
-    GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
+    GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2LastPoint.x, v2LastPoint.y});
+    //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
 
 }
 
