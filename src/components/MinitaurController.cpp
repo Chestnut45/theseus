@@ -750,7 +750,7 @@ void MinitaurController::HandleInfighting(const InfightingEvent& event)
             m_pTarget = event.m_pAttacker;
             ChangeState(EnemyState::CHASING);
 
-            wolf::Log("Minitaur " + std::to_string(GetGameObject()->GetID()) + 
-                            " is now fighting " + std::to_string(m_pTarget->GetID()));
+            // wolf::Log("Minitaur " + std::to_string(GetGameObject()->GetID()) + 
+            //                 " is now fighting " + std::to_string(m_pTarget->GetID()));
     }
 }

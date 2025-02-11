@@ -76,8 +76,8 @@ void AttackDamageComponent::Update(float p_dt)
                         if (m_pOwner->HasAny<GorgonController, HarpyController>() &&
                             thatObject->HasAny<GorgonController, HarpyController, MinitaurController>())
                         {
-                            wolf::Log("Infighting triggered: " + std::to_string(m_pOwner->GetID()) + 
-                                      " hit " + std::to_string(thatObject->GetID()));
+                            // wolf::Log("Infighting triggered: " + std::to_string(m_pOwner->GetID()) + 
+                            //           " hit " + std::to_string(thatObject->GetID()));
                             wolf::EventManager::TriggerEvent(InfightingEvent(m_pOwner, thatObject));
                         }
                     }

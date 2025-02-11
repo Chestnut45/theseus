@@ -621,7 +621,7 @@ void HarpyController::HandleInfighting(const InfightingEvent& event)
             m_pTarget = event.m_pAttacker;
             ChangeState(EnemyState::CHASING);
 
-            wolf::Log("Harpy " + std::to_string(GetGameObject()->GetID()) + 
-                            " is now fighting " + std::to_string(m_pTarget->GetID()));
+            // wolf::Log("Harpy " + std::to_string(GetGameObject()->GetID()) + 
+            //                 " is now fighting " + std::to_string(m_pTarget->GetID()));
     }
 }
