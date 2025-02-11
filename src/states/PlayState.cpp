@@ -753,7 +753,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             auto roomDataOpt = m_pLabyrinthManager->GetRoom(tilePosition);
         
             if (!roomDataOpt.has_value()) {
-                wolf::Log("Boulder trap triggered, but no valid room found!");
+                // wolf::Log("Boulder trap triggered, but no valid room found!");
                 break;
             }
         
@@ -808,7 +808,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             if (rightDist > 0) directionOptions.emplace_back(BoulderDirection::RIGHT, rightDist);
         
             if (directionOptions.empty()) {
-                wolf::Log("No valid directions found for boulder trap!");
+                // wolf::Log("No valid directions found for boulder trap!");
                 break;
             }
         
@@ -916,7 +916,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             // Add BoulderTrapComponent with the chosen direction
             boulderObj.AddComponent<BoulderTrapComponent>(triggerObject->GetComponent<TriggerComponent>(), m_pColliderManager, chosenDirection, boulderSpeed, 5.0f);
         
-            wolf::Log("Boulder trap triggered, rolling in direction: " + std::to_string(static_cast<int>(chosenDirection)));
+            // wolf::Log("Boulder trap triggered, rolling in direction: " + std::to_string(static_cast<int>(chosenDirection)));
             break;
         }         
 
