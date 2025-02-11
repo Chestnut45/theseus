@@ -89,6 +89,16 @@ void HarpyController::Update(float delta)
     // Ensure components and target are initialized before performing any updates
     if (!m_active || !m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
+
+    if (m_pTarget)
+    {
+        auto* targetHealth = m_pTarget->GetComponent<HealthComponent>();
+        if (!targetHealth || targetHealth->GetHealth() <= 0) 
+        {
+            // wolf::Log("⚰️ Gorgon lost its target! Reverting to player.");
+            RevertBackToPlayer();
+        }
+    }
     
     // Update the base class
     EnemyController::Update(delta);
@@ -624,4 +634,18 @@ void HarpyController::HandleInfighting(const InfightingEvent& event)
             // wolf::Log("Harpy " + std::to_string(GetGameObject()->GetID()) + 
             //                 " is now fighting " + std::to_string(m_pTarget->GetID()));
     }
+}
+
+void HarpyController::RevertBackToPlayer()
+{
+    for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
+    {
+        m_pTarget = playerController.GetGameObject();
+        // wolf::Log("🔄 Minitaur switched back to the player as target.");
+        return;
+    }
+
+    // If no player found, log a warning
+    // wolf::Warning("⚠️ Minitaur could not find a player to target!");
+    m_pTarget = nullptr; // No valid target
 }

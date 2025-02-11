@@ -48,6 +48,7 @@ private:
     void ExitStunnedState();
 
     void HandleInfighting(const InfightingEvent& event); //added this
+    void RevertToPlayerTarget();
     void SetEmote(EnemyEmote p_emote);
 
     bool IsTargetDetected();

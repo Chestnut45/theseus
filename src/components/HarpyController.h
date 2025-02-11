@@ -43,6 +43,7 @@ private:
     void ExitPetrifiedState();
     void ExitStunnedState();
 
+    void RevertBackToPlayer();
     void HandleInfighting(const InfightingEvent& event); //added this
 
     
