@@ -188,7 +188,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase2();
+    EnterPhase3();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -330,13 +330,6 @@ void BossController::UpdatePhase1(float delta)
         // wolf::Log("BossController: Player attacked, starting Wave 1...");
         StartWave();
     }
-
-    // Transition to phase 2 if boss health is low
-    // if (m_pHealth->GetHealth() < 2 * m_maxHealth / 3)
-    // {
-    //     EnterPhase2();
-    // }
-
 }
 
 void BossController::CleanupPhase1()
@@ -930,7 +923,6 @@ void BossController::UpdatePhase2(float delta)
             {
                 m_state = State::APPROACH;
                 m_dodgeTimer.Reset();
-                m_pAnimSprite->SetTint(glm::vec3(1.0f));
             }
 
             break;
@@ -1021,7 +1013,6 @@ void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)
     // Change state
     m_state = State::DODGE;
     m_dodgeTimer.Restart();
-    m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 0.0f));
 
     // Get randomly rotated direction
     glm::mat4 rotation = glm::rotate(glm::radians(m_rng.FlipCoin() ? 90.0f : -90.0f), glm::vec3(0, 0, 1));
@@ -1542,6 +1533,8 @@ void BossController::AttackCharge(float delta)
                                                                                                 glm::normalize(playerPos - thisPos);
                         m_pPlayerObject->GetComponent<HealthComponent>()->Damage(100.0f);
                         m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(playerDirection, m_chargeKnockbackForce);
+
+                        wolf::Audio::Play("data/sounds/sfx_thud.wav", 1.1f);
                     }
 
                     // Change to STUNNED state
