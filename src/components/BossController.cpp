@@ -84,7 +84,7 @@ void BossController::Init()
     m_chargeAttackRange = 2000;
     m_stunTime = 0.5f; // Seconds
     m_stunTimer = 0.0f; // Seconds
-    m_chargeTurningCapDegree = 9.0f; // Degrees
+    m_chargeTurningCapDegree = 6.0f; // Degrees
     m_chargeTurningDelay = 0.2f; // Seconds
     m_chargeSpeed = 550.0f;
     m_chargeKnockbackForce = 10000.0f;
@@ -1041,19 +1041,13 @@ void BossController::EnterPhase3()
     m_pVelocity->SetKnockbackEnabled(false);
 
 
-    m_pHealth->Pierce(m_maxHealth * 0.9f); // REMOVE THIS LINE
+    m_pHealth->Pierce(m_maxHealth * 0.5f); // REMOVE THIS LINE
     std::cout << "Boss Health: " << m_pHealth->GetHealth() << std::endl;
 }
 
 void BossController::UpdatePhase3(float delta)
 {   
     std::cout << "Boss Health: " << m_pHealth->GetHealth() << std::endl;
-    
-    if(!m_isSupercharged && m_pHealth->GetHealth() <= m_pHealth->GetMaxHealth() * m_superchargeHealthFraction)
-    {
-        m_isSupercharged = true;
-        LastStandSupercharge();
-    }
     
     if (m_pHealth->GetHealth() <= 0 && m_state != State::DEAD)
     {
@@ -1210,6 +1204,13 @@ void BossController::ChangeStatesPhase3(State p_state)
     }
 
     m_state = p_state;
+
+    if(!m_isSupercharged && m_pHealth->GetHealth() <= m_pHealth->GetMaxHealth() * m_superchargeHealthFraction)
+    {
+        m_isSupercharged = true;
+        LastStandSupercharge();
+    }
+    
 }
 
 void BossController::StartSearch()
@@ -1878,7 +1879,7 @@ void BossController::Pull(float delta)
 void BossController::LastStandSupercharge()
 {
     m_fireBreathDuration -= 0.5f;
-    m_fireBreathRangeExtender += 150.0f;
+    m_fireBreathRangeExtender += 300.0f;
 
     m_chargeSpeed += 200.0f;
     m_chargeAttackDamage += 25;
