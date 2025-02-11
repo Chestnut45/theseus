@@ -130,10 +130,8 @@ void LightComponent::Update(float p_fDelta) {
         // Do a collision test between each of the corners and the four sides of the rectangle
         for (glm::vec2 v2Corner : arv2Corners) {
             // We're going to want to sort the collision points by the angle of the line between
-            // them and the origin of the light later, and to do that we need the slope of the
-            // intersection line, so we create a variable to hold that value whenever we recalculate
-            // it, as well as one to hold the actual angle when we recalculate that.
-            float fIntersectSlope = 0.0f;
+            // them and the origin of the light later, so we create a variable to hold that value
+            // whenever we recalculate it.
             float fAngleOfIntersect = 0.0f;
 
             // Perform the collision test for the left and right
@@ -144,26 +142,26 @@ void LightComponent::Update(float p_fDelta) {
             if (bFavourLeft) {
                 // Prefer left
                 if (bv2LeftResult.first) {  // Check left
-                    // Calculate the slope of the collision line and the resulting angle of intersection
-                    fIntersectSlope = (bv2LeftResult.second.y - m_v2Origin.y) / (bv2LeftResult.second.x - m_v2Origin.x);
+                    // Calculate the cosine angle of intersection
+                    fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2LeftResult.second);
 
                     // Then add the point to the collision points vector
-                    m_vfv2CollidingPoints.push_back({bv2LeftResult.second, fIntersectSlope});
+                    m_vfv2CollidingPoints.push_back({bv2LeftResult.second, fAngleOfIntersect});
                 }
                 else if (bv2RightResult.first) { // Check right
-                    fIntersectSlope = (bv2RightResult.second.y - m_v2Origin.y) / (bv2RightResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2RightResult.second, fIntersectSlope});
+                    fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2RightResult.second);
+                    m_vfv2CollidingPoints.push_back({bv2RightResult.second, fAngleOfIntersect});
                 }
             }
             else {
                 // Prefer right
                 if (bv2RightResult.first) {  // Check right
-                    fIntersectSlope = (bv2RightResult.second.y - m_v2Origin.y) / (bv2RightResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2RightResult.second, fIntersectSlope});
+                    fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2RightResult.second);
+                    m_vfv2CollidingPoints.push_back({bv2RightResult.second, fAngleOfIntersect});
                 }
                 else if (bv2LeftResult.first) { // Check left
-                    fIntersectSlope = (bv2LeftResult.second.y - m_v2Origin.y) / (bv2LeftResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2LeftResult.second, fIntersectSlope});
+                    fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2LeftResult.second);
+                    m_vfv2CollidingPoints.push_back({bv2LeftResult.second, fAngleOfIntersect});
                 }
             }
 
@@ -174,25 +172,23 @@ void LightComponent::Update(float p_fDelta) {
             if (bFavourTop) {
                 // Prefer top
                 if (bv2TopResult.first) { // Check top
-                    fIntersectSlope = (bv2TopResult.second.y - m_v2Origin.y) / (bv2TopResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2TopResult.second, fIntersectSlope});
+                    fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2TopResult.second);
+                    m_vfv2CollidingPoints.push_back({bv2TopResult.second, fAngleOfIntersect});
                 }
                 else if (bv2BotResult.first) { // Check bottom
-                    fIntersectSlope = (bv2BotResult.second.y - m_v2Origin.y) / (bv2BotResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2BotResult.second, fIntersectSlope});
+                    fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2BotResult.second);
+                    m_vfv2CollidingPoints.push_back({bv2BotResult.second, fAngleOfIntersect});
                 }
             }
             else {
                 // Prefer bottom
                 if (bv2BotResult.first) { // Check bottom
-                    // Calculate the slope of the collision line and add the point to the vector of colliding points
-                    fIntersectSlope = (bv2BotResult.second.y - m_v2Origin.y) / (bv2BotResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2BotResult.second, fIntersectSlope});
+                    fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2BotResult.second);
+                    m_vfv2CollidingPoints.push_back({bv2BotResult.second, fAngleOfIntersect});
                 }
                 else if (bv2TopResult.first) { // Check top
-                    // Calculate the slope of the collision line and add the point to the vector of colliding points
-                    fIntersectSlope = (bv2TopResult.second.y - m_v2Origin.y) / (bv2TopResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2TopResult.second, fIntersectSlope});
+                    fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2TopResult.second);
+                    m_vfv2CollidingPoints.push_back({bv2TopResult.second, fAngleOfIntersect});
                 }
             }
         }
@@ -248,15 +244,23 @@ std::pair<bool, glm::vec2> LightComponent::LineToCornerRectSideCollisionTest(con
     return {bIntersected, v2Intersect};
 }
 
-// Compares two glm::vec2-float pairs and returns the one with the largest float value (breaks ties using the greatest glm::vec2 x + y value)
+float LightComponent::CalculateCosAngleOfIntersection(const glm::vec2& p_v2Intersect) {
+    // Calculate the slope of the line and use that as the hypotenuse
+    float fLength = std::sqrt(std::pow((p_v2Intersect.x - m_v2Origin.x), 2) + std::pow((p_v2Intersect.y - m_v2Origin.y), 2));
+    float fAdjacent = p_v2Intersect.x - m_v2Origin.x; // Use the x coordinate as the adjacent
+
+    // Calculate the cosine angle
+    float fAngle = glm::cos(fLength / fAdjacent);
+
+    // Return the angle
+    return fAngle;
+}
+
+// Compares two glm::vec2-float pairs and returns the one with the largest float value (break ties using the y coordinate)
 bool LightComponent::CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, std::pair<glm::vec2, float> p_v2fB) {
     if (p_v2fA.second > p_v2fB.second) {
         return true;
     }
-    else if (p_v2fA.second < p_v2fB.second) {
-        return false;
-    }
-    
-    // Break ties using the greatest glm::vec2 x+y value
-    return (p_v2fA.first.x + p_v2fA.first.y) > (p_v2fB.first.x + p_v2fB.first.y);
+
+    return p_v2fA.first.y > p_v2fB.first.y;
 }

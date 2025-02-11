@@ -44,6 +44,7 @@ class LightComponent : public wolf::BaseComponent {
     private:
         std::pair<bool, glm::vec2> LineToCornerRectSideCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2SideStart, const glm::vec2& p_v2SideEnd);
         static bool CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, std::pair<glm::vec2, float> p_v2fB);
+        float CalculateCosAngleOfIntersection(const glm::vec2& p_v2Intersect);
 
         // ID number to discern between lights
         static int m_iNextIDNum;
