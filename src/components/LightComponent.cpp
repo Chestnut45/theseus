@@ -129,10 +129,12 @@ void LightComponent::Update(float p_fDelta) {
 
         // Do a collision test between each of the corners and the four sides of the rectangle
         for (glm::vec2 v2Corner : arv2Corners) {
-            // We're going to want to sort the collision points by the slope of the line between
-            // them and the origin of the light later, so we define a variable to hold that
-            // value whenever we recalculate it. (Arguably unnecessary but keeps the code legible)
-            float fIntersectionSlope = 0.0f;
+            // We're going to want to sort the collision points by the angle of the line between
+            // them and the origin of the light later, and to do that we need the slope of the
+            // intersection line, so we create a variable to hold that value whenever we recalculate
+            // it, as well as one to hold the actual angle when we recalculate that.
+            float fIntersectSlope = 0.0f;
+            float fAngleOfIntersect = 0.0f;
 
             // Perform the collision test for the left and right
             std::pair<bool, glm::vec2> bv2LeftResult = this->LineToCornerRectSideCollisionTest(v2Corner, v2LeftStart, v2LeftEnd);
@@ -142,24 +144,26 @@ void LightComponent::Update(float p_fDelta) {
             if (bFavourLeft) {
                 // Prefer left
                 if (bv2LeftResult.first) {  // Check left
-                    // Calculate the slope of the collision line and add the point to the vector of colliding points
-                    fIntersectionSlope = (bv2LeftResult.second.y - m_v2Origin.y) / (bv2LeftResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2LeftResult.second, fIntersectionSlope});
+                    // Calculate the slope of the collision line and the resulting angle of intersection
+                    fIntersectSlope = (bv2LeftResult.second.y - m_v2Origin.y) / (bv2LeftResult.second.x - m_v2Origin.x);
+
+                    // Then add the point to the collision points vector
+                    m_vfv2CollidingPoints.push_back({bv2LeftResult.second, fIntersectSlope});
                 }
                 else if (bv2RightResult.first) { // Check right
-                    fIntersectionSlope = (bv2RightResult.second.y - m_v2Origin.y) / (bv2RightResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2RightResult.second, fIntersectionSlope});
+                    fIntersectSlope = (bv2RightResult.second.y - m_v2Origin.y) / (bv2RightResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2RightResult.second, fIntersectSlope});
                 }
             }
             else {
                 // Prefer right
                 if (bv2RightResult.first) {  // Check right
-                    fIntersectionSlope = (bv2RightResult.second.y - m_v2Origin.y) / (bv2RightResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2RightResult.second, fIntersectionSlope});
+                    fIntersectSlope = (bv2RightResult.second.y - m_v2Origin.y) / (bv2RightResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2RightResult.second, fIntersectSlope});
                 }
                 else if (bv2LeftResult.first) { // Check left
-                    fIntersectionSlope = (bv2LeftResult.second.y - m_v2Origin.y) / (bv2LeftResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2LeftResult.second, fIntersectionSlope});
+                    fIntersectSlope = (bv2LeftResult.second.y - m_v2Origin.y) / (bv2LeftResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2LeftResult.second, fIntersectSlope});
                 }
             }
 
@@ -170,25 +174,25 @@ void LightComponent::Update(float p_fDelta) {
             if (bFavourTop) {
                 // Prefer top
                 if (bv2TopResult.first) { // Check top
-                    fIntersectionSlope = (bv2TopResult.second.y - m_v2Origin.y) / (bv2TopResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2TopResult.second, fIntersectionSlope});
+                    fIntersectSlope = (bv2TopResult.second.y - m_v2Origin.y) / (bv2TopResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2TopResult.second, fIntersectSlope});
                 }
                 else if (bv2BotResult.first) { // Check bottom
-                    fIntersectionSlope = (bv2BotResult.second.y - m_v2Origin.y) / (bv2BotResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2BotResult.second, fIntersectionSlope});
+                    fIntersectSlope = (bv2BotResult.second.y - m_v2Origin.y) / (bv2BotResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2BotResult.second, fIntersectSlope});
                 }
             }
             else {
                 // Prefer bottom
                 if (bv2BotResult.first) { // Check bottom
                     // Calculate the slope of the collision line and add the point to the vector of colliding points
-                    fIntersectionSlope = (bv2BotResult.second.y - m_v2Origin.y) / (bv2BotResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2BotResult.second, fIntersectionSlope});
+                    fIntersectSlope = (bv2BotResult.second.y - m_v2Origin.y) / (bv2BotResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2BotResult.second, fIntersectSlope});
                 }
                 else if (bv2TopResult.first) { // Check top
                     // Calculate the slope of the collision line and add the point to the vector of colliding points
-                    fIntersectionSlope = (bv2TopResult.second.y - m_v2Origin.y) / (bv2TopResult.second.x - m_v2Origin.x);
-                    m_vfv2CollidingPoints.push_back({bv2TopResult.second, fIntersectionSlope});
+                    fIntersectSlope = (bv2TopResult.second.y - m_v2Origin.y) / (bv2TopResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2TopResult.second, fIntersectSlope});
                 }
             }
         }
