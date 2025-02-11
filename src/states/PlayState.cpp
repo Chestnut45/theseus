@@ -26,6 +26,7 @@
 #include "../components/NPCComponent.h"
 #include <BossController.h>
 #include <LightComponent.h>
+#include <W_Audio.h>
 
 void PlayState::Enter()
 {
@@ -45,7 +46,7 @@ void PlayState::Enter()
 
     // Add the main camera as a child object of the player
     auto& cameraObj = scene.CreateObject2D();
-    auto& camera = cameraObj.AddComponent<wolf::Camera2D>(1280, 720);
+    auto& camera = cameraObj.AddComponent<wolf::Camera2D>(m_pGameInstance->GetWidth(), m_pGameInstance->GetHeight());
     m_pPlayerObject->AddChild(cameraObj);
     camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     camera.SetFollowSpeed(2.0f);
@@ -232,10 +233,16 @@ void PlayState::Enter()
     pLightSprite.SetOriginToCenterOfTexture();
     auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec2(250.0f, 250.0f), false);
     pLightComponent.Init();
+
+    // Stop all audio and begin the maze music
+    wolf::Audio::Stop();
+    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, true, 13.714f);
 }
 
 void PlayState::Exit()
 {
+    wolf::Audio::Stop();
+
     // Delete objects / components from the scene
     m_pGameInstance->GetScene().Clear();
 
@@ -243,20 +250,15 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
 
-
-
     // Delete managers
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
-    
-    
     DDACalculator::DestroyInstance();
     GLShapesRenderer::DestroyInstance();
 
     TileFireManager::DestroyInstance();
 
     ItemDropCreator::DestroyInstance();
-    
     NPCBuilder::DestroyInstance();
 }
 
@@ -954,6 +956,10 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
     switch (purpose) {
         case TriggerPurpose::SPIKE_TRAP: {
+
+            // Play sound effect
+            wolf::Audio::Play("data/sounds/sfx_spike_trap.wav", 0.9f);
+
             auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
             auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/SpikesExtended.png");
             trapSprite.SetOriginToCenterOfTexture();

@@ -61,7 +61,6 @@ AnimatedSprite2D::AnimatedSprite2D(const std::string& p_strPathToInit)
 
         // Once we've done that, we can set the start animation as active and setup the sprite origin
         SetAnimation(strStartAnimName);
-        SetOriginToCenterOfFrame();
     }
     catch (YAML::Exception& e) {
         // Throw an error if something goes wrong
@@ -188,8 +187,8 @@ void AnimatedSprite2D::SetOriginToCenterOfFrame()
     }
 
     const glm::vec2& frameSize = m_pCurrentAnim->m_v2FrameSize;
-    m_origin.x = frameSize.x * 0.5f;
-    m_origin.y = frameSize.y * 0.5f;
+    m_pCurrentAnim->m_v2Origin.x = frameSize.x * 0.5f;
+    m_pCurrentAnim->m_v2Origin.y = frameSize.y * 0.5f;
 }
 
 AnimatedSprite2D::~AnimatedSprite2D() {
@@ -626,7 +625,7 @@ void AnimatedSprite2D::BindUniformsAndTextures(const glm::vec2& position, float 
 
     // Build model matrix
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(position - m_origin * scale, 0.0f));
+    model = glm::translate(model, glm::vec3(position - m_pCurrentAnim->m_v2Origin * scale, 0.0f));
     model = glm::rotate(model, rotationRadians, glm::vec3(0.0f, 0.0f, 1.0f));
     model = glm::scale(model, glm::vec3(scale * m_v2FrameSize, 1.0f));
 

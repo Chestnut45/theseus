@@ -41,7 +41,7 @@ void BossController::Init()
 {
     // Initialize stats
     m_active = false;
-    m_maxHealth = 6500;
+    m_maxHealth = 6000;
 
     // Phase 1 stats
     m_throneBlockRange = 300;
@@ -96,6 +96,7 @@ void BossController::Init()
 
     m_idleTimer = 2.0f;
     m_autoAttackRange = 200.0f;
+
     // Create components and cache pointers
     wolf::GameObject* pObject = GetGameObject();
 
@@ -122,7 +123,7 @@ void BossController::Init()
     // Create collider
     pObject->DeleteComponent<ColliderComponent>();
     m_pCollider = &pObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
-    m_pCollider->AddColliderBox(glm::vec2(111, 156), glm::vec2(-52, 32));
+    m_pCollider->AddColliderBox(glm::vec2(111, 182), glm::vec2(-52, 96));
 
     // Grab a reference to the labyrinth manager
     for (auto&&[_, manager] : pObject->GetScene().Each<LabyrinthManager>())
@@ -196,6 +197,9 @@ void BossController::Update(float delta)
 {
     if (!m_active) return;
 
+    // Update previous state
+    m_prevState = m_state;
+
     // Call phase-specific update method
     switch (m_phase)
     {
@@ -216,8 +220,75 @@ void BossController::Update(float delta)
 }
 
 void BossController::UpdateAnimation()
-{
+{   
+    // Only update animation if state has changed
+    // if (m_state == m_prevState) return;
+
+    // Compass direction animation names
+    static const char* s_dirNames[] =
+    {
+        "East",
+        "North",
+        "West",
+        "South"
+    };
+
+    // Query player spatial info
+    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 dirToPlayer = glm::normalize(playerPos - m_pTransform->GetGlobalPosition());
+    float angle = -glm::atan(dirToPlayer.x, dirToPlayer.y);
+    int dirIndex = (int)round(4 * angle / 6.28318530718f + 5) % 4;
+    const char* const dirText = s_dirNames[dirIndex];
+
     // Set animation based on state, regardless of fight phase
+    std::string baseAnimName;
+    switch (m_state)
+    {
+        case State::SIT:
+            baseAnimName = "ThroneSitEyesClosed";
+            break;
+        case State::SUMMONING:
+            break;
+        case State::DEFLECT:
+            break;
+        case State::APPROACH:
+        case State::STRAFE:
+        case State::DODGE:
+            baseAnimName = m_pAxeCollider ? "WalkNoAxe" : "Walk";
+            break;
+        case State::AXE_ATTACK:
+            baseAnimName = "Growl";
+            break;
+        case State::SEARCHING:
+            baseAnimName = "Crawl";
+            break;
+        case State::FIRE_BREATH_ATTACK:
+            baseAnimName = m_fireBreathWindupTimer <= 0.0f ? "FireBreathLoop" : "FireBreath";
+            break;
+        case State::CHARGE_ATTACK:
+            baseAnimName = m_chargeWindupTimer <= 0.0f ? "ChargeLoop" : "Charge";
+            break;
+        case State::IDLE:
+        case State::PULL:
+        case State::STUNNED:
+            baseAnimName = "Crawl";
+            break;
+        case State::TAUNT:
+            break;
+        case State::DEAD:
+            break;
+    }
+
+    // Add direction to base anim name
+    if (m_state != State::SIT)
+    {
+        baseAnimName += dirText;
+    }
+
+    if (baseAnimName != "")
+    {
+        m_pAnimSprite->SetAnimation(baseAnimName);
+    }
 }
 
 // <----------------- PHASE 1 METHODS ----------------->
@@ -259,13 +330,6 @@ void BossController::UpdatePhase1(float delta)
         // wolf::Log("BossController: Player attacked, starting Wave 1...");
         StartWave();
     }
-
-    // Transition to phase 2 if boss health is low
-    // if (m_pHealth->GetHealth() < 2 * m_maxHealth / 3)
-    // {
-    //     EnterPhase2();
-    // }
-
 }
 
 void BossController::CleanupPhase1()
@@ -702,6 +766,18 @@ void BossController::EnterPhase2()
     m_axeAttackTimer.Restart();
     m_pHealth->SetActive(true);
     m_pVelocity->SetKnockbackEnabled(true);
+
+    // Create the shadow sprite object
+    if (m_pShadowObject) m_pShadowObject->Delete();
+    m_pShadowObject = &GetGameObject()->GetScene().CreateObject2D();
+    GetGameObject()->AddChild(*m_pShadowObject);
+
+    auto& transform = *m_pShadowObject->GetComponent<wolf::Transform2D>();
+    transform.SetPosition(glm::vec2(0.0f, -26.0f));
+
+    // Add the sprite
+    wolf::Sprite2D& sprite = m_pShadowObject->AddComponent<wolf::Sprite2D>("data/textures/boss_shadow.png");
+    sprite.SetOriginToCenterOfTexture();
 }
 
 void BossController::UpdatePhase2(float delta)
@@ -726,6 +802,13 @@ void BossController::UpdatePhase2(float delta)
     // Update axe if it exists
     if (m_pAxeCollider)
     {
+        // Play whoosh wfx
+        if (m_whooshTimer.Elapsed() >= 0.32f)
+        {
+            wolf::Audio::Play("data/sounds/sfx_axe_whoosh.wav", 0.4f);
+            m_whooshTimer.Restart();
+        }
+
         // Calculate vector from axe to player
         glm::vec2 axePos = m_pAxeCollider->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -741,6 +824,7 @@ void BossController::UpdatePhase2(float delta)
             {
                 pPlayerHealth->Damage(m_axeAttackDamage);
                 pPlayerVel->ApplyKnockback(axeToPlayer, 4500.0f);
+                wolf::Audio::Play("data/sounds/sfx_heavy_hit.wav", 0.5f);
             }
         }
 
@@ -753,6 +837,7 @@ void BossController::UpdatePhase2(float delta)
             m_axeAttackTimer.Restart();
             m_axeSummoned = false;
             m_pAnimSprite->SetTint(glm::vec3(1.0f));
+            m_whooshTimer.Reset();
         }
     }
 
@@ -761,18 +846,11 @@ void BossController::UpdatePhase2(float delta)
     {
         case State::APPROACH:
 
-            // Dodge player attack
-            if (playerAttacking && (distToPlayer < m_maxDistToPlayer || m_pPlayerController->GetHeldWeapon()->GetWeaponType() == WeaponType::BOW))
-            {
-                DodgePlayerAttack(dirToPlayer);
-                break;
-            }
-
             // Start axe attack
             if (m_axeAttackTimer.Elapsed() > nextAttackTime)
             {
                 StartAxeAttack();
-                nextAttackTime = m_rng.NextFloat(2.0f, 6.0f);
+                nextAttackTime = m_rng.NextFloat(1.0f, 4.0f);
                 break;
             }
 
@@ -845,7 +923,6 @@ void BossController::UpdatePhase2(float delta)
             {
                 m_state = State::APPROACH;
                 m_dodgeTimer.Reset();
-                m_pAnimSprite->SetTint(glm::vec3(1.0f));
             }
 
             break;
@@ -880,12 +957,16 @@ void BossController::UpdatePhase2(float delta)
 
                     // Change state
                     m_state = State::APPROACH;
+
+                    wolf::Audio::Play("data/sounds/sfx_axe_whoosh.wav", 0.4f);
+                    m_whooshTimer.Restart();
                 }
             }
             else
             {
                 // We shouldn't reach here anyway, but safety!
                 m_state = State::APPROACH;
+                wolf::Log("AAA");
             }
 
             break;
@@ -901,7 +982,14 @@ void BossController::UpdatePhase2(float delta)
             m_pAxeCollider = nullptr;
         }
 
+        if (m_pShadowObject)
+        {
+            m_pShadowObject->Delete();
+            m_pShadowObject = nullptr;
+        }
+
         m_pAnimSprite->SetTint(glm::vec3(1.0f));
+        
 
         EnterPhase3();
     }
@@ -916,6 +1004,8 @@ void BossController::StartAxeAttack()
     m_state = State::AXE_ATTACK;
     m_axeAttackTimer.Restart();
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f);
 }
 
 void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)
@@ -923,7 +1013,6 @@ void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)
     // Change state
     m_state = State::DODGE;
     m_dodgeTimer.Restart();
-    m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 0.0f));
 
     // Get randomly rotated direction
     glm::mat4 rotation = glm::rotate(glm::radians(m_rng.FlipCoin() ? 90.0f : -90.0f), glm::vec3(0, 0, 1));
@@ -1273,6 +1362,8 @@ void BossController::StartFireBreathAttack()
     glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     m_lastDirection = glm::normalize(playerPos - thisPos);
+
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -3000.0f);
 }
 
 void BossController::AttackFireBreath(float delta)
@@ -1309,7 +1400,7 @@ void BossController::AttackFireBreath(float delta)
             // Add fire tiles
             for (glm::ivec2 tile : tiles)
             {
-                TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
+                TileFireManager::GetInstance()->AddFireTile(tile, 8.0f);
             }
 
             // Reset timer
@@ -1328,6 +1419,7 @@ void BossController::AttackFireBreath(float delta)
         if(m_fireBreathWindupTimer <= 0.0f)
         {
             m_pAnimSprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+            wolf::Audio::Play("data/sounds/sfx_fire.wav", 0.55f);
 
         }
         // If still windup
@@ -1403,6 +1495,9 @@ void BossController::StartChargeAttack()
     {
         m_chargeChainCount = m_rng.NextInt(1, 3);
     }
+
+    m_chargeStompSFXTimer.Restart();
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, 3000.0f);
 }
 
 void BossController::AttackCharge(float delta)
@@ -1410,6 +1505,13 @@ void BossController::AttackCharge(float delta)
     // If windup expired
     if(m_chargeWindupTimer <= 0.0f)
     {
+        // Play stomping sfx
+        if (m_chargeStompSFXTimer.Elapsed() > 0.25f)
+        {
+            wolf::Audio::Play("data/sounds/sfx_stomp.wav", 0.7f, m_rng.NextFloat(-4000, 4000));
+            m_chargeStompSFXTimer.Restart();
+        }
+
         m_pVelocity->SetVelocity(glm::normalize(m_pVelocity->GetVelocity()) * m_chargeSpeed);
 
         // Get all colliders 
@@ -1431,6 +1533,8 @@ void BossController::AttackCharge(float delta)
                                                                                                 glm::normalize(playerPos - thisPos);
                         m_pPlayerObject->GetComponent<HealthComponent>()->Damage(100.0f);
                         m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(playerDirection, m_chargeKnockbackForce);
+
+                        wolf::Audio::Play("data/sounds/sfx_thud.wav", 1.1f);
                     }
 
                     // Change to STUNNED state
@@ -1478,6 +1582,8 @@ void BossController::EndChargeAttack()
     {
         m_chargeChainCount--;
     }
+
+    m_chargeStompSFXTimer.Reset();
 }
 
 void BossController::StartPull()

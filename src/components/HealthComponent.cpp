@@ -9,6 +9,7 @@
 #include "../inventory/ArmourItem.h"
 #include <DamageEvent.h>
 #include <W_EventManager.h>
+#include <PlayerController.h>
 
 // Constructor for custom health
 HealthComponent::HealthComponent(int p_health)
@@ -219,6 +220,7 @@ void HealthComponent::AddDamageIndicator(std::string p_damage_str, ImVec4 p_text
 
 // !-- Aurora added these events --!
 void HealthComponent::HandlePercentHealthItemEvent(const PercentHealthItemEvent& p_event) {
+    if (!GetGameObject()->HasAll<PlayerController>()) return;
     if (p_event.fHealthChangeAmt >= 0) {
         this->Heal(p_event.fHealthChangeAmt * m_cap);
     }
@@ -228,6 +230,7 @@ void HealthComponent::HandlePercentHealthItemEvent(const PercentHealthItemEvent&
 }
 
 void HealthComponent::HandleFlatHealthItemEvent(const FlatHealthItemEvent& p_event) {
+    if (!GetGameObject()->HasAll<PlayerController>()) return;
     if (p_event.fHealthChangeAmt >= 0) {
         this->Heal(p_event.fHealthChangeAmt);
     }
