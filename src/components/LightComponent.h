@@ -67,5 +67,5 @@ class LightComponent : public wolf::BaseComponent {
 
         // Vector to hold the points that collide with the light and the
         // slope of the line they intersected with the light on
-        std::vector<std::pair<glm::vec2, float>> m_vfv2CollidingPoints;
+        std::vector<std::pair<glm::vec2, float>> m_vv2fCollidingPoints;
 };

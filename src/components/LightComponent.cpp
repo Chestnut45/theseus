@@ -15,7 +15,7 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
 
 LightComponent::~LightComponent() {
     // Clear out the colliding points map
-    m_vfv2CollidingPoints.clear();
+    m_vv2fCollidingPoints.clear();
 }
 
 void LightComponent::Init() {
@@ -50,7 +50,9 @@ void LightComponent::Update(float p_fDelta) {
     // }
 
     // Empty out the map of last frame's ray end points
-    m_vfv2CollidingPoints.clear();
+    m_vv2fCollidingPoints.clear();
+    
+    std::vector<std::pair<glm::vec2, float>> vv2fTempCollidingPoints;
 
     // Create a vector to hold all of the colliders that are in the light's AOE
     std::vector<wolf::Rectangle> vpRectanglesInAOE;
@@ -66,6 +68,14 @@ void LightComponent::Update(float p_fDelta) {
                 // Find the top left and bottom right points
                 glm::vec2 v2TopLeft = vv2ColliderCorners.at(k);
                 glm::vec2 v2BotRight = vv2ColliderCorners.at(k + 2);
+
+                // Check if the light origin is inside of the rectangle
+                if (m_v2Origin.x > v2TopLeft.x && m_v2Origin.x < v2BotRight.x && m_v2Origin.y > v2BotRight.y && m_v2Origin.y < v2TopLeft.y) {
+                    // If it is, we do not want to cast rays to its corners unless it is the light's AOE collider
+                    if (this->GetGameObject()->GetID() != collider.GetGameObject()->GetID()) {
+                        continue;
+                    }
+                }
 
                 // And store those in a new rectangle
                 vpRectanglesInAOE.push_back(wolf::Rectangle(v2TopLeft.x, v2TopLeft.y, v2BotRight.x, v2BotRight.y));
@@ -146,22 +156,22 @@ void LightComponent::Update(float p_fDelta) {
                     fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2LeftResult.second);
 
                     // Then add the point to the collision points vector
-                    m_vfv2CollidingPoints.push_back({bv2LeftResult.second, fAngleOfIntersect});
+                    m_vv2fCollidingPoints.push_back({bv2LeftResult.second, fAngleOfIntersect});
                 }
                 else if (bv2RightResult.first) { // Check right
                     fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2RightResult.second);
-                    m_vfv2CollidingPoints.push_back({bv2RightResult.second, fAngleOfIntersect});
+                    m_vv2fCollidingPoints.push_back({bv2RightResult.second, fAngleOfIntersect});
                 }
             }
             else {
                 // Prefer right
                 if (bv2RightResult.first) {  // Check right
                     fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2RightResult.second);
-                    m_vfv2CollidingPoints.push_back({bv2RightResult.second, fAngleOfIntersect});
+                    m_vv2fCollidingPoints.push_back({bv2RightResult.second, fAngleOfIntersect});
                 }
                 else if (bv2LeftResult.first) { // Check left
                     fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2LeftResult.second);
-                    m_vfv2CollidingPoints.push_back({bv2LeftResult.second, fAngleOfIntersect});
+                    m_vv2fCollidingPoints.push_back({bv2LeftResult.second, fAngleOfIntersect});
                 }
             }
 
@@ -173,47 +183,98 @@ void LightComponent::Update(float p_fDelta) {
                 // Prefer top
                 if (bv2TopResult.first) { // Check top
                     fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2TopResult.second);
-                    m_vfv2CollidingPoints.push_back({bv2TopResult.second, fAngleOfIntersect});
+                    m_vv2fCollidingPoints.push_back({bv2TopResult.second, fAngleOfIntersect});
                 }
                 else if (bv2BotResult.first) { // Check bottom
                     fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2BotResult.second);
-                    m_vfv2CollidingPoints.push_back({bv2BotResult.second, fAngleOfIntersect});
+                    m_vv2fCollidingPoints.push_back({bv2BotResult.second, fAngleOfIntersect});
                 }
             }
             else {
                 // Prefer bottom
                 if (bv2BotResult.first) { // Check bottom
                     fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2BotResult.second);
-                    m_vfv2CollidingPoints.push_back({bv2BotResult.second, fAngleOfIntersect});
+                    m_vv2fCollidingPoints.push_back({bv2BotResult.second, fAngleOfIntersect});
                 }
                 else if (bv2TopResult.first) { // Check top
                     fAngleOfIntersect = CalculateCosAngleOfIntersection(bv2TopResult.second);
-                    m_vfv2CollidingPoints.push_back({bv2TopResult.second, fAngleOfIntersect});
+                    m_vv2fCollidingPoints.push_back({bv2TopResult.second, fAngleOfIntersect});
                 }
             }
         }
     }
 
+    // !-- Need to drop points that are behind other colliders --!
+    std::vector<std::pair<glm::vec2, float>> vv2fPointsToRemove;
+
+    // Go through all of the rectangles in the AOE again
+    for (wolf::Rectangle rect : vpRectanglesInAOE) {
+        // Clear the list of points to remove
+        vv2fPointsToRemove.clear();
+
+        // Get the corner points
+        std::array<glm::vec2, 4> arv2RectCorners = rect.GetCorners();
+
+        // Construct the sides again
+        glm::vec2 v2TopStart = arv2RectCorners[0]; // Top
+        glm::vec2 v2TopEnd = arv2RectCorners[1];
+
+        glm::vec2 v2BotStart = arv2RectCorners[2]; // Bottom
+        glm::vec2 v2BotEnd = arv2RectCorners[3];
+
+        glm::vec2 v2LeftStart = arv2RectCorners[0]; // Left
+        glm::vec2 v2LeftEnd = arv2RectCorners[2];
+
+        glm::vec2 v2RightStart = arv2RectCorners[1]; // Right
+        glm::vec2 v2RightEnd = arv2RectCorners[3];
+
+        // Then go through all of the corner points that we KNOW we'll be casting a light ray to
+        for (std::pair<glm::vec2, float> v2fCorner : m_vv2fCollidingPoints) {
+            // Skip corner points that belong to the rectangle we're currently looking at
+            if (std::find(arv2RectCorners.begin(), arv2RectCorners.end(), v2fCorner.first) != arv2RectCorners.end()) {
+                continue;
+            }
+
+            // Check if the line between the origin and the corner point we're casting to intersects with another collider.
+            if (this->LineToCornerRectSideCollisionTest(v2fCorner.first, v2LeftStart, v2LeftEnd).first ||
+                this->LineToCornerRectSideCollisionTest(v2fCorner.first, v2RightStart, v2RightEnd).first ||
+                this->LineToCornerRectSideCollisionTest(v2fCorner.first, v2TopStart, v2TopEnd).first ||
+                this->LineToCornerRectSideCollisionTest(v2fCorner.first, v2BotStart, v2BotEnd).first)
+            {
+                // If it does, then the point will need to be removed so we mark it for death
+                vv2fPointsToRemove.push_back(v2fCorner);
+            }
+        }
+
+        // Remove the points this rectangle collided with
+        for (std::pair<glm::vec2, float> v2fBadCorner : vv2fPointsToRemove) {
+            auto it = std::find(m_vv2fCollidingPoints.begin(), m_vv2fCollidingPoints.end(), v2fBadCorner);
+            if (it != m_vv2fCollidingPoints.end()) {
+                m_vv2fCollidingPoints.erase(it);
+            }
+        }
+    }
+
     // Sort the collision points by the slopes of their intersection lines
-    std::sort(m_vfv2CollidingPoints.begin(), m_vfv2CollidingPoints.end(), LightComponent::CompareVec2FloatPair);
+    std::sort(m_vv2fCollidingPoints.begin(), m_vv2fCollidingPoints.end(), LightComponent::CompareVec2FloatPair);
 
     // Get the first collison point (we'll need it for the final triangle)
-    glm::vec2 v2FirstPoint = m_vfv2CollidingPoints.back().first;
+    glm::vec2 v2FirstPoint = m_vv2fCollidingPoints.back().first;
 
     // Form triangles using the two points that form each side and the origin
-    while (m_vfv2CollidingPoints.size() != 1) {
-        glm::vec2 v2Point1 = m_vfv2CollidingPoints.back().first;
-        m_vfv2CollidingPoints.pop_back();
+    while (m_vv2fCollidingPoints.size() != 1) {
+        glm::vec2 v2Point1 = m_vv2fCollidingPoints.back().first;
+        m_vv2fCollidingPoints.pop_back();
 
-        glm::vec2 v2Point2 = m_vfv2CollidingPoints.back().first;
+        glm::vec2 v2Point2 = m_vv2fCollidingPoints.back().first;
         // We don't pop the second point because we want the triangles to connect to each other
 
         GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
     }
 
     // Pop the last point and use it to form the final triangle
-    glm::vec2 v2LastPoint = m_vfv2CollidingPoints.back().first;
-    m_vfv2CollidingPoints.pop_back();
+    glm::vec2 v2LastPoint = m_vv2fCollidingPoints.back().first;
+    m_vv2fCollidingPoints.pop_back();
 
     // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
     GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
