@@ -62,6 +62,8 @@ void BossController::Init()
     m_axeSummoned = false;
     m_strafeSpeed = 160.0f;
     m_chaseSpeed = 240.0f;
+    m_shadowDistance = 26.0f;
+    m_altitude = 0.0f;
 
     // Phase 3 stats
     m_fireBreathWindupTime = 0.75f; // Seconds
@@ -188,7 +190,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase1();
+    EnterPhase2();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -254,6 +256,7 @@ void BossController::UpdateAnimation()
         case State::APPROACH:
         case State::STRAFE:
         case State::DODGE:
+        case State::LEAP_ATTACK:
             baseAnimName = m_pAxeCollider ? "WalkNoAxe" : "Walk";
             break;
         case State::AXE_ATTACK:
@@ -773,7 +776,7 @@ void BossController::EnterPhase2()
     GetGameObject()->AddChild(*m_pShadowObject);
 
     auto& transform = *m_pShadowObject->GetComponent<wolf::Transform2D>();
-    transform.SetPosition(glm::vec2(0.0f, -26.0f));
+    transform.SetPosition(glm::vec2(0.0f, -m_shadowDistance));
 
     // Add the sprite
     wolf::Sprite2D& sprite = m_pShadowObject->AddComponent<wolf::Sprite2D>("data/textures/boss_shadow.png");
@@ -798,6 +801,8 @@ void BossController::UpdatePhase2(float delta)
 
     // Query player controller state
     bool playerAttacking = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING;
+
+    wolf::Log("STATE: %d", (int)m_state);
 
     // Update axe if it exists
     if (m_pAxeCollider)
@@ -847,9 +852,9 @@ void BossController::UpdatePhase2(float delta)
         case State::APPROACH:
 
             // Start axe attack
-            if (m_axeAttackTimer.Elapsed() > nextAttackTime)
+            if (!m_pAxeCollider && m_axeAttackTimer.Elapsed() > nextAttackTime)
             {
-                StartAxeAttack();
+                m_rng.FlipCoin() ? StartAxeAttack() : StartLeapAttack();
                 nextAttackTime = m_rng.NextFloat(1.0f, 4.0f);
                 break;
             }
@@ -906,9 +911,9 @@ void BossController::UpdatePhase2(float delta)
             }
 
             // Start axe attack
-            if (m_axeAttackTimer.Elapsed() > nextAttackTime)
+            if (!m_pAxeCollider && m_axeAttackTimer.Elapsed() > nextAttackTime)
             {
-                StartAxeAttack();
+                m_rng.FlipCoin() ? StartAxeAttack() : StartLeapAttack();
                 nextAttackTime = m_rng.NextFloat(2.0f, 6.0f);
                 break;
             }
@@ -966,8 +971,58 @@ void BossController::UpdatePhase2(float delta)
             {
                 // We shouldn't reach here anyway, but safety!
                 m_state = State::APPROACH;
-                wolf::Log("AAA");
             }
+            break;
+        
+        case State::LEAP_ATTACK:
+
+            double elapsed = m_leapAttackTimer.Elapsed();
+
+            if (elapsed < 1.0f)
+            {
+                // Get current position without altitude added
+                const glm::vec2 posWithoutAlt = m_pTransform->GetGlobalPosition() - glm::vec2(0.0f, m_altitude);
+
+                // Update altitude
+                m_altitude = glm::mix(0.0f, 350.0f, elapsed);
+
+                // Move towards the player
+                const glm::vec2 target = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + glm::vec2(0.0f, 64.0f);
+                const glm::vec2 toPlayer = target - posWithoutAlt;
+                m_pTransform->SetPosition((posWithoutAlt + glm::normalize(toPlayer) * delta * 450.0f) + glm::vec2(0.0f, m_altitude));
+
+                // Update sprite scale
+                m_pShadowObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(glm::mix(1.0f, 0.4f, elapsed)));
+            }
+            else if (elapsed < 1.5f)
+            {
+                // Get current position without altitude added
+                const glm::vec2 posWithoutAlt = m_pTransform->GetGlobalPosition() - glm::vec2(0.0f, m_altitude);
+
+                // Update altitude
+                m_altitude = glm::mix(350.0f, 0.0f, (elapsed - 1.0f) * 2.0f);
+                m_pTransform->SetPosition(posWithoutAlt + glm::vec2(0.0f, m_altitude));
+
+                // Update sprite scale
+                m_pShadowObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(glm::mix(0.4f, 1.0f, (elapsed - 1.0f) * 2.0f)));
+            }
+            else
+            {
+                // Slam has completed
+                m_state = State::APPROACH;
+                m_leapAttackTimer.Reset();
+                m_altitude = 0.0f;
+                m_pCollider->SetActive(true);
+                m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+                // Reset shadow scale
+                m_pShadowObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1.0f));
+
+                // TODO: Damage the player, spawn awesome effect, potential for chains?
+            }
+
+            // Update shadow sprite offset
+            m_pShadowObject->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -m_shadowDistance - (m_altitude / 3)));
 
             break;
     }
@@ -1006,6 +1061,18 @@ void BossController::StartAxeAttack()
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
     wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f);
+}
+
+void BossController::StartLeapAttack()
+{
+    // Change state
+    m_state = State::LEAP_ATTACK;
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    // m_pVelocity->ApplyKnockback(glm::vec2(0.0f, 1.0f), 1000.0f);
+
+    // Disable collider and restart timer
+    m_pCollider->SetActive(false);
+    m_leapAttackTimer.Restart();
 }
 
 void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)

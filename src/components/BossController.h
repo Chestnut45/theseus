@@ -47,6 +47,7 @@ public:
         STRAFE,
         DODGE,
         AXE_ATTACK,
+        LEAP_ATTACK,
 
         // Phase 3 states
         SEARCHING,
@@ -134,10 +135,13 @@ private:
     bool m_axeSummoned;
     float m_strafeSpeed;
     float m_chaseSpeed;
+    float m_shadowDistance;
+    float m_altitude;
     wolf::Timer m_whooshTimer;
     wolf::Timer m_dodgeTimer;
     wolf::Timer m_strafeSwapTimer;
     wolf::Timer m_axeAttackTimer;
+    wolf::Timer m_leapAttackTimer;
     glm::vec2 m_dodgeDir;
     ColliderComponent* m_pAxeCollider = nullptr;
 
@@ -201,6 +205,7 @@ private:
     void EnterPhase2();
     void UpdatePhase2(float delta);
     void StartAxeAttack();
+    void StartLeapAttack();
     void DodgePlayerAttack(const glm::vec2& dirToPlayer);
 
     // Phase 3 methods
