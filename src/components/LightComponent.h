@@ -41,10 +41,9 @@ class LightComponent : public wolf::BaseComponent {
         inline bool CanMove() const {return m_bCanMove;};
         inline void SetCanMove(bool p_bCanMove) {m_bCanMove = p_bCanMove;};
 
-        bool SweepLinePointCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2Point);
-        std::pair<bool, glm::vec2> LineToCornerRectSideCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2SideStart, const glm::vec2& p_v2SideEnd);
-
     private:
+        std::pair<bool, glm::vec2> LineToCornerRectSideCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2SideStart, const glm::vec2& p_v2SideEnd);
+        static bool CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, std::pair<glm::vec2, float> p_v2fB);
 
         // ID number to discern between lights
         static int m_iNextIDNum;
@@ -65,5 +64,7 @@ class LightComponent : public wolf::BaseComponent {
         wolf::Transform2D* m_pTransform = nullptr;
         ColliderComponent* m_pCollider = nullptr;
 
-        std::vector<glm::vec2> m_vv2CollidingPoints;
+        // Vector to hold the points that collide with the light and the
+        // slope of the line they intersected with the light on
+        std::vector<std::pair<glm::vec2, float>> m_vfv2CollidingPoints;
 };

@@ -15,7 +15,7 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
 
 LightComponent::~LightComponent() {
     // Clear out the colliding points map
-    m_vv2CollidingPoints.clear();
+    m_vfv2CollidingPoints.clear();
 }
 
 void LightComponent::Init() {
@@ -50,7 +50,7 @@ void LightComponent::Update(float p_fDelta) {
     // }
 
     // Empty out the map of last frame's ray end points
-    m_vv2CollidingPoints.clear();
+    m_vfv2CollidingPoints.clear();
 
     // Create a vector to hold all of the colliders that are in the light's AOE
     std::vector<wolf::Rectangle> vpRectanglesInAOE;
@@ -129,6 +129,11 @@ void LightComponent::Update(float p_fDelta) {
 
         // Do a collision test between each of the corners and the four sides of the rectangle
         for (glm::vec2 v2Corner : arv2Corners) {
+            // We're going to want to sort the collision points by the slope of the line between
+            // them and the origin of the light later, so we define a variable to hold that
+            // value whenever we recalculate it. (Arguably unnecessary but keeps the code legible)
+            float fIntersectionSlope = 0.0f;
+
             // Perform the collision test for the left and right
             std::pair<bool, glm::vec2> bv2LeftResult = this->LineToCornerRectSideCollisionTest(v2Corner, v2LeftStart, v2LeftEnd);
             std::pair<bool, glm::vec2> bv2RightResult = this->LineToCornerRectSideCollisionTest(v2Corner, v2RightStart, v2RightEnd);
@@ -137,19 +142,24 @@ void LightComponent::Update(float p_fDelta) {
             if (bFavourLeft) {
                 // Prefer left
                 if (bv2LeftResult.first) {  // Check left
-                    m_vv2CollidingPoints.push_back(bv2LeftResult.second);
+                    // Calculate the slope of the collision line and add the point to the vector of colliding points
+                    fIntersectionSlope = (bv2LeftResult.second.y - m_v2Origin.y) / (bv2LeftResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2LeftResult.second, fIntersectionSlope});
                 }
                 else if (bv2RightResult.first) { // Check right
-                    m_vv2CollidingPoints.push_back(bv2RightResult.second);
+                    fIntersectionSlope = (bv2RightResult.second.y - m_v2Origin.y) / (bv2RightResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2RightResult.second, fIntersectionSlope});
                 }
             }
             else {
                 // Prefer right
                 if (bv2RightResult.first) {  // Check right
-                    m_vv2CollidingPoints.push_back(bv2RightResult.second);
+                    fIntersectionSlope = (bv2RightResult.second.y - m_v2Origin.y) / (bv2RightResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2RightResult.second, fIntersectionSlope});
                 }
                 else if (bv2LeftResult.first) { // Check left
-                    m_vv2CollidingPoints.push_back(bv2LeftResult.second);
+                    fIntersectionSlope = (bv2LeftResult.second.y - m_v2Origin.y) / (bv2LeftResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2LeftResult.second, fIntersectionSlope});
                 }
             }
 
@@ -160,64 +170,58 @@ void LightComponent::Update(float p_fDelta) {
             if (bFavourTop) {
                 // Prefer top
                 if (bv2TopResult.first) { // Check top
-                    m_vv2CollidingPoints.push_back(bv2TopResult.second);
+                    fIntersectionSlope = (bv2TopResult.second.y - m_v2Origin.y) / (bv2TopResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2TopResult.second, fIntersectionSlope});
                 }
                 else if (bv2BotResult.first) { // Check bottom
-                    m_vv2CollidingPoints.push_back(bv2BotResult.second);
+                    fIntersectionSlope = (bv2BotResult.second.y - m_v2Origin.y) / (bv2BotResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2BotResult.second, fIntersectionSlope});
                 }
             }
             else {
                 // Prefer bottom
                 if (bv2BotResult.first) { // Check bottom
-                    m_vv2CollidingPoints.push_back(bv2BotResult.second);
+                    // Calculate the slope of the collision line and add the point to the vector of colliding points
+                    fIntersectionSlope = (bv2BotResult.second.y - m_v2Origin.y) / (bv2BotResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2BotResult.second, fIntersectionSlope});
                 }
                 else if (bv2TopResult.first) { // Check top
-                    m_vv2CollidingPoints.push_back(bv2TopResult.second);
+                    // Calculate the slope of the collision line and add the point to the vector of colliding points
+                    fIntersectionSlope = (bv2TopResult.second.y - m_v2Origin.y) / (bv2TopResult.second.x - m_v2Origin.x);
+                    m_vfv2CollidingPoints.push_back({bv2TopResult.second, fIntersectionSlope});
                 }
             }
         }
     }
 
-    // !-- Need to sort the colliding points by angle --!
+    // Sort the collision points by the slopes of their intersection lines
+    std::sort(m_vfv2CollidingPoints.begin(), m_vfv2CollidingPoints.end(), LightComponent::CompareVec2FloatPair);
 
     // Get the first collison point (we'll need it for the final triangle)
-    glm::vec2 v2FirstPoint = m_vv2CollidingPoints.back();
-    glm::vec2 v2LastPoint = m_vv2CollidingPoints.front();
+    glm::vec2 v2FirstPoint = m_vfv2CollidingPoints.back().first;
 
     // Form triangles using the two points that form each side and the origin
-    while (!m_vv2CollidingPoints.empty() && static_cast<int>(m_vv2CollidingPoints.size() % 2 == 0)) {
-        glm::vec2 v2Point1 = m_vv2CollidingPoints.back();
-        m_vv2CollidingPoints.pop_back();
+    while (m_vfv2CollidingPoints.size() != 1) {
+        glm::vec2 v2Point1 = m_vfv2CollidingPoints.back().first;
+        m_vfv2CollidingPoints.pop_back();
 
-        glm::vec2 v2Point2 = m_vv2CollidingPoints.back();
-        m_vv2CollidingPoints.pop_back();
+        glm::vec2 v2Point2 = m_vfv2CollidingPoints.back().first;
+        // We don't pop the second point because we want the triangles to connect to each other
 
         GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
     }
+
+    // Pop the last point and use it to form the final triangle
+    glm::vec2 v2LastPoint = m_vfv2CollidingPoints.back().first;
+    m_vfv2CollidingPoints.pop_back();
 
     // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
     GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
 
 }
 
-bool LightComponent::SweepLinePointCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2Point) {
-    // If the point is on the line between the origin and the end of the sweep line
-    if (p_v2Point.x <= std::max(m_v2Origin.x, p_v2LineEnd.x) && p_v2Point.x >= std::min(m_v2Origin.x, p_v2LineEnd.x) &&
-        p_v2Point.y <= std::max(m_v2Origin.y, p_v2LineEnd.y) && p_v2Point.y >= std::min(m_v2Origin.y, p_v2LineEnd.y))
-    {
-        return true; // They're colliding
-    }
-
-    // Otherwise, they're not
-    return false;
-}
-
+// Check if the line between the light and a given corner point intersects with a given side of a rectangle
 std::pair<bool, glm::vec2> LightComponent::LineToCornerRectSideCollisionTest(const glm::vec2& p_v2CornerPoint, const glm::vec2& p_v2SideStart, const glm::vec2& p_v2SideEnd) {
-    // Draw a line from the origin to the corner point parameter
-    // Draw a line from side start to side end
-    // If the two intersect, return the point of intersection
-    // Save the point of intersection and use it to draw a light line later
-
     // Variables that will be overriden if the lines intersect
     bool bIntersected = false;
     glm::vec2 v2Intersect = {0.0f, 0.0f};
@@ -238,4 +242,17 @@ std::pair<bool, glm::vec2> LightComponent::LineToCornerRectSideCollisionTest(con
 
     // Return the results
     return {bIntersected, v2Intersect};
+}
+
+// Compares two glm::vec2-float pairs and returns the one with the largest float value (breaks ties using the greatest glm::vec2 x + y value)
+bool LightComponent::CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, std::pair<glm::vec2, float> p_v2fB) {
+    if (p_v2fA.second > p_v2fB.second) {
+        return true;
+    }
+    else if (p_v2fA.second < p_v2fB.second) {
+        return false;
+    }
+    
+    // Break ties using the greatest glm::vec2 x+y value
+    return (p_v2fA.first.x + p_v2fA.first.y) > (p_v2fB.first.x + p_v2fB.first.y);
 }
