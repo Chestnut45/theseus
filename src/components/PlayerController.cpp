@@ -7,8 +7,10 @@
 #include "TimedDestroyerComponent.h"
 #include "HarpyController.h"
 #include "MinitaurController.h"
+#include "GorgonController.h"
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
+#include "BossController.h"
 
 #include "../DDACalculator.h"
 
@@ -18,6 +20,7 @@
 #include <W_Input.h>
 #include <W_Logging.h>
 #include <W_EventManager.h>
+#include <W_Audio.h>
 
 //-----------------------------------------------------------------------------
 // File:            PlayerController.cpp
@@ -400,6 +403,12 @@ void PlayerController::HandlePlayerInput(float delta)
         !m_inventoryHovered)
     {
         SetAction(PlayerAction::ATTACKING);
+
+        // Play bow / arrow draw sfx instantly when the attack starts
+        if (m_pCurrentWeapon->GetWeaponType() == WeaponType::BOW)
+        {
+            wolf::Audio::Play("data/sounds/sfx_bow_loading.wav", 1.0f);
+        }
     }
     
     // Handle pick up and drop actions
@@ -505,7 +514,7 @@ void PlayerController::HandleDeath(float delta)
 
 
 void PlayerController::HandleBowAttack(float delta)
-{    
+{
     // Charging bow
     if(wolf::Input::IsLMBHeld() || wolf::Input::IsLMBJustDown())
     {
@@ -583,7 +592,7 @@ void PlayerController::HandleBowAttack(float delta)
             projectileVelocity.SetVelocity(m_attackDir * arrowSpeed);
 
             // Add timed destroyer component
-            float time = glm::max(m_arrowRange / arrowSpeed, 0.5f);
+            float time = m_arrowRange / arrowSpeed + 0.5f;
             auto& projectileTDComponent = projectile.AddComponent<TimedDestroyerComponent>(time);
 
             // Calculate how to rotate arrow sprite
@@ -593,6 +602,9 @@ void PlayerController::HandleBowAttack(float delta)
             projectile.GetComponent<wolf::Transform2D>()->SetRotation(angle);
 
             projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+
+            // Play sfx
+            wolf::Audio::Play("data/sounds/sfx_arrow_shot.wav", 0.5f);
         }
     }
     HandleBowAttackAnimation();
@@ -660,6 +672,9 @@ void PlayerController::HandleSpearAttack(float delta)
         auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);
 
         m_attackTimer.Restart();
+
+        // Play pitched down sword whoosh
+        wolf::Audio::Play("data/sounds/sfx_sword_whoosh.wav", 0.7f, -10000.0f);
     }
     HandleAttackAnimation();
 }
@@ -726,6 +741,9 @@ void PlayerController::HandleSwordAttack(float delta)
         auto& meleeTD = melee.AddComponent<TimedDestroyerComponent>(1,1);    
 
         m_attackTimer.Restart();
+
+        // Play sound effect
+        wolf::Audio::Play("data/sounds/sfx_sword_whoosh.wav", 0.7f);
     }
     HandleAttackAnimation();
 }
@@ -1049,9 +1067,10 @@ void PlayerController::HandleMovement(float delta)
     }
 
     // Play walking sound effect
+    static wolf::RNG rng;
     if (!m_walkSoundTimer.IsRunning()) m_walkSoundTimer.Start();
     if (m_walkSoundTimer.Elapsed() > m_walkSoundInterval) {
-        wolf::Audio::Play("data/sounds/walk.wav");
+        wolf::Audio::Play("data/sounds/sfx_step.wav", 0.5f, rng.NextFloat(-10000.0f, -5000.0f));
         m_walkSoundTimer.Restart();
     }
 
@@ -1576,6 +1595,21 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     {
         m_invulnTimer.Restart();
         m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
+        wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f);
+    }
+    else
+    {
+        // TODO: Move out of here if we have time
+        // Play hit sound effect when enemies are damaged
+        if (event.m_pDamagedObject->HasAny<MinitaurController, GorgonController, HarpyController>())
+        {
+            wolf::Audio::Play("data/sounds/sfx_hit.wav", 0.15f);
+        }
+
+        if (event.m_pDamagedObject->HasAny<BossController>())
+        {
+            wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f);
+        }
     }
 }
 
@@ -1653,6 +1687,10 @@ void PlayerController::StartDeath() {
     m_deathRuntime = m_runtimeTimer.Elapsed(); // Capture elapsed time once
     m_pAnimComponent->SetAnimPaused(true);
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    
+    // Stop background music and play death music
+    wolf::Audio::Stop("data/sounds/bgm_maze.wav");
+    wolf::Audio::Play("data/sounds/bgm_death.wav", 0.75f, 0.0f, 0.0f, true, 27.428f);
 }
 
 void PlayerController::RenderDeathScreen() {

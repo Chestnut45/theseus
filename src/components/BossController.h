@@ -6,6 +6,7 @@
 #include <glm/vec2.hpp>
 #include <W_Timer.h>
 #include <unordered_set>
+
 // Forward declarations
 class VelocityComponent;
 class AnimatedSprite2D;
@@ -77,6 +78,7 @@ private:
     // State information
     FightPhase m_phase = FightPhase::PHASE_1;
     State m_state = State::SIT;
+    State m_prevState = State::SIT;
 
     // Boss object component pointers
     wolf::Transform2D* m_pTransform = nullptr;
@@ -86,6 +88,9 @@ private:
     StatusComponent* m_pStatus = nullptr;
     ColliderComponent* m_pCollider = nullptr;
     HomingComponent* m_pHoming = nullptr;   // Added by Nhật
+
+    // Pointer to shadow sprite (only valid during phase 2!)
+    wolf::GameObject* m_pShadowObject = nullptr;
 
     // Pointer to game object that contains all pillar objects as child objects
     wolf::GameObject* m_pBossPillarGroup = nullptr;
@@ -129,6 +134,7 @@ private:
     bool m_axeSummoned;
     float m_strafeSpeed;
     float m_chaseSpeed;
+    wolf::Timer m_whooshTimer;
     wolf::Timer m_dodgeTimer;
     wolf::Timer m_strafeSwapTimer;
     wolf::Timer m_axeAttackTimer;
@@ -159,6 +165,7 @@ private:
     float m_chargeSpeed;
     float m_chargeKnockbackForce;
     int m_chargeChainCount;
+    wolf::Timer m_chargeStompSFXTimer;
 
     float m_pullTime;               // Pull state members
     float m_pullTimer;

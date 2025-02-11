@@ -441,7 +441,6 @@ void MinitaurController::HandleAttackingState(float delta)
             if (playerHealth)
             {
                 playerHealth->Damage(m_baseDamage);
-                wolf::Audio::Play("data/sounds/hurt.wav");
             }
 
             // Apply strong knockback to the player

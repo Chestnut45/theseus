@@ -223,5 +223,6 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
 
 // !-- Aurora added this method to be used with StatusEffectItems -- !
 void StatusComponent::HandleApplyStatusEffectEvent(const ApplyStatusEffectEvent& p_event) {
+    if (!GetGameObject()->HasAll<PlayerController>()) return;
     this->AddStatusEffect(static_cast<StatusComponent::StatusEffectType>(p_event.iType), p_event.fDuration);
 }
