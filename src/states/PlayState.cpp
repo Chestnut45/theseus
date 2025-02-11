@@ -1139,19 +1139,22 @@ void PlayState::RenderMap() {
     const float mapCenterY = mapPosition.y + mapSize / 2.0f;
     const glm::ivec2 playerChunk = glm::ivec2(playerPosition / (tileWorldSize * LabyrinthManager::CHUNK_SIZE));
 
-    // Start ImGui rendering
+    // Thick stylish golden border
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
-    ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 255, 255, 255));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 255));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 4.0f); // Thicker border
+    ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 215, 0, 255)); // Gold color
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 255)); // Black background
+
     ImGui::SetNextWindowSize(ImVec2(mapSize, mapSize));
     ImGui::SetNextWindowPos(mapPosition);
     ImGui::Begin("ChunkMap###AlwaysVisible", nullptr,
                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs);
-
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-
+    // Get window min/max for border placement
+    ImVec2 windowMin = ImGui::GetWindowPos();
+    ImVec2 windowMax = ImVec2(windowMin.x + mapSize, windowMin.y + mapSize);
+    
     // Helper lambda for rendering tiles
     auto renderTile = [&](const glm::vec2& worldPos, ImU32 color) {
         glm::vec2 relativePos = (worldPos - playerPosition) * labyrinthScale;
@@ -1228,6 +1231,9 @@ void PlayState::RenderMap() {
 
 
     ImGui::End();
+    // --- Draw the border AFTER the minimap rendering ---
+    drawList->AddRect(windowMin, windowMax, IM_COL32(255, 215, 0, 255), 8.0f, 0, 6.0f); // Thick gold border
+    drawList->AddRect(windowMin, windowMax, IM_COL32(255, 165, 0, 128), 12.0f, 0, 3.0f); // Outer glow
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(2);
 }
