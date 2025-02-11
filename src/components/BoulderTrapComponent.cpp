@@ -8,6 +8,7 @@
 #include "TriggerPurposeFinishedEvent.h"
 #include "GorgonController.h"
 #include "MinitaurController.h"
+#include <unordered_set>
 
 // Constants for effects
 constexpr float FADE_TRIGGER_THRESHOLD = 1.0f; // Time before lifespan ends to trigger cool effect
@@ -32,6 +33,13 @@ void BoulderTrapComponent::Update(float delta) {
     }
 
     float elapsed = m_lifespanTimer.Elapsed();
+
+     // **Check for wall collision and delete if colliding**
+    if (CheckForWallCollision(delta)) {
+        wolf::EventManager::TriggerEvent(TriggerPurposeFinishedEvent(m_pTrigger));
+        GetGameObject()->Delete();
+        return; 
+    }
 
     // Check for Entity collision
     if (CheckForEntityCollision(delta)) {
@@ -174,4 +182,45 @@ bool BoulderTrapComponent::CheckAndHandleCollision(float delta, ColliderComponen
 
     return detected;
 }
+
+bool BoulderTrapComponent::CheckForWallCollision(float delta) {
+    if (!m_pLabyrinthManager || !m_colliderManager) return false; // Ensure managers exist
+
+    auto* boulderCollider = GetGameObject()->GetComponent<ColliderComponent>();
+    if (!boulderCollider) return false;
+
+    // **Get the boulder's world position and apply an offset**
+    auto* transform = GetGameObject()->GetComponent<wolf::Transform2D>();
+    glm::vec2 worldPosition = transform ? transform->GetGlobalPosition() : glm::vec2(0);
+    
+    constexpr float offset = 35.0f; // **Apply a slight positional shift**
+    worldPosition += glm::vec2(offset, offset);
+
+    // **Convert world position to tile position**
+    glm::ivec2 tilePosition = m_pLabyrinthManager->GetTilePosition(worldPosition);
+    int tileID = m_pLabyrinthManager->GetTile(tilePosition.x, tilePosition.y);
+
+    // **Define all possible wall tile IDs**
+    static const std::unordered_set<int> wallTiles = {
+        Tile::WallBottomLeft, Tile::WallBottomRight, Tile::WallBottom, Tile::WallChest,
+        Tile::WallHelmet, Tile::WallLeft, Tile::WallMaze, Tile::WallMinotaur, Tile::WallPillars,
+        Tile::WallPot, Tile::WallRight, Tile::WallSpiral, Tile::WallSquare,
+        Tile::WallTopLeft, Tile::WallTopRight, Tile::WallTop
+    };
+
+    // **Check if the tile is a wall**
+    if (wallTiles.find(tileID) != wallTiles.end()) {
+        // **Ensure the boulder is actually colliding with the wall collider**
+        for (auto&& [_, wallCollider] : GetGameObject()->GetScene().Each<ColliderComponent>()) {
+            if (wallCollider.IsActive() &&
+                m_colliderManager->IsColliding(*boulderCollider, wallCollider, delta)) {
+                return true;
+            }
+        }
+    }
+
+    return false; // No collision detected
+}
+
+
 

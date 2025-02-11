@@ -43,6 +43,7 @@ private:
     float m_knockbackForce = 1500.0f; // Knockback force applied to the player
 
     bool CheckForEntityCollision(float delta); // Method to check for collision and apply damage/knockback
+    bool CheckForWallCollision(float delta);
     // Template function for checking collision with different entity types
     template <typename T>
     bool CheckAndHandleCollision(float delta, ColliderComponent* boulderCollider);
