@@ -112,6 +112,16 @@ private:
     void HandlePetrified(float delta);  // Method to handle being petrified
     void HandleDeath(float delta);  // New method to handle the existential fear of death
 
+    void HandleBowAttack(float delta);
+    void HandleSpearAttack(float delta);
+    void HandleSwordAttack(float delta);
+    void HandleAttackAnimation();
+    void HandleBowAttackAnimation();
+    void HandleBowRangeIndicator(float delta);
+    void CalculateAttackDirection();
+    void RenderBowPowerBar();
+
+    glm::vec2 ClampDirection(const glm::vec2& direction) const;
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
@@ -138,7 +148,6 @@ private:
     void DropObject();
 
     // Utility functions
-    void ApplyDamageToEnemy(); // Applies damage to enemies
     void RegenerateStamina(float delta); // Regenerates stamina over time
     void CheckHealth();
     void RenderThrowPowerBar(); // rendering for the power bar
@@ -152,6 +161,7 @@ private:
     std::string GetWalkAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
     std::string GetIdleAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
     PlayerDirection GetDirectionFromVector(const glm::vec2& direction) const;
+    glm::vec2 GetVectorFromDirection(PlayerDirection direction) const;
 
     // Input tracking
     // Data members for components and state management
@@ -205,6 +215,17 @@ private:
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
 
+    // Bow attack members
+    float m_bowChargeScale = 0.0f;          // Current charge of the boe
+    float m_bowMaxChargeScale = 1.0f;       // Limit of the power of the charge
+    float m_bowChargeRate = 1.0f;           // Multiplier of delta for charge scale
+    float m_arrowRange = 0.0f;              // Current range of the arrow given the current charge
+    float m_arrowMaxRange = 600.0f;         // Max range
+    bool m_bIsChargingOver = false;        // Prevents double-charging by clicking again after releasing mouse
+    int m_currentBowAnim = 0;
+    glm::vec4 m_bowRangeIndicatorColour = glm::vec4(0.0f, 1.0f, 0.4f, 1.0f);
+    const ImVec2 BOW_POWER_BAR_SIZE = ImVec2(100.0f, 15.0f);
+
     // Invulnerability after taking damage
     float m_prevHealthFraction = 1.0f;
     float m_invulnSeconds = 1.0f;
@@ -217,6 +238,7 @@ private:
     float m_throwPower = 0.0f;       // Power for the throw
     const float m_maxThrowPower = 100.0f; // Max limit for the throw power
     const float m_powerChargeRate = 25.0f; // Rate at which power increases
+    const ImVec2 THROW_POWER_BAR_SIZE = ImVec2(100.0f, 15.0f);
 
     // Animation and state tracking flags
     std::string m_currentAnimation;
