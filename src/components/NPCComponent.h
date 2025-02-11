@@ -143,6 +143,10 @@ class NPCComponent : public wolf::BaseComponent {
         // Sets the active flag
         void SetActive(bool p_active);
 
+        //youssef moved this to public
+        void ChangeState(State p_state);
+
+
     private:
         void HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndEvent& p_event);
 
@@ -204,7 +208,6 @@ class NPCComponent : public wolf::BaseComponent {
         VelocityComponent* m_pVeloComp = nullptr;
 
         // State entry methods
-        void ChangeState(State p_state);
         void EnterIdleState();
         void EnterRoamState();
         void EnterStunnedState();
