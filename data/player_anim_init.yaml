@@ -9,7 +9,8 @@ start_animation: {
 animation_sets: [
   data/player_stand_anim_set.yaml,
   data/player_walk_anim_set.yaml,
-  data/player_bow_anim_set.yaml,
+  data/player_bow_load_anim_set.yaml,
+  data/player_bow_fire_anim_set.yaml,
   data/player_spear_anim_set.yaml,
   data/player_sword_anim_set.yaml
 

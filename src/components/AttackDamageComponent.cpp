@@ -119,7 +119,6 @@ void AttackDamageComponent::Update(float p_dt)
                         if(gorgonController != nullptr)
                         {
                             gorgonController->ChangeState(EnemyController::EnemyState::STUNNED);
-                            return;
                         }
 
                         // Stun Harpy
@@ -127,7 +126,6 @@ void AttackDamageComponent::Update(float p_dt)
                         if(harpyController != nullptr)
                         {
                             harpyController->ChangeState(EnemyController::EnemyState::STUNNED);
-                            return;
                         }
 
                         // Stun Minitaur
@@ -135,7 +133,6 @@ void AttackDamageComponent::Update(float p_dt)
                         if(minitaurController != nullptr)
                         {
                             minitaurController->ChangeState(EnemyController::EnemyState::STUNNED);
-                            return;
                         }
 
                         // Stun NPC
@@ -143,7 +140,6 @@ void AttackDamageComponent::Update(float p_dt)
                         if(npcComp != nullptr)
                         {
                             npcComp->StunNPC();
-                            return;
                         }
                     }
                 }
