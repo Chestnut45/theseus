@@ -108,48 +108,9 @@ void PlayState::Enter()
 
         break;
     }
-    
 
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     
-
-    // CreateThrowableObject();
-    
-    // Create a test spike trap
-    CreateSpikeTrap(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f));
-    CreateBoulderTrap(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(-192.0f, 192.0f));
-
-    // Testing: Create a test projectile object
-    // auto& testObj = scene.CreateObject2D();
-    // testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));5
-    // testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
-    // auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    // auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-    // testCollider.SetDamage(10.0f);
-    // testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    // auto& testVelocity = testObj.AddComponent<VelocityComponent>();
-    //testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
-
-    // auto& testObj2 = scene.CreateObject2D();
-    // testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    // testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(6000.0f, 0.0f));
-
-    // auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    // testSprite2.SetOriginToCenterOfTexture();
-
-    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-    // testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
-    
-    // auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
-    // testVelocity2.SetVelocity(glm::vec2(0.0f, 128.0f));
-    
-    // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
-    
-    // this->CreateMinitaurEnemy();
-    // this->CreateHarpyEnemy();
-    // this->CreateGorgonEnemy();
-    this->CreateTrappedChest();
-
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
     wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
 
@@ -210,10 +171,7 @@ void PlayState::Enter()
     m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
 
 
-    // Trigger the intro dialogue and cutscene
-
-    // Log success
-    // wolf::Log("Successfully found and registered the closest Minotaur to the player.");
+   
     // Schedule her movement
     auto* transform = ariadne.GetComponent<wolf::Transform2D>();
     if (transform) {
@@ -742,129 +700,6 @@ void PlayState::CreatePlayer()
     transform.SetScale(glm::vec2(3));
 }
 
-void PlayState::CreateMinitaurEnemy()
-{
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
-
-    MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
-
-    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 240.0f); 
-
-    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-    auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, position);
-    
-    // Set the scale of each Minitaur to 3
-    auto* transform = minitaur.GetComponent<wolf::Transform2D>();
-    if (transform)
-    {
-        transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each minitaur
-    }
-
-    auto* statusComponent = minitaur.GetComponent<StatusComponent>();
-    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 4.0f);
-}
-void PlayState::CreateHarpyEnemy()
-{
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
-
-    HarpyBuilder harpyBuilder(m_pGameInstance->GetScene());
-    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 360.0f);
-
-    EnemyData harpyData = loader.LoadEnemyData("harpy");
-    auto& harpy = harpyBuilder.BuildHarpy(harpyData, position);
-    
-    // Set the scale of each Minitaur to 3
-    auto* transform = harpy.GetComponent<wolf::Transform2D>();
-    if (transform)
-    {
-        transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
-    }
-    auto* statusComponent = harpy.GetComponent<StatusComponent>();
-    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 2.0f);
-}
-
-
-void PlayState::CreateGorgonEnemy()
-{
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
-
-    GorgonBuilder gorgonBuilder(m_pGameInstance->GetScene());
-
-    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 720.0f);
-
-    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
-    auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position);
-    
-    // Set the scale of each Gorgon to 3
-    auto* transform = gorgon.GetComponent<wolf::Transform2D>();
-    if (transform)
-    {
-        transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
-    }
-    auto* statusComponent = gorgon.GetComponent<StatusComponent>();
-    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3.0f);
-}
-
-void PlayState::CreateTrappedChest()
-{
-    // Create the chest object
-    wolf::GameObject* chest = &m_pGameInstance->GetScene().CreateObject2D();
-    
-    // Scale the chest
-    auto& transform = *chest->GetComponent<wolf::Transform2D>();
-    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 288.0f);
-    transform.SetPosition(position);
-    transform.SetScale(glm::vec2(3.0f));
-
-    // Add the sprite
-    auto& sprite = chest->AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
-    sprite.SetAnimation("LegendaryClosed");
-    sprite.SetOriginToCenterOfFrame();
-
-    // Add the collider
-    auto& collider = chest->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
-    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
-
-    // Add the trapped chest component
-    auto& trappedChestComp = chest->AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::EXPLODE, true,  true);
-    trappedChestComp.Init();
-}
-
-void PlayState::CreateThrowableObject()
-{
-    // Get the spawn location from the labyrinth manager
-    glm::vec2 spawnLocation = m_pLabyrinthManager->GetSpawnLocation();
-
-    // Create a throwable object in the scene
-    auto& throwableObj = m_pGameInstance->GetScene().CreateObject2D();
-
-    // Set the initial position based on the spawn location
-    auto* transform = throwableObj.GetComponent<wolf::Transform2D>();
-    if (transform) {
-        transform->SetPosition(spawnLocation); // Set to labyrinth's spawn position
-    } else {
-        transform = &throwableObj.AddComponent<wolf::Transform2D>();
-        transform->SetPosition(spawnLocation);
-    }
-
-    // Add a sprite for visual representation (optional)
-    auto& sprite = throwableObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    sprite.SetOriginToCenterOfTexture();
-
-    // Add a collider to enable interaction with enemies
-    auto& collider = throwableObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 1, 0);
-    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));  // Adjusted size for the object
-
-    // Add the velocity component with an initial zero velocity
-    auto& velocity = throwableObj.AddComponent<VelocityComponent>();
-    velocity.SetVelocity(glm::vec2(0.0f, 0.0f)); // Will be updated upon throwing
-
-    // Add the throwable component with parameters matching the constructor
-    auto& throwable = throwableObj.AddComponent<ThrowableObjectComponent>(25.0f, m_pColliderManager);
-}
 
 void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {
     // std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
@@ -875,54 +710,7 @@ void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& e
     m_pStateManager->PushState(dialogueAndCutsceneState);
 }
 
-wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
-{
-    // Create the trap object
-    auto& trap = m_pGameInstance->GetScene().CreateObject2D();
 
-    // Add sprite
-    auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
-    sprite.SetOriginToCenterOfTexture();
-    sprite.SetLayer(0);
-
-    // Set position
-    auto& transform = *trap.GetComponent<wolf::Transform2D>();
-    transform.SetPosition(position);
-    transform.SetScale(glm::vec2(3.0f));
-
-    // Add a collider for interaction
-    auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-    collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
-
-    // Add the TriggerComponent
-    trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING);
-
-    return trap;
-}
-wolf::GameObject& PlayState::CreateBoulderTrap(const glm::vec2& position)
-{
-    // Create the trap object
-    auto& bouldertrap = m_pGameInstance->GetScene().CreateObject2D();
-
-    // Add sprite
-    auto& sprite = bouldertrap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
-    sprite.SetOriginToCenterOfTexture();
-    sprite.SetLayer(0);
-
-    // Set position
-    auto& transform = *bouldertrap.GetComponent<wolf::Transform2D>();
-    transform.SetPosition(position);
-    transform.SetScale(glm::vec2(3.0f));
-
-    // Add a collider for interaction
-    auto& collider = bouldertrap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-    collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
-
-    // Add the TriggerComponent
-    bouldertrap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::BOULDER_TRAP);
-
-    return bouldertrap;
-}
 
 // Event handler to spawn traps when a trigger is triggered
 void PlayState::OnTriggerEvent(const TriggerEvent& event) {
@@ -966,32 +754,178 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             break;
         }
         case TriggerPurpose::BOULDER_TRAP: {
+            // Retrieve the room data for the trigger's position
+            auto tilePosition = m_pLabyrinthManager->GetTilePosition(triggerPosition);
+            auto roomDataOpt = m_pLabyrinthManager->GetRoom(tilePosition);
+        
+            if (!roomDataOpt.has_value()) {
+                // wolf::Log("Boulder trap triggered, but no valid room found!");
+                break;
+            }
+        
+            const auto& roomData = roomDataOpt.value();
+            const auto& roomBounds = roomData.m_bounds; // IRectangle struct
+        
+            // Create the boulder object
             auto& boulderObj = m_pGameInstance->GetScene().CreateObject2D();
+        
+            // Set up sprite
             auto& boulderSprite = boulderObj.AddComponent<wolf::Sprite2D>("data/textures/Boulder.png");
             boulderSprite.SetOriginToCenterOfTexture();
             boulderSprite.SetLayer(1);
+        
+            // Ensure the transform component exists
             auto* boulderTransform = boulderObj.GetComponent<wolf::Transform2D>();
             if (!boulderTransform) {
                 boulderTransform = &boulderObj.AddComponent<wolf::Transform2D>();
             }
-            // Set Position (spawn X + 192 units away, facing left)
-            glm::vec2 spawnPosition = triggerPosition + glm::vec2(192.0f, 0.0f);
+        
+            // Get the player's position
+            wolf::GameObject* player = m_pLabyrinthManager->GetPlayer();
+            glm::vec2 playerPosition = player ? player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() : triggerPosition;
+        
+            // Possible directions mapped to available space (how far it can go before hitting a wall)
+            std::vector<std::pair<BoulderDirection, int>> directionOptions;
+        
+            // Helper lambda to check how far the boulder can go in a direction
+            auto getDistance = [&](int dx, int dy) -> int {
+                glm::ivec2 checkPos = tilePosition;
+                int distance = 0;
+        
+                while (true) {
+                    checkPos += glm::ivec2(dx, dy);
+                    if (!m_pLabyrinthManager->GetRoom(checkPos).has_value()) {
+                        break; // Stop if we leave the room
+                    }
+                    distance++;
+                }
+                return distance;
+            };
+        
+            // Check each possible direction and measure its available distance
+            int upDist = getDistance(0, 1);
+            int downDist = getDistance(0, -1);
+            int leftDist = getDistance(-1, 0);
+            int rightDist = getDistance(1, 0);
+        
+            if (upDist > 0) directionOptions.emplace_back(BoulderDirection::UP, upDist);
+            if (downDist > 0) directionOptions.emplace_back(BoulderDirection::DOWN, downDist);
+            if (leftDist > 0) directionOptions.emplace_back(BoulderDirection::LEFT, leftDist);
+            if (rightDist > 0) directionOptions.emplace_back(BoulderDirection::RIGHT, rightDist);
+        
+            if (directionOptions.empty()) {
+                // wolf::Log("No valid directions found for boulder trap!");
+                break;
+            }
+        
+            BoulderDirection chosenDirection;
+        
+            // **90% chance to go towards player, 10% to use weighted random**
+            if (m_pLabyrinthManager->m_rng.NextInt(0, 9) < 9 && player) { // 90% probability
+                glm::vec2 directionToPlayer = glm::normalize(playerPosition - triggerPosition);
+                BoulderDirection bestDirection = BoulderDirection::UP;
+                float bestAlignment = -1.0f;  // Tracks best alignment score
+
+                // Find the direction most aligned with the player
+                for (const auto& [dir, dist] : directionOptions) {
+                    glm::vec2 dirVec;
+                    switch (dir) {
+                        case BoulderDirection::UP: dirVec = {0.0f, 1.0f}; break;
+                        case BoulderDirection::DOWN: dirVec = {0.0f, -1.0f}; break;
+                        case BoulderDirection::LEFT: dirVec = {-1.0f, 0.0f}; break;
+                        case BoulderDirection::RIGHT: dirVec = {1.0f, 0.0f}; break;
+                    }
+
+                    float alignment = glm::dot(directionToPlayer, dirVec);
+                    if (alignment > bestAlignment) {
+                        bestAlignment = alignment;
+                        bestDirection = dir;
+                    }
+                }
+                chosenDirection = bestDirection;
+            } else {
+                // Weighted random selection favoring longer paths
+                std::vector<BoulderDirection> weightedDirections;
+                for (const auto& [dir, dist] : directionOptions) {
+                    for (int i = 0; i < dist; ++i) { // More distance = higher chance of selection
+                        weightedDirections.push_back(dir);
+                    }
+                }
+                chosenDirection = weightedDirections[m_pLabyrinthManager->m_rng.NextInt(0, static_cast<int>(weightedDirections.size()) - 1)];
+            }
+                    
+            // Assign velocity based on chosen direction
+            constexpr float boulderSpeed = 100.0f;
+            glm::vec2 velocity(0.0f);
+        
+            switch (chosenDirection) {
+                case BoulderDirection::UP:
+                    velocity = {0.0f, boulderSpeed};
+                    break;
+                case BoulderDirection::DOWN:
+                    velocity = {0.0f, -boulderSpeed};
+                    break;
+                case BoulderDirection::LEFT:
+                    velocity = {-boulderSpeed, 0.0f};
+                    break;
+                case BoulderDirection::RIGHT:
+                    velocity = {boulderSpeed, 0.0f};
+                    break;
+            }
+        
+            // **Smart Offset: Place it one tile away in the opposite direction**
+            constexpr float tileSize = 46.0f;
+            glm::vec2 spawnPosition = triggerPosition;
+        
+            // Convert room bounds to vec2 to ensure proper calculations
+            glm::vec2 roomOrigin = glm::vec2(roomBounds.m_origin);
+            glm::vec2 roomSize = glm::vec2(roomBounds.m_size);
+
+            // **Offset in the opposite direction of movement**
+            switch (chosenDirection) {
+                case BoulderDirection::UP:
+                    spawnPosition.y -= tileSize;
+                    break;
+                case BoulderDirection::DOWN:
+                    spawnPosition.y += tileSize;
+                    break;
+                case BoulderDirection::LEFT:
+                    spawnPosition.x += tileSize;
+                    break;
+                case BoulderDirection::RIGHT:
+                    spawnPosition.x -= tileSize;
+                    break;
+            }
+
+            glm::vec2 roomMin = glm::vec2(roomBounds.m_origin);
+            glm::vec2 roomMax = glm::vec2(roomBounds.m_origin) + glm::vec2(roomBounds.m_size) - glm::vec2(tileSize);
+
+            // **Check if the spawn position is outside the room bounds**
+            if (spawnPosition.x < roomMin.x || spawnPosition.x > roomMax.x ||
+                spawnPosition.y < roomMin.y || spawnPosition.y > roomMax.y) {
+                
+                spawnPosition = triggerPosition; // If out of bounds, spawn at the trigger position
+            }
+
+            // **Set the adjusted initial position**
             boulderTransform->SetPosition(spawnPosition);
             boulderTransform->SetScale(glm::vec2(3.0f)); // Scale the boulder
-
-            // Add Velocity Component (for optional movement logic)
-            auto& velocity = boulderObj.AddComponent<VelocityComponent>();
-            velocity.SetVelocity(glm::vec2(-100.0f, 0.0f)); // Initial velocity to move left
-
-            // Add Collider for the Boulder
-            auto& boulderCollider = boulderObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-            boulderCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f)); 
-
-            boulderObj.AddComponent<BoulderTrapComponent>(triggerObject->GetComponent<TriggerComponent>(), m_pColliderManager, BoulderDirection::UP, 100.0f, 5.0f);
-
-            // wolf::Log("Boulder trap triggered!");
+        
+            // Add Velocity Component for movement
+            auto& velocityComponent = boulderObj.AddComponent<VelocityComponent>();
+            velocityComponent.SetVelocity(velocity);
+        
+            // Add Collider
+            auto& boulderCollider = boulderObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDR, 0, 1);
+            boulderCollider.AddColliderBox(glm::vec2(28.0f, 28.0f), glm::vec2(-14.0f, 14.0f));
+        
+            // Add BoulderTrapComponent with the chosen direction
+            boulderObj.AddComponent<BoulderTrapComponent>(triggerObject->GetComponent<TriggerComponent>(), m_pColliderManager, chosenDirection, boulderSpeed, 5.0f);
+        
+            // wolf::Log("Boulder trap triggered, rolling in direction: " + std::to_string(static_cast<int>(chosenDirection)));
             break;
-        }
+        }         
+
         case TriggerPurpose::BOSS: {
 
             // Begin the bossfight

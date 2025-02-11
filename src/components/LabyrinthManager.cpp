@@ -63,6 +63,8 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["ariadne_npc"] = Room::EntityType::AriadneNPC;
     s_entityIDs["daedalus_npc"] = Room::EntityType::DaedalusNPC;
     s_entityIDs["random_npc"] = Room::EntityType::RandomNPC;
+    s_entityIDs["boulder_trap"] = Room::EntityType::BoulderTrap;
+
 
     // Auto generate ordered array of names
     for (auto entry : s_entityIDs)
@@ -2336,6 +2338,32 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add throwable as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(throwableGO);
+                        break;
+                    }
+                    case Room::EntityType::BoulderTrap:
+                    {
+                        // Create the trap object
+                        auto& trap = pObject->GetScene().CreateObject2D();
+
+                        // Add sprite
+                        auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
+                        sprite.SetOriginToCenterOfTexture();
+                        sprite.SetLayer(0);
+
+                        // Set position
+                        auto& transform = *trap.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add a collider for interaction
+                        auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+                        collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
+
+                        // Add the TriggerComponent
+                        trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::BOULDER_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);
+
+                        // Add the object to the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(trap);
                         break;
                     }
                 }
