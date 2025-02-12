@@ -316,6 +316,20 @@ void BossController::RenderHealthBar(float delta)
         m_damageFlashTimer.Reset();
     }
 
+    // Renders rainbow text with ImGui
+    std::function<void(const char*, bool)> Rainbowify = [](const char* text, bool color) {
+        float time = ImGui::GetTime() * 2.0f; // Adjust speed
+        float offset = 0.0f;
+        for (const char* c = text; *c != '\0'; c++) {
+            float r = 0.5f + 0.5f * std::sin(time + offset);
+            float g = 0.5f + 0.5f * std::sin(time + offset + 2.0f);
+            float b = 0.5f + 0.5f * std::sin(time + offset + 4.0f);
+            ImGui::TextColored(color ? ImVec4(r, g, b, 1.0f) : ImVec4(0.0f, 0.0f, 0.0f, 1.0f), "%.1s", c);
+            ImGui::SameLine(0.0f, 0.0f);
+            offset += 0.2f;
+        }
+    };
+
     // Render the health bar at the top-center of the screen
     auto* healthComponent = GetGameObject()->GetComponent<HealthComponent>();
     if (healthComponent)
@@ -356,9 +370,9 @@ void BossController::RenderHealthBar(float delta)
         ImGui::Begin("##BossHealthBarText", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
         ImGui::SetWindowFontScale(2.5f);
         ImGui::SetCursorPos(ImVec2(barWidth / 2 - ImGui::CalcTextSize("The Minotaur").x / 2, 0.0f));
-        ImGui::TextColored(ImVec4(0.0f, 0.0f, 0.0f, 1.0f), "The Minotaur");
+        Rainbowify("The Minotaur", false);
         ImGui::SetCursorPos(ImVec2(barWidth / 2 - ImGui::CalcTextSize("The Minotaur").x / 2 + 3.0f, 3.0f));
-        ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "The Minotaur");
+        Rainbowify("The Minotaur", true);
         ImGui::End();
 
         ImGui::PopStyleVar(2);
