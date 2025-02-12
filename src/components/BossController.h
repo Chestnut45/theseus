@@ -135,6 +135,7 @@ private:
     int m_maxDistToPlayer;
     bool m_strafeClockwise;
     bool m_axeSummoned;
+    bool m_slamStun;
     float m_strafeSpeed;
     float m_chaseSpeed;
     float m_shadowDistance;

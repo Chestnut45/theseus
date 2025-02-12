@@ -62,6 +62,7 @@ void BossController::Init()
     m_maxDistToPlayer = 280;
     m_strafeClockwise = true;
     m_axeSummoned = false;
+    m_slamStun = false;
     m_strafeSpeed = 160.0f;
     m_chaseSpeed = 240.0f;
     m_shadowDistance = 26.0f;
@@ -975,9 +976,6 @@ void BossController::UpdatePhase2(float delta)
 
             if (!m_axeSummoned)
             {
-                // Update tint for tell
-                m_pAnimSprite->SetTint(glm::vec3(1.0f) * (float)(m_axeAttackTimer.Elapsed() + 1.0f));
-
                 // Spawn projectile
                 if (m_axeAttackTimer.Elapsed() > 1.0f)
                 {
@@ -1026,65 +1024,82 @@ void BossController::UpdatePhase2(float delta)
                 const glm::vec2 posWithoutAlt = m_pTransform->GetGlobalPosition() - glm::vec2(0.0f, m_altitude);
 
                 // Update altitude
-                m_altitude = glm::mix(0.0f, 350.0f, elapsed);
+                m_altitude = glm::mix(0.0f, 300.0f, elapsed);
+
+                // Update tint for tell
+                m_pAnimSprite->SetTint(glm::vec3(1.0f) * (float)(elapsed + 1.0f));
 
                 // Move towards the player
-                const glm::vec2 target = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + glm::vec2(0.0f, 64.0f);
+                const glm::vec2 target = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + glm::vec2(0.0f, 32.0f);
                 const glm::vec2 toPlayer = target - posWithoutAlt;
                 m_pTransform->SetPosition((posWithoutAlt + glm::normalize(toPlayer) * delta * 450.0f) + glm::vec2(0.0f, m_altitude));
 
                 // Update sprite scale
                 m_pShadowObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(glm::mix(1.0f, 0.4f, elapsed)));
             }
-            else if (elapsed < 1.5f)
+            else if (elapsed < 1.25f)
             {
                 // Get current position without altitude added
                 const glm::vec2 posWithoutAlt = m_pTransform->GetGlobalPosition() - glm::vec2(0.0f, m_altitude);
 
                 // Update altitude
-                m_altitude = glm::mix(350.0f, 0.0f, (elapsed - 1.0f) * 2.0f);
+                m_altitude = glm::mix(300.0f, 0.0f, (elapsed - 1.0f) * 4.0f);
                 m_pTransform->SetPosition(posWithoutAlt + glm::vec2(0.0f, m_altitude));
+
+                m_pAnimSprite->SetTint(glm::vec3(1.0f));
 
                 // Update sprite scale
                 m_pShadowObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(glm::mix(0.4f, 1.0f, (elapsed - 1.0f) * 2.0f)));
             }
-            else
+            else if (elapsed < 2.0f)
             {
-                // Slam has completed
-                m_state = State::APPROACH;
-                m_leapAttackTimer.Reset();
-                m_altitude = 0.0f;
-                m_pCollider->SetActive(true);
-                m_pVelocity->SetVelocity(glm::vec2(0.0f));
-                m_nextAttackTimer.Restart();
-
-                // Reset shadow scale
-                m_pShadowObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1.0f));
-
-                // Damage the player and knockback
-                auto* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
-                if (pPlayerCollider &&
-                    pPlayerCollider->IsHurtbox() &&
-                    ColliderManager::StaticMethodIsColliding(*m_pCollider, *pPlayerCollider, delta))
+                if (!m_slamStun)
                 {
-                    auto* pPlayerHealth = m_pPlayerObject->GetComponent<HealthComponent>();
-                    auto* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
-                    if (pPlayerHealth && pPlayerVel)
+                    // Slam has completed
+                    m_slamStun = true;
+                    m_altitude = 0.0f;
+                    m_pCollider->SetActive(true);
+                    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+                    m_nextAttackTimer.Reset();
+
+                    // Reset shadow scale
+                    m_pShadowObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1.0f));
+
+                    // Damage the player and knockback
+                    auto* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
+                    if (pPlayerCollider &&
+                        ColliderManager::StaticMethodIsColliding(*m_pCollider, *pPlayerCollider, delta))
                     {
-                        // Only damage if not rolling
-                        if (m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING)
+                        auto* pPlayerHealth = m_pPlayerObject->GetComponent<HealthComponent>();
+                        auto* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
+                        if (pPlayerHealth && pPlayerVel)
                         {
-                            pPlayerHealth->Damage(m_slamAttackDamage);
+                            // Only damage if not rolling and a hurtbox is present
+                            if (pPlayerCollider->IsHurtbox() &&
+                                m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING)
+                            {
+                                pPlayerHealth->Damage(m_slamAttackDamage);
+                            }
+
+                            // ALWAYS knockback even if rolling
+                            pPlayerVel->ApplyKnockback(dirToPlayer, 7500.0f);
+                            
+                            // TODO: Play slam sfx
                         }
 
-                        // ALWAYS knockback even if rolling
-                        pPlayerVel->ApplyKnockback(dirToPlayer, 7500.0f);
-                        
-                        // TODO: Play slam sfx
+                        // TODO: Shockwave effect
                     }
-
-                    // TODO: Shockwave effect
                 }
+
+                m_pAnimSprite->SetTint(glm::mix(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f), (elapsed - 1.25f) * 1.25f));
+            }
+            else
+            {
+                // Finally transition to approach after the stun wears off
+                m_state = State::APPROACH;
+                m_nextAttackTimer.Restart();
+                m_leapAttackTimer.Reset();
+                m_slamStun = false;
             }
 
             // Update shadow sprite offset
