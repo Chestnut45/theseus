@@ -1447,13 +1447,16 @@ void PlayerController::Render(float delta)
     {
         float colorCoefficient = m_invulnTimer.IsRunning() ? 1.0f - m_invulnTimer.Elapsed() : 0.0f;
 
+        // Update health color
+        ImVec4 healthColor = ImVec4(1.0f, colorCoefficient,  colorCoefficient, 1.0f);
+
         // Render previous health fraction underneath to indicate damage taken
         m_prevHealthFraction += (healthComponent->GetHealth() / healthComponent->GetMaxHealth() - m_prevHealthFraction) * delta * 4.0f;
 
         ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for health bar
         ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
         ImGui::Begin("##HealthBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1.0f, colorCoefficient, colorCoefficient, 1.0f)); // Deep red health color
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor); // Deep red health color
         ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1, barHeight), "");
         ImGui::PopStyleColor(); // Pop color for health bar
         ImGui::End();
@@ -1461,7 +1464,7 @@ void PlayerController::Render(float delta)
         ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for health bar
         ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
         ImGui::Begin("##HealthBar2", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1.0f, colorCoefficient, colorCoefficient, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor);
         ImGui::ProgressBar(m_prevHealthFraction, ImVec2(-1.0f, barHeight));
         ImGui::PopStyleColor(); // Pop color for health bar
         ImGui::End();  

@@ -5,6 +5,7 @@
 
 #include <glm/vec2.hpp>
 #include <W_Timer.h>
+#include <events/DamageEvent.h>
 #include <unordered_set>
 
 // Forward declarations
@@ -111,6 +112,9 @@ private:
     // General stats
     bool m_active;
     int m_maxHealth;
+    float m_prevHealthFraction;
+    wolf::Timer m_damageFlashTimer;
+    glm::vec2 m_centerOfChamber;
     
     // Phase 1 stats
     int m_throneBlockRange;
@@ -189,6 +193,11 @@ private:
     // Updates the animated sprite based on state,
     // regardless of what phase of the fight we're in
     void UpdateAnimation();
+
+    void RenderHealthBar(float delta);
+
+    // Handlers
+    void OnDamageEvent(const DamageEvent& event);
 
     // Phase 1 methods
     void EnterPhase1();

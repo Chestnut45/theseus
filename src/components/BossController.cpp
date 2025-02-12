@@ -12,6 +12,7 @@
 #include <LabyrinthManager.h>
 #include <HomingComponent.h>
 #include <W_Timer.h>
+#include <W_EventManager.h>
 
 #include "../ColliderManager.h"
 
@@ -31,10 +32,12 @@
 
 BossController::BossController()
 {
+    wolf::EventManager::AddListener<DamageEvent, BossController, &BossController::OnDamageEvent>(*this);
 }
 
 BossController::~BossController()
 {
+    wolf::EventManager::RemoveListener<DamageEvent, BossController, &BossController::OnDamageEvent>(*this);
 }
 
 void BossController::Init()
@@ -42,6 +45,7 @@ void BossController::Init()
     // Initialize stats
     m_active = false;
     m_maxHealth = 6000;
+    m_prevHealthFraction = 1.0f;
 
     // Phase 1 stats
     m_throneBlockRange = 300;
@@ -148,6 +152,9 @@ void BossController::Init()
         wolf::Error("BossController Init was called outside of a valid room!");
     }
 
+    // Store center of chamber
+    m_centerOfChamber = m_pLabyrinthManager->GetWorldPosition(roomOptional->m_bounds.m_origin + roomOptional->m_bounds.m_size / 2);
+
     // Create the boss pillar group object
     m_pBossPillarGroup = &pObject->GetScene().CreateObject2D();
 
@@ -222,13 +229,11 @@ void BossController::Update(float delta)
     }
 
     UpdateAnimation();
+    RenderHealthBar(delta);
 }
 
 void BossController::UpdateAnimation()
 {   
-    // Only update animation if state has changed
-    // if (m_state == m_prevState) return;
-
     // Compass direction animation names
     static const char* s_dirNames[] =
     {
@@ -294,6 +299,77 @@ void BossController::UpdateAnimation()
     if (baseAnimName != "")
     {
         m_pAnimSprite->SetAnimation(baseAnimName);
+    }
+}
+
+void BossController::RenderHealthBar(float delta)
+{
+    // Position bar at the bottom center of the screen
+    const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    const float barWidth = displaySize.x * 0.75f;
+    const float barHeight = 48.0f;
+    ImVec2 basePos = ImVec2(displaySize.x / 2 - barWidth / 2, displaySize.y - barHeight * 2);
+
+    // Reset damage flash timer after 1 second
+    if (m_damageFlashTimer.Elapsed() > 1.0f)
+    {
+        m_damageFlashTimer.Reset();
+    }
+
+    // Render the health bar at the top-center of the screen
+    auto* healthComponent = GetGameObject()->GetComponent<HealthComponent>();
+    if (healthComponent)
+    {
+        // Flash health when damaged
+        float colorCoefficient = m_damageFlashTimer.IsRunning() ? 1.0f - m_damageFlashTimer.Elapsed() : 0.0f;
+
+        // Update health color
+        ImVec4 healthColor = ImVec4(1.0f, colorCoefficient, colorCoefficient, 1.0f);
+
+        // Render previous health fraction underneath to indicate damage taken
+        m_prevHealthFraction += (healthComponent->GetHealth() / healthComponent->GetMaxHealth() - m_prevHealthFraction) * delta * 4.0f;
+        
+        // Draw health bar
+        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y));
+        ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
+        ImGui::Begin("##BossHealthBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor);
+        ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(barWidth, barHeight), "");
+        ImGui::PopStyleColor();
+        ImGui::End();
+
+        // Draw gradual effect of health bar
+        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y));
+        ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
+        ImGui::Begin("##BossHealthBar2", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor);
+        ImGui::ProgressBar(m_prevHealthFraction, ImVec2(barWidth, barHeight));
+        ImGui::PopStyleColor();
+        ImGui::End();
+    }
+
+    // Load the health bar frame image once
+    static ImTextureID healthBarTextureID = nullptr;
+    static wolf::Texture* pHealthBarTexture = nullptr;
+    if (!pHealthBarTexture) {
+        pHealthBarTexture = wolf::TextureManager::CreateTexture("data/textures/HealthBarFrame.png");
+        healthBarTextureID = reinterpret_cast<void*>(pHealthBarTexture->GetID());
+    }
+
+    // Render the health bar frame on top of the actual bar
+    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pHealthBarTexture->GetWidth() - 9.0f, basePos.y - barHeight});
+    ImGui::SetNextWindowSize({barWidth, barHeight});
+    ImGui::Begin("BossHealthBarFrame", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
+    ImGui::Image(healthBarTextureID, ImVec2(pHealthBarTexture->GetWidth(), pHealthBarTexture->GetHeight()), ImVec2(0, 0), ImVec2(1, 1));
+    ImGui::End();
+}
+
+void BossController::OnDamageEvent(const DamageEvent& event)
+{
+    // React to damage and reset damage flash timer
+    if (event.m_pDamagedObject == GetGameObject())
+    {
+        m_damageFlashTimer.Restart();
     }
 }
 
@@ -798,6 +874,10 @@ void BossController::UpdatePhase2(float delta)
     glm::vec2 toPlayer = playerPos - m_pTransform->GetGlobalPosition();
     float distToPlayer = glm::length(toPlayer);
     glm::vec2 dirToPlayer = glm::normalize(toPlayer);
+    
+    // Protect against nan
+    if (glm::isnan(dirToPlayer.x)) dirToPlayer.x = 0.0f;
+    if (glm::isnan(dirToPlayer.y)) dirToPlayer.y = 0.0f;
 
     // Get rotated direction
     glm::mat4 rotation = glm::rotate(glm::radians(m_strafeClockwise ? 90.0f : -90.0f), glm::vec3(0, 0, 1));
@@ -805,6 +885,8 @@ void BossController::UpdatePhase2(float delta)
 
     // Query player controller state
     bool playerAttacking = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING;
+
+    wolf::Log("State: ", (int)m_state);
 
     // Update axe if it exists
     if (m_pAxeCollider)
@@ -820,6 +902,10 @@ void BossController::UpdatePhase2(float delta)
         glm::vec2 axePos = m_pAxeCollider->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::vec2 axeToPlayer = glm::normalize(playerPos - axePos);
+
+        // Protect against nan
+        if (glm::isnan(axeToPlayer.x)) axeToPlayer.x = 0.0f;
+        if (glm::isnan(axeToPlayer.y)) axeToPlayer.y = 0.0f;
         
         // Check for player collision
         auto* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
@@ -1032,7 +1118,14 @@ void BossController::UpdatePhase2(float delta)
                 // Move towards the player
                 const glm::vec2 target = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + glm::vec2(0.0f, 32.0f);
                 const glm::vec2 toPlayer = target - posWithoutAlt;
-                m_pTransform->SetPosition((posWithoutAlt + glm::normalize(toPlayer) * delta * 450.0f) + glm::vec2(0.0f, m_altitude));
+                glm::vec2 move = glm::normalize(toPlayer);
+
+                // Protect against nan
+                if (glm::isnan(move.x)) move.x = 0.0f;
+                if (glm::isnan(move.y)) move.y = 0.0f;
+
+                // Update transform manually
+                m_pTransform->SetPosition((posWithoutAlt + move * delta * 450.0f) + glm::vec2(0.0f, m_altitude));
 
                 // Update sprite scale
                 m_pShadowObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(glm::mix(1.0f, 0.4f, elapsed)));
