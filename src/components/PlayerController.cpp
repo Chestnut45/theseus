@@ -665,7 +665,7 @@ void PlayerController::HandleSpearAttack(float delta)
         meleeCollider.AddColliderBox(meleeDimensions * playerScale, offset);
         meleeCollider.SetIgnoreTag(player->GetID());
 
-        auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 3000.0f);
+        auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f);
         
         melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
         melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());

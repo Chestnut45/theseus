@@ -1082,7 +1082,7 @@ void BossController::UpdatePhase2(float delta)
                             }
 
                             // ALWAYS knockback even if rolling
-                            pPlayerVel->ApplyKnockback(dirToPlayer, 7500.0f);
+                            pPlayerVel->ApplyKnockback(dirToPlayer, 3000.0f);
                             
                             // TODO: Play slam sfx
                         }
