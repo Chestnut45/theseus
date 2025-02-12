@@ -96,7 +96,7 @@ void MinitaurController::Update(float delta)
         auto* targetHealth = m_pTarget->GetComponent<HealthComponent>();
         if (!targetHealth || targetHealth->GetHealth() <= 0) 
         {
-            // wolf::Log("⚰️ Minitaur's target is dead! Reverting to player.");
+            // wolf::Warning("LIL BLUD CAN'T FIND A TARGET, SO HE'S SWITCHING BACK TO THE PLAYER");
             RevertToPlayerTarget();
         }
     }
@@ -770,11 +770,10 @@ void MinitaurController::RevertToPlayerTarget()
     for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
     {
         m_pTarget = playerController.GetGameObject();
-        // wolf::Log("🔄 Minitaur switched back to the player as target.");
         return;
     }
 
     // If no player found, log a warning
-    // wolf::Warning("⚠️ Minitaur could not find a player to target!");
+    // wolf::Warning("BLUD CAN'T FIND A TARGET");
     m_pTarget = nullptr; // No valid target
 }

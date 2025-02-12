@@ -101,7 +101,7 @@ void GorgonController::Update(float delta)
         auto* targetHealth = m_pTarget->GetComponent<HealthComponent>();
         if (!targetHealth || targetHealth->GetHealth() <= 0) 
         {
-            // wolf::Log("⚰️ Gorgon lost its target! Reverting to player.");
+            // wolf::Warning("BLUD CAN'T FIND A TARGET");
             RevertToPlayerTarget();
         }
     }
@@ -868,9 +868,7 @@ void GorgonController::HandleInfighting(const InfightingEvent& event)
         m_pTargetStatusComponent = m_pTarget->GetComponent<StatusComponent>();
         if (!m_pTargetStatusComponent)
         {
-            wolf::Warning("⚠️ Gorgon " + std::to_string(GetGameObject()->GetID()) + 
-                          " switched to target " + std::to_string(m_pTarget->GetID()) + 
-                          " but it has NO StatusComponent!");
+            // wolf::Warning("thats crazy lil bro, you got no status component? Me personally, i wouldn't allow that");
         }
         ChangeState(EnemyState::CHASING);
         // wolf::Log("Gorgon " + std::to_string(GetGameObject()->GetID()) + 
@@ -885,11 +883,10 @@ void GorgonController::RevertToPlayerTarget()
     {
         m_pTarget = playerController.GetGameObject();
         m_pTargetStatusComponent = m_pTarget->GetComponent<StatusComponent>();
-        // wolf::Log("🔄 Gorgon switched back to the player as target.");
         return;
     }
 
     // If no player found, log a warning
-    wolf::Warning("⚠️ Gorgon could not find a player to target!");
+    // wolf::Warning("BLUD CAN'T FIND A TARGET");
     m_pTarget = nullptr; // No valid target
 }
