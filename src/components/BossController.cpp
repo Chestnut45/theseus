@@ -328,40 +328,41 @@ void BossController::RenderHealthBar(float delta)
 
         // Render previous health fraction underneath to indicate damage taken
         m_prevHealthFraction += (healthComponent->GetHealth() / healthComponent->GetMaxHealth() - m_prevHealthFraction) * delta * 4.0f;
-        
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
+
         // Draw health bar
-        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y));
+        ImGui::SetNextWindowPos(basePos);
         ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
         ImGui::Begin("##BossHealthBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
         ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor);
-        ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(barWidth, barHeight), "");
+        ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1.0f, -1.0f), "");
         ImGui::PopStyleColor();
         ImGui::End();
 
         // Draw gradual effect of health bar
-        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y));
+        ImGui::SetNextWindowPos(basePos);
         ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
         ImGui::Begin("##BossHealthBar2", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
         ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor);
-        ImGui::ProgressBar(m_prevHealthFraction, ImVec2(barWidth, barHeight));
+        ImGui::ProgressBar(m_prevHealthFraction, ImVec2(-1.0f, -1.0f));
         ImGui::PopStyleColor();
         ImGui::End();
-    }
 
-    // Load the health bar frame image once
-    static ImTextureID healthBarTextureID = nullptr;
-    static wolf::Texture* pHealthBarTexture = nullptr;
-    if (!pHealthBarTexture) {
-        pHealthBarTexture = wolf::TextureManager::CreateTexture("data/textures/HealthBarFrame.png");
-        healthBarTextureID = reinterpret_cast<void*>(pHealthBarTexture->GetID());
-    }
+        // Render text
+        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y - barHeight * 0.65f));
+        ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
+        ImGui::Begin("##BossHealthBarText", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+        ImGui::SetWindowFontScale(2.5f);
+        ImGui::SetCursorPos(ImVec2(barWidth / 2 - ImGui::CalcTextSize("The Minotaur").x / 2, 0.0f));
+        ImGui::TextColored(ImVec4(0.0f, 0.0f, 0.0f, 1.0f), "The Minotaur");
+        ImGui::SetCursorPos(ImVec2(barWidth / 2 - ImGui::CalcTextSize("The Minotaur").x / 2 + 3.0f, 3.0f));
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "The Minotaur");
+        ImGui::End();
 
-    // Render the health bar frame on top of the actual bar
-    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pHealthBarTexture->GetWidth() - 9.0f, basePos.y - barHeight});
-    ImGui::SetNextWindowSize({barWidth, barHeight});
-    ImGui::Begin("BossHealthBarFrame", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
-    ImGui::Image(healthBarTextureID, ImVec2(pHealthBarTexture->GetWidth(), pHealthBarTexture->GetHeight()), ImVec2(0, 0), ImVec2(1, 1));
-    ImGui::End();
+        ImGui::PopStyleVar(2);
+    }
 }
 
 void BossController::OnDamageEvent(const DamageEvent& event)
