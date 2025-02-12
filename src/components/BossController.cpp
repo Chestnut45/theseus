@@ -132,7 +132,7 @@ void BossController::Init()
     // Create collider
     pObject->DeleteComponent<ColliderComponent>();
     m_pCollider = &pObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
-    m_pCollider->AddColliderBox(glm::vec2(111, 182), glm::vec2(-52, 96));
+    m_pCollider->AddColliderBox(glm::vec2(111, 170), glm::vec2(-52, 84));
 
     // Grab a reference to the labyrinth manager
     for (auto&&[_, manager] : pObject->GetScene().Each<LabyrinthManager>())
@@ -154,6 +154,8 @@ void BossController::Init()
 
     // Store center of chamber
     m_centerOfChamber = m_pLabyrinthManager->GetWorldPosition(roomOptional->m_bounds.m_origin + roomOptional->m_bounds.m_size / 2);
+    m_bottomLeftCorner = m_pLabyrinthManager->GetWorldPosition(roomOptional->m_bounds.m_origin + glm::ivec2(1.0f));
+    m_topRightCorner = m_pLabyrinthManager->GetWorldPosition(roomOptional->m_bounds.m_origin + roomOptional->m_bounds.m_size - glm::ivec2(1.0f, 1.0f));
 
     // Create the boss pillar group object
     m_pBossPillarGroup = &pObject->GetScene().CreateObject2D();
@@ -901,8 +903,6 @@ void BossController::UpdatePhase2(float delta)
     // Query player controller state
     bool playerAttacking = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING;
 
-    wolf::Log("State: ", (int)m_state);
-
     // Update axe if it exists
     if (m_pAxeCollider)
     {
@@ -1131,9 +1131,13 @@ void BossController::UpdatePhase2(float delta)
                 m_pAnimSprite->SetTint(glm::vec3(1.0f) * (float)(elapsed + 1.0f));
 
                 // Move towards the player
-                const glm::vec2 target = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + glm::vec2(0.0f, 32.0f);
-                const glm::vec2 toPlayer = target - posWithoutAlt;
-                glm::vec2 move = glm::normalize(toPlayer);
+                glm::vec2 target = playerPos + glm::vec2(0.0f, 32.0f);
+
+                // Clamp target to within bounds of chamber
+                target = glm::clamp(target, m_bottomLeftCorner, m_topRightCorner);
+
+                const glm::vec2 towardsPlayer = target - posWithoutAlt;
+                glm::vec2 move = glm::normalize(towardsPlayer);
 
                 // Protect against nan
                 if (glm::isnan(move.x)) move.x = 0.0f;

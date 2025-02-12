@@ -115,6 +115,8 @@ private:
     float m_prevHealthFraction;
     wolf::Timer m_damageFlashTimer;
     glm::vec2 m_centerOfChamber;
+    glm::vec2 m_bottomLeftCorner;
+    glm::vec2 m_topRightCorner;
     
     // Phase 1 stats
     int m_throneBlockRange;
