@@ -44,7 +44,7 @@ void BossController::Init()
 {
     // Initialize stats
     m_active = false;
-    m_maxHealth = 6000;
+    m_maxHealth = 5000;
     m_prevHealthFraction = 1.0f;
 
     // Phase 1 stats
@@ -318,16 +318,33 @@ void BossController::RenderHealthBar(float delta)
         m_damageFlashTimer.Reset();
     }
 
-    // Renders rainbow text with ImGui
-    std::function<void(const char*, bool)> Rainbowify = [](const char* text, bool color) {
+    // Possible color values
+    struct Rainbowify
+    {
+        enum : int
+        {
+            BLACK,
+            RAINBOW,
+            WHITE,
+        };
+    };
+
+    // Renders spaced rainbow text with ImGui
+    std::function<void(const char*, float, int)> Rainbowify = [](const char* text, float spacing, int color) {
         float time = ImGui::GetTime() * 2.0f; // Adjust speed
         float offset = 0.0f;
         for (const char* c = text; *c != '\0'; c++) {
             float r = 0.5f + 0.5f * std::sin(time + offset);
             float g = 0.5f + 0.5f * std::sin(time + offset + 2.0f);
             float b = 0.5f + 0.5f * std::sin(time + offset + 4.0f);
-            ImGui::TextColored(color ? ImVec4(r, g, b, 1.0f) : ImVec4(0.0f, 0.0f, 0.0f, 1.0f), "%.1s", c);
-            ImGui::SameLine(0.0f, 0.0f);
+            switch (color)
+            {
+                case Rainbowify::BLACK: ImGui::TextColored(ImVec4(0.0f, 0.0f, 0.0f, 1.0f), "%.1s", c); break;
+                default:
+                case Rainbowify::RAINBOW: ImGui::TextColored(ImVec4(r, g, b, 1.0f), "%.1s", c); break;
+                case Rainbowify::WHITE: ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%.1s", c); break;
+            }
+            ImGui::SameLine(0.0f, spacing);
             offset += 0.2f;
         }
     };
@@ -372,9 +389,17 @@ void BossController::RenderHealthBar(float delta)
         ImGui::Begin("##BossHealthBarText", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
         ImGui::SetWindowFontScale(2.5f);
         ImGui::SetCursorPos(ImVec2(barWidth / 2 - ImGui::CalcTextSize("The Minotaur").x / 2, 0.0f));
-        Rainbowify("The Minotaur", false);
+        ImGui::AlignTextToFramePadding();
+        Rainbowify("The Minotaur", 0.0f, Rainbowify::BLACK);
         ImGui::SetCursorPos(ImVec2(barWidth / 2 - ImGui::CalcTextSize("The Minotaur").x / 2 + 3.0f, 3.0f));
-        Rainbowify("The Minotaur", true);
+        if (m_damageFlashTimer.IsRunning())
+        {
+            Rainbowify("The Minotaur", 0.0f, Rainbowify::RAINBOW);
+        }
+        else
+        {
+            Rainbowify("The Minotaur", 0.0f, Rainbowify::WHITE);
+        }
         ImGui::End();
 
         ImGui::PopStyleVar(2);
@@ -1114,7 +1139,7 @@ void BossController::UpdatePhase2(float delta)
             break;
         
         case State::LEAP_ATTACK:
-
+        {
             double elapsed = m_leapAttackTimer.Elapsed();
 
             // TODO: Huge bug present, divide-by-zero causing -nan position in transform during leap attack...
@@ -1195,11 +1220,23 @@ void BossController::UpdatePhase2(float delta)
 
                             // ALWAYS knockback even if rolling
                             pPlayerVel->ApplyKnockback(dirToPlayer, 3000.0f);
-                            
-                            // TODO: Play slam sfx
                         }
+                    }
 
-                        // TODO: Shockwave effect
+                    wolf::Audio::Play("data/sounds/sfx_leap_stomp.wav", 0.4f);
+
+                    // TODO: Shockwave effect
+
+                    // Check for collision with pillars
+                    for (auto* pObject : m_pBossPillarGroup->GetChildren())
+                    {
+                        auto* pCollider = pObject->GetComponent<ColliderComponent>();
+                        if (pCollider && ColliderManager::StaticMethodIsColliding(*m_pCollider, *pCollider, delta))
+                        {
+                            // Destroy pillar
+                            pObject->Delete();
+                            wolf::Audio::Play("data/sounds/sfx_pillar_break.wav", 0.64f);
+                        }
                     }
                 }
 
@@ -1218,26 +1255,46 @@ void BossController::UpdatePhase2(float delta)
             m_pShadowObject->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -m_shadowDistance - (m_altitude / 3)));
 
             break;
+        }
+        
+        case State::TRANSITION_TO_PHASE_3:
+
+            if (m_transitionTimer.Elapsed() > 2.0f)
+            {
+                // Cleanup
+                if (m_pAxeCollider)
+                {
+                    m_pAxeCollider->GetGameObject()->Delete();
+                    m_pAxeCollider = nullptr;
+                }
+
+                if (m_pShadowObject)
+                {
+                    m_pShadowObject->Delete();
+                    m_pShadowObject = nullptr;
+                }
+
+                // Reset tint
+                m_pAnimSprite->SetTint(glm::vec3(1.0f));
+
+                // Enter next phase and fully return from function
+                EnterPhase3();
+                return;
+            }
+
+            // Update tint
+            m_pAnimSprite->SetTint(glm::mix(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f), m_transitionTimer.Elapsed() * 0.5));
+
+            break;
     }
 
     // Under half health, change to phase 3
-    if (m_pHealth->GetHealth() <= m_maxHealth / 2)
+    if (m_pHealth->GetHealth() <= m_maxHealth / 2 && m_state != State::TRANSITION_TO_PHASE_3)
     {
-        // Cleanup
-        if (m_pAxeCollider)
-        {
-            m_pAxeCollider->GetGameObject()->Delete();
-            m_pAxeCollider = nullptr;
-        }
-
-        if (m_pShadowObject)
-        {
-            m_pShadowObject->Delete();
-            m_pShadowObject = nullptr;
-        }
-
-        m_pAnimSprite->SetTint(glm::vec3(1.0f));
-        EnterPhase3();
+        // TODO: Scream and play animation
+        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -8000.0f);
+        m_state = State::TRANSITION_TO_PHASE_3;
+        m_transitionTimer.Restart();
     }
 }
 
@@ -1302,6 +1359,10 @@ void BossController::EnterPhase3()
     ChangeStatesPhase3(State::IDLE);
     m_pVelocity->SetKnockbackEnabled(false);
 
+    // Adjust collider
+    GetGameObject()->DeleteComponent<ColliderComponent>();
+    m_pCollider = &GetGameObject()->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
+    m_pCollider->AddColliderBox(glm::vec2(120.0f), glm::vec2(-56, 64));
 }
 
 void BossController::UpdatePhase3(float delta)
@@ -1778,7 +1839,7 @@ void BossController::AttackCharge(float delta)
         // Play stomping sfx
         if (m_chargeStompSFXTimer.Elapsed() > 0.25f)
         {
-            wolf::Audio::Play("data/sounds/sfx_stomp.wav", 0.7f, m_rng.NextFloat(-4000, 4000));
+            wolf::Audio::Play("data/sounds/sfx_charge_stomp.wav", 0.7f, m_rng.NextFloat(-4000, 4000));
             m_chargeStompSFXTimer.Restart();
         }
 

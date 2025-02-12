@@ -86,14 +86,14 @@ void HealthComponent::Damage(float p_damage)
         this->m_health -= finalDamage;
         if (m_health < 0) m_health = 0;
         this->AddDamageIndicator(finalDamage, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-        
-        // Send out a damage event
-        DamageEvent event;
-        event.m_damage = p_damage;
-        event.m_pierce = false;
-        event.m_pDamagedObject = GetGameObject();
-        wolf::EventManager::TriggerEvent(event);
     }
+
+    // Send out a damage event
+    DamageEvent event;
+    event.m_damage = p_damage;
+    event.m_pierce = false;
+    event.m_pDamagedObject = GetGameObject();
+    wolf::EventManager::TriggerEvent(event);
 }
 
 // Reduce health & ignore armour

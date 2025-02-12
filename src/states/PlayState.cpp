@@ -26,6 +26,7 @@
 #include "../components/NPCComponent.h"
 #include <BossController.h>
 #include <W_Audio.h>
+#include <events/PauseEvent.h>
 
 void PlayState::Enter()
 {
@@ -223,6 +224,7 @@ void PlayState::Update(float delta)
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
+        wolf::EventManager::TriggerEvent(PauseEvent(true));
         m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
     }
 

@@ -49,6 +49,7 @@ public:
         DODGE,
         AXE_ATTACK,
         LEAP_ATTACK,
+        TRANSITION_TO_PHASE_3,
 
         // Phase 3 states
         SEARCHING,
@@ -152,6 +153,7 @@ private:
     wolf::Timer m_nextAttackTimer;
     wolf::Timer m_axeAttackTimer;
     wolf::Timer m_leapAttackTimer;
+    wolf::Timer m_transitionTimer;
     glm::vec2 m_dodgeDir;
     ColliderComponent* m_pAxeCollider = nullptr;
 
