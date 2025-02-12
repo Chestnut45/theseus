@@ -1285,6 +1285,9 @@ void BossController::UpdatePhase2(float delta)
             // Update tint
             m_pAnimSprite->SetTint(glm::mix(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f), m_transitionTimer.Elapsed() * 0.5));
 
+            // Update position
+            m_pTransform->SetPosition(glm::mix(m_transitionStartPos, m_centerOfChamber, m_transitionTimer.Elapsed() * 0.5f));
+
             break;
     }
 
@@ -1294,7 +1297,9 @@ void BossController::UpdatePhase2(float delta)
         // TODO: Scream and play animation
         wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -8000.0f);
         m_state = State::TRANSITION_TO_PHASE_3;
+        m_pCollider->SetActive(false);
         m_transitionTimer.Restart();
+        m_transitionStartPos = m_pTransform->GetGlobalPosition();
     }
 }
 
