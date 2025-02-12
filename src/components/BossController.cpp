@@ -54,8 +54,10 @@ void BossController::Init()
     m_waveActive = false;
 
     // Phase 2 stats
-    m_axeAttackDamage = 125;
-    m_axePunishDamage = 100;
+    m_attackChain = 0;
+    m_prevAttack = -1;
+    m_axeAttackDamage = 100;
+    m_slamAttackDamage = 125;
     m_minDistToPlayer = 160;
     m_maxDistToPlayer = 280;
     m_strafeClockwise = true;
@@ -766,7 +768,8 @@ void BossController::EnterPhase2()
 {
     m_phase = FightPhase::PHASE_2;
     m_state = State::APPROACH;
-    m_axeAttackTimer.Restart();
+    m_nextAttackTimer.Restart();
+    m_axeAttackTimer.Reset();
     m_pHealth->SetActive(true);
     m_pVelocity->SetKnockbackEnabled(true);
 
@@ -787,7 +790,7 @@ void BossController::UpdatePhase2(float delta)
 {
     // Timing variables
     static float nextStrafeSwap = 1.0f;
-    static float nextAttackTime = 1.0f;
+    static float nextAttackTime = 2.0f;
 
     // Query player spatial info
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -801,8 +804,6 @@ void BossController::UpdatePhase2(float delta)
 
     // Query player controller state
     bool playerAttacking = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING;
-
-    wolf::Log("STATE: %d", (int)m_state);
 
     // Update axe if it exists
     if (m_pAxeCollider)
@@ -821,7 +822,10 @@ void BossController::UpdatePhase2(float delta)
         
         // Check for player collision
         auto* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
-        if (pPlayerCollider->IsHurtbox() && ColliderManager::StaticMethodIsColliding(*m_pAxeCollider, *pPlayerCollider, delta))
+        if (pPlayerCollider && 
+            pPlayerCollider->IsHurtbox() &&
+            m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING && 
+            ColliderManager::StaticMethodIsColliding(*m_pAxeCollider, *pPlayerCollider, delta))
         {
             auto* pPlayerHealth = m_pPlayerObject->GetComponent<HealthComponent>();
             auto* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
@@ -838,24 +842,59 @@ void BossController::UpdatePhase2(float delta)
         {
             m_pAxeCollider->GetGameObject()->Delete();
             m_pAxeCollider = nullptr;
-            m_state = State::APPROACH;
-            m_axeAttackTimer.Restart();
+            m_axeAttackTimer.Reset();
             m_axeSummoned = false;
             m_pAnimSprite->SetTint(glm::vec3(1.0f));
             m_whooshTimer.Reset();
+
+            // Only change to approach if we are not in the middle of a leap attack
+            if (m_state != State::LEAP_ATTACK)
+            {
+                m_state = State::APPROACH;
+                m_nextAttackTimer.Restart();
+            }
+            else
+            {
+                m_nextAttackTimer.Reset();
+            }
         }
     }
+
+    // Defines a lambda for handling attack choice logic in phase 2
+    std::function<void()> ChooseAttack = [&]
+    {
+        if (m_pAxeCollider)
+        {
+            // Only the leap attack is possible, do it
+            // NOTE: This can infinite chain if the axe is not picked up! (intentional)
+            StartLeapAttack();
+        }
+        else
+        {
+            // Ensure chains can't exceed 3
+            if (m_attackChain == 3)
+            {
+                // Ensure we choose the attack NOT previously done
+                m_prevAttack == 0 ? StartLeapAttack() : StartAxeAttack();
+            }
+            else
+            {
+                // Either attack is possible, randomly choose
+                m_rng.FlipCoin() ? StartAxeAttack() : StartLeapAttack();
+            }
+        }
+    };
 
     // Update based on state
     switch (m_state)
     {
         case State::APPROACH:
 
-            // Start axe attack
-            if (!m_pAxeCollider && m_axeAttackTimer.Elapsed() > nextAttackTime)
+            // Handle attack logic
+            if (m_nextAttackTimer.Elapsed() > nextAttackTime)
             {
-                m_rng.FlipCoin() ? StartAxeAttack() : StartLeapAttack();
-                nextAttackTime = m_rng.NextFloat(1.0f, 4.0f);
+                ChooseAttack();
+                nextAttackTime = m_rng.NextFloat(0.5f, 3.0f);
                 break;
             }
 
@@ -903,18 +942,18 @@ void BossController::UpdatePhase2(float delta)
                 break;
             }
 
+            // Handle attack logic
+            if (m_nextAttackTimer.Elapsed() > nextAttackTime)
+            {
+                ChooseAttack();
+                nextAttackTime = m_rng.NextFloat(0.5f, 3.0f);
+                break;
+            }
+
             // Dodge player attack
             if (playerAttacking)
             {
                 DodgePlayerAttack(dirToPlayer);
-                break;
-            }
-
-            // Start axe attack
-            if (!m_pAxeCollider && m_axeAttackTimer.Elapsed() > nextAttackTime)
-            {
-                m_rng.FlipCoin() ? StartAxeAttack() : StartLeapAttack();
-                nextAttackTime = m_rng.NextFloat(2.0f, 6.0f);
                 break;
             }
 
@@ -943,6 +982,7 @@ void BossController::UpdatePhase2(float delta)
                 if (m_axeAttackTimer.Elapsed() > 1.0f)
                 {
                     // Update timer and flag
+                    m_nextAttackTimer.Restart();
                     m_axeAttackTimer.Restart();
                     m_axeSummoned = true;
                     m_pAnimSprite->SetTint(glm::vec3(1.0f));
@@ -977,6 +1017,8 @@ void BossController::UpdatePhase2(float delta)
         case State::LEAP_ATTACK:
 
             double elapsed = m_leapAttackTimer.Elapsed();
+
+            // TODO: Huge bug present, divide-by-zero causing -nan position in transform during leap attack...
 
             if (elapsed < 1.0f)
             {
@@ -1014,11 +1056,35 @@ void BossController::UpdatePhase2(float delta)
                 m_altitude = 0.0f;
                 m_pCollider->SetActive(true);
                 m_pVelocity->SetVelocity(glm::vec2(0.0f));
+                m_nextAttackTimer.Restart();
 
                 // Reset shadow scale
                 m_pShadowObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1.0f));
 
-                // TODO: Damage the player, spawn awesome effect, potential for chains?
+                // Damage the player and knockback
+                auto* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
+                if (pPlayerCollider &&
+                    pPlayerCollider->IsHurtbox() &&
+                    ColliderManager::StaticMethodIsColliding(*m_pCollider, *pPlayerCollider, delta))
+                {
+                    auto* pPlayerHealth = m_pPlayerObject->GetComponent<HealthComponent>();
+                    auto* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
+                    if (pPlayerHealth && pPlayerVel)
+                    {
+                        // Only damage if not rolling
+                        if (m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING)
+                        {
+                            pPlayerHealth->Damage(m_slamAttackDamage);
+                        }
+
+                        // ALWAYS knockback even if rolling
+                        pPlayerVel->ApplyKnockback(dirToPlayer, 7500.0f);
+                        
+                        // TODO: Play slam sfx
+                    }
+
+                    // TODO: Shockwave effect
+                }
             }
 
             // Update shadow sprite offset
@@ -1044,8 +1110,6 @@ void BossController::UpdatePhase2(float delta)
         }
 
         m_pAnimSprite->SetTint(glm::vec3(1.0f));
-        
-
         EnterPhase3();
     }
 }
@@ -1053,26 +1117,38 @@ void BossController::UpdatePhase2(float delta)
 void BossController::StartAxeAttack()
 {
     // Can't spawn multiple axes!
+    // NOTE: This check is needed as a failsafe for when the axe is out and 3 stomps have happened
     if (m_pAxeCollider) return;
 
     // Change state
     m_state = State::AXE_ATTACK;
+    m_nextAttackTimer.Reset();
     m_axeAttackTimer.Restart();
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
     wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f);
+
+    // Update stats
+    m_attackChain = (m_prevAttack == 0) ? m_attackChain + 1 : 1;
+    m_prevAttack = 0;
+
 }
 
 void BossController::StartLeapAttack()
 {
     // Change state
     m_state = State::LEAP_ATTACK;
+    m_nextAttackTimer.Reset();
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
     // m_pVelocity->ApplyKnockback(glm::vec2(0.0f, 1.0f), 1000.0f);
 
     // Disable collider and restart timer
     m_pCollider->SetActive(false);
     m_leapAttackTimer.Restart();
+
+    // Update stats
+    m_attackChain = (m_prevAttack == 1) ? m_attackChain + 1 : 1;
+    m_prevAttack = 1;
 }
 
 void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)

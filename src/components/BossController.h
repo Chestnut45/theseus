@@ -127,8 +127,10 @@ private:
 
 
     // Phase 2 stats
+    int m_attackChain;
+    int m_prevAttack;
     int m_axeAttackDamage;
-    int m_axePunishDamage;
+    int m_slamAttackDamage;
     int m_minDistToPlayer;
     int m_maxDistToPlayer;
     bool m_strafeClockwise;
@@ -140,6 +142,7 @@ private:
     wolf::Timer m_whooshTimer;
     wolf::Timer m_dodgeTimer;
     wolf::Timer m_strafeSwapTimer;
+    wolf::Timer m_nextAttackTimer;
     wolf::Timer m_axeAttackTimer;
     wolf::Timer m_leapAttackTimer;
     glm::vec2 m_dodgeDir;
