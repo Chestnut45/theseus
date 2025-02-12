@@ -12,12 +12,15 @@
 #include "HarpyController.h"
 #include "MinitaurController.h"
 #include "NPCComponent.h"
+#include "InfightingEvent.h"
 
-AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects)
+
+AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects, wolf::GameObject* owner)
 {
     this->m_fDamage = p_damage;
     this->m_pColliderManager = p_collider_manager;
     this->m_knockbackMagnitude = knockbackMagnitude;
+    this->m_pOwner = owner;
 
     // Set default lifespans to 0
     for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
@@ -66,10 +69,21 @@ void AttackDamageComponent::Update(float p_dt)
                 // If colliders colliding
                 if (this->m_pColliderManager->IsColliding(*thisCollider, thatCollider, p_dt))
                 {
+                    wolf::GameObject* thatObject = thatHealth.GetGameObject();
+                    // Get the owner of the projectile
+                    if (m_pOwner)
+                    {
+                        if (m_pOwner->HasAny<GorgonController, HarpyController>() &&
+                            thatObject->HasAny<GorgonController, HarpyController, MinitaurController>())
+                        {
+                            // wolf::Log("Infighting triggered: " + std::to_string(m_pOwner->GetID()) + 
+                            //           " hit " + std::to_string(thatObject->GetID()));
+                            wolf::EventManager::TriggerEvent(InfightingEvent(m_pOwner, thatObject));
+                        }
+                    }
                     // Deal damage
                     thatHealth.Damage(m_fDamage);
                     
-                    wolf::GameObject* thatObject = thatHealth.GetGameObject();
 
                     // Apply status effects to the target
                     StatusComponent* thatStatus = thatObject->GetComponent<StatusComponent>();

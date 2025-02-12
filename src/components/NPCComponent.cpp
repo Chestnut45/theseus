@@ -214,16 +214,22 @@ void NPCComponent::PlayNextDialogue() {
 
 // Add a dialogue entry to the priority queue
 void NPCComponent::QueueDialogue(const std::string& p_strEntryID) {
-    NPCDialogueEntry* dialogue = m_mDialogueEntries.at(p_strEntryID);
-    if (dialogue) {
-        if (!dialogue->bHasPlayed || dialogue->bHasPlayed && dialogue->bCanRepeat) {
-            m_pqDialogueQueue.push(dialogue);
+    // Ensure the entry exists before accessing it
+    auto it = m_mDialogueEntries.find(p_strEntryID);
+    if (it == m_mDialogueEntries.end()) {
+        // wolf::Log("Dialogue entry not found!");
+        return;
+    }
 
-            // If the priority value of that item was higher than the current highest
-            if (dialogue->iPriority > m_iCurHighPriorityVal) {
-                // Set it as the current highest
-                m_iCurHighPriorityVal = dialogue->iPriority;
-            }
+    NPCDialogueEntry* dialogue = it->second;
+    if (!dialogue) return;
+    if (!dialogue->bHasPlayed || dialogue->bHasPlayed && dialogue->bCanRepeat) {
+        m_pqDialogueQueue.push(dialogue);
+
+        // If the priority value of that item was higher than the current highest
+        if (dialogue->iPriority > m_iCurHighPriorityVal) {
+            // Set it as the current highest
+            m_iCurHighPriorityVal = dialogue->iPriority;
         }
     }
 }

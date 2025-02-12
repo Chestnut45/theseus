@@ -9,7 +9,7 @@
 #include <components/AnimatedSprite2D.h>
 #include <components/StatusComponent.h>
 #include <EnemyDataLoader.h>
-
+#include "InfightingEvent.h"
 class GorgonController : public EnemyController
 {
 public:
@@ -52,6 +52,10 @@ private:
     bool IsTargetDetected();
     bool IsTargetInLOS(); // Check if target is in line of sight
     void RenderIndicator();
+
+    void HandleInfighting(const InfightingEvent& event); // added this
+    void RevertToPlayerTarget();
+
     
     // Gorgon-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
