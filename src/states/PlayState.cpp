@@ -1101,7 +1101,7 @@ ImU32 GetTileColor(int tileID) {
 }
 
 void PlayState::RenderMap() {
-    static float defaultZoomScale = 0.5f; // Default zoom level when not expanded
+    static float defaultZoomScale = 0.2f; // Default zoom level when not expanded
     static float expandedZoomScale = 1.0f; // Persisted zoom level for expanded map
     static bool isExpandedPrev = false; // Tracks if the map was expanded in the previous frame
 
