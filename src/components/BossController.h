@@ -112,6 +112,7 @@ private:
 
     // General stats
     bool m_active;
+    bool m_renderHealthBar = false;
     int m_maxHealth;
     float m_prevHealthFraction;
     wolf::Timer m_damageFlashTimer;
