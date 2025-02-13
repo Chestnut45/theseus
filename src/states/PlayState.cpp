@@ -26,6 +26,7 @@
 #include "../components/NPCComponent.h"
 #include <BossController.h>
 #include <W_Audio.h>
+#include <events/PauseEvent.h>
 
 void PlayState::Enter()
 {
@@ -223,6 +224,7 @@ void PlayState::Update(float delta)
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
+        wolf::EventManager::TriggerEvent(PauseEvent(true));
         m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
     }
 
@@ -414,9 +416,9 @@ void PlayState::Update(float delta)
             {
                 auto name = sprite.GetCurrentAnimation()->m_strName;
                 if (chestInventory.IsOpen())
-                    sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
+                    sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
                 else
-                    sprite.SetAnimation(name.replace(name.find("Closed"), 6, "Open"));
+                    sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
                 
                 chestInventory.ToggleOpen();
                 
@@ -431,7 +433,7 @@ void PlayState::Update(float delta)
             {
                 chestInventory.Close();
                 auto name = sprite.GetCurrentAnimation()->m_strName;
-                sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
+                sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
                 m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
             }
         }
@@ -1099,7 +1101,7 @@ ImU32 GetTileColor(int tileID) {
 }
 
 void PlayState::RenderMap() {
-    static float defaultZoomScale = 0.5f; // Default zoom level when not expanded
+    static float defaultZoomScale = 0.2f; // Default zoom level when not expanded
     static float expandedZoomScale = 1.0f; // Persisted zoom level for expanded map
     static bool isExpandedPrev = false; // Tracks if the map was expanded in the previous frame
 

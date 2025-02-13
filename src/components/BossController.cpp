@@ -12,6 +12,7 @@
 #include <LabyrinthManager.h>
 #include <HomingComponent.h>
 #include <W_Timer.h>
+#include <W_EventManager.h>
 
 #include "../ColliderManager.h"
 
@@ -31,17 +32,20 @@
 
 BossController::BossController()
 {
+    wolf::EventManager::AddListener<DamageEvent, BossController, &BossController::OnDamageEvent>(*this);
 }
 
 BossController::~BossController()
 {
+    wolf::EventManager::RemoveListener<DamageEvent, BossController, &BossController::OnDamageEvent>(*this);
 }
 
 void BossController::Init()
 {
     // Initialize stats
     m_active = false;
-    m_maxHealth = 6000;
+    m_maxHealth = 5000;
+    m_prevHealthFraction = 1.0f;
 
     // Phase 1 stats
     m_throneBlockRange = 300;
@@ -54,14 +58,19 @@ void BossController::Init()
     m_waveActive = false;
 
     // Phase 2 stats
-    m_axeAttackDamage = 125;
-    m_axePunishDamage = 100;
+    m_attackChain = 0;
+    m_prevAttack = -1;
+    m_axeAttackDamage = 100;
+    m_slamAttackDamage = 125;
     m_minDistToPlayer = 160;
     m_maxDistToPlayer = 280;
     m_strafeClockwise = true;
     m_axeSummoned = false;
+    m_slamStun = false;
     m_strafeSpeed = 160.0f;
     m_chaseSpeed = 240.0f;
+    m_shadowDistance = 26.0f;
+    m_altitude = 0.0f;
 
     // Phase 3 stats
     m_fireBreathWindupTime = 0.75f; // Seconds
@@ -123,7 +132,7 @@ void BossController::Init()
     // Create collider
     pObject->DeleteComponent<ColliderComponent>();
     m_pCollider = &pObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
-    m_pCollider->AddColliderBox(glm::vec2(111, 182), glm::vec2(-52, 96));
+    m_pCollider->AddColliderBox(glm::vec2(111, 170), glm::vec2(-52, 84));
 
     // Grab a reference to the labyrinth manager
     for (auto&&[_, manager] : pObject->GetScene().Each<LabyrinthManager>())
@@ -142,6 +151,11 @@ void BossController::Init()
     {
         wolf::Error("BossController Init was called outside of a valid room!");
     }
+
+    // Store center of chamber
+    m_centerOfChamber = m_pLabyrinthManager->GetWorldPosition(roomOptional->m_bounds.m_origin + roomOptional->m_bounds.m_size / 2);
+    m_bottomLeftCorner = m_pLabyrinthManager->GetWorldPosition(roomOptional->m_bounds.m_origin + glm::ivec2(1.0f));
+    m_topRightCorner = m_pLabyrinthManager->GetWorldPosition(roomOptional->m_bounds.m_origin + roomOptional->m_bounds.m_size - glm::ivec2(1.0f, 1.0f));
 
     // Create the boss pillar group object
     m_pBossPillarGroup = &pObject->GetScene().CreateObject2D();
@@ -217,13 +231,11 @@ void BossController::Update(float delta)
     }
 
     UpdateAnimation();
+    if (m_renderHealthBar) RenderHealthBar(delta);
 }
 
 void BossController::UpdateAnimation()
 {   
-    // Only update animation if state has changed
-    // if (m_state == m_prevState) return;
-
     // Compass direction animation names
     static const char* s_dirNames[] =
     {
@@ -254,6 +266,7 @@ void BossController::UpdateAnimation()
         case State::APPROACH:
         case State::STRAFE:
         case State::DODGE:
+        case State::LEAP_ATTACK:
             baseAnimName = m_pAxeCollider ? "WalkNoAxe" : "Walk";
             break;
         case State::AXE_ATTACK:
@@ -288,6 +301,117 @@ void BossController::UpdateAnimation()
     if (baseAnimName != "")
     {
         m_pAnimSprite->SetAnimation(baseAnimName);
+    }
+}
+
+void BossController::RenderHealthBar(float delta)
+{
+    // Position bar at the bottom center of the screen
+    const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    const float barWidth = displaySize.x * 0.75f;
+    const float barHeight = 48.0f;
+    ImVec2 basePos = ImVec2(displaySize.x / 2 - barWidth / 2, displaySize.y - barHeight * 2);
+
+    // Reset damage flash timer after 1 second
+    if (m_damageFlashTimer.Elapsed() > 1.0f)
+    {
+        m_damageFlashTimer.Reset();
+    }
+
+    // Possible color values
+    struct Rainbowify
+    {
+        enum : int
+        {
+            BLACK,
+            RAINBOW,
+            WHITE,
+        };
+    };
+
+    // Renders spaced rainbow text with ImGui
+    std::function<void(const char*, float, int)> Rainbowify = [](const char* text, float spacing, int color) {
+        float time = ImGui::GetTime() * 2.0f; // Adjust speed
+        float offset = 0.0f;
+        for (const char* c = text; *c != '\0'; c++) {
+            float r = 0.5f + 0.5f * std::sin(time + offset);
+            float g = 0.5f + 0.5f * std::sin(time + offset + 2.0f);
+            float b = 0.5f + 0.5f * std::sin(time + offset + 4.0f);
+            switch (color)
+            {
+                case Rainbowify::BLACK: ImGui::TextColored(ImVec4(0.0f, 0.0f, 0.0f, 1.0f), "%.1s", c); break;
+                default:
+                case Rainbowify::RAINBOW: ImGui::TextColored(ImVec4(r, g, b, 1.0f), "%.1s", c); break;
+                case Rainbowify::WHITE: ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%.1s", c); break;
+            }
+            ImGui::SameLine(0.0f, spacing);
+            offset += 0.2f;
+        }
+    };
+
+    // Render the health bar at the top-center of the screen
+    auto* healthComponent = GetGameObject()->GetComponent<HealthComponent>();
+    if (healthComponent)
+    {
+        // Flash health when damaged
+        float colorCoefficient = m_damageFlashTimer.IsRunning() ? 1.0f - m_damageFlashTimer.Elapsed() : 0.0f;
+
+        // Update health color
+        ImVec4 healthColor = ImVec4(1.0f, colorCoefficient, colorCoefficient, 1.0f);
+
+        // Render previous health fraction underneath to indicate damage taken
+        m_prevHealthFraction += (healthComponent->GetHealth() / healthComponent->GetMaxHealth() - m_prevHealthFraction) * delta * 4.0f;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
+
+        // Draw health bar
+        ImGui::SetNextWindowPos(basePos);
+        ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
+        ImGui::Begin("##BossHealthBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor);
+        ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1.0f, -1.0f), "");
+        ImGui::PopStyleColor();
+        ImGui::End();
+
+        // Draw gradual effect of health bar
+        ImGui::SetNextWindowPos(basePos);
+        ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
+        ImGui::Begin("##BossHealthBar2", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor);
+        ImGui::ProgressBar(m_prevHealthFraction, ImVec2(-1.0f, -1.0f));
+        ImGui::PopStyleColor();
+        ImGui::End();
+
+        // Render text
+        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y - barHeight * 0.65f));
+        ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
+        ImGui::Begin("##BossHealthBarText", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+        ImGui::SetWindowFontScale(2.5f);
+        ImGui::SetCursorPos(ImVec2(barWidth / 2 - ImGui::CalcTextSize("The Minotaur").x / 2, 0.0f));
+        ImGui::AlignTextToFramePadding();
+        Rainbowify("The Minotaur", 0.0f, Rainbowify::BLACK);
+        ImGui::SetCursorPos(ImVec2(barWidth / 2 - ImGui::CalcTextSize("The Minotaur").x / 2 + 3.0f, 3.0f));
+        if (m_damageFlashTimer.IsRunning())
+        {
+            Rainbowify("The Minotaur", 0.0f, Rainbowify::RAINBOW);
+        }
+        else
+        {
+            Rainbowify("The Minotaur", 0.0f, Rainbowify::WHITE);
+        }
+        ImGui::End();
+
+        ImGui::PopStyleVar(2);
+    }
+}
+
+void BossController::OnDamageEvent(const DamageEvent& event)
+{
+    // React to damage and reset damage flash timer
+    if (event.m_pDamagedObject == GetGameObject())
+    {
+        m_damageFlashTimer.Restart();
     }
 }
 
@@ -763,9 +887,11 @@ void BossController::EnterPhase2()
 {
     m_phase = FightPhase::PHASE_2;
     m_state = State::APPROACH;
-    m_axeAttackTimer.Restart();
+    m_nextAttackTimer.Restart();
+    m_axeAttackTimer.Reset();
     m_pHealth->SetActive(true);
     m_pVelocity->SetKnockbackEnabled(true);
+    m_renderHealthBar = true;
 
     // Create the shadow sprite object
     if (m_pShadowObject) m_pShadowObject->Delete();
@@ -773,24 +899,31 @@ void BossController::EnterPhase2()
     GetGameObject()->AddChild(*m_pShadowObject);
 
     auto& transform = *m_pShadowObject->GetComponent<wolf::Transform2D>();
-    transform.SetPosition(glm::vec2(0.0f, -26.0f));
+    transform.SetPosition(glm::vec2(0.0f, -m_shadowDistance));
 
     // Add the sprite
     wolf::Sprite2D& sprite = m_pShadowObject->AddComponent<wolf::Sprite2D>("data/textures/boss_shadow.png");
     sprite.SetOriginToCenterOfTexture();
+
+    // Scream
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f);
 }
 
 void BossController::UpdatePhase2(float delta)
 {
     // Timing variables
     static float nextStrafeSwap = 1.0f;
-    static float nextAttackTime = 1.0f;
+    static float nextAttackTime = 2.0f;
 
     // Query player spatial info
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 toPlayer = playerPos - m_pTransform->GetGlobalPosition();
     float distToPlayer = glm::length(toPlayer);
     glm::vec2 dirToPlayer = glm::normalize(toPlayer);
+    
+    // Protect against nan
+    if (glm::isnan(dirToPlayer.x)) dirToPlayer.x = 0.0f;
+    if (glm::isnan(dirToPlayer.y)) dirToPlayer.y = 0.0f;
 
     // Get rotated direction
     glm::mat4 rotation = glm::rotate(glm::radians(m_strafeClockwise ? 90.0f : -90.0f), glm::vec3(0, 0, 1));
@@ -813,10 +946,17 @@ void BossController::UpdatePhase2(float delta)
         glm::vec2 axePos = m_pAxeCollider->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::vec2 axeToPlayer = glm::normalize(playerPos - axePos);
+
+        // Protect against nan
+        if (glm::isnan(axeToPlayer.x)) axeToPlayer.x = 0.0f;
+        if (glm::isnan(axeToPlayer.y)) axeToPlayer.y = 0.0f;
         
         // Check for player collision
         auto* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
-        if (pPlayerCollider->IsHurtbox() && ColliderManager::StaticMethodIsColliding(*m_pAxeCollider, *pPlayerCollider, delta))
+        if (pPlayerCollider && 
+            pPlayerCollider->IsHurtbox() &&
+            m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING && 
+            ColliderManager::StaticMethodIsColliding(*m_pAxeCollider, *pPlayerCollider, delta))
         {
             auto* pPlayerHealth = m_pPlayerObject->GetComponent<HealthComponent>();
             auto* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
@@ -833,24 +973,59 @@ void BossController::UpdatePhase2(float delta)
         {
             m_pAxeCollider->GetGameObject()->Delete();
             m_pAxeCollider = nullptr;
-            m_state = State::APPROACH;
-            m_axeAttackTimer.Restart();
+            m_axeAttackTimer.Reset();
             m_axeSummoned = false;
             m_pAnimSprite->SetTint(glm::vec3(1.0f));
             m_whooshTimer.Reset();
+
+            // Only change to approach if we are not in the middle of a leap attack
+            if (m_state != State::LEAP_ATTACK)
+            {
+                m_state = State::APPROACH;
+                m_nextAttackTimer.Restart();
+            }
+            else
+            {
+                m_nextAttackTimer.Reset();
+            }
         }
     }
+
+    // Defines a lambda for handling attack choice logic in phase 2
+    std::function<void()> ChooseAttack = [&]
+    {
+        if (m_pAxeCollider)
+        {
+            // Only the leap attack is possible, do it
+            // NOTE: This can infinite chain if the axe is not picked up! (intentional)
+            StartLeapAttack();
+        }
+        else
+        {
+            // Ensure chains can't exceed 3
+            if (m_attackChain == 3)
+            {
+                // Ensure we choose the attack NOT previously done
+                m_prevAttack == 0 ? StartLeapAttack() : StartAxeAttack();
+            }
+            else
+            {
+                // Either attack is possible, randomly choose
+                m_rng.FlipCoin() ? StartAxeAttack() : StartLeapAttack();
+            }
+        }
+    };
 
     // Update based on state
     switch (m_state)
     {
         case State::APPROACH:
 
-            // Start axe attack
-            if (m_axeAttackTimer.Elapsed() > nextAttackTime)
+            // Handle attack logic
+            if (m_nextAttackTimer.Elapsed() > nextAttackTime)
             {
-                StartAxeAttack();
-                nextAttackTime = m_rng.NextFloat(1.0f, 4.0f);
+                ChooseAttack();
+                nextAttackTime = m_rng.NextFloat(0.5f, 3.0f);
                 break;
             }
 
@@ -898,18 +1073,18 @@ void BossController::UpdatePhase2(float delta)
                 break;
             }
 
+            // Handle attack logic
+            if (m_nextAttackTimer.Elapsed() > nextAttackTime)
+            {
+                ChooseAttack();
+                nextAttackTime = m_rng.NextFloat(0.5f, 3.0f);
+                break;
+            }
+
             // Dodge player attack
             if (playerAttacking)
             {
                 DodgePlayerAttack(dirToPlayer);
-                break;
-            }
-
-            // Start axe attack
-            if (m_axeAttackTimer.Elapsed() > nextAttackTime)
-            {
-                StartAxeAttack();
-                nextAttackTime = m_rng.NextFloat(2.0f, 6.0f);
                 break;
             }
 
@@ -931,13 +1106,11 @@ void BossController::UpdatePhase2(float delta)
 
             if (!m_axeSummoned)
             {
-                // Update tint for tell
-                m_pAnimSprite->SetTint(glm::vec3(1.0f) * (float)(m_axeAttackTimer.Elapsed() + 1.0f));
-
                 // Spawn projectile
                 if (m_axeAttackTimer.Elapsed() > 1.0f)
                 {
                     // Update timer and flag
+                    m_nextAttackTimer.Restart();
                     m_axeAttackTimer.Restart();
                     m_axeSummoned = true;
                     m_pAnimSprite->SetTint(glm::vec3(1.0f));
@@ -966,46 +1139,206 @@ void BossController::UpdatePhase2(float delta)
             {
                 // We shouldn't reach here anyway, but safety!
                 m_state = State::APPROACH;
-                wolf::Log("AAA");
             }
+            break;
+        
+        case State::LEAP_ATTACK:
+        {
+            double elapsed = m_leapAttackTimer.Elapsed();
+
+            if (elapsed < 1.0f)
+            {
+                // Get current position without altitude added
+                const glm::vec2 posWithoutAlt = m_pTransform->GetGlobalPosition() - glm::vec2(0.0f, m_altitude);
+
+                // Update altitude
+                m_altitude = glm::mix(0.0f, 300.0f, elapsed);
+
+                // Update tint for tell
+                m_pAnimSprite->SetTint(glm::vec3(1.0f) * (float)(elapsed + 1.0f));
+
+                // Move towards the player
+                glm::vec2 target = playerPos + glm::vec2(0.0f, 32.0f);
+
+                // Clamp target to within bounds of chamber
+                target = glm::clamp(target, m_bottomLeftCorner, m_topRightCorner);
+
+                const glm::vec2 towardsPlayer = target - posWithoutAlt;
+                glm::vec2 move = glm::normalize(towardsPlayer);
+
+                // Protect against nan
+                if (glm::isnan(move.x)) move.x = 0.0f;
+                if (glm::isnan(move.y)) move.y = 0.0f;
+
+                // Update transform manually
+                m_pTransform->SetPosition((posWithoutAlt + move * delta * 450.0f) + glm::vec2(0.0f, m_altitude));
+
+                // Update sprite scale
+                m_pShadowObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(glm::mix(1.0f, 0.4f, elapsed)));
+            }
+            else if (elapsed < 1.25f)
+            {
+                // Get current position without altitude added
+                const glm::vec2 posWithoutAlt = m_pTransform->GetGlobalPosition() - glm::vec2(0.0f, m_altitude);
+
+                // Update altitude
+                m_altitude = glm::mix(300.0f, 0.0f, (elapsed - 1.0f) * 4.0f);
+                m_pTransform->SetPosition(posWithoutAlt + glm::vec2(0.0f, m_altitude));
+
+                m_pAnimSprite->SetTint(glm::vec3(1.0f));
+
+                // Update sprite scale
+                m_pShadowObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(glm::mix(0.4f, 1.0f, (elapsed - 1.0f) * 2.0f)));
+            }
+            else if (elapsed < 2.0f)
+            {
+                if (!m_slamStun)
+                {
+                    // Slam has completed
+                    m_slamStun = true;
+                    m_altitude = 0.0f;
+                    m_pCollider->SetActive(true);
+                    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+                    m_nextAttackTimer.Reset();
+
+                    // Reset shadow scale
+                    m_pShadowObject->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1.0f));
+
+                    // Damage the player and knockback
+                    auto* pPlayerCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
+                    if (pPlayerCollider &&
+                        ColliderManager::StaticMethodIsColliding(*m_pCollider, *pPlayerCollider, delta))
+                    {
+                        auto* pPlayerHealth = m_pPlayerObject->GetComponent<HealthComponent>();
+                        auto* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
+                        if (pPlayerHealth && pPlayerVel)
+                        {
+                            // Only damage if not rolling and a hurtbox is present
+                            if (pPlayerCollider->IsHurtbox() &&
+                                m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING)
+                            {
+                                pPlayerHealth->Damage(m_slamAttackDamage);
+                            }
+
+                            // ALWAYS knockback even if rolling
+                            pPlayerVel->ApplyKnockback(dirToPlayer, 3000.0f);
+                        }
+                    }
+
+                    wolf::Audio::Play("data/sounds/sfx_leap_stomp.wav", 0.4f);
+
+                    // TODO: Shockwave effect
+
+                    // Check for collision with pillars
+                    for (auto* pObject : m_pBossPillarGroup->GetChildren())
+                    {
+                        auto* pCollider = pObject->GetComponent<ColliderComponent>();
+                        if (pCollider && ColliderManager::StaticMethodIsColliding(*m_pCollider, *pCollider, delta))
+                        {
+                            // Destroy pillar
+                            pObject->Delete();
+                            wolf::Audio::Play("data/sounds/sfx_pillar_break.wav", 0.64f);
+                        }
+                    }
+                }
+
+                m_pAnimSprite->SetTint(glm::mix(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f), (elapsed - 1.25f) * 1.25f));
+            }
+            else
+            {
+                // Finally transition to approach after the stun wears off
+                m_state = State::APPROACH;
+                m_nextAttackTimer.Restart();
+                m_leapAttackTimer.Reset();
+                m_slamStun = false;
+            }
+
+            // Update shadow sprite offset
+            m_pShadowObject->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -m_shadowDistance - (m_altitude / 3)));
+
+            break;
+        }
+        
+        case State::TRANSITION_TO_PHASE_3:
+
+            if (m_transitionTimer.Elapsed() > 2.0f)
+            {
+                // Cleanup
+                if (m_pAxeCollider)
+                {
+                    m_pAxeCollider->GetGameObject()->Delete();
+                    m_pAxeCollider = nullptr;
+                }
+
+                if (m_pShadowObject)
+                {
+                    m_pShadowObject->Delete();
+                    m_pShadowObject = nullptr;
+                }
+
+                // Reset tint
+                m_pAnimSprite->SetTint(glm::vec3(1.0f));
+
+                // Enter next phase and fully return from function
+                EnterPhase3();
+                return;
+            }
+
+            // Update tint
+            m_pAnimSprite->SetTint(glm::mix(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f), m_transitionTimer.Elapsed() * 0.5));
+
+            // Update position
+            m_pTransform->SetPosition(glm::mix(m_transitionStartPos, m_centerOfChamber, m_transitionTimer.Elapsed() * 0.5f));
 
             break;
     }
 
     // Under half health, change to phase 3
-    if (m_pHealth->GetHealth() <= m_maxHealth / 2)
+    if (m_pHealth->GetHealth() <= m_maxHealth / 2 && m_state != State::TRANSITION_TO_PHASE_3)
     {
-        // Cleanup
-        if (m_pAxeCollider)
-        {
-            m_pAxeCollider->GetGameObject()->Delete();
-            m_pAxeCollider = nullptr;
-        }
-
-        if (m_pShadowObject)
-        {
-            m_pShadowObject->Delete();
-            m_pShadowObject = nullptr;
-        }
-
-        m_pAnimSprite->SetTint(glm::vec3(1.0f));
-        
-
-        EnterPhase3();
+        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -8000.0f);
+        m_state = State::TRANSITION_TO_PHASE_3;
+        m_pCollider->SetActive(false);
+        m_transitionTimer.Restart();
+        m_transitionStartPos = m_pTransform->GetGlobalPosition();
     }
 }
 
 void BossController::StartAxeAttack()
 {
     // Can't spawn multiple axes!
+    // NOTE: This check is needed as a failsafe for when the axe is out and 3 stomps have happened
     if (m_pAxeCollider) return;
 
     // Change state
     m_state = State::AXE_ATTACK;
+    m_nextAttackTimer.Reset();
     m_axeAttackTimer.Restart();
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
     wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f);
+
+    // Update stats
+    m_attackChain = (m_prevAttack == 0) ? m_attackChain + 1 : 1;
+    m_prevAttack = 0;
+
+}
+
+void BossController::StartLeapAttack()
+{
+    // Change state
+    m_state = State::LEAP_ATTACK;
+    m_nextAttackTimer.Reset();
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    // m_pVelocity->ApplyKnockback(glm::vec2(0.0f, 1.0f), 1000.0f);
+
+    // Disable collider and restart timer
+    m_pCollider->SetActive(false);
+    m_leapAttackTimer.Restart();
+
+    // Update stats
+    m_attackChain = (m_prevAttack == 1) ? m_attackChain + 1 : 1;
+    m_prevAttack = 1;
 }
 
 void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)
@@ -1032,6 +1365,10 @@ void BossController::EnterPhase3()
     ChangeStatesPhase3(State::IDLE);
     m_pVelocity->SetKnockbackEnabled(false);
 
+    // Adjust collider
+    GetGameObject()->DeleteComponent<ColliderComponent>();
+    m_pCollider = &GetGameObject()->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
+    m_pCollider->AddColliderBox(glm::vec2(120.0f), glm::vec2(-56, 64));
 }
 
 void BossController::UpdatePhase3(float delta)
@@ -1508,7 +1845,7 @@ void BossController::AttackCharge(float delta)
         // Play stomping sfx
         if (m_chargeStompSFXTimer.Elapsed() > 0.25f)
         {
-            wolf::Audio::Play("data/sounds/sfx_stomp.wav", 0.7f, m_rng.NextFloat(-4000, 4000));
+            wolf::Audio::Play("data/sounds/sfx_charge_stomp.wav", 0.7f, m_rng.NextFloat(-4000, 4000));
             m_chargeStompSFXTimer.Restart();
         }
 
