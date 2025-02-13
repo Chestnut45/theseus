@@ -202,7 +202,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase1();
+    EnterPhase2();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -1373,12 +1373,12 @@ void BossController::EnterPhase3()
 
 void BossController::UpdatePhase3(float delta)
 {
-    // TODO: Phase 3 update logic:
-    // - Stand in place and search for player when in neutral (can only see forward, rotate around?)
-    // - When player found, if close, do fire breath attack
-    // - if far away, do charge attack
+    // Check for death
     if (m_pHealth->GetHealth() <= 0 && m_state != State::DEAD)
     {
+        m_deathTimer.Restart();
+        m_pAnimSprite->SetAnimation("Death");
+        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -6000.0f);
         m_state = State::DEAD;
         wolf::Log("It may have been the Minotaur's labyrinth but Theseus the GOAT");
     }
@@ -1387,6 +1387,8 @@ void BossController::UpdatePhase3(float delta)
     {
         case State::DEAD:
         {
+            // We tintin'
+            m_pAnimSprite->SetTint(glm::max(glm::mix(glm::vec3(1.0f), glm::vec3(1.0f, 0.0f, 0.0f), m_deathTimer.Elapsed()), glm::vec3(1.0f, 0.0f, 0.0f)));
             break;
         }
 
