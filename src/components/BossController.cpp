@@ -1142,8 +1142,6 @@ void BossController::UpdatePhase2(float delta)
         {
             double elapsed = m_leapAttackTimer.Elapsed();
 
-            // TODO: Huge bug present, divide-by-zero causing -nan position in transform during leap attack...
-
             if (elapsed < 1.0f)
             {
                 // Get current position without altitude added
@@ -1294,7 +1292,6 @@ void BossController::UpdatePhase2(float delta)
     // Under half health, change to phase 3
     if (m_pHealth->GetHealth() <= m_maxHealth / 2 && m_state != State::TRANSITION_TO_PHASE_3)
     {
-        // TODO: Scream and play animation
         wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -8000.0f);
         m_state = State::TRANSITION_TO_PHASE_3;
         m_pCollider->SetActive(false);
