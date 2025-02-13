@@ -8,6 +8,7 @@
 #include "W_TileMap.h"
 #include "W_Transform2D.h"
 #include "AnimatedSprite2D.h"
+#include <W_Input.h>
 
 #include "../src/components/ColliderComponent.h"
 #include "GLShapesRenderer.h"
@@ -157,18 +158,20 @@ void Scene::Render(float delta)
     }
 
     // Queue all colliders for debug rendering
-    for (auto&&[_, collider] : Each<ColliderComponent>())
+    static bool renderDebugColliders = false;
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_BACKSLASH)) renderDebugColliders = !renderDebugColliders;
+    if (renderDebugColliders)
     {
-        if (collider.IsActive()) collider.FillVertexArray();
+        for (auto&&[_, collider] : Each<ColliderComponent>())
+        {
+            if (collider.IsActive()) collider.FillVertexArray();
+        }
+        ColliderComponent::DebugDrawAndFlush();
     }
-
-    // Flush debug drawing (disable depth testing so it always renders on top)
-    // glDisable(GL_DEPTH_TEST);
-    ColliderComponent::DebugDrawAndFlush();
+    
     // Render Shapes
     GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
     GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
-    // glEnable(GL_DEPTH_TEST);
 }
 
 void _SceneTests()
