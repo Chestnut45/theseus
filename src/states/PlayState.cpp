@@ -416,9 +416,9 @@ void PlayState::Update(float delta)
             {
                 auto name = sprite.GetCurrentAnimation()->m_strName;
                 if (chestInventory.IsOpen())
-                    sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
+                    sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
                 else
-                    sprite.SetAnimation(name.replace(name.find("Closed"), 6, "Open"));
+                    sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
                 
                 chestInventory.ToggleOpen();
                 
@@ -433,7 +433,7 @@ void PlayState::Update(float delta)
             {
                 chestInventory.Close();
                 auto name = sprite.GetCurrentAnimation()->m_strName;
-                sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
+                sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
                 m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
             }
         }
