@@ -1985,16 +1985,16 @@ void BossController::Pull(float delta)
     // If still pulling time
     else
     {
-        // uupdate timer
+        // Update timer
         m_pullTimer -= delta;
 
-        // Pull if player is not rolling
-        if(m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING)
-        {
-            VelocityComponent* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
-            glm::vec2 direction = thisPos - playerPos;
-            direction = glm::length(direction) > 0.01f ? glm::normalize(direction) : glm::vec2(0.0f);
-            pPlayerVel->SetVelocity(pPlayerVel->GetVelocity() + direction * m_pullForce * delta);
-        }
+        // Pull player
+        VelocityComponent* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
+        glm::vec2 direction = thisPos - playerPos;
+        direction = glm::length(direction) > 0.01f ? glm::normalize(direction) : glm::vec2(0.0f);
+
+        // Adjust force if rolling
+        float adjustedForce = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ROLLING ? m_pullForce * 0.01f : m_pullForce;
+        pPlayerVel->SetVelocity(pPlayerVel->GetVelocity() + direction * adjustedForce * delta);
     }
 }
