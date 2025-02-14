@@ -1722,6 +1722,7 @@ void PlayerController::StartDeath() {
     
     // Stop background music and play death music
     wolf::Audio::Stop("data/sounds/bgm_maze.wav");
+    wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
     wolf::Audio::Play("data/sounds/bgm_death.wav", 0.75f, 0.0f, 0.0f, true, 27.428f);
 }
 
