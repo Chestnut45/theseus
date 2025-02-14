@@ -1142,7 +1142,8 @@ void PlayerController::HandleRolling(float delta)
     }
 
     m_rollTimer -= delta;
-    m_pVelocity->SetVelocity(m_rollDirection);
+
+    m_pVelocity->SetVelocity(m_rollDirection * m_rollSpeed);
 }
 
 // Manage jumping state transitions
@@ -1384,25 +1385,25 @@ void PlayerController::StartRoll()
     m_rollTimer = m_rollDuration;
 
     // ALWAYS Roll in the direction the player is inputting
-    glm::vec2 rollDirection(0.0f);
-    rollDirection.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
-    rollDirection.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
-    rollDirection.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
-    rollDirection.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
+    m_rollDirection = glm::vec2(0.0f);
+    m_rollDirection.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
+    m_rollDirection.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
+    m_rollDirection.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
+    m_rollDirection.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
 
     // Normalize
-    rollDirection = glm::normalize(rollDirection);
-    if (glm::isnan(rollDirection.x)) rollDirection.x = 0.0f;
-    if (glm::isnan(rollDirection.y)) rollDirection.y = 0.0f;
+    m_rollDirection = glm::normalize(m_rollDirection);
+    if (glm::isnan(m_rollDirection.x)) m_rollDirection.x = 0.0f;
+    if (glm::isnan(m_rollDirection.y)) m_rollDirection.y = 0.0f;
     
     // If after normalization somehow it is less than unit length, fallback to last facing dir
-    if (rollDirection == glm::vec2(0.0f))
+    if (m_rollDirection == glm::vec2(0.0f))
     {
-        rollDirection = GetLastFacingDirectionVector();
+        m_rollDirection = GetLastFacingDirectionVector();
     }
 
     // Update velocity
-    m_pVelocity->SetVelocity(rollDirection * m_rollSpeed);
+    m_pVelocity->SetVelocity(m_rollDirection * m_rollSpeed);
     m_stamina -= 25.0f;
     m_staminaRegenTimer.Restart();
 
@@ -1416,7 +1417,7 @@ void PlayerController::StartRoll()
     };
 
     // Determine compass direction text from roll direction
-    float angle = -glm::atan(rollDirection.x, rollDirection.y);
+    float angle = -glm::atan(m_rollDirection.x, m_rollDirection.y);
     int dirIndex = (int)round(4 * angle / 6.28318530718f + 5) % 4;
     const char* const dirText = s_dirNames[dirIndex];
     std::string baseAnimName = "Roll";
