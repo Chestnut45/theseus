@@ -268,5 +268,7 @@ private:
     void StartPull();
     void Pull(float delta);
 
+    void Dead(float delta);
+
     void LastStandSupercharge();
 };

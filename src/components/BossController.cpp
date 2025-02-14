@@ -1417,18 +1417,7 @@ void BossController::UpdatePhase3(float delta)
     {
         case State::DEAD:
         {
-            // We tintin'
-            m_pAnimSprite->SetTint(glm::max(glm::mix(glm::vec3(1.0f), glm::vec3(1.0f, 0.0f, 0.0f), m_deathTimer.Elapsed()), glm::vec3(1.0f, 0.0f, 0.0f)));
-
-            if (m_deathTimer.Elapsed() >= 1.5f)
-            {
-                // Win the game!
-                m_active = false;
-                m_renderHealthBar = false;
-                m_deathTimer.Reset();
-                wolf::EventManager::TriggerEvent(GameWinEvent());
-            }
-
+            Dead(delta);
             break;
         }
 
@@ -2243,6 +2232,22 @@ void BossController::Pull(float delta)
         // Adjust force if rolling
         float adjustedForce = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ROLLING ? m_pullForce * 0.01f : m_pullForce;
         pPlayerVel->SetVelocity(pPlayerVel->GetVelocity() + direction * adjustedForce);
+    }
+}
+
+
+void BossController::Dead(float delta)
+{
+    // We tintin'
+    m_pAnimSprite->SetTint(glm::max(glm::mix(glm::vec3(1.0f), glm::vec3(1.0f, 0.0f, 0.0f), m_deathTimer.Elapsed()), glm::vec3(1.0f, 0.0f, 0.0f)));
+
+    if (m_deathTimer.Elapsed() >= 1.5f)
+    {
+        // Win the game!
+        m_active = false;
+        m_renderHealthBar = false;
+        m_deathTimer.Reset();
+        wolf::EventManager::TriggerEvent(GameWinEvent());
     }
 }
 
