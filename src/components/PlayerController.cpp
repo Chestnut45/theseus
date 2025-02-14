@@ -390,7 +390,6 @@ void PlayerController::HandlePlayerInput(float delta)
     )
     {
         m_pAnimComponent->SetAnimPaused(false);
-
         SetAction(PlayerAction::ROLLING);
         return;
     }
@@ -407,12 +406,6 @@ void PlayerController::HandlePlayerInput(float delta)
         !m_inventoryHovered)
     {
         SetAction(PlayerAction::ATTACKING);
-
-        // Play bow / arrow draw sfx instantly when the attack starts
-        if (m_pCurrentWeapon->GetWeaponType() == WeaponType::BOW)
-        {
-            wolf::Audio::Play("data/sounds/sfx_bow_loading.wav", 1.0f);
-        }
     }
     
     // Handle pick up and drop actions
@@ -519,8 +512,11 @@ void PlayerController::HandleDeath(float delta)
 
 void PlayerController::HandleBowAttack(float delta)
 {
+    // Play sfx if just clicked
+    if (wolf::Input::IsLMBJustDown()) wolf::Audio::Play("data/sounds/sfx_bow_loading.wav", 0.9f);
+
     // Charging bow
-    if(wolf::Input::IsLMBHeld() || wolf::Input::IsLMBJustDown())
+    if(wolf::Input::IsLMBDown())
     {
         if(m_bIsChargingOver == false)
         {
@@ -1067,7 +1063,7 @@ void PlayerController::HandleMovement(float delta)
     static wolf::RNG rng;
     if (!m_walkSoundTimer.IsRunning()) m_walkSoundTimer.Start();
     if (m_walkSoundTimer.Elapsed() > m_walkSoundInterval) {
-        wolf::Audio::Play("data/sounds/sfx_step.wav", 0.5f, rng.NextFloat(-10000.0f, -5000.0f));
+        wolf::Audio::Play("data/sounds/sfx_step.wav", 0.55f, rng.NextFloat(-10000.0f, -5000.0f));
         m_walkSoundTimer.Restart();
     }
 
@@ -1405,6 +1401,9 @@ void PlayerController::StartRoll()
 
     // Set roll animation
     m_pAnimComponent->SetAnimation(baseAnimName + dirText);
+
+    // Play sfx
+    wolf::Audio::Play("data/sounds/sfx_roll.wav", 1.0f);
 }
 
 void PlayerController::EndRoll()

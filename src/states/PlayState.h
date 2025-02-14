@@ -28,6 +28,7 @@
 #include <HarpyBuilder.h>
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
+#include <events/GameWinEvent.h>
 
 #include <unordered_map>
 #include <unordered_set>
@@ -52,6 +53,7 @@ public:
     void BackgroundRender(float delta) override;
     void OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
+    void OnGameWinEvent(const GameWinEvent& event);
     std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}
 
 private:

@@ -30,6 +30,8 @@
 #include <HarpyBuilder.h>
 #include "../LabyrinthTiles.h"
 
+#include <events/GameWinEvent.h>
+
 BossController::BossController()
 {
     wolf::EventManager::AddListener<DamageEvent, BossController, &BossController::OnDamageEvent>(*this);
@@ -202,7 +204,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase2();
+    EnterPhase1();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -605,6 +607,9 @@ void BossController::StartWave()
 {
     if (m_waveActive) return;  // Prevent duplicate wave starts
     SpawnWave(1);
+
+    // Start the boss music
+    wolf::Audio::Play("data/sounds/bgm_boss_theme.wav", 1.0f, 0.0f, 0.0f, true, 6.433f);
 }
 
 bool BossController::IsValidSpawnTile(glm::ivec2 tilePos)
@@ -658,7 +663,12 @@ void BossController::SpawnWave(int waveIndex)
     {
         case 1: minitaurs = 4; harpies = 2; break;
         case 2: gorgons = 2; harpies = 2; break;
-        case 3: minitaurs = 15; break; // Swarm of minitaurs inside the bossfight room
+        case 3: minitaurs = 5; harpies = 3; gorgons = 2; break; // Swarm of minitaurs inside the bossfight room
+        
+        // DEBUG: Quick way through all phases
+        // case 1:
+        // case 2:
+        // case 3: minitaurs = 1; break;
     }
 
     // Get boss position
@@ -1378,7 +1388,11 @@ void BossController::UpdatePhase3(float delta)
     {
         m_deathTimer.Restart();
         m_pAnimSprite->SetAnimation("Death");
-        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -6000.0f);
+        
+        // Stop music, play death growl
+        wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
+        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -10000.0f);
+
         m_state = State::DEAD;
         wolf::Log("It may have been the Minotaur's labyrinth but Theseus the GOAT");
     }
@@ -1389,6 +1403,16 @@ void BossController::UpdatePhase3(float delta)
         {
             // We tintin'
             m_pAnimSprite->SetTint(glm::max(glm::mix(glm::vec3(1.0f), glm::vec3(1.0f, 0.0f, 0.0f), m_deathTimer.Elapsed()), glm::vec3(1.0f, 0.0f, 0.0f)));
+
+            if (m_deathTimer.Elapsed() >= 1.5f)
+            {
+                // Win the game!
+                m_active = false;
+                m_renderHealthBar = false;
+                m_deathTimer.Reset();
+                wolf::EventManager::TriggerEvent(GameWinEvent());
+            }
+
             break;
         }
 
@@ -1847,7 +1871,7 @@ void BossController::AttackCharge(float delta)
         // Play stomping sfx
         if (m_chargeStompSFXTimer.Elapsed() > 0.25f)
         {
-            wolf::Audio::Play("data/sounds/sfx_charge_stomp.wav", 0.7f, m_rng.NextFloat(-4000, 4000));
+            wolf::Audio::Play("data/sounds/sfx_charge_stomp.wav", 0.64f, m_rng.NextFloat(-4000, 4000));
             m_chargeStompSFXTimer.Restart();
         }
 

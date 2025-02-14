@@ -37,6 +37,7 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+    wolf::EventManager::AddListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
     
  
     this->m_pColliderManager = new ColliderManager(&scene);
@@ -198,6 +199,7 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+    wolf::EventManager::RemoveListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
 
     // Delete managers
     delete this->m_pColliderManager;
@@ -929,7 +931,10 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
         }         
 
         case TriggerPurpose::BOSS: {
-
+            
+            // Stop the background music
+            wolf::Audio::Stop("data/sounds/bgm_maze.wav");
+            
             // Begin the bossfight
             wolf::Log("BOSSFIGHT STARTED");
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
@@ -967,6 +972,11 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
     }
 }
 
+void PlayState::OnGameWinEvent(const GameWinEvent& event)
+{
+    wolf::Audio::Play("data/sounds/sfx_game_win.wav", 1.0f);
+}
+
 int GetGoldVariant(int tileID) {
     switch (tileID) {
         case Tile::FloorSmallSquares:
@@ -999,6 +1009,10 @@ void PlayState::ConvertPlayerTileToGold() {
     // Get tile position and ID
     glm::ivec2 tilePos = m_pLabyrinthManager->GetTilePosition(roundedPosition);
     int currentTileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+
+    // Skip if the player is in the boss room
+    auto roomOpt = m_pLabyrinthManager->GetRoom(tilePos);
+    if (roomOpt.has_value() && roomOpt->m_name == "Minotaur's Chamber") return;
 
     // Check for a gold variant
     int goldTileID = GetGoldVariant(currentTileID);
