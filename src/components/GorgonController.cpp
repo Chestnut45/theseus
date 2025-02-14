@@ -1,5 +1,6 @@
 #include "GorgonController.h"
 #include "PlayerController.h"
+#include "HarpyController.h"
 #include "LabyrinthManager.h"
 #include "../GLShapesRenderer.h"
 #include "../DDACalculator.h"
@@ -8,10 +9,14 @@
 
 GorgonController::GorgonController()
 {
+    wolf::EventManager::AddListener<InfightingEvent, GorgonController, &GorgonController::HandleInfighting>(*this);
+
 }   
 
 GorgonController::~GorgonController()
 {
+    wolf::EventManager::RemoveListener<InfightingEvent, GorgonController, &GorgonController::HandleInfighting>(*this);
+
 }
 
 void GorgonController::Init(const EnemyData& data)
@@ -90,6 +95,17 @@ void GorgonController::Update(float delta)
     // Ensure components and target are initialized before performing any updates
     if (!m_active || !m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
+
+    if (m_pTarget)
+    {
+        auto* targetHealth = m_pTarget->GetComponent<HealthComponent>();
+        if (!targetHealth || targetHealth->GetHealth() <= 0) 
+        {
+            // wolf::Warning("BLUD CAN'T FIND A TARGET");
+            RevertToPlayerTarget();
+        }
+    }
+    
     
     // Update the base class
     EnemyController::Update(delta);
@@ -805,7 +821,7 @@ bool GorgonController::IsTargetDetected()
         !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)   &&  // Target not already petrified
         IsTargetInLOS()                                                                                     // Target in line of sight
         )
-    {
+    {  
         return true;
     }
     return false;
@@ -837,4 +853,40 @@ void GorgonController::RenderIndicator()
                                             {thisPos.x, thisPos.y, colour.r, colour.g, colour.b, colour.a},
                                             {endPos.x, endPos.y, colour.r, colour.g, colour.b, colour.a}
                                             );
+}
+
+void GorgonController::HandleInfighting(const InfightingEvent& event)
+{
+    if (event.m_pVictim == GetGameObject()) // This Gorgon got hit
+    {
+        
+        // Ignore if already attacking this enemy
+        if (m_pTarget == event.m_pAttacker) return;
+
+        // **Switch target to the attacker and start fighting back**
+        m_pTarget = event.m_pAttacker;
+        m_pTargetStatusComponent = m_pTarget->GetComponent<StatusComponent>();
+        if (!m_pTargetStatusComponent)
+        {
+            // wolf::Warning("thats crazy lil bro, you got no status component? Me personally, i wouldn't allow that");
+        }
+        ChangeState(EnemyState::CHASING);
+        // wolf::Log("Gorgon " + std::to_string(GetGameObject()->GetID()) + 
+        //                 " is now fighting " + std::to_string(m_pTarget->GetID()));
+    }
+}
+
+
+void GorgonController::RevertToPlayerTarget()
+{
+    for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
+    {
+        m_pTarget = playerController.GetGameObject();
+        m_pTargetStatusComponent = m_pTarget->GetComponent<StatusComponent>();
+        return;
+    }
+
+    // If no player found, log a warning
+    // wolf::Warning("BLUD CAN'T FIND A TARGET");
+    m_pTarget = nullptr; // No valid target
 }

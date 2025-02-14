@@ -5,6 +5,7 @@
 
 #include <glm/vec2.hpp>
 #include <W_Timer.h>
+#include <events/DamageEvent.h>
 #include <unordered_set>
 
 // Forward declarations
@@ -47,6 +48,8 @@ public:
         STRAFE,
         DODGE,
         AXE_ATTACK,
+        LEAP_ATTACK,
+        TRANSITION_TO_PHASE_3,
 
         // Phase 3 states
         SEARCHING,
@@ -109,7 +112,13 @@ private:
 
     // General stats
     bool m_active;
+    bool m_renderHealthBar = false;
     int m_maxHealth;
+    float m_prevHealthFraction;
+    wolf::Timer m_damageFlashTimer;
+    glm::vec2 m_centerOfChamber;
+    glm::vec2 m_bottomLeftCorner;
+    glm::vec2 m_topRightCorner;
     
     // Phase 1 stats
     int m_throneBlockRange;
@@ -126,19 +135,28 @@ private:
 
 
     // Phase 2 stats
+    int m_attackChain;
+    int m_prevAttack;
     int m_axeAttackDamage;
-    int m_axePunishDamage;
+    int m_slamAttackDamage;
     int m_minDistToPlayer;
     int m_maxDistToPlayer;
     bool m_strafeClockwise;
     bool m_axeSummoned;
+    bool m_slamStun;
     float m_strafeSpeed;
     float m_chaseSpeed;
+    float m_shadowDistance;
+    float m_altitude;
     wolf::Timer m_whooshTimer;
     wolf::Timer m_dodgeTimer;
     wolf::Timer m_strafeSwapTimer;
+    wolf::Timer m_nextAttackTimer;
     wolf::Timer m_axeAttackTimer;
+    wolf::Timer m_leapAttackTimer;
+    wolf::Timer m_transitionTimer;
     glm::vec2 m_dodgeDir;
+    glm::vec2 m_transitionStartPos;
     ColliderComponent* m_pAxeCollider = nullptr;
 
     // Phase 3 stats
@@ -191,6 +209,11 @@ private:
     // regardless of what phase of the fight we're in
     void UpdateAnimation();
 
+    void RenderHealthBar(float delta);
+
+    // Handlers
+    void OnDamageEvent(const DamageEvent& event);
+
     // Phase 1 methods
     void EnterPhase1();
     void UpdatePhase1(float delta);
@@ -210,6 +233,7 @@ private:
     void EnterPhase2();
     void UpdatePhase2(float delta);
     void StartAxeAttack();
+    void StartLeapAttack();
     void DodgePlayerAttack(const glm::vec2& dirToPlayer);
 
     // Phase 3 methods

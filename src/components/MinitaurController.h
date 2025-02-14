@@ -7,6 +7,7 @@
 #include <components/ColliderComponent.h>
 #include <components/AnimatedSprite2D.h>
 #include <EnemyDataLoader.h>
+#include "InfightingEvent.h"
 
 class MinitaurController : public EnemyController
 {
@@ -46,6 +47,8 @@ private:
     void ExitProspectState();
     void ExitStunnedState();
 
+    void HandleInfighting(const InfightingEvent& event); //added this
+    void RevertToPlayerTarget();
     void SetEmote(EnemyEmote p_emote);
 
     bool IsTargetDetected();

@@ -380,15 +380,19 @@ void PlayerController::HandlePlayerInput(float delta)
     glm::vec2 direction = GetLastFacingDirectionVector();
 
     // Only start roll if the following conditions are met
+    bool attackingCondition = m_action != PlayerAction::ATTACKING || m_pCurrentWeapon->GetWeaponType() == WeaponType::BOW;
     if (
         wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE)  && 
         m_action != PlayerAction::ROLLING           && 
-        m_action != PlayerAction::ATTACKING         && 
+        attackingCondition                          && 
         m_action != PlayerAction::PETRIFIED         && 
         m_stamina >= 15.0f && !m_isHoldingObject
     )
     {
+        m_pAnimComponent->SetAnimPaused(false);
+
         SetAction(PlayerAction::ROLLING);
+        return;
     }
 
     // Start the attack if the following conditions are met
@@ -665,7 +669,7 @@ void PlayerController::HandleSpearAttack(float delta)
         meleeCollider.AddColliderBox(meleeDimensions * playerScale, offset);
         meleeCollider.SetIgnoreTag(player->GetID());
 
-        auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 3000.0f);
+        auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f);
         
         melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
         melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
@@ -1050,6 +1054,13 @@ void PlayerController::HandleMovement(float delta)
         return;
     }
 
+    // stop moving if the player is attacking with a bow
+    if (m_action == PlayerAction::ATTACKING && m_pCurrentWeapon->GetWeaponType() == WeaponType::BOW)
+    {
+        m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
+        return;
+    }
+
     glm::vec2 direction(0.0f);
 
     // Track and update currently held keys for smooth directional input
@@ -1371,10 +1382,47 @@ void PlayerController::StartPetrified()
 void PlayerController::StartRoll()
 {
     m_rollTimer = m_rollDuration;
-    m_rollDirection = GetLastFacingDirectionVector() * m_rollSpeed;
-    m_pVelocity->SetVelocity(m_rollDirection);
+
+    // ALWAYS Roll in the direction the player is inputting
+    glm::vec2 rollDirection(0.0f);
+    rollDirection.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
+    rollDirection.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
+    rollDirection.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
+    rollDirection.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
+
+    // Normalize
+    rollDirection = glm::normalize(rollDirection);
+    if (glm::isnan(rollDirection.x)) rollDirection.x = 0.0f;
+    if (glm::isnan(rollDirection.y)) rollDirection.y = 0.0f;
+    
+    // If after normalization somehow it is less than unit length, fallback to last facing dir
+    if (rollDirection == glm::vec2(0.0f))
+    {
+        rollDirection = GetLastFacingDirectionVector();
+    }
+
+    // Update velocity
+    m_pVelocity->SetVelocity(rollDirection * m_rollSpeed);
     m_stamina -= 25.0f;
     m_staminaRegenTimer.Restart();
+
+    // Compass direction animation names
+    static const char* s_dirNames[] =
+    {
+        "East",
+        "North",
+        "West",
+        "South"
+    };
+
+    // Determine compass direction text from roll direction
+    float angle = -glm::atan(rollDirection.x, rollDirection.y);
+    int dirIndex = (int)round(4 * angle / 6.28318530718f + 5) % 4;
+    const char* const dirText = s_dirNames[dirIndex];
+    std::string baseAnimName = "Roll";
+
+    // Set roll animation
+    m_pAnimComponent->SetAnimation(baseAnimName + dirText);
 }
 
 void PlayerController::EndRoll()
@@ -1450,13 +1498,16 @@ void PlayerController::Render(float delta)
     {
         float colorCoefficient = m_invulnTimer.IsRunning() ? 1.0f - m_invulnTimer.Elapsed() : 0.0f;
 
+        // Update health color
+        ImVec4 healthColor = ImVec4(1.0f, colorCoefficient,  colorCoefficient, 1.0f);
+
         // Render previous health fraction underneath to indicate damage taken
         m_prevHealthFraction += (healthComponent->GetHealth() / healthComponent->GetMaxHealth() - m_prevHealthFraction) * delta * 4.0f;
 
         ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for health bar
         ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
         ImGui::Begin("##HealthBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1.0f, colorCoefficient, colorCoefficient, 1.0f)); // Deep red health color
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor); // Deep red health color
         ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1, barHeight), "");
         ImGui::PopStyleColor(); // Pop color for health bar
         ImGui::End();
@@ -1464,7 +1515,7 @@ void PlayerController::Render(float delta)
         ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for health bar
         ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
         ImGui::Begin("##HealthBar2", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1.0f, colorCoefficient, colorCoefficient, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor);
         ImGui::ProgressBar(m_prevHealthFraction, ImVec2(-1.0f, barHeight));
         ImGui::PopStyleColor(); // Pop color for health bar
         ImGui::End();  

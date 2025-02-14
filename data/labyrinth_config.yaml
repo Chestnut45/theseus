@@ -12,6 +12,7 @@ rooms: [
 		position: {type: manual, origin: {x: 37, y: 37}},
 		size: {type: manual, value: {x: 21, y: 21}},
 		entities: [
+			{type: throwable_object, amount: 10, placement: random},
 		]
 	},
 	{
@@ -37,10 +38,10 @@ rooms: [
 	},
 	{
 		name: Elite Rooms,
-		instances: 5,
+		instances: 10,
 		force: false,
-		position: {type: random},
-		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		position: {type: random_radius, position: {x: 47, y: 47}, radius: 20},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 7, y: 7}},
 		entities: [
 			{type: rare_chest, amount: 1, placement: center},
 			{type: harpy, amount: 1, placement: random},
@@ -55,6 +56,7 @@ rooms: [
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
 			{type: trapped_chest_explode, amount: 1, placement: center},
+			{type: throwable_object, amount: 3, placement: random},
 		]
 	},
 	{
@@ -65,6 +67,7 @@ rooms: [
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
 			{type: trapped_chest_gorgon, amount: 1, placement: center},
+			{type: throwable_object, amount: 2, placement: random},
 		]
 	},
 	{
@@ -75,6 +78,7 @@ rooms: [
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
 			{type: trapped_chest_harpy, amount: 1, placement: center},
+			{type: throwable_object, amount: 2, placement: random},
 		]
 	},
 	{
@@ -85,6 +89,7 @@ rooms: [
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
 			{type: trapped_chest_minitaur, amount: 1, placement: center},
+			{type: throwable_object, amount: 3, placement: random},
 		]
 	},
 	{
@@ -92,7 +97,7 @@ rooms: [
 		instances: 1,
 		force: false,
 		position: {type: random},
-		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 4, y: 4}},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: daedalus_npc, amount: 1, placement: center},
 			{type: throwable_object, amount: 2, placement: random},
@@ -100,7 +105,7 @@ rooms: [
 	},
 	{
 		name: NPC Room,
-		instances: 5,
+		instances: 8,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},

@@ -7,6 +7,7 @@
 #include <components/ColliderComponent.h>
 #include <components/AnimatedSprite2D.h>
 #include <EnemyDataLoader.h>
+#include "events/InfightingEvent.h"
 
 class HarpyController : public EnemyController
 {
@@ -41,6 +42,10 @@ private:
     void ExitIdleState();
     void ExitPetrifiedState();
     void ExitStunnedState();
+
+    void RevertBackToPlayer();
+    void HandleInfighting(const InfightingEvent& event); //added this
+
     
     void SetEmote(EnemyEmote p_emote);
 

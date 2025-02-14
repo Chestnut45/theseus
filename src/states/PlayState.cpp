@@ -26,6 +26,7 @@
 #include "../components/NPCComponent.h"
 #include <BossController.h>
 #include <W_Audio.h>
+#include <events/PauseEvent.h>
 
 void PlayState::Enter()
 {
@@ -223,6 +224,7 @@ void PlayState::Update(float delta)
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
+        wolf::EventManager::TriggerEvent(PauseEvent(true));
         m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
     }
 
@@ -414,9 +416,9 @@ void PlayState::Update(float delta)
             {
                 auto name = sprite.GetCurrentAnimation()->m_strName;
                 if (chestInventory.IsOpen())
-                    sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
+                    sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
                 else
-                    sprite.SetAnimation(name.replace(name.find("Closed"), 6, "Open"));
+                    sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
                 
                 chestInventory.ToggleOpen();
                 
@@ -431,7 +433,7 @@ void PlayState::Update(float delta)
             {
                 chestInventory.Close();
                 auto name = sprite.GetCurrentAnimation()->m_strName;
-                sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
+                sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
                 m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
             }
         }
@@ -1099,7 +1101,7 @@ ImU32 GetTileColor(int tileID) {
 }
 
 void PlayState::RenderMap() {
-    static float defaultZoomScale = 0.5f; // Default zoom level when not expanded
+    static float defaultZoomScale = 0.2f; // Default zoom level when not expanded
     static float expandedZoomScale = 1.0f; // Persisted zoom level for expanded map
     static bool isExpandedPrev = false; // Tracks if the map was expanded in the previous frame
 
@@ -1118,7 +1120,7 @@ void PlayState::RenderMap() {
     isExpandedPrev = m_isMapExpanded;
 
     // Define map dimensions and scaling
-    const float mapSize = m_isMapExpanded ? 600.0f : 300.0f; // Larger default map size for expanded view
+    const float mapSize = m_isMapExpanded ? 600.0f : 200.0f; // Larger default map size for expanded view
     const float labyrinthScale = zoomScale;
 
     // Determine map position (top-right when small, center when expanded)
@@ -1139,19 +1141,22 @@ void PlayState::RenderMap() {
     const float mapCenterY = mapPosition.y + mapSize / 2.0f;
     const glm::ivec2 playerChunk = glm::ivec2(playerPosition / (tileWorldSize * LabyrinthManager::CHUNK_SIZE));
 
-    // Start ImGui rendering
+    // Thick stylish golden border
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
-    ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 255, 255, 255));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 255));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 4.0f); // Thicker border
+    ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 215, 0, 255)); // Gold color
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 255)); // Black background
+
     ImGui::SetNextWindowSize(ImVec2(mapSize, mapSize));
     ImGui::SetNextWindowPos(mapPosition);
     ImGui::Begin("ChunkMap###AlwaysVisible", nullptr,
                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs);
-
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-
+    // Get window min/max for border placement
+    ImVec2 windowMin = ImGui::GetWindowPos();
+    ImVec2 windowMax = ImVec2(windowMin.x + mapSize, windowMin.y + mapSize);
+    
     // Helper lambda for rendering tiles
     auto renderTile = [&](const glm::vec2& worldPos, ImU32 color) {
         glm::vec2 relativePos = (worldPos - playerPosition) * labyrinthScale;
@@ -1228,6 +1233,9 @@ void PlayState::RenderMap() {
 
 
     ImGui::End();
+    // --- Draw the border AFTER the minimap rendering ---
+    drawList->AddRect(windowMin, windowMax, IM_COL32(255, 215, 0, 255), 8.0f, 0, 6.0f); // Thick gold border
+    drawList->AddRect(windowMin, windowMax, IM_COL32(255, 165, 0, 128), 12.0f, 0, 3.0f); // Outer glow
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(2);
 }

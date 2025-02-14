@@ -195,7 +195,7 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
 
         // Figure out where we'll be drawing the inventory
         ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
-        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.15f};
+        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), 256};
 
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos(v2WindowDrawPos);
@@ -231,7 +231,7 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
         float fTextWidth = ImGui::CalcTextSize(strTitle.c_str()).x;
 
         ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
-        ImGui::Text(strTitle.c_str());
+        ImGui::Text("%s", strTitle.c_str());
 
         // This counter lets us control how many items are drawn in a row
         int counter = 0;
@@ -440,7 +440,7 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
             // Show a message asking the player if they are okay with selling the item for less than its value
-            ImGui::Text(strMessage.c_str());
+            ImGui::Text("%s", strMessage.c_str());
             
             // Calculate the size of the window and the text we want to display
             float fWindowWidth = ImGui::GetWindowWidth();
