@@ -103,7 +103,7 @@ void BossController::Init()
 
     m_pullTime = 1.5f;               // Pull state members
     m_pullTimer = 0.0f;
-    m_pullForce = 50000.0f;
+    m_pullForce = 500.0f;
 
     m_searchSpeed = 300.0f;
     m_searchTimer = 2.0f; // Seconds
@@ -1379,6 +1379,8 @@ void BossController::DodgePlayerAttack(const glm::vec2& dirToPlayer)
 
 void BossController::EnterPhase3()
 {   
+    m_renderHealthBar = true;
+
     m_phase = FightPhase::PHASE_3;
     ChangeStatesPhase3(State::IDLE);
     m_pVelocity->SetKnockbackEnabled(false);
@@ -2205,6 +2207,7 @@ void BossController::StartPull()
 
 void BossController::Pull(float delta)
 {
+    printf("PULL\n");
     // if pull timer expired
     if(m_pullTimer <= 0.0f)
     {
@@ -2230,12 +2233,25 @@ void BossController::Pull(float delta)
         m_pullTimer -= delta;
 
         // Pull player
+        glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
+    
         VelocityComponent* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
         glm::vec2 direction = thisPos - playerPos;
         direction = glm::length(direction) > 0.01f ? glm::normalize(direction) : glm::vec2(0.0f);
 
         // Adjust force if rolling
         float adjustedForce = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ROLLING ? m_pullForce * 0.01f : m_pullForce;
-        pPlayerVel->SetVelocity(pPlayerVel->GetVelocity() + direction * adjustedForce * delta);
+        pPlayerVel->SetVelocity(pPlayerVel->GetVelocity() + direction * adjustedForce);
     }
+}
+
+void BossController::LastStandSupercharge()
+{
+    m_idleTimeRange *= 0.5f;
+    m_stunTime *= 0.5f;
+    m_searchSpeed += 100.0f;
+    m_chargeAttackDamage += 50.0f;
+    m_chargeSpeed += 200.0f;
+    m_fireBreathRangeExtender += 300.0f;
 }

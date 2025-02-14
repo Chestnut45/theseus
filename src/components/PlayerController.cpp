@@ -1042,21 +1042,7 @@ void PlayerController::HandleMovement(float delta)
         m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
         return;
     }
-
-    // stop moving if the player is attacking with a bow
-    if (m_action == PlayerAction::ATTACKING && m_pCurrentWeapon->GetWeaponType() == WeaponType::BOW)
-    {
-        m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
-        return;
-    }
-
-    // stop moving if the player is attacking with a bow
-    if (m_action == PlayerAction::ATTACKING && m_pCurrentWeapon->GetWeaponType() == WeaponType::BOW)
-    {
-        m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
-        return;
-    }
-
+    
     glm::vec2 direction(0.0f);
 
     // Track and update currently held keys for smooth directional input
@@ -1138,8 +1124,6 @@ void PlayerController::HandleRolling(float delta)
     }
 
     m_rollTimer -= delta;
-
-    m_pVelocity->SetVelocity(m_rollDirection * m_rollSpeed);
 }
 
 // Manage jumping state transitions
@@ -1381,25 +1365,25 @@ void PlayerController::StartRoll()
     m_rollTimer = m_rollDuration;
 
     // ALWAYS Roll in the direction the player is inputting
-    m_rollDirection = glm::vec2(0.0f);
-    m_rollDirection.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
-    m_rollDirection.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
-    m_rollDirection.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
-    m_rollDirection.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
+    glm::vec2 rollDirection(0.0f);
+    rollDirection.y += wolf::Input::IsKeyDown(GLFW_KEY_W) ? 1.0f : 0.0f;
+    rollDirection.y -= wolf::Input::IsKeyDown(GLFW_KEY_S) ? 1.0f : 0.0f;
+    rollDirection.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
+    rollDirection.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
 
     // Normalize
-    m_rollDirection = glm::normalize(m_rollDirection);
-    if (glm::isnan(m_rollDirection.x)) m_rollDirection.x = 0.0f;
-    if (glm::isnan(m_rollDirection.y)) m_rollDirection.y = 0.0f;
+    rollDirection = glm::normalize(rollDirection);
+    if (glm::isnan(rollDirection.x)) rollDirection.x = 0.0f;
+    if (glm::isnan(rollDirection.y)) rollDirection.y = 0.0f;
     
     // Fallback to last facing dir
     if (rollDirection == glm::vec2(0.0f))
     {
-        m_rollDirection = GetLastFacingDirectionVector();
+        rollDirection = GetLastFacingDirectionVector();
     }
 
     // Update velocity
-    m_pVelocity->SetVelocity(m_rollDirection * m_rollSpeed);
+    m_pVelocity->SetVelocity(rollDirection * m_rollSpeed);
     m_stamina -= 25.0f;
     m_staminaRegenTimer.Restart();
 
@@ -1413,7 +1397,7 @@ void PlayerController::StartRoll()
     };
 
     // Determine compass direction text from roll direction
-    float angle = -glm::atan(m_rollDirection.x, m_rollDirection.y);
+    float angle = -glm::atan(rollDirection.x, rollDirection.y);
     int dirIndex = (int)round(4 * angle / 6.28318530718f + 5) % 4;
     const char* const dirText = s_dirNames[dirIndex];
     std::string baseAnimName = "Roll";
