@@ -19,9 +19,11 @@
 #include "HarpyBuilder.h"
 #include "MinitaurBuilder.h"
 
+#include "DDACalculator.h"
 #include "../GLShapesRenderer.h"
 #include "../VertexDeclarations.h"
 
+wolf::RNG TrappedChestComponent::s_RNG;
 std::vector<std::string> TrappedChestComponent::s_vTaunts;
 std::vector<ImVec2> TrappedChestComponent::s_vTauntTextSizes;
 TrappedChestComponent::TrappedChestComponent(TrapType p_trap_type,bool p_is_taunting, bool p_is_tinting)
@@ -34,7 +36,7 @@ TrappedChestComponent::TrappedChestComponent(TrapType p_trap_type,bool p_is_taun
     this->m_iID = s_iComponentCount;
     this->m_trapType = p_trap_type;
     this->m_bIsOpen = false;
-    this->m_iTauntIndex = m_RNG.NextInt(0, TrappedChestComponent::s_vTaunts.size() - 1);
+    this->m_iTauntIndex = s_RNG.NextInt(0, TrappedChestComponent::s_vTaunts.size() - 1);
     this->m_bIsTinting = p_is_tinting;
     this->m_bIsTaunting = p_is_taunting;
 }
@@ -219,11 +221,18 @@ void TrappedChestComponent::Explode()
     }
     wolf::GameObject* player = playerController->GetGameObject();
     wolf::Transform2D* playerTransform = player->GetComponent<wolf::Transform2D>();
-    glm::vec2 line = playerTransform->GetGlobalPosition() - gameObjTransform->GetGlobalPosition();
+    
+    glm::vec2 thisPos = gameObjTransform->GetGlobalPosition();
+    glm::vec2 playerPos = playerTransform->GetGlobalPosition();
+    
+    glm::vec2 line = playerPos - thisPos;
     float distance = glm::length(line);
     
-    // Check if player is in blast radius
-    if(distance <= this->m_fBlastRadius)
+    // Check if player is in blast radius && not behind wall
+    if(
+        distance <= this->m_fBlastRadius                                            && 
+        DDACalculator::GetInstance()->GetEndpoint(thisPos, playerPos) == playerPos
+    )
     {   
         // Deal damage based on distance from chest
         float blastDamage = this->m_fBlastRadius - distance;
