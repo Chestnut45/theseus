@@ -390,7 +390,6 @@ void PlayerController::HandlePlayerInput(float delta)
     )
     {
         m_pAnimComponent->SetAnimPaused(false);
-
         SetAction(PlayerAction::ROLLING);
         return;
     }
@@ -407,12 +406,6 @@ void PlayerController::HandlePlayerInput(float delta)
         !m_inventoryHovered)
     {
         SetAction(PlayerAction::ATTACKING);
-
-        // Play bow / arrow draw sfx instantly when the attack starts
-        if (m_pCurrentWeapon->GetWeaponType() == WeaponType::BOW)
-        {
-            wolf::Audio::Play("data/sounds/sfx_bow_loading.wav", 1.0f);
-        }
     }
     
     // Handle pick up and drop actions
@@ -519,8 +512,11 @@ void PlayerController::HandleDeath(float delta)
 
 void PlayerController::HandleBowAttack(float delta)
 {
+    // Play sfx if just clicked
+    if (wolf::Input::IsLMBJustDown()) wolf::Audio::Play("data/sounds/sfx_bow_loading.wav", 0.9f);
+
     // Charging bow
-    if(wolf::Input::IsLMBHeld() || wolf::Input::IsLMBJustDown())
+    if(wolf::Input::IsLMBDown())
     {
         if(m_bIsChargingOver == false)
         {
@@ -1067,7 +1063,7 @@ void PlayerController::HandleMovement(float delta)
     static wolf::RNG rng;
     if (!m_walkSoundTimer.IsRunning()) m_walkSoundTimer.Start();
     if (m_walkSoundTimer.Elapsed() > m_walkSoundInterval) {
-        wolf::Audio::Play("data/sounds/sfx_step.wav", 0.5f, rng.NextFloat(-10000.0f, -5000.0f));
+        wolf::Audio::Play("data/sounds/sfx_step.wav", 0.55f, rng.NextFloat(-10000.0f, -5000.0f));
         m_walkSoundTimer.Restart();
     }
 
@@ -1377,7 +1373,7 @@ void PlayerController::StartRoll()
     if (glm::isnan(rollDirection.x)) rollDirection.x = 0.0f;
     if (glm::isnan(rollDirection.y)) rollDirection.y = 0.0f;
     
-    // If after normalization somehow it is less than unit length, fallback to last facing dir
+    // Fallback to last facing dir
     if (rollDirection == glm::vec2(0.0f))
     {
         rollDirection = GetLastFacingDirectionVector();
@@ -1405,6 +1401,9 @@ void PlayerController::StartRoll()
 
     // Set roll animation
     m_pAnimComponent->SetAnimation(baseAnimName + dirText);
+
+    // Play sfx
+    wolf::Audio::Play("data/sounds/sfx_roll.wav", 1.0f);
 }
 
 void PlayerController::EndRoll()
@@ -1723,6 +1722,7 @@ void PlayerController::StartDeath() {
     
     // Stop background music and play death music
     wolf::Audio::Stop("data/sounds/bgm_maze.wav");
+    wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
     wolf::Audio::Play("data/sounds/bgm_death.wav", 0.75f, 0.0f, 0.0f, true, 27.428f);
 }
 

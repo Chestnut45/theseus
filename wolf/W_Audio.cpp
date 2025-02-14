@@ -19,7 +19,9 @@ void Audio::Play(const std::string& filepath, float volume, float pitchOffset, f
     auto handle = s_core.play(sound);
     s_core.setVolume(handle, volume);
     s_core.setPan(handle, pan);
-    s_core.setProtectVoice(handle, true);
+
+    // Protect background music from being killed, but allow regular sfx to be killed in case of overload
+    if (filepath.starts_with("data/sounds/bgm_")) s_core.setProtectVoice(handle, true);
 
     // Dirty awful hack pitch shifting (barf)
     // TODO: Literally anything other than this

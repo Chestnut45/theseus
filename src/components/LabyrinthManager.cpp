@@ -183,10 +183,28 @@ void LabyrinthManager::StartBossfight()
 {
     m_inBossfight = true;
 
+    // Temporary list of enemy game objects
+    std::vector<wolf::GameObject*> enemiesToDelete;
+
     // Deactivate all chunks
     for (const auto& chunk : m_chunkMap)
     {
         DeactivateChunk(chunk.first);
+
+        // Add all enemy game objects to delete list
+        for (auto* pObject : chunk.second.m_pObject->GetChildren())
+        {
+            if (pObject->HasAny<MinitaurController, HarpyController, GorgonController>())
+            {
+                enemiesToDelete.push_back(pObject);
+            }
+        }
+    }
+
+    // Destroy all enemies
+    for (auto pObject : enemiesToDelete)
+    {
+        pObject->Delete();
     }
 
     m_prevChunk = glm::ivec2(-999, -999);

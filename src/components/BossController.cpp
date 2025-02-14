@@ -30,6 +30,8 @@
 #include <HarpyBuilder.h>
 #include "../LabyrinthTiles.h"
 
+#include <events/GameWinEvent.h>
+
 BossController::BossController()
 {
     wolf::EventManager::AddListener<DamageEvent, BossController, &BossController::OnDamageEvent>(*this);
@@ -98,7 +100,7 @@ void BossController::Init()
 
     m_pullTime = 1.5f;               // Pull state members
     m_pullTimer = 0.0f;
-    m_pullForce = 300.0f;
+    m_pullForce = 50000.0f;
 
     m_searchSpeed = 250.0f;
     m_searchTimer = 2.0f; // Seconds
@@ -605,6 +607,9 @@ void BossController::StartWave()
 {
     if (m_waveActive) return;  // Prevent duplicate wave starts
     SpawnWave(1);
+
+    // Start the boss music
+    wolf::Audio::Play("data/sounds/bgm_boss_theme.wav", 1.0f, 0.0f, 0.0f, true, 6.433f);
 }
 
 bool BossController::IsValidSpawnTile(glm::ivec2 tilePos)
@@ -658,7 +663,12 @@ void BossController::SpawnWave(int waveIndex)
     {
         case 1: minitaurs = 4; harpies = 2; break;
         case 2: gorgons = 2; harpies = 2; break;
-        case 3: minitaurs = 15; break; // Swarm of minitaurs inside the bossfight room
+        case 3: minitaurs = 5; harpies = 3; gorgons = 2; break;
+        
+        // DEBUG: Quick way through all phases
+        // case 1:
+        // case 2:
+        // case 3: minitaurs = 1; break;
     }
 
     // Get boss position
@@ -1373,12 +1383,17 @@ void BossController::EnterPhase3()
 
 void BossController::UpdatePhase3(float delta)
 {
-    // TODO: Phase 3 update logic:
-    // - Stand in place and search for player when in neutral (can only see forward, rotate around?)
-    // - When player found, if close, do fire breath attack
-    // - if far away, do charge attack
+    // Check for death
     if (m_pHealth->GetHealth() <= 0 && m_state != State::DEAD)
     {
+        m_deathTimer.Restart();
+        m_pAnimSprite->SetAnimation("Death");
+        m_pHoming->SetActive(false);
+        
+        // Stop music, play death growl
+        wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
+        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -10000.0f);
+
         m_state = State::DEAD;
         wolf::Log("It may have been the Minotaur's labyrinth but Theseus the GOAT");
     }
@@ -1387,6 +1402,18 @@ void BossController::UpdatePhase3(float delta)
     {
         case State::DEAD:
         {
+            // We tintin'
+            m_pAnimSprite->SetTint(glm::max(glm::mix(glm::vec3(1.0f), glm::vec3(1.0f, 0.0f, 0.0f), m_deathTimer.Elapsed()), glm::vec3(1.0f, 0.0f, 0.0f)));
+
+            if (m_deathTimer.Elapsed() >= 1.5f)
+            {
+                // Win the game!
+                m_active = false;
+                m_renderHealthBar = false;
+                m_deathTimer.Reset();
+                wolf::EventManager::TriggerEvent(GameWinEvent());
+            }
+
             break;
         }
 
@@ -1845,7 +1872,7 @@ void BossController::AttackCharge(float delta)
         // Play stomping sfx
         if (m_chargeStompSFXTimer.Elapsed() > 0.25f)
         {
-            wolf::Audio::Play("data/sounds/sfx_charge_stomp.wav", 0.7f, m_rng.NextFloat(-4000, 4000));
+            wolf::Audio::Play("data/sounds/sfx_charge_stomp.wav", 0.64f, m_rng.NextFloat(-4000, 4000));
             m_chargeStompSFXTimer.Restart();
         }
 
@@ -1958,15 +1985,16 @@ void BossController::Pull(float delta)
     // If still pulling time
     else
     {
-        // uupdate timer
+        // Update timer
         m_pullTimer -= delta;
 
-        // Pull if player is not rolling
-        if(m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING)
-        {
-            glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(glm::normalize(glm::vec2(thisPos - playerPos)), m_pullForce);
-        }
+        // Pull player
+        VelocityComponent* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
+        glm::vec2 direction = thisPos - playerPos;
+        direction = glm::length(direction) > 0.01f ? glm::normalize(direction) : glm::vec2(0.0f);
+
+        // Adjust force if rolling
+        float adjustedForce = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ROLLING ? m_pullForce * 0.01f : m_pullForce;
+        pPlayerVel->SetVelocity(pPlayerVel->GetVelocity() + direction * adjustedForce * delta);
     }
 }
