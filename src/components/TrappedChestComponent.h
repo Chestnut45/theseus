@@ -27,8 +27,6 @@ public:
     bool IsOpen();
     void OpenTrappedChest(); // Triggers trap
 private:
-    wolf::RNG m_RNG;
-
     int m_iID = 0;
 
     // General member variables
@@ -54,6 +52,7 @@ private:
     float m_fRotateAngle = 0.0f;
 
     // Taunt-related static variables
+    static wolf::RNG s_RNG;
     static std::vector<std::string> s_vTaunts;
     static std::vector<ImVec2> s_vTauntTextSizes;
     static const inline ImVec2 WINDOW_SIZE = ImVec2(256, 16);

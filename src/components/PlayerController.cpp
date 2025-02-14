@@ -1066,8 +1066,9 @@ void PlayerController::HandleMovement(float delta)
         m_walkSoundTimer.Restart();
     }
 
-    direction = glm::normalize(direction);
-    m_lastMoveDirectionEnum = GetDirectionFromVector(direction);
+    // Only update m_lastMoveDirectionEnum if our movement direction is not 0!
+    direction = glm::length(direction) > 0.01f ? glm::normalize(direction) : glm::vec2(0.0f);
+    m_lastMoveDirectionEnum = direction == glm::vec2(0.0f) ? m_lastMoveDirectionEnum : GetDirectionFromVector(direction);
     
     if(m_action == PlayerAction::IN_INVENTORY)
     {
@@ -1367,15 +1368,10 @@ void PlayerController::StartRoll()
     rollDirection.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
 
     // Normalize
-    rollDirection = glm::normalize(rollDirection);
-    if (glm::isnan(rollDirection.x)) rollDirection.x = 0.0f;
-    if (glm::isnan(rollDirection.y)) rollDirection.y = 0.0f;
+    rollDirection = glm::length(rollDirection) > 0.01f ? glm::normalize(rollDirection) : glm::vec2(0.0f);
     
     // Fallback to last facing dir
-    if (rollDirection == glm::vec2(0.0f))
-    {
-        rollDirection = GetLastFacingDirectionVector();
-    }
+    if (rollDirection == glm::vec2(0.0f)) rollDirection = GetLastFacingDirectionVector();
 
     // Update velocity
     m_pVelocity->SetVelocity(rollDirection * m_rollSpeed);
@@ -1399,6 +1395,9 @@ void PlayerController::StartRoll()
 
     // Set roll animation
     m_pAnimComponent->SetAnimation(baseAnimName + dirText);
+
+    // Update our cached animation name
+    m_currentAnimation = baseAnimName + dirText;
 
     // Play sfx
     wolf::Audio::Play("data/sounds/sfx_roll.wav", 1.0f);
