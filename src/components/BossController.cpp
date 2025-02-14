@@ -213,8 +213,6 @@ void BossController::Init()
     }
 
     EnterPhase1();
-    EnterPhase2();
-    EnterPhase3();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
