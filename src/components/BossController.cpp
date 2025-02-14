@@ -78,7 +78,7 @@ void BossController::Init()
     m_fireBreathWindupTime = 1.5f; // Seconds
     m_fireBreathWindupTimer = 0.0f; // Seconds
     m_fireBreathWindupTint = glm::vec3(3.0f, 1.0f, 1.0f);
-    m_fireBreathDamage = 10; // Per projectile
+    m_fireBreathDamage = 20;
     m_fireBreathRange = 0.0f;
     m_fireBreathRangeExtender = 750.0f;
     m_fireBreathDuration = 1.5f;
@@ -97,7 +97,7 @@ void BossController::Init()
     m_stunTimer = 0.0f; // Seconds
     m_chargeTurningCapDegree = 6.0f; // Degrees
     m_chargeTurningDelay = 0.2f; // Seconds
-    m_chargeSpeed = 550.0f;
+    m_chargeSpeed = 600.0f;
     m_chargeKnockbackForce = 10000.0f;
     m_chargeChainCount = 0;
 
@@ -2196,7 +2196,6 @@ void BossController::StartPull()
 
 void BossController::Pull(float delta)
 {
-    printf("PULL\n");
     // if pull timer expired
     if(m_pullTimer <= 0.0f)
     {
@@ -2256,7 +2255,11 @@ void BossController::LastStandSupercharge()
     m_idleTimeRange *= 0.75f;
     m_stunTime *= 0.5f;
     m_searchSpeed += 100.0f;
+
+    m_chargeWindupTime -= 0.5f;
     m_chargeAttackDamage += 50.0f;
     m_chargeSpeed += 200.0f;
+
+    m_fireBreathWindupTime -= 0.5f;
     m_fireBreathRangeExtender += 300.0f;
 }
