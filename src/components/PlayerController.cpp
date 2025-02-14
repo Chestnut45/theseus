@@ -1373,7 +1373,7 @@ void PlayerController::StartRoll()
     if (glm::isnan(rollDirection.x)) rollDirection.x = 0.0f;
     if (glm::isnan(rollDirection.y)) rollDirection.y = 0.0f;
     
-    // If after normalization somehow it is less than unit length, fallback to last facing dir
+    // Fallback to last facing dir
     if (rollDirection == glm::vec2(0.0f))
     {
         rollDirection = GetLastFacingDirectionVector();

@@ -663,7 +663,7 @@ void BossController::SpawnWave(int waveIndex)
     {
         case 1: minitaurs = 4; harpies = 2; break;
         case 2: gorgons = 2; harpies = 2; break;
-        case 3: minitaurs = 5; harpies = 3; gorgons = 2; break; // Swarm of minitaurs inside the bossfight room
+        case 3: minitaurs = 5; harpies = 3; gorgons = 2; break;
         
         // DEBUG: Quick way through all phases
         // case 1:
@@ -1388,6 +1388,7 @@ void BossController::UpdatePhase3(float delta)
     {
         m_deathTimer.Restart();
         m_pAnimSprite->SetAnimation("Death");
+        m_pHoming->SetActive(false);
         
         // Stop music, play death growl
         wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
