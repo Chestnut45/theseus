@@ -1389,8 +1389,6 @@ void BossController::EnterPhase3()
     GetGameObject()->DeleteComponent<ColliderComponent>();
     m_pCollider = &GetGameObject()->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
     m_pCollider->AddColliderBox(glm::vec2(120.0f), glm::vec2(-56, 64));
-
-    std::cout << "Boss Health: " << m_pHealth->GetHealth() << std::endl;
 }
 
 void BossController::UpdatePhase3(float delta)
