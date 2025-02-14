@@ -100,7 +100,7 @@ void BossController::Init()
 
     m_pullTime = 1.5f;               // Pull state members
     m_pullTimer = 0.0f;
-    m_pullForce = 300.0f;
+    m_pullForce = 50000.0f;
 
     m_searchSpeed = 250.0f;
     m_searchTimer = 2.0f; // Seconds
@@ -1991,9 +1991,10 @@ void BossController::Pull(float delta)
         // Pull if player is not rolling
         if(m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING)
         {
-            glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            m_pPlayerObject->GetComponent<VelocityComponent>()->ApplyKnockback(glm::normalize(glm::vec2(thisPos - playerPos)), m_pullForce);
+            VelocityComponent* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
+            glm::vec2 direction = thisPos - playerPos;
+            direction = glm::length(direction) > 0.01f ? glm::normalize(direction) : glm::vec2(0.0f);
+            pPlayerVel->SetVelocity(pPlayerVel->GetVelocity() + direction * m_pullForce * delta);
         }
     }
 }
