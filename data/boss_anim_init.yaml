@@ -13,4 +13,5 @@ animation_sets: [
   data/boss_growl_anim_set.yaml,
   data/boss_throne_anim_set.yaml,
   data/boss_walk_anim_set.yaml,
+  data/boss_death_anim_set.yaml,
 ]

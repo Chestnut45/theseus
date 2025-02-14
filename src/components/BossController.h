@@ -160,6 +160,7 @@ private:
     ColliderComponent* m_pAxeCollider = nullptr;
 
     // Phase 3 stats
+    wolf::Timer m_deathTimer;
     float m_fireBreathWindupTime;   // Fire breath state members
     float m_fireBreathWindupTimer;
     glm::vec3 m_fireBreathWindupTint;
