@@ -2253,7 +2253,7 @@ void BossController::Dead(float delta)
 
 void BossController::LastStandSupercharge()
 {
-    m_idleTimeRange *= 0.5f;
+    m_idleTimeRange *= 0.75f;
     m_stunTime *= 0.5f;
     m_searchSpeed += 100.0f;
     m_chargeAttackDamage += 50.0f;
