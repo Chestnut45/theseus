@@ -103,7 +103,7 @@ void BossController::Init()
 
     m_pullTime = 1.5f;               // Pull state members
     m_pullTimer = 0.0f;
-    m_pullForce = 500.0f;
+    m_pullForce = 100000.0f;
 
     m_searchSpeed = 300.0f;
     m_searchTimer = 2.0f; // Seconds
@@ -213,6 +213,8 @@ void BossController::Init()
     }
 
     EnterPhase1();
+    EnterPhase2();
+    EnterPhase3();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -1408,7 +1410,12 @@ void BossController::UpdatePhase3(float delta)
         wolf::Log("It may have been the Minotaur's labyrinth but Theseus the GOAT");
     }
 
-    
+    // Stop fire sfx when fire lifetime over
+    if (m_fireSFXTimer.Elapsed() >= 10.0f)
+    {
+        m_fireSFXTimer.Reset();
+        wolf::Audio::Stop("data/sounds/sfx_fire.wav");
+    }
 
     switch (m_state)
     {
@@ -1865,6 +1872,10 @@ void BossController::AttackFireBreath(float delta)
             glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
             glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
             m_lastDirection = glm::normalize(playerPos - thisPos);
+            
+            // Play fire sfx
+            wolf::Audio::Play("data/sounds/sfx_fire.wav", 0.5f);
+            m_fireSFXTimer.Restart();
         }
         // If still windup
         else
@@ -2130,6 +2141,7 @@ void BossController::AttackCharge(float delta)
                             if(pillar->GetID() == id)
                             {   
                                 this->GetGameObject()->GetScene().DeleteObject(pillar->GetID());
+                                wolf::Audio::Play("data/sounds/sfx_pillar_break.wav", 0.64f);
                                 break;
                             }
                         }
@@ -2227,7 +2239,7 @@ void BossController::Pull(float delta)
 
         // Adjust force if rolling
         float adjustedForce = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ROLLING ? m_pullForce * 0.01f : m_pullForce;
-        pPlayerVel->SetVelocity(pPlayerVel->GetVelocity() + direction * adjustedForce);
+        pPlayerVel->SetVelocity(pPlayerVel->GetVelocity() + direction * adjustedForce * delta);
     }
 }
 
