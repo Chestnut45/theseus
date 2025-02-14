@@ -212,7 +212,7 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
-    EnterPhase3();
+    EnterPhase1();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -1390,7 +1390,6 @@ void BossController::EnterPhase3()
     m_pCollider = &GetGameObject()->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
     m_pCollider->AddColliderBox(glm::vec2(120.0f), glm::vec2(-56, 64));
 
-    m_pHealth->Pierce(m_maxHealth * 0.5f); // REMOVE THIS LINE
     std::cout << "Boss Health: " << m_pHealth->GetHealth() << std::endl;
 }
 
