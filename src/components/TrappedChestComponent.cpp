@@ -246,7 +246,6 @@ void TrappedChestComponent::Explode()
         knockbackForce *= 16.0f;
         player->GetComponent<VelocityComponent>()->ApplyKnockback(line, knockbackForce);
     }
-    // TODO - Apply line-of-sight check to explosion to account for walls
 }
 
 // Spawns Gorgon
