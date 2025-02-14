@@ -1407,7 +1407,7 @@ void BossController::UpdatePhase3(float delta)
         wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
         wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -10000.0f);
 
-        m_state = State::DEAD;
+        ChangeStatesPhase3(State::DEAD);
         wolf::Log("It may have been the Minotaur's labyrinth but Theseus the GOAT");
     }
 
