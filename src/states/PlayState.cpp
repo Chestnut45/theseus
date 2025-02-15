@@ -27,6 +27,7 @@
 #include <BossController.h>
 #include <W_Audio.h>
 #include <events/PauseEvent.h>
+#include <BoundedFluidSystem2D.h>
 
 void PlayState::Enter()
 {
@@ -172,7 +173,10 @@ void PlayState::Enter()
     m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
     m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
 
-
+    // DEBUG: Fluid system testing
+    auto& fluidObj = scene.CreateObject2D();
+    fluidObj.AddComponent<BoundedFluidSystem2D>(wolf::Rectangle(0.0f, 800.0, 800.0f, 0.0f));
+    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f));
    
     // Schedule her movement
     auto* transform = ariadne.GetComponent<wolf::Transform2D>();
@@ -180,7 +184,7 @@ void PlayState::Enter()
         glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
         transform->SetPosition(newPosition);
     }
-    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+    // wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
 
 
 
@@ -237,6 +241,12 @@ void PlayState::Update(float delta)
     // DEBUG: Teleport to bossfight
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT))
         m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
+    
+    // Update fluid systems
+    for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
+    {
+        system.Update(delta);
+    }
 
     // Show the Labyrinth Manager debug GUI
     if (m_showLabyrinthManager) 

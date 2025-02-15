@@ -8,6 +8,7 @@
 #include "W_TileMap.h"
 #include "W_Transform2D.h"
 #include "AnimatedSprite2D.h"
+#include <BoundedFluidSystem2D.h>
 #include <W_Input.h>
 
 #include "../src/components/ColliderComponent.h"
@@ -132,6 +133,12 @@ void Scene::Render(float delta)
         {
             pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
         }
+    }
+
+    // Render fluid systems
+    for (auto&&[_, system] : Each<BoundedFluidSystem2D>())
+    {
+        system.Render(delta);
     }
 
     // Build map of animated sprites to render by layer
