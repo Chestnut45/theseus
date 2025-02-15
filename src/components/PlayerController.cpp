@@ -1042,7 +1042,6 @@ void PlayerController::HandleMovement(float delta)
         m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
         return;
     }
-
     glm::vec2 direction(0.0f);
 
     // Track and update currently held keys for smooth directional input
@@ -1118,7 +1117,6 @@ void PlayerController::HandleRolling(float delta)
 {
     // Prevent rolling if the player is in the inventory state
     if (m_action == PlayerAction::IN_INVENTORY) return;
-
     m_rollTimer -= delta;
     if (m_rollTimer <= 0.0f) SetAction(PlayerAction::NONE);
     return;
