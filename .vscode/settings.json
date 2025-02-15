@@ -82,6 +82,5 @@
         "future": "cpp",
         "valarray": "cpp",
         "cassert": "cpp",
-        "shared_mutex": "cpp"
     }
 }
