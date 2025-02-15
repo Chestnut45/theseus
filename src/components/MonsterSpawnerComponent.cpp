@@ -133,8 +133,17 @@ void MonsterSpawnerComponent::SpawnMonsters()
             glm::vec2 worldPos = m_pLBMG->GetWorldPosition(pos);
             worldPos += glm::vec2(0.5f * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
 
+            // Get chunk data
+            glm::ivec2 gorgonChunkID = m_pLBMG->GetChunkID(pos);
+            wolf::GameObject* gorgonChunk = m_pLBMG->GetChunk(gorgonChunkID);
+            
+            // Skip if gorgon spawning in invalid chunk
+            if(!gorgonChunk) continue;
+
+            // Spawn gorgon
             wolf::GameObject& gorgon = gorgonBuilder.BuildGorgon(gorgonData, worldPos);
             gorgon.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE));
+            gorgonChunk->AddChild(gorgon);
         }
     }
 
@@ -161,11 +170,20 @@ void MonsterSpawnerComponent::SpawnMonsters()
             m_vOccupiedTiles.push_back(pos);
             m_vAvailableTiles.erase(m_vAvailableTiles.begin() + randomIndex);
             
+            // Calculate world position
             glm::vec2 worldPos = m_pLBMG->GetWorldPosition(glm::vec2(pos));
             worldPos += glm::vec2(0.5f * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
 
+            // Get chunk data
+            glm::ivec2 minitaurChunkID = m_pLBMG->GetChunkID(pos);
+            wolf::GameObject* minitaurChunk = m_pLBMG->GetChunk(minitaurChunkID);
+            
+            // Skip if minitaur spawning in invalid chunk
+            if(!minitaurChunk) continue;
+            
             wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, worldPos);
             minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE));
+            minitaurChunk->AddChild(minitaur);
         }
     }
 
@@ -181,8 +199,16 @@ void MonsterSpawnerComponent::SpawnMonsters()
 
             pos = m_pLBMG->GetWorldPosition(pos);
 
+            // Get chunk data
+            glm::ivec2 harpyChunkID = m_pLBMG->GetChunkID(pos);
+            wolf::GameObject* harpyChunk = m_pLBMG->GetChunk(harpyChunkID);
+            
+            // Skip if minitaur spawning in invalid chunk
+            if(!harpyChunk) continue;
+            
             wolf::GameObject& harpy = harpyBuilder.BuildHarpy(harpyData, pos);
-            harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE));  
+            harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE));
+            harpyChunk->AddChild(harpy);
         }
     } 
 }
