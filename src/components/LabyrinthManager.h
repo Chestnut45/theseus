@@ -182,6 +182,7 @@ private:
     // Flags
     bool m_randomizeSeed = false;
     bool m_isGenerated = false;
+    bool m_inBossfight = false;
 
     // Tile data
 
@@ -255,7 +256,7 @@ private:
         // Entity types
         enum class EntityType
         {
-            Minitaur,
+            Minitaur = 0,
             Harpy,
             Gorgon,
             CommonChest,
@@ -273,8 +274,12 @@ private:
             DaedalusNPC,
             AriadneNPC,
             RandomNPC,
+            BoulderTrap,
+
+            // CONSTANT, LEAVE AT END
+            ENTITY_COUNT
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC", "Boulder Trap"};
 
         enum class SpawnPosType
         {
@@ -297,8 +302,9 @@ private:
         std::vector<EntitySpawnData> m_entitySpawns;
     };
 
-    // Map of string names to entity IDs
+    // Map of string names to entity IDs (and vice versa)
     static std::unordered_map<std::string, Room::EntityType> s_entityIDs;
+    static std::string s_entityNames[(int)Room::EntityType::ENTITY_COUNT];
 
     // List of all rooms to be generated in the labyrinth
     std::vector<Room> m_rooms;
@@ -354,6 +360,9 @@ private:
     glm::ivec2 m_prevChunk = glm::ivec2(0);
 
     // Helper methods
+
+    // Deactivates all chunks and stops updating the rest of the labyrinth
+    void StartBossfight();
 
     // Activates a chunk, recursively updating all child objects' flags.
     void ActivateChunk(const glm::ivec2& chunkID);

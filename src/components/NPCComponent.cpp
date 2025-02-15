@@ -214,16 +214,22 @@ void NPCComponent::PlayNextDialogue() {
 
 // Add a dialogue entry to the priority queue
 void NPCComponent::QueueDialogue(const std::string& p_strEntryID) {
-    NPCDialogueEntry* dialogue = m_mDialogueEntries.at(p_strEntryID);
-    if (dialogue) {
-        if (!dialogue->bHasPlayed || dialogue->bHasPlayed && dialogue->bCanRepeat) {
-            m_pqDialogueQueue.push(dialogue);
+    // Ensure the entry exists before accessing it
+    auto it = m_mDialogueEntries.find(p_strEntryID);
+    if (it == m_mDialogueEntries.end()) {
+        // wolf::Log("Dialogue entry not found!");
+        return;
+    }
 
-            // If the priority value of that item was higher than the current highest
-            if (dialogue->iPriority > m_iCurHighPriorityVal) {
-                // Set it as the current highest
-                m_iCurHighPriorityVal = dialogue->iPriority;
-            }
+    NPCDialogueEntry* dialogue = it->second;
+    if (!dialogue) return;
+    if (!dialogue->bHasPlayed || dialogue->bHasPlayed && dialogue->bCanRepeat) {
+        m_pqDialogueQueue.push(dialogue);
+
+        // If the priority value of that item was higher than the current highest
+        if (dialogue->iPriority > m_iCurHighPriorityVal) {
+            // Set it as the current highest
+            m_iCurHighPriorityVal = dialogue->iPriority;
         }
     }
 }
@@ -377,6 +383,10 @@ void NPCComponent::EnterIdleState()
 
 void NPCComponent::EnterRoamState()
 {
+    if (m_strName == "Daedalus" || m_strName == "Ariadne") {
+        ChangeState(IDLE); // Prevent roaming
+        return;
+    }
     m_fRoamTimer = s_RNG.NextFloat(4.0f, 6.0f); // Reset the roam timer
     glm::vec2 newVector = glm::normalize(glm::vec2(s_RNG.NextFloat(-5.0f, 5.0f), s_RNG.NextFloat(-5.0f, 5.0f))) * m_fRoamSpeed; // Get a random roam direction
     TurnToDirection(newVector); // Set the NPC sprite to the new direction

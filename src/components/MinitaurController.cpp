@@ -11,10 +11,12 @@
 
 MinitaurController::MinitaurController()
 {
+    wolf::EventManager::AddListener<InfightingEvent, MinitaurController, &MinitaurController::HandleInfighting>(*this);
 }
 
 MinitaurController::~MinitaurController()
 {
+    wolf::EventManager::AddListener<InfightingEvent, MinitaurController, &MinitaurController::HandleInfighting>(*this);
 }
 
 void MinitaurController::Init(const EnemyData& data)
@@ -88,7 +90,17 @@ void MinitaurController::Update(float delta)
     // Ensure components and target are initialized before performing any updates
     if (!m_active || !m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
-    
+
+    if (m_pTarget)
+    {
+        auto* targetHealth = m_pTarget->GetComponent<HealthComponent>();
+        if (!targetHealth || targetHealth->GetHealth() <= 0) 
+        {
+            // wolf::Warning("LIL BLUD CAN'T FIND A TARGET, SO HE'S SWITCHING BACK TO THE PLAYER");
+            RevertToPlayerTarget();
+        }
+    }
+
     // Update the base class
     EnemyController::Update(delta);
 
@@ -441,7 +453,6 @@ void MinitaurController::HandleAttackingState(float delta)
             if (playerHealth)
             {
                 playerHealth->Damage(m_baseDamage);
-                wolf::Audio::Play("data/sounds/hurt.wav");
             }
 
             // Apply strong knockback to the player
@@ -736,4 +747,33 @@ glm::vec2 MinitaurController::GetTileWorldPos(glm::ivec2 p_tile_pos)
         (float)p_tile_pos.y * (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE)
     );
     return res;
+}
+
+void MinitaurController::HandleInfighting(const InfightingEvent& event)
+{
+    if (event.m_pVictim == GetGameObject()) // This Minitaur got hit
+    {
+            // Ignore if already attacking this enemy
+            if (m_pTarget == event.m_pAttacker) return;
+
+            // **Minitaur fights back once hit**
+            m_pTarget = event.m_pAttacker;
+            ChangeState(EnemyState::CHASING);
+
+            // wolf::Log("Minitaur " + std::to_string(GetGameObject()->GetID()) + 
+            //                 " is now fighting " + std::to_string(m_pTarget->GetID()));
+    }
+}
+
+void MinitaurController::RevertToPlayerTarget()
+{
+    for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
+    {
+        m_pTarget = playerController.GetGameObject();
+        return;
+    }
+
+    // If no player found, log a warning
+    // wolf::Warning("BLUD CAN'T FIND A TARGET");
+    m_pTarget = nullptr; // No valid target
 }

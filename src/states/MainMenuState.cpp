@@ -1,15 +1,19 @@
 #include "MainMenuState.h"
 #include "PlayState.h"
 #include <imgui/imgui.h>
+#include <W_Audio.h>
 
 void MainMenuState::Enter()
 {
     // Initialize the main menu
+    wolf::Audio::Stop();
+    wolf::Audio::Play("data/sounds/bgm_title_screen.wav", 1.2f, 0.0f, 0.0f, true, 3.31f);
 }
 
 void MainMenuState::Exit()
 {
     // Clean up the main menu
+    wolf::Audio::Stop();
 }
 
 void MainMenuState::Update(float delta)
@@ -20,23 +24,20 @@ void MainMenuState::Update(float delta)
     // Get the dimensions of the game window
     const int w = m_pGameInstance->GetWidth();
     const int h = m_pGameInstance->GetHeight();
-    const int halfWidth = w / 2;
-    const int halfHeight = h / 2;
-
-    // Menu window size
-    const int menuWidth = 256;
-    const int menuHeight = 256;
 
     // Button sizes
     const int buttonWidth = 128;
     const int buttonHeight = 48;
+    const int buttonSpacing = 20; // Space between buttons
 
     // Set the UI window to cover the screen
     ImGui::SetNextWindowPos({0.0f, 0.0f});
     ImGui::SetNextWindowSize({(float)w, (float)h});
 
-    // Make the window non-resizeable, remove toolbar, etc.
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+    // Make the window non-resizable, remove toolbar, etc.
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | 
+                             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | 
+                             ImGuiWindowFlags_NoScrollWithMouse;
 
     // Set a background color for now until we make a splash screen
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.096f, 0.088f, 0.196f, 1.0f));
@@ -61,33 +62,28 @@ void MainMenuState::Update(float delta)
     // Spacing
     ImGui::NewLine();
 
-    // Centered buttons
-
     // Push the button style vars and colors
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
-
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
-    ImGui::SetCursorPosX((dimensions.x - buttonWidth) * 0.5f);
-    ImGui::SetCursorPosY(dimensions.y * 0.75f);
+    // Center buttons side by side
+    float totalButtonWidth = (2 * buttonWidth) + buttonSpacing;
+    float startX = (dimensions.x - totalButtonWidth) * 0.5f;
+    float buttonY = dimensions.y * 0.75f;
+
+    ImGui::SetCursorPosX(startX);
+    ImGui::SetCursorPosY(buttonY);
     if (ImGui::Button("Play", {buttonWidth, buttonHeight}))
     {
         m_pStateManager->PushState(new PlayState(m_pStateManager, m_pGameInstance));
     }
 
-    ImGui::SetCursorPosX((dimensions.x - 4*buttonWidth) * 0.5f);
-    ImGui::SetCursorPosY(dimensions.y * 0.75f);
-    if (ImGui::Button("Options", {buttonWidth, buttonHeight}))
-    {
-        // TODO: Options menu (when necessary)
-    }
-
-    ImGui::SetCursorPosX((dimensions.x + 2*buttonWidth) * 0.5f);
-    ImGui::SetCursorPosY(dimensions.y * 0.75f);
+    ImGui::SameLine(); // Keep the next button on the same row
+    ImGui::SetCursorPosX(startX + buttonWidth + buttonSpacing);
     if (ImGui::Button("Quit", {buttonWidth, buttonHeight}))
     {
         m_pGameInstance->Shutdown();

@@ -2,6 +2,8 @@
 #include "inventory/ItemCreator.h"
 #include "AnimatedSprite2D.h"
 
+#include <W_Audio.h>
+
 DispensaryInventoryComponent::~DispensaryInventoryComponent() {
     // Deregister for events
     wolf::EventManager::RemoveListener<OpenInventoryEvent, DispensaryInventoryComponent, &DispensaryInventoryComponent::HandleOpenInventoryEvent>(*this);
@@ -121,7 +123,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
 
         // Position the inventory
         ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
-        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.15f};
+        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), 256};
 
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos(v2WindowDrawPos);
@@ -138,11 +140,22 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
         // And then create the background image
         ImGui::GetWindowDrawList()->AddImage((ImTextureID)(intptr_t)m_pFrameTexture->GetID(), v2BGMin, v2BGMax, m_vv2FrameTextureCoords[1]->m_v2TopLeft, m_vv2FrameTextureCoords[1]->m_v2BotRight);
 
-        // Newline for padding
-        ImGui::NewLine();
+        float fWindowWidth = ImGui::GetWindowSize().x;
+        float fWindowHeight = ImGui::GetWindowSize().y;
+
+        // Push the colors for the X button
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 0.25f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.f, 0.f, 0.f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.f, 0.f, 0.f, 0.75f));
+
+        ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
+        if (ImGui::Button("X", ImVec2(fWindowWidth * 0.10f, fWindowHeight * 0.064f))) {
+            this->Close();
+        }
+
+        ImGui::PopStyleColor(3);
 
         // Write the inventory title
-        float fWindowWidth = ImGui::GetWindowSize().x;
         float fTextWidth = ImGui::CalcTextSize("~ Daedalus Dispensary ~").x;
 
         ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
@@ -358,6 +371,12 @@ void DispensaryInventoryComponent::DispenseItem(int p_iItemIndex) {
 }
 
 void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
+
+    if (p_event.enType == InventoryType::DISPENSARY_INVENTORY && p_event.iIdNum == m_iIdNum)
+    {
+        wolf::Audio::Play("data/sounds/sfx_dispensary_open.wav", 1.0f);
+    }
+
     // If this dispensary is open
     if (m_bIsOpen) {
         // And a different inventory that ISN'T the player's was just opened
@@ -373,16 +392,27 @@ void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryE
 }
 
 void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
+
+    bool sfxPlayed = false;
+    if (p_event.enType == InventoryType::DISPENSARY_INVENTORY && p_event.iIdNum == m_iIdNum)
+    {
+        wolf::Audio::Play("data/sounds/sfx_dispensary_close.wav", 1.0f);
+        sfxPlayed = true;
+    }
+
     // If this dispensary is open
     if (m_bIsOpen) {
         // And the player just closed their inventory
-        if (p_event.enType == PLAYER_INVENTORY) {
+        if (p_event.enType == PLAYER_INVENTORY || p_event.enType == DISPENSARY_INVENTORY) {
             // Close the dispensary as well
             m_bIsOpen = false;
             AnimatedSprite2D* pAnim = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
             if (pAnim) {
                 pAnim->SetAnimation("Deactivate");
             }
+
+            // Play SFX in edge case where dispensary inventory is closed by walking away
+            if (!sfxPlayed) wolf::Audio::Play("data/sounds/sfx_dispensary_close.wav", 1.0f);
 
             // Hide the child icon
             for (auto& child : this->GetGameObject()->GetChildren()) {

@@ -41,6 +41,7 @@
 #include <NPCComponent.h>
 
 std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
+std::string LabyrinthManager::s_entityNames[(int)LabyrinthManager::Room::EntityType::ENTITY_COUNT];
 
 LabyrinthManager::LabyrinthManager()
 {
@@ -57,10 +58,19 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["trapped_chest_harpy"] = Room::EntityType::TrappedChestHarpy;
     s_entityIDs["trapped_chest_minitaur"] = Room::EntityType::TrappedChestMinitaur;
     s_entityIDs["dispensary"] = Room::EntityType::DaedalusDispensary;
+    s_entityIDs["throwable_object"] = Room::EntityType::ThrowableObject;
     s_entityIDs["spike_trap"] = Room::EntityType::SpikeTrap;
     s_entityIDs["ariadne_npc"] = Room::EntityType::AriadneNPC;
     s_entityIDs["daedalus_npc"] = Room::EntityType::DaedalusNPC;
     s_entityIDs["random_npc"] = Room::EntityType::RandomNPC;
+    s_entityIDs["boulder_trap"] = Room::EntityType::BoulderTrap;
+
+
+    // Auto generate ordered array of names
+    for (auto entry : s_entityIDs)
+    {
+        s_entityNames[(int)entry.second] = entry.first;
+    }
 }
 
 LabyrinthManager::~LabyrinthManager()
@@ -69,6 +79,9 @@ LabyrinthManager::~LabyrinthManager()
 
 void LabyrinthManager::Update(float delta)
 {
+    // Don't update chunks when in bossfight
+    if (m_inBossfight) return;
+
     auto* pObject = GetGameObject();
     auto* pPlayer = GetPlayer();
 
@@ -164,6 +177,37 @@ void LabyrinthManager::Update(float delta)
 
     // Update cached chunk ID
     m_prevChunk = chunkID;
+}
+
+void LabyrinthManager::StartBossfight()
+{
+    m_inBossfight = true;
+
+    // Temporary list of enemy game objects
+    std::vector<wolf::GameObject*> enemiesToDelete;
+
+    // Deactivate all chunks
+    for (const auto& chunk : m_chunkMap)
+    {
+        DeactivateChunk(chunk.first);
+
+        // Add all enemy game objects to delete list
+        for (auto* pObject : chunk.second.m_pObject->GetChildren())
+        {
+            if (pObject->HasAny<MinitaurController, HarpyController, GorgonController>())
+            {
+                enemiesToDelete.push_back(pObject);
+            }
+        }
+    }
+
+    // Destroy all enemies
+    for (auto pObject : enemiesToDelete)
+    {
+        pObject->Delete();
+    }
+
+    m_prevChunk = glm::ivec2(-999, -999);
 }
 
 void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
@@ -714,27 +758,11 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
 
                 // Grab the entity node
                 YAML::Node entity = entities[e];
-                std::string eType = entity["type"] ? entity["type"].as<std::string>() : "";
 
-                // Parse data
-                if (eType == "minitaur") data.m_type = Room::EntityType::Minitaur;
-                if (eType == "harpy") data.m_type = Room::EntityType::Harpy;
-                if (eType == "gorgon") data.m_type = Room::EntityType::Gorgon;
-                if (eType == "common_chest") data.m_type = Room::EntityType::CommonChest;
-                if (eType == "uncommon_chest") data.m_type = Room::EntityType::UncommonChest;
-                if (eType == "rare_chest") data.m_type = Room::EntityType::RareChest;
-                if (eType == "epic_chest") data.m_type = Room::EntityType::EpicChest;
-                if (eType == "legendary_chest") data.m_type = Room::EntityType::LegendaryChest;
-                if (eType == "trapped_chest_explode") data.m_type = Room::EntityType::TrappedChestExplode;
-                if (eType == "trapped_chest_gorgon") data.m_type = Room::EntityType::TrappedChestGorgon;
-                if (eType == "trapped_chest_harpy") data.m_type = Room::EntityType::TrappedChestHarpy;
-                if (eType == "trapped_chest_minitaur") data.m_type = Room::EntityType::TrappedChestMinitaur;
-                if (eType == "dispensary") data.m_type = Room::EntityType::DaedalusDispensary;
-                if (eType == "throwable_object") data.m_type = Room::EntityType::ThrowableObject;
-                if (eType == "ariadne_npc") data.m_type = Room::EntityType::AriadneNPC;
-                if (eType == "daedalus_npc") data.m_type = Room::EntityType::DaedalusNPC;
-                if (eType == "random_npc") data.m_type = Room::EntityType::RandomNPC;
-                
+                // Lookup entity ID by the string name from yaml
+                std::string eType = entity["type"] ? entity["type"].as<std::string>() : "";
+                data.m_type = s_entityIDs.contains(eType) ? s_entityIDs[eType] : data.m_type;
+
                 data.m_amount = entity["amount"] ? entity["amount"].as<int>() : data.m_amount;
 
                 // Parse placement
@@ -862,63 +890,8 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
         {
             const auto& data = room.m_entitySpawns[e];
             file << "\t\t\t{type: ";
-            switch (data.m_type)
-            {
-                case Room::EntityType::Minitaur:
-                    file << "minitaur, amount: ";
-                    break;
-                case Room::EntityType::Harpy:
-                    file << "harpy, amount: ";
-                    break;
-                case Room::EntityType::Gorgon:
-                    file << "gorgon, amount: ";
-                    break;
-                case Room::EntityType::CommonChest:
-                    file << "common_chest, amount: ";
-                    break;
-                case Room::EntityType::UncommonChest:
-                    file << "uncommon_chest, amount: ";
-                    break;
-                case Room::EntityType::RareChest:
-                    file << "rare_chest, amount: ";
-                    break;
-                case Room::EntityType::EpicChest:
-                    file << "epic_chest, amount: ";
-                    break;
-                case Room::EntityType::LegendaryChest:
-                    file << "legendary_chest, amount: ";
-                    break;
-                case Room::EntityType::TrappedChestExplode:
-                    file << "trapped_chest_explode, amount: ";
-                    break;
-                case Room::EntityType::TrappedChestGorgon:
-                    file << "trapped_chest_gorgon, amount: ";
-                    break;
-                case Room::EntityType::TrappedChestHarpy:
-                    file << "trapped_chest_harpy, amount: ";
-                    break;
-                case Room::EntityType::TrappedChestMinitaur:
-                    file << "trapped_chest_minitaur, amount: ";
-                    break;
-                case Room::EntityType::DaedalusDispensary:
-                    file << "dispensary, amount: ";
-                    break;
-                case Room::EntityType::SpikeTrap:
-                    file << "spike_trap, amount: ";
-                    break;
-                case Room::EntityType::ThrowableObject:
-                    file << "throwable_object, amount: ";
-                    break;
-                case Room::EntityType::AriadneNPC:
-                    file << "ariadne_npc, amount: ";
-                    break;
-                case Room::EntityType::DaedalusNPC:
-                    file << "daedalus_npc, amount: ";
-                    break;
-                case Room::EntityType::RandomNPC:
-                    file << "random_npc, amount: ";
-                    break;
-            }
+            file << s_entityNames[(int)data.m_type];
+            file << ", amount: ";
             file << std::to_string(data.m_amount).c_str();
             file << ", placement: ";
             switch (data.m_spawnPosType)
@@ -2233,6 +2206,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         
                         // Set up the icon's animated sprite
                         auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/item_icons_anim_init.yaml");
+                        iconSprite.SetLayer(9);
                         
                         // Add the icon as a child object of the dispensary
                         dispensary.AddChild(icon);
@@ -2384,6 +2358,32 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         GetChunk(GetChunkID(pos))->AddChild(throwableGO);
                         break;
                     }
+                    case Room::EntityType::BoulderTrap:
+                    {
+                        // Create the trap object
+                        auto& trap = pObject->GetScene().CreateObject2D();
+
+                        // Add sprite
+                        auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
+                        sprite.SetOriginToCenterOfTexture();
+                        sprite.SetLayer(0);
+
+                        // Set position
+                        auto& transform = *trap.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add a collider for interaction
+                        auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+                        collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
+
+                        // Add the TriggerComponent
+                        trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::BOULDER_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);
+
+                        // Add the object to the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(trap);
+                        break;
+                    }
                 }
             }
         }
@@ -2470,6 +2470,7 @@ void LabyrinthManager::GenerateEntrance()
     
     // Set up the icon's animated sprite
     auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/item_icons_anim_init.yaml");
+    iconSprite.SetLayer(9);
     
     // Add the icon as a child object of the dispensary
     dispensary.AddChild(icon);

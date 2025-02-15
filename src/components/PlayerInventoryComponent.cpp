@@ -188,7 +188,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
         // Position the inventory
         ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
-        ImVec2 v2WindowDrawPos = {10.0f, v2DisplaySize.y * 0.15f};
+        ImVec2 v2WindowDrawPos = {10.0f, 256};
         
         ImGui::SetNextWindowPos(v2WindowDrawPos);
         ImGui::SetNextWindowSize({0,0});
@@ -204,21 +204,26 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
         // And then create the background image
         ImGui::GetWindowDrawList()->AddImage((ImTextureID)(intptr_t)m_pFrameTexture->GetID(), v2BGMin, v2BGMax, m_vv2FrameTextureCoords[1]->m_v2TopLeft, m_vv2FrameTextureCoords[1]->m_v2BotRight);
 
-        // Newline for padding
-        ImGui::NewLine();
+        float fWindowWidth = ImGui::GetWindowSize().x;
+        float fWindowHeight = ImGui::GetWindowSize().y;
+
+        // Push the colors for the X button
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 0.25f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.f, 0.f, 0.f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.f, 0.f, 0.f, 0.75f));
+
+        ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
+        if (ImGui::Button("X", ImVec2(fWindowWidth * 0.10f, fWindowHeight * 0.064f))) {
+            this->Close();
+        }
+
+        ImGui::PopStyleColor(3);
 
         // Write the inventory title
-        float fWindowWidth = ImGui::GetWindowSize().x;
         float fTextWidth = ImGui::CalcTextSize("~ Inventory ~").x;
 
         ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
         ImGui::Text("~ Inventory ~");
-
-        // If we closed the inventory
-        if (!m_bIsOpen) {
-            // Let anyone interested know
-            wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
-        }
 
         // This counter lets us control how many items are drawn in a row
         int counter = 0;
@@ -905,14 +910,6 @@ int PlayerInventoryComponent::GetNumSchematics() {
 
     // Then return the count
     return iCount;
-}
-
-void PlayerInventoryComponent::Close() {
-    // Close the inventory
-    m_bIsOpen = false;
-
-    // Then let anyone interested know it happened
-    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
 }
 
 void PlayerInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
