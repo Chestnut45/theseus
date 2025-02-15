@@ -192,9 +192,13 @@ void PlayState::Enter()
     // Monster Spawner DEMO
     wolf::GameObject* monsterSpawnerObj = &m_pGameInstance->GetScene().CreateObject2D();
     MonsterSpawnerComponent::MonsterSpawnerData msd;
-    msd.spawnerTilePos = glm::ivec2(50, 1);
-    msd.spawnerSize = glm::ivec2(7, 5);
-    msd.harpyCount = 2;
+    msd.spawnerTilePos = glm::ivec2(49, 1);
+    msd.spawnerSize = glm::ivec2(5, 7);
+    msd.triggerTilePos = glm::ivec2(50, 5);
+    msd.triggerSize = glm::ivec2(1, 1);
+    msd.gorgonCount = 3;
+    msd.harpyCount = 4;
+    msd.minitaurCount = 5;
     MonsterSpawnerComponent* monsterSpawnerComp = &monsterSpawnerObj->AddComponent<MonsterSpawnerComponent>(msd);
     monsterSpawnerComp->Init();
 }
