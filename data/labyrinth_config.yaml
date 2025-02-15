@@ -53,7 +53,7 @@ rooms: [
 		instances: 3,
 		force: false,
 		position: {type: random},
-		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
 		entities: [
 			{type: trapped_chest_explode, amount: 1, placement: center},
 			{type: throwable_object, amount: 3, placement: random},
