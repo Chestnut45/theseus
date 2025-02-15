@@ -188,6 +188,15 @@ void PlayState::Enter()
     // Stop all audio and begin the maze music
     wolf::Audio::Stop();
     wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, true, 13.714f);
+
+    // Monster Spawner DEMO
+    wolf::GameObject* monsterSpawnerObj = &m_pGameInstance->GetScene().CreateObject2D();
+    MonsterSpawnerComponent::MonsterSpawnerData msd;
+    msd.spawnerTilePos = glm::ivec2(50, 1);
+    msd.spawnerSize = glm::ivec2(7, 5);
+    msd.harpyCount = 2;
+    MonsterSpawnerComponent* monsterSpawnerComp = &monsterSpawnerObj->AddComponent<MonsterSpawnerComponent>(msd);
+    monsterSpawnerComp->Init();
 }
 
 void PlayState::Exit()
@@ -708,7 +717,6 @@ void PlayState::CreatePlayer()
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));
 }
-
 
 void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {
     // std::cout << "Triggered sequence: " << event.sequenceID << std::endl;

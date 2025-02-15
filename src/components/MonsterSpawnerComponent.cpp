@@ -7,6 +7,7 @@
 #include "MonsterSpawnerComponent.h"
 
 #include <ChestInventoryComponent.h>
+#include <ColliderComponent.h>
 #include <DispensaryInventoryComponent.h>
 #include <GorgonController.h>
 #include <HarpyController.h>
@@ -61,6 +62,7 @@ void MonsterSpawnerComponent::Update(float p_delta)
     
     // if player is on spawner tile, spawn monsters
     glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerControllerComp->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+    if(playerTilePos == glm::ivec2(-1)) return;;
     if(
         playerTilePos.x < m_MSData.spawnerTilePos.x                                 ||
         playerTilePos.x > m_MSData.spawnerTilePos.x + (m_MSData.spawnerSize.x - 1)  ||
@@ -104,7 +106,7 @@ void MonsterSpawnerComponent::SpawnMonsters()
     GorgonBuilder gorgonBuilder(GetGameObject()->GetScene());
     
     // Spawn gorgons
-    int gorgonCount = m_MSData.monsterCounts[MonsterSpawnerComponent::MonsterType::GORGON];
+    int gorgonCount = m_MSData.gorgonCount;
     if(gorgonCount > 0)
     {
         for(int i = 0; i < gorgonCount; i++)
@@ -135,7 +137,7 @@ void MonsterSpawnerComponent::SpawnMonsters()
     }
 
     // Spawn minitaurs
-    int minitaurCount = m_MSData.monsterCounts[MonsterSpawnerComponent::MonsterType::MINITAUR];
+    int minitaurCount = m_MSData.minitaurCount;
     
     if(minitaurCount > 0)
     {
@@ -166,14 +168,14 @@ void MonsterSpawnerComponent::SpawnMonsters()
     }
 
     // Spawn harpies
-    int harpyCount = m_MSData.monsterCounts[MonsterSpawnerComponent::MonsterType::HARPY];   
+    int harpyCount = m_MSData.harpyCount;   
     if(harpyCount > 0)
     {
         for(int i = 0; i < harpyCount; i++)
         {
             glm::vec2 pos;
-            pos.x = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.x, m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1);
-            pos.y = s_RNG.NextInt(m_MSData.roomBottomLeftTilePos.y, m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1);
+            pos.x = s_RNG.NextInt(m_MSData.spawnerTilePos.x, m_MSData.spawnerTilePos.x + m_MSData.spawnerSize.x - 1);
+            pos.y = s_RNG.NextInt(m_MSData.spawnerTilePos.y, m_MSData.spawnerTilePos.y + m_MSData.spawnerSize.y - 1);
 
             pos = m_pLBMG->GetWorldPosition(pos);
 
@@ -185,10 +187,10 @@ void MonsterSpawnerComponent::SpawnMonsters()
 
 void MonsterSpawnerComponent::QueryOccupiedTiles()
 {
-    int left = m_MSData.roomBottomLeftTilePos.x;
-    int right = m_MSData.roomBottomLeftTilePos.x + m_MSData.roomSize.x - 1;
-    int bottom = m_MSData.roomBottomLeftTilePos.y;
-    int top = m_MSData.roomBottomLeftTilePos.y + m_MSData.roomSize.y - 1;
+    int left = m_MSData.spawnerSize.x;
+    int right = m_MSData.spawnerSize.x + m_MSData.spawnerSize.x - 1;
+    int bottom = m_MSData.spawnerSize.y;
+    int top = m_MSData.spawnerSize.y + m_MSData.spawnerSize.y - 1;
 
     // Get chunk IDs of lef-bottom & right-top corners
     glm::ivec2 chunkIDlb = m_pLBMG->GetChunkID(m_pLBMG->GetWorldPosition(glm::vec2(left, bottom)));  
@@ -222,7 +224,14 @@ void MonsterSpawnerComponent::QueryOccupiedTiles()
                     continue;
                 }
 
-                if(obj->HasAny<ChestInventoryComponent, DispensaryInventoryComponent, MinitaurController, NPCComponent, PlayerController, TrappedChestComponent>())
+                // Skip if object tile position is already marked as occupied
+                if(std::find(m_vOccupiedTiles.begin(), m_vOccupiedTiles.end(), objTilePos) != m_vOccupiedTiles.end())
+                {
+                    continue;
+                }
+                
+                // Mark tile as occupied if object has any of the following components
+                if(obj->HasAny<ChestInventoryComponent, ColliderComponent, DispensaryInventoryComponent, MinitaurController, NPCComponent, PlayerController, TrappedChestComponent>())
                 {
                     std::cout <<"id: " << obj->GetID() << std::endl;
                     m_vOccupiedTiles.push_back(objTilePos);
@@ -235,14 +244,14 @@ void MonsterSpawnerComponent::QueryOccupiedTiles()
 
 void MonsterSpawnerComponent::QueryAvailableTiles()
 {
-    glm::ivec2 roomSize = m_MSData.roomSize;
-    glm::ivec2 roomBottomLeftTilePos = m_MSData.roomBottomLeftTilePos;
+    glm::ivec2 spawnerSize = m_MSData.spawnerSize;
+    glm::ivec2 spawnerTilePos = m_MSData.spawnerTilePos;
     
     // Horizontal
-    for(int i = roomBottomLeftTilePos.x; i < roomBottomLeftTilePos.x + roomSize.x; i++)
+    for(int i = spawnerTilePos.x; i < spawnerTilePos.x + spawnerSize.x; i++)
     {
         // Vertical
-        for(int j = roomBottomLeftTilePos.y; j < roomBottomLeftTilePos.y + roomSize.y; j++)
+        for(int j = spawnerTilePos.y; j < spawnerTilePos.y + spawnerSize.y; j++)
         {
             glm::ivec2 tilePos = glm::ivec2(i, j);
 
@@ -257,7 +266,7 @@ void MonsterSpawnerComponent::QueryAvailableTiles()
 
 void MonsterSpawnerComponent::HandleBoundLines()
 {
-    glm::ivec2 roomSize = m_MSData.roomSize * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    glm::ivec2 roomSize = m_MSData.spawnerSize * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
     glm::vec2 worldPos = m_pLBMG->GetWorldPosition(m_MSData.spawnerTilePos);
 
     glm::vec2 lb = worldPos;
