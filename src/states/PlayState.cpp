@@ -21,6 +21,7 @@
 #include "../inventory/ArmourItem.h"
 #include "DDACalculator.h"
 #include "GLShapesRenderer.h"
+#include "PortalTileManager.h"
 #include "TileFireManager.h"
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
@@ -63,6 +64,7 @@ void PlayState::Enter()
     GLShapesRenderer::CreateInstance();
     DDACalculator::CreateInstance(&scene);
 
+    PortalTileManager::CreateInstance(m_pLabyrinthManager);
     TileFireManager::CreateInstance(m_pLabyrinthManager);
 
     // Place the bossfight trigger
@@ -207,6 +209,8 @@ void PlayState::Exit()
     DDACalculator::DestroyInstance();
     GLShapesRenderer::DestroyInstance();
 
+    
+    PortalTileManager::DestroyInstance();
     TileFireManager::DestroyInstance();
 
     ItemDropCreator::DestroyInstance();
@@ -245,6 +249,7 @@ void PlayState::Update(float delta)
     // Update the labyrinth manager
     m_pLabyrinthManager->Update(delta);
 
+    PortalTileManager::GetInstance()->Update(delta);
     TileFireManager::GetInstance()->Update(delta);
 
     // Update timed destroyer components
