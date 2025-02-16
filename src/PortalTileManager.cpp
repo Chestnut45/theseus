@@ -6,12 +6,8 @@
 #include "PortalTileManager.h"
 
 #include <AttackDamageComponent.h>
-#include <GorgonController.h>
-#include <HarpyController.h>
 #include <HealthComponent.h>
-#include <MinitaurController.h>
 #include <PlayerController.h>
-#include <ThrowableObjectComponent.h>
 #include <VelocityComponent.h>
 
 PortalTileManager* PortalTileManager::s_pPTMG = nullptr;
@@ -146,6 +142,7 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     m_pPortalTileSpriteObj->GetComponent<wolf::Transform2D>()->SetPosition(p_lbmg->GetWorldPosition(m_vTilePos));
     m_pPortalTileSpriteObj->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f, 3.0f));
     wolf::Sprite2D* sprite = &m_pPortalTileSpriteObj->AddComponent<wolf::Sprite2D>("data/textures/tile_hermes_portal.png");
+    sprite->SetTint(glm::vec3(0.5f));
 }
 
 PortalTileManager::PortalTile::~PortalTile()
@@ -160,6 +157,7 @@ PortalTileManager::PortalTile::~PortalTile()
 void PortalTileManager::PortalTile::Update(float p_dt)
 {
     bool isChunkActive = m_pLabyrinthManager->IsChunkActive(GetChunkID());
+    
     // Return if chunk is inactive
     if(!isChunkActive) return;
     
@@ -174,15 +172,15 @@ void PortalTileManager::PortalTile::Update(float p_dt)
             // std::cout << "PlayerTilePos - x: " << playerTilePos.x << ", y: " << playerTilePos.y << std::endl;
             // std::cout << "PortalTilePos - x: " << m_vTilePos.x << ", y: " << m_vTilePos.y << std::endl;
 
-            // If player is within vicinity
+            // If player is within vicinity, activate
             if
             (
                 abs(playerTilePos.x - m_vTilePos.x) <= 1 &&
                 abs(playerTilePos.y - m_vTilePos.y) <= 1
             )
             {
-                SetActive(true);   
-                printf("ACTIVATE\n");
+                SetActive(true);
+                m_pPortalTileSpriteObj->GetComponent<wolf::Sprite2D>()->SetTint(glm::vec3(1.0f));
             }
         }
     }
@@ -196,7 +194,6 @@ void PortalTileManager::PortalTile::Update(float p_dt)
         wolf::GameObject* arrival = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(m_arrivalID);
         if(arrival != nullptr)
         {   
-            printf("OCCUPIED\n");
             // Get arrival position data
             glm::vec2 arrivalPos = arrival->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
             glm::ivec2 arrivalTilePos = m_pLabyrinthManager->GetTilePosition(arrivalPos);
@@ -222,6 +219,12 @@ void PortalTileManager::PortalTile::Update(float p_dt)
         for(wolf::GameObject* obj : GetChunk()->GetChildren())
         {
             CheckTeleport(obj);
+        }
+
+        // Check projectiles
+        for (auto&& [_, velocity, attackDamage] : m_pLabyrinthManager->GetGameObject()->GetScene().Each<VelocityComponent, AttackDamageComponent>())
+        {
+            CheckTeleport(attackDamage.GetGameObject());
         }
     }
 }
@@ -285,8 +288,8 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
     PortalTile* sibling = GetSibling();
     wolf::GameObject* siblingArrival = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(sibling->GetArrivalID());
     
-    // If there is no sibling arrival or object is harpy or projectile, teleport
-    if(siblingArrival == nullptr || p_obj->HasAny<HarpyController, AttackDamageComponent>())
+    // If there is no sibling arrival or object is projectile, teleport
+    if(siblingArrival == nullptr)
     {
         Teleport(p_obj);
         return;
@@ -294,21 +297,34 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
     // If sibling has an arrival
     else
     {
-        // Telefrag the sibling arrival if it has any of the components below
-        
-        // Health
+        // If object is a projectile
+        if(p_obj->HasAll<AttackDamageComponent, VelocityComponent>())
+        {
+            // Teleport object
+            Teleport(p_obj);
+            return;
+        }
+
+        // If sibling arrival is player
+        if(siblingArrival->HasAny<PlayerController>())
+        {
+            return;
+        }
+
+        // If sibling arrival has HealthComponent
         if(siblingArrival->HasAny<HealthComponent>())
         {
+            // Telefrag
             HealthComponent* hc = siblingArrival->GetComponent<HealthComponent>();
-            hc->Pierce(hc->GetMaxHealth());
+            hc->Pierce(999999999.0f);
 
             // Teleport object
             Teleport(p_obj);
             return;
         }
 
-        // Throwable
-        if(siblingArrival->HasAny<ThrowableObjectComponent>())
+        // Else
+        else
         {
             m_pLabyrinthManager->GetGameObject()->GetScene().DeleteObject(siblingArrival->GetID());
             
@@ -325,9 +341,6 @@ void PortalTileManager::PortalTile::Teleport(wolf::GameObject* p_obj)
 
     // Teleport object
     objTransform->SetPosition(m_pLabyrinthManager->GetWorldPosition(m_pSiblingPortalTile->GetTilePos()) + SPAWN_OFFSET);
-            
-    // Return if object is a harpy
-    if(p_obj->HasAny<HarpyController>()) return;
 
     // Set object as new arrival
     m_pSiblingPortalTile->SetArrivalID(p_obj->GetID());
