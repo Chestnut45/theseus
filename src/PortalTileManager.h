@@ -38,13 +38,13 @@ private:
         glm::ivec2 GetTilePos() const;
         bool IsActive() const;
         PortalTile* GetSibling() const;
-        wolf::GameObjectID GetArrivalID() const;
+        wolf::GameObjectID GetOccupantID() const;
         wolf::GameObject* GetChunk() const;
         glm::ivec2 GetChunkID() const;
 
         // Setters
         void SetActive(bool p_active);
-        void SetArrivalID(wolf::GameObjectID p_arrival_id);
+        void SetOccupantID(wolf::GameObjectID p_occupant_id);
         
         // Helpers
         void CheckTeleport(wolf::GameObject* p_obj);
@@ -55,7 +55,7 @@ private:
         bool m_bIsActive = false;
         PortalTile* m_pSiblingPortalTile = nullptr;
         wolf::GameObject* m_pPortalTileSpriteObj = nullptr;
-        wolf::GameObjectID m_arrivalID = -1;             // Any object teleported to this portal tile that is still occupying it
+        wolf::GameObjectID m_occupantID = -1;             // Any object teleported to this portal tile that is still occupying it
         wolf::GameObject* m_pChunk = nullptr;
         glm::ivec2 m_vChunkID = glm::ivec2(-1.0f, -1.0f);
         LabyrinthManager* m_pLabyrinthManager = nullptr;

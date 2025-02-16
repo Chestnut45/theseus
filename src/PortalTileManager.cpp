@@ -190,26 +190,26 @@ void PortalTileManager::PortalTile::Update(float p_dt)
         // Return if sibling is not active
         if(!m_pSiblingPortalTile->IsActive()) return;
 
-        // Check if arrival exists
-        wolf::GameObject* arrival = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(m_arrivalID);
-        if(arrival != nullptr)
+        // Check if occupant exists
+        wolf::GameObject* occupant = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(m_occupantID);
+        if(occupant != nullptr)
         {   
-            // Get arrival position data
-            glm::vec2 arrivalPos = arrival->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            glm::ivec2 arrivalTilePos = m_pLabyrinthManager->GetTilePosition(arrivalPos);
+            // Get occupant position data
+            glm::vec2 occupantPos = occupant->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            glm::ivec2 occupantTilePos = m_pLabyrinthManager->GetTilePosition(occupantPos);
             
-            // If arrival has stepped out of portal tile, remove ID
-            if(arrivalTilePos != m_vTilePos)
+            // If occupant has stepped out of portal tile, remove ID
+            if(occupantTilePos != m_vTilePos)
             {
-                m_arrivalID = -1;
+                m_occupantID = -1;
             }
             return;
         }
         
-        // If arrival is deleted while still standing on portal tile, remove ID
-        if(m_arrivalID != -1)
+        // If occupant is deleted while still standing on portal tile, remove ID
+        if(m_occupantID != -1)
         {
-            m_arrivalID = -1;
+            m_occupantID = -1;
         }    
 
         // Check player
@@ -244,9 +244,9 @@ PortalTileManager::PortalTile* PortalTileManager::PortalTile::GetSibling() const
     return m_pSiblingPortalTile;
 }
 
-wolf::GameObjectID PortalTileManager::PortalTile::GetArrivalID() const
+wolf::GameObjectID PortalTileManager::PortalTile::GetOccupantID() const
 {
-    return m_arrivalID;
+    return m_occupantID;
 }
 
 wolf::GameObject* PortalTileManager::PortalTile::GetChunk() const
@@ -264,9 +264,9 @@ void PortalTileManager::PortalTile::SetActive(bool p_active)
     m_bIsActive = p_active;
 }
 
-void PortalTileManager::PortalTile::SetArrivalID(wolf::GameObjectID p_arrival_id)
+void PortalTileManager::PortalTile::SetOccupantID(wolf::GameObjectID p_occupant_id)
 {
-    m_arrivalID = p_arrival_id;
+    m_occupantID = p_occupant_id;
 }
 
 void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
@@ -284,17 +284,17 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
     // Skip if object is not on portal
     if(objTilePos.x != portalTilePos.x || objTilePos.y != portalTilePos.y) return;
 
-    // Get sibling portal tile & its arrival object
+    // Get sibling portal tile & its occupant object
     PortalTile* sibling = GetSibling();
-    wolf::GameObject* siblingArrival = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(sibling->GetArrivalID());
+    wolf::GameObject* siblingOccupant = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(sibling->GetOccupantID());
     
-    // If there is no sibling arrival or object is projectile, teleport
-    if(siblingArrival == nullptr)
+    // If there is no sibling occupant or object is projectile, teleport
+    if(siblingOccupant == nullptr)
     {
         Teleport(p_obj);
         return;
     }
-    // If sibling has an arrival
+    // If sibling has an occupant
     else
     {
         // If object is a projectile
@@ -305,17 +305,17 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
             return;
         }
 
-        // If sibling arrival is player
-        if(siblingArrival->HasAny<PlayerController>())
+        // If sibling occupant is player
+        if(siblingOccupant->HasAny<PlayerController>())
         {
             return;
         }
 
-        // If sibling arrival has HealthComponent
-        if(siblingArrival->HasAny<HealthComponent>())
+        // If sibling occupant has HealthComponent
+        if(siblingOccupant->HasAny<HealthComponent>())
         {
             // Telefrag
-            HealthComponent* hc = siblingArrival->GetComponent<HealthComponent>();
+            HealthComponent* hc = siblingOccupant->GetComponent<HealthComponent>();
             hc->Pierce(999999999.0f);
 
             // Teleport object
@@ -326,7 +326,8 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
         // Else
         else
         {
-            m_pLabyrinthManager->GetGameObject()->GetScene().DeleteObject(siblingArrival->GetID());
+            // Delete sibling occupant
+            m_pLabyrinthManager->GetGameObject()->GetScene().DeleteObject(siblingOccupant->GetID());
             
             // Teleport object
             Teleport(p_obj);
@@ -342,6 +343,6 @@ void PortalTileManager::PortalTile::Teleport(wolf::GameObject* p_obj)
     // Teleport object
     objTransform->SetPosition(m_pLabyrinthManager->GetWorldPosition(m_pSiblingPortalTile->GetTilePos()) + SPAWN_OFFSET);
 
-    // Set object as new arrival
-    m_pSiblingPortalTile->SetArrivalID(p_obj->GetID());
+    // Set object as new occupant
+    m_pSiblingPortalTile->SetOccupantID(p_obj->GetID());
 }
