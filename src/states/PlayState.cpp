@@ -242,6 +242,7 @@ void PlayState::Update(float delta)
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT))
         m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
     
+
     // Update fluid systems
     for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
     {
@@ -252,6 +253,9 @@ void PlayState::Update(float delta)
         {
             system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 100.0f, 10.0f);
         }
+
+        // DEBUG
+        system.ShowEditor();
     }
 
     // Show the Labyrinth Manager debug GUI

@@ -69,6 +69,9 @@ public:
     // NOTE: A negative strength will pull towards the given position
     void ApplyRadialForce(const glm::vec2& position, float radius, float strength);
 
+    // Renders a debug GUI for controlling the simulation
+    void ShowEditor();
+
 private:
 
     // Data members
@@ -85,40 +88,32 @@ private:
     static inline GLuint s_particleSSBO = 0;
     static inline wolf::Program* s_pShader = nullptr;
 
-    // Numerical integration step, using Euler's method
-    // NOTE: This is a fixed time-step method, and may be called several
-    // times per-frame if delta is large. A maximum number of steps can
-    // be chosen by changing MAX_INTEGRATION_STEPS_PER_UPDATE and recompiling
-    void Integrate();
-
-    // Constants
-    static const int MAX_INTEGRATION_STEPS_PER_UPDATE = 20;
-
-    // NOTE: Precomputed constants for the solver taken from:
+    // NOTE: Precomputed constant formulas for the solver taken from:
     // Schuermann, Lucas V. (Jul 2017). Implementing SPH in 2D. Writing.
     // https://lucasschuermann.com/writing/implementing-sph-in-2d
 
-    // TODO: Parameterize viscosity / mass / radius so users can tweak the system's behaviour
-
-    // TODO: GUI for tweaking these parameters live, testing initial configs, etc.
-
     // Solver parameters
-    static const inline glm::vec2 GRAVITY{0.0f, -9.81f};
-    static const inline float REST_DENSITY = 230.0f; // Original 300
-    static const inline float GAS_CONSTANT = 1700.0f; // Original 2000
-    static const inline float KERNEL_RADIUS = 32.0f; // Original 16
-    static const inline float KERNEL_RADIUS_SQR = KERNEL_RADIUS * KERNEL_RADIUS;
-    static const inline float PARTICLE_MASS = 2.5f;
-    static const inline float VISCOSITY = 200.0f; // Original 200
-    static const inline float FIXED_DELTA = 0.0007f;
+    float m_restDensity = 230.0f; // Original 300
+    float m_gasConstant = 1700.0f; // Original 2000
+    float m_kernelRadius = 32.0f; // Original 16
+    float m_kernelRadiusSqr = m_kernelRadius * m_kernelRadius;
+    float m_particleMass = 2.5f;
+    float m_viscosity = 200.0f; // Original 200
+    float m_fixedDelta = 0.0007f;
 
     // Smoothing kernels defined in Müller and their gradients
     // Adapted to 2D per "SPH Based Shallow Water Simulation" by Solenthaler et al.
-    static const inline float POLY6 = 4.0f / (M_PI * pow(KERNEL_RADIUS, 8.0f));
-    static const inline float SPIKY_GRAD = -10.0f / (M_PI * pow(KERNEL_RADIUS, 5.0f));
-    static const inline float VISC_LAP = 40.0f / (M_PI * pow(KERNEL_RADIUS, 5.0f));
+    float m_poly6 = 4.0f / (M_PI * pow(m_kernelRadius, 8.0f));
+    float m_spikyGradient = -10.0f / (M_PI * pow(m_kernelRadius, 5.0f));
+    float m_viscLaplacian = 40.0f / (M_PI * pow(m_kernelRadius, 5.0f));
 
     // Simulation parameters
-    static const inline float BOUND_EPSILON = KERNEL_RADIUS;
-    static const inline float BOUND_DAMPING = -0.5f;
+    float m_boundEpsilon = m_kernelRadius;
+    float m_boundDamping = -0.5f;
+    int m_numParticlesToSpawn = 500;
+    bool m_simulateGravity = true;
+    glm::vec2 m_gravity{0.0f, -9.81f};
+
+    // DEBUG: Sets up an initial dam break configuration based on m_numParticlesToSpawn
+    void SetupDamBreak();
 };

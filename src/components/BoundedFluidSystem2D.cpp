@@ -1,6 +1,7 @@
 #include "BoundedFluidSystem2D.h"
 
 #include <glm/gtx/norm.hpp>
+#include <imgui/imgui.h>
 
 BoundedFluidSystem2D::BoundedFluidSystem2D(const wolf::Rectangle& bounds)
     :
@@ -36,7 +37,7 @@ BoundedFluidSystem2D::BoundedFluidSystem2D(const wolf::Rectangle& bounds)
         // TODO: Account for initial size?
         glGenBuffers(1, &s_particleSSBO);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, s_particleSSBO);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FluidParticle) * 500, nullptr, GL_STREAM_DRAW);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FluidParticle) * m_numParticlesToSpawn, nullptr, GL_STREAM_DRAW);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
         // Create shader
@@ -44,24 +45,7 @@ BoundedFluidSystem2D::BoundedFluidSystem2D(const wolf::Rectangle& bounds)
     }
     s_refCount++;
 
-    // DEBUG: Initial dam break configuration for testing
-    int numParticles = 500;
-    for (float y = m_bounds.m_top; y > m_bounds.m_bottom; y -= KERNEL_RADIUS + 1)
-    {
-        for (float x = m_bounds.m_left; x < m_bounds.m_right; x += KERNEL_RADIUS + 1)
-        {
-            if (m_particles.size() < numParticles)
-            {
-                const glm::vec2 spawnPos = glm::vec2(x + m_rng.NextFloat(-0.01f, 0.01f), y + m_rng.NextFloat(-0.01f, 0.01f));
-                m_particles.emplace_back(FluidParticle(spawnPos));
-            }
-            else
-            {
-                // Done spawning particles
-                return;
-            }
-        }
-    }
+    SetupDamBreak();
 }
 
 BoundedFluidSystem2D::~BoundedFluidSystem2D()
@@ -90,14 +74,14 @@ void BoundedFluidSystem2D::Update(float delta)
         {
             glm::vec2 between = other.m_pos - particle.m_pos;
             float sqrDist = glm::length2(between);
-            if (sqrDist < KERNEL_RADIUS_SQR)
+            if (sqrDist < m_kernelRadiusSqr)
             {
-                particle.m_density += PARTICLE_MASS * POLY6 * pow(KERNEL_RADIUS_SQR - sqrDist, 3.0f);
+                particle.m_density += m_particleMass * m_poly6 * pow(m_kernelRadiusSqr - sqrDist, 3.0f);
             }
         }
 
         // Calculate pressure
-        particle.m_pressure = GAS_CONSTANT * (particle.m_density - REST_DENSITY);
+        particle.m_pressure = m_gasConstant * (particle.m_density - m_restDensity);
     }
 
     // Compute forces acting on each particle
@@ -113,19 +97,50 @@ void BoundedFluidSystem2D::Update(float delta)
             glm::vec2 between = other.m_pos - particle.m_pos;
             float dist = glm::length(between);
 
-            if (dist < KERNEL_RADIUS)
+            if (dist < m_kernelRadius)
             {
-                pressureForce += -glm::normalize(between) * PARTICLE_MASS * (particle.m_pressure + other.m_pressure) / (2.0f * other.m_density) * SPIKY_GRAD * (float)pow(KERNEL_RADIUS - dist, 3.0f);
-                viscosityForce += VISCOSITY * PARTICLE_MASS * (other.m_vel - particle.m_vel) / other.m_density * VISC_LAP * (KERNEL_RADIUS - dist);
+                pressureForce += -glm::normalize(between) * m_particleMass * (particle.m_pressure + other.m_pressure) / (2.0f * other.m_density) * m_spikyGradient * (float)pow(m_kernelRadius - dist, 3.0f);
+                viscosityForce += m_viscosity * m_particleMass * (other.m_vel - particle.m_vel) / other.m_density * m_viscLaplacian * (m_kernelRadius - dist);
             }
         }
 
         // Calculate force of gravity and add final forces together
-        glm::vec2 gravityForce = GRAVITY * PARTICLE_MASS / particle.m_density;
+        glm::vec2 gravityForce = m_simulateGravity ? m_gravity * m_particleMass / particle.m_density : glm::vec2(0.0f);
         particle.m_force = pressureForce + viscosityForce + gravityForce;
     }
 
-    Integrate();
+    // Integrate particles using fixed time step
+    // TODO: Try leapfrog integration? (numerical stability)
+    for (auto& p : m_particles)
+    {
+        // Forward Euler integration
+        p.m_vel += m_fixedDelta * p.m_force / p.m_density;
+        p.m_pos += m_fixedDelta * p.m_vel;
+
+        // p.m_vel *= 0.95f; // DEBUG: Extra damping to help with stability
+
+        // Boundary enforcement
+        if (p.m_pos.x - m_boundEpsilon < m_bounds.m_left)
+        {
+            p.m_vel.x *= m_boundDamping;
+            p.m_pos.x = m_bounds.m_left + m_boundEpsilon;
+        }
+        if (p.m_pos.x + m_boundEpsilon > m_bounds.m_right)
+        {
+            p.m_vel.x *= m_boundDamping;
+            p.m_pos.x = m_bounds.m_right - m_boundEpsilon;
+        }
+        if (p.m_pos.y - m_boundEpsilon < m_bounds.m_bottom)
+        {
+            p.m_vel.y *= m_boundDamping;
+            p.m_pos.y = m_bounds.m_bottom + m_boundEpsilon;
+        }
+        if (p.m_pos.y + m_boundEpsilon > m_bounds.m_top)
+        {
+            p.m_vel.y *= m_boundDamping;
+            p.m_pos.y = m_bounds.m_top - m_boundEpsilon;
+        }
+    }
 }
 
 void BoundedFluidSystem2D::Render(float delta)
@@ -142,50 +157,17 @@ void BoundedFluidSystem2D::Render(float delta)
     // TODO: Transform uniform data
 
     // Bind and draw
-    s_pShader->SetUniform("kernelRadius", KERNEL_RADIUS);
+    s_pShader->SetUniform("kernelRadius", m_kernelRadius);
     s_pShader->Bind();
     glBindVertexArray(s_quadVAO);
     glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_particles.size());
     glBindVertexArray(0);
 }
 
-void BoundedFluidSystem2D::Integrate()
-{
-    for (auto& p : m_particles)
-    {
-        // Forward Euler integration
-        p.m_vel += FIXED_DELTA * p.m_force / p.m_density;
-        p.m_pos += FIXED_DELTA * p.m_vel;
-        // p.m_vel *= 0.95f; // Extra damping to help with stability
-
-        // Boundary enforcement
-        if (p.m_pos.x - BOUND_EPSILON < m_bounds.m_left)
-        {
-            p.m_vel.x *= BOUND_DAMPING;
-            p.m_pos.x = m_bounds.m_left + BOUND_EPSILON;
-        }
-        if (p.m_pos.x + BOUND_EPSILON > m_bounds.m_right)
-        {
-            p.m_vel.x *= BOUND_DAMPING;
-            p.m_pos.x = m_bounds.m_right - BOUND_EPSILON;
-        }
-        if (p.m_pos.y - BOUND_EPSILON < m_bounds.m_bottom)
-        {
-            p.m_vel.y *= BOUND_DAMPING;
-            p.m_pos.y = m_bounds.m_bottom + BOUND_EPSILON;
-        }
-        if (p.m_pos.y + BOUND_EPSILON > m_bounds.m_top)
-        {
-            p.m_vel.y *= BOUND_DAMPING;
-            p.m_pos.y = m_bounds.m_top - BOUND_EPSILON;
-        }
-    }
-}
-
 void BoundedFluidSystem2D::ApplyRadialForce(const glm::vec2& position, float radius, float strength)
 {
     // TODO: This will benefit greatly from the spatial hashing optimizations...
-    float totalRadius = radius + KERNEL_RADIUS;
+    float totalRadius = radius + m_kernelRadius;
     for (auto& p : m_particles)
     {
         const float distance = glm::distance(p.m_pos, position);
@@ -193,6 +175,53 @@ void BoundedFluidSystem2D::ApplyRadialForce(const glm::vec2& position, float rad
         if (distance < totalRadius)
         {
             p.m_vel += direction * glm::mix(strength, 0.0f, distance / totalRadius) / p.m_density;
+        }
+    }
+}
+
+void BoundedFluidSystem2D::ShowEditor()
+{
+    ImGui::Begin("##FluidSystemEditor", nullptr);
+    ImGui::Checkbox("Gravity", &m_simulateGravity);
+    ImGui::SliderFloat("Rest Density", &m_restDensity, 0.0f, 500.0f, "%.0f");
+    ImGui::SliderFloat("Gas Constant", &m_gasConstant, 1000.0f, 3000.0f, "%.0f");
+    if (ImGui::SliderFloat("Kernel Radius", &m_kernelRadius, 2.0f, 512.0f, "%.0f"))
+    {
+        // Update dependencies
+        m_kernelRadiusSqr = m_kernelRadius * m_kernelRadius;
+        m_poly6 = 4.0f / (M_PI * pow(m_kernelRadius, 8.0f));
+        m_spikyGradient = -10.0f / (M_PI * pow(m_kernelRadius, 5.0f));
+        m_viscLaplacian = 40.0f / (M_PI * pow(m_kernelRadius, 5.0f));
+        m_boundEpsilon = m_kernelRadius;
+    };
+    ImGui::SliderFloat("Particle Mass", &m_particleMass, 0.0f, 50.0f, "%.1f");
+    ImGui::SliderFloat("Viscosity", &m_viscosity, 0.0f, 300.0f, "%.0f");
+    ImGui::SliderFloat("Fixed Delta", &m_fixedDelta, 0.0001f, 0.01f, "%.4f");
+    ImGui::SliderFloat("Bound Epsilon", &m_boundEpsilon, 2.f, 512.0f, "%.0f");
+    ImGui::SliderFloat("Bound Damping", &m_boundDamping, -2.0f, 2.0f, "%.1f");
+    ImGui::SliderInt("#Particles", &m_numParticlesToSpawn, 1, 5000);
+    if (ImGui::Button("Respawn")) SetupDamBreak();
+
+    ImGui::End();
+}
+
+void BoundedFluidSystem2D::SetupDamBreak()
+{
+    m_particles.clear();
+    for (float y = m_bounds.m_top; y > m_bounds.m_bottom; y -= m_kernelRadius + 1)
+    {
+        for (float x = m_bounds.m_left; x < m_bounds.m_right; x += m_kernelRadius + 1)
+        {
+            if (m_particles.size() < m_numParticlesToSpawn)
+            {
+                const glm::vec2 spawnPos = glm::vec2(x + m_rng.NextFloat(-0.01f, 0.01f), y + m_rng.NextFloat(-0.01f, 0.01f));
+                m_particles.emplace_back(FluidParticle(spawnPos));
+            }
+            else
+            {
+                // Done spawning particles
+                return;
+            }
         }
     }
 }
