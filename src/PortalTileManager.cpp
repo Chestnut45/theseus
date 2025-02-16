@@ -295,7 +295,7 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
     PortalTile* sibling = GetSibling();
     wolf::GameObject* siblingOccupant = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(sibling->GetOccupantID());
     
-    // If there is no sibling occupant or object is projectile, teleport
+    // If there is no sibling occupant, teleport
     if(siblingOccupant == nullptr)
     {
         Teleport(p_obj);
