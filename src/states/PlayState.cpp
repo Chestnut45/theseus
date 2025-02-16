@@ -65,7 +65,7 @@ void PlayState::Enter()
     DDACalculator::CreateInstance(&scene);
 
     PortalTileManager::CreateInstance(m_pLabyrinthManager);
-    PortalTileManager::GetInstance()->CreatePortalTilePair(glm::ivec2(43, 1), glm::ivec2(47, 1));
+    PortalTileManager::GetInstance()->CreatePortalTilePair(glm::ivec2(28, 3), glm::ivec2(34, 3));
     TileFireManager::CreateInstance(m_pLabyrinthManager);
 
     // Place the bossfight trigger

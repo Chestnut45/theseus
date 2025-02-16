@@ -8,6 +8,7 @@
 #include <AttackDamageComponent.h>
 #include <GorgonController.h>
 #include <HarpyController.h>
+#include <HealthComponent.h>
 #include <MinitaurController.h>
 #include <PlayerController.h>
 #include <ThrowableObjectComponent.h>
@@ -150,7 +151,6 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
 PortalTileManager::PortalTile::~PortalTile()
 {
     m_pSiblingPortalTile = nullptr;
-    m_pArrival = nullptr;
     m_pChunk = nullptr;
     m_pLabyrinthManager = nullptr;
     wolf::Scene* scene = &m_pPortalTileSpriteObj->GetScene();
@@ -192,19 +192,28 @@ void PortalTileManager::PortalTile::Update(float p_dt)
         // Return if sibling is not active
         if(!m_pSiblingPortalTile->IsActive()) return;
 
-        // Get own arrival data if exists
-        if(m_pArrival != nullptr)
-        {
-            glm::vec2 arrivalPos = m_pArrival->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        // Check if arrival exists
+        wolf::GameObject* arrival = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(m_arrivalID);
+        if(arrival != nullptr)
+        {   
+            printf("OCCUPIED\n");
+            // Get arrival position data
+            glm::vec2 arrivalPos = arrival->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
             glm::ivec2 arrivalTilePos = m_pLabyrinthManager->GetTilePosition(arrivalPos);
             
-            // If arrival has stepped out of portal tile, remove reference
+            // If arrival has stepped out of portal tile, remove ID
             if(arrivalTilePos != m_vTilePos)
             {
-                m_pArrival = nullptr;
+                m_arrivalID = -1;
             }
             return;
         }
+        
+        // If arrival is deleted while still standing on portal tile, remove ID
+        if(m_arrivalID != -1)
+        {
+            m_arrivalID = -1;
+        }    
 
         // Check player
         CheckTeleport(m_pPlayer);
@@ -232,9 +241,9 @@ PortalTileManager::PortalTile* PortalTileManager::PortalTile::GetSibling() const
     return m_pSiblingPortalTile;
 }
 
-wolf::GameObject* PortalTileManager::PortalTile::GetArrival() const
+wolf::GameObjectID PortalTileManager::PortalTile::GetArrivalID() const
 {
-    return m_pArrival;
+    return m_arrivalID;
 }
 
 wolf::GameObject* PortalTileManager::PortalTile::GetChunk() const
@@ -252,9 +261,9 @@ void PortalTileManager::PortalTile::SetActive(bool p_active)
     m_bIsActive = p_active;
 }
 
-void PortalTileManager::PortalTile::SetArrival(wolf::GameObject* p_arrival)
+void PortalTileManager::PortalTile::SetArrivalID(wolf::GameObjectID p_arrival_id)
 {
-    m_pArrival = p_arrival;
+    m_arrivalID = p_arrival_id;
 }
 
 void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
@@ -274,7 +283,7 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
 
     // Get sibling portal tile & its arrival object
     PortalTile* sibling = GetSibling();
-    wolf::GameObject* siblingArrival = sibling->GetArrival();
+    wolf::GameObject* siblingArrival = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(sibling->GetArrivalID());
     
     // If there is no sibling arrival or object is harpy or projectile, teleport
     if(siblingArrival == nullptr || p_obj->HasAny<HarpyController, AttackDamageComponent>())
@@ -287,28 +296,22 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
     {
         // Telefrag the sibling arrival if it has any of the components below
         
-        // Gorgon
-        if(siblingArrival->HasAny<GorgonController>())
+        // Health
+        if(siblingArrival->HasAny<HealthComponent>())
         {
-            GorgonController* gc = siblingArrival->GetComponent<GorgonController>();
-            gc->ChangeState(EnemyController::EnemyState::DEATH);
+            HealthComponent* hc = siblingArrival->GetComponent<HealthComponent>();
+            hc->Pierce(hc->GetMaxHealth());
+
             // Teleport object
             Teleport(p_obj);
             return;
         }
-        //Minitaur
-        if(siblingArrival->HasAny<MinitaurController>())
-        {
-            MinitaurController* mc = siblingArrival->GetComponent<MinitaurController>();
-            mc->ChangeState(EnemyController::EnemyState::DEATH);
-            // Teleport object
-            Teleport(p_obj);
-            return;
-        }
+
         // Throwable
         if(siblingArrival->HasAny<ThrowableObjectComponent>())
         {
             m_pLabyrinthManager->GetGameObject()->GetScene().DeleteObject(siblingArrival->GetID());
+            
             // Teleport object
             Teleport(p_obj);
             return;
@@ -327,5 +330,5 @@ void PortalTileManager::PortalTile::Teleport(wolf::GameObject* p_obj)
     if(p_obj->HasAny<HarpyController>()) return;
 
     // Set object as new arrival
-    m_pSiblingPortalTile->SetArrival(p_obj);
+    m_pSiblingPortalTile->SetArrivalID(p_obj->GetID());
 }
