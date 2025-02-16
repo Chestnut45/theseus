@@ -206,14 +206,15 @@ void PortalTileManager::PortalTile::Update(float p_dt)
             {
                 m_occupantID = -1;
             }
-            return;
         }
-        
-        // If occupant is deleted while still standing on portal tile, remove ID
-        if(m_occupantID != -1)
+        else
         {
-            m_occupantID = -1;
-        }    
+            // If occupant is deleted while still standing on portal tile, remove ID
+            if(m_occupantID != -1)
+            {
+                m_occupantID = -1;
+            }  
+        }          
 
         // Check player
         CheckTeleport(m_pPlayer);
@@ -274,7 +275,10 @@ void PortalTileManager::PortalTile::SetOccupantID(wolf::GameObjectID p_occupant_
 
 void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
 {
-    // Skip if object does not have VelocityComponent 
+    // Return if object is occupant
+    if(p_obj->GetID() == m_occupantID) return;
+
+    // Return if object does not have VelocityComponent 
     if(!p_obj->HasAny<VelocityComponent>()) return;
 
     glm::ivec2 portalTilePos = GetTilePos();
