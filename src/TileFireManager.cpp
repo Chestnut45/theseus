@@ -64,8 +64,11 @@ void TileFireManager::Update(float p_delta)
         }
     }
 
-    // If player column has any active fire tile
-    if(m_vActiveFireColumnsTracker[playerTileColumn] > 0)
+    // If player column has any active fire tile && player is not rolling
+    if(
+        m_vActiveFireColumnsTracker[playerTileColumn] > 0                                                               &&
+        m_pPlayerObj->GetComponent<PlayerController>()->GetPlayerAction() != PlayerController::PlayerAction::ROLLING
+    )
     {
         for (FireTile* fireTile : m_mFireColumns[playerTileColumn])
         {
