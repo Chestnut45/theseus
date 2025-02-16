@@ -150,8 +150,10 @@ PortalTileManager::PortalTile::~PortalTile()
     m_pSiblingPortalTile = nullptr;
     m_pChunk = nullptr;
     m_pLabyrinthManager = nullptr;
+    m_pPlayer = nullptr;
     wolf::Scene* scene = &m_pPortalTileSpriteObj->GetScene();
     scene->DeleteObject(m_pPortalTileSpriteObj->GetID());
+    m_pPortalTileSpriteObj = nullptr;
 }
 
 void PortalTileManager::PortalTile::Update(float p_dt)
