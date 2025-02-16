@@ -107,6 +107,7 @@ std::pair<PortalTileManager::PortalTile*, PortalTileManager::PortalTile*> Portal
 
 void PortalTileManager::PortalTile::DeletePair(PortalTile* p_protal_tile_1, PortalTile* p_protal_tile_2)
 {
+    // Return if either pointer is nullptr, or siblings do not match
     if(
     p_protal_tile_1 == nullptr                          ||
     p_protal_tile_2 == nullptr                          ||
@@ -130,7 +131,7 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     m_pChunk = p_lbmg->GetChunk(m_vChunkID);
     m_pLabyrinthManager = p_lbmg;
 
-    // Get playerobject
+    // Get player object
     for (auto&& [_, playerController] : p_lbmg->GetGameObject()->GetScene().Each<PlayerController>())
     {
         m_pPlayer = playerController.GetGameObject();
