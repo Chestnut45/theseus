@@ -31,6 +31,17 @@ void PortalTileManager::DestroyInstance()
 {
     if(s_pPTMG != nullptr)
     {
+        while(s_pPTMG->m_vPortalTilePairs.size() > 0)
+        {
+            std::pair<PortalTile*, PortalTile*> pair = s_pPTMG->m_vPortalTilePairs.back();
+            s_pPTMG->m_vPortalTilePairs.pop_back();
+            PortalTile::DeletePair(pair.first, pair.second);
+        }
+
+        s_pPTMG->m_vPortalTilePairs.clear();
+
+        s_pPTMG->m_pLBMG = nullptr;
+
         delete s_pPTMG;
         s_pPTMG = nullptr;
     }
@@ -92,11 +103,26 @@ std::pair<PortalTileManager::PortalTile*, PortalTileManager::PortalTile*> Portal
     return std::pair(portalTile1, portalTile2);
 }
 
+void PortalTileManager::PortalTile::DeletePair(PortalTile* p_protal_tile_1, PortalTile* p_protal_tile_2)
+{
+    if(
+    p_protal_tile_1 == nullptr                          ||
+    p_protal_tile_2 == nullptr                          ||
+    p_protal_tile_1->GetSibling() != p_protal_tile_2    || 
+    p_protal_tile_2->GetSibling() != p_protal_tile_1
+    ) 
+    {
+    return;
+    }
+
+    delete p_protal_tile_1;
+    delete p_protal_tile_2;
+}
+
 PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManager* p_lbmg)
 {
     m_vTilePos = p_tile_pos;
     m_bIsActive = false;
-    m_pPortalTileObj = &p_lbmg->GetGameObject()->GetScene().CreateObject2D();
     m_vChunkID = p_lbmg->GetChunkID(p_tile_pos);
     m_pChunk = p_lbmg->GetChunk(m_vChunkID);
     m_pLabyrinthManager = p_lbmg;
@@ -106,6 +132,20 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
         m_pPlayer = playerController.GetGameObject();
         break;
     }
+
+    m_pPortalTileSpriteObj->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f, 3.0f));
+    wolf::Sprite2D* sprite = &m_pPortalTileSpriteObj->AddComponent<wolf::Sprite2D>("data/textures/tile_hermes_portal.png");
+    sprite->SetOriginToCenterOfTexture();
+}
+
+PortalTileManager::PortalTile::~PortalTile()
+{
+    m_pSiblingPortalTile = nullptr;
+    m_pArrival = nullptr;
+    m_pChunk = nullptr;
+    m_pLabyrinthManager = nullptr;
+    wolf::Scene* scene = &m_pPortalTileSpriteObj->GetScene();
+    scene->DeleteObject(m_pPortalTileSpriteObj->GetID());
 }
 
 void PortalTileManager::PortalTile::Update(float p_dt)

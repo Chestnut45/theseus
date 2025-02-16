@@ -31,6 +31,7 @@ private:
     {
     public:
         static std::pair<PortalTile*, PortalTile*> CreatePair(glm::ivec2 p_tile_pos_1, glm::ivec2 p_tile_pos_2, LabyrinthManager* p_lbmg);
+        static void DeletePair(PortalTile* p_protal_tile_1, PortalTile* p_protal_tile_2);
         void Update(float p_dt);
         
         // Getters
@@ -53,7 +54,7 @@ private:
         glm::ivec2 m_vTilePos = glm::ivec2(0.0f, 0.0f);
         bool m_bIsActive = false;
         PortalTile* m_pSiblingPortalTile = nullptr;
-        wolf::GameObject* m_pPortalTileObj = nullptr;
+        wolf::GameObject* m_pPortalTileSpriteObj = nullptr;
         wolf::GameObject* m_pArrival = nullptr;             // Any object teleported to this portal tile that is still occupying it
         wolf::GameObject* m_pChunk = nullptr;
         glm::ivec2 m_vChunkID = glm::ivec2(-1.0f, -1.0f);
@@ -62,6 +63,7 @@ private:
         const glm::vec2 SPAWN_OFFSET = glm::vec2(LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE * 0.5f);
 
         PortalTile(glm::ivec2 p_tile_pos, LabyrinthManager* p_lbmg);
+        virtual ~PortalTile();
     }; 
     
     LabyrinthManager* m_pLBMG = nullptr;
