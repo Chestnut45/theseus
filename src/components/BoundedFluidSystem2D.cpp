@@ -64,19 +64,57 @@ BoundedFluidSystem2D::~BoundedFluidSystem2D()
 
 void BoundedFluidSystem2D::Update(float delta)
 {
+    static const glm::ivec2 adjacentCellOffsets[] = {
+        glm::ivec2(-1, 0),
+        glm::ivec2(-1, -1),
+        glm::ivec2(-1, 1),
+        glm::ivec2(1, 0),
+        glm::ivec2(1, -1),
+        glm::ivec2(1, 1),
+        glm::ivec2(0, -1),
+        glm::ivec2(0, 1),
+        glm::ivec2(0, 0) // Adding the 0 offset here simplifies the code below
+    };
+
+    // Update spatial map
+    m_spatialMap.clear();
+    int particleIndex = 0;
+    for (auto& p : m_particles)
+    {
+        m_spatialMap[p.m_pos / (m_kernelRadius * 2.0f)].push_back(particleIndex);
+        particleIndex++;
+    }
+
+    // TODO: A normalization issue can cause -nan positions which pollutes a single
+    // spatial grid cell with "dead" particles, killing performance. Fix!
+
     // Compute the density and pressure of each particle
     for (auto& particle : m_particles)
     {
         particle.m_density = 0.0f;
 
-        // Sum density contributions from other particles
-        for (auto& other : m_particles)
+        // Get the current grid cell
+        glm::ivec2 gridCell = particle.m_pos / (m_kernelRadius * 2.0f);
+
+        // Iterate all adjacent cells
+        for (int neighbourCell = 0; neighbourCell < 9; ++neighbourCell)
         {
-            glm::vec2 between = other.m_pos - particle.m_pos;
-            float sqrDist = glm::length2(between);
-            if (sqrDist < m_kernelRadiusSqr)
+            // Grab the list of particle indices from the spatial grid
+            auto& cellParticleIndices = m_spatialMap[gridCell + adjacentCellOffsets[neighbourCell]];
+
+            // Sum density contributions from other particles in nearby grid cells
+            for (int i = 0; i < cellParticleIndices.size(); ++i)
             {
-                particle.m_density += m_particleMass * m_poly6 * pow(m_kernelRadiusSqr - sqrDist, 3.0f);
+                // Grab the other particle
+                auto& other = m_particles[cellParticleIndices[i]];
+
+                // Ensure it's close enough to count
+                glm::vec2 between = other.m_pos - particle.m_pos;
+                float sqrDist = glm::length2(between);
+                if (sqrDist < m_kernelRadiusSqr)
+                {
+                    particle.m_density += m_particleMass * m_poly6 * pow(m_kernelRadiusSqr - sqrDist, 3.0f);
+                }
             }
         }
 
@@ -89,18 +127,32 @@ void BoundedFluidSystem2D::Update(float delta)
     {
         glm::vec2 pressureForce(0.0f);
         glm::vec2 viscosityForce(0.0f);
-        
-        for (auto& other : m_particles)
+
+        // Get the current grid cell
+        glm::ivec2 gridCell = particle.m_pos / (m_kernelRadius * 2.0f);
+
+        // Iterate all adjacent cells
+        for (int neighbourCell = 0; neighbourCell < 9; ++neighbourCell)
         {
-            if (&particle == &other) continue;
+            // Grab the list of particle indices from the spatial grid
+            auto& cellParticleIndices = m_spatialMap[gridCell + adjacentCellOffsets[neighbourCell]];
 
-            glm::vec2 between = other.m_pos - particle.m_pos;
-            float dist = glm::length(between);
-
-            if (dist < m_kernelRadius)
+            // Sum density contributions from other particles in nearby grid cells
+            for (int i = 0; i < cellParticleIndices.size(); ++i)
             {
-                pressureForce += -glm::normalize(between) * m_particleMass * (particle.m_pressure + other.m_pressure) / (2.0f * other.m_density) * m_spikyGradient * (float)pow(m_kernelRadius - dist, 3.0f);
-                viscosityForce += m_viscosity * m_particleMass * (other.m_vel - particle.m_vel) / other.m_density * m_viscLaplacian * (m_kernelRadius - dist);
+                // Grab the other particle
+                auto& other = m_particles[cellParticleIndices[i]];
+
+                if (&particle == &other) continue;
+
+                // Ensure it's close enough to count
+                glm::vec2 between = other.m_pos - particle.m_pos;
+                float dist = glm::length(between);
+                if (dist < m_kernelRadius)
+                {
+                    pressureForce += -glm::normalize(between) * m_particleMass * (particle.m_pressure + other.m_pressure) / (2.0f * other.m_density) * m_spikyGradient * (float)pow(m_kernelRadius - dist, 3.0f);
+                    viscosityForce += m_viscosity * m_particleMass * (other.m_vel - particle.m_vel) / other.m_density * m_viscLaplacian * (m_kernelRadius - dist);
+                }
             }
         }
 
@@ -147,7 +199,6 @@ void BoundedFluidSystem2D::Render(float delta)
 {
     // Upload particle data to SSBO
     // TODO: Could switch to a persistently mapped buffer with double buffering for better perf
-    // TODO: Even if not, moving the upload to immediately after update may help
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, s_particleSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FluidParticle) * m_particles.size(), m_particles.data(), GL_STREAM_DRAW);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -166,7 +217,7 @@ void BoundedFluidSystem2D::Render(float delta)
 
 void BoundedFluidSystem2D::ApplyRadialForce(const glm::vec2& position, float radius, float strength)
 {
-    // TODO: This will benefit greatly from the spatial hashing optimizations...
+    // TODO: Only check particles in the cells touched by the radius?
     float totalRadius = radius + m_kernelRadius;
     for (auto& p : m_particles)
     {

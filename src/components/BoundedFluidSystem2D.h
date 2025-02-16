@@ -11,7 +11,11 @@
 
 #include <vector>
 
+#include <unordered_map>
 #include <glm/vec2.hpp>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
 #include <W_BaseComponent.h>
 #include <W_ProgramManager.h>
@@ -79,14 +83,10 @@ private:
     wolf::Rectangle m_bounds;
     std::vector<FluidParticle> m_particles;
 
-    // Reference counter for static resources
-    static inline size_t s_refCount = 0;
-
-    // Rendering data / buffer handles
-    static inline GLuint s_quadVAO = 0;
-    static inline GLuint s_quadVBO = 0;
-    static inline GLuint s_particleSSBO = 0;
-    static inline wolf::Program* s_pShader = nullptr;
+    // Spatial hashing optimization structure
+    // NOTE: Maps each grid cell to a list of particle indices contained in the cell
+    // TODO: Performance of unordered_map may well be a bottleneck now, measure / profile
+    std::unordered_map<glm::ivec2, std::vector<int>> m_spatialMap;
 
     // NOTE: Precomputed constant formulas for the solver taken from:
     // Schuermann, Lucas V. (Jul 2017). Implementing SPH in 2D. Writing.
@@ -113,6 +113,15 @@ private:
     int m_numParticlesToSpawn = 500;
     bool m_simulateGravity = true;
     glm::vec2 m_gravity{0.0f, -9.81f};
+
+    // Reference counter for static resources
+    static inline size_t s_refCount = 0;
+
+    // Rendering data / buffer handles
+    static inline GLuint s_quadVAO = 0;
+    static inline GLuint s_quadVBO = 0;
+    static inline GLuint s_particleSSBO = 0;
+    static inline wolf::Program* s_pShader = nullptr;
 
     // DEBUG: Sets up an initial dam break configuration based on m_numParticlesToSpawn
     void SetupDamBreak();
