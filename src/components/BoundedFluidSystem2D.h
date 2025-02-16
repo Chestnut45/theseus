@@ -65,6 +65,10 @@ public:
     // Draw the fluid particles to the current framebuffer
     void Render(float delta);
 
+    // Apply a radial force at the given position, interpolated linearly by distance
+    // NOTE: A negative strength will pull towards the given position
+    void ApplyRadialForce(const glm::vec2& position, float radius, float strength);
+
 private:
 
     // Data members
@@ -96,14 +100,16 @@ private:
 
     // TODO: Parameterize viscosity / mass / radius so users can tweak the system's behaviour
 
+    // TODO: GUI for tweaking these parameters live, testing initial configs, etc.
+
     // Solver parameters
     static const inline glm::vec2 GRAVITY{0.0f, -9.81f};
-    static const inline float REST_DENSITY = 300.0f;
-    static const inline float GAS_CONSTANT = 2000.0f;
-    static const inline float KERNEL_RADIUS = 16.0f;
+    static const inline float REST_DENSITY = 230.0f; // Original 300
+    static const inline float GAS_CONSTANT = 1700.0f; // Original 2000
+    static const inline float KERNEL_RADIUS = 32.0f; // Original 16
     static const inline float KERNEL_RADIUS_SQR = KERNEL_RADIUS * KERNEL_RADIUS;
     static const inline float PARTICLE_MASS = 2.5f;
-    static const inline float VISCOSITY = 200.0f;
+    static const inline float VISCOSITY = 200.0f; // Original 200
     static const inline float FIXED_DELTA = 0.0007f;
 
     // Smoothing kernels defined in Müller and their gradients

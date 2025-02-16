@@ -175,7 +175,7 @@ void PlayState::Enter()
 
     // DEBUG: Fluid system testing
     auto& fluidObj = scene.CreateObject2D();
-    fluidObj.AddComponent<BoundedFluidSystem2D>(wolf::Rectangle(0.0f, 800.0, 800.0f, 0.0f));
+    fluidObj.AddComponent<BoundedFluidSystem2D>(wolf::Rectangle(0.0f, 1200.0, 1200.0f, 0.0f));
     m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f));
    
     // Schedule her movement
@@ -246,6 +246,12 @@ void PlayState::Update(float delta)
     for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
     {
         system.Update(delta);
+
+        // DEBUG: Apply outward force if player is walking
+        if (m_pPlayerObject->GetComponent<PlayerController>()->GetPlayerAction() == PlayerController::PlayerAction::ROLLING)
+        {
+            system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 100.0f, 10.0f);
+        }
     }
 
     // Show the Labyrinth Manager debug GUI

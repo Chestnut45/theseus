@@ -46,13 +46,13 @@ BoundedFluidSystem2D::BoundedFluidSystem2D(const wolf::Rectangle& bounds)
 
     // DEBUG: Initial dam break configuration for testing
     int numParticles = 500;
-    for (float y = m_bounds.m_top; y > m_bounds.m_bottom; y -= KERNEL_RADIUS)
+    for (float y = m_bounds.m_top; y > m_bounds.m_bottom; y -= KERNEL_RADIUS + 1)
     {
-        for (float x = m_bounds.m_left; x < m_bounds.m_right; x += KERNEL_RADIUS)
+        for (float x = m_bounds.m_left; x < m_bounds.m_right; x += KERNEL_RADIUS + 1)
         {
             if (m_particles.size() < numParticles)
             {
-                const glm::vec2 spawnPos = glm::vec2(x + m_rng.NextFloat(-0.1f, 0.1f), y + m_rng.NextFloat(-0.1f, 0.1f));
+                const glm::vec2 spawnPos = glm::vec2(x + m_rng.NextFloat(-0.01f, 0.01f), y + m_rng.NextFloat(-0.01f, 0.01f));
                 m_particles.emplace_back(FluidParticle(spawnPos));
             }
             else
@@ -156,27 +156,43 @@ void BoundedFluidSystem2D::Integrate()
         // Forward Euler integration
         p.m_vel += FIXED_DELTA * p.m_force / p.m_density;
         p.m_pos += FIXED_DELTA * p.m_vel;
+        // p.m_vel *= 0.95f; // Extra damping to help with stability
 
         // Boundary enforcement
         if (p.m_pos.x - BOUND_EPSILON < m_bounds.m_left)
         {
-            p.m_vel *= BOUND_DAMPING;
+            p.m_vel.x *= BOUND_DAMPING;
             p.m_pos.x = m_bounds.m_left + BOUND_EPSILON;
         }
         if (p.m_pos.x + BOUND_EPSILON > m_bounds.m_right)
         {
-            p.m_vel *= BOUND_DAMPING;
+            p.m_vel.x *= BOUND_DAMPING;
             p.m_pos.x = m_bounds.m_right - BOUND_EPSILON;
         }
         if (p.m_pos.y - BOUND_EPSILON < m_bounds.m_bottom)
         {
-            p.m_vel *= BOUND_DAMPING;
+            p.m_vel.y *= BOUND_DAMPING;
             p.m_pos.y = m_bounds.m_bottom + BOUND_EPSILON;
         }
         if (p.m_pos.y + BOUND_EPSILON > m_bounds.m_top)
         {
-            p.m_vel *= BOUND_DAMPING;
+            p.m_vel.y *= BOUND_DAMPING;
             p.m_pos.y = m_bounds.m_top - BOUND_EPSILON;
+        }
+    }
+}
+
+void BoundedFluidSystem2D::ApplyRadialForce(const glm::vec2& position, float radius, float strength)
+{
+    // TODO: This will benefit greatly from the spatial hashing optimizations...
+    float totalRadius = radius + KERNEL_RADIUS;
+    for (auto& p : m_particles)
+    {
+        const float distance = glm::distance(p.m_pos, position);
+        const glm::vec2 direction = glm::normalize(p.m_pos - position);
+        if (distance < totalRadius)
+        {
+            p.m_vel += direction * glm::mix(strength, 0.0f, distance / totalRadius) / p.m_density;
         }
     }
 }
