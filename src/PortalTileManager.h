@@ -47,8 +47,8 @@ private:
         void SetArrival(wolf::GameObject* p_arrival);
         
         // Helpers
+        void CheckTeleport(wolf::GameObject* p_obj);
         void Teleport(wolf::GameObject* p_obj);
-        void DisplayActivationNotice();
 
     private:
         glm::ivec2 m_vTilePos = glm::ivec2(0.0f, 0.0f);
