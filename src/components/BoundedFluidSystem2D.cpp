@@ -85,9 +85,6 @@ void BoundedFluidSystem2D::Update(float delta)
         particleIndex++;
     }
 
-    // TODO: A normalization issue can cause -nan positions which pollutes a single
-    // spatial grid cell with "dead" particles, killing performance. Fix!
-
     // Compute the density and pressure of each particle
     for (auto& particle : m_particles)
     {
@@ -148,7 +145,11 @@ void BoundedFluidSystem2D::Update(float delta)
                 // Ensure it's close enough to count
                 glm::vec2 between = other.m_pos - particle.m_pos;
                 float dist = glm::length(between);
-                if (dist < m_kernelRadius)
+
+                // TODO: A normalization issue can cause -nan positions which pollutes a single
+                // spatial grid cell with "dead" particles, killing performance. Fix!
+                // NOTE: The second condition here fixes the above issue, but causes sticky particles! Investigate...
+                if (dist < m_kernelRadius && dist != 0.0f)
                 {
                     pressureForce += -glm::normalize(between) * m_particleMass * (particle.m_pressure + other.m_pressure) / (2.0f * other.m_density) * m_spikyGradient * (float)pow(m_kernelRadius - dist, 3.0f);
                     viscosityForce += m_viscosity * m_particleMass * (other.m_vel - particle.m_vel) / other.m_density * m_viscLaplacian * (m_kernelRadius - dist);
@@ -209,6 +210,10 @@ void BoundedFluidSystem2D::Render(float delta)
 
     // Bind and draw
     s_pShader->SetUniform("kernelRadius", m_kernelRadius);
+    s_pShader->SetUniform("gasConstant", m_gasConstant);
+    s_pShader->SetUniform("restDensity", m_restDensity);
+    s_pShader->SetUniform("fluidColor", m_fluidColor);
+    s_pShader->SetUniform("waveColor", m_waveColor);
     s_pShader->Bind();
     glBindVertexArray(s_quadVAO);
     glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_particles.size());
@@ -233,7 +238,8 @@ void BoundedFluidSystem2D::ApplyRadialForce(const glm::vec2& position, float rad
 void BoundedFluidSystem2D::ShowEditor()
 {
     ImGui::Begin("##FluidSystemEditor", nullptr);
-    ImGui::Checkbox("Gravity", &m_simulateGravity);
+    
+    ImGui::SeparatorText("Solver Parameters");
     ImGui::SliderFloat("Rest Density", &m_restDensity, 0.0f, 500.0f, "%.0f");
     ImGui::SliderFloat("Gas Constant", &m_gasConstant, 1000.0f, 3000.0f, "%.0f");
     if (ImGui::SliderFloat("Kernel Radius", &m_kernelRadius, 2.0f, 512.0f, "%.0f"))
@@ -250,7 +256,12 @@ void BoundedFluidSystem2D::ShowEditor()
     ImGui::SliderFloat("Fixed Delta", &m_fixedDelta, 0.0001f, 0.01f, "%.4f");
     ImGui::SliderFloat("Bound Epsilon", &m_boundEpsilon, 2.f, 512.0f, "%.0f");
     ImGui::SliderFloat("Bound Damping", &m_boundDamping, -2.0f, 2.0f, "%.1f");
-    ImGui::SliderInt("#Particles", &m_numParticlesToSpawn, 1, 5000);
+
+    ImGui::SeparatorText("Simulation Controls");
+    ImGui::Checkbox("Gravity", &m_simulateGravity);
+    ImGui::ColorEdit4("Fluid Color", &m_fluidColor.r);
+    ImGui::ColorEdit4("Wave Color", &m_waveColor.r);
+    ImGui::SliderInt("# Particles", &m_numParticlesToSpawn, 1, 5000);
     if (ImGui::Button("Respawn")) SetupDamBreak();
 
     ImGui::End();

@@ -13,6 +13,7 @@
 
 #include <unordered_map>
 #include <glm/vec2.hpp>
+#include <glm/vec4.hpp>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
@@ -73,6 +74,14 @@ public:
     // NOTE: A negative strength will pull towards the given position
     void ApplyRadialForce(const glm::vec2& position, float radius, float strength);
 
+    // Set / Get the color of the fluid particles
+    void SetFluidColor(const glm::vec4& color) { m_fluidColor = color; }
+    const glm::vec4& GetFluidColor() const { return m_fluidColor; }
+
+    // Set / Get the color of the wave particles
+    void SetWaveColor(const glm::vec4& color) { m_waveColor = color; }
+    const glm::vec4& GetWaveColor() const { return m_waveColor; }
+
     // Renders a debug GUI for controlling the simulation
     void ShowEditor();
 
@@ -82,6 +91,8 @@ private:
     wolf::RNG m_rng;
     wolf::Rectangle m_bounds;
     std::vector<FluidParticle> m_particles;
+    glm::vec4 m_fluidColor{0.0f, 0.2f, 0.45f, 1.0f};
+    glm::vec4 m_waveColor{1.0f};
 
     // Spatial hashing optimization structure
     // NOTE: Maps each grid cell to a list of particle indices contained in the cell
@@ -93,12 +104,12 @@ private:
     // https://lucasschuermann.com/writing/implementing-sph-in-2d
 
     // Solver parameters
-    float m_restDensity = 230.0f; // Original 300
-    float m_gasConstant = 1700.0f; // Original 2000
+    float m_restDensity = 280.0f; // Original 300
+    float m_gasConstant = 1800.0f; // Original 2000
     float m_kernelRadius = 32.0f; // Original 16
     float m_kernelRadiusSqr = m_kernelRadius * m_kernelRadius;
-    float m_particleMass = 2.5f;
-    float m_viscosity = 200.0f; // Original 200
+    float m_particleMass = 4.5f;
+    float m_viscosity = 245.0f; // Original 200
     float m_fixedDelta = 0.0007f;
 
     // Smoothing kernels defined in Müller and their gradients
@@ -108,11 +119,11 @@ private:
     float m_viscLaplacian = 40.0f / (M_PI * pow(m_kernelRadius, 5.0f));
 
     // Simulation parameters
-    float m_boundEpsilon = m_kernelRadius;
-    float m_boundDamping = -0.5f;
-    int m_numParticlesToSpawn = 500;
+    int m_numParticlesToSpawn = 1000;
     bool m_simulateGravity = true;
     glm::vec2 m_gravity{0.0f, -9.81f};
+    float m_boundEpsilon = m_kernelRadius;
+    float m_boundDamping = -0.5f;
 
     // Reference counter for static resources
     static inline size_t s_refCount = 0;
