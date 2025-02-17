@@ -42,9 +42,27 @@ class LightComponent : public wolf::BaseComponent {
         inline void SetCanMove(bool p_bCanMove) {m_bCanMove = p_bCanMove;};
 
     private:
-        std::pair<bool, glm::vec2> LineToCornerRectSideCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2SideStart, const glm::vec2& p_v2SideEnd);
+
+        enum RoughPosition {
+            TOP_LEFT,
+            TOP_CENTER,
+            TOP_RIGHT,
+            MID_LEFT,
+            SELF, // If the object's rough position is dead-center then we're comparing against ourselves
+            MID_RIGHT,
+            BOT_LEFT,
+            BOT_CENTER,
+            BOT_RIGHT,
+        };
+
         static bool CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, std::pair<glm::vec2, float> p_v2fB);
+
+        RoughPosition CalculateRoughObjPosition(const glm::vec2& p_v2ObjCenterPos);
+        std::pair<bool, glm::vec2> LineToCornerRectSideCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2SideStart, const glm::vec2& p_v2SideEnd);
         float CalculateCosAngleOfIntersection(const glm::vec2& p_v2Intersect);
+
+        // Determines if a corner is colliding with the light's ray(s) and adds it to the list of colliding points if it is
+        void CheckForCollisionAndAdd(const glm::vec2& p_v2Corner, std::pair<const glm::vec2&, const glm::vec2&> p_v2v2Side);
 
         // ID number to discern between lights
         static int m_iNextIDNum;
