@@ -14,8 +14,8 @@ dialogue_entries: [
 can_be_merchant: false
 
 health: 100
-collider_size: {x: 13.0, y: 28.0}
-collider_offset: {x: -6.0, y: 14.0}
+collider_size: {x: 8.0, y: 12.0}
+collider_offset: {x: -4.5, y: -1.0}
 
 animation_init: {
   frame_size: {x: 32.0, y: 32.0},

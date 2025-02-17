@@ -188,7 +188,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
         // Position the inventory
         ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
-        ImVec2 v2WindowDrawPos = {10.0f, v2DisplaySize.y * 0.15f};
+        ImVec2 v2WindowDrawPos = {10.0f, 256};
         
         ImGui::SetNextWindowPos(v2WindowDrawPos);
         ImGui::SetNextWindowSize({0,0});

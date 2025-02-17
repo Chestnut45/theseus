@@ -123,7 +123,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
 
         // Position the inventory
         ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
-        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.15f};
+        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), 256};
 
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos(v2WindowDrawPos);
@@ -374,7 +374,7 @@ void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryE
 
     if (p_event.enType == InventoryType::DISPENSARY_INVENTORY && p_event.iIdNum == m_iIdNum)
     {
-        wolf::Audio::Play("data/sounds/sfx_dispensary_open.wav", 0.8f);
+        wolf::Audio::Play("data/sounds/sfx_dispensary_open.wav", 1.0f);
     }
 
     // If this dispensary is open
@@ -396,7 +396,7 @@ void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventor
     bool sfxPlayed = false;
     if (p_event.enType == InventoryType::DISPENSARY_INVENTORY && p_event.iIdNum == m_iIdNum)
     {
-        wolf::Audio::Play("data/sounds/sfx_dispensary_close.wav", 0.8f);
+        wolf::Audio::Play("data/sounds/sfx_dispensary_close.wav", 1.0f);
         sfxPlayed = true;
     }
 
@@ -412,7 +412,7 @@ void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventor
             }
 
             // Play SFX in edge case where dispensary inventory is closed by walking away
-            if (!sfxPlayed) wolf::Audio::Play("data/sounds/sfx_dispensary_close.wav", 0.8f);
+            if (!sfxPlayed) wolf::Audio::Play("data/sounds/sfx_dispensary_close.wav", 1.0f);
 
             // Hide the child icon
             for (auto& child : this->GetGameObject()->GetChildren()) {

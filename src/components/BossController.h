@@ -5,6 +5,7 @@
 
 #include <glm/vec2.hpp>
 #include <W_Timer.h>
+#include <events/DamageEvent.h>
 #include <unordered_set>
 
 // Forward declarations
@@ -47,6 +48,8 @@ public:
         STRAFE,
         DODGE,
         AXE_ATTACK,
+        LEAP_ATTACK,
+        TRANSITION_TO_PHASE_3,
 
         // Phase 3 states
         SEARCHING,
@@ -109,7 +112,13 @@ private:
 
     // General stats
     bool m_active;
+    bool m_renderHealthBar = false;
     int m_maxHealth;
+    float m_prevHealthFraction;
+    wolf::Timer m_damageFlashTimer;
+    glm::vec2 m_centerOfChamber;
+    glm::vec2 m_bottomLeftCorner;
+    glm::vec2 m_topRightCorner;
     
     // Phase 1 stats
     int m_throneBlockRange;
@@ -126,28 +135,41 @@ private:
 
 
     // Phase 2 stats
+    int m_attackChain;
+    int m_prevAttack;
     int m_axeAttackDamage;
-    int m_axePunishDamage;
+    int m_slamAttackDamage;
     int m_minDistToPlayer;
     int m_maxDistToPlayer;
     bool m_strafeClockwise;
     bool m_axeSummoned;
+    bool m_slamStun;
     float m_strafeSpeed;
     float m_chaseSpeed;
+    float m_shadowDistance;
+    float m_altitude;
     wolf::Timer m_whooshTimer;
     wolf::Timer m_dodgeTimer;
     wolf::Timer m_strafeSwapTimer;
+    wolf::Timer m_nextAttackTimer;
     wolf::Timer m_axeAttackTimer;
+    wolf::Timer m_leapAttackTimer;
+    wolf::Timer m_transitionTimer;
     glm::vec2 m_dodgeDir;
+    glm::vec2 m_transitionStartPos;
     ColliderComponent* m_pAxeCollider = nullptr;
 
     // Phase 3 stats
+    wolf::Timer m_fireSFXTimer;
+    wolf::Timer m_deathTimer;
     float m_fireBreathWindupTime;   // Fire breath state members
     float m_fireBreathWindupTimer;
     glm::vec3 m_fireBreathWindupTint;
     int m_fireBreathDamage;     
     float m_fireBreathRange;
+    float m_fireBreathRangeExtender;
     float m_fireBreathDuration;
+    float m_fireBreathTimer;
     float m_fireBreathTurningCapRadian;
     float m_fireBreathTurningDelay;
     float m_fireBreathTurningTimer;
@@ -169,18 +191,30 @@ private:
     float m_pullTimer;
     float m_pullForce;
 
-    float m_stunTimer;              // Stun state members
+    float m_stunTime;               // Stun state members
+    float m_stunTimer;              
 
     float m_searchSpeed;            // Search state members
     float m_searchTimer;
+    float m_redirectTime;
+    float m_redirectTimer;
+    float m_redirectSpeedLimit;
 
     float m_idleTimer;              // Idle state members
+    glm::vec2 m_idleTimeRange;
 
-    float m_autoAttackRange;
+    float m_autoAttackRange;        // Misc.
+    float m_superchargeHealthFraction;
+    float m_isSupercharged;
 
     // Updates the animated sprite based on state,
     // regardless of what phase of the fight we're in
     void UpdateAnimation();
+
+    void RenderHealthBar(float delta);
+
+    // Handlers
+    void OnDamageEvent(const DamageEvent& event);
 
     // Phase 1 methods
     void EnterPhase1();
@@ -201,6 +235,7 @@ private:
     void EnterPhase2();
     void UpdatePhase2(float delta);
     void StartAxeAttack();
+    void StartLeapAttack();
     void DodgePlayerAttack(const glm::vec2& dirToPlayer);
 
     // Phase 3 methods
@@ -223,6 +258,8 @@ private:
 
     void StartFireBreathAttack();
     void AttackFireBreath(float delta);
+    void BreatheFire(float delta);
+    void BreatheFireSupercharged(float delta);
     void TurnToPlayer(float delta);
 
     void StartChargeAttack();
@@ -231,4 +268,8 @@ private:
 
     void StartPull();
     void Pull(float delta);
+
+    void Dead(float delta);
+
+    void LastStandSupercharge();
 };
