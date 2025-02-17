@@ -67,6 +67,7 @@ rooms: [
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
 			{type: trapped_chest_gorgon, amount: 1, placement: center},
+			{type: gorgon_spawner},
 			{type: throwable_object, amount: 2, placement: random},
 		]
 	},
@@ -78,6 +79,7 @@ rooms: [
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
 			{type: trapped_chest_harpy, amount: 1, placement: center},
+			{type: harpy_spawner},
 			{type: throwable_object, amount: 2, placement: random},
 		]
 	},
@@ -89,6 +91,7 @@ rooms: [
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
 			{type: trapped_chest_minitaur, amount: 1, placement: center},
+			{type: minitaur_spawner},
 			{type: throwable_object, amount: 3, placement: random},
 		]
 	},
