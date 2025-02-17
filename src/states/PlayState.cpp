@@ -193,7 +193,7 @@ void PlayState::Enter()
     pLightTransform.SetPosition(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     auto& pLightSprite = pLightGO->AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
     pLightSprite.SetOriginToCenterOfTexture();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec2(250.0f, 250.0f), false);
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec2(500.0f, 500.0f), false);
     pLightComponent.Init();
 
     // Stop all audio and begin the maze music
