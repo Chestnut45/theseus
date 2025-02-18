@@ -7,12 +7,14 @@
 // A class representing a single colored light with a given radius
 //-----------------------------------------------------------------------------
 
+#include <LabyrinthManager.h>
 #include <W_BaseComponent.h>
 #include <W_Transform2D.h>
 #include <W_Scene.h>
 #include <string>
 
 #include "ColliderComponent.h"
+#include <LabyrinthManager.h>
 
 class LightComponent : public wolf::BaseComponent {
     public:
@@ -64,6 +66,9 @@ class LightComponent : public wolf::BaseComponent {
         // Determines if a corner is colliding with the light's ray(s) and adds it to the list of colliding points if it is
         void CheckForCollisionAndAdd(const glm::vec2& p_v2Corner, std::pair<const glm::vec2&, const glm::vec2&> p_v2v2Side);
 
+        // Helper function to determine if a point falls on a wall tile
+        bool CheckForWallAtPos(const glm::vec2& p_v2Pos);
+
         // ID number to discern between lights
         static int m_iNextIDNum;
         const int m_iIDNum;
@@ -78,12 +83,13 @@ class LightComponent : public wolf::BaseComponent {
 
         // Pointer to the scene this light is in
         wolf::Scene* m_pScene = nullptr;
+        LabyrinthManager* m_pLabyrinthManager = nullptr;
         
         // This light's transform and the four corners at the edges of its radius
         wolf::Transform2D* m_pTransform = nullptr;
         ColliderComponent* m_pCollider = nullptr;
 
         // Vector to hold the points that collide with the light and the
-        // slope of the line they intersected with the light on
+        // angle of the line they intersect on
         std::vector<std::pair<glm::vec2, float>> m_vv2fCollidingPoints;
 };

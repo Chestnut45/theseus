@@ -29,6 +29,13 @@ void LightComponent::Init() {
     // Add the light collider
     m_pCollider = &this->GetGameObject()->AddComponent<ColliderComponent>(ColliderComponent::NONE, false, true);
     m_pCollider->AddColliderBox(m_v2Radius, glm::vec2(-m_v2Radius.x / 2.0f, m_v2Radius.y / 2.0f));
+
+    // Retrieve the labyrinth manager
+    for (auto&& [_, lbmg] : this->m_pScene->Each<LabyrinthManager>())
+    {
+        m_pLabyrinthManager = &lbmg;
+        break;
+    }
 }
 
 void LightComponent::Update(float p_fDelta) {
@@ -53,7 +60,7 @@ void LightComponent::Update(float p_fDelta) {
                 glm::vec2 v2TopLeft = vv2ColliderCorners.at(k);
                 glm::vec2 v2BotRight = vv2ColliderCorners.at(k + 2);
 
-                // Check if the light origin is inside of the rectangle
+                // Check if the light's origin is inside of the rectangle
                 if (m_v2Origin.x > v2TopLeft.x && m_v2Origin.x < v2BotRight.x && m_v2Origin.y > v2BotRight.y && m_v2Origin.y < v2TopLeft.y) {
                     // If it is, we do not want to cast rays to its corners unless it is the light's AOE collider
                     if (this->GetGameObject()->GetID() != collider.GetGameObject()->GetID()) {
@@ -61,7 +68,18 @@ void LightComponent::Update(float p_fDelta) {
                     }
                 }
 
-                // And store those in a new rectangle
+                // Check if the rectangle is completely outside of the light's radius
+                // (This can happen because wall colliders are grouped by chunk)
+                if ((v2TopLeft.x > m_v2Origin.x + m_v2Radius.x * 0.5f) ||
+                    (v2TopLeft.y < m_v2Origin.y - m_v2Radius.y * 0.5f) ||
+                    (v2BotRight.x < m_v2Origin.x - m_v2Radius.x * 0.5f) ||
+                    (v2BotRight.y > m_v2Origin.y + m_v2Radius.y * 0.5f))
+                {
+                    // If it is, we do not want to cast rays to it
+                    continue;
+                }
+
+                // If we've made it this far, we send a copy of this rectangle to the next phase of the collision testing
                 vpRectanglesInAOE.push_back(wolf::Rectangle(v2TopLeft.x, v2TopLeft.y, v2BotRight.x, v2BotRight.y));
             }
         }
@@ -88,7 +106,7 @@ void LightComponent::Update(float p_fDelta) {
         switch (enRoughPos) {
             case TOP_LEFT:
                 // Shoot a line to the bottom-left, bottom-right, and top-right corners
-                m_vv2fCollidingPoints.push_back({v2BotRight, CalculateCosAngleOfIntersection(v2BotRight)});
+                this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
 
                 /* --------------------------------------------------------------------------------------
                 // The points that are furthest away from the light when the object is in one of the
@@ -103,14 +121,14 @@ void LightComponent::Update(float p_fDelta) {
             
             case TOP_CENTER:
                 // Shoot a line to the bottom-left and bottom-right corners
-                m_vv2fCollidingPoints.push_back({v2BotLeft, CalculateCosAngleOfIntersection(v2BotLeft)});
-                m_vv2fCollidingPoints.push_back({v2BotRight, CalculateCosAngleOfIntersection(v2BotRight)});
+                this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
+                this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
 
             break;
             
             case TOP_RIGHT:
                 // Shoot a line to the top-left, bottom-left, and bottom-right corners
-                m_vv2fCollidingPoints.push_back({v2BotLeft, CalculateCosAngleOfIntersection(v2BotLeft)});
+                this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
 
                 // Make sure that the ray doesn't go through the rectangle
                 this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2BotLeft});
@@ -120,21 +138,21 @@ void LightComponent::Update(float p_fDelta) {
             
             case MID_LEFT:
                 // Shoot a line to the top-right and bottom-right corners
-                m_vv2fCollidingPoints.push_back({v2TopRight, CalculateCosAngleOfIntersection(v2TopRight)});
-                m_vv2fCollidingPoints.push_back({v2BotRight, CalculateCosAngleOfIntersection(v2BotRight)});
+                this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
+                this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
 
             break;
             
             case MID_RIGHT:
                 // Shoot a line to the top-left and bottom-left corners
-                m_vv2fCollidingPoints.push_back({v2TopLeft, CalculateCosAngleOfIntersection(v2TopLeft)});
-                m_vv2fCollidingPoints.push_back({v2BotLeft, CalculateCosAngleOfIntersection(v2BotLeft)});
+                this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
+                this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
 
             break;
             
             case BOT_LEFT:
                 // Shoot a line to the top-left, top-right, and bottom-right corners
-                m_vv2fCollidingPoints.push_back({v2TopRight, CalculateCosAngleOfIntersection(v2TopRight)});
+                this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
 
                 // Make sure that the ray doesn't go through the rectangle
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopRight, v2BotRight});
@@ -144,14 +162,14 @@ void LightComponent::Update(float p_fDelta) {
             
             case BOT_CENTER:
                 // Shoot a line to the top-left and top-right corners
-                m_vv2fCollidingPoints.push_back({v2TopLeft, CalculateCosAngleOfIntersection(v2TopLeft)});
-                m_vv2fCollidingPoints.push_back({v2TopRight, CalculateCosAngleOfIntersection(v2TopRight)});
+                this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
+                this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
 
             break;
             
             case BOT_RIGHT:
                 // Shoot a line to the top-right, top-left, and bottom-left corners
-                m_vv2fCollidingPoints.push_back({v2TopLeft, CalculateCosAngleOfIntersection(v2TopLeft)});
+                this->CheckForCollisionAndAdd(v2TopLeft, {v2BotLeft, v2BotRight});
 
                 // Make sure that the ray doesn't go through the rectangle
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2TopLeft, v2TopRight});
@@ -166,15 +184,10 @@ void LightComponent::Update(float p_fDelta) {
                 m_vv2fCollidingPoints.push_back({v2TopRight, CalculateCosAngleOfIntersection(v2TopRight)});
                 m_vv2fCollidingPoints.push_back({v2BotLeft, CalculateCosAngleOfIntersection(v2BotLeft)});
                 m_vv2fCollidingPoints.push_back({v2BotRight, CalculateCosAngleOfIntersection(v2BotRight)});
+                
             break;
         }
     }
-
-    // !-- Need to get all of the wall tiles in the light's radius --!
-    // Once we have all the walls in the radius, we need to figure out which
-    // corners we're actually shooting to by finding the sides of the walls that
-    // are facing the light (exactly like before with the colliders).
-    // 
 
     // We don't want to draw light rays that go THROUGH the rectangles in the scene
     // so we are going to need to check if any of our lines intersect with other colliders
@@ -201,6 +214,9 @@ void LightComponent::Update(float p_fDelta) {
         glm::vec2 v2RightStart = arv2RectCorners[1]; // Right
         glm::vec2 v2RightEnd = arv2RectCorners[3];
 
+        // Determine if this rectangle is part of a wall tile
+        bool bRectIsWall = CheckForWallAtPos({(v2TopStart.x + v2BotEnd.x) * 0.5f, (v2TopStart.y + v2BotEnd.y) * 0.5f});
+
         // Then go through all of the corner points that we KNOW we'll be casting a light ray to
         for (std::pair<glm::vec2, float> v2fCorner : m_vv2fCollidingPoints) {
             // Skip corner points that belong to the rectangle we're currently looking at
@@ -214,8 +230,23 @@ void LightComponent::Update(float p_fDelta) {
                 this->LineToCornerRectSideCollisionTest(v2fCorner.first, v2TopStart, v2TopEnd).first ||
                 this->LineToCornerRectSideCollisionTest(v2fCorner.first, v2BotStart, v2BotEnd).first)
             {
-                // If it does, then the point will need to be removed so we mark it for death
-                //vv2fPointsToRemove.push_back(v2fCorner);
+                // If it does, and the rectangle we're currently comparing points against is a wall tile
+                if (bRectIsWall)
+                {
+                    // Check if offsetting the corner point slightly in any direction would put it within the
+                    // comparison rectangle's bounds.
+                    if ((v2fCorner.first.x + 1.0f > v2LeftStart.x && v2fCorner.first.x + 1.0f < v2LeftEnd.x) ||
+                        (v2fCorner.first.x - 1.0f > v2LeftStart.x && v2fCorner.first.x - 1.0f < v2LeftEnd.x) ||
+                        (v2fCorner.first.y + 1.0f > v2BotStart.y && v2fCorner.first.y + 1.0f < v2TopStart.y) ||
+                        (v2fCorner.first.y - 1.0f > v2BotStart.y && v2fCorner.first.y - 1.0f < v2TopStart.y))
+                    {
+                        // If it would, then this corner point is shared by two wall tiles and shouldn't be deleted
+                        continue;
+                    }
+                }
+                
+                // Otherwise, we remove the point
+                vv2fPointsToRemove.push_back(v2fCorner);
             }
         }
 
@@ -263,14 +294,6 @@ void LightComponent::Update(float p_fDelta) {
 // of colliding points if it can. If the ray does intersect the given side, then the point of intersection is added to the
 // colliding points vector, instead
 void LightComponent::CheckForCollisionAndAdd(const glm::vec2& p_v2Corner, std::pair<const glm::vec2&, const glm::vec2&> p_v2v2Side) {
-    // It is possible that the point we're sending a line to lies beyond the light's radius.
-    // In that case, we want to use the point of intersection between the light's boundary and the ray,
-    // so we first get the four corners that make up the light's radius
-    glm::vec2 v2LightTopLeft = {m_v2Origin.x - m_v2Radius.x * 0.5f, m_v2Origin.y + m_v2Radius.y * 0.5f};
-    glm::vec2 v2LightTopRight = {m_v2Origin.x + m_v2Radius.x * 0.5f, m_v2Origin.y + m_v2Radius.y * 0.5f};
-    glm::vec2 v2LightBotLeft = {m_v2Origin.x - m_v2Radius.x * 0.5f, m_v2Origin.y - m_v2Radius.y * 0.5f};
-    glm::vec2 v2LightBotRight = {m_v2Origin.x + m_v2Radius.x * 0.5f, m_v2Origin.y - m_v2Radius.y * 0.5f};
-
     // Check that the corner point is not outside of the radius
     if (!(p_v2Corner.x > m_v2Origin.x + m_v2Radius.x * 0.5f) &&
         !(p_v2Corner.x < m_v2Origin.x - m_v2Radius.x * 0.5f) &&
@@ -338,6 +361,17 @@ float LightComponent::CalculateCosAngleOfIntersection(const glm::vec2& p_v2Inter
 
     // Return the angle
     return fAngle;
+}
+
+bool LightComponent::CheckForWallAtPos(const glm::vec2& p_v2Pos) {
+    // Convert the given world-space position to a tile position
+    glm::vec2 v2TilePos = m_pLabyrinthManager->GetTilePosition(p_v2Pos);
+
+    // Get the ID of the tile at that position
+    int iTileID = m_pLabyrinthManager->GetTile(v2TilePos.x, v2TilePos.y);
+
+    // And return true if it is a wall tile
+    return (iTileID >= Tile::WallBottomLeft && iTileID <= Tile::WallTop);
 }
 
 // Compares two glm::vec2-float pairs and returns the one with the largest float value (break ties using the y coordinate)
