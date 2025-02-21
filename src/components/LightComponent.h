@@ -60,14 +60,20 @@ class LightComponent : public wolf::BaseComponent {
         static bool CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, std::pair<glm::vec2, float> p_v2fB);
 
         RoughPosition CalculateRoughObjPosition(const glm::vec2& p_v2ObjCenterPos);
-        std::pair<bool, glm::vec2> LineToCornerRectSideCollisionTest(const glm::vec2& p_v2LineEnd, const glm::vec2& p_v2SideStart, const glm::vec2& p_v2SideEnd);
-        float CalculateCosAngleOfIntersection(const glm::vec2& p_v2Intersect);
+        std::pair<bool, glm::vec2> LineLineCollisionTest(const glm::vec2& p_v2AStart, const glm::vec2& p_v2AEnd, const glm::vec2& p_v2BStart, const glm::vec2& p_v2BEnd);
+        float CalculateAngleOfIntersection(const glm::vec2& p_v2Intersect);
 
         // Determines if a corner is colliding with the light's ray(s) and adds it to the list of colliding points if it is
         void CheckForCollisionAndAdd(const glm::vec2& p_v2Corner, std::pair<const glm::vec2&, const glm::vec2&> p_v2v2Side);
 
+        // Determines if a line intersects with any of the AOE rectangle's sides and adds the point(s)
+        // of intersection to the list of colliding points if so
+        void CheckForAOECollisionAndAdd(const glm::vec2& p_v2LineStart, const glm::vec2& p_v2LineEnd);
+
         // Helper function to determine if a point falls on a wall tile
         bool CheckForWallAtPos(const glm::vec2& p_v2Pos);
+
+        bool IsAOERect(const wolf::Rectangle& p_pRect);
 
         // ID number to discern between lights
         static int m_iNextIDNum;
