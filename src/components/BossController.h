@@ -155,6 +155,7 @@ private:
     wolf::Timer m_axeAttackTimer;
     wolf::Timer m_leapAttackTimer;
     wolf::Timer m_transitionTimer;
+    wolf::Timer m_throneBreakTimer;
     glm::vec2 m_dodgeDir;
     glm::vec2 m_transitionStartPos;
     ColliderComponent* m_pAxeCollider = nullptr;

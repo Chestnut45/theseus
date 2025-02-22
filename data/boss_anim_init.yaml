@@ -3,7 +3,7 @@ playback_speed: 4.0
 
 start_animation: {
   texture: data/textures/boss_throne_sit_sheet.png,
-  name: ThroneSitEyesClosed
+  name: ThroneSit
 }
 
 animation_sets: [

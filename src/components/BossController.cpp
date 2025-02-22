@@ -142,7 +142,7 @@ void BossController::Init()
     // Create collider
     pObject->DeleteComponent<ColliderComponent>();
     m_pCollider = &pObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
-    m_pCollider->AddColliderBox(glm::vec2(111, 170), glm::vec2(-52, 84));
+    m_pCollider->AddColliderBox(glm::vec2(190, 160), glm::vec2(-92, 66));
 
     // Grab a reference to the labyrinth manager
     for (auto&&[_, manager] : pObject->GetScene().Each<LabyrinthManager>())
@@ -212,6 +212,18 @@ void BossController::Init()
         wolf::Error("Boss controller init could not find player controller!");
     }
 
+    // Create the shadow sprite object
+    if (m_pShadowObject) m_pShadowObject->Delete();
+    m_pShadowObject = &GetGameObject()->GetScene().CreateObject2D();
+    GetGameObject()->AddChild(*m_pShadowObject);
+
+    auto& transform = *m_pShadowObject->GetComponent<wolf::Transform2D>();
+    transform.SetPosition(glm::vec2(0.0f, -m_shadowDistance));
+
+    // Add the sprite
+    wolf::Sprite2D& sprite = m_pShadowObject->AddComponent<wolf::Sprite2D>("data/textures/boss_shadow.png");
+    sprite.SetOriginToCenterOfTexture();
+
     EnterPhase1();
 }
 
@@ -255,6 +267,20 @@ void BossController::UpdateAnimation()
         "South"
     };
 
+    // Don't update animation until throne break is done playing!
+    auto* pAnim = m_pAnimSprite->GetCurrentAnimation();
+    if (pAnim->m_strName == "ThroneBreak")
+    {
+        if (!m_pAnimSprite->IsAnimationFinished() || m_throneBreakTimer.Elapsed() < 2.0f)
+        {
+            return;
+        }
+
+        // This section is only called when the ThroneBreak animation finishes
+        m_state = State::APPROACH;
+        m_throneBreakTimer.Reset();
+    }
+
     // Query player spatial info
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 dirToPlayer = glm::normalize(playerPos - m_pTransform->GetGlobalPosition());
@@ -267,7 +293,7 @@ void BossController::UpdateAnimation()
     switch (m_state)
     {
         case State::SIT:
-            baseAnimName = "ThroneSitEyesClosed";
+            baseAnimName = "ThroneSit";
             break;
         case State::SUMMONING:
             break;
@@ -904,27 +930,23 @@ void BossController::RenderImGui()
 void BossController::EnterPhase2()
 {
     m_phase = FightPhase::PHASE_2;
-    m_state = State::APPROACH;
     m_nextAttackTimer.Restart();
     m_axeAttackTimer.Reset();
     m_pHealth->SetActive(true);
     m_pVelocity->SetKnockbackEnabled(true);
     m_renderHealthBar = true;
 
-    // Create the shadow sprite object
-    if (m_pShadowObject) m_pShadowObject->Delete();
-    m_pShadowObject = &GetGameObject()->GetScene().CreateObject2D();
-    GetGameObject()->AddChild(*m_pShadowObject);
+    // Adjust collider
+    auto* pObject = GetGameObject();
+    pObject->DeleteComponent<ColliderComponent>();
+    m_pCollider = &pObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
+    m_pCollider->AddColliderBox(glm::vec2(111, 170), glm::vec2(-52, 84));
 
-    auto& transform = *m_pShadowObject->GetComponent<wolf::Transform2D>();
-    transform.SetPosition(glm::vec2(0.0f, -m_shadowDistance));
-
-    // Add the sprite
-    wolf::Sprite2D& sprite = m_pShadowObject->AddComponent<wolf::Sprite2D>("data/textures/boss_shadow.png");
-    sprite.SetOriginToCenterOfTexture();
-
-    // Scream
+    // Destroy the throne
+    m_pAnimSprite->SetAnimation("ThroneBreak");
+    wolf::Audio::Play("data/sounds/sfx_pillar_break.wav", 0.64f);
     wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f);
+    m_throneBreakTimer.Restart();
 }
 
 void BossController::UpdatePhase2(float delta)
@@ -932,6 +954,9 @@ void BossController::UpdatePhase2(float delta)
     // Timing variables
     static float nextStrafeSwap = 1.0f;
     static float nextAttackTime = 2.0f;
+
+    // Don't update until fully entered
+    if (m_state == State::SIT) return;
 
     // Query player spatial info
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -1403,6 +1428,9 @@ void BossController::UpdatePhase3(float delta)
         // Stop music, play death growl
         wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
         wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -10000.0f);
+
+        // Instantly make the player invulnerable
+        m_pPlayerObject->GetComponent<HealthComponent>()->SetActive(false);
 
         ChangeStatesPhase3(State::DEAD);
         wolf::Log("It may have been the Minotaur's labyrinth but Theseus the GOAT");
