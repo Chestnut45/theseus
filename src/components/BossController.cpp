@@ -182,10 +182,11 @@ void BossController::Init()
 
     for (const auto& tile : locations)
     {
+        m_pLabyrinthManager->SetTile(tile.x, tile.y, Tile::WallMinotaur);
+
         // Spawn a pillar as a child object of the pillar group object
         wolf::GameObject& pillar = pObject->GetScene().CreateObject2D();
         m_pBossPillarGroup->AddChild(pillar);
-        pillar.AddComponent<wolf::Sprite2D>("data/textures/tile_wall_minotaur.png");
         
         // Set position and scale
         auto& transform = *pillar.GetComponent<wolf::Transform2D>();
@@ -271,8 +272,14 @@ void BossController::UpdateAnimation()
     auto* pAnim = m_pAnimSprite->GetCurrentAnimation();
     if (pAnim->m_strName == "ThroneBreak")
     {
-        if (!m_pAnimSprite->IsAnimationFinished() || m_throneBreakTimer.Elapsed() < 2.0f)
+        if (!m_pAnimSprite->IsAnimationFinished() || m_throneBreakTimer.Elapsed() < 3.0f)
         {
+            static bool growled = false;
+            if (!growled && m_throneBreakTimer.Elapsed() > 1.0f)
+            {
+                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f);
+                growled = true;
+            }
             return;
         }
 
@@ -945,7 +952,6 @@ void BossController::EnterPhase2()
     // Destroy the throne
     m_pAnimSprite->SetAnimation("ThroneBreak");
     wolf::Audio::Play("data/sounds/sfx_pillar_break.wav", 0.64f);
-    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f);
     m_throneBreakTimer.Restart();
 }
 
@@ -1279,6 +1285,8 @@ void BossController::UpdatePhase2(float delta)
                         if (pCollider && ColliderManager::StaticMethodIsColliding(*m_pCollider, *pCollider, delta))
                         {
                             // Destroy pillar
+                            auto pos = m_pLabyrinthManager->GetTilePosition(pObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+                            m_pLabyrinthManager->SetTile(pos.x, pos.y, Tile::FloorSquare);
                             pObject->Delete();
                             wolf::Audio::Play("data/sounds/sfx_pillar_break.wav", 0.64f);
                         }
@@ -2166,7 +2174,9 @@ void BossController::AttackCharge(float delta)
                         {
                             if(pillar->GetID() == id)
                             {   
-                                this->GetGameObject()->GetScene().DeleteObject(pillar->GetID());
+                                auto pos = m_pLabyrinthManager->GetTilePosition(pillar->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+                                m_pLabyrinthManager->SetTile(pos.x, pos.y, Tile::FloorSquare);
+                                pillar->Delete();
                                 wolf::Audio::Play("data/sounds/sfx_pillar_break.wav", 0.64f);
                                 break;
                             }

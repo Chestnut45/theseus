@@ -29,6 +29,7 @@
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
 #include <events/GameWinEvent.h>
+#include <W_Timer.h>
 
 #include <unordered_map>
 #include <unordered_set>
@@ -78,6 +79,9 @@ private:
     std::vector<glm::ivec2> m_bossRoomDoorTiles;
     glm::ivec2 m_bossRoomOrigin;
     glm::ivec2 m_bossRoomSize;
+
+    // Timer for transitioning the camera zoom into the bossfight
+    wolf::Timer m_bossZoomTimer;
 
     // Private helper methods
     void ConvertPlayerTileToGold();

@@ -227,6 +227,23 @@ void PlayState::Resume()
 
 void PlayState::Update(float delta)
 {
+    auto* pCamera = m_pGameInstance->GetScene().GetActiveCamera();
+    if (pCamera && m_bossZoomTimer.IsRunning())
+    {
+        if (m_bossZoomTimer.Elapsed() < 2.0f)
+        {
+            // Smooth interpolation based on cosine
+            float elapsedNormalized = m_bossZoomTimer.Elapsed() * 0.5f;
+            float t = (1.0f - cos(3.1415926535f * elapsedNormalized)) / 2;
+            pCamera->SetZoom(glm::mix(1.0f, 0.85f, t));
+        }
+        else
+        {
+            // Stop zoom and set value
+            pCamera->SetZoom(0.85f);
+            m_bossZoomTimer.Reset();
+        }
+    }
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
@@ -960,6 +977,15 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             wolf::Log("BOSSFIGHT STARTED");
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
             m_pBoss->GetComponent<BossController>()->SetActive(true);
+
+            // Zoom out camera
+            m_bossZoomTimer.Restart();
+
+            // Change filter mode on all tilemaps
+            for (auto&&[_, tilemap] : m_pGameInstance->GetScene().Each<wolf::TileMap>())
+            {
+                tilemap.SetFilterMode(GL_LINEAR_MIPMAP_LINEAR);
+            }
 
             // Set door areas to wall tiles
             for (const auto& door : m_bossRoomDoorTiles)
