@@ -186,6 +186,7 @@ private:
     float m_walkSoundInterval = 0.333333333f;
 
     // DEBUG: Godmode flags
+    bool m_debugHotkeys = false;
     bool m_godmode = false;
     bool m_superSpeed = false;
 
@@ -271,5 +272,7 @@ private:
     float m_runtimeOpacity = 0.0f;
     bool m_runtimeFadeComplete = false;
     float m_optionsOpacity = 0.0f;
+
+    friend class PlayState;
 };
 

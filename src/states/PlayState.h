@@ -66,6 +66,7 @@ private:
     ColliderManager* m_pColliderManager = nullptr;
 
     // Flags
+    bool m_debugHotkeys = false;
     bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;
     bool m_noClip = false;

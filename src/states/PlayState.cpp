@@ -234,17 +234,34 @@ void PlayState::Update(float delta)
         m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
     }
 
-    // Toggle Labyrinth Manager GUI with the semicolon key
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) 
-        m_showLabyrinthManager = !m_showLabyrinthManager;
-    
-    // DEBUG: Teleport to bossfight
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT))
-        m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
+    // Update debug hotkeys
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_DELETE))
+    {
+        // Toggle debug hotkeys for both us and the player
+        m_debugHotkeys = !m_debugHotkeys;
+        m_pPlayerObject->GetComponent<PlayerController>()->m_debugHotkeys = m_debugHotkeys;
+    }
 
-    // Show the Labyrinth Manager debug GUI
-    if (m_showLabyrinthManager) 
-        m_pLabyrinthManager->ShowGUI();
+    if (m_debugHotkeys)
+    {
+        // Show debug hitboxes with backslash
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_BACKSLASH))
+        {
+            m_pGameInstance->GetScene().ToggleDebugDrawing();
+        }
+
+        // Toggle Labyrinth Manager GUI with the semicolon key
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) 
+            m_showLabyrinthManager = !m_showLabyrinthManager;
+        
+        // DEBUG: Teleport to bossfight
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT))
+            m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
+
+        // Show the Labyrinth Manager debug GUI
+        if (m_showLabyrinthManager) 
+            m_pLabyrinthManager->ShowGUI();
+    }
     
     // Update the labyrinth manager
     m_pLabyrinthManager->Update(delta);
@@ -261,47 +278,50 @@ void PlayState::Update(float delta)
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
     if (playerInventory) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
+        if (m_debugHotkeys)
+        {
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
 
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-            ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
-            ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
-            ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
-            ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
-            ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
-            ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
-            ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
-            ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
+                ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
+                ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
+                ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
+                ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
+                ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
+                ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
+                ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
+                ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
 
-            ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
-            ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
+                ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
+                ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
 
-            ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
-            ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
-            ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
-            
-            playerInventory->AddItemOrDelete(pBoots);
-            playerInventory->AddItemOrDelete(pDentedHelmet);
-            playerInventory->AddItemOrDelete(pRustyChestplate);
-            playerInventory->AddItemOrDelete(pCopperVambraces);
-            playerInventory->AddItemOrDelete(pKilt);
-            playerInventory->AddItemOrDelete(pTheezys);
-            playerInventory->AddItemOrDelete(pFauxLeatherGloves);
-            playerInventory->AddItemOrDelete(pLapisLazuliRing);
+                ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
+                ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
+                ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
+                
+                playerInventory->AddItemOrDelete(pBoots);
+                playerInventory->AddItemOrDelete(pDentedHelmet);
+                playerInventory->AddItemOrDelete(pRustyChestplate);
+                playerInventory->AddItemOrDelete(pCopperVambraces);
+                playerInventory->AddItemOrDelete(pKilt);
+                playerInventory->AddItemOrDelete(pTheezys);
+                playerInventory->AddItemOrDelete(pFauxLeatherGloves);
+                playerInventory->AddItemOrDelete(pLapisLazuliRing);
 
-            playerInventory->AddItemOrDelete(pBow);
-            playerInventory->AddItemOrDelete(pSpear);
-            playerInventory->AddItemOrDelete(pHealHeart);
-            playerInventory->AddItemOrDelete(pHurtHeart);
-            playerInventory->AddItemOrDelete(pBurnHeart);
-        }
+                playerInventory->AddItemOrDelete(pBow);
+                playerInventory->AddItemOrDelete(pSpear);
+                playerInventory->AddItemOrDelete(pHealHeart);
+                playerInventory->AddItemOrDelete(pHurtHeart);
+                playerInventory->AddItemOrDelete(pBurnHeart);
+            }
 
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
-            playerInventory->AddGold(10);
-        }
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
+                playerInventory->AddGold(10);
+            }
 
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-            playerInventory->TakeGold(5);
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
+                playerInventory->TakeGold(5);
+            }
         }
 
         playerInventory->ShowToggleButtonGUI();
@@ -309,7 +329,7 @@ void PlayState::Update(float delta)
     }
 
     // DEBUG: Noclip hotkey
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SLASH))
+    if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_SLASH))
     {
         auto* pCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
         if (pCollider)
@@ -570,10 +590,6 @@ void PlayState::Update(float delta)
                 break;
             }
         }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_V)) {
-            npc.QueueDialogue("test");
-        }
     }
 
     // Display all open merchant GUIs
@@ -595,7 +611,7 @@ void PlayState::Update(float delta)
     }
 
     // Trigger CutsceneDialogueEvent when pressing 9
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
+    if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Trigger both cutscene and dialogue with IDs
         wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));

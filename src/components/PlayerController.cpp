@@ -198,7 +198,7 @@ void PlayerController::Update(float delta)
 
     // Retrieve the active camera through the game's scene using the game object
     auto* pCamera = pGameObject->GetScene().GetActiveCamera();
-    if (pCamera)
+    if (pCamera && m_debugHotkeys)
     {
         float prevZoom = pCamera->GetZoom();
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_EQUAL)) pCamera->SetZoom(prevZoom * 2);
@@ -304,67 +304,71 @@ void PlayerController::Update(float delta)
 
 void PlayerController::HandlePlayerInput(float delta)
 {
-    // Godmode hotkey
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
+    if (m_debugHotkeys)
     {
-        m_godmode = !m_godmode;
-    }
-
-    // Status effect hotkeys
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_UP))
-    {
-        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::HEALING, 5.0f);
-    }
-
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_DOWN))
-    {
-        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
-    }
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_LEFT))
-    {
-        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
-    }
-
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT))
-    {
-        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
-    }
-
-    // Super speed hotkey
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
-    {
-        m_superSpeed = !m_superSpeed;
-        if (m_superSpeed)
+        // Godmode hotkey
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
         {
-            m_normalMoveSpeed = 800.0f;
-            m_rollSpeed = 1600.0f;
-            m_inventoryMoveSpeed = 400.0f;
-        }
-        else
-        {
-            m_normalMoveSpeed = 200.0f;
-            m_rollSpeed = 400.0f;
-            m_inventoryMoveSpeed = 100.0f;
+            m_godmode = !m_godmode;
         }
 
-        // Update current speed
-        m_currentMoveSpeed = m_action == PlayerAction::IN_INVENTORY ? m_inventoryMoveSpeed : m_normalMoveSpeed;
-    }
-
-    // Teleport to labyrinth spawn location hotkey
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
-    {
-        // Teleport to the spawn position
-        for (const auto&&[_, labMan] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+        // Status effect hotkeys
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_UP))
         {
-            GetGameObject()->GetComponent<wolf::Transform2D>()->SetPosition(labMan.GetSpawnLocation());
-            break;
+            StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::HEALING, 5.0f);
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_DOWN))
+        {
+            StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
+        }
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_LEFT))
+        {
+            StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT))
+        {
+            StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
+        }
+
+        // Super speed hotkey
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
+        {
+            m_superSpeed = !m_superSpeed;
+            if (m_superSpeed)
+            {
+                m_normalMoveSpeed = 800.0f;
+                m_rollSpeed = 1600.0f;
+                m_inventoryMoveSpeed = 400.0f;
+            }
+            else
+            {
+                m_normalMoveSpeed = 200.0f;
+                m_rollSpeed = 400.0f;
+                m_inventoryMoveSpeed = 100.0f;
+            }
+
+            // Update current speed
+            m_currentMoveSpeed = m_action == PlayerAction::IN_INVENTORY ? m_inventoryMoveSpeed : m_normalMoveSpeed;
+        }
+
+        // Teleport to labyrinth spawn location hotkey
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
+        {
+            // Teleport to the spawn position
+            for (const auto&&[_, labMan] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+            {
+                GetGameObject()->GetComponent<wolf::Transform2D>()->SetPosition(labMan.GetSpawnLocation());
+                break;
+            }
         }
     }
+
     auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
 
     // Handle inventory management with left alt
@@ -1375,8 +1379,13 @@ void PlayerController::StartRoll()
 
     // Update velocity
     m_pVelocity->SetVelocity(rollDirection * m_rollSpeed);
-    m_stamina -= 25.0f;
-    m_staminaRegenTimer.Restart();
+    
+    // Only take stamina if not in godmode
+    if (!m_godmode)
+    {
+        m_stamina -= 25.0f;
+        m_staminaRegenTimer.Restart();
+    }
 
     // Compass direction animation names
     static const char* s_dirNames[] =
