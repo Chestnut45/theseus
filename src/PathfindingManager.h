@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File:            PathfindingManager.h
+// Original Author: Youssef Ashraf
+// ver 1.3.
+//-----------------------------------------------------------------------------
+
 #ifndef PATHFINDING_MANAGER_H
 #define PATHFINDING_MANAGER_H
 
