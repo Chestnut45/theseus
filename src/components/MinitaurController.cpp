@@ -304,63 +304,35 @@ void MinitaurController::MoveTowardsTarget(float delta)
     if (!m_pTarget || !m_pVelocity || !m_pTransform || !m_pPathfindingManager)
         return;
 
-    // Constants
-    constexpr float TILE_CENTER_OFFSET = 48.0f; // Offset to center of tile
-    constexpr float TOLERANCE = 0.5f;                                        // Tolerance for reaching a tile
+    const auto& pathData = m_pPathfindingManager->GetPathData(GetGameObject());
 
-    // Get current and target tiles
-    glm::ivec2 startTile = glm::ivec2(m_pTransform->GetGlobalPosition()) /
-                           (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
-    glm::ivec2 targetTile = glm::ivec2(m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
-                            (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
-
-    // Check if start and target tiles are the same
-    if (startTile == targetTile)
+    if (pathData.path.empty())
     {
-        // printf("Start and goal tiles are the same. Falling back to direct movement.\n");
         FallbackToDistanceChecking();
         return;
     }
 
-    // Recalculate path if empty
-    if (m_path.empty() || targetTile != m_lastTargetTile)
-    {
-        m_path = m_pPathfindingManager->FindPath(startTile, targetTile);
-        m_lastTargetTile = targetTile;
+    std::vector<glm::ivec2> path = pathData.path; // Local mutable copy
 
-        if (m_path.empty())
-        {
-            // printf("No path found. Falling back to direct movement.\n");
-            FallbackToDistanceChecking();
-            return;
-        }
-
-        // printf("Path calculated: ");
-        for (const auto& tile : m_path)
-        {
-            // printf("(%d, %d) ", tile.x, tile.y);
-        }
-        // printf("\n");
-    }
-
-    // Move towards the next tile in the path
-    glm::ivec2 nextTile = m_path.front();
-    glm::vec2 nextTileWorldPos = GetTileWorldPos(nextTile) + glm::vec2(TILE_CENTER_OFFSET, TILE_CENTER_OFFSET);
+    glm::ivec2 nextTile = path.front();
+    glm::vec2 nextTileWorldPos = m_pPathfindingManager->GetLabyrinthManager()->GetWorldPosition(nextTile) + glm::vec2(48.0f, 48.0f);
     glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     glm::vec2 direction = nextTileWorldPos - currentPosition;
 
-    if (glm::length(direction) > TOLERANCE)
+    if (glm::length(direction) > 0.5f)
     {
-        // Normalize direction and move towards the next tile
         direction = glm::normalize(direction);
         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
     }
     else
     {
-        // Reached the tile, move to the next one
-        m_path.erase(m_path.begin());
+        // Instead of modifying the stored path, just proceed to the next tile locally
+        path.erase(path.begin());
     }
 }
+
+
+
 
 // Fallback to direct distance checking if pathfinding fails
 void MinitaurController::FallbackToDistanceChecking()

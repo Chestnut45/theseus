@@ -1,18 +1,23 @@
 #include "PathfindingManager.h"
+#include "MinitaurController.h"
 #include <cmath> // for abs and sqrt
+#include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp> // For squared length comparisons
+#include <random> // For slight push adjustments
 
-PathfindingManager::PathfindingManager(const LabyrinthManager& labyrinthManager)
-    : m_labyrinthManager(labyrinthManager) {}
+PathfindingManager::PathfindingManager(LabyrinthManager* labyrinthManager)
+{
+    if (!labyrinthManager)
+    {
+        printf("Error: PathfindingManager received a nullptr for LabyrinthManager!\n");
+    }
+    m_labyrinthManager = labyrinthManager;
+}
 
 bool PathfindingManager::IsTileWalkable(int x, int y) const
 {
-    int tileID = m_labyrinthManager.GetTile(x, y);
-
-    if (tileID < 0) // Out of bounds
-    {
-        printf("Out of bounds or invalid tile: (%d, %d)\n", x, y);
-        return false;
-    }
+    int tileID = m_labyrinthManager->GetTile(x, y);
+    if (tileID < 0) return false; // Out of bounds
 
     switch (tileID)
     {
@@ -27,7 +32,6 @@ bool PathfindingManager::IsTileWalkable(int x, int y) const
     case Tile::Grass:
         return true;
     default:
-        // printf("Unwalkable tile ID: %d at (%d, %d)\n", tileID, x, y);
         return false;
     }
 }
@@ -36,122 +40,42 @@ std::vector<glm::ivec2> PathfindingManager::GetNeighbors(const glm::ivec2& node)
 {
     std::vector<glm::ivec2> neighbors;
     std::vector<glm::ivec2> directions = {
-        {0, -1}, {0, 1}, {-1, 0}, {1, 0}, // Cardinal directions
-        {-1, -1}, {-1, 1}, {1, -1}, {1, 1} // Diagonal directions
+        {0, -1}, {0, 1}, {-1, 0}, {1, 0}, 
+        {-1, -1}, {-1, 1}, {1, -1}, {1, 1}
     };
 
     for (const auto& dir : directions)
     {
         glm::ivec2 neighbor = node + dir;
-
-        // Check for walkability
         if (IsTileWalkable(neighbor.x, neighbor.y))
         {
-            // Disallow diagonal movement if adjacent walls block the path
-            if ((dir.x != 0 && dir.y != 0) &&  // Diagonal direction
+            if ((dir.x != 0 && dir.y != 0) && 
                 (!IsTileWalkable(node.x + dir.x, node.y) || !IsTileWalkable(node.x, node.y + dir.y)))
             {
-                continue; // Skip this diagonal neighbor
+                continue; // Skip diagonal if adjacent walls exist
             }
-
             neighbors.push_back(neighbor);
         }
     }
-
     return neighbors;
 }
 
-
-float PathfindingManager::Heuristic(const glm::ivec2& a, const glm::ivec2& b) const
+std::vector<glm::ivec2> PathfindingManager::FindPath(const glm::ivec2& start, const glm::ivec2& goal)
 {
-    int dx = std::abs(a.x - b.x);
-    int dy = std::abs(a.y - b.y);
-
-    // Octile distance
-    float diagonalCost = std::sqrt(2.0f);
-    return diagonalCost * std::min(dx, dy) + std::abs(dx - dy);
-}
-
-float PathfindingManager::Distance(const glm::ivec2& a, const glm::ivec2& b) const
-{
-    int dx = std::abs(a.x - b.x);
-    int dy = std::abs(a.y - b.y);
-
-    // Diagonal movement cost is sqrt(2), cardinal movement cost is 1
-    if (dx > 0 && dy > 0)
-        return std::sqrt(2.0f); // Diagonal movement
-    else
-        return 1.0f; // Cardinal movement
-}
-
-std::vector<glm::ivec2> PathfindingManager::ReconstructPath(
-    const std::unordered_map<glm::ivec2, glm::ivec2>& cameFrom,
-    const glm::ivec2& current) const
-{
-    std::vector<glm::ivec2> path;
-    glm::ivec2 currentNode = current;
-    int maxIterations = 1000; // Prevent infinite loops
-
-    while (cameFrom.find(currentNode) != cameFrom.end())
-    {
-        if (path.size() >= maxIterations)
-        {
-            // printf("Error: Path reconstruction exceeded maximum iterations.\n");
-            return {};
-        }
-
-        path.push_back(currentNode);
-        currentNode = cameFrom.at(currentNode);
-
-        // printf("Reconstructing path: (%d, %d)\n", currentNode.x, currentNode.y);
-    }
-
-    if (path.empty() || cameFrom.find(path.front()) == cameFrom.end())
-    {
-        // printf("Error: Path reconstruction failed. Invalid 'cameFrom' map.\n");
+    if (!IsTileWalkable(start.x, start.y) || !IsTileWalkable(goal.x, goal.y))
         return {};
-    }
-
-    std::reverse(path.begin(), path.end());
-    return path;
-}
-
-
-std::vector<glm::ivec2> PathfindingManager::FindPath(
-    const glm::ivec2& start, const glm::ivec2& goal)
-{
-    // printf("Starting pathfinding from (%d, %d) to (%d, %d)\n", start.x, start.y, goal.x, goal.y);
-
-    if (!IsTileWalkable(start.x, start.y))
-    {
-        // printf("Error: Start tile (%d, %d) is not walkable.\n", start.x, start.y);
-        return {};
-    }
-
-    if (!IsTileWalkable(goal.x, goal.y))
-    {
-        // printf("Error: Goal tile (%d, %d) is not walkable.\n", goal.x, goal.y);
-        return {};
-    }
 
     if (start == goal)
-    {
-        // printf("Start and goal are the same tile (%d, %d). Returning empty path.\n", start.x, start.y);
         return {start};
-    }
 
-    using Node = std::pair<glm::ivec2, float>;
-
-    auto compare = [](const Node& a, const Node& b) {
-        return a.second > b.second;
-    };
-
+    using Node = std::pair<glm::ivec2, float>; // (tile, cost)
+    auto compare = [](const Node& a, const Node& b) { return a.second > b.second; };
     std::priority_queue<Node, std::vector<Node>, decltype(compare)> openSet(compare);
     std::unordered_map<glm::ivec2, glm::ivec2> cameFrom;
     std::unordered_map<glm::ivec2, float> gScore, fScore;
 
     gScore[start] = 0.0f;
-    fScore[start] = Heuristic(start, goal);
+    fScore[start] = glm::distance(glm::vec2(start), glm::vec2(goal));
     openSet.emplace(start, fScore[start]);
 
     while (!openSet.empty())
@@ -160,31 +84,212 @@ std::vector<glm::ivec2> PathfindingManager::FindPath(
         openSet.pop();
 
         if (current == goal)
-        {
-            // printf("Path found!\n");
             return ReconstructPath(cameFrom, current);
-        }
 
         for (const auto& neighbor : GetNeighbors(current))
         {
-            if (gScore.find(neighbor) == gScore.end())
-            {
-                gScore[neighbor] = std::numeric_limits<float>::max();
-            }
+            float tentativeG = gScore[current] + glm::distance(glm::vec2(current), glm::vec2(neighbor));
 
-            float tentativeG = gScore[current] + Distance(current, neighbor);
-
-            if (tentativeG < gScore[neighbor])
+            if (gScore.find(neighbor) == gScore.end() || tentativeG < gScore[neighbor])
             {
                 cameFrom[neighbor] = current;
                 gScore[neighbor] = tentativeG;
-                fScore[neighbor] = tentativeG + Heuristic(neighbor, goal);
-
+                fScore[neighbor] = tentativeG + glm::distance(glm::vec2(neighbor), glm::vec2(goal));
                 openSet.emplace(neighbor, fScore[neighbor]);
             }
         }
     }
-
-    // printf("No path found from (%d, %d) to (%d, %d)\n", start.x, start.y, goal.x, goal.y);
-    return {}; // Return an empty path if no path is found
+    return {}; // No path found
 }
+
+void PathfindingManager::UpdateEntities(float delta)
+{
+    constexpr float TILE_CENTER_OFFSET = 48.0f;
+    constexpr float TOLERANCE = 2.0f;
+    constexpr float SEPARATION_FORCE = 30.0f;
+    constexpr float REPATH_INTERVAL = 0.5f;
+    constexpr float STUCK_TIME_THRESHOLD = 0.6f;
+    constexpr float REPATH_DELAY = 0.1f; // Delay before checking for new paths
+
+    std::unordered_map<glm::ivec2, std::vector<wolf::GameObject*>> tileOccupationMap;
+    std::unordered_map<glm::ivec2, wolf::GameObject*> tileOwners;
+
+    static std::unordered_map<wolf::GameObject*, float> lastRepathTime;
+    static std::unordered_map<wolf::GameObject*, float> stuckTimeTracker;
+    static float globalTime = 0.0f;
+    globalTime += delta;
+
+    for (auto& [entity, data] : m_registeredEntities)
+    {
+        auto* minitaurController = entity->GetComponent<MinitaurController>();
+        if (!minitaurController || minitaurController->GetState() != MinitaurController::EnemyState::CHASING)
+            continue;
+
+        glm::ivec2 currentTile = glm::ivec2(entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
+                                 (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+
+        glm::ivec2 targetTile = glm::ivec2(minitaurController->GetTarget()->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
+                                (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+
+        // **Track how long the entity has been stuck**
+        if (data.currentTile == currentTile)
+        {
+            stuckTimeTracker[entity] += delta;
+        }
+        else
+        {
+            stuckTimeTracker[entity] = 0.0f;
+        }
+
+        // **Check if we need to re-path**
+        if ((data.path.empty() || targetTile != data.targetTile) &&
+            (globalTime - lastRepathTime[entity] > REPATH_INTERVAL))
+        {
+            std::vector<glm::ivec2> newPath = FindPath(currentTile, targetTile);
+
+            // **Check if the new path is identical to the previous one**
+            if (newPath == data.path && stuckTimeTracker[entity] > REPATH_DELAY)
+            {
+                // Force slight variation by picking an adjacent starting tile
+                std::vector<glm::ivec2> neighbors = GetNeighbors(currentTile);
+                for (const auto& neighbor : neighbors)
+                {
+                    if (m_reservedTiles.find(neighbor) == m_reservedTiles.end())
+                    {
+                        newPath = FindPath(neighbor, targetTile);
+                        if (!newPath.empty()) break;
+                    }
+                }
+            }
+
+            data.path = newPath;
+            data.targetTile = targetTile;
+            lastRepathTime[entity] = globalTime;
+        }
+
+        // **Track occupied tiles & prevent multiple entities from moving to the same tile**
+        if (!data.path.empty())
+        {
+            glm::ivec2 nextTile = data.path.front();
+
+            if (tileOwners.find(nextTile) != tileOwners.end() && tileOwners[nextTile] != entity)
+            {
+                // Conflict detected: force alternative pathing
+                data.path = FindPath(currentTile, targetTile);
+                if (!data.path.empty())
+                {
+                    nextTile = data.path.front();
+                }
+            }
+
+            tileOwners[nextTile] = entity;
+            tileOccupationMap[nextTile].push_back(entity);
+        }
+    }
+
+    // **Handle entity separation using glm::mix**
+    for (auto& [tile, entities] : tileOccupationMap)
+    {
+        if (entities.size() >= 2)
+        {
+            glm::vec2 avgPosition = glm::vec2(0.0f);
+            for (auto* entity : entities)
+            {
+                avgPosition += entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            }
+            avgPosition /= entities.size();
+
+            for (auto* entity : entities)
+            {
+                glm::vec2 entityPosition = entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                glm::vec2 separationDirection = glm::normalize(entityPosition - avgPosition);
+                glm::vec2 softPush = separationDirection * SEPARATION_FORCE * delta;
+
+                glm::vec2 newPos = glm::mix(entityPosition, entityPosition + softPush, 0.5f);
+                entity->GetComponent<wolf::Transform2D>()->SetPosition(newPos);
+            }
+        }
+    }
+
+    // **Move Entities Smoothly**
+    for (auto& [entity, data] : m_registeredEntities)
+    {
+        if (!data.path.empty())
+        {
+            glm::ivec2 nextTile = data.path.front();
+            glm::vec2 nextTileWorldPos = m_labyrinthManager->GetWorldPosition(nextTile) + glm::vec2(TILE_CENTER_OFFSET, TILE_CENTER_OFFSET);
+            glm::vec2 currentPosition = entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            glm::vec2 direction = nextTileWorldPos - currentPosition;
+
+            if (glm::length(direction) > TOLERANCE)
+            {
+                direction = glm::normalize(direction);
+                entity->GetComponent<VelocityComponent>()->SetVelocity(direction * 125.0f);
+            }
+            else
+            {
+                data.path.erase(data.path.begin());
+                data.currentTile = nextTile;
+            }
+        }
+    }
+}
+
+
+
+void PathfindingManager::RegisterEntity(wolf::GameObject* entity)
+{
+    if (!entity) return;
+    
+    if (m_registeredEntities.find(entity) == m_registeredEntities.end())
+    {
+        glm::ivec2 startTile = glm::ivec2(entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
+                               (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+                               
+        glm::ivec2 targetTile = glm::ivec2(entity->GetComponent<MinitaurController>()->GetTarget()->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
+                                (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+                                
+        m_registeredEntities[entity] = {entity, startTile, targetTile, {}}; // No path yet
+    }
+}
+
+std::vector<glm::ivec2> PathfindingManager::ReconstructPath(
+    const std::unordered_map<glm::ivec2, glm::ivec2>& cameFrom,
+    const glm::ivec2& current) const
+{
+    std::vector<glm::ivec2> path;
+    glm::ivec2 currentNode = current;
+
+    // Ensure that the path exists in the map
+    if (cameFrom.find(currentNode) == cameFrom.end())
+    {
+        printf("Warning: Path reconstruction failed. No previous node found.\n");
+        return {};
+    }
+
+    while (cameFrom.find(currentNode) != cameFrom.end())
+    {
+        path.push_back(currentNode);
+        currentNode = cameFrom.at(currentNode);
+
+        // Safety check to prevent infinite loops
+        if (path.size() > 500) // Arbitrary large limit to detect loops
+        {
+            printf("Error: Path reconstruction exceeded safe iteration count.\n");
+            return {};
+        }
+    }
+
+    std::reverse(path.begin(), path.end());
+    return path;
+}
+
+const PathfindingManager::EntityPathData& PathfindingManager::GetPathData(wolf::GameObject* entity) const
+{
+    static const EntityPathData emptyData{}; // Ensures we don't return a reference to a temporary object
+
+    auto it = m_registeredEntities.find(entity);
+    return (it != m_registeredEntities.end()) ? it->second : emptyData;
+}
+
+

@@ -19,6 +19,9 @@ public:
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
     void ChangeState(EnemyState newState);
+    EnemyState GetState() const { return m_state; }
+    wolf::GameObject* GetTarget() const { return m_pTarget; }
+
 
 private:
     // Minitaur-specific methods

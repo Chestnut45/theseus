@@ -1,37 +1,57 @@
-#pragma once
+#ifndef PATHFINDING_MANAGER_H
+#define PATHFINDING_MANAGER_H
 
 #include "LabyrinthManager.h"
+#include "W_GameObject.h"
 #include <glm/glm.hpp>
-#include <queue>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
-#include <algorithm>
+#include <queue>
 
 class PathfindingManager
 {
 public:
-    // Constructor
-    PathfindingManager(const LabyrinthManager& labyrinthManager);
-    ~PathfindingManager() = default;
+    explicit PathfindingManager(LabyrinthManager* labyrinthManager);
 
-    // Disable copying and moving
-    PathfindingManager(const PathfindingManager&) = delete;
-    PathfindingManager& operator=(const PathfindingManager&) = delete;
+    // Registers an entity for pathfinding
+    void RegisterEntity(wolf::GameObject* entity);
 
-    // Finds the shortest path using the A* algorithm
+    // Updates all registered entities' movement based on pathfinding
+    void UpdateEntities(float delta);
+
+    // Finds the optimal path from start to goal
     std::vector<glm::ivec2> FindPath(const glm::ivec2& start, const glm::ivec2& goal);
 
-
-
-private:
-    const LabyrinthManager& m_labyrinthManager;
-
-    // Helper methods
+    // Checks if a tile is walkable
     bool IsTileWalkable(int x, int y) const;
+
+    LabyrinthManager* GetLabyrinthManager() const { return m_labyrinthManager; }
+
+    // Returns the neighbors of a given node
     std::vector<glm::ivec2> GetNeighbors(const glm::ivec2& node) const;
-    float Heuristic(const glm::ivec2& a, const glm::ivec2& b) const;
-    float Distance(const glm::ivec2& a, const glm::ivec2& b) const;
+    struct EntityPathData
+    {
+        wolf::GameObject* entity = nullptr;
+        glm::ivec2 currentTile;
+        glm::ivec2 targetTile;
+        std::vector<glm::ivec2> path;
+    };
+    // Returns the path data for a registered entity
+    const PathfindingManager::EntityPathData& GetPathData(wolf::GameObject* entity) const;
+    private:
+
+
+    // Helper function to reconstruct a path from the "cameFrom" map
     std::vector<glm::ivec2> ReconstructPath(
         const std::unordered_map<glm::ivec2, glm::ivec2>& cameFrom,
         const glm::ivec2& current) const;
+
+
+
+    LabyrinthManager* m_labyrinthManager;
+    std::unordered_map<wolf::GameObject*, EntityPathData> m_registeredEntities;
+    std::unordered_set<glm::ivec2> m_reservedTiles;
 };
+
+#endif // PATHFINDING_MANAGER_H
