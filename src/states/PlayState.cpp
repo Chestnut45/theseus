@@ -645,16 +645,16 @@ void PlayState::Update(float delta)
         wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
     }
 
+    this->m_pPathfindingManager->UpdateEntities(delta);
+
     // Update velocity components to apply friction and decelerate objects
     for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
         velocity.Update(delta);  // Update velocity with friction and other forces
     }
-    this->m_pPathfindingManager->UpdateEntities(delta);
 
 
     // Update collisions
     this->m_pColliderManager->Update(delta);
-
     // Apply velocity for all objects with Transform2D and VelocityComponent
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
         if (!velocity.IsActive()) continue;

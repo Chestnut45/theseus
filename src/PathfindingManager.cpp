@@ -218,8 +218,14 @@ void PathfindingManager::UpdateEntities(float delta)
         {
             glm::ivec2 nextTile = data.path.front();
             glm::vec2 nextTileWorldPos = m_labyrinthManager->GetWorldPosition(nextTile) + glm::vec2(TILE_CENTER_OFFSET, TILE_CENTER_OFFSET);
-            glm::vec2 currentPosition = entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            glm::vec2 direction = nextTileWorldPos - currentPosition;
+            auto* transform = entity->GetComponent<wolf::Transform2D>();
+            if (!transform) 
+            {
+                continue;
+            }
+            
+            glm::vec2 currentPosition = transform->GetGlobalPosition();
+             glm::vec2 direction = nextTileWorldPos - currentPosition;
 
             if (glm::length(direction) > TOLERANCE)
             {
