@@ -305,7 +305,7 @@ void MinitaurController::MoveTowardsTarget(float delta)
         return;
 
     // Constants
-    constexpr float TILE_CENTER_OFFSET = LabyrinthManager::TILE_SIZE / 2.0f; // Offset to center of tile
+    constexpr float TILE_CENTER_OFFSET = 48.0f; // Offset to center of tile
     constexpr float TOLERANCE = 0.5f;                                        // Tolerance for reaching a tile
 
     // Get current and target tiles
