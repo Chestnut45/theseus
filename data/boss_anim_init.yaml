@@ -1,11 +1,17 @@
 frame_size: {x: 80.0, y: 112.0}
-playback_speed: 6.0
+playback_speed: 4.0
 
 start_animation: {
-  texture: data/textures/boss_stand_sheet.png,
-  name: StandSouth
+  texture: data/textures/boss_throne_sit_sheet.png,
+  name: ThroneSitEyesClosed
 }
 
 animation_sets: [
-  data/boss_stand_anim_set.yaml
+  data/boss_charge_anim_set.yaml,
+  data/boss_crawl_anim_set.yaml,
+  data/boss_fire_breath_anim_set.yaml,
+  data/boss_growl_anim_set.yaml,
+  data/boss_throne_anim_set.yaml,
+  data/boss_walk_anim_set.yaml,
+  data/boss_death_anim_set.yaml,
 ]

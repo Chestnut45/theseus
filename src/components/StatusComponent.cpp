@@ -13,7 +13,7 @@
 int StatusComponent::s_iComponentCounter = 0;
 wolf::Texture* StatusComponent::s_pTextures[StatusComponent::StatusEffectType::NONE];
 std::string StatusComponent::s_aStatusEffectDescriptions[StatusEffectType::NONE];
-ImVec2 StatusComponent::s_vTextureSize = ImVec2(64.0f, 64.0f);
+ImVec2 StatusComponent::s_vTextureSize = ImVec2(48.0f, 48.0f);
 
 StatusComponent::StatusComponent()
 {
@@ -130,43 +130,45 @@ void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 
 void StatusComponent::RenderPlayerSEIcons()
 {
-    if(this->GetGameObject()->HasAny<PlayerController>())
+    // Setup
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar |  ImGuiWindowFlags_NoBackground;
+    ImVec2 windowSize = ImVec2((s_vTextureSize.x + 16) * (float)StatusEffectType::NONE + 8, s_vTextureSize.y + 24);
+    ImGui::SetNextWindowPos({0, 74});
+    ImGui::SetNextWindowSize(windowSize);
+    ImGui::Begin("##SEIcons", nullptr, flags);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
+
+    // Render icons
+    int activeIcons = 0;
+    for (int i = 0; i < StatusEffectType::NONE; i++)
     {
-        // Setup
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar |  ImGuiWindowFlags_NoBackground;
-        ImVec2 windowSize = ImVec2((s_vTextureSize.x + 16) * (float)StatusEffectType::NONE + 8, s_vTextureSize.y + 24);
-        ImGui::SetNextWindowPos({10, 10});
-        ImGui::SetNextWindowSize(windowSize);
-        ImGui::Begin("\t", nullptr, flags);
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.1f, 0.1f, 0.5f));
-
-        // Render icons
-        for (int i = 0; i < StatusEffectType::NONE; i++)
+        StatusEffectType seType = static_cast<StatusEffectType>(i);
+        if(this->IsStatusEffectActive(seType))
         {
-            StatusEffectType seType = static_cast<StatusEffectType>(i);
-            if(this->IsStatusEffectActive(seType))
-            {
-                if (ImGui::ImageButton(std::to_string(seType).c_str(), (void*)(intptr_t)s_pTextures[seType]->GetID(), s_vTextureSize)) {
-                }
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) 
-                {
-                    float lifetime = m_aStatusEffects[seType].m_timer.Elapsed();
-                    float lifespan = m_aStatusEffects[seType].m_fLifespan;
-                    ImGui::BeginTooltip();
-                    if(lifespan > lifetime) ImGui::Text("%s\n%.1f", s_aStatusEffectDescriptions[seType].c_str(), lifespan - lifetime);
-                    else ImGui::Text("%s\n%s", s_aStatusEffectDescriptions[seType].c_str(),"inf");
-                    ImGui::EndTooltip();
-                }
-            }
-            ImGui::SameLine();
-        }
+            // Fix spacing...
+            ImGui::SetCursorPosX(activeIcons * (s_vTextureSize.x + 8) + 8.0f);
+            activeIcons++;
 
-        // End rendering
-        ImGui::PopStyleColor(3);  
-        ImGui::End();
+            if (ImGui::ImageButton(std::to_string(seType).c_str(), (void*)(intptr_t)s_pTextures[seType]->GetID(), s_vTextureSize)) {
+            }
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) 
+            {
+                float lifetime = m_aStatusEffects[seType].m_timer.Elapsed();
+                float lifespan = m_aStatusEffects[seType].m_fLifespan;
+                ImGui::BeginTooltip();
+                if(lifespan > lifetime) ImGui::Text("%s\n%.1f", s_aStatusEffectDescriptions[seType].c_str(), lifespan - lifetime);
+                else ImGui::Text("%s\n%s", s_aStatusEffectDescriptions[seType].c_str(),"inf");
+                ImGui::EndTooltip();
+            }
+        }
+        ImGui::SameLine();
     }
+
+    // End rendering
+    ImGui::PopStyleColor(3);  
+    ImGui::End();
 }
 
 void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
@@ -226,5 +228,6 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
 
 // !-- Aurora added this method to be used with StatusEffectItems -- !
 void StatusComponent::HandleApplyStatusEffectEvent(const ApplyStatusEffectEvent& p_event) {
+    if (!GetGameObject()->HasAll<PlayerController>()) return;
     this->AddStatusEffect(static_cast<StatusComponent::StatusEffectType>(p_event.iType), p_event.fDuration);
 }

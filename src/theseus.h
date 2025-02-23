@@ -2,7 +2,6 @@
 
 #include <wolf.h>
 #include "GameInc.h"
-#include "DialogueManager.h"
 #include "SharedContext.h"
 class Theseus : public wolf::App
 {
@@ -14,7 +13,7 @@ public:
     void Update(float delta) override;
     
     // Rendering logic, called every frame
-    void Render() override;
+    void Render(float delta) override;
 
     // Cleanly shut down the game
     // NOTE: This will trigger the App's destructor, so
@@ -29,7 +28,6 @@ public:
 
     // Gets a reference to the main scene of the game
     inline wolf::Scene& GetScene() { return m_scene; }
-    DialogueManager& GetDialogueManager() { return m_dialogueManager; }
 
     SharedContext& GetSharedContext() { return m_sharedContext; }
 
@@ -41,7 +39,6 @@ private:
 
     // Manager for handling game states
     GameStateManager* m_pStateManager = nullptr;
-    DialogueManager m_dialogueManager;
 
     // Flags
     bool m_showDebug = false;

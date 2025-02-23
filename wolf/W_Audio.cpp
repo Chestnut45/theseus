@@ -3,7 +3,7 @@
 namespace wolf
 {
 
-void Audio::Play(const std::string& filepath, bool loop, float volume, float pan)
+void Audio::Play(const std::string& filepath, float volume, float pitchOffset, float pan, bool loop, float loopPoint)
 {
     // Create / retrieve sample
     SoLoud::Wav& sound = s_samples[filepath];
@@ -13,11 +13,19 @@ void Audio::Play(const std::string& filepath, bool loop, float volume, float pan
 
     // Setup loop state before playing
     sound.setLooping(loop);
+    sound.setLoopPoint(loopPoint);
 
     // Play the sound with the given arguments
     auto handle = s_core.play(sound);
     s_core.setVolume(handle, volume);
     s_core.setPan(handle, pan);
+
+    // Protect background music from being killed, but allow regular sfx to be killed in case of overload
+    if (filepath.starts_with("data/sounds/bgm_")) s_core.setProtectVoice(handle, true);
+
+    // Dirty awful hack pitch shifting (barf)
+    // TODO: Literally anything other than this
+    if (pitchOffset != 0.0f) s_core.setSamplerate(handle, s_core.getSamplerate(handle) + pitchOffset);
 
 }
 
@@ -28,6 +36,11 @@ void Audio::Stop(const std::string& filepath)
 
     // Stop all instances of the sample
     s_core.stopAudioSource(sound);
+}
+
+void Audio::Stop()
+{
+    s_core.stopAll();
 }
 
 void Audio::Load(const std::string& filepath)

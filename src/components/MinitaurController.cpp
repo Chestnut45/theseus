@@ -2,6 +2,7 @@
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
 #include "../GLShapesRenderer.h"
+#include "../DDACalculator.h"
 
 #include <cassert>
 
@@ -10,10 +11,12 @@
 
 MinitaurController::MinitaurController()
 {
+    wolf::EventManager::AddListener<InfightingEvent, MinitaurController, &MinitaurController::HandleInfighting>(*this);
 }
 
 MinitaurController::~MinitaurController()
 {
+    wolf::EventManager::AddListener<InfightingEvent, MinitaurController, &MinitaurController::HandleInfighting>(*this);
 }
 
 void MinitaurController::Init(const EnemyData& data)
@@ -31,6 +34,7 @@ void MinitaurController::Init(const EnemyData& data)
     // Assign enemy data
     m_meleeRange = data.meleeRange;
     m_meleeCooldown = data.attackCooldown;
+    m_meleeWindupTime = data.meleeWindup;
     m_detectionRange = data.detectionRange;
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
@@ -61,6 +65,9 @@ void MinitaurController::Init(const EnemyData& data)
     {
         wolf::Warning("Minitaur " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
     }
+
+    // Init attack state members
+    m_meleeWindupTimer = m_meleeWindupTime;
 
     // Init emotes object
     m_pEmoteObj = &pGameObject->GetScene().CreateObject2D();
@@ -95,8 +102,21 @@ void MinitaurController::Init(const EnemyData& data)
 void MinitaurController::Update(float delta)
 {
     // Ensure components and target are initialized before performing any updates
-    if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
+    if (!m_active || !m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
+
+    if (m_pTarget)
+    {
+        auto* targetHealth = m_pTarget->GetComponent<HealthComponent>();
+        if (!targetHealth || targetHealth->GetHealth() <= 0) 
+        {
+            // wolf::Warning("LIL BLUD CAN'T FIND A TARGET, SO HE'S SWITCHING BACK TO THE PLAYER");
+            RevertToPlayerTarget();
+        }
+    }
+
+    // Update the base class
+    EnemyController::Update(delta);
 
     // Check if minitaur is petrified
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
@@ -113,12 +133,18 @@ void MinitaurController::Update(float delta)
         }         
     }
 
-
-    // Check if health is below or equal to 0 and transition to the DEATH state
-    if (m_pHealth->GetHealth() <= 0)
+    // Check if health is below or equal to 0 and not already dying, transition to the DEATH state
+    if (m_pHealth->GetHealth() <= 0 && m_state != EnemyState::DEATH)
     {
         // Switch to the DEATH state if the health is depleted
         ChangeState(EnemyState::DEATH);
+        return;
+    }
+
+    if(m_meleeTimer > 0.0f)
+    {
+        // Cooldown timer for next attack
+        m_meleeTimer -= delta;
     }
 
     // Update based on the current state
@@ -208,6 +234,11 @@ void MinitaurController::ChangeState(EnemyState newState)
     // Enter new state
         switch (newState)
     {
+        case EnemyState::ATTACKING:
+        {
+            EnterAttackState();
+            break;
+        }
         case EnemyState::CHASING:
         {
             EnterChasingState();
@@ -233,11 +264,18 @@ void MinitaurController::ChangeState(EnemyState newState)
             EnterStunnedState();
             break;
         }
+        case EnemyState::DEATH:
+        {
+            EnterDeathState();
+            break;
+        }
         default:
         {         
             break;
         }
     }
+
+    m_last_state = m_state;
     m_state = newState;
 }
 
@@ -445,36 +483,60 @@ void MinitaurController::HandleChasingState(float delta)
     }
     if (distanceToPlayer <= m_meleeRange)
     {
-        if (m_transitionTimer.Elapsed() >= m_transitionDelay)
+        if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_meleeTimer <= 0.0f)
         {
             ChangeState(EnemyState::ATTACKING);
+            return;
         }
     }
 }
 
 void MinitaurController::HandleAttackingState(float delta)
 {
-    if (!m_pTarget) return;
-
-    // Stop Minitaur's movement during attack
-    m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    if(m_meleeTimer <= 0.0f)
+    if (!m_pTarget)
     {
+        ChangeState(EnemyState::IDLE);
+        return;
+    }
+
+    // If winding up attack
+    if(m_meleeWindupTimer > 0.0f)
+    {
+        // Brighten sprite to indicate attack
+        if(m_pAnimComponent != nullptr)
+        {
+            glm::vec3 currentTint = m_pAnimComponent->GetTint();
+            glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_meleeWindupTime * 0.5f));
+            m_pAnimComponent->SetTint(nextTint);
+        }
+
+        m_meleeWindupTimer -= delta;
+    }
+
+    // Else, strike
+    else
+    {
+        m_pAnimComponent->SetTint(glm::vec3(1.0f)); // Reset windup tint
+
         // Check distance to player
         const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+        // Determine if target's collider is active and a hurtbox
+        auto* pCollider = m_pTarget->GetComponent<ColliderComponent>();
+        const bool active = pCollider ? (pCollider->IsActive() && pCollider->IsHurtbox()) : false;
+        
         const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
         const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
         // Apply damage if player is within melee range and attack cooldown is over
-        if (distanceToPlayer <= m_meleeRange)
+        if (active && distanceToPlayer <= m_meleeRange)
         {
+
             // Apply damage to the player
             auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
             if (playerHealth)
             {
                 playerHealth->Damage(m_baseDamage);
-                wolf::Audio::Play("data/sounds/hurt.wav");
-
             }
 
             // Apply strong knockback to the player
@@ -487,19 +549,16 @@ void MinitaurController::HandleAttackingState(float delta)
                 playerVelocity->ApplyKnockback(knockbackDirection, knockbackStrength);
             }
 
+            // Chain another attack
+            ChangeState(EnemyState::ATTACKING);
+            return;
         }
         else
         {
             // Return to chasing if player moves out of range
             ChangeState(EnemyState::CHASING);
+            return;
         }
-
-        // Reset attack cooldown timer
-        m_meleeTimer = m_meleeCooldown;
-    }
-    else
-    {
-        m_meleeTimer -= delta;
     }
 }
 
@@ -513,7 +572,24 @@ void MinitaurController::HandleStunnedState(float delta)
 {
     if(m_stunnedTimer >= m_stunnedTime)
     {
+        if
+        (IsTargetDetected())
+        {
+            if
+            (
+            m_last_state != EnemyState::CHASING     &&
+            m_last_state != EnemyState::ATTACKING
+            )
+            {
+                SetEmote(EnemyEmote::EXCLAMATION);
+            }
+            ChangeState(EnemyState::CHASING);
+            return;
+        }
+        
+        SetEmote(EnemyEmote::QUESTION);
         ChangeState(EnemyState::PROSPECT);
+        return;
     }
     else
     {
@@ -606,12 +682,24 @@ void MinitaurController::HandleDeathState(float delta)
                     // wall
                     pItemVel->ApplyKnockback(glm::vec2(1.0f, 0.0f), 10.0f);
                 }
+                
+                ColliderComponent* pItemCollider = pItem->GetComponent<ColliderComponent>();
+                if (pItemCollider)
+                {
+                    // Disable the collider after knockback
+                    pItemCollider->SetActive(false);
+                }
             }
             GetGameObject()->Delete();
         }
         m_lieDeadTimer += delta;
 
     }  
+}
+
+void MinitaurController::EnterAttackState()
+{
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
 }
 
 void MinitaurController::EnterChasingState()
@@ -637,15 +725,20 @@ void MinitaurController::EnterStunnedState()
 {
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
 }
+void MinitaurController::EnterDeathState()
+{
+    SetEmote(EnemyEmote::NONE);
+}
 
 void MinitaurController::ExitAttackState()
 {
-    m_meleeTimer = m_meleeCooldown;
-    
     if(m_pAnimComponent != nullptr)
     {
         m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
     }
+    
+    m_meleeTimer = m_meleeCooldown;
+    m_meleeWindupTimer = m_meleeWindupTime;
 }
 
 void MinitaurController::ExitChasingState()
@@ -721,138 +814,14 @@ bool MinitaurController::IsTargetDetected()
 
 bool MinitaurController::IsTargetInLOS()
 {
-
-    // Get labyrinth manager
-    LabyrinthManager* lbmg = nullptr;
-    for (auto&& [_, labyrinthManager] : GetGameObject()->GetScene().Each<LabyrinthManager>())
-    {
-        lbmg = &labyrinthManager;
-        break;
-    }
     glm::vec2 thisPos = m_pTransform->GetGlobalPosition();
     glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec4 colour = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
-    // Check
-    if(lbmg != nullptr)
+    glm::vec2 endPos = DDACalculator::GetInstance()->GetEndpoint(thisPos, targetPos);
+    if(endPos == targetPos)
     {
-        glm::ivec2 thisTilePos = lbmg->GetTilePosition(thisPos);
-        int thisTileID = lbmg->GetTile(thisTilePos.x, thisTilePos.y);
-
-        glm::ivec2 targetTilePos = lbmg->GetTilePosition(targetPos);
-        int targetTileID = lbmg->GetTile(targetTilePos.x, targetTilePos.y);
-
-        // If either this tile or target tile is invalid, return false
-        if(thisTileID < 0 || targetTileID < 0)
-        {
-            // printf("Minitaur Controller - ERROR: INVALID TILE\n");
-            return false;
-        }
-
-        // If either entity or target is inside wall (somehow), return false
-        if(this->IsWallTile(thisTileID) || this->IsWallTile(targetTileID))
-        {
-            return false;
-        }
-
-        if(thisTilePos == targetTilePos && !this->IsWallTile(thisTileID))
-        {
-            // printf("Minitaur Controller - Target Detected\n");
-            return true;
-        }
-
-        const int tileSize = (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
-
-        glm::vec2 line = targetPos - thisPos;
-        glm::vec2 normalisedLine = glm::normalize(line);
-        float distance = glm::length(line);
-
-        glm::ivec2 currentTilePos = thisTilePos;
-        int currentTileID = thisTileID;
-        glm::vec2 rayLength = glm::vec2(0.0f, 0.0f);
-        glm::ivec2 tileStep = glm::vec2(0, 0);
-        glm::vec2 rayStep = glm::vec2(
-            sqrt(1 + pow((normalisedLine.y / normalisedLine.x), 2)),
-            sqrt(1 + pow((normalisedLine.x / normalisedLine.y), 2))
-        );
-
-        if(line.x > 0.0f)
-        {
-            tileStep.x = 1;
-            rayLength.x = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x + 1, thisTilePos.y)).x - thisPos.x) * rayStep.x;
-        }
-        else
-        {
-            tileStep.x = -1;
-            rayLength.x = abs(thisPos.x - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).x) * rayStep.x;
-        }
-
-        if(line.y > 0.0f)
-        {
-            tileStep.y = 1;
-            rayLength.y = abs(this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y + 1)).y - thisPos.y) * rayStep.y;
-        }
-        else
-        {
-            tileStep.y = -1;
-            rayLength.y = abs(thisPos.y - this->GetTileWorldPos(glm::ivec2(thisTilePos.x, thisTilePos.y)).y) * rayStep.y;
-        }
-        
-        rayStep *= tileSize;
-        
-        // Iterate until target tile is reached
-        bool isTargetSpotted = true;
-        bool isIterating = true;
-        float distanceCheck = 0.0f;
-        while(distanceCheck < distance)
-        {
-
-            if(rayLength.x < rayLength.y)
-            {
-                currentTilePos.x += tileStep.x;
-                distanceCheck = rayLength.x;
-                rayLength.x += rayStep.x;
-            }
-            else
-            {
-                currentTilePos.y += tileStep.y;
-                distanceCheck = rayLength.y;
-                rayLength.y += rayStep.y;
-            }
-
-            currentTileID = lbmg->GetTile(currentTilePos.x, currentTilePos.y);
-            
-            if(this->IsWallTile(currentTileID))
-            {
-                if(distanceCheck < distance)
-                {
-                    // glm::vec2 endpoint = normalisedLine * distanceCheck + thisPos;
-                    // GLShapesRenderer::GetInstance()->AddLine(
-                    //                                         {thisPos.x, thisPos.y, colour.r, colour.g, colour.b, colour.a},
-                    //                                         {endpoint.x, endpoint.y, colour.r, colour.g, colour.b, colour.a}
-                    //                                         );
-                    // printf("MinitaurController - Blocked\n");
-                    return false;
-                }
-                // printf("MinitaurController - Length Exceeded\n");
-                break;
-            }
-            if(distanceCheck >= distance)
-            {
-                // printf("MinitaurController - Length Exceeded\n");
-            }
-        }
+        return true;
     }
-    // printf("MinitaurController - Detected\n");
-    // GLShapesRenderer::GetInstance()->AddLine(
-    //                                         {thisPos.x, thisPos.y, colour.r, colour.g, colour.b, colour.a},
-    //                                         {targetPos.x, targetPos.y, colour.r, colour.g, colour.b, colour.a}
-    //                                         );
-    return true;
-}
-
-bool MinitaurController::IsWallTile(int p_tile_id)
-{
-    return (p_tile_id >= Tile::WallBottomLeft) && (p_tile_id <= Tile::WallTop);
+    return false;
 }
 
 glm::vec2 MinitaurController::GetTileWorldPos(glm::ivec2 p_tile_pos)
@@ -862,4 +831,33 @@ glm::vec2 MinitaurController::GetTileWorldPos(glm::ivec2 p_tile_pos)
         (float)p_tile_pos.y * (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE)
     );
     return res;
+}
+
+void MinitaurController::HandleInfighting(const InfightingEvent& event)
+{
+    if (event.m_pVictim == GetGameObject()) // This Minitaur got hit
+    {
+            // Ignore if already attacking this enemy
+            if (m_pTarget == event.m_pAttacker) return;
+
+            // **Minitaur fights back once hit**
+            m_pTarget = event.m_pAttacker;
+            ChangeState(EnemyState::CHASING);
+
+            // wolf::Log("Minitaur " + std::to_string(GetGameObject()->GetID()) + 
+            //                 " is now fighting " + std::to_string(m_pTarget->GetID()));
+    }
+}
+
+void MinitaurController::RevertToPlayerTarget()
+{
+    for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
+    {
+        m_pTarget = playerController.GetGameObject();
+        return;
+    }
+
+    // If no player found, log a warning
+    // wolf::Warning("BLUD CAN'T FIND A TARGET");
+    m_pTarget = nullptr; // No valid target
 }

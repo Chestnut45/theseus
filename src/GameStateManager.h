@@ -32,7 +32,7 @@ public:
     void Update(float delta);
 
     // Render the active state and background render the lower states
-    void Render();
+    void Render(float delta);
 
     // Clear the stack and remove all states
     void Clear();

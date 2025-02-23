@@ -2,6 +2,8 @@
 #include "MainMenuState.h"
 #include <imgui/imgui.h>
 #include <W_Input.h>
+#include <W_EventManager.h>
+#include <events/PauseEvent.h>
 
 void PauseState::Enter()
 {
@@ -87,10 +89,14 @@ void PauseState::Update(float delta)
     ImGui::End();
 
     // Resume if flag is set
-    if (resume) m_pStateManager->PopState();
+    if (resume)
+    {
+        wolf::EventManager::TriggerEvent(PauseEvent(false));
+        m_pStateManager->PopState();
+    }
 }
 
-void PauseState::Render()
+void PauseState::Render(float delta)
 {
     // Pause state render logic
 }
@@ -100,7 +106,7 @@ void PauseState::BackgroundUpdate(float delta)
     // Update logic for when state is inactive
 }
 
-void PauseState::BackgroundRender()
+void PauseState::BackgroundRender(float delta)
 {
     // Render logic for when state is inactive
 }

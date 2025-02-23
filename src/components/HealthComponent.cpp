@@ -7,6 +7,9 @@
 #include "HealthComponent.h"
 #include "PlayerInventoryComponent.h"
 #include "../inventory/ArmourItem.h"
+#include <DamageEvent.h>
+#include <W_EventManager.h>
+#include <PlayerController.h>
 
 // Constructor for custom health
 HealthComponent::HealthComponent(int p_health)
@@ -46,6 +49,7 @@ float HealthComponent::GetHealth() const
 // Reduce health
 void HealthComponent::Damage(float p_damage)
 {
+    if(!m_active) return;
     if(this->m_health > 0)
     {
         float damageReduction = 0.0f;
@@ -83,16 +87,32 @@ void HealthComponent::Damage(float p_damage)
         if (m_health < 0) m_health = 0;
         this->AddDamageIndicator(finalDamage, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
+
+    // Send out a damage event
+    DamageEvent event;
+    event.m_damage = p_damage;
+    event.m_pierce = false;
+    event.m_pDamagedObject = GetGameObject();
+    wolf::EventManager::TriggerEvent(event);
 }
 
 // Reduce health & ignore armour
 void HealthComponent::Pierce(float p_damage)
 {
+    if(!m_active) return;
+    
     if(this->m_health > 0)
     {
         this->m_health -= p_damage;
         if (m_health < 0) m_health = 0;
         this->AddDamageIndicator(p_damage, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+
+        // Send out a damage event
+        DamageEvent event;
+        event.m_damage = p_damage;
+        event.m_pierce = true;
+        event.m_pDamagedObject = GetGameObject();
+        wolf::EventManager::TriggerEvent(event);
     }
 }
 
@@ -200,6 +220,7 @@ void HealthComponent::AddDamageIndicator(std::string p_damage_str, ImVec4 p_text
 
 // !-- Aurora added these events --!
 void HealthComponent::HandlePercentHealthItemEvent(const PercentHealthItemEvent& p_event) {
+    if (!GetGameObject()->HasAll<PlayerController>()) return;
     if (p_event.fHealthChangeAmt >= 0) {
         this->Heal(p_event.fHealthChangeAmt * m_cap);
     }
@@ -209,6 +230,7 @@ void HealthComponent::HandlePercentHealthItemEvent(const PercentHealthItemEvent&
 }
 
 void HealthComponent::HandleFlatHealthItemEvent(const FlatHealthItemEvent& p_event) {
+    if (!GetGameObject()->HasAll<PlayerController>()) return;
     if (p_event.fHealthChangeAmt >= 0) {
         this->Heal(p_event.fHealthChangeAmt);
     }
@@ -258,7 +280,13 @@ void HealthComponent::DamageIndicator::Render()
         screenpos.y = (worldpos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
                 
         // Setup
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar;
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground |
+                         ImGuiWindowFlags_NoMouseInputs |
+                         ImGuiWindowFlags_NoResize |
+                         ImGuiWindowFlags_NoSavedSettings |
+                         ImGuiWindowFlags_NoTitleBar |
+                         ImGuiWindowFlags_NoFocusOnAppearing | // Prevent focus
+                         ImGuiWindowFlags_NoBringToFrontOnFocus; // Prevent altering window order        
         ImGui::SetNextWindowPos({screenpos.x, screenpos.y});
         ImGui::SetNextWindowSize(DamageIndicator::WINDOW_SIZE);
         ImGui::Begin(id.c_str(), nullptr, flags);

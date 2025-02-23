@@ -195,7 +195,7 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
 
         // Figure out where we'll be drawing the inventory
         ImVec2 v2DisplaySize = ImGui::GetIO().DisplaySize;
-        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), v2DisplaySize.y * 0.15f};
+        ImVec2 v2WindowDrawPos = {v2DisplaySize.x - (7 * m_v2TexFrameSize.x), 256};
 
         // By default, the inventory appears close to the middle of the screen
         ImGui::SetNextWindowPos(v2WindowDrawPos);
@@ -212,21 +212,26 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
         // And then create the background image
         ImGui::GetWindowDrawList()->AddImage((ImTextureID)(intptr_t)m_pFrameTexture->GetID(), v2BGMin, v2BGMax, m_vv2FrameTextureCoords[1]->m_v2TopLeft, m_vv2FrameTextureCoords[1]->m_v2BotRight);
 
-        // Newline for padding
-        ImGui::NewLine();
+        float fWindowWidth = ImGui::GetWindowSize().x;
+        float fWindowHeight = ImGui::GetWindowSize().y;
+
+        // Push the colors for the X button
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.f, 0.f, 0.f, 0.25f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.f, 0.f, 0.f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.f, 0.f, 0.f, 0.75f));
+
+        ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
+        if (ImGui::Button("X", ImVec2(fWindowWidth * 0.10f, fWindowHeight * 0.064f))) {
+            this->Close();
+        }
+
+        ImGui::PopStyleColor(3);
 
         // Write the inventory title
-        float fWindowWidth = ImGui::GetWindowSize().x;
         float fTextWidth = ImGui::CalcTextSize(strTitle.c_str()).x;
 
         ImGui::SetCursorPosX((fWindowWidth - fTextWidth) * 0.5f);
-        ImGui::Text(strTitle.c_str());
-
-        // If we closed the inventory using IMGUI
-        if (!m_bIsOpen) {
-            // Close it internally, too
-            this->Close();
-        }
+        ImGui::Text("%s", strTitle.c_str());
 
         // This counter lets us control how many items are drawn in a row
         int counter = 0;
@@ -435,7 +440,7 @@ void MerchantInventoryComponent::ShowInventoryGUI() {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
             // Show a message asking the player if they are okay with selling the item for less than its value
-            ImGui::Text(strMessage.c_str());
+            ImGui::Text("%s", strMessage.c_str());
             
             // Calculate the size of the window and the text we want to display
             float fWindowWidth = ImGui::GetWindowWidth();

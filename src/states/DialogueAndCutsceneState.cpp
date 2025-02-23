@@ -7,11 +7,12 @@
 
 // Constructor
 DialogueAndCutsceneState::DialogueAndCutsceneState(GameStateManager* manager, Theseus* gameInstance, const std::string& yamlFilePath)
-    : GameState(manager, gameInstance), m_yamlFilePath(yamlFilePath), m_triggerNPCID(-1) {}
+    : GameState(manager, gameInstance), m_yamlFilePath(yamlFilePath), m_triggerNPCID(-1),
+      m_fadeAlpha(0.0f), m_fadeTimer(0.0f), m_fadeDuration(0.0f), m_fadingIn(false) {}
 
-// Constructor with optional NPC ID parameter (use when the dialogue was triggered by talking to an NPC)
 DialogueAndCutsceneState::DialogueAndCutsceneState(GameStateManager* manager, Theseus* gameInstance, const std::string& yamlFilePath, int npcID)
-    : GameState(manager, gameInstance), m_yamlFilePath(yamlFilePath), m_triggerNPCID(npcID) {}
+    : GameState(manager, gameInstance), m_yamlFilePath(yamlFilePath), m_triggerNPCID(npcID),
+      m_fadeAlpha(0.0f), m_fadeTimer(0.0f), m_fadeDuration(0.0f), m_fadingIn(false) {}
 
 // Enter
 void DialogueAndCutsceneState::Enter() {
@@ -19,7 +20,7 @@ void DialogueAndCutsceneState::Enter() {
         try {
             LoadFromYAML(m_yamlFilePath);
             m_isYAMLLoaded = true; // Mark as loaded
-            std::cout << "DialogueAndCutsceneState: YAML loaded successfully." << std::endl;
+            // std::cout << "DialogueAndCutsceneState: YAML loaded successfully." << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "Error loading YAML: " << e.what() << std::endl;
         }
@@ -99,12 +100,13 @@ void DialogueAndCutsceneState::StartSequence(const std::string& sequenceID) {
         m_cutsceneTimer = 0.0f;
         m_currentKeyframeIndex = 0;
 
-        std::cout << "Starting sequence: " << sequenceID << std::endl;
+        // std::cout << "Starting sequence: " << sequenceID << std::endl;
     } else {
         // Handle the case where the sequence ID is not found
         std::cerr << "Sequence ID '" << sequenceID << "' not found!" << std::endl;
     }
 }
+
 void DialogueAndCutsceneState::AdvanceSequence(float delta) {
     // Ensure there is a current sequence and it's within bounds
     if (!m_currentSequence || m_currentSequenceIndex >= m_currentSequence->size()) {
@@ -115,43 +117,58 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
 
     auto& currentItem = (*m_currentSequence)[m_currentSequenceIndex];
 
-    // Track the progress of dialogue and cutscene
+    // Track the progress of dialogue, cutscene, and fade
     bool dialogueFinished = false;
     bool cutsceneFinished = false;
+    bool fadeFinished = true;
+
+    // Handle fade transitions
+    if (currentItem.type == "fade") {
+        m_fadeTimer += delta;
+
+        // Update fade alpha based on fade direction
+        if (currentItem.fadeType == "to") {
+            m_fadeAlpha = glm::clamp(m_fadeTimer / currentItem.fadeDuration, 0.0f, 1.0f);
+        } else if (currentItem.fadeType == "from") {
+            m_fadeAlpha = glm::clamp(1.0f - (m_fadeTimer / currentItem.fadeDuration), 0.0f, 1.0f);
+        }
+
+        // Check if fade transition is complete
+        if (m_fadeTimer >= currentItem.fadeDuration) {
+            m_fadeAlpha = (currentItem.fadeType == "to") ? 1.0f : 0.0f;
+            m_fadeTimer = 0.0f;
+            m_currentSequenceIndex++;
+            ResetCutsceneState();
+            return;
+        }
+
+        fadeFinished = false;
+    }
 
     // Handle dialogue progression
-    if (currentItem.type == "dialogue" || currentItem.type == "combined") {
+    if ((currentItem.type == "dialogue" || currentItem.type == "combined") && fadeFinished) {
         m_timeSinceLastKeyframe += delta;
 
         const std::string& currentLine = GetCurrentDialogueLine();
         m_isLineFinished = (m_timeSinceLastKeyframe >= currentLine.length() * 0.05f || m_showFullText);
 
         // Check user input for skipping
-        bool isInputPressed = (m_lmbCooldown <= 0.0f) && 
+        bool isInputPressed = (m_lmbCooldown <= 0.0f) &&
                               (wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE));
-        bool isAnyButtonHovered = ImGui::IsAnyItemHovered();
-
         bool isLastLine = (m_currentSequenceIndex >= m_currentSequence->size() - 1);
 
-        if (isInputPressed && !isAnyButtonHovered) {
+        if (isInputPressed) {
             m_lmbCooldown = LMB_DELAY;
 
-            if (isLastLine) {
-                if (!m_showFullText) {
-                    m_showFullText = true;
-                } else if (!m_isLineFinished) {
-                    m_isLineFinished = true;
-                } else {
-                    dialogueFinished = true;
-                }
+            if (!m_showFullText) {
+                m_showFullText = true;
+            } else if (!m_isLineFinished) {
+                m_isLineFinished = true;
+            } else if (isLastLine) {
+                dialogueFinished = true;
             } else {
-                if (!m_showFullText && !m_isLineFinished) {
-                    m_showFullText = true;
-                } else if (m_showFullText && !m_isLineFinished) {
-                    m_isLineFinished = true;
-                } else if (m_isLineFinished) {
-                    dialogueFinished = true;
-                }
+                dialogueFinished = true;
+                m_timeSinceLastKeyframe = 0.0f;
             }
         }
 
@@ -159,13 +176,10 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
         if (m_autoplay && m_isLineFinished && m_timeSinceLastKeyframe > m_autoPlayDelay) {
             dialogueFinished = true;
         }
-
-        // Ensure dialogue sequence is finished only when explicitly marked
-        dialogueFinished = dialogueFinished && m_isLineFinished;
     }
 
     // Handle cutscene progression
-    if (currentItem.type == "cutscene" || currentItem.type == "combined") {
+    if ((currentItem.type == "cutscene" || currentItem.type == "combined") && fadeFinished) {
         if (m_currentKeyframeIndex >= currentItem.cutscene.size()) {
             cutsceneFinished = true;
         } else {
@@ -195,11 +209,6 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
                 camera->SetZoom(m_currentZoomLevel);
             }
 
-            if (wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE)) {
-                m_cutsceneTimer = targetKeyframe.duration;
-                t = 1.0f;
-            }
-
             if (t >= 1.0f) {
                 m_cutsceneTimer = 0.0f;
                 m_currentKeyframeIndex++;
@@ -211,21 +220,17 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
 
     // Combined logic
     if (currentItem.type == "combined") {
-        if (cutsceneFinished) {
-            if (dialogueFinished) {
-                m_timeSinceLastKeyframe = 0.0f;
-                m_showFullText = false;
-                m_currentSequenceIndex++;
-
-                ResetCutsceneState();
-            }
+        if (cutsceneFinished && dialogueFinished) {
+            m_timeSinceLastKeyframe = 0.0f;
+            m_showFullText = false;
+            m_currentSequenceIndex++;
+            ResetCutsceneState();
         }
     } else if ((currentItem.type == "dialogue" && dialogueFinished) ||
                (currentItem.type == "cutscene" && cutsceneFinished)) {
         m_timeSinceLastKeyframe = 0.0f;
         m_showFullText = false;
         m_currentSequenceIndex++;
-
         ResetCutsceneState();
     }
 }
@@ -345,6 +350,11 @@ void DialogueAndCutsceneState::LoadFromYAML(const std::string& yamlFilePath) {
                             }
                         }
                     }
+                    else if (item.type == "fade") {
+                        // Parse fade-specific data
+                        item.fadeType = seqNode["to"] ? "to" : "from";
+                        item.fadeDuration = seqNode["duration"] ? seqNode["duration"].as<float>() : 0.0f;
+                    }
 
                     // Add the item to this sequence's vector
                     sequenceItems.push_back(item);
@@ -357,11 +367,25 @@ void DialogueAndCutsceneState::LoadFromYAML(const std::string& yamlFilePath) {
     }
 }
 
-void DialogueAndCutsceneState::Render() {
+
+
+void DialogueAndCutsceneState::Render(float delta) {
+
     if (m_currentSequence && m_currentSequenceIndex < m_currentSequence->size()) {
-        RenderSequence();
+        RenderSequence(delta);
+    }
+    
+
+    // Render fade overlay if active
+    if (m_fadeAlpha > 0.0f) {
+        auto* drawList = ImGui::GetBackgroundDrawList();
+        ImVec2 screenSize = ImGui::GetIO().DisplaySize;
+        ImColor fadeColor = ImColor(0.0f, 0.0f, 0.0f, m_fadeAlpha); // Black fade
+        drawList->AddRectFilled(ImVec2(0, 0), screenSize, fadeColor);
     }
 }
+
+    
 
 ImVec2 addImVec2(const ImVec2& a, const ImVec2& b) {
     return ImVec2(a.x + b.x, a.y + b.y);
@@ -424,7 +448,7 @@ void DialogueAndCutsceneState::EndDialogue() {
 }
 
 
-void DialogueAndCutsceneState::RenderSequence() {
+void DialogueAndCutsceneState::RenderSequence(float delta) {
     // Ensure we're within valid sequence bounds
     if (!m_currentSequence || m_currentSequenceIndex >= m_currentSequence->size()) {
         return; 
@@ -437,7 +461,7 @@ void DialogueAndCutsceneState::RenderSequence() {
         auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
         if (camera) {
             // Render the scene with the current camera transformations
-            m_pGameInstance->GetScene().Render();
+            m_pGameInstance->GetScene().Render(delta);
         }
     }
 
@@ -509,10 +533,11 @@ void DialogueAndCutsceneState::RenderSequence() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 15.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(30, 25));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10, 15));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
 
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.4f, 0.5f, 0.7f, fadeOpacity));
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.95f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, fadeOpacity));
 
         ImGui::Begin("EnhancedDialogue", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
 
@@ -522,12 +547,12 @@ void DialogueAndCutsceneState::RenderSequence() {
             ImGui::SameLine();
         }
 
-        ImGui::TextColored(ImVec4(0.8f, 0.85f, 1.0f, 1.0f), "%s:", characterName.c_str());
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%s:", characterName.c_str());
 
         // Accent line above text
         ImVec2 start = addImVec2(ImGui::GetCursorScreenPos(), ImVec2(0, -10));
         ImVec2 end = addImVec2(ImGui::GetCursorScreenPos(), ImVec2(windowSize.x * 0.25f, -10));
-        drawList->AddLine(start, end, ImColor(0.5f, 0.7f, 1.0f, 0.6f), 2.0f);
+        drawList->AddLine(start, end, ImColor(0.5f, 0.5f, 0.5f, 0.6f), 2.0f);
 
         // Display dialogue text
         static float lineFade = 0.0f;
@@ -554,23 +579,32 @@ void DialogueAndCutsceneState::RenderSequence() {
         ImGui::SetCursorPosX((ImGui::GetWindowWidth() - totalButtonWidth) / 2);  // Center buttons
 
         // Button styling for a polished look
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.4f, 0.45f, fadeOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.3f, 0.35f, fadeOpacity));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, fadeOpacity));
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, fadeOpacity));
 
         // Autoplay button
         if (ImGui::Button(m_autoplay ? "Autoplay: ON" : "Autoplay: OFF", buttonSize)) {
             m_autoplay = !m_autoplay;
         }
 
-        ImGui::PopStyleColor(3);
+        ImGui::PopStyleColor(4);
+        ImGui::PopStyleVar(2);
         ImGui::SameLine();
 
         // Continue button (if not the last line or line is not finished)
         if (showContinueButton) {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.45f, 0.5f, fadeOpacity));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f, 0.55f, 0.6f, fadeOpacity));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, fadeOpacity));
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, fadeOpacity));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, fadeOpacity));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, fadeOpacity));
 
             if (ImGui::Button("Continue", buttonSize)) {
                 m_showFullText = true;
@@ -581,23 +615,29 @@ void DialogueAndCutsceneState::RenderSequence() {
                 }
             }
 
-            ImGui::PopStyleColor(3);
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(4);
             ImGui::SameLine();
         }
 
         // Exit button (always visible)
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.35f, 0.4f, fadeOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.4f, 0.45f, fadeOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.3f, 0.35f, fadeOpacity));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, fadeOpacity));
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, fadeOpacity));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, fadeOpacity));
 
         if (ImGui::Button("Exit", buttonSize)) {
             OnExitButtonPressed();
         }
 
-        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar(2);
+        ImGui::PopStyleColor(4);
 
         ImGui::End();
-        ImGui::PopStyleVar(3);
+        ImGui::PopStyleVar(4);
         ImGui::PopStyleColor(3);
     }
 }

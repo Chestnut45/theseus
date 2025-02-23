@@ -20,7 +20,7 @@ public:
     void Pause() override {}
     void Resume() override {}
     void Update(float delta) override;
-    void Render() override;
+    void Render(float delta) override;
     void BackgroundUpdate(float delta) override;
-    void BackgroundRender() override;
+    void BackgroundRender(float delta) override;
 };

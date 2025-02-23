@@ -28,7 +28,9 @@ public:
 
     float GetMaxHealth() const;
     float GetHealth() const;
-
+    bool IsActive() const { return m_active; }
+    
+    void SetActive(bool p_active) { m_active = p_active; }
     void Damage(float p_damage);
     void Pierce(float p_damage);
     void Heal(float p_heal);
@@ -44,6 +46,7 @@ public:
 private:
     float m_health = 100;
     float m_cap = 100;
+    bool m_active = true;
 
     struct DamageIndicator
     {

@@ -29,6 +29,14 @@ public:
     StatusComponent();
     virtual ~StatusComponent();
 
+    // Delete copy constructor/assignment
+    StatusComponent(const StatusComponent&) = delete;
+    StatusComponent& operator=(const StatusComponent&) = delete;
+
+    // Delete move constructor/assignment
+    StatusComponent(StatusComponent&& other) = delete;
+    StatusComponent& operator=(StatusComponent&& other) = delete;
+
     void AddStatusEffect(StatusEffectType p_se_type, float p_lifespan);
     void SetStatusEffectResistance(StatusEffectType p_se_type, float p_resistance_value);
     bool IsStatusEffectActive(StatusEffectType p_se_type) const;

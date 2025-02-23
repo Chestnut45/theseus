@@ -1,7 +1,8 @@
 #include <NPCComponent.h>
 #include <ColliderComponent.h>
-
+#include <LabyrinthManager.h>
 int NPCComponent::m_iNextID = 0;
+wolf::RNG NPCComponent::s_RNG;
 
 NPCComponent::NPCComponent(const std::string& p_strName, const std::string& p_strDialogueFilePath, std::unordered_map<std::string, NPCDialogueEntry*>& p_mDialogueEntries, const std::string& p_strDropTableFilePath, bool p_bIsMerchant, bool p_bCanBeMerchant)
     : m_strName(p_strName), m_strDialogueFilePath(p_strDialogueFilePath), m_strDropTableFilePath(p_strDropTableFilePath), m_bCanBeMerchant(p_bCanBeMerchant)
@@ -17,6 +18,8 @@ NPCComponent::NPCComponent(const std::string& p_strName, const std::string& p_st
         // (We want to avoid the case where CanBeMerchant == FALSE but IsMerchant == TRUE)
         m_bIsMerchant = false;
     }
+
+    m_bIsMerching = false;
 
     // Grab a reference to the dialogue entries map
     m_mDialogueEntries = p_mDialogueEntries;
@@ -46,8 +49,42 @@ NPCComponent::~NPCComponent() {
 }
 
 void NPCComponent::Update(float p_fDelta) {
+    // If the NPC is inactive, do not update
+    if (!m_isActive)
+    {    
+        return;
+    }
+
+    // Code taken from D'Anyil in EnemyController
+    for (auto&&[_, lm] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+    {
+        // Get the ID of the chunk that the NPC is currently on
+        glm::ivec2 newChunkID = lm.GetChunkID(m_pTransform->GetGlobalPosition());
+        // If the current ID is different from the previous one
+        if (m_chunkID != newChunkID)
+        {
+            // Get the chunk object
+            wolf::GameObject* pChunk = lm.GetChunk(newChunkID);
+            
+            // if the chunk object exists
+            if (pChunk)
+            {   
+                pChunk->AddChild(*GetGameObject()); // Add the NPC object as a child of the chunk
+                m_chunkID = newChunkID; // Update the chunk ID
+                m_isActive = lm.IsChunkActive(m_chunkID); // Update active flag
+
+                // If the current chunk is not active, then change state to IDLE
+                if(!m_isActive) 
+                {
+                    ChangeState(State::IDLE);
+                }
+            }
+        }
+        break;
+    }
+
     // If we have no health left
-    if (m_pHealthComp->GetHealth() <= 0) {
+    if (m_pHealthComp->GetHealth() <= 0 && m_state != State::DEAD) {
         // If we're dead we pretend we're playing dialogue so that the player can't talk to us (perhaps we're praying?)
         m_bPlayingDialogue = true;
 
@@ -56,43 +93,41 @@ void NPCComponent::Update(float p_fDelta) {
             // And close it if so
             m_pMerchInvComp->Close();
         }
-
-        // Then handle the death state
-        this->HandleDeadState(p_fDelta);
+        // Then transition to the death state
+        ChangeState(State::DEAD);
     }
-    else {
-        // Otherwise, figure out where the player is and rotate to face them
-        wolf::Scene* pScene = &this->GetGameObject()->GetScene();
-        glm::vec2 v2PlayerPos = pScene->GetObject(pScene->GetPlayerID())->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        glm::vec2 v2MyPos = m_pTransform->GetGlobalPosition();
 
-        // If the player is to our right...
-        if (v2PlayerPos.x > v2MyPos.x) {
-            if (v2PlayerPos.y > v2MyPos.y + 64.0f) { // ...and above us
-                m_pAnimSpriteComp->SetAnimation("StandNorth");
-            }
-            else if (v2PlayerPos.y < v2MyPos.y - 64.0f) { // ...and below us
-                m_pAnimSpriteComp->SetAnimation("StandSouth");
-            }
-            else { // ...and roughly in-line with us
-                m_pAnimSpriteComp->SetAnimation("StandEast");
-            }
+    // Handle the current state of the NPC accordingly
+    switch (m_state)
+    {
+        case State::IDLE:
+        {
+            HandleIdleState(p_fDelta);
+            break;
         }
-        else { // If the player is to our left...
-            if (v2PlayerPos.y > v2MyPos.y + 64.0f) { // ...and above us
-                m_pAnimSpriteComp->SetAnimation("StandNorth");
-            }
-            else if (v2PlayerPos.y < v2MyPos.y - 64.0f) { //...and below us
-                m_pAnimSpriteComp->SetAnimation("StandSouth");
-            }
-            else { // ...and roughly in-line with us
-                m_pAnimSpriteComp->SetAnimation("StandWest");
-            }
+        case State::ROAM:
+        {
+            HandleRoamState(p_fDelta);
+            break;
+        }
+        case State::STUNNED:
+        {
+            HandleStunnedState(p_fDelta);
+            break;
+        }
+        case State::DEAD:
+        {
+            HandleDeadState(p_fDelta);
+            break;
+        }
+        default:
+        {
+            break;
         }
     }
 }
 
-// Call this method once the Health, AnimatedSprite2D, and optionally the MerchantInventory
+// Call this method once the Health, AnimatedSprite2D, Velocity, and optionally the MerchantInventory
 // components have been added to the NPC GameObject
 void NPCComponent::Init() {
     // Retrieve the Transform2D Component
@@ -108,6 +143,12 @@ void NPCComponent::Init() {
 
     // Retrieve the AnimatedSprite2D Component
     m_pAnimSpriteComp = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
+
+    // Retrieve the Velocity Component
+    m_pVeloComp = this->GetGameObject()->GetComponent<VelocityComponent>();
+
+    m_state = State::IDLE;
+    m_isActive = true;
 }
 
 void NPCComponent::HandleDeadState(float p_fDelta) {
@@ -117,10 +158,7 @@ void NPCComponent::HandleDeadState(float p_fDelta) {
     {
         if(m_fFallDeadTimer == 0.0f)
         {
-            VelocityComponent* pVel = this->GetGameObject()->GetComponent<VelocityComponent>();
-            if (pVel) {
-                pVel->SetVelocity(glm::vec2(0.0f));
-            }
+            m_pVeloComp->SetVelocity(glm::vec2(0.0f));
 
             ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
             if(collider != nullptr)
@@ -154,6 +192,9 @@ void NPCComponent::HandleDeadState(float p_fDelta) {
 //  so that they will play AFTER new or unique dialogue)
 void NPCComponent::PlayNextDialogue() {
     if (!m_bPlayingDialogue) {
+        TurnTowardsPlayer();
+        ChangeState(State::IDLE);
+        
         // Take the top element off of the queue
         NPCDialogueEntry* dialogue = m_pqDialogueQueue.top();
         m_pqDialogueQueue.pop();
@@ -173,16 +214,22 @@ void NPCComponent::PlayNextDialogue() {
 
 // Add a dialogue entry to the priority queue
 void NPCComponent::QueueDialogue(const std::string& p_strEntryID) {
-    NPCDialogueEntry* dialogue = m_mDialogueEntries.at(p_strEntryID);
-    if (dialogue) {
-        if (!dialogue->bHasPlayed || dialogue->bHasPlayed && dialogue->bCanRepeat) {
-            m_pqDialogueQueue.push(dialogue);
+    // Ensure the entry exists before accessing it
+    auto it = m_mDialogueEntries.find(p_strEntryID);
+    if (it == m_mDialogueEntries.end()) {
+        // wolf::Log("Dialogue entry not found!");
+        return;
+    }
 
-            // If the priority value of that item was higher than the current highest
-            if (dialogue->iPriority > m_iCurHighPriorityVal) {
-                // Set it as the current highest
-                m_iCurHighPriorityVal = dialogue->iPriority;
-            }
+    NPCDialogueEntry* dialogue = it->second;
+    if (!dialogue) return;
+    if (!dialogue->bHasPlayed || dialogue->bHasPlayed && dialogue->bCanRepeat) {
+        m_pqDialogueQueue.push(dialogue);
+
+        // If the priority value of that item was higher than the current highest
+        if (dialogue->iPriority > m_iCurHighPriorityVal) {
+            // Set it as the current highest
+            m_iCurHighPriorityVal = dialogue->iPriority;
         }
     }
 }
@@ -245,6 +292,11 @@ void NPCComponent::HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndE
                 if (p_event.sequenceID != "goodbye") {
                     // Open the store
                     m_pMerchInvComp->Open();
+                    m_bIsMerching = true;
+                }
+                else
+                {
+                    m_bIsMerching = false;
                 }
             }
         }
@@ -253,4 +305,288 @@ void NPCComponent::HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndE
 
 void NPCComponent::SayGoodbye() {
     this->TriggerDialogue("goodbye");
+}
+
+void NPCComponent::StunNPC()
+{
+    ChangeState(State::STUNNED);
+}
+
+void NPCComponent::SetActive(bool p_active)
+{
+    // std::cout << "Set Active: " << p_active << std::endl;
+    m_isActive = p_active;
+}
+
+void NPCComponent::ChangeState(State p_state)
+{   
+    // We exit the old state
+    switch (m_state)
+    {
+        case State::IDLE:
+        {
+            break;
+        }
+        case State::ROAM:
+        {
+            break;
+        }
+        case State::STUNNED:
+        {
+            ExitStunnedState();
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+
+    // And enter the new state
+    switch (p_state)
+    {
+        case State::IDLE:
+        {
+            EnterIdleState();
+            break;
+        }
+        case State::ROAM:
+        {
+            EnterRoamState();
+            break;
+        }
+        case State::STUNNED:
+        {
+            EnterStunnedState();
+            break;
+        }
+        case State::DEAD:
+        {
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+
+    // Update the current state of the NPC
+    m_state = p_state;
+}
+
+void NPCComponent::EnterIdleState()
+{
+    m_fIdleTimer = s_RNG.NextFloat(2.0f, 4.0f); // Reset the idle timer
+    m_pVeloComp->SetVelocity(glm::vec2(0.0f)); // Set the NPC velocity to 0
+    m_iRoamBlockedCounter = 0;  // Reset the roam-blocked counter
+}
+
+void NPCComponent::EnterRoamState()
+{
+    if (m_strName == "Daedalus" || m_strName == "Ariadne") {
+        ChangeState(IDLE); // Prevent roaming
+        return;
+    }
+    m_fRoamTimer = s_RNG.NextFloat(4.0f, 6.0f); // Reset the roam timer
+    glm::vec2 newVector = glm::normalize(glm::vec2(s_RNG.NextFloat(-5.0f, 5.0f), s_RNG.NextFloat(-5.0f, 5.0f))) * m_fRoamSpeed; // Get a random roam direction
+    TurnToDirection(newVector); // Set the NPC sprite to the new direction
+    m_pVeloComp->SetVelocity(newVector); // Set the NPC velocity to the new velocity
+    m_fRoamSpeedCheckTimer = 0.0f; // reset the speed-check timer
+}
+void NPCComponent::EnterStunnedState()
+{
+    m_fStunnedTimer = m_fStunnedTime; // Reset the stunned timer
+    m_pAnimSpriteComp->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE); // Set NPC sprite to be completely white
+    m_pVeloComp->SetVelocity(glm::vec2(0.0f, 0.0f)); // Set the NPC velocity to 0
+}
+
+void NPCComponent::HandleIdleState(float p_fDelta)
+{
+    if(m_bIsMerching)
+    {
+        TurnTowardsPlayer();
+        return;
+    }
+
+    // If the time for idling is over, change state to Rome
+    if(m_fIdleTimer <= 0.0f)
+    {
+        ChangeState(State::ROAM);
+    }
+    // If not, update the timer
+    else
+    {
+        m_fIdleTimer -= p_fDelta;
+    }
+}
+
+void NPCComponent::HandleRoamState(float p_fDelta)
+{
+    // If the time for Romans is over, change state to idle
+    if(m_fRoamTimer <= 0.0f)
+    {
+        ChangeState(State::IDLE);
+    }
+    // If not, update the timer
+    else
+    {
+        m_fRoamTimer -= p_fDelta;
+    
+        // If the speed-check timer has expired, reset the timer & check the roam speed
+        if(m_fRoamSpeedCheckTimer <= 0.0f)
+        {
+            m_fRoamSpeedCheckTimer = m_fRoamSpeedCheckTime;
+            CheckRoamSpeed();
+        }
+        // If not, then update the timer
+        else
+        {
+            m_fRoamSpeedCheckTimer -= p_fDelta;
+        }
+    }
+}
+
+void NPCComponent::HandleStunnedState(float p_fDelta)
+{
+    // If the stunned timer has expired, change to idle state
+    if(m_fStunnedTimer <= 0.0f)
+    {
+        ChangeState(State::IDLE);
+    }
+    // If not, update the timer
+    else
+    {   
+        m_fStunnedTimer -= p_fDelta;
+    }
+}
+
+void NPCComponent::ExitStunnedState()
+{
+    // Disable the white sprite effect
+    m_pAnimSpriteComp->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+}
+
+void NPCComponent::CheckRoamSpeed()
+{
+    glm::vec2 currentVelocity = m_pVeloComp->GetVelocity();
+
+    // If the NPC is under the speed limit - indicates that the NPC is sliding against a wall at a steep angle
+    if(currentVelocity.length() <= m_RoamSpeedMin)
+    {
+        glm::vec2 newVelocity = currentVelocity;
+        // If the NPC is sliding along the X axis
+        if(currentVelocity.x != 0.0f && currentVelocity.y == 0.0f)
+        {
+            // Set the velocity along the X axis based on roaming direction, with a slight offset for the Y axis
+            if(currentVelocity.x > 0.0f)
+            {
+                newVelocity = glm::normalize(glm::vec2(m_fRoamSpeed, s_RNG.NextFloat(-20.0f, 20.0f))) * m_fRoamSpeed;
+            }
+            else
+            {
+                newVelocity = glm::normalize(glm::vec2(-m_fRoamSpeed, s_RNG.NextFloat(-20.0f, 20.0f))) * m_fRoamSpeed;
+            }
+            
+        }
+        
+        // If the NPC is sliding along the Y axis
+        else if(currentVelocity.y != 0.0f && currentVelocity.x == 0.0f)
+        {
+            // Set the velocity along the Y axis based on roaming direction, with a slight offset for the X axis
+            if(currentVelocity.y > 0.0f)
+            {
+                newVelocity = glm::normalize(glm::vec2(s_RNG.NextFloat(-20.0f, 20.0f), m_fRoamSpeed)) * m_fRoamSpeed;
+            }
+            else
+            {
+                newVelocity = glm::normalize(glm::vec2(s_RNG.NextFloat(-20.0f, 20.0f), -m_fRoamSpeed)) * m_fRoamSpeed;
+            }
+        }
+
+        // // If the NPC is being blocked still by a wall or corner
+        else if (currentVelocity.x == 0.0f && currentVelocity.y == 0.0f)
+        {
+            // If the NPC is blocked more times than the limit, reset counter & change to idle - prevents overly long roam chains
+            if(m_iRoamBlockedCounter == m_iRoamBlockedLimit)
+            {
+                ChangeState(State::IDLE);
+                return;
+            }
+            // If not, increase counter & restart roam
+            else
+            {
+                m_iRoamBlockedCounter++;
+                ChangeState(State::ROAM);
+                return;
+            }
+        }
+
+        // If the new velocity is not the same as the current velocity
+        if(newVelocity != currentVelocity)
+        {
+            m_pVeloComp->SetVelocity(newVelocity); // Apply the new velocity
+            TurnToDirection(newVelocity); // Turn the NPC to the direction of movement
+        }
+    }
+}
+
+void NPCComponent::TurnTowardsPlayer()
+{
+    // Figure out where the player is and rotate to face them
+    wolf::Scene* pScene = &this->GetGameObject()->GetScene();
+    glm::vec2 v2PlayerPos = pScene->GetObject(pScene->GetPlayerID())->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 v2MyPos = m_pTransform->GetGlobalPosition();
+
+    // If the player is to our right...
+    if (v2PlayerPos.x > v2MyPos.x) {
+        if (v2PlayerPos.y > v2MyPos.y + 64.0f) { // ...and above us
+            m_pAnimSpriteComp->SetAnimation("StandNorth");
+        }
+        else if (v2PlayerPos.y < v2MyPos.y - 64.0f) { // ...and below us
+            m_pAnimSpriteComp->SetAnimation("StandSouth");
+        }
+        else { // ...and roughly in-line with us
+            m_pAnimSpriteComp->SetAnimation("StandEast");
+        }
+    }
+    else { // If the player is to our left...
+        if (v2PlayerPos.y > v2MyPos.y + 64.0f) { // ...and above us
+            m_pAnimSpriteComp->SetAnimation("StandNorth");
+        }
+        else if (v2PlayerPos.y < v2MyPos.y - 64.0f) { //...and below us
+            m_pAnimSpriteComp->SetAnimation("StandSouth");
+        }
+        else { // ...and roughly in-line with us
+            m_pAnimSpriteComp->SetAnimation("StandWest");
+        }
+    }
+}
+
+void NPCComponent::TurnToDirection(glm::vec2 p_vDirection)
+{
+    glm::vec2 v2MyPos = m_pTransform->GetGlobalPosition();
+    glm::vec2 v2NewPos = v2MyPos + p_vDirection;
+    // If the new position is to our right...
+    if (v2NewPos.x > v2MyPos.x) {
+        if (v2NewPos.y > v2MyPos.y + 64.0f) { // ...and above us
+            m_pAnimSpriteComp->SetAnimation("StandNorth");
+        }
+        else if (v2NewPos.y < v2MyPos.y - 64.0f) { // ...and below us
+            m_pAnimSpriteComp->SetAnimation("StandSouth");
+        }
+        else { // ...and roughly in-line with us
+            m_pAnimSpriteComp->SetAnimation("StandEast");
+        }
+    }
+    else { // If the new position is to our left...
+        if (v2NewPos.y > v2MyPos.y + 64.0f) { // ...and above us
+            m_pAnimSpriteComp->SetAnimation("StandNorth");
+        }
+        else if (v2NewPos.y < v2MyPos.y - 64.0f) { //...and below us
+            m_pAnimSpriteComp->SetAnimation("StandSouth");
+        }
+        else { // ...and roughly in-line with us
+            m_pAnimSpriteComp->SetAnimation("StandWest");
+        }
+    }
 }

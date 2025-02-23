@@ -12,10 +12,12 @@
 
 HarpyController::HarpyController()
 {
+    wolf::EventManager::AddListener<InfightingEvent, HarpyController, &HarpyController::HandleInfighting>(*this);
 }  
 
 HarpyController::~HarpyController()
 {
+    wolf::EventManager::RemoveListener<InfightingEvent, HarpyController, &HarpyController::HandleInfighting>(*this);
 }
 
 void HarpyController::Init(const EnemyData& data)
@@ -33,7 +35,8 @@ void HarpyController::Init(const EnemyData& data)
     // Assign enemy data
     m_rangedRange = data.rangedRange;
     m_rangedCooldown = data.rangedCooldown;
-    m_detectionRange = data.detectionRange >= 0.0f ? data.detectionRange : std::numeric_limits<float>::infinity();
+    m_rangedWindupTime = data.rangedWindup;
+    m_detectionRange = data.detectionRange;
     m_baseDamage = data.baseDamage;
     m_chaseSpeed = data.chaseSpeed;
 
@@ -61,7 +64,11 @@ void HarpyController::Init(const EnemyData& data)
         wolf::Warning("Harpy " + std::to_string(pGameObject->GetID()) + " did not find any player target!");
     }
 
-        // Init emotes object
+    // Init attack state members
+    m_rangedWindupTimer = m_rangedWindupTime;
+    m_attackChain = 0;
+
+    // Init emotes object
     m_pEmoteObj = &pGameObject->GetScene().CreateObject2D();
     pGameObject->AddChild(*m_pEmoteObj);
     wolf::Transform2D* transform = m_pEmoteObj->GetComponent<wolf::Transform2D>();
@@ -80,8 +87,22 @@ void HarpyController::Init(const EnemyData& data)
 void HarpyController::Update(float delta)
 {
     // Ensure components and target are initialized before performing any updates
-    if (!m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
+    if (!m_active || !m_pTransform || !m_pVelocity || !m_pHealth || !m_pTarget)
         return;
+
+    if (m_pTarget)
+    {
+        auto* targetHealth = m_pTarget->GetComponent<HealthComponent>();
+        if (!targetHealth || targetHealth->GetHealth() <= 0) 
+        {
+            // wolf::Warning("BLUD CAN'T FIND A TARGET");
+            RevertBackToPlayer();
+        }
+    }
+    
+    // Update the base class
+    EnemyController::Update(delta);
+    
     // Check if minitaur is petrified
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
     if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
@@ -89,11 +110,12 @@ void HarpyController::Update(float delta)
         ChangeState(EnemyState::DEATH);
     }
 
-    // Check if health is below or equal to 0 and transition to the DEATH state
-    if (m_pHealth->GetHealth() <= 0)
+    // Check if health is below or equal to 0 and not already dying, transition to the DEATH state
+    if (m_pHealth->GetHealth() <= 0 && m_state != EnemyState::DEATH)
     {
         // Switch to the DEATH state if the health is depleted
         ChangeState(EnemyState::DEATH);
+        return;
     }
 
     if(m_rangedTimer > 0.0f)
@@ -116,6 +138,8 @@ void HarpyController::Update(float delta)
             break;
         case EnemyState::PETRIFIED:
             HandlePetrifiedState(delta);
+            break;
+        case EnemyState::PROSPECT:
             break;
         case EnemyState::STUNNED:
             HandleStunnedState(delta);
@@ -181,6 +205,11 @@ void HarpyController::ChangeState(EnemyState newState)
     // Enter new state
         switch (newState)
     {
+        case EnemyState::ATTACKING:
+        {
+            EnterAttackState();
+            break;
+        }
         case EnemyState::CHASING:
         {
             EnterChasingState();
@@ -201,12 +230,18 @@ void HarpyController::ChangeState(EnemyState newState)
             EnterStunnedState();
             break;
         }
+        case EnemyState::DEATH:
+        {
+            EnterDeathState();
+            break;
+        }
         default:
         {         
             break;
         }
     }
 
+    m_last_state = m_state;
     m_state = newState;
 }
 
@@ -276,7 +311,11 @@ void HarpyController::HandleChasingState(float delta)
 
     if(distanceToPlayer <= m_rangedRange)
     {
-        if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_rangedTimer <= 0.0f)
+        if
+        (
+            m_transitionTimer.Elapsed() >= m_transitionDelay    && // If transition delay expired 
+            m_rangedTimer <= 0.0f                                  // If delay between attacks expired
+        )
         {
             ChangeState(EnemyState::ATTACKING);            
         }
@@ -285,51 +324,83 @@ void HarpyController::HandleChasingState(float delta)
 
 void HarpyController::HandleAttackingState(float delta)
 {
-    if (!m_pTarget) return;
-    
-    // Retrieving & calculating data
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
-
-    glm::vec2 projectileDimensions = glm::vec2(10.0f, 10.0f);
-    glm::vec2 hurtboxOffset = glm::vec2(-5.0f, 5.0f);
-    glm::vec2 harpyDirection = targetPosition - currentPosition == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(targetPosition - currentPosition);
-    glm::vec2 perpendicularVector = harpyDirection == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(glm::vec2(harpyDirection.y, -harpyDirection.x));
-    glm::vec2 projectileDefaultVelocity = harpyDirection * 168.0f;
-
-    auto& scene = this->GetGameObject()->GetScene();
-
-    // Spawn 3 projectiles
-    for(int i = -1; i <= 1; i += 1)
+    if (!m_pTarget)
     {
-        auto& projectile = scene.CreateObject2D();
-
-        std::vector<std::pair<StatusComponent::StatusEffectType, float>> statusEffects = 
-        {
-            std::pair<StatusComponent::StatusEffectType, float>(StatusComponent::StatusEffectType::BURNING, 5.0f)
-        };
-
-        auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(m_baseDamage, m_pColliderManager, 0.0f, statusEffects);
-
-        auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
-        projectileSprite.SetOriginToCenterOfTexture();
-        
-        auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-        projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
-        projectileCollider.SetIgnoreTag(this->GetGameObject()->GetID());
-
-        auto& projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 6.0f, 0.1f);
-        auto& projectileTimedDestroyer = projectile.AddComponent<TimedDestroyerComponent>(10);
-
-        auto& projectileVelocityComponent = projectile.AddComponent<VelocityComponent>();
-        projectileVelocityComponent.SetVelocity(projectileDefaultVelocity);
-
-        glm::vec2 offset = perpendicularVector * (30.0f * i);
-        projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset);
-        projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+        ChangeState(EnemyState::IDLE);
+        return;
     }
-    ChangeState(EnemyState::CHASING);
+
+    // If winding up attack
+    if(m_rangedWindupTimer > 0.0f)
+    {
+        m_rangedWindupTimer -= delta;
+
+        glm::vec3 currentTint = m_pAnimComponent->GetTint();
+        glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_rangedWindupTime * 0.5f));
+        m_pAnimComponent->SetTint(nextTint);
+    }
+    
+    // Else, strike
+    else
+    {   
+        m_attackChain--; // Keep track of attack chain
+        m_pAnimComponent->SetTint(glm::vec3(1.0f)); // Reset windup tint
+
+        // Retrieving & calculating data
+        const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+        const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+
+        glm::vec2 projectileDimensions = glm::vec2(10.0f, 10.0f);
+        glm::vec2 hurtboxOffset = glm::vec2(-5.0f, 5.0f);
+        glm::vec2 harpyDirection = targetPosition - currentPosition == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(targetPosition - currentPosition);
+        glm::vec2 perpendicularVector = harpyDirection == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(glm::vec2(harpyDirection.y, -harpyDirection.x));
+        glm::vec2 projectileDefaultVelocity = harpyDirection * 168.0f;
+
+        auto& scene = this->GetGameObject()->GetScene();
+
+        // Spawn 3 projectiles
+        for(int i = -1; i <= 1; i += 1)
+        {
+            auto& projectile = scene.CreateObject2D();
+
+            std::vector<std::pair<StatusComponent::StatusEffectType, float>> statusEffects = 
+            {
+                std::pair<StatusComponent::StatusEffectType, float>(StatusComponent::StatusEffectType::BURNING, 5.0f)
+            };
+
+            auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(m_baseDamage, m_pColliderManager,0.0f,statusEffects, GetGameObject());
+
+            auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
+            projectileSprite.SetOriginToCenterOfTexture();
+            
+            auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+            projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+            projectileCollider.SetIgnoreTag(this->GetGameObject()->GetID());
+
+            auto& projectileHoming = projectile.AddComponent<HomingComponent>(m_pTarget, 6.0f, 0.1f);
+            auto& projectileTimedDestroyer = projectile.AddComponent<TimedDestroyerComponent>(10);
+
+            auto& projectileVelocityComponent = projectile.AddComponent<VelocityComponent>();
+            projectileVelocityComponent.SetVelocity(projectileDefaultVelocity);
+
+            glm::vec2 offset = perpendicularVector * (30.0f * i);
+            projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset);
+            projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+        }
+
+        // Strike again
+        if(m_attackChain > 0)
+        {
+            ChangeState(EnemyState::ATTACKING);
+        }
+        // Else, switch state
+        else
+        {
+            ChangeState(EnemyState::CHASING);
+        }
+        return;     
+    }
 }
 
 void HarpyController::HandlePetrifiedState(float delta)
@@ -339,22 +410,21 @@ void HarpyController::HandlePetrifiedState(float delta)
 
 void HarpyController::HandleStunnedState(float delta)
 {
-    AnimatedSprite2D* sprite = this->GetGameObject()->GetComponent<AnimatedSprite2D>();
     if(m_stunnedTimer >= m_stunnedTime)
     {
-        if(sprite != nullptr)
+        if
+        (m_last_state == EnemyState::IDLE)
         {
-            sprite->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+            SetEmote(EnemyEmote::EXCLAMATION);   
         }
-        m_stunnedTimer = 0.0f;
         ChangeState(EnemyState::CHASING);
+        return;
     }
-    
-    if(sprite != nullptr)
+    else
     {
-        sprite->SetTint(glm::vec3(1.0f, 0.0f, 0.0f));
+        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+        m_stunnedTimer += delta;
     }
-    m_stunnedTimer += delta;
 }
 
 void HarpyController::UpdateAnimationBasedOnDirection()
@@ -441,6 +511,12 @@ void HarpyController::HandleDeathState(float delta)
                     // wall
                     pItemVel->ApplyKnockback(glm::vec2(1.0f, 0.0f), 10.0f);
                 }
+                ColliderComponent* pItemCollider = pItem->GetComponent<ColliderComponent>();
+                if (pItemCollider)
+                {
+                    // Disable the collider after knockback
+                    pItemCollider->SetActive(false);
+                }
             }
 
             // Then we delete the harpy
@@ -448,6 +524,14 @@ void HarpyController::HandleDeathState(float delta)
         }
         m_lieDeadTimer += delta;
     }  
+}
+
+void HarpyController::EnterAttackState()
+{
+    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    if(m_attackChain <= 0){
+        m_attackChain = m_RNG.NextInt(1, 2);
+    }
 }
 
 void HarpyController::EnterChasingState()
@@ -470,9 +554,20 @@ void HarpyController::EnterStunnedState()
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
 }
 
+void HarpyController::EnterDeathState()
+{
+    SetEmote(EnemyEmote::NONE);
+}
+
 void HarpyController::ExitAttackState()
 {
+    if(m_pAnimComponent != nullptr)
+    {
+        m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
+    }
+    
     m_rangedTimer = m_rangedCooldown;
+    m_rangedWindupTimer = m_rangedWindupTime;
 }
 
 void HarpyController::ExitChasingState()
@@ -500,6 +595,7 @@ void HarpyController::ExitStunnedState()
 
 void HarpyController::SetEmote(EnemyEmote p_emote)
 {
+    // std::cout << "HarpyController - p_emote: " << p_emote << std::endl;
     m_fEmoteTimer = EMOTE_TIME;
     switch(p_emote)
     {
@@ -522,4 +618,34 @@ void HarpyController::SetEmote(EnemyEmote p_emote)
     }
 
     m_emote = p_emote;
+}
+
+void HarpyController::HandleInfighting(const InfightingEvent& event)
+{
+    if (event.m_pVictim == GetGameObject()) // This Harpy got hit
+    {
+            // Ignore if already attacking this enemy
+            if (m_pTarget == event.m_pAttacker) return;
+
+            // **Switch target to the attacker and start fighting back**
+            m_pTarget = event.m_pAttacker;
+            ChangeState(EnemyState::CHASING);
+
+            // wolf::Log("Harpy " + std::to_string(GetGameObject()->GetID()) + 
+            //                 " is now fighting " + std::to_string(m_pTarget->GetID()));
+    }
+}
+
+void HarpyController::RevertBackToPlayer()
+{
+    for (auto&& [entity, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
+    {
+        m_pTarget = playerController.GetGameObject();
+        // wolf::Warning("LIL BLUD CAN'T FIND A TARGET, SO HE'S SWITCHING BACK TO THE PLAYER");
+        return;
+    }
+
+    // If no player found, log a warning
+    // wolf::Warning("BLUD CAN'T FIND A TARGET");
+    m_pTarget = nullptr; // No valid target
 }
