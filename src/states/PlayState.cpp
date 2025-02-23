@@ -387,7 +387,6 @@ void PlayState::Update(float delta)
         controller.Update(delta);
     }
 
-    this->m_pPathfindingManager->UpdateEntities(delta);
 
     // Update all minitaur controllers
     // First pass: Update all minitaur controllers (without deletion)
@@ -650,6 +649,8 @@ void PlayState::Update(float delta)
     for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
         velocity.Update(delta);  // Update velocity with friction and other forces
     }
+    this->m_pPathfindingManager->UpdateEntities(delta);
+
 
     // Update collisions
     this->m_pColliderManager->Update(delta);
