@@ -137,7 +137,10 @@ void MinitaurController::Update(float delta)
     if (m_pHealth->GetHealth() <= 0 && m_state != EnemyState::DEATH)
     {
         // Switch to the DEATH state if the health is depleted
+        ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
+        collider->SetActive(false);
         ChangeState(EnemyState::DEATH);
+        
         return;
     }
 
@@ -305,7 +308,7 @@ void MinitaurController::MoveTowardsTarget(float delta)
     if (!m_pTarget || !m_pVelocity || !m_pTransform || !m_pPathfindingManager)
         return;
 
-    const auto& pathData = m_pPathfindingManager->GetPathData(GetGameObject());
+    auto& pathData = m_pPathfindingManager->GetPathData(GetGameObject());
 
     if (pathData.path.empty())
     {
@@ -313,9 +316,7 @@ void MinitaurController::MoveTowardsTarget(float delta)
         return;
     }
 
-    std::vector<glm::ivec2> path = pathData.path; // Local mutable copy
-
-    glm::ivec2 nextTile = path.front();
+    glm::ivec2 nextTile = pathData.path.front();
     glm::vec2 nextTileWorldPos = m_pPathfindingManager->GetLabyrinthManager()->GetWorldPosition(nextTile) + glm::vec2(48.0f, 48.0f);
     glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     glm::vec2 direction = nextTileWorldPos - currentPosition;
@@ -327,10 +328,11 @@ void MinitaurController::MoveTowardsTarget(float delta)
     }
     else
     {
-        // Instead of modifying the stored path, just proceed to the next tile locally
-        path.erase(path.begin());
+        // Advance to the next tile
+        pathData.path.erase(pathData.path.begin());
     }
 }
+
 
 
 
@@ -609,66 +611,66 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
     }
 }
 
-void MinitaurController::HandleDeathState(float delta)
-{
-    // Fall over
-    if(m_fallDeadTimer <= m_timeToFallDead)
+    void MinitaurController::HandleDeathState(float delta)
     {
-        if(m_fallDeadTimer == 0.0f)
+        // Fall over
+        if(m_fallDeadTimer <= m_timeToFallDead)
         {
-            if (m_pVelocity)
+            if(m_fallDeadTimer == 0.0f)
             {
-                m_pVelocity->SetVelocity(glm::vec2(0.0f));
-            }
+                if (m_pVelocity)
+                {
+                    m_pVelocity->SetVelocity(glm::vec2(0.0f));
+                }
 
-            ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
-            if(collider != nullptr)
-            {
-                collider->SetIgnoreTag(m_uiPlayerGOId);
-            }
-            
-            m_pAnimComponent->SetTint(glm::vec3(1,0,0));
-        }
-
-        float angle = (90.0f / m_timeToFallDead) * delta;
-        m_pTransform->RotateDegrees(angle);
-        
-        m_fallDeadTimer += delta;
-    }
-
-    // Lie dead
-    else
-    {
-        if(m_lieDeadTimer >= m_timeToLieDead)
-        {
-            // !-- Aurora added this --!
-            // Spawn some loot
-            std::vector<wolf::GameObject*> pItemDrops = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
-            
-            // Harpies can be inside of the walls so we need to push the loot out. To do that,
-            // we get the loot item's velocity component
-            for (auto& pItem : pItemDrops) {
-                VelocityComponent* pItemVel = pItem->GetComponent<VelocityComponent>();
-                if (pItemVel) {
-                    // And gently push it in a random direction, which signals a collision in the ColliderManager
-                    // that caluclates which direction the item should ACTUALLY be pushed in to get it out of the
-                    // wall
-                    pItemVel->ApplyKnockback(glm::vec2(1.0f, 0.0f), 10.0f);
+                ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
+                if(collider != nullptr)
+                {
+                    collider->SetIgnoreTag(m_uiPlayerGOId);
                 }
                 
-                ColliderComponent* pItemCollider = pItem->GetComponent<ColliderComponent>();
-                if (pItemCollider)
-                {
-                    // Disable the collider after knockback
-                    pItemCollider->SetActive(false);
-                }
+                m_pAnimComponent->SetTint(glm::vec3(1,0,0));
             }
-            GetGameObject()->Delete();
-        }
-        m_lieDeadTimer += delta;
 
-    }  
-}
+            float angle = (90.0f / m_timeToFallDead) * delta;
+            m_pTransform->RotateDegrees(angle);
+            
+            m_fallDeadTimer += delta;
+        }
+
+        // Lie dead
+        else
+        {
+            if(m_lieDeadTimer >= m_timeToLieDead)
+            {
+                // !-- Aurora added this --!
+                // Spawn some loot
+                std::vector<wolf::GameObject*> pItemDrops = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
+                
+                // Harpies can be inside of the walls so we need to push the loot out. To do that,
+                // we get the loot item's velocity component
+                for (auto& pItem : pItemDrops) {
+                    VelocityComponent* pItemVel = pItem->GetComponent<VelocityComponent>();
+                    if (pItemVel) {
+                        // And gently push it in a random direction, which signals a collision in the ColliderManager
+                        // that caluclates which direction the item should ACTUALLY be pushed in to get it out of the
+                        // wall
+                        pItemVel->ApplyKnockback(glm::vec2(1.0f, 0.0f), 10.0f);
+                    }
+                    
+                    ColliderComponent* pItemCollider = pItem->GetComponent<ColliderComponent>();
+                    if (pItemCollider)
+                    {
+                        // Disable the collider after knockback
+                        pItemCollider->SetActive(false);
+                    }
+                }
+                GetGameObject()->Delete();
+            }
+            m_lieDeadTimer += delta;
+
+        }  
+    }
 
 void MinitaurController::EnterAttackState()
 {

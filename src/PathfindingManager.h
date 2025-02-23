@@ -44,7 +44,7 @@ public:
         std::vector<glm::ivec2> path;
     };
     // Returns the path data for a registered entity
-    const PathfindingManager::EntityPathData& GetPathData(wolf::GameObject* entity) const;
+    PathfindingManager::EntityPathData& GetPathData(wolf::GameObject* entity);
     private:
 
 

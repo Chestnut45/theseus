@@ -122,7 +122,7 @@ void PathfindingManager::UpdateEntities(float delta)
     for (auto& [entity, data] : m_registeredEntities)
     {
         auto* minitaurController = entity->GetComponent<MinitaurController>();
-        if (!minitaurController || minitaurController->GetState() != MinitaurController::EnemyState::CHASING)
+        if (!minitaurController || minitaurController->GetState() != MinitaurController::EnemyState::CHASING ||  minitaurController->GetState() == MinitaurController::EnemyState::DEATH)
             continue;
 
         glm::ivec2 currentTile = glm::ivec2(entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
@@ -227,15 +227,10 @@ void PathfindingManager::UpdateEntities(float delta)
             glm::vec2 currentPosition = transform->GetGlobalPosition();
              glm::vec2 direction = nextTileWorldPos - currentPosition;
 
-            if (glm::length(direction) > TOLERANCE)
+            if (glm::length(direction) <= TOLERANCE)
             {
-                direction = glm::normalize(direction);
-                entity->GetComponent<VelocityComponent>()->SetVelocity(direction * 125.0f);
-            }
-            else
-            {
-                data.path.erase(data.path.begin());
-                data.currentTile = nextTile;
+                 data.path.erase(data.path.begin());
+                 data.currentTile = nextTile;
             }
         }
     }
@@ -290,12 +285,13 @@ std::vector<glm::ivec2> PathfindingManager::ReconstructPath(
     return path;
 }
 
-const PathfindingManager::EntityPathData& PathfindingManager::GetPathData(wolf::GameObject* entity) const
+PathfindingManager::EntityPathData& PathfindingManager::GetPathData(wolf::GameObject* entity)
 {
-    static const EntityPathData emptyData{}; // Ensures we don't return a reference to a temporary object
+    static EntityPathData emptyData{}; // Prevents returning a dangling reference
 
     auto it = m_registeredEntities.find(entity);
     return (it != m_registeredEntities.end()) ? it->second : emptyData;
 }
+
 
 
