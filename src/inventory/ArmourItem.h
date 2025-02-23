@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // File:            ArmourItem.h
 // Original Author: Aurora Ryder
-//
+// Modifications: Nguyễn Minh Nhật
 // A class representing the item version of a piece of armour
 //-----------------------------------------------------------------------------
 

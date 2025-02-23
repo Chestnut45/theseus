@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// File: TileFireManager.cpp
+// Original Author: Nguyễn Minh Nhật
+// Manages tile-based fire.
+//-----------------------------------------------------------------------------
 #include "TileFireManager.h"
 #include "GLShapesRenderer.h"
 

@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File: HarpyBuilder.h
+// Original Author:	???
+// Modifications: Nguyễn Minh Nhật
+// Constructs harpy enemies.
+//-----------------------------------------------------------------------------
 #include "HarpyBuilder.h"
 #include "HarpyController.h"
 #include "StatusComponent.h"

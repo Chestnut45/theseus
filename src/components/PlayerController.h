@@ -21,8 +21,9 @@
 #include <DamageEvent.h>
 
 //-----------------------------------------------------------------------------
-// File:            PlayerController.h
+// File: PlayerController.h
 // Original Author: Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
 // ver 2.0. Updated to remove deprecated hitbox and hurtbox components.
 //-----------------------------------------------------------------------------
 

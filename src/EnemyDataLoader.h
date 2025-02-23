@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File: EnemyDataLoader.h
+// Original Author:	???
+// Modifications : Nguyễn Minh Nhật
+// Loads data for enemies from .yaml files.
+//-----------------------------------------------------------------------------
 #pragma once
 #include <string>
 #include <glm/glm.hpp>

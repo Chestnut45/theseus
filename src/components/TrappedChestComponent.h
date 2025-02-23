@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // File: TrappedChestComponent.h
 // Original Author: Nguyễn Minh Nhật
-// Trap component for chests
+// Trap component for chests.
 //-----------------------------------------------------------------------------
 
 #include <wolf.h>

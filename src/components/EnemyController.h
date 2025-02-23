@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File: EnemyController.h
+// Original Author:	Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
+// A template for controllers of specific enemies.
+//-----------------------------------------------------------------------------
+
 #pragma once
 
 #include <wolf.h>

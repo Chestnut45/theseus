@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File: GorgonBuilder.h
+// Original Author:	???
+// Modifications: Nguyễn Minh Nhật
+// Constructs gorgon enemies.
+//-----------------------------------------------------------------------------
 #pragma once
 
 #include <wolf.h>

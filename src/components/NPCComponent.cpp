@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:            NPCComponent.cpp
+// Original Author: Aurora Ryder
+// Modifications: Nguyễn Minh Nhật
+// A class representing a Non-Player Character (NPC)
+//-----------------------------------------------------------------------------
+
 #include <NPCComponent.h>
 #include <ColliderComponent.h>
 #include <LabyrinthManager.h>
