@@ -1,4 +1,14 @@
 #include "NPCBuilder.h"
+
+//-----------------------------------------------------------------------------
+// File:            NPCBuilder.cpp
+// Original Author: Aurora Ryder
+//
+// This singleton lets users build NPCs by either passing in a specific .yaml
+// file that describes the character, or by using the scene's RNG to choose and
+// build a random NPC from the class' stored directory.
+//-----------------------------------------------------------------------------
+
 #include <unordered_map>
 
 NPCBuilder* NPCBuilder::m_pInstance = nullptr;
@@ -10,6 +20,9 @@ int NPCBuilder::m_iRNGSeed;
 const std::string NPCBuilder::NPC_DIRECTORY_PATH = "data/npc_directory.yaml";
 const ImVec2 NPCBuilder::NPC_INVENTORY_DRAW_POS = {800.0f, 200.0f};
 
+// Creates the NPCBuilder instance (provided one does not already exist)
+// > p_pScene: the Scene NPCs will be spawned into
+// > p_iRNGSeed: the random number generator seed that will be used to choose which NPC to create
 void NPCBuilder::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
     // If there is not already an existing instance
     assert(m_pInstance == nullptr);
@@ -21,6 +34,7 @@ void NPCBuilder::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
     m_iRNGSeed = p_iRNGSeed;
 }
 
+// Destroys the NPCBuilder instance (provided one exists)
 void NPCBuilder::DestroyInstance() {
     // If an instance exists
     assert(m_pInstance != nullptr);
@@ -34,6 +48,7 @@ void NPCBuilder::DestroyInstance() {
     m_pRNG = nullptr;
 }
 
+// Returns a pointer to the NPCBuilder instance (provided one exists)
 NPCBuilder* NPCBuilder::Instance() {
     // If an instance exists
     assert(m_pInstance);
@@ -42,12 +57,15 @@ NPCBuilder* NPCBuilder::Instance() {
     return m_pInstance;
 }
 
+// Sets the scene
+// > p_pScene: the Scene the NPCBuilder will spawn NPCs into
 void NPCBuilder::SetScene(wolf::Scene* p_pScene) {
     m_pScene = p_pScene;
 }
 
-// Use this method when you know which NPC you want to build and can provide
-// the corresponding .yaml file
+// Builds an NPC
+// (use this method when you know which NPC you want to build)
+// > p_strFilePath: path to the .yaml file that corresponds to the NPC you want to build
 wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
     wolf::GameObject* pConstructedNPC = &m_pScene->CreateObject2D();
     std::unordered_map<std::string, NPCDialogueEntry*> m_mDialogueMap;
@@ -178,6 +196,7 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
     return pConstructedNPC;
 }
 
+// Selects and builds a random NPC from the directory
 wolf::GameObject* NPCBuilder::BuildRandomNPC() {
     // Variable to hold the npc we create
     wolf::GameObject* pRandomNPC = nullptr;

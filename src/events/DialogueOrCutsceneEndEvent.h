@@ -1,6 +1,7 @@
 #pragma once
-
 #include <string>
+
+// Created by Aurora Ryder for use with NPCs and the Dialogue/Cutscene system
 
 // Event to carry the sequence and optionally the npc id of a dialogue or cutscene sequence that has just ended
 struct DialogueOrCutsceneEndEvent {

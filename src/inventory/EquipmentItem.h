@@ -11,6 +11,7 @@
 #include "StatusComponent.h"
 #include <format>
 
+// Slots that equipment items can be equipped into
 enum EquipmentSlot {
     WEAPON,
     HEAD,
@@ -87,6 +88,7 @@ class EquipmentItem : public ItemBase {
         // for all other uses such as comparison/iteration/etc. use GetEquipmentSlot() and the enum itself.
         const std::string& GetEquipmentSlotString() {return m_strSlot;};
 
+        // Constructs a string containing all of the item details that will be displayed in the on-hover GUI tooltip
         inline virtual std::string GetToolTipText() const {
             return m_strDesc + "\n\nSlot: " + m_strSlot;
         };
