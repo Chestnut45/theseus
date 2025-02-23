@@ -158,9 +158,7 @@ void Scene::Render(float delta)
     }
 
     // Queue all colliders for debug rendering
-    static bool renderDebugColliders = false;
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_BACKSLASH)) renderDebugColliders = !renderDebugColliders;
-    if (renderDebugColliders)
+    if (m_renderDebugColliders)
     {
         for (auto&&[_, collider] : Each<ColliderComponent>())
         {
