@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // File: GorgonBuilder.h
-// Original Author:	???
+// Original Author:	Youssef Ashraf
 // Modifications: Nguyễn Minh Nhật
 // Constructs gorgon enemies.
 //-----------------------------------------------------------------------------

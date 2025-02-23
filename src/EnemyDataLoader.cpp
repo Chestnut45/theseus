@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // File: EnemyDataLoader.cpp
-// Original Author:	???
+// Original Author:	Youssef Ashraf
 // Modifications : Nguyễn Minh Nhật
 // Loads data for enemies from .yaml files.
 //-----------------------------------------------------------------------------
