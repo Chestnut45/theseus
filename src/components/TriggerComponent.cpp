@@ -18,7 +18,7 @@ TriggerComponent::~TriggerComponent() {
 }
 
 void TriggerComponent::Update(float delta) {
-    if (!m_triggered && (CheckPlayerCollision(delta) || CheckEnemyCollision(delta))) {
+    if (m_active && !m_triggered && (CheckPlayerCollision(delta) || CheckEnemyCollision(delta))) {
         m_triggered = true;
 
         // Dispatch the TriggerEvent with trap type information
@@ -58,7 +58,7 @@ bool TriggerComponent::CheckPlayerCollision(float delta)
         }
         
         auto* playerCollider = playerController.GetGameObject()->GetComponent<ColliderComponent>();
-        if (playerCollider && m_colliderManager->IsColliding(*plateCollider, *playerCollider, delta)) {
+        if (playerCollider && playerCollider->IsActive() && m_colliderManager->IsColliding(*plateCollider, *playerCollider, delta)) {
             return true;
         }
     }

@@ -8,8 +8,11 @@
 #include "W_TileMap.h"
 #include "W_Transform2D.h"
 #include "AnimatedSprite2D.h"
+#include <W_Input.h>
 
 #include "../src/components/ColliderComponent.h"
+#include "GLShapesRenderer.h"
+
 
 namespace wolf
 {
@@ -95,12 +98,18 @@ void Scene::Update(float delta)
     }
 }
 
-void Scene::Render()
+void Scene::Render(float delta)
 {
     if (!m_pActiveCamera) return;
 
     // Bind the active camera
     m_pActiveCamera->Bind();
+
+    // Render all tilemaps with transform components
+    for (auto&&[_, tilemap, transform] : Each<TileMap, Transform2D>())
+    {
+        tilemap.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
+    }
 
     // Build map of sprites to render by layer
     std::map<int, std::vector<std::pair<Sprite2D*, Transform2D*>>> sortedSprites;
@@ -116,7 +125,7 @@ void Scene::Render()
     }
 
     // Render all sprites in order
-    for (auto iter = sortedSprites.rbegin(); iter != sortedSprites.rend(); ++iter)
+    for (auto iter = sortedSprites.begin(); iter != sortedSprites.end(); ++iter)
     {
         auto& batch = iter->second;
         for (auto& pair : batch)
@@ -139,7 +148,7 @@ void Scene::Render()
     }
 
     // Render all animated sprites in order
-    for (auto iter = sortedAnimatedSprites.rbegin(); iter != sortedAnimatedSprites.rend(); ++iter)
+    for (auto iter = sortedAnimatedSprites.begin(); iter != sortedAnimatedSprites.end(); ++iter)
     {
         auto& batch = iter->second;
         for (auto& pair : batch)
@@ -148,22 +157,19 @@ void Scene::Render()
         }
     }
 
-    // Render all tilemaps with transform components
-    for (auto&&[_, tilemap, transform] : Each<TileMap, Transform2D>())
-    {
-        tilemap.Draw(transform.GetGlobalPosition(), transform.GetGlobalRotation(), transform.GetGlobalScale());
-    }
-
     // Queue all colliders for debug rendering
-    for (auto&&[_, collider] : Each<ColliderComponent>())
+    if (m_renderDebugColliders)
     {
-        if (collider.IsActive()) collider.FillVertexArray();
+        for (auto&&[_, collider] : Each<ColliderComponent>())
+        {
+            if (collider.IsActive()) collider.FillVertexArray();
+        }
+        ColliderComponent::DebugDrawAndFlush();
     }
-
-    // Flush debug drawing (disable depth testing so it always renders on top)
-    glDisable(GL_DEPTH_TEST);
-    ColliderComponent::DebugDrawAndFlush();
-    glEnable(GL_DEPTH_TEST);
+    
+    // Render Shapes
+    GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
+    GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
 }
 
 void _SceneTests()

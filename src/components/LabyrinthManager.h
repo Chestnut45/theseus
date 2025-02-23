@@ -103,6 +103,10 @@ public:
     // Gets the chunk ID for the chunk containing a given world space position
     glm::ivec2 GetChunkID(const glm::vec2& worldPosition) const;
 
+    // Returns a bool indicating if the given chunk is active or not
+    // NOTE: Returns false if no chunk exists with the given ID
+    bool IsChunkActive(const glm::ivec2& chunkID) const;
+
     // Gets a pointer to the chunk object with the given ID
     // NOTE: Returns nullptr if no chunk exists with the given ID
     wolf::GameObject* GetChunk(const glm::ivec2& chunkID) const;
@@ -113,6 +117,10 @@ public:
     // Converts a world space position to tile coordinates
     // NOTE: Returns (-1, -1) if the position is not on a valid tile
     glm::ivec2 GetTilePosition(const glm::vec2& worldPosition) const;
+
+    // Converts a tile position to a world space position
+    // NOTE: Does not validate tile position
+    glm::vec2 GetWorldPosition(const glm::ivec2& tilePosition) const;
 
     // Gets the tile ID at the given tile position of the labyrinth
     // NOTE: Returns -1 if the tile is empty
@@ -136,12 +144,19 @@ public:
     // Gets the current seed used to generate the labyrinth
     inline int GetSeed() const { return m_rng.GetSeed(); };
 
+    //return a random valid spawn position within the room’s bounds
+    glm::ivec2 GetRandomRoomSpawnPosition(const RoomData& roomData);
+
+    wolf::GameObjectID GetTheDispensaryObject() {
+        return TheIdOfTheDispensaryObject;
+    }
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 16'383;
     static const inline int TILE_SIZE = 32;
-    static const inline int CHUNK_SIZE = 16;
+    static const inline int CHUNK_SIZE = 8;
     static const inline int SCALE = 3;
+    wolf::GameObjectID TheIdOfTheDispensaryObject;
 
 // Implementation
 private:
@@ -153,6 +168,13 @@ private:
     int m_width = 125;
     int m_height = 125;
 
+    // Hallway spawn parameters
+
+    // Ratio of spike traps to hallway floors
+    // NOTE: 0 = no spike traps, 1 = no floors
+    // NOTE: Doesn't apply to rooms
+    float m_spikeTrapFloorRatio = 0.0f;
+
     // Spawn area settings
     glm::ivec2 m_spawnPatchSize = glm::ivec2(25);
     glm::ivec2 m_spawnRoomSize = glm::ivec2(5);
@@ -160,6 +182,7 @@ private:
     // Flags
     bool m_randomizeSeed = false;
     bool m_isGenerated = false;
+    bool m_inBossfight = false;
 
     // Tile data
 
@@ -233,7 +256,7 @@ private:
         // Entity types
         enum class EntityType
         {
-            Minitaur,
+            Minitaur = 0,
             Harpy,
             Gorgon,
             CommonChest,
@@ -241,10 +264,22 @@ private:
             RareChest,
             EpicChest,
             LegendaryChest,
+            TrappedChestExplode,
+            TrappedChestGorgon,
+            TrappedChestHarpy,
+            TrappedChestMinitaur,
             DaedalusDispensary, // !-- Aurora added this --!
+            ThrowableObject,
             SpikeTrap,
+            DaedalusNPC,
+            AriadneNPC,
+            RandomNPC,
+            BoulderTrap,
+
+            // CONSTANT, LEAVE AT END
+            ENTITY_COUNT
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Daedalus Dispensary", "Spike Trap"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC", "Boulder Trap"};
 
         enum class SpawnPosType
         {
@@ -267,8 +302,9 @@ private:
         std::vector<EntitySpawnData> m_entitySpawns;
     };
 
-    // Map of string names to entity IDs
+    // Map of string names to entity IDs (and vice versa)
     static std::unordered_map<std::string, Room::EntityType> s_entityIDs;
+    static std::string s_entityNames[(int)Room::EntityType::ENTITY_COUNT];
 
     // List of all rooms to be generated in the labyrinth
     std::vector<Room> m_rooms;
@@ -310,6 +346,7 @@ private:
     {
         wolf::GameObject* m_pObject = nullptr;
         bool active = true;
+        std::vector<glm::ivec2> m_hallwaySpikeTraps;
     };
 
     // Map of chunk IDs to chunk game object pointers
@@ -323,6 +360,9 @@ private:
     glm::ivec2 m_prevChunk = glm::ivec2(0);
 
     // Helper methods
+
+    // Deactivates all chunks and stops updating the rest of the labyrinth
+    void StartBossfight();
 
     // Activates a chunk, recursively updating all child objects' flags.
     void ActivateChunk(const glm::ivec2& chunkID);

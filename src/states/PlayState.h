@@ -6,6 +6,7 @@
 // A class that's responsible for the Concrete Play State.
 //-----------------------------------------------------------------------------
 #pragma once
+#include "glm_hash.h"
 #include "GameState.h"
 #include <theseus.h> // Include the main game class
 #include <W_Sprite2D.h>
@@ -18,7 +19,6 @@
 #include "../inventory/ItemDropCreator.h"
 #include "../events/DialogueAndCutsceneEvent.h"
 #include "../ColliderManager.h"
-#include "../DialogueManager.h"
 #include "events/TriggerEvent.h"
 #include "events/GameOverEvent.h"
 #include <TrapComponent.h>
@@ -28,8 +28,11 @@
 #include <HarpyBuilder.h>
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
+#include <events/GameWinEvent.h>
+#include <W_Timer.h>
 
 #include <unordered_map>
+#include <unordered_set>
 
 
 class LabyrinthManager;
@@ -37,8 +40,8 @@ class LabyrinthManager;
 class PlayState : public GameState
 {
 public:
-    PlayState(GameStateManager* manager, Theseus* gameInstance, DialogueManager* dialogueManager)
-        : GameState(manager, gameInstance), m_pDialogueManager(dialogueManager) {}
+    PlayState(GameStateManager* manager, Theseus* gameInstance)
+        : GameState(manager, gameInstance) {}
 
 
     void Enter() override;
@@ -46,11 +49,12 @@ public:
     void Pause() override;
     void Resume() override;
     void Update(float delta) override;
-    void Render() override;
+    void Render(float delta) override;
     void BackgroundUpdate(float delta) override;
-    void BackgroundRender() override;
+    void BackgroundRender(float delta) override;
     void OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
+    void OnGameWinEvent(const GameWinEvent& event);
     std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}
 
 private:
@@ -58,14 +62,26 @@ private:
     // Game objects / components that will exist for the duration of the play state
     wolf::GameObject* m_pPlayerObject = nullptr;
     LabyrinthManager* m_pLabyrinthManager = nullptr;
-    DialogueManager* m_pDialogueManager = nullptr;
 
     // Manager for colliders
     ColliderManager* m_pColliderManager = nullptr;
 
     // Flags
+    bool m_debugHotkeys = false;
     bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;
+    bool m_noClip = false;
+
+    // Location to spawn player when bossfight starts
+    glm::vec2 m_bossfightPlayerPos;
+    wolf::GameObject* m_pBoss = nullptr;
+    wolf::GameObject* m_pBossWalls = nullptr;
+    std::vector<glm::ivec2> m_bossRoomDoorTiles;
+    glm::ivec2 m_bossRoomOrigin;
+    glm::ivec2 m_bossRoomSize;
+
+    // Timer for transitioning the camera zoom into the bossfight
+    wolf::Timer m_bossZoomTimer;
 
     // Private helper methods
     void ConvertPlayerTileToGold();
@@ -77,6 +93,9 @@ private:
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
     void CreateGorgonEnemy();
+    void CreateTrappedChest();
+    wolf::GameObject& CreateAriadneAndReturn(glm::vec2 playerPosition);
+
 
 
     void CreateThrowableObject();
@@ -90,6 +109,11 @@ private:
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);
 
+    void RenderMap();
+    bool IsWallTile(int tileID);
+
     std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
 
+    std::unordered_set<glm::ivec2> m_visitedChunks; // Track visited chunks
+    bool m_isMapExpanded = false;                  // Toggle for expanded map
 };

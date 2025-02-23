@@ -25,6 +25,7 @@
 
 #include <ChestInventoryComponent.h>
 #include <DispensaryInventoryComponent.h>
+#include <ThrowableObjectComponent.h>
 #include <ColliderComponent.h>
 #include <EnemyDataLoader.h>
 #include <MinitaurBuilder.h>
@@ -32,8 +33,15 @@
 #include <GorgonBuilder.h>
 #include <PlayerController.h>
 #include <TriggerComponent.h>
+#include <TrappedChestComponent.h>
+#include "../npcs/NPCBuilder.h"
+#include <HarpyController.h>
+#include <MinitaurController.h>
+#include <GorgonController.h>
+#include <NPCComponent.h>
 
 std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
+std::string LabyrinthManager::s_entityNames[(int)LabyrinthManager::Room::EntityType::ENTITY_COUNT];
 
 LabyrinthManager::LabyrinthManager()
 {
@@ -45,8 +53,24 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["rare_chest"] = Room::EntityType::RareChest;
     s_entityIDs["epic_chest"] = Room::EntityType::EpicChest;
     s_entityIDs["legendary_chest"] = Room::EntityType::LegendaryChest;
+    s_entityIDs["trapped_chest_explode"] = Room::EntityType::TrappedChestExplode;
+    s_entityIDs["trapped_chest_gorgon"] = Room::EntityType::TrappedChestGorgon;
+    s_entityIDs["trapped_chest_harpy"] = Room::EntityType::TrappedChestHarpy;
+    s_entityIDs["trapped_chest_minitaur"] = Room::EntityType::TrappedChestMinitaur;
     s_entityIDs["dispensary"] = Room::EntityType::DaedalusDispensary;
+    s_entityIDs["throwable_object"] = Room::EntityType::ThrowableObject;
     s_entityIDs["spike_trap"] = Room::EntityType::SpikeTrap;
+    s_entityIDs["ariadne_npc"] = Room::EntityType::AriadneNPC;
+    s_entityIDs["daedalus_npc"] = Room::EntityType::DaedalusNPC;
+    s_entityIDs["random_npc"] = Room::EntityType::RandomNPC;
+    s_entityIDs["boulder_trap"] = Room::EntityType::BoulderTrap;
+
+
+    // Auto generate ordered array of names
+    for (auto entry : s_entityIDs)
+    {
+        s_entityNames[(int)entry.second] = entry.first;
+    }
 }
 
 LabyrinthManager::~LabyrinthManager()
@@ -55,6 +79,9 @@ LabyrinthManager::~LabyrinthManager()
 
 void LabyrinthManager::Update(float delta)
 {
+    // Don't update chunks when in bossfight
+    if (m_inBossfight) return;
+
     auto* pObject = GetGameObject();
     auto* pPlayer = GetPlayer();
 
@@ -152,6 +179,37 @@ void LabyrinthManager::Update(float delta)
     m_prevChunk = chunkID;
 }
 
+void LabyrinthManager::StartBossfight()
+{
+    m_inBossfight = true;
+
+    // Temporary list of enemy game objects
+    std::vector<wolf::GameObject*> enemiesToDelete;
+
+    // Deactivate all chunks
+    for (const auto& chunk : m_chunkMap)
+    {
+        DeactivateChunk(chunk.first);
+
+        // Add all enemy game objects to delete list
+        for (auto* pObject : chunk.second.m_pObject->GetChildren())
+        {
+            if (pObject->HasAny<MinitaurController, HarpyController, GorgonController>())
+            {
+                enemiesToDelete.push_back(pObject);
+            }
+        }
+    }
+
+    // Destroy all enemies
+    for (auto pObject : enemiesToDelete)
+    {
+        pObject->Delete();
+    }
+
+    m_prevChunk = glm::ivec2(-999, -999);
+}
+
 void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
 {
     const auto& it = m_chunkMap.find(chunkID);
@@ -163,18 +221,26 @@ void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
 
     std::function<void(wolf::GameObject*)> Activate = [&](wolf::GameObject* pObject) -> void
     {
-        // Make tilemaps visible
-        auto* pTileMap = pObject->GetComponent<wolf::TileMap>();
-        if (pTileMap) pTileMap->SetVisibility(true);
-
-        // Make sprites visible
-        auto* pSprite = pObject->GetComponent<AnimatedSprite2D>();
-        if (pSprite) pSprite->SetVisibility(true);
-
         // Activate collider
         // TODO: Only do this for walls? Or Move enemies to different chunks...
         auto* pCollider = pObject->GetComponent<ColliderComponent>();
         if (pCollider) pCollider->SetActive(true);
+
+        // Activate triggers
+        auto* pTrigger = pObject->GetComponent<TriggerComponent>();
+        if (pTrigger) pTrigger->SetActive(true);
+
+        // Activate enemy controllers
+        auto* pController = pObject->GetComponent<HarpyController>();
+        if (pController) pController->SetActive(true);
+
+        // Activate NPC components
+        auto* pNPCComp = pObject->GetComponent<NPCComponent>();
+        if(pNPCComp) pNPCComp->SetActive(true);
+
+        // Activate velocities
+        auto* pVelocity = pObject->GetComponent<VelocityComponent>();
+        if (pVelocity) pVelocity->SetActive(true);
 
         // Recursively activate all child objects and compatible components
         for (auto* pChild : pObject->GetChildren())
@@ -199,18 +265,26 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
 
     std::function<void(wolf::GameObject*)> Deactivate = [&](wolf::GameObject* pObject) -> void
     {
-        // Make tilemaps invisible
-        auto* pTileMap = pObject->GetComponent<wolf::TileMap>();
-        if (pTileMap) pTileMap->SetVisibility(false);
-
-        // Make sprites invisible
-        auto* pSprite = pObject->GetComponent<AnimatedSprite2D>();
-        if (pSprite) pSprite->SetVisibility(false);
-
         // Deactivate collider
         // TODO: Only do this for walls? Or Move enemies to different chunks...
         auto* pCollider = pObject->GetComponent<ColliderComponent>();
         if (pCollider) pCollider->SetActive(false);
+
+        // Deactivate triggers
+        auto* pTrigger = pObject->GetComponent<TriggerComponent>();
+        if (pTrigger) pTrigger->SetActive(false);
+        
+        // Deactivate enemy controllers
+        auto* pController = pObject->GetComponent<HarpyController>();
+        if (pController) pController->SetActive(false);
+
+        // Deactivate NPC components
+        auto* pNPCComp = pObject->GetComponent<NPCComponent>();
+        if(pNPCComp) pNPCComp->SetActive(false);
+
+        // Deactivate velocities
+        auto* pVelocity = pObject->GetComponent<VelocityComponent>();
+        if (pVelocity) pVelocity->SetActive(false);
 
         // Recursively deactivate all child objects and compatible components
         for (auto* pChild : pObject->GetChildren())
@@ -259,8 +333,11 @@ void LabyrinthManager::GenerateLabyrinth()
     if (!pTransform) pTransform = &pObject->AddComponent<wolf::Transform2D>();
 
     // Reseed the rng before generating
-    if (m_randomizeSeed) m_rng.SetSeed(m_rng.NextInt(0, INT32_MAX));
-    else m_rng.Reseed();
+    if (m_randomizeSeed)
+    {
+        m_rng.SetSeed(m_rng.NextInt(0, INT32_MAX));
+    }
+    m_rng.Reseed();
 
     // Initialize global grid of logical tile data for entire labyrinth
     m_labyrinthGrid.Resize(m_width, m_height, LogicalTile::Unvisited);
@@ -409,6 +486,7 @@ void LabyrinthManager::ShowGUI()
     }
     ImGui::DragInt("Width", &m_width, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
     ImGui::DragInt("Height", &m_height, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
+    ImGui::DragFloat("Spike Trap Ratio", &m_spikeTrapFloorRatio, 0.001f, 0.0f, 1.0f);
 
     ImGui::SeparatorText("Rooms");
 
@@ -617,6 +695,7 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
         if (node["seed"]) m_rng.SetSeed(node["seed"].as<int>());
         m_width = node["width"] ? node["width"].as<int>() : m_width;
         m_height = node["height"] ? node["height"].as<int>() : m_height;
+        m_spikeTrapFloorRatio = node["spike_trap_ratio"] ? node["spike_trap_ratio"].as<float>() : m_spikeTrapFloorRatio;
 
         // Load room data
         YAML::Node rooms = node["rooms"];
@@ -679,10 +758,11 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
 
                 // Grab the entity node
                 YAML::Node entity = entities[e];
+
+                // Lookup entity ID by the string name from yaml
                 std::string eType = entity["type"] ? entity["type"].as<std::string>() : "";
-                
-                // Grab entity ID from map
-                data.m_type = s_entityIDs[eType];
+                data.m_type = s_entityIDs.contains(eType) ? s_entityIDs[eType] : data.m_type;
+
                 data.m_amount = entity["amount"] ? entity["amount"].as<int>() : data.m_amount;
 
                 // Parse placement
@@ -726,7 +806,9 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
     file << "\n";
 
     file << "height: " << std::to_string(m_height).c_str();
-    file << "\n\n";
+    file << "\n";
+
+    file << "spike_trap_ratio: " << std::to_string(m_spikeTrapFloorRatio).c_str() << "\n\n";
 
     file << "rooms: [\n";
 
@@ -808,39 +890,8 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
         {
             const auto& data = room.m_entitySpawns[e];
             file << "\t\t\t{type: ";
-            switch (data.m_type)
-            {
-                case Room::EntityType::Minitaur:
-                    file << "minitaur, amount: ";
-                    break;
-                case Room::EntityType::Harpy:
-                    file << "harpy, amount: ";
-                    break;
-                case Room::EntityType::Gorgon:
-                    file << "gorgon, amount: ";
-                    break;
-                case Room::EntityType::CommonChest:
-                    file << "common_chest, amount: ";
-                    break;
-                case Room::EntityType::UncommonChest:
-                    file << "uncommon_chest, amount: ";
-                    break;
-                case Room::EntityType::RareChest:
-                    file << "rare_chest, amount: ";
-                    break;
-                case Room::EntityType::EpicChest:
-                    file << "epic_chest, amount: ";
-                    break;
-                case Room::EntityType::LegendaryChest:
-                    file << "legendary_chest, amount: ";
-                    break;
-                case Room::EntityType::DaedalusDispensary:
-                    file << "dispensary, amount: ";
-                    break;
-                case Room::EntityType::SpikeTrap:
-                    file << "spike_trap, amount: ";
-                    break;
-            }
+            file << s_entityNames[(int)data.m_type];
+            file << ", amount: ";
             file << std::to_string(data.m_amount).c_str();
             file << ", placement: ";
             switch (data.m_spawnPosType)
@@ -905,6 +956,17 @@ wolf::GameObject* LabyrinthManager::GetChunk(const glm::ivec2& chunkID) const
     return it->second.m_pObject;
 }
 
+bool LabyrinthManager::IsChunkActive(const glm::ivec2& chunkID) const
+{
+    // Returns false if chunk cannot be found
+    const auto& it = m_chunkMap.find(chunkID);
+    if (it == m_chunkMap.end()) return false;
+
+    // Returns chunk active bool
+    auto& chunk = it->second;
+    return chunk.active;
+}
+
 void LabyrinthManager::DeleteChunk(const glm::ivec2& chunkID)
 {
     auto* pChunk = GetChunk(chunkID);
@@ -923,6 +985,11 @@ glm::ivec2 LabyrinthManager::GetTilePosition(const glm::vec2& worldPosition) con
     }
     
     return worldPosition / glm::vec2(SCALE * TILE_SIZE);
+}
+
+glm::vec2 LabyrinthManager::GetWorldPosition(const glm::ivec2& tilePosition) const
+{
+    return glm::vec2(SCALE * TILE_SIZE) * glm::vec2(tilePosition);
 }
 
 int LabyrinthManager::GetTile(int x, int y) const
@@ -1578,7 +1645,6 @@ void LabyrinthManager::GenerateChunks()
             // Add the chunk object to the map
             ChunkData cd;
             cd.m_pObject = &chunkObj;
-            m_chunkMap[chunkID] = cd;
 
             // Create the tilemap object
             auto& tilemapObj = scene.CreateObject2D();
@@ -1606,6 +1672,9 @@ void LabyrinthManager::GenerateChunks()
                     // Calculate world position
                     glm::ivec2 worldPos = {x + xoffset, y + yoffset};
 
+                    // Get the room for the given position
+                    auto room = GetRoom(worldPos);
+
                     // Don't bother trying to place tiles that don't exist
                     if (worldPos.x >= m_width || worldPos.y >= m_height) continue;
 
@@ -1621,6 +1690,7 @@ void LabyrinthManager::GenerateChunks()
                     unsigned char mask = 0;
                     switch (logicalTile)
                     {
+                        default:
                         case LogicalTile::Unvisited:
                             
                             // Do nothing
@@ -1648,6 +1718,13 @@ void LabyrinthManager::GenerateChunks()
 
                             // Lookup tile for configuration
                             tile = floorVarID[mask];
+
+                            // Add a spike trap to the tile if it is not a floor
+                            if (!room.has_value())
+                            {
+                                cd.m_hallwaySpikeTraps.push_back(worldPos);
+                            }
+
                             break;
                         
                         case LogicalTile::Grass:
@@ -1724,6 +1801,9 @@ void LabyrinthManager::GenerateChunks()
                     tilemap.SetTile(x, y, tile);
                 }
             }
+
+            // Assign the chunk data
+            m_chunkMap[chunkID] = cd;
         }
     }
 }
@@ -1743,6 +1823,41 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
     HarpyBuilder harpyBuilder(pObject->GetScene());
     GorgonBuilder gorgonBuilder(pObject->GetScene());
 
+    // Place all entities in hallways
+    for (const auto& entry : m_chunkMap)
+    {
+        const auto& chunkData = entry.second;
+        for (const auto& tilePos : chunkData.m_hallwaySpikeTraps)
+        {
+            if (m_rng.NextFloat(0.0f, 1.0f) > m_spikeTrapFloorRatio) continue;
+
+            // Create the trap object
+            auto& trap = pObject->GetScene().CreateObject2D();
+
+            // Add sprite
+            auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
+            sprite.SetOriginToCenterOfTexture();
+            sprite.SetLayer(0);
+
+            // Set position
+            auto& transform = *trap.GetComponent<wolf::Transform2D>();
+            glm::vec2 pos = (glm::vec2(0.5f) + glm::vec2(tilePos)) * (float)TILE_SIZE * (float)SCALE;
+            transform.SetPosition(pos);
+            transform.SetScale(glm::vec2(SCALE));
+
+            // Add a collider for interaction
+            auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+            collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
+
+            // Add the TriggerComponent
+            trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);
+
+            // Add the object to the correct chunk
+            GetChunk(GetChunkID(pos))->AddChild(trap);
+        }
+    }
+
+    // Place all entities in generated rooms
     for (const auto& room : placedRooms)
     {
         // Create array of empty tiles
@@ -1809,7 +1924,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     case Room::EntityType::Minitaur:
                     {
                         // Build Minitaur at the given position
-                        wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, pos, m_pColliderManager);
+                        wolf::GameObject& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, pos);
 
                         // Scale the minitaur
                         minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
@@ -1835,7 +1950,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     case Room::EntityType::Harpy:
                     {
                         // Build Harpy at the given position
-                        wolf::GameObject& harpy = harpyBuilder.BuildHarpy(harpyData, pos, m_pColliderManager);
+                        wolf::GameObject& harpy = harpyBuilder.BuildHarpy(harpyData, pos);
 
                         // Scale the harpy
                         harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
@@ -1861,7 +1976,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     case Room::EntityType::Gorgon:
                     {
                         // Build Gorgon at the given position
-                        wolf::GameObject& gorgon = gorgonBuilder.BuildGorgon(gorgonData, pos, m_pColliderManager);
+                        wolf::GameObject& gorgon = gorgonBuilder.BuildGorgon(gorgonData, pos);
 
                         // Scale the gorgon
                         gorgon.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
@@ -1943,6 +2058,122 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         GetChunk(GetChunkID(pos))->AddChild(chest);
                         break;
                     }
+                    
+                    //-------Added By Nhat-------//
+                    case Room::EntityType::TrappedChestExplode:
+                    {
+                        // Create the chest object
+                        auto& chest = pObject->GetScene().CreateObject2D();
+
+                        // Scale the chest
+                        auto& transform = *chest.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add the sprite
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        sprite.SetAnimation("LegendaryClosed");
+                        sprite.SetOriginToCenterOfFrame();
+                        
+                        // Add collider
+                        auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+                        collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
+
+                        // Add trap
+                        auto& tcComp = chest.AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::EXPLODE);
+                        tcComp.Init();
+
+                        // Add chest as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        break;
+                    }
+
+                    //-------Added By Nhat-------//
+                    case Room::EntityType::TrappedChestGorgon:
+                    {
+                        // Create the chest object
+                        auto& chest = pObject->GetScene().CreateObject2D();
+
+                        // Scale the chest
+                        auto& transform = *chest.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add the sprite
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        sprite.SetAnimation("RareClosed");
+                        sprite.SetOriginToCenterOfFrame();
+                        
+                        // Add collider
+                        auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+                        collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
+
+                        // Add trap
+                        auto& tcComp = chest.AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::TRANSFORM_GORGON);
+                        tcComp.Init();
+
+                        // Add chest as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        break;
+                    }
+
+                    //-------Added By Nhat-------//
+                    case Room::EntityType::TrappedChestHarpy:
+                    {
+                        // Create the chest object
+                        auto& chest = pObject->GetScene().CreateObject2D();
+
+                        // Scale the chest
+                        auto& transform = *chest.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add the sprite
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        sprite.SetAnimation("EpicClosed");
+                        sprite.SetOriginToCenterOfFrame();
+                        
+                        // Add collider
+                        auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+                        collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
+
+                        // Add trap
+                        auto& tcComp = chest.AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::TRANSFORM_HARPY);
+                        tcComp.Init();
+
+                        // Add chest as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        break;
+                    }
+
+                    //-------Added By Nhat-------//
+                    case Room::EntityType::TrappedChestMinitaur:
+                    {
+                        // Create the chest object
+                        auto& chest = pObject->GetScene().CreateObject2D();
+
+                        // Scale the chest
+                        auto& transform = *chest.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add the sprite
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        sprite.SetAnimation("UncommonClosed");
+                        sprite.SetOriginToCenterOfFrame();
+                        
+                        // Add collider
+                        auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+                        collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16, 16));
+
+                        // Add trap
+                        auto& tcComp = chest.AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::TRANSFORM_MINITAUR);
+                        tcComp.Init();
+
+                        // Add chest as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        break;
+                    }
 
                     // !-- Aurora added this --!
                     case Room::EntityType::DaedalusDispensary:
@@ -1975,6 +2206,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         
                         // Set up the icon's animated sprite
                         auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/item_icons_anim_init.yaml");
+                        iconSprite.SetLayer(9);
                         
                         // Add the icon as a child object of the dispensary
                         dispensary.AddChild(icon);
@@ -2006,10 +2238,147 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a collider for interaction
                         auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-                        collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+                        collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
 
                         // Add the TriggerComponent
                         trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);
+
+                        // Add the object to the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(trap);
+                        break;
+                    }
+
+                    case Room::EntityType::DaedalusNPC:
+                    case Room::EntityType::AriadneNPC:
+                    {
+                        // Figure out which yaml file we should use based on which NPC we're building
+                        std::string strNPCYamlFile;
+                        if (entity.m_type == Room::EntityType::DaedalusNPC) {
+                            strNPCYamlFile = "data/daedalus_init.yaml";
+                        }
+                        else if (entity.m_type == Room::EntityType::AriadneNPC) {
+                            strNPCYamlFile = "data/ariadne_init.yaml";
+                        }
+
+                        // Create The NPC using the NPCBuilder
+                        wolf::GameObject& pNPC = *NPCBuilder::Instance()->BuildNPC(strNPCYamlFile);
+
+                        // Set the NPC's position and scale
+                        auto& transform = *pNPC.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add them to the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(pNPC);
+                        break;
+                    }
+
+                    case Room::EntityType::RandomNPC:
+                    {
+                        // Create The NPC using the NPCBuilder
+                        wolf::GameObject& pNPC = *NPCBuilder::Instance()->BuildRandomNPC();
+
+                        // Set the NPC's position and scale
+                        auto& transform = *pNPC.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add them to the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(pNPC);
+                        break;
+                    }
+
+                    case Room::EntityType::ThrowableObject:
+                    {
+                        // Create the throwable object
+                        auto& throwableGO = pObject->GetScene().CreateObject2D();
+
+                        // Place and scale the throwable object
+                        auto& transform = *throwableGO.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Set up the animated sprite
+                        auto& animSprite = throwableGO.AddComponent<AnimatedSprite2D>("data/throwable_anim_init.yaml");
+                        switch(m_rng.NextInt(1, 9)){
+                            case 1:
+                            {
+                                animSprite.SetAnimation("RoundPot");
+                                break;
+                            }
+                            case 2:
+                            {
+                                animSprite.SetAnimation("ThinPot");
+                                break;
+                            }
+                            case 3:
+                            {
+                                animSprite.SetAnimation("DarkPot");
+                                break;
+                            }
+                            case 4:
+                            {
+                                animSprite.SetAnimation("Skull");
+                                break;
+                            }
+                            case 5:
+                            {
+                                animSprite.SetAnimation("Bowl");
+                                break;
+                            }
+                            case 6:
+                            {
+                                animSprite.SetAnimation("Bottle");
+                                break;
+                            }
+                            case 7:
+                            {
+                                animSprite.SetAnimation("Arm");
+                                break;
+                            }
+                            case 8:
+                            {
+                                animSprite.SetAnimation("Rock");
+                                break;
+                            }
+                            case 9:
+                            {
+                                animSprite.SetAnimation("BrokenSpear");
+                                break;
+                            }
+                        }
+
+                        auto& colliderComp = throwableGO.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+                        colliderComp.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
+
+                        // Add the throwable component
+                        auto& throwableComp = throwableGO.AddComponent<ThrowableObjectComponent>(20.0f, m_pColliderManager);
+
+                        // Add throwable as a child object of the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(throwableGO);
+                        break;
+                    }
+                    case Room::EntityType::BoulderTrap:
+                    {
+                        // Create the trap object
+                        auto& trap = pObject->GetScene().CreateObject2D();
+
+                        // Add sprite
+                        auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
+                        sprite.SetOriginToCenterOfTexture();
+                        sprite.SetLayer(0);
+
+                        // Set position
+                        auto& transform = *trap.GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
+                        // Add a collider for interaction
+                        auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
+                        collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
+
+                        // Add the TriggerComponent
+                        trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::BOULDER_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);
 
                         // Add the object to the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(trap);
@@ -2094,12 +2463,14 @@ void LabyrinthManager::GenerateEntrance()
     // Add the collider
     auto& dispensaryCollider = dispensary.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
     dispensaryCollider.AddColliderBox(glm::vec2(22.0f, 29.0f), glm::vec2(-11.0f, 16.0f));
+    TheIdOfTheDispensaryObject = dispensary.GetID();
 
     // Create the icon
     auto& icon = pObject->GetScene().CreateObject2D();
     
     // Set up the icon's animated sprite
     auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/item_icons_anim_init.yaml");
+    iconSprite.SetLayer(9);
     
     // Add the icon as a child object of the dispensary
     dispensary.AddChild(icon);
@@ -2108,4 +2479,20 @@ void LabyrinthManager::GenerateEntrance()
     auto& iconTransform = *icon.GetComponent<wolf::Transform2D>();
     iconTransform.SetPosition(glm::vec2(0.0f, 25.0f));
     iconTransform.SetScale(glm::vec2(0.5f, 0.5f));
+}
+
+glm::ivec2 LabyrinthManager::GetRandomRoomSpawnPosition(const RoomData& roomData)
+{
+    // Ensure the room has a valid size
+    if (roomData.m_bounds.m_size.x <= 0 || roomData.m_bounds.m_size.y <= 0)
+    {
+        wolf::Warning("GetRandomSpawnPosition called on an invalid room size.");
+        return glm::ivec2(-1, -1);
+    }
+
+    // Generate a random position within the room's bounds
+    int x = m_rng.NextInt(roomData.m_bounds.m_origin.x, roomData.m_bounds.m_origin.x + roomData.m_bounds.m_size.x - 1);
+    int y = m_rng.NextInt(roomData.m_bounds.m_origin.y, roomData.m_bounds.m_origin.y + roomData.m_bounds.m_size.y - 1);
+
+    return glm::ivec2(x, y);
 }

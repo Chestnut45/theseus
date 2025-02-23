@@ -11,12 +11,16 @@
 #include "GorgonController.h"
 #include "HarpyController.h"
 #include "MinitaurController.h"
+#include "NPCComponent.h"
+#include "InfightingEvent.h"
 
-AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects)
+
+AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects, wolf::GameObject* owner)
 {
     this->m_fDamage = p_damage;
     this->m_pColliderManager = p_collider_manager;
     this->m_knockbackMagnitude = knockbackMagnitude;
+    this->m_pOwner = owner;
 
     // Set default lifespans to 0
     for(int i = 0; i < StatusComponent::StatusEffectType::NONE; i++)
@@ -65,10 +69,21 @@ void AttackDamageComponent::Update(float p_dt)
                 // If colliders colliding
                 if (this->m_pColliderManager->IsColliding(*thisCollider, thatCollider, p_dt))
                 {
+                    wolf::GameObject* thatObject = thatHealth.GetGameObject();
+                    // Get the owner of the projectile
+                    if (m_pOwner)
+                    {
+                        if (m_pOwner->HasAny<GorgonController, HarpyController>() &&
+                            thatObject->HasAny<GorgonController, HarpyController, MinitaurController>())
+                        {
+                            // wolf::Log("Infighting triggered: " + std::to_string(m_pOwner->GetID()) + 
+                            //           " hit " + std::to_string(thatObject->GetID()));
+                            wolf::EventManager::TriggerEvent(InfightingEvent(m_pOwner, thatObject));
+                        }
+                    }
                     // Deal damage
                     thatHealth.Damage(m_fDamage);
                     
-                    wolf::GameObject* thatObject = thatHealth.GetGameObject();
 
                     // Apply status effects to the target
                     StatusComponent* thatStatus = thatObject->GetComponent<StatusComponent>();
@@ -109,6 +124,38 @@ void AttackDamageComponent::Update(float p_dt)
                     // If another destroyer exists, this one should take precedence since it's for 0 frames
                     thisObject->DeleteComponent<TimedDestroyerComponent>();
                     thisObject->AddComponent<TimedDestroyerComponent>(0, true);
+
+                    // Stun target if it has any of the following controllers
+                    if(thatObject->HasAny<GorgonController, HarpyController, MinitaurController, NPCComponent>())
+                    {
+                        // Stun gorgon
+                        GorgonController* gorgonController = thatObject->GetComponent<GorgonController>();
+                        if(gorgonController != nullptr)
+                        {
+                            gorgonController->ChangeState(EnemyController::EnemyState::STUNNED);
+                        }
+
+                        // Stun Harpy
+                        HarpyController* harpyController = thatObject->GetComponent<HarpyController>();
+                        if(harpyController != nullptr)
+                        {
+                            harpyController->ChangeState(EnemyController::EnemyState::STUNNED);
+                        }
+
+                        // Stun Minitaur
+                        MinitaurController* minitaurController = thatObject->GetComponent<MinitaurController>();
+                        if(minitaurController != nullptr)
+                        {
+                            minitaurController->ChangeState(EnemyController::EnemyState::STUNNED);
+                        }
+
+                        // Stun NPC
+                        NPCComponent* npcComp = thatObject->GetComponent<NPCComponent>();
+                        if(npcComp != nullptr)
+                        {
+                            npcComp->StunNPC();
+                        }
+                    }
                 }
             }
         }

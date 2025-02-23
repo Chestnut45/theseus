@@ -29,6 +29,9 @@ public:
     void SetPlayerID(wolf::GameObjectID p_uiGOId);
     wolf::GameObjectID const GetPlayerID();
 
+    void SetActive(bool active) { m_active = active; }
+    bool IsActive() const { return m_active; }
+
 protected:
     enum EnemyEmote
     {
@@ -46,10 +49,15 @@ protected:
     ColliderComponent* m_pCollider = nullptr;
 
     EnemyState m_state = EnemyState::IDLE;
+    EnemyState m_last_state = EnemyState::IDLE;
+
     ColliderManager* m_pColliderManager = nullptr;
     wolf::GameObject* m_pTarget = nullptr;  // Target (usually the player)
 
     float m_fCountdownToDeath = 2.0f;
 
     wolf::GameObjectID m_uiPlayerGOId;
+
+    bool m_active = true;
+    glm::ivec2 m_chunkID;
 };

@@ -29,6 +29,14 @@ public:
     StatusComponent();
     virtual ~StatusComponent();
 
+    // Delete copy constructor/assignment
+    StatusComponent(const StatusComponent&) = delete;
+    StatusComponent& operator=(const StatusComponent&) = delete;
+
+    // Delete move constructor/assignment
+    StatusComponent(StatusComponent&& other) = delete;
+    StatusComponent& operator=(StatusComponent&& other) = delete;
+
     void AddStatusEffect(StatusEffectType p_se_type, float p_lifespan);
     void SetStatusEffectResistance(StatusEffectType p_se_type, float p_resistance_value);
     bool IsStatusEffectActive(StatusEffectType p_se_type) const;
@@ -44,8 +52,11 @@ private:
 
         bool m_isActive = false;
         float m_fLifespan = 1.0f;
+        static const inline float SE_APPLICATION_INTERVALS [StatusEffectType::NONE] = {0.5f, 0.5f, 0.0f, 0.5f}; // Delay interval between instances of status effect application for each status effect
+
+        float m_fSEApplicationTimer = 0.0f;
         StatusEffectType m_StatusEffectType;
-        wolf::Timer m_timer;
+        wolf::Timer m_timer; // Lifespan timer
         StatusComponent* m_OwnerComponent = nullptr;
     };
 

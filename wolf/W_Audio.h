@@ -32,10 +32,13 @@ public:
     // 
     // NOTE: Multiple instances of the same sample can
     // be played simultaneously with different arguments.
-    static void Play(const std::string& filepath, bool loop = false, float volume = 1.0f, float pan = 0.0f);
+    static void Play(const std::string& filepath, float volume = 1.0f, float pitchOffset = 0.0f, float pan = 0.0f, bool loop = false, float loopPoint = 0.0f);
 
     // Stops all instances of an audio sample that are currently playing
     static void Stop(const std::string& filepath);
+
+    // Stops ALL audio instantly
+    static void Stop();
 
     // Loads an audio sample from the filepath specified.
     // Accepts .mp3, .WAV, .ogg, or .FLAC files.

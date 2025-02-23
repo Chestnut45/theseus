@@ -11,14 +11,15 @@
 class DialogueAndCutsceneState : public GameState {
 public:
     DialogueAndCutsceneState(GameStateManager* manager, Theseus* gameInstance, const std::string& yamlFilePath);
+    DialogueAndCutsceneState(GameStateManager* manager, Theseus* gameInstance, const std::string& yamlFilePath, int npcID);
     void Enter() override;
     void Exit() override;
     void Pause() override;
     void Resume() override;
     void Update(float delta) override;
-    void Render() override;
+    void Render(float delta) override;
     void BackgroundUpdate(float delta) override {}
-    void BackgroundRender() override {}
+    void BackgroundRender(float delta) override {}
     void StartSequence(const std::string& sequenceID); // Start a sequence (dialogues and cutscenes)
     // New function to handle the lifecycle of sequence loading
     void LoadSequence(const std::string& sequenceID);
@@ -26,7 +27,7 @@ public:
 private:
     // Unified logic for sequences
     void AdvanceSequence(float delta); // Handles both dialogue and cutscene progression
-    void RenderSequence();            // Handles rendering for both dialogue and cutscene
+    void RenderSequence(float delta);            // Handles rendering for both dialogue and cutscene
 
     // YAML Parsing
     void LoadFromYAML(const std::string& yamlFilePath);
@@ -60,16 +61,20 @@ private:
     };
 
     struct DialogueAndCutsceneItem {
-        std::string sequenceID; // Identifier for the sequence
-        std::string type; // "dialogue" or "cutscene"
+        std::string sequenceID = ""; // Identifier for the sequence
+        std::string type = ""; // "dialogue", "cutscene", "combined", or "fade"
         DialogueLine dialogue; // For dialogue items
         std::vector<CameraKeyframe> cutscene; // For cutscene items
         std::vector<CharacterData> characters; // Associated characters
+        std::string fadeType = ""; // "to" or "from" for fade
+        float fadeDuration = 0.0f; // Duration of the fade
     };
 
+
     // Sequence management
-    std::vector<DialogueAndCutsceneItem> m_dialogueAndCutsceneSequence; // Unified sequence list
-    size_t m_currentSequenceIndex = 0; // Current sequence item index
+    std::unordered_map<std::string, std::vector<DialogueAndCutsceneItem>> m_sequences; // Map of all sequences by ID
+    std::vector<DialogueAndCutsceneItem>* m_currentSequence = nullptr; // Pointer to the current sequence
+    size_t m_currentSequenceIndex = 0; // Current index within the sequence
 
     // Dialogue state variables
     bool m_isDialogueActive = false;
@@ -91,7 +96,15 @@ private:
     bool m_isYAMLLoaded = false;
     std::unordered_map<std::string, wolf::Texture*> m_characterPortraits; // Map for character portraits
     std::string m_currentCharacterName;
+    int m_triggerNPCID = -1;
 
     float m_lmbCooldown = 0.0f; // Cooldown timer for LMB input
     const float LMB_DELAY = 0.75f; // Delay duration in seconds
+
+    // Fade state variables
+    float m_fadeAlpha = 0.0f;         // Opacity of the fade (0.0f = transparent, 1.0f = opaque)
+    float m_fadeTimer = 0.0f;         // Timer for fade progression
+    float m_fadeDuration = 0.0f;      // Duration of the fade
+    bool m_fadingIn = false;          // Indicates whether the current fade is a fade-in or fade-out
+
 };

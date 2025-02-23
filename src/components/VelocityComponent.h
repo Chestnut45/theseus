@@ -31,7 +31,15 @@ public:
 
     void Update(float deltaTime); // To update velocity over time
 
+    void SetActive(bool active) { m_active = active; }
+    bool IsActive() const {return m_active; }
+
+    void SetKnockbackEnabled(bool value) { m_knockbackEnabled = value; }
+    bool IsKnockbackEnabled() const { return m_knockbackEnabled; }
+
 private:
+    bool m_active = true;
+    bool m_knockbackEnabled = true;
     glm::vec2 m_velocity = glm::vec2(0.0f, 0.0f);  // Store velocity
     float m_friction = 10.0f; // Friction coefficient to slow down velocity
     glm::vec2 m_knockbackStartVelocity = glm::vec2(0.0f, 0.0f); // Initial velocity when knockback starts

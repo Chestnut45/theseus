@@ -18,6 +18,8 @@
 // !-- Death Screen Handling --!
 #include "../events/GameOverEvent.h"
 
+#include <DamageEvent.h>
+
 //-----------------------------------------------------------------------------
 // File:            PlayerController.h
 // Original Author: Youssef Ashraf
@@ -70,7 +72,7 @@ public:
 
     void LateInitialize();
     void Update(float delta);
-    void Render();
+    void Render(float delta);
     
     void SetAnimationComponent(AnimatedSprite2D* animComponent);
 
@@ -82,6 +84,9 @@ public:
     ColliderManager* GetColliderManager() const;
     //get player action
     PlayerAction GetPlayerAction() const;
+
+    // Gets the player's currently held weapon item, or nullptr if empty
+    WeaponItem* GetHeldWeapon() const { return m_pCurrentWeapon; }
 
     //set player action
     void SetAction(PlayerAction action);
@@ -107,12 +112,25 @@ private:
     void HandlePetrified(float delta);  // Method to handle being petrified
     void HandleDeath(float delta);  // New method to handle the existential fear of death
 
+    void HandleBowAttack(float delta);
+    void HandleSpearAttack(float delta);
+    void HandleSwordAttack(float delta);
+    void HandleAttackAnimation();
+    void HandleBowAttackAnimation();
+    void HandleBowRangeIndicator(float delta);
+    void CalculateAttackDirection();
+    void RenderBowPowerBar();
+
+    glm::vec2 ClampDirection(const glm::vec2& direction) const;
 
     // !-- Aurora added this --!
     void HandleWeaponEquippedEvent(const WeaponEquippedEvent& p_event);
     void HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event);
     void HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event);
     void HandleArmourUnequippedEvent(const ArmourUnequippedEvent& p_event);
+
+    void OnDamageEvent(const DamageEvent& event);
+
     // Manage and transition different player states
     void StartAttack();
     void StartPetrified();
@@ -130,7 +148,6 @@ private:
     void DropObject();
 
     // Utility functions
-    void ApplyDamageToEnemy(); // Applies damage to enemies
     void RegenerateStamina(float delta); // Regenerates stamina over time
     void CheckHealth();
     void RenderThrowPowerBar(); // rendering for the power bar
@@ -144,6 +161,7 @@ private:
     std::string GetWalkAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
     std::string GetIdleAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
     PlayerDirection GetDirectionFromVector(const glm::vec2& direction) const;
+    glm::vec2 GetVectorFromDirection(PlayerDirection direction) const;
 
     // Input tracking
     // Data members for components and state management
@@ -151,6 +169,7 @@ private:
     VelocityComponent* m_pVelocity = nullptr;
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     ThrowableObjectComponent* m_pHeldObject = nullptr;
+    ColliderComponent* m_pCollider = nullptr;
 
     // Movement and animation state
     PlayerAction m_action = PlayerAction::NONE;
@@ -167,6 +186,7 @@ private:
     float m_walkSoundInterval = 0.333333333f;
 
     // DEBUG: Godmode flags
+    bool m_debugHotkeys = false;
     bool m_godmode = false;
     bool m_superSpeed = false;
 
@@ -195,6 +215,22 @@ private:
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
 
+    // Bow attack members
+    float m_bowChargeScale = 0.0f;          // Current charge of the boe
+    float m_bowMaxChargeScale = 1.0f;       // Limit of the power of the charge
+    float m_bowChargeRate = 1.0f;           // Multiplier of delta for charge scale
+    float m_arrowRange = 0.0f;              // Current range of the arrow given the current charge
+    float m_arrowMaxRange = 600.0f;         // Max range
+    bool m_bIsChargingOver = false;        // Prevents double-charging by clicking again after releasing mouse
+    int m_currentBowAnim = 0;
+    glm::vec4 m_bowRangeIndicatorColour = glm::vec4(0.0f, 1.0f, 0.4f, 1.0f);
+    const ImVec2 BOW_POWER_BAR_SIZE = ImVec2(100.0f, 15.0f);
+
+    // Invulnerability after taking damage
+    float m_prevHealthFraction = 1.0f;
+    float m_invulnSeconds = 1.0f;
+    wolf::Timer m_invulnTimer;
+
     //picking up management
     bool m_isHoldingObject = false;
     float m_chargeTime = 0.0f;  // New variable to store charge time for throws
@@ -202,6 +238,7 @@ private:
     float m_throwPower = 0.0f;       // Power for the throw
     const float m_maxThrowPower = 100.0f; // Max limit for the throw power
     const float m_powerChargeRate = 25.0f; // Rate at which power increases
+    const ImVec2 THROW_POWER_BAR_SIZE = ImVec2(100.0f, 15.0f);
 
     // Animation and state tracking flags
     std::string m_currentAnimation;
@@ -209,6 +246,7 @@ private:
     PlayerDirection m_previousDirection = PlayerDirection::NONE;
 
     bool m_inventoryOpen = false;
+    bool m_inventoryHovered = false;
 
     ColliderManager* m_pColliderManager = nullptr;
 
@@ -234,5 +272,7 @@ private:
     float m_runtimeOpacity = 0.0f;
     bool m_runtimeFadeComplete = false;
     float m_optionsOpacity = 0.0f;
+
+    friend class PlayState;
 };
 

@@ -26,7 +26,7 @@ namespace wolf
 
         virtual void Run();
         virtual void Update(float delta) = 0;
-        virtual void Render() = 0;
+        virtual void Render(float delta) = 0;
 
         // Window functions
         void SetFullscreen(bool p_fullscreen);

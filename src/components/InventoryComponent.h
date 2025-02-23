@@ -16,6 +16,8 @@
 #include "inventory/ConsumableItem.h"
 #include "inventory/EquipmentItem.h"
 
+#include "events/InventoryEvents.h"
+
 enum InventoryType {
     BASIC_INVENTORY,
     CHEST_INVENTORY,
@@ -53,9 +55,9 @@ class InventoryComponent : public wolf::BaseComponent {
         ItemBase* GetItem(ItemID p_enItemID);
         ItemBase* GetItem(int p_iItemIndex);
 
-        void Open();
-        void Close();
-        void ToggleOpen();
+        virtual void Open();
+        virtual void Close();
+        virtual void ToggleOpen();
 
         bool IsOpen() const {return m_bIsOpen;};
         bool IsEmpty() const {return m_iSlotsInUse == 0;};
@@ -83,6 +85,8 @@ class InventoryComponent : public wolf::BaseComponent {
         ImVec2 GetDrawPosition() const {return m_v2DrawPos;};
 
     protected:
+        wolf::Texture* InitTexture(const std::string& p_strTexturePath, std::vector<ImGuiUVSet*>& p_vv2TextureCoords);
+
         static const float TOOLTIP_WRAP_POS;
 
         static int m_iNextIdNum;
@@ -101,12 +105,17 @@ class InventoryComponent : public wolf::BaseComponent {
 
         std::vector<std::stack<ItemBase*>> m_vvpContents;
 
-        // Shared texture resources
-        static std::vector<ImGuiUVSet*> m_vv2TextureCoords;
+        // Shared texture resources for Items
+        static std::vector<ImGuiUVSet*> m_vv2ItemTextureCoords;
         static const int m_iEmptySlotIndex;
-        static const std::string m_strTexturePath;
+        static const std::string m_strItemsTexturePath;
         static const ImVec2 m_v2TexFrameSize;
-        static inline wolf::Texture* m_pTexture = nullptr;
+        static inline wolf::Texture* m_pItemsTexture = nullptr;
+
+        // Shared texture resources for the UI frame
+        static std::vector<ImGuiUVSet*> m_vv2FrameTextureCoords;
+        static const std::string m_strFrameTexturePath;
+        static inline wolf::Texture* m_pFrameTexture = nullptr;
 };
 
 struct OpenInventoryEvent {

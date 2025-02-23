@@ -59,11 +59,6 @@
 - 1: Fill Inventory
 - 2: Add Gold to Player
 - 3: Take Gold from Player
-- 4: Open / Close Chest
-- 5: Fill Chest
-- 6: Open / Close Merchant (In Inventory Branch)
-- 7: Fill Merchant Inventory (In Inventory Branch)
-- 8: Open / Close Dispensary (In Inventory Branch)
 - 9: Open Dialogue
 - -: Zoom Out
 - +: Zoom In
@@ -120,15 +115,17 @@ float vScroll = wolf::Input::GetMouseScroll().y;
 The `wolf::Audio` module allows very simple access to loading and playing audio files quickly. It's primarily designed for a "fire and forget" style of usage and can be used from anywhere in the program.
 
 ```C++
-// Play a sound effect at half volume in the left channel
-wolf::Audio::Play("data/sounds/sfx.mp3" /* file path */,
-                   false /* no loop */,
-                   0.5f /* half volume */,
-                   -1.0f /* left channel */
+// Play a song at half volume in the left channel, looping back to the 2 second mark when finished
+wolf::Audio::Play("data/sounds/song.mp3", /* file path */
+                   0.5f, /* half volume */
+                   0.0f, /* pitch offset */
+                   -1.0f, /* left channel */
+                   true, /* loop */
+                   2.0f /* return to 2.0 seconds on loop */
                    );
 
-// Play a looping song at default volume and pan
-wolf::Audio::Play("data/sounds/song.wav", true);
+// Play a sound effect at default volume
+wolf::Audio::Play("data/sounds/sfx.wav");
 
 // Stop all currently-playing instances of a sound file
 wolf::Audio::Stop("data/sounds/song2.ogg");

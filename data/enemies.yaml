@@ -4,6 +4,7 @@ enemies:
     armour: 3
     melee_range: 70.0
     melee_cooldown: 1
+    melee_windup: 1
     detection_range: 300
     base_damage: 15.0
     chase_speed: 100.0
@@ -12,19 +13,20 @@ enemies:
   - type: harpy
     health: 200
     armour: 2
-    melee_range: 100
-    attack_cooldown: 2
+    ranged_range: 300
+    ranged_cooldown: 2
+    ranged_windup: 1.5
     detection_range: 600
     base_damage: 20
     chase_speed: 80
     animation_init_file: "data/harpy_anim_init.yaml"
 
   - type: gorgon
-    health: 1000
+    health: 800
     armour: 1
     ranged_range: 300
-    attack_cooldown: 3
-    ranged_cooldown: 2
+    ranged_cooldown: 1
+    ranged_windup: 2
     detection_range: 300
     base_damage: 50
     chase_speed: 120

@@ -32,6 +32,8 @@ public:
     void Update(float p_delta);
     bool IsColliding(ColliderComponent& p_colliderComponent1, ColliderComponent& p_colliderComponent2, float p_delta);
 
+    static bool StaticMethodIsColliding(ColliderComponent& p_colliderComponent1, ColliderComponent& p_colliderComponent2, float p_delta);
+
 private:
     wolf::Scene* m_scene = nullptr;
 
@@ -50,4 +52,6 @@ private:
     void CheckCornerCollision(float p_delta);
     bool HandleCornerCollision(ColliderComponent* collider1, const glm::vec2& velocity1, const std::array<glm::vec2, 4>& corners, ColliderComponent* collider2, const glm::vec2& scale1,const glm::vec2& translation1);
     std::vector<wolf::GameObjectID> m_vToBeDestroyed;
+
+    static bool StaticMethodCustomAABB(const glm::vec2& p_translation_1, const glm::vec2& p_translation_2, const glm::vec2& p_dimensions_1, const glm::vec2& p_dimensions_2, VelocityComponent* p_velocity_1, VelocityComponent* p_velocity_2, float p_delta);
 };

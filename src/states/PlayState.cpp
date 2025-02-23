@@ -13,11 +13,21 @@
 #include "../components/DispensaryInventoryComponent.h"
 #include "../components/StatusComponent.h"
 #include "../components/TimedDestroyerComponent.h"
+#include "../components/TrappedChestComponent.h"
 #include "../components/VelocityComponent.h"
 #include "../components/ThrowableObjectComponent.h"
 #include "../components/BoulderTrapComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
+#include "DDACalculator.h"
+#include "GLShapesRenderer.h"
+#include "PortalTileManager.h"
+#include "TileFireManager.h"
+#include "../npcs/NPCBuilder.h"
+#include "../components/NPCComponent.h"
+#include <BossController.h>
+#include <W_Audio.h>
+#include <events/PauseEvent.h>
 
 void PlayState::Enter()
 {
@@ -28,19 +38,17 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
-
-
+    wolf::EventManager::AddListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
     
+ 
     this->m_pColliderManager = new ColliderManager(&scene);
 
     // Initialize the player object
     CreatePlayer();
 
-
-
     // Add the main camera as a child object of the player
     auto& cameraObj = scene.CreateObject2D();
-    auto& camera = cameraObj.AddComponent<wolf::Camera2D>(1280, 720);
+    auto& camera = cameraObj.AddComponent<wolf::Camera2D>(m_pGameInstance->GetWidth(), m_pGameInstance->GetHeight());
     m_pPlayerObject->AddChild(cameraObj);
     camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     camera.SetFollowSpeed(2.0f);
@@ -50,63 +58,163 @@ void PlayState::Enter()
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     m_pLabyrinthManager->GenerateLabyrinth();
 
+    GLShapesRenderer::CreateInstance();
+    DDACalculator::CreateInstance(&scene);
+
+    PortalTileManager::CreateInstance(m_pLabyrinthManager);
+    TileFireManager::CreateInstance(m_pLabyrinthManager);
+
+    // Place the bossfight trigger
+    const auto& rooms = m_pLabyrinthManager->GetRooms();
+    for (const auto& room : rooms)
+    {
+        if (room.m_name != "Minotaur's Chamber") continue;
+
+        // Store door tile locations
+        m_bossRoomDoorTiles = room.m_doors;
+
+        // Create trigger object and collider
+        auto& object = scene.CreateObject2D();
+        auto& collider = object.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, false, false);
+        auto size = glm::vec2(room.m_bounds.m_size.x, room.m_bounds.m_size.y) * (float)(LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+        auto position = glm::vec2(room.m_bounds.m_origin.x, room.m_bounds.m_origin.y + room.m_bounds.m_size.y);
+        position *= LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE;
+        collider.AddColliderBox(size, position);
+        object.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::SINGLE_USE, TriggerPurpose::BOSS);
+
+        // Set the position to teleport the player to when the bossfight starts
+        m_bossfightPlayerPos = m_pLabyrinthManager->GetWorldPosition(room.m_bounds.m_origin) + size * 0.5f;
+        m_bossfightPlayerPos.y -= (size.y * 0.25f);
+
+        // Spawn the Minotaur Boss
+        auto& bossObject = scene.CreateObject2D();
+        auto& controller = bossObject.AddComponent<BossController>();  
+
+        // Move boss to initial location
+        auto* pBossTransform = bossObject.GetComponent<wolf::Transform2D>();
+        pBossTransform->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.5f));
+        pBossTransform->SetScale(glm::vec2(3.0f));
+
+        // Then call init (uses location to access boss room)
+        controller.Init();
+
+        // Grab pointer to boss object
+        m_pBoss = &bossObject;
+        m_pGameInstance->GetSharedContext().RegisterEntity("Minotaur", m_pBoss->GetID());
+
+        // Create other object groups
+        m_pBossWalls = &scene.CreateObject2D();
+        m_bossRoomOrigin= room.m_bounds.m_origin;
+        m_bossRoomSize = room.m_bounds.m_size;
+
+        break;
+    }
+
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
-
-    // CreateThrowableObject();
     
-    // Create a test spike trap
-    CreateSpikeTrap(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(192.0f, 192.0f));
-    CreateBoulderTrap(m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(-192.0f, 192.0f));
+    glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
+    wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
 
-    // Testing: Create a test projectile object
-    // auto& testObj = scene.CreateObject2D();
-    // testObj.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));5
-    // testObj.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(512.0f, 0.0f));
-    // auto& testSprite = testObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    // auto& testCollider = testObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-    // testCollider.SetDamage(10.0f);
-    // testCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(0.0f, 0.0f));
-    // auto& testVelocity = testObj.AddComponent<VelocityComponent>();
-    //testVelocity.SetVelocity(glm::vec2(-128.0f, 0.0f));
+    // Track all Minotaurs and their positions
+    std::unordered_map<MinitaurController*, glm::vec2> minitaurPositions;
 
-    // auto& testObj2 = scene.CreateObject2D();
-    // testObj2.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(1));
-    // testObj2.GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(6000.0f, 0.0f));
+    // Find all "Basic Fight Rooms" and record Minotaurs' positions
+    for (const auto& room : m_pLabyrinthManager->GetRooms())
+    {
+        if (room.m_name == "Basic Fight Rooms")
+        {
+            glm::vec2 roomCenter = m_pLabyrinthManager->GetWorldPosition(glm::vec2(room.m_bounds.m_origin)) +
+                                   glm::vec2(room.m_bounds.m_size) * 0.5f;
 
-    // auto& testSprite2 = testObj2.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    // testSprite2.SetOriginToCenterOfTexture();
+            // Record all Minotaurs in the room
+            for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
+            {
+                glm::vec2 minitaurPos = glm::vec2(minitaurController.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+                float distanceToRoom = glm::distance(roomCenter, minitaurPos);
 
-    // auto& testCollider2 = testObj2.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, 0, 1);
-    // testCollider2.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
-    
-    // auto& testVelocity2 = testObj2.AddComponent<VelocityComponent>();
-    // testVelocity2.SetVelocity(glm::vec2(0.0f, 128.0f));
-    
-    // auto& testHoming2 = testObj2.AddComponent<HomingComponent>(m_pPlayerObject, 1.0f);
-    
-    // this->CreateMinitaurEnemy();
-    // this->CreateHarpyEnemy();
-    this->CreateGorgonEnemy();
+                // Ensure the Minotaur is within this room
+                if (distanceToRoom < glm::length(glm::vec2(room.m_bounds.m_size)) * LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE)
+                {
+                    minitaurPositions[&minitaurController] = minitaurPos;
+                }
+            }
+        }
+    }
+
+    if (minitaurPositions.empty())
+    {
+        wolf::Log("No Minotaurs found in Basic Fight Rooms!");
+        return;
+    }
+
+    // Find the closest Minotaur to the player
+    MinitaurController* closestMinitaur = nullptr;
+    float closestDistanceToPlayer = std::numeric_limits<float>::max();
+
+    for (const auto& [minitaurController, position] : minitaurPositions)
+    {
+        float distanceToPlayer = glm::distance(playerPosition, position);
+        if (distanceToPlayer < closestDistanceToPlayer)
+        {
+            closestMinitaur = minitaurController;
+            closestDistanceToPlayer = distanceToPlayer;
+        }
+    }
+
+    if (!closestMinitaur)
+    {
+        // wolf::Log("Failed to find the closest Minotaur to the player!");
+        return;
+    }
+
+    // Register the closest Minotaur in the shared context
+    m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
+    m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
+
+
+   
+    // Schedule her movement
+    auto* transform = ariadne.GetComponent<wolf::Transform2D>();
+    if (transform) {
+        glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
+        transform->SetPosition(newPosition);
+    }
+    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+
+
+
+    // Stop all audio and begin the maze music
+    wolf::Audio::Stop();
+    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, true, 13.714f);
 }
 
 void PlayState::Exit()
 {
+    wolf::Audio::Stop();
+
     // Delete objects / components from the scene
     m_pGameInstance->GetScene().Clear();
 
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
-
-
+    wolf::EventManager::RemoveListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
 
     // Delete managers
     delete this->m_pColliderManager;
     this->m_pColliderManager = nullptr;
+    DDACalculator::DestroyInstance();
+    GLShapesRenderer::DestroyInstance();
+
+    
+    PortalTileManager::DestroyInstance();
+    TileFireManager::DestroyInstance();
 
     ItemDropCreator::DestroyInstance();
+    NPCBuilder::DestroyInstance();
 }
 
 void PlayState::Pause()
@@ -119,22 +227,64 @@ void PlayState::Resume()
 
 void PlayState::Update(float delta)
 {
+    auto* pCamera = m_pGameInstance->GetScene().GetActiveCamera();
+    if (pCamera && m_bossZoomTimer.IsRunning())
+    {
+        if (m_bossZoomTimer.Elapsed() < 2.0f)
+        {
+            // Smooth interpolation based on cosine
+            float elapsedNormalized = m_bossZoomTimer.Elapsed() * 0.5f;
+            float t = (1.0f - cos(3.1415926535f * elapsedNormalized)) / 2;
+            pCamera->SetZoom(glm::mix(1.0f, 0.85f, t));
+        }
+        else
+        {
+            // Stop zoom and set value
+            pCamera->SetZoom(0.85f);
+            m_bossZoomTimer.Reset();
+        }
+    }
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
+        wolf::EventManager::TriggerEvent(PauseEvent(true));
         m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
     }
 
-    // Toggle Labyrinth Manager GUI with the semicolon key
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) 
-        m_showLabyrinthManager = !m_showLabyrinthManager;
+    // Update debug hotkeys
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_DELETE))
+    {
+        // Toggle debug hotkeys for both us and the player
+        m_debugHotkeys = !m_debugHotkeys;
+        m_pPlayerObject->GetComponent<PlayerController>()->m_debugHotkeys = m_debugHotkeys;
+    }
 
-    // Show the Labyrinth Manager debug GUI
-    if (m_showLabyrinthManager) 
-        m_pLabyrinthManager->ShowGUI();
+    if (m_debugHotkeys)
+    {
+        // Show debug hitboxes with backslash
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_BACKSLASH))
+        {
+            m_pGameInstance->GetScene().ToggleDebugDrawing();
+        }
+
+        // Toggle Labyrinth Manager GUI with the semicolon key
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) 
+            m_showLabyrinthManager = !m_showLabyrinthManager;
+        
+        // DEBUG: Teleport to bossfight
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT))
+            m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
+
+        // Show the Labyrinth Manager debug GUI
+        if (m_showLabyrinthManager) 
+            m_pLabyrinthManager->ShowGUI();
+    }
     
     // Update the labyrinth manager
     m_pLabyrinthManager->Update(delta);
+
+    PortalTileManager::GetInstance()->Update(delta);
+    TileFireManager::GetInstance()->Update(delta);
 
     // Update timed destroyer components
     for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
@@ -142,8 +292,87 @@ void PlayState::Update(float delta)
         TimedDestroyerComponent.Update(delta);
     }
 
+    // INVENTORY TESTING
+    auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
+    if (playerInventory) {
+        if (m_debugHotkeys)
+        {
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
+
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
+                ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
+                ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
+                ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
+                ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
+                ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
+                ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
+                ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
+                ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
+
+                ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
+                ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
+
+                ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
+                ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
+                ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
+                
+                playerInventory->AddItemOrDelete(pBoots);
+                playerInventory->AddItemOrDelete(pDentedHelmet);
+                playerInventory->AddItemOrDelete(pRustyChestplate);
+                playerInventory->AddItemOrDelete(pCopperVambraces);
+                playerInventory->AddItemOrDelete(pKilt);
+                playerInventory->AddItemOrDelete(pTheezys);
+                playerInventory->AddItemOrDelete(pFauxLeatherGloves);
+                playerInventory->AddItemOrDelete(pLapisLazuliRing);
+
+                playerInventory->AddItemOrDelete(pBow);
+                playerInventory->AddItemOrDelete(pSpear);
+                playerInventory->AddItemOrDelete(pHealHeart);
+                playerInventory->AddItemOrDelete(pHurtHeart);
+                playerInventory->AddItemOrDelete(pBurnHeart);
+            }
+
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
+                playerInventory->AddGold(10);
+            }
+
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
+                playerInventory->TakeGold(5);
+            }
+        }
+
+        playerInventory->ShowToggleButtonGUI();
+        playerInventory->ShowInventoryGUI();
+    }
+
+    // DEBUG: Noclip hotkey
+    if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_SLASH))
+    {
+        auto* pCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
+        if (pCollider)
+        {
+            m_noClip = !m_noClip;
+            if (m_noClip)
+            {
+                pCollider->SetActive(false);
+                pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
+            }
+            else
+            {
+                pCollider->SetActive(true);
+                pCollider->SetColliderType(ColliderComponent::ColliderType::HITHURTBOXDR);
+            }
+        }
+    }
+
     // Update all player controllers
     for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<PlayerController>())
+    {
+        controller.Update(delta);
+    }
+
+    // Update boss controller
+    for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<BossController>())
     {
         controller.Update(delta);
     }
@@ -200,6 +429,10 @@ void PlayState::Update(float delta)
         itemDrop.Update(delta);
     }
 
+    // Update the NPCs
+    for (auto&&[_, npc] : m_pGameInstance->GetScene().Each<NPCComponent>()) {
+        npc.Update(delta);
+    }
 
     // Inflict status effects upon the player
     for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
@@ -207,54 +440,7 @@ void PlayState::Update(float delta)
         status.Update(delta);
     }
 
-    // INVENTORY TESTING
-    auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
-    if (playerInventory) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-            ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
-            ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
-            ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
-            ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
-            ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
-            ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
-            ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
-            ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
-
-            ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
-            ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
-
-            ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
-            ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
-            ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
-            
-            playerInventory->AddItemOrDelete(pBoots);
-            playerInventory->AddItemOrDelete(pDentedHelmet);
-            playerInventory->AddItemOrDelete(pRustyChestplate);
-            playerInventory->AddItemOrDelete(pCopperVambraces);
-            playerInventory->AddItemOrDelete(pKilt);
-            playerInventory->AddItemOrDelete(pTheezys);
-            playerInventory->AddItemOrDelete(pFauxLeatherGloves);
-            playerInventory->AddItemOrDelete(pLapisLazuliRing);
-
-            playerInventory->AddItemOrDelete(pBow);
-            playerInventory->AddItemOrDelete(pSpear);
-            playerInventory->AddItemOrDelete(pHealHeart);
-            playerInventory->AddItemOrDelete(pHurtHeart);
-            playerInventory->AddItemOrDelete(pBurnHeart);
-        }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
-            playerInventory->AddGold(10);
-        }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-            playerInventory->TakeGold(5);
-        }
-
-        playerInventory->ShowInventoryGUI();
-    }
+    
 
     // Display all open chest GUIs
     const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -274,9 +460,9 @@ void PlayState::Update(float delta)
             {
                 auto name = sprite.GetCurrentAnimation()->m_strName;
                 if (chestInventory.IsOpen())
-                    sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
+                    sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
                 else
-                    sprite.SetAnimation(name.replace(name.find("Closed"), 6, "Open"));
+                    sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
                 
                 chestInventory.ToggleOpen();
                 
@@ -291,18 +477,30 @@ void PlayState::Update(float delta)
             {
                 chestInventory.Close();
                 auto name = sprite.GetCurrentAnimation()->m_strName;
-                sprite.SetAnimation(name.replace(name.find("Open"), 4, "Closed"));
+                sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
                 m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
             }
         }
     }
 
-    auto* merchant = m_pPlayerObject->GetComponent<MerchantInventoryComponent>();
-    if (merchant) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_4)) {
-            merchant->ToggleOpen();
+    // Trapped chests
+    for (auto&&[_, trappedChest, transform, sprite] : m_pGameInstance->GetScene().Each<TrappedChestComponent, wolf::Transform2D, AnimatedSprite2D>())
+    {
+        // Update trapped chests
+        trappedChest.Update(delta);
+        // Distance checking
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+        {
+            if(trappedChest.IsOpen() == false)
+            {
+                std::string tooltip = "Press E to Open Chest";
+                ShowTooltip(tooltip);
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                {
+                    trappedChest.OpenTrappedChest();
+                }
+            }
         }
-        merchant->ShowInventoryGUI();
     }
 
     // Display all open dispensary GUIs
@@ -396,11 +594,44 @@ void PlayState::Update(float delta)
         }
     }
 
+    for (auto&&[_, npc, transform] : m_pGameInstance->GetScene().Each<NPCComponent, wolf::Transform2D>()) {
+        // Distance check
+        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f) {
+            // Player is in range of the NPC so we display the tooltip
+            std::string tooltip = "Press E to talk to " + npc.GetName();
+            ShowTooltip(tooltip);
+
+            // And if the player interacts with the NPC we play their next dialogue/cutscene
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+                npc.PlayNextDialogue();
+                break;
+            }
+        }
+    }
+
+    // Display all open merchant GUIs
+    for (auto&&[_, merchantInventory, transform, sprite] : m_pGameInstance->GetScene().Each<MerchantInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
+    {
+        // Show GUI
+        merchantInventory.ShowInventoryGUI();
+
+        // If the player walks too far away
+        if (!(glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f))
+        {
+            // And the merchant GUI is open
+            if (merchantInventory.IsOpen()) {
+                // Close it (and the player's inventory)
+                merchantInventory.Close();
+                m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+            }
+        }
+    }
+
     // Trigger CutsceneDialogueEvent when pressing 9
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
+    if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Trigger both cutscene and dialogue with IDs
-        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence"));
+        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
     }
 
         // Update velocity components to apply friction and decelerate objects
@@ -413,9 +644,22 @@ void PlayState::Update(float delta)
     
     // Apply velocity for all objects with Transform2D and VelocityComponent
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
+        if (!velocity.IsActive()) continue;
         transform.Translate(velocity.GetVelocity() * delta);
     }
     ConvertPlayerTileToGold();
+
+    auto playerPosition = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::ivec2 currentChunk = m_pLabyrinthManager->GetChunkID(playerPosition);
+
+    if (m_visitedChunks.find(currentChunk) == m_visitedChunks.end()) {
+        m_visitedChunks.insert(currentChunk);
+    }
+
+    // Toggle expanded map view
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_M)) {
+        m_isMapExpanded = !m_isMapExpanded;
+    }
     
     // Base update for all game objects and components in the scene
     m_pGameInstance->GetScene().Update(delta);
@@ -431,25 +675,27 @@ void PlayState::Update(float delta)
     // ImGui::ShowDemoWindow();
 }
 
-void PlayState::Render()
+void PlayState::Render(float delta)
 {
     // Render the game's scene
-    m_pGameInstance->GetScene().Render();
+    m_pGameInstance->GetScene().Render(delta);
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
-        playerController->Render();
+        playerController->Render(delta);
     
     // Render damage indicators
-    // for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>())
-    // {
-    //     health.RenderDamageIndicators();
-    // }
+    for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>())
+    {
+        health.RenderDamageIndicators();
+    }
 
     // Render status effect icons
     for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
     {
         status.RenderPlayerSEIcons();
     }
+
+    RenderMap();
 }
 
 void PlayState::BackgroundUpdate(float delta)
@@ -458,9 +704,9 @@ void PlayState::BackgroundUpdate(float delta)
         m_pLabyrinthManager->ShowGUI();
 }
 
-void PlayState::BackgroundRender()
+void PlayState::BackgroundRender(float delta)
 {
-    m_pGameInstance->GetScene().Render();
+    m_pGameInstance->GetScene().Render(delta);
 }
 
 void PlayState::CreatePlayer()
@@ -472,14 +718,6 @@ void PlayState::CreatePlayer()
     // Register the player (Theseus) in the shared context
     m_pGameInstance->GetSharedContext().RegisterEntity("Theseus", m_pPlayerObject->GetID());
 
-    // Add player controller and initialize
-    // NOTE: This manages all player animations and the animated sprite component for the player
-    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
-    playerController.LateInitialize();
-    // Start player at the labyrinth spawn location and scale appropriately
-    auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
-    transform.SetScale(glm::vec2(3));
-
     // Add velocity
     m_pPlayerObject->AddComponent<VelocityComponent>();
 
@@ -487,181 +725,34 @@ void PlayState::CreatePlayer()
     auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, ImVec2(50, 50));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
-    collider.AddColliderBox(glm::vec2(7.0f, 8.0f), glm::vec2(-4.0f, -4.0f));
+    collider.AddColliderBox(glm::vec2(7.0f, 10.0f), glm::vec2(-4.0f, -3.0f));
 
     // Add health
-    auto& health = m_pPlayerObject->AddComponent<HealthComponent>(1000);
+    auto& health = m_pPlayerObject->AddComponent<HealthComponent>(800);
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
 
-
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 3.0f);
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
-    // status.AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 7.0f);
-
-    // !-- THESE ARE TEST COMPONENTS FOR THE OTHER INVENTORY SYSTEMS. REMOVE THEM LATER --!
-    MerchantInventoryComponent* pMerchant = &m_pPlayerObject->AddComponent<MerchantInventoryComponent>(16, 4, ImVec2(800, 200), "Merchant Guy", 0.1f, 50);
-    pMerchant->FillInventoryFromFile("data/test_chest_contents.yaml");
+    // Add player controller and initialize
+    // NOTE: This manages all player animations and the animated sprite component for the player
+    auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
+    playerController.LateInitialize();
+    // Start player at the labyrinth spawn location and scale appropriately
+    auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
+    transform.SetScale(glm::vec2(3));
 }
 
-void PlayState::CreateMinitaurEnemy()
-{
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
-
-    MinitaurBuilder minitaurBuilder(m_pGameInstance->GetScene());
-
-    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 240.0f); 
-
-    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-    auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, position, m_pColliderManager);
-    
-    // Set the scale of each Minitaur to 3
-    auto* transform = minitaur.GetComponent<wolf::Transform2D>();
-    if (transform)
-    {
-        transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each minitaur
-    }
-
-    auto* statusComponent = minitaur.GetComponent<StatusComponent>();
-    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 1.0f);
-}
-void PlayState::CreateHarpyEnemy()
-{
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
-
-    HarpyBuilder harpyBuilder(m_pGameInstance->GetScene());
-    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 360.0f);
-
-    EnemyData harpyData = loader.LoadEnemyData("harpy");
-    auto& harpy = harpyBuilder.BuildHarpy(harpyData, position, m_pColliderManager);
-    
-    // Set the scale of each Minitaur to 3
-    auto* transform = harpy.GetComponent<wolf::Transform2D>();
-    if (transform)
-    {
-        transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each harpy
-    }
-    auto* statusComponent = harpy.GetComponent<StatusComponent>();
-    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 2.0f);
-}
-
-
-void PlayState::CreateGorgonEnemy()
-{
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
-
-    GorgonBuilder gorgonBuilder(m_pGameInstance->GetScene());
-
-    glm::vec2 position = m_pLabyrinthManager->GetSpawnLocation() + glm::vec2(0.0f, 580.0f);
-
-    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
-    auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position, m_pColliderManager);
-    
-    // Set the scale of each Gorgon to 3
-    auto* transform = gorgon.GetComponent<wolf::Transform2D>();
-    if (transform)
-    {
-        transform->SetScale(glm::vec2(3.0f));  // Set uniform scale to 3 for each gorgon
-    }
-    auto* statusComponent = gorgon.GetComponent<StatusComponent>();
-    // statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3.0f);
-}
-
-void PlayState::CreateThrowableObject()
-{
-    // Get the spawn location from the labyrinth manager
-    glm::vec2 spawnLocation = m_pLabyrinthManager->GetSpawnLocation();
-
-    // Create a throwable object in the scene
-    auto& throwableObj = m_pGameInstance->GetScene().CreateObject2D();
-
-    // Set the initial position based on the spawn location
-    auto* transform = throwableObj.GetComponent<wolf::Transform2D>();
-    if (transform) {
-        transform->SetPosition(spawnLocation); // Set to labyrinth's spawn position
-    } else {
-        transform = &throwableObj.AddComponent<wolf::Transform2D>();
-        transform->SetPosition(spawnLocation);
-    }
-
-    // Add a sprite for visual representation (optional)
-    auto& sprite = throwableObj.AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    sprite.SetOriginToCenterOfTexture();
-
-    // Add a collider to enable interaction with enemies
-    auto& collider = throwableObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 1, 0);
-    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));  // Adjusted size for the object
-
-    // Add the velocity component with an initial zero velocity
-    auto& velocity = throwableObj.AddComponent<VelocityComponent>();
-    velocity.SetVelocity(glm::vec2(0.0f, 0.0f)); // Will be updated upon throwing
-
-    // Add the throwable component with parameters matching the constructor
-    auto& throwable = throwableObj.AddComponent<ThrowableObjectComponent>(25.0f, m_pColliderManager);
-}
 
 void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {
-    std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
+    // std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
 
     // Push the DialogueAndCutsceneState onto the game state stack
-    auto* dialogueAndCutsceneState = new DialogueAndCutsceneState(m_pStateManager, m_pGameInstance, "data/DialogueAndCutscenes.yaml");
+    auto* dialogueAndCutsceneState = new DialogueAndCutsceneState(m_pStateManager, m_pGameInstance, event.dialogueFilePath, event.triggerNPCID);
     dialogueAndCutsceneState->LoadSequence(event.sequenceID);  // Start the specific sequence
     m_pStateManager->PushState(dialogueAndCutsceneState);
 }
 
 
-wolf::GameObject& PlayState::CreateSpikeTrap(const glm::vec2& position)
-{
-    // Create the trap object
-    auto& trap = m_pGameInstance->GetScene().CreateObject2D();
-
-    // Add sprite
-    auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
-    sprite.SetOriginToCenterOfTexture();
-    sprite.SetLayer(0);
-
-    // Set position
-    auto& transform = *trap.GetComponent<wolf::Transform2D>();
-    transform.SetPosition(position);
-    transform.SetScale(glm::vec2(3.0f));
-
-    // Add a collider for interaction
-    auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
-
-    // Add the TriggerComponent
-    trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP);
-
-    return trap;
-}
-wolf::GameObject& PlayState::CreateBoulderTrap(const glm::vec2& position)
-{
-    // Create the trap object
-    auto& bouldertrap = m_pGameInstance->GetScene().CreateObject2D();
-
-    // Add sprite
-    auto& sprite = bouldertrap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
-    sprite.SetOriginToCenterOfTexture();
-    sprite.SetLayer(0);
-
-    // Set position
-    auto& transform = *bouldertrap.GetComponent<wolf::Transform2D>();
-    transform.SetPosition(position);
-    transform.SetScale(glm::vec2(3.0f));
-
-    // Add a collider for interaction
-    auto& collider = bouldertrap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-    collider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
-
-    // Add the TriggerComponent
-    bouldertrap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::BOULDER_TRAP);
-
-    return bouldertrap;
-}
 
 // Event handler to spawn traps when a trigger is triggered
 void PlayState::OnTriggerEvent(const TriggerEvent& event) {
@@ -678,6 +769,10 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
     switch (purpose) {
         case TriggerPurpose::SPIKE_TRAP: {
+
+            // Play sound effect
+            wolf::Audio::Play("data/sounds/sfx_spike_trap.wav", 0.9f);
+
             auto& trapObj = m_pGameInstance->GetScene().CreateObject2D();
             auto& trapSprite = trapObj.AddComponent<wolf::Sprite2D>("data/textures/SpikesExtended.png");
             trapSprite.SetOriginToCenterOfTexture();
@@ -694,43 +789,239 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
             // Add collider for the trap
             auto& trapCollider = trapObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-            trapCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f));
+            trapCollider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
             // Add TrapComponent with some parameters (e.g., 50 damage, 5 seconds lifespan)
             trapObj.AddComponent<TrapComponent>(triggerObject->GetComponent<TriggerComponent>(), 50.0f, 1.0f, m_pColliderManager, 0.0f);
             // wolf::Log("Spike trap triggered!");
             break;
         }
         case TriggerPurpose::BOULDER_TRAP: {
+            // Retrieve the room data for the trigger's position
+            auto tilePosition = m_pLabyrinthManager->GetTilePosition(triggerPosition);
+            auto roomDataOpt = m_pLabyrinthManager->GetRoom(tilePosition);
+        
+            if (!roomDataOpt.has_value()) {
+                // wolf::Log("Boulder trap triggered, but no valid room found!");
+                break;
+            }
+        
+            const auto& roomData = roomDataOpt.value();
+            const auto& roomBounds = roomData.m_bounds; // IRectangle struct
+        
+            // Create the boulder object
             auto& boulderObj = m_pGameInstance->GetScene().CreateObject2D();
+        
+            // Set up sprite
             auto& boulderSprite = boulderObj.AddComponent<wolf::Sprite2D>("data/textures/Boulder.png");
             boulderSprite.SetOriginToCenterOfTexture();
             boulderSprite.SetLayer(1);
+        
+            // Ensure the transform component exists
             auto* boulderTransform = boulderObj.GetComponent<wolf::Transform2D>();
             if (!boulderTransform) {
                 boulderTransform = &boulderObj.AddComponent<wolf::Transform2D>();
             }
-            // Set Position (spawn X + 192 units away, facing left)
-            glm::vec2 spawnPosition = triggerPosition + glm::vec2(192.0f, 0.0f);
+        
+            // Get the player's position
+            wolf::GameObject* player = m_pLabyrinthManager->GetPlayer();
+            glm::vec2 playerPosition = player ? player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() : triggerPosition;
+        
+            // Possible directions mapped to available space (how far it can go before hitting a wall)
+            std::vector<std::pair<BoulderDirection, int>> directionOptions;
+        
+            // Helper lambda to check how far the boulder can go in a direction
+            auto getDistance = [&](int dx, int dy) -> int {
+                glm::ivec2 checkPos = tilePosition;
+                int distance = 0;
+        
+                while (true) {
+                    checkPos += glm::ivec2(dx, dy);
+                    if (!m_pLabyrinthManager->GetRoom(checkPos).has_value()) {
+                        break; // Stop if we leave the room
+                    }
+                    distance++;
+                }
+                return distance;
+            };
+        
+            // Check each possible direction and measure its available distance
+            int upDist = getDistance(0, 1);
+            int downDist = getDistance(0, -1);
+            int leftDist = getDistance(-1, 0);
+            int rightDist = getDistance(1, 0);
+        
+            if (upDist > 0) directionOptions.emplace_back(BoulderDirection::UP, upDist);
+            if (downDist > 0) directionOptions.emplace_back(BoulderDirection::DOWN, downDist);
+            if (leftDist > 0) directionOptions.emplace_back(BoulderDirection::LEFT, leftDist);
+            if (rightDist > 0) directionOptions.emplace_back(BoulderDirection::RIGHT, rightDist);
+        
+            if (directionOptions.empty()) {
+                // wolf::Log("No valid directions found for boulder trap!");
+                break;
+            }
+        
+            BoulderDirection chosenDirection;
+        
+            // **90% chance to go towards player, 10% to use weighted random**
+            if (m_pLabyrinthManager->m_rng.NextInt(0, 9) < 9 && player) { // 90% probability
+                glm::vec2 directionToPlayer = glm::normalize(playerPosition - triggerPosition);
+                BoulderDirection bestDirection = BoulderDirection::UP;
+                float bestAlignment = -1.0f;  // Tracks best alignment score
+
+                // Find the direction most aligned with the player
+                for (const auto& [dir, dist] : directionOptions) {
+                    glm::vec2 dirVec;
+                    switch (dir) {
+                        case BoulderDirection::UP: dirVec = {0.0f, 1.0f}; break;
+                        case BoulderDirection::DOWN: dirVec = {0.0f, -1.0f}; break;
+                        case BoulderDirection::LEFT: dirVec = {-1.0f, 0.0f}; break;
+                        case BoulderDirection::RIGHT: dirVec = {1.0f, 0.0f}; break;
+                    }
+
+                    float alignment = glm::dot(directionToPlayer, dirVec);
+                    if (alignment > bestAlignment) {
+                        bestAlignment = alignment;
+                        bestDirection = dir;
+                    }
+                }
+                chosenDirection = bestDirection;
+            } else {
+                // Weighted random selection favoring longer paths
+                std::vector<BoulderDirection> weightedDirections;
+                for (const auto& [dir, dist] : directionOptions) {
+                    for (int i = 0; i < dist; ++i) { // More distance = higher chance of selection
+                        weightedDirections.push_back(dir);
+                    }
+                }
+                chosenDirection = weightedDirections[m_pLabyrinthManager->m_rng.NextInt(0, static_cast<int>(weightedDirections.size()) - 1)];
+            }
+                    
+            // Assign velocity based on chosen direction
+            constexpr float boulderSpeed = 100.0f;
+            glm::vec2 velocity(0.0f);
+        
+            switch (chosenDirection) {
+                case BoulderDirection::UP:
+                    velocity = {0.0f, boulderSpeed};
+                    break;
+                case BoulderDirection::DOWN:
+                    velocity = {0.0f, -boulderSpeed};
+                    break;
+                case BoulderDirection::LEFT:
+                    velocity = {-boulderSpeed, 0.0f};
+                    break;
+                case BoulderDirection::RIGHT:
+                    velocity = {boulderSpeed, 0.0f};
+                    break;
+            }
+        
+            // **Smart Offset: Place it one tile away in the opposite direction**
+            constexpr float tileSize = 46.0f;
+            glm::vec2 spawnPosition = triggerPosition;
+        
+            // Convert room bounds to vec2 to ensure proper calculations
+            glm::vec2 roomOrigin = glm::vec2(roomBounds.m_origin);
+            glm::vec2 roomSize = glm::vec2(roomBounds.m_size);
+
+            // **Offset in the opposite direction of movement**
+            switch (chosenDirection) {
+                case BoulderDirection::UP:
+                    spawnPosition.y -= tileSize;
+                    break;
+                case BoulderDirection::DOWN:
+                    spawnPosition.y += tileSize;
+                    break;
+                case BoulderDirection::LEFT:
+                    spawnPosition.x += tileSize;
+                    break;
+                case BoulderDirection::RIGHT:
+                    spawnPosition.x -= tileSize;
+                    break;
+            }
+
+            glm::vec2 roomMin = glm::vec2(roomBounds.m_origin);
+            glm::vec2 roomMax = glm::vec2(roomBounds.m_origin) + glm::vec2(roomBounds.m_size) - glm::vec2(tileSize);
+
+            // **Check if the spawn position is outside the room bounds**
+            if (spawnPosition.x < roomMin.x || spawnPosition.x > roomMax.x ||
+                spawnPosition.y < roomMin.y || spawnPosition.y > roomMax.y) {
+                
+                spawnPosition = triggerPosition; // If out of bounds, spawn at the trigger position
+            }
+
+            // **Set the adjusted initial position**
             boulderTransform->SetPosition(spawnPosition);
             boulderTransform->SetScale(glm::vec2(3.0f)); // Scale the boulder
+        
+            // Add Velocity Component for movement
+            auto& velocityComponent = boulderObj.AddComponent<VelocityComponent>();
+            velocityComponent.SetVelocity(velocity);
+        
+            // Add Collider
+            auto& boulderCollider = boulderObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDR, 0, 1);
+            boulderCollider.AddColliderBox(glm::vec2(28.0f, 28.0f), glm::vec2(-14.0f, 14.0f));
+        
+            // Add BoulderTrapComponent with the chosen direction
+            boulderObj.AddComponent<BoulderTrapComponent>(triggerObject->GetComponent<TriggerComponent>(), m_pColliderManager, chosenDirection, boulderSpeed, 5.0f);
+        
+            // wolf::Log("Boulder trap triggered, rolling in direction: " + std::to_string(static_cast<int>(chosenDirection)));
+            break;
+        }         
 
-            // Add Velocity Component (for optional movement logic)
-            auto& velocity = boulderObj.AddComponent<VelocityComponent>();
-            velocity.SetVelocity(glm::vec2(-100.0f, 0.0f)); // Initial velocity to move left
+        case TriggerPurpose::BOSS: {
+            
+            // Stop the background music
+            wolf::Audio::Stop("data/sounds/bgm_maze.wav");
+            
+            // Begin the bossfight
+            wolf::Log("BOSSFIGHT STARTED");
+            m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
+            m_pBoss->GetComponent<BossController>()->SetActive(true);
 
-            // Add Collider for the Boulder
-            auto& boulderCollider = boulderObj.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, 0, 1);
-            boulderCollider.AddColliderBox(glm::vec2(32.0f, 32.0f), glm::vec2(-16.0f, 16.0f)); 
+            // Zoom out camera
+            m_bossZoomTimer.Restart();
 
-            boulderObj.AddComponent<BoulderTrapComponent>(triggerObject->GetComponent<TriggerComponent>(), m_pColliderManager, BoulderDirection::UP, 100.0f, 5.0f);
+            // Change filter mode on all tilemaps
+            for (auto&&[_, tilemap] : m_pGameInstance->GetScene().Each<wolf::TileMap>())
+            {
+                tilemap.SetFilterMode(GL_LINEAR_MIPMAP_LINEAR);
+            }
 
-            // wolf::Log("Boulder trap triggered!");
+            // Set door areas to wall tiles
+            for (const auto& door : m_bossRoomDoorTiles)
+            {
+                m_pLabyrinthManager->SetTile(door.x, door.y, Tile::WallMinotaur);
+            }
+
+            // Create a collider that covers all walls of the boss room
+            auto& object = m_pBoss->GetScene().CreateObject2D();
+            m_pBossWalls->AddChild(object);
+
+            // Set scale
+            auto& transform = *object.GetComponent<wolf::Transform2D>();
+            transform.SetScale(glm::vec2(3.0f));
+
+            // Add colliders for boss room walls
+            auto& collider = object.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, false, false);
+            collider.AddColliderBox(glm::vec2((m_bossRoomSize.x + 2) * 96, 96), m_pLabyrinthManager->GetWorldPosition(m_bossRoomOrigin) + glm::vec2(-96.0f, 0.0f));
+            collider.AddColliderBox(glm::vec2((m_bossRoomSize.x + 2) * 96, 96), m_pLabyrinthManager->GetWorldPosition(m_bossRoomOrigin) + glm::vec2(-96, (m_bossRoomSize.y + 1) * 96));
+            collider.AddColliderBox(glm::vec2(96, (m_bossRoomSize.y + 2) * 96), m_pLabyrinthManager->GetWorldPosition(m_bossRoomOrigin) + glm::vec2(-96, (m_bossRoomSize.y + 1) * 96));
+            collider.AddColliderBox(glm::vec2(96, (m_bossRoomSize.y + 2) * 96), m_pLabyrinthManager->GetWorldPosition(m_bossRoomOrigin) + glm::vec2((m_bossRoomSize.x + 1) * 96 - 96, (m_bossRoomSize.y + 1) * 96));
+            
+            // Deactivate all chunks
+            m_pLabyrinthManager->StartBossfight();
+            
             break;
         }
         default:
             wolf::Log("Unsupported trigger purpose.");
             break;
     }
+}
+
+void PlayState::OnGameWinEvent(const GameWinEvent& event)
+{
+    wolf::Audio::Play("data/sounds/sfx_game_win.wav", 1.0f);
 }
 
 int GetGoldVariant(int tileID) {
@@ -765,6 +1056,10 @@ void PlayState::ConvertPlayerTileToGold() {
     // Get tile position and ID
     glm::ivec2 tilePos = m_pLabyrinthManager->GetTilePosition(roundedPosition);
     int currentTileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+
+    // Skip if the player is in the boss room
+    auto roomOpt = m_pLabyrinthManager->GetRoom(tilePos);
+    if (roomOpt.has_value() && roomOpt->m_name == "Minotaur's Chamber") return;
 
     // Check for a gold variant
     int goldTileID = GetGoldVariant(currentTileID);
@@ -813,5 +1108,221 @@ void PlayState::ShowTooltip(const std::string& text)
     ImGui::PopStyleVar(2);
 }
 
+ImVec2 ToImVec2(const glm::vec2& vec) {
+    return ImVec2(vec.x, vec.y);
+}
+
+glm::vec2 ToGLMVec2(const ImVec2& vec) {
+    return glm::vec2(vec.x, vec.y);
+}
+
+ImU32 GetTileColor(int tileID) {
+    switch (tileID) {
+        // Walls
+        case Tile::WallBottomLeft:
+        case Tile::WallBottomRight:
+        case Tile::WallBottom:
+        case Tile::WallChest:
+        case Tile::WallHelmet:
+        case Tile::WallLeft:
+        case Tile::WallMaze:
+        case Tile::WallMinotaur:
+        case Tile::WallPillars:
+        case Tile::WallPot:
+        case Tile::WallRight:
+        case Tile::WallSpiral:
+        case Tile::WallSquare:
+        case Tile::WallTopLeft:
+        case Tile::WallTopRight:
+        case Tile::WallTop:
+            return IM_COL32(90, 90, 90, 255); // Dark Gray for Walls
+
+        // Floors and Bricks (Unified color with slight variations)
+        case Tile::BorderedGrass:
+        case Tile::Bricks:
+        case Tile::FloorSmallSquares:
+        case Tile::FloorSquare:
+        case Tile::FloorSpiral:
+            return IM_COL32(200, 200, 200, 255); // Soft Neutral Gray
+
+        // Gold Floors (Toned down)
+        case Tile::FloorSmallSquaresGold:
+        case Tile::FloorSquareGold:
+        case Tile::FloorSpiralGold:
+            return IM_COL32(220, 185, 60, 255); // Subtle Gold
+
+        // Grass
+        case Tile::Grass:
+            return IM_COL32(34, 139, 34, 255); // Forest Green for Grass
+
+        // Default color
+        default:
+            return IM_COL32(128, 128, 128, 255); // Mid Gray for Default/Unknown Tiles
+    }
+}
+
+void PlayState::RenderMap() {
+    static float defaultZoomScale = 0.2f; // Default zoom level when not expanded
+    static float expandedZoomScale = 1.0f; // Persisted zoom level for expanded map
+    static bool isExpandedPrev = false; // Tracks if the map was expanded in the previous frame
+
+    // Determine the zoom level based on whether the map is expanded
+    if (m_isMapExpanded) {
+        float scrollDelta = ImGui::GetIO().MouseWheel;
+        expandedZoomScale = glm::clamp(expandedZoomScale + scrollDelta * 0.1f, 0.2f, 2.0f); // Adjust expanded zoom
+    }
+
+    // Update the zoom scale and reset if switching between states
+    float zoomScale = m_isMapExpanded ? expandedZoomScale : defaultZoomScale;
+
+    if (!m_isMapExpanded && isExpandedPrev) {
+        defaultZoomScale = glm::clamp(expandedZoomScale * 0.5f, 0.2f, 1.0f); // Adjust default zoom to see more
+    }
+    isExpandedPrev = m_isMapExpanded;
+
+    // Define map dimensions and scaling
+    const float mapSize = m_isMapExpanded ? 600.0f : 200.0f; // Larger default map size for expanded view
+    const float labyrinthScale = zoomScale;
+
+    // Determine map position (top-right when small, center when expanded)
+    const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    const ImVec2 mapPosition = m_isMapExpanded
+        ? ImVec2((displaySize.x - mapSize) * 0.5f, (displaySize.y - mapSize) * 0.5f) // Centered
+        : ImVec2(displaySize.x - mapSize - 20.0f, 20.0f); // Top-right corner
+
+    // Get player transform component and compute adjusted position
+    const auto* playerTransform = m_pPlayerObject->GetComponent<wolf::Transform2D>();
+    assert(playerTransform != nullptr && "Player Transform2D component is missing!");
+    const glm::vec2 playerPosition = playerTransform->GetGlobalPosition() + glm::vec2(-48.0f, -60.0f);
+
+    // Precompute constants for rendering
+    const float tileWorldSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    const float halfTileSizeScaled = (tileWorldSize * labyrinthScale) * 0.5f;
+    const float mapCenterX = mapPosition.x + mapSize / 2.0f;
+    const float mapCenterY = mapPosition.y + mapSize / 2.0f;
+    const glm::ivec2 playerChunk = glm::ivec2(playerPosition / (tileWorldSize * LabyrinthManager::CHUNK_SIZE));
+
+    // Thick stylish golden border
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 4.0f); // Thicker border
+    ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 215, 0, 255)); // Gold color
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 255)); // Black background
+
+    ImGui::SetNextWindowSize(ImVec2(mapSize, mapSize));
+    ImGui::SetNextWindowPos(mapPosition);
+    ImGui::Begin("ChunkMap###AlwaysVisible", nullptr,
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs);
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    // Get window min/max for border placement
+    ImVec2 windowMin = ImGui::GetWindowPos();
+    ImVec2 windowMax = ImVec2(windowMin.x + mapSize, windowMin.y + mapSize);
+    
+    // Helper lambda for rendering tiles
+    auto renderTile = [&](const glm::vec2& worldPos, ImU32 color) {
+        glm::vec2 relativePos = (worldPos - playerPosition) * labyrinthScale;
+        relativePos.y = -relativePos.y; // Invert Y-axis for rendering
+        const ImVec2 min(mapCenterX + relativePos.x - halfTileSizeScaled, 
+                         mapCenterY + relativePos.y - halfTileSizeScaled);
+        const ImVec2 max(mapCenterX + relativePos.x + halfTileSizeScaled, 
+                         mapCenterY + relativePos.y + halfTileSizeScaled);
+        drawList->AddRectFilled(min, max, color);
+        drawList->AddRect(min, max, IM_COL32(100, 100, 100, 255), 0.0f, 0, 1.0f);
+    };
+
+    // Render chunks and tiles
+    const int chunkRenderRadius = 1; // Render surrounding chunks within 1 chunk radius
+    for (int cx = -chunkRenderRadius; cx <= chunkRenderRadius; ++cx) {
+        for (int cy = -chunkRenderRadius; cy <= chunkRenderRadius; ++cy) {
+            glm::ivec2 chunkID = playerChunk + glm::ivec2(cx, cy);
+            if (auto* chunk = m_pLabyrinthManager->GetChunk(chunkID)) {
+                for (int tx = 0; tx < LabyrinthManager::CHUNK_SIZE; ++tx) {
+                    for (int ty = 0; ty < LabyrinthManager::CHUNK_SIZE; ++ty) {
+                        glm::ivec2 tilePos = chunkID * LabyrinthManager::CHUNK_SIZE + glm::ivec2(tx, ty);
+                        int tileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+                        if (tileID > 0 && tileID != Tile::Empty) {
+                            renderTile(glm::vec2(tilePos) * tileWorldSize, GetTileColor(tileID));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Render player position
+    drawList->AddCircleFilled(ImVec2(mapCenterX, mapCenterY), 5.0f, IM_COL32(0, 255, 0, 255));
+    drawList->AddCircle(ImVec2(mapCenterX, mapCenterY), 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f);
+
+    // Helper lambda for rendering entities
+    auto renderEntity = [&](const glm::vec2& entityPos, ImU32 color) {
+        glm::vec2 relativePos = ((entityPos + glm::vec2(-48.0f, -60.0f)) - playerPosition) * labyrinthScale;
+        relativePos.y = -relativePos.y; // Invert Y-axis
+        const ImVec2 entityMarker(mapCenterX + relativePos.x, mapCenterY + relativePos.y);
+        drawList->AddCircle(entityMarker, 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f); // Outline
+        drawList->AddCircleFilled(entityMarker, 5.0f, color);                           // Marker
+    };
+
+    // Render entities by type
+    for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>()) {
+        auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 0, 0, 255));
+    }
+    for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<HarpyController>()) {
+        auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 255, 0, 255));
+    }
+    for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>()) {
+        auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(128, 0, 128, 255));
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 0, 255, 255));
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<DroppedItemComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 255, 255, 255));
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<ChestInventoryComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<TrappedChestComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
+    }
+
+
+    ImGui::End();
+    // --- Draw the border AFTER the minimap rendering ---
+    drawList->AddRect(windowMin, windowMax, IM_COL32(255, 215, 0, 255), 8.0f, 0, 6.0f); // Thick gold border
+    drawList->AddRect(windowMin, windowMax, IM_COL32(255, 165, 0, 128), 12.0f, 0, 3.0f); // Outer glow
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(2);
+}
+
+wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
+{
+    // Offset position to place Ariadne on top of the player by one tile
+    glm::vec2 ariadnePosition = playerPosition + glm::vec2(0.0f, LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
+
+    // Specify the YAML file for Ariadne's NPC data
+    std::string ariadneYamlFile = "data/ariadne_init.yaml";
+
+    // Create Ariadne using the NPCBuilder
+    wolf::GameObject& ariadne = *NPCBuilder::Instance()->BuildNPC(ariadneYamlFile);
+
+    // Set Ariadne's position and scale
+    auto& transform = *ariadne.GetComponent<wolf::Transform2D>();
+    transform.SetPosition(ariadnePosition);
+    transform.SetScale(glm::vec2(LabyrinthManager::SCALE));
+
+    // Optionally register Ariadne in the shared context for reference in cutscenes
+    m_pGameInstance->GetSharedContext().RegisterEntity("Ariadne", ariadne.GetID());
+
+    // wolf::Log("Ariadne created at position: (" + std::to_string(ariadnePosition.x) + ", " + std::to_string(ariadnePosition.y) + ").");
+
+    return ariadne;
+}
 
 

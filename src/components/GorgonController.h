@@ -9,7 +9,7 @@
 #include <components/AnimatedSprite2D.h>
 #include <components/StatusComponent.h>
 #include <EnemyDataLoader.h>
-
+#include "InfightingEvent.h"
 class GorgonController : public EnemyController
 {
 public:
@@ -32,10 +32,13 @@ private:
     void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
     
+    void EnterAttackState();
     void EnterChasingState();
     void EnterIdleState();
+    void EnterPetrifiedState();
     void EnterProspectState();
     void EnterStunnedState();
+    void EnterDeathState();
 
     void ExitAttackState();
     void ExitChasingState();
@@ -48,8 +51,11 @@ private:
 
     bool IsTargetDetected();
     bool IsTargetInLOS(); // Check if target is in line of sight
-    bool IsWallTile(int p_tile_id);
-    glm::vec2 GetTileWorldPos(glm::ivec2 p_tile_pos);
+    void RenderIndicator();
+
+    void HandleInfighting(const InfightingEvent& event); // added this
+    void RevertToPlayerTarget();
+
     
     // Gorgon-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
@@ -58,7 +64,7 @@ private:
     VelocityComponent* m_pVelocity = nullptr;
     float m_meleeRange;
     float m_rangedRange;
-    float m_rangedCooldown;
+    float m_rangedCooldown; // Delay between 2 ranged attacks
     float m_rangedTimer = 0.0f;
     float m_detectionRange;
     float m_baseDamage;
@@ -76,18 +82,34 @@ private:
 
     float m_targetDetectionTimer = 0.0f; // Taget detecction reaction delay
 
+    // Prospect state members
     float m_prospectCounter = 0.0f;
     float m_prospectStandingCounter = 2.0f;
+    
+    // Stunned state members
     float m_stunnedTime = 0.3f;
     float m_stunnedTimer = 0.0f;
 
+    // Death state members
     float m_fallDeadTimer = 0.0f;
     float m_lieDeadTimer = 0.0f;
     float m_timeToFallDead = 0.6f;
     float m_timeToLieDead = 0.8f;
 
+    // Attack state members
+    float m_rangedWindupTime = 1.0f; // Windup Time
+    float m_rangedWindupTimer = 0.0f;
+
+    // Emote-related members
     EnemyEmote m_emote = EnemyEmote::NONE; // Current emote
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;
     wolf::GameObject* m_pEmoteObj = nullptr;
+
+    glm::vec2 m_vLinecheckEndpoint = glm::vec2(0.0f, 0.0f);
+    bool m_IsRenderingAttackIndicator = false;
+
+    const glm::vec4 CROSSHAIR_COLOUR = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+    glm::vec4 m_curentCrosshairColour = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+    glm::vec2 m_crosshairOffset = glm::vec2(0.0f, 0.0f);
 };

@@ -69,7 +69,7 @@ public:
     void Update(float delta);
 
     // Renders the scene using the currently active Camera2D
-    void Render();
+    void Render(float delta);
 
     // Helper function to iterate all components of any type(s) efficiently.
     // Returns an iterable container you can use in an auto for loop with structured binding.
@@ -85,6 +85,9 @@ public:
     void SetPlayerID(GameObjectID p_uiGOId);
     GameObjectID const GetPlayerID();
 
+    // Enables or disables debug collider drawing
+    void ToggleDebugDrawing() { m_renderDebugColliders = !m_renderDebugColliders; }
+
 // Data / implementation
 protected:
 
@@ -97,6 +100,10 @@ protected:
 
     // Needed for game objects to have access to the scene's registry
     friend class GameObject;
+
+private:
+
+    bool m_renderDebugColliders = false;
 };
 
 // Tests the features and expected behaviour of the scene system
