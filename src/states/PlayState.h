@@ -28,6 +28,7 @@
 #include <HarpyBuilder.h>
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
+#include "PathfindingManager.h"
 #include <events/GameWinEvent.h>
 #include <W_Timer.h>
 
@@ -65,6 +66,9 @@ private:
 
     // Manager for colliders
     ColliderManager* m_pColliderManager = nullptr;
+
+    //pathfinding manager
+    PathfindingManager* m_pPathfindingManager = nullptr;
 
     // Flags
     bool m_debugHotkeys = false;

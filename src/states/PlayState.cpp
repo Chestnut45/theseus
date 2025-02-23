@@ -66,6 +66,8 @@ void PlayState::Enter()
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    auto& pathfindingManagerObject = scene.CreateObject2D();
+    m_pPathfindingManager = &pathfindingManagerObject.AddComponent<PathfindingManager>(m_pLabyrinthManager);    
     NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     m_pLabyrinthManager->GenerateLabyrinth();
 
@@ -197,6 +199,12 @@ void PlayState::Enter()
     // Stop all audio and begin the maze music
     wolf::Audio::Stop();
     wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, true, 13.714f);
+
+    // Now it's safe to register entities
+    for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())
+    {
+        m_pPathfindingManager->RegisterEntity(minitaur.GetGameObject());
+    }
 }
 
 void PlayState::Exit()
@@ -209,6 +217,8 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+
+    m_pPathfindingManager = nullptr;
     wolf::EventManager::RemoveListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
 
     // Delete managers
@@ -384,6 +394,7 @@ void PlayState::Update(float delta)
     {
         controller.Update(delta);
     }
+
 
     // Update all minitaur controllers
     // First pass: Update all minitaur controllers (without deletion)
@@ -642,14 +653,16 @@ void PlayState::Update(float delta)
         wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
     }
 
-        // Update velocity components to apply friction and decelerate objects
+    this->m_pPathfindingManager->UpdateEntities(delta);
+
+    // Update velocity components to apply friction and decelerate objects
     for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
         velocity.Update(delta);  // Update velocity with friction and other forces
     }
 
+
     // Update collisions
     this->m_pColliderManager->Update(delta);
-    
     // Apply velocity for all objects with Transform2D and VelocityComponent
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
         if (!velocity.IsActive()) continue;
