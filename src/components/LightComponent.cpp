@@ -245,43 +245,31 @@ void LightComponent::Update(float p_fDelta) {
                 // If it does, and the rectangle we're currently comparing points against is a wall tile or the AOE collider
                 if (bRectIsWall || bIsAOE)
                 {
-                    // Check if offsetting the corner point slightly in any direction would put it within the
-                    // comparison rectangle's bounds.
-                    if ((v2fCorner.first.x + 1.0f > v2LeftStart.x && v2fCorner.first.x + 1.0f < v2LeftEnd.x) ||
-                        (v2fCorner.first.x - 1.0f > v2LeftStart.x && v2fCorner.first.x - 1.0f < v2LeftEnd.x) ||
-                        (v2fCorner.first.y + 1.0f > v2BotStart.y && v2fCorner.first.y + 1.0f < v2TopStart.y) ||
-                        (v2fCorner.first.y - 1.0f > v2BotStart.y && v2fCorner.first.y - 1.0f < v2TopStart.y))
-                    {
-                        // If it would, then this corner point is either shared by two wall tiles or is a collision
-                        // between the AOE and a wall tile and we need to replace it with the nearest point of intersection 
-                        // between the light's ray(s) and the wall.
+                    // Then we're going to want to swap this point out with the point of intersection
+                    float fLeftDist = glm::distance(m_v2Origin, v2fLeftResullt.second);
+                    float fRightDist = glm::distance(m_v2Origin, v2fRightResullt.second);
+                    float fTopDist = glm::distance(m_v2Origin, v2fTopResullt.second);
+                    float fBotDist = glm::distance(m_v2Origin, v2fBotResullt.second);
 
-                        // To do so, we find the distance to each of the intersection points and the light
-                        float fLeftDist = glm::distance(m_v2Origin, v2fLeftResullt.second);
-                        float fRightDist = glm::distance(m_v2Origin, v2fRightResullt.second);
-                        float fTopDist = glm::distance(m_v2Origin, v2fTopResullt.second);
-                        float fBotDist = glm::distance(m_v2Origin, v2fBotResullt.second);
+                    // Find the point with the shortest distance
+                    float fMinDist = std::min(fLeftDist, std::min(fRightDist, std::min(fTopDist, fBotDist)));
 
-                        // Find the point with the shortest distance
-                        float fMinDist = std::min(fLeftDist, std::min(fRightDist, std::min(fTopDist, fBotDist)));
-
-                        // And add the intersection to a vector of points that will be added to m_vv2fCollidingPoints in the next pass
-                        if (fMinDist == fLeftDist) {
-                            // Left intersection point
-                            vv2fPointsToAdd.push_back({v2fLeftResullt.second, CalculateAngleOfIntersection(v2fLeftResullt.second)});
-                        }
-                        else if (fMinDist == fRightDist) {
-                            // Right intersection point
-                            vv2fPointsToAdd.push_back({v2fRightResullt.second, CalculateAngleOfIntersection(v2fRightResullt.second)});
-                        }
-                        else if (fMinDist == fTopDist) {
-                            // Top intersection point
-                            vv2fPointsToAdd.push_back({v2fTopResullt.second, CalculateAngleOfIntersection(v2fTopResullt.second)});
-                        }
-                        else if (fMinDist == fBotDist) {
-                            // Bottom intersection point
-                            vv2fPointsToAdd.push_back({v2fBotResullt.second, CalculateAngleOfIntersection(v2fBotResullt.second)});
-                        }
+                    // And add the intersection to a vector of points that will be added to m_vv2fCollidingPoints in the next pass
+                    if (fMinDist == fLeftDist) {
+                        // Left intersection point
+                        vv2fPointsToAdd.push_back({v2fLeftResullt.second, CalculateAngleOfIntersection(v2fLeftResullt.second)});
+                    }
+                    else if (fMinDist == fRightDist) {
+                        // Right intersection point
+                        vv2fPointsToAdd.push_back({v2fRightResullt.second, CalculateAngleOfIntersection(v2fRightResullt.second)});
+                    }
+                    else if (fMinDist == fTopDist) {
+                        // Top intersection point
+                        vv2fPointsToAdd.push_back({v2fTopResullt.second, CalculateAngleOfIntersection(v2fTopResullt.second)});
+                    }
+                    else if (fMinDist == fBotDist) {
+                        // Bottom intersection point
+                        vv2fPointsToAdd.push_back({v2fBotResullt.second, CalculateAngleOfIntersection(v2fBotResullt.second)});
                     }
                 }
                 
@@ -294,13 +282,13 @@ void LightComponent::Update(float p_fDelta) {
         for (std::pair<glm::vec2, float> v2fBadCorner : vv2fPointsToRemove) {
             auto it = std::find(m_vv2fCollidingPoints.begin(), m_vv2fCollidingPoints.end(), v2fBadCorner);
             if (it != m_vv2fCollidingPoints.end()) {
-                //m_vv2fCollidingPoints.erase(it);
+                m_vv2fCollidingPoints.erase(it);
             }
         }
 
         // Add in the new intersection points for wall-wall collisions
         for (std::pair<glm::vec2, float> v2fGoodPoint : vv2fPointsToAdd) {
-            //m_vv2fCollidingPoints.push_back(v2fGoodPoint);
+            m_vv2fCollidingPoints.push_back(v2fGoodPoint);
         }
     }
 
@@ -318,9 +306,8 @@ void LightComponent::Update(float p_fDelta) {
         glm::vec2 v2Point2 = m_vv2fCollidingPoints.back().first;
         // We don't pop the second point because we want the triangles to connect to each other
 
-        GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y});
-
-        //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
+        //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y});
+        GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
     }
 
     // Pop the last point and use it to form the final triangle
@@ -328,8 +315,8 @@ void LightComponent::Update(float p_fDelta) {
     m_vv2fCollidingPoints.pop_back();
 
     // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
-    GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2LastPoint.x, v2LastPoint.y});
-    //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
+    //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2LastPoint.x, v2LastPoint.y});
+    GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
 
 }
 
@@ -350,17 +337,16 @@ void LightComponent::CheckForCollisionAndAdd(const glm::vec2& p_v2Corner, std::p
         // Then either add the point of self-collision or the corner point to the vector or collision points
         m_vv2fCollidingPoints.push_back({v2FinalPoint, fAngle});
 
-        // Then add two offset points to shine the light beyond the object
-        float fPosOffsetAngle = fAngle + glm::radians(0.00001f);
-        float fNegOffsetAngle = fAngle - glm::radians(0.00001f);
+        // Then create two angles that are slightly offset from the ray we intend to shoot
+        float fPosOffsetAngle = fAngle + glm::radians(1.0f);
+        float fNegOffsetAngle = fAngle - glm::radians(1.0f);
 
-        // Add the offsets to the origin
-        glm::vec2 v2PosOffset = {m_v2Origin.x + m_v2Radius.x * glm::cos(fPosOffsetAngle), m_v2Origin.y + m_v2Radius.y * glm::sin(fPosOffsetAngle)};
-        m_vv2fCollidingPoints.push_back({v2PosOffset, this->CalculateAngleOfIntersection(v2PosOffset)});
+        // And use them to shoot two more rays that will go beyond the object's corners and hit the wall behind them
+        glm::vec2 v2PosOffset = {m_v2Origin.x + m_v2Radius.x * glm::sin(fPosOffsetAngle), m_v2Origin.y + m_v2Radius.y * glm::cos(fPosOffsetAngle)};
+        this->CheckForAOECollisionAndAdd(m_v2Origin, v2PosOffset);
 
-        glm::vec2 v2NegOffset = {m_v2Origin.x + m_v2Radius.x * glm::cos(fNegOffsetAngle), m_v2Origin.y + m_v2Radius.y * glm::sin(fNegOffsetAngle)};
-        //m_vv2fCollidingPoints.push_back({v2NegOffset, fNegOffsetAngle});
-
+        glm::vec2 v2NegOffset = {m_v2Origin.x + m_v2Radius.x * glm::sin(fNegOffsetAngle), m_v2Origin.y + m_v2Radius.y * glm::cos(fNegOffsetAngle)};
+        this->CheckForAOECollisionAndAdd(m_v2Origin, v2NegOffset);
     }
 }
 
