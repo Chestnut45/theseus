@@ -123,4 +123,17 @@ private:
 
     std::unordered_set<glm::ivec2> m_visitedChunks; // Track visited chunks
     bool m_isMapExpanded = false;                  // Toggle for expanded map
+
+    wolf::Timer m_cameraShakeTimer;
+    wolf::Timer m_fadeToBlackTimer;
+    wolf::Timer m_completionMessageTimer;
+    wolf::Timer m_showCreditsTimer;
+    wolf::Timer m_returnToMainMenuTimer;
+    wolf::Timer m_gameCompletionTime;
+
+    void RenderFadeOverlay(float alpha);
+    void RenderTextCentered(const std::string& text, float size);
+    void RenderCredits();
+    bool m_isExiting = false;
+
 };

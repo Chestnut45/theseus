@@ -37,6 +37,7 @@
 #include <BossController.h>
 #include <W_Audio.h>
 #include <events/PauseEvent.h>
+#include <glm/gtc/random.hpp>
 
 void PlayState::Enter()
 {
@@ -208,7 +209,7 @@ void PlayState::Enter()
         m_pPathfindingManager->RegisterEntity(minitaur.GetGameObject());
     }
 
-
+    m_gameCompletionTime.Start();
 }
 
 void PlayState::Exit()
@@ -272,6 +273,8 @@ void PlayState::Update(float delta)
             m_bossZoomTimer.Reset();
         }
     }
+
+    
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
@@ -310,6 +313,41 @@ void PlayState::Update(float delta)
     
     // Update the labyrinth manager
     m_pLabyrinthManager->Update(delta);
+    if (m_cameraShakeTimer.IsRunning() && m_cameraShakeTimer.Elapsed() < 2.0f)
+    {
+        float intensity = 5.0f; // Shake intensity
+        glm::vec2 shakeOffset = glm::vec2(
+            m_pLabyrinthManager->m_rng.NextFloat(-intensity, intensity),
+            m_pLabyrinthManager->m_rng.NextFloat(-intensity, intensity)
+        );
+        pCamera->SetPosition(pCamera->GetPosition() + shakeOffset);
+    }
+
+    // Handle fade to black over 3 seconds
+    if (m_fadeToBlackTimer.Elapsed() < 3.0f)
+    {
+        // Gradually increase alpha over 3 seconds
+        float alpha = glm::clamp(static_cast<float>(m_fadeToBlackTimer.Elapsed()) / 3.0f, 0.0f, 1.0f);
+        RenderFadeOverlay(alpha);
+    }
+    else
+    {
+        // If fade is fully elapsed, keep it completely black
+        RenderFadeOverlay(1.0f);
+    }
+    
+    // Display completion message for 5 seconds
+    if (m_completionMessageTimer.IsRunning() && m_completionMessageTimer.Elapsed() < 5.0f)
+    {
+        RenderTextCentered("You have completed Theseus in " + std::to_string(m_gameCompletionTime.Elapsed()), 5.0f);
+    }
+
+    // Show credits after message disappears
+    if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() < 15.0f)
+    {
+        RenderCredits();
+    }
+
 
     PortalTileManager::GetInstance()->Update(delta);
     TileFireManager::GetInstance()->Update(delta);
@@ -704,10 +742,6 @@ void PlayState::Update(float delta)
         monsterSpawner.Update(delta);
     }
 
-    // Dispatch events
-    wolf::EventManager::Dispatch();
-
-    // ImGui::ShowDemoWindow();
     m_particleSystem->Update(delta);
     // Toggle particle system editor with Right Alt
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_ALT)) {
@@ -716,6 +750,12 @@ void PlayState::Update(float delta)
     
     // Call the editor function inside update
     m_particleSystem->ShowEditor();
+
+    // Dispatch events
+    wolf::EventManager::Dispatch();
+
+    // ImGui::ShowDemoWindow();
+
 
 }
 
@@ -1073,8 +1113,47 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
 void PlayState::OnGameWinEvent(const GameWinEvent& event)
 {
+    m_gameCompletionTime.Pause();
+    // Play game win sound
     wolf::Audio::Play("data/sounds/sfx_game_win.wav", 1.0f);
+
+    // Start camera shake effect for 2 seconds
+    m_cameraShakeTimer.Start();
+
+    // Get the ParticleComponent from Theseus
+    auto* particleComponent = m_pPlayerObject->GetComponent<ParticleComponent>();
+    if (particleComponent)
+    {
+        glm::vec2 playerPosition = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+        // Emit 100 particles in random directions
+        for (int i = 0; i < 100; ++i)
+        {
+            glm::vec2 randomVelocity = glm::diskRand(300.0f); 
+            glm::vec4 randomColor = glm::vec4(
+                m_pLabyrinthManager->m_rng.NextFloat(0.5f, 1.0f),  
+                m_pLabyrinthManager->m_rng.NextFloat(0.5f, 1.0f),  
+                m_pLabyrinthManager->m_rng.NextFloat(0.5f, 1.0f),  
+                1.0f
+            );
+
+            float size = m_pLabyrinthManager->m_rng.NextFloat(2.0f, 5.0f);
+            float lifetime = m_pLabyrinthManager->m_rng.NextFloat(1.0f, 2.0f);
+
+            particleComponent->Emit(playerPosition, randomVelocity, randomColor, size, lifetime);
+        }
+    }
+
+    // Begin fade to black
+    m_fadeToBlackTimer.Start();
+
+    // Schedule text and credits display
+    m_completionMessageTimer.Start();  // Show message after fade-in
+    m_showCreditsTimer.Start();  // Show credits after 5s of message
+    m_returnToMainMenuTimer.Start();  // Return after credits (15s later)
 }
+
+
 
 int GetGoldVariant(int tileID) {
     switch (tileID) {
@@ -1378,3 +1457,83 @@ wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
 }
 
 
+void PlayState::RenderFadeOverlay(float alpha)
+{
+    if (alpha >= 1.0f) alpha = 1.0f;
+    if (alpha <= 0.0f) return;
+
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, alpha));
+
+    if (ImGui::Begin("FadeOverlay", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove ))
+    {
+        if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() >= 15.0f)
+        {
+            ImGui::SetCursorPosY(ImGui::GetIO().DisplaySize.y * 0.6f); // Center 
+            ImGui::SetCursorPosX((ImGui::GetIO().DisplaySize.x - 200.0f) * 0.5f); // Center
+            if (ImGui::Button("Return to Main Menu", ImVec2(200.0f, 50.0f)))
+            {
+                // Return to the main menu when clicked
+                wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
+            }
+        }
+
+        ImGui::End();
+    }
+
+    ImGui::PopStyleColor();
+}
+
+
+
+void PlayState::RenderTextCentered(const std::string& text, float size)
+{
+    ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.4f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowBgAlpha(0.0f);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20, 10));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f)); // white text
+
+    ImGui::Begin("CenteredText", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs);
+    ImGui::SetWindowFontScale(size);
+    ImGui::Text("%s", text.c_str());
+    ImGui::End();
+
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+}
+
+void PlayState::RenderCredits()
+{
+    static const char* credits[] = {
+        "Theseus Development Team",
+        "Project Lead: Aurora Ryder",
+        "Lead Programmer: D'Anyil Landry",
+        "Programmers:",
+        "Youssef Ashraf",
+        "Nguyen Minh Nhat",
+        "SFX / Music: D'Anyil Landry",
+        "lots of love, if you got here, ur an amazing person",
+        "Thank you for playing!"
+    };
+
+    float baseY = ImGui::GetIO().DisplaySize.y - (m_showCreditsTimer.Elapsed() * 50.0f); // Scroll effect
+
+    ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, baseY), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.0f);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 5));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+
+    ImGui::Begin("Credits", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs);
+    for (const char* line : credits)
+    {
+        ImGui::Text("%s", line);
+    }
+    ImGui::End();
+
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+}
