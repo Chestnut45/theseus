@@ -1,10 +1,11 @@
+#pragma once
+
 //-----------------------------------------------------------------------------
 // File: GorgonController.h
 // Original Author:	Youssef Ashraf
 // Modifications: Nguyễn Minh Nhật
 // Controls gorgon attacks & behaviours.
 //-----------------------------------------------------------------------------
-#pragma once
 
 #include "EnemyController.h"
 #include <wolf.h>

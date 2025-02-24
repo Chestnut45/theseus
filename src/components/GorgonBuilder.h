@@ -1,10 +1,11 @@
+#pragma once
+
 //-----------------------------------------------------------------------------
 // File: GorgonBuilder.h
 // Original Author:	Youssef Ashraf
 // Modifications: Nguyễn Minh Nhật
 // Constructs gorgon enemies.
 //-----------------------------------------------------------------------------
-#pragma once
 
 #include <wolf.h>
 #include "GorgonController.h"

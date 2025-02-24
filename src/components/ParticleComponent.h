@@ -1,10 +1,11 @@
+#pragma once
+
 //-----------------------------------------------------------------------------
 // File:			ParticleComponent.h
 // Original Author:	Youssef Ashraf
 // ver 1.1
 // class responsible for particle data, update and emission.
 //-----------------------------------------------------------------------------
-#pragma once
 
 #include <vector>
 #include <glm/vec2.hpp>

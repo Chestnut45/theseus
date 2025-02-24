@@ -1,3 +1,5 @@
+#pragma once
+
 //-----------------------------------------------------------------------------
 // File:			GameState.h
 // Original Author:	Youssef Ashraf
@@ -6,7 +8,6 @@
 // A class that's responsible for the Game States.
 // w/forward declaration.
 //-----------------------------------------------------------------------------
-#pragma once
 // Forward declare GameStateManager and Theseus to avoid circular dependencies
 class GameStateManager;
 class Theseus;

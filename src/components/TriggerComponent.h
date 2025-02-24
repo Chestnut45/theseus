@@ -1,3 +1,4 @@
+#pragma once
 //-----------------------------------------------------------------------------
 // File:			TriggerComponent.h
 // Original Author:	Youssef Ashraf
@@ -5,7 +6,6 @@
 // ver 1.3
 // class responsible for a generalized trigger component
 //-----------------------------------------------------------------------------
-#pragma once
 
 #include <cstdint>
 #include "W_BaseComponent.h"

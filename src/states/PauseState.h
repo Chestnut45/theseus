@@ -1,3 +1,5 @@
+#pragma once
+
 //-----------------------------------------------------------------------------
 // File:			PauseState.h
 // Original Author:	Youssef Ashraf
@@ -5,7 +7,6 @@
 // A class responsible for the Concrete Pause State.
 //-----------------------------------------------------------------------------
 
-#pragma once
 #include "GameState.h"
 #include <theseus.h> // Include the main game class
 

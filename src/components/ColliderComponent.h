@@ -1,3 +1,4 @@
+#pragma once
 //-----------------------------------------------------------------------------
 // File: ColliderComponent.h
 // Original Author: Nguyễn Minh Nhật
