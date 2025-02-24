@@ -79,6 +79,7 @@ void ParticleSystem2D::Update(float delta)
 // Renders all active particles from registered components
 void ParticleSystem2D::Render()
 {
+    glEnable(GL_PROGRAM_POINT_SIZE);
     if (!s_pShader) return;
 
     // glEnable(GL_BLEND);
@@ -120,7 +121,7 @@ void ParticleSystem2D::Render()
     glBindBuffer(GL_ARRAY_BUFFER, m_sizeVBO);
     glBufferData(GL_ARRAY_BUFFER, sizes.size() * sizeof(float), sizes.data(), GL_STREAM_DRAW);
 
-    glPointSize(3.0f);
+    glPointSize(1.0f);
 
     glDrawArrays(GL_POINTS, 0, positions.size());
 
