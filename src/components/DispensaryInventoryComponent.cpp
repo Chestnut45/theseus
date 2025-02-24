@@ -1,4 +1,12 @@
 #include "DispensaryInventoryComponent.h"
+
+//-----------------------------------------------------------------------------
+// File:            DispensaryInventoryComponent.cpp
+// Original Author: Aurora Ryder
+//
+// A class representing a armament dispensary inventory
+//-----------------------------------------------------------------------------
+
 #include "inventory/ItemCreator.h"
 #include "AnimatedSprite2D.h"
 
@@ -17,10 +25,10 @@ DispensaryInventoryComponent::~DispensaryInventoryComponent() {
     m_vvpContents.clear();
 }
 
-// AVOID USING THIS METHOD WHEN POSSIBLE. Dispensary contents aren't really
-// meant to change once they've been initialized and FillInventoryFromFile
+/* AVOID USING THIS METHOD WHEN POSSIBLE. Dispensary contents aren't really
+// meant to change once they've been initialized, and FillInventoryFromFile
 // calls this method internally, so there shouldn't really be a reason to
-// manually empty a dispensary inventory.
+// manually empty a dispensary inventory. */
 void DispensaryInventoryComponent::EmptyInventory() {
     // Empty the inventory as usual
     InventoryComponent::EmptyInventory();
@@ -68,7 +76,8 @@ bool DispensaryInventoryComponent::RemoveItem(int p_iItemIndex) {
     return result;
 }
 
-
+// Fills the dispensary with using a .yaml loot table
+// > p_strFilePath: path to the .yaml loot table
 bool DispensaryInventoryComponent::FillInventoryFromFile(const std::string& p_strFilePath) {
     // If the inventory has things in it already
     if (!this->IsEmpty()) {
@@ -84,6 +93,7 @@ bool DispensaryInventoryComponent::FillInventoryFromFile(const std::string& p_st
     return result;
 }
 
+// Sorts the contents of this DispensaryInventory by their rarity level
 void DispensaryInventoryComponent::SortByRarity() {
     // Clear out the rarity vectors
     for (int i = 0; i < END_OF_RARITIES; i++) {
@@ -106,6 +116,7 @@ void DispensaryInventoryComponent::SortByRarity() {
     m_bUnsorted = false;
 }
 
+// Shows the dispensary's GUI
 void DispensaryInventoryComponent::ShowInventoryGUI() {
     // If the dispensary is open
     if (m_bIsOpen) {
@@ -356,6 +367,9 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
     }
 }
 
+// Removes the item stored at p_iItemIndex from the dispensary's inventory
+// and sends it to the player using a DispenseItemToPlayerEvent
+// > p_iItemIndex: the index of the item that will be dispensed
 void DispensaryInventoryComponent::DispenseItem(int p_iItemIndex) {
     // When we dispense an item, we need to make a new instance of an item that is in the dispensary
     ItemBase* pItemToDispense = this->GetItem(p_iItemIndex);
@@ -370,6 +384,8 @@ void DispensaryInventoryComponent::DispenseItem(int p_iItemIndex) {
     }
 }
 
+// Handler for OpenInventoryEvents that plays the dispensary startup animation and sound
+// > p_event: the OpenInventoryEvent object
 void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
 
     if (p_event.enType == InventoryType::DISPENSARY_INVENTORY && p_event.iIdNum == m_iIdNum)
@@ -391,6 +407,8 @@ void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryE
     }
 }
 
+// Handler for CloseInventoryEvents that plays the dispensary shutdown sound and animation
+// > p_event: the CloseInventoryEvent object
 void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
 
     bool sfxPlayed = false;

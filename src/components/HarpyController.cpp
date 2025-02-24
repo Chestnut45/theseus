@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File: HarpyController.cpp
+// Original Author:	Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
+// Controls harpy attacks & behaviours.
+//-----------------------------------------------------------------------------
 #include "HarpyController.h"
 #include "PlayerController.h"
 #include "AttackDamageComponent.h"
@@ -258,6 +264,7 @@ void HarpyController::SetUpAnimations(const std::string& animationInitPath)
 
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
+    m_pAnimComponent->SetLayer(11);
 }
 
 void HarpyController::MoveTowardsTarget(float delta)

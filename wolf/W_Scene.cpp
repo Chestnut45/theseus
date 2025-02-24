@@ -1,3 +1,11 @@
+//-----------------------------------------------------------------------------
+// File:			W_Scene.cpp
+// Original Author:	D'Anyil Landry
+//
+// A class representing a hierarchical collection of game objects with arbitrary
+// structs or classes as components.
+//-----------------------------------------------------------------------------
+
 #include "W_Scene.h"
 
 #include <map>
@@ -13,7 +21,6 @@
 
 #include "../src/components/ColliderComponent.h"
 #include "GLShapesRenderer.h"
-
 
 namespace wolf
 {
@@ -165,9 +172,7 @@ void Scene::Render(float delta)
     }
 
     // Queue all colliders for debug rendering
-    static bool renderDebugColliders = false;
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_BACKSLASH)) renderDebugColliders = !renderDebugColliders;
-    if (renderDebugColliders)
+    if (m_renderDebugColliders)
     {
         for (auto&&[_, collider] : Each<ColliderComponent>())
         {

@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File: EnemyDataLoader.cpp
+// Original Author:	Youssef Ashraf
+// Modifications : Nguyễn Minh Nhật
+// Loads data for enemies from .yaml files.
+//-----------------------------------------------------------------------------
 #include "EnemyDataLoader.h"
 
 void EnemyDataLoader::LoadAllEnemyData(const std::string& filepath) {

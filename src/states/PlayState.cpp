@@ -1,3 +1,11 @@
+//-----------------------------------------------------------------------------
+// File:			PlayState.cpp
+// Original Author:	Youssef Ashraf
+// Modifications : D'Anyil Landry, Nguyễn Minh Nhật, Aurora Ryder
+// ver 1.1
+// A class that's responsible for the Concrete Play State.
+//-----------------------------------------------------------------------------
+
 #include "PlayState.h"
 #include "PauseState.h"
 #include "DialogueAndCutsceneState.h"
@@ -17,6 +25,7 @@
 #include "../components/VelocityComponent.h"
 #include "../components/ThrowableObjectComponent.h"
 #include "../components/BoulderTrapComponent.h"
+#include "../components/MonsterSpawnerComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
 #include "DDACalculator.h"
@@ -59,6 +68,8 @@ void PlayState::Enter()
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    auto& pathfindingManagerObject = scene.CreateObject2D();
+    m_pPathfindingManager = &pathfindingManagerObject.AddComponent<PathfindingManager>(m_pLabyrinthManager);    
     NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     m_pLabyrinthManager->GenerateLabyrinth();
 
@@ -193,6 +204,12 @@ void PlayState::Enter()
     // Stop all audio and begin the maze music
     wolf::Audio::Stop();
     wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, true, 13.714f);
+
+    // Now it's safe to register entities
+    for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())
+    {
+        m_pPathfindingManager->RegisterEntity(minitaur.GetGameObject());
+    }
 }
 
 void PlayState::Exit()
@@ -205,6 +222,8 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+
+    m_pPathfindingManager = nullptr;
     wolf::EventManager::RemoveListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
 
     // Delete managers
@@ -231,6 +250,23 @@ void PlayState::Resume()
 
 void PlayState::Update(float delta)
 {
+    auto* pCamera = m_pGameInstance->GetScene().GetActiveCamera();
+    if (pCamera && m_bossZoomTimer.IsRunning())
+    {
+        if (m_bossZoomTimer.Elapsed() < 2.0f)
+        {
+            // Smooth interpolation based on cosine
+            float elapsedNormalized = m_bossZoomTimer.Elapsed() * 0.5f;
+            float t = (1.0f - cos(3.1415926535f * elapsedNormalized)) / 2;
+            pCamera->SetZoom(glm::mix(1.0f, 0.85f, t));
+        }
+        else
+        {
+            // Stop zoom and set value
+            pCamera->SetZoom(0.85f);
+            m_bossZoomTimer.Reset();
+        }
+    }
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
@@ -238,33 +274,34 @@ void PlayState::Update(float delta)
         m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
     }
 
-    // Toggle Labyrinth Manager GUI with the semicolon key
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) 
-        m_showLabyrinthManager = !m_showLabyrinthManager;
-    
-    // DEBUG: Teleport to bossfight
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT))
-        m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
-    
-
-    // Update fluid systems
-    for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
+    // Update debug hotkeys
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_DELETE))
     {
-        system.Update(delta);
-
-        // DEBUG: Apply outward force if player is walking
-        if (m_pPlayerObject->GetComponent<PlayerController>()->GetPlayerAction() == PlayerController::PlayerAction::ROLLING)
-        {
-            system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 100.0f, 10.0f);
-        }
-
-        // DEBUG
-        system.ShowEditor();
+        // Toggle debug hotkeys for both us and the player
+        m_debugHotkeys = !m_debugHotkeys;
+        m_pPlayerObject->GetComponent<PlayerController>()->m_debugHotkeys = m_debugHotkeys;
     }
 
-    // Show the Labyrinth Manager debug GUI
-    if (m_showLabyrinthManager) 
-        m_pLabyrinthManager->ShowGUI();
+    if (m_debugHotkeys)
+    {
+        // Show debug hitboxes with backslash
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_BACKSLASH))
+        {
+            m_pGameInstance->GetScene().ToggleDebugDrawing();
+        }
+
+        // Toggle Labyrinth Manager GUI with the semicolon key
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) 
+            m_showLabyrinthManager = !m_showLabyrinthManager;
+        
+        // DEBUG: Teleport to bossfight
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT))
+            m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
+
+        // Show the Labyrinth Manager debug GUI
+        if (m_showLabyrinthManager) 
+            m_pLabyrinthManager->ShowGUI();
+    }
     
     // Update the labyrinth manager
     m_pLabyrinthManager->Update(delta);
@@ -281,47 +318,50 @@ void PlayState::Update(float delta)
     // INVENTORY TESTING
     auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
     if (playerInventory) {
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
+        if (m_debugHotkeys)
+        {
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
 
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-            ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
-            ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
-            ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
-            ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
-            ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
-            ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
-            ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
-            ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
+                ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
+                ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
+                ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
+                ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
+                ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
+                ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
+                ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
+                ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
 
-            ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
-            ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
+                ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
+                ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
 
-            ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
-            ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
-            ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
-            
-            playerInventory->AddItemOrDelete(pBoots);
-            playerInventory->AddItemOrDelete(pDentedHelmet);
-            playerInventory->AddItemOrDelete(pRustyChestplate);
-            playerInventory->AddItemOrDelete(pCopperVambraces);
-            playerInventory->AddItemOrDelete(pKilt);
-            playerInventory->AddItemOrDelete(pTheezys);
-            playerInventory->AddItemOrDelete(pFauxLeatherGloves);
-            playerInventory->AddItemOrDelete(pLapisLazuliRing);
+                ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
+                ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
+                ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
+                
+                playerInventory->AddItemOrDelete(pBoots);
+                playerInventory->AddItemOrDelete(pDentedHelmet);
+                playerInventory->AddItemOrDelete(pRustyChestplate);
+                playerInventory->AddItemOrDelete(pCopperVambraces);
+                playerInventory->AddItemOrDelete(pKilt);
+                playerInventory->AddItemOrDelete(pTheezys);
+                playerInventory->AddItemOrDelete(pFauxLeatherGloves);
+                playerInventory->AddItemOrDelete(pLapisLazuliRing);
 
-            playerInventory->AddItemOrDelete(pBow);
-            playerInventory->AddItemOrDelete(pSpear);
-            playerInventory->AddItemOrDelete(pHealHeart);
-            playerInventory->AddItemOrDelete(pHurtHeart);
-            playerInventory->AddItemOrDelete(pBurnHeart);
-        }
+                playerInventory->AddItemOrDelete(pBow);
+                playerInventory->AddItemOrDelete(pSpear);
+                playerInventory->AddItemOrDelete(pHealHeart);
+                playerInventory->AddItemOrDelete(pHurtHeart);
+                playerInventory->AddItemOrDelete(pBurnHeart);
+            }
 
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
-            playerInventory->AddGold(10);
-        }
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
+                playerInventory->AddGold(10);
+            }
 
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-            playerInventory->TakeGold(5);
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
+                playerInventory->TakeGold(5);
+            }
         }
 
         playerInventory->ShowToggleButtonGUI();
@@ -329,7 +369,7 @@ void PlayState::Update(float delta)
     }
 
     // DEBUG: Noclip hotkey
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_SLASH))
+    if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_SLASH))
     {
         auto* pCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
         if (pCollider)
@@ -359,6 +399,7 @@ void PlayState::Update(float delta)
     {
         controller.Update(delta);
     }
+
 
     // Update all minitaur controllers
     // First pass: Update all minitaur controllers (without deletion)
@@ -590,10 +631,6 @@ void PlayState::Update(float delta)
                 break;
             }
         }
-
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_V)) {
-            npc.QueueDialogue("test");
-        }
     }
 
     // Display all open merchant GUIs
@@ -615,20 +652,22 @@ void PlayState::Update(float delta)
     }
 
     // Trigger CutsceneDialogueEvent when pressing 9
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_9))
+    if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_9))
     {
         // Trigger both cutscene and dialogue with IDs
         wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
     }
 
-        // Update velocity components to apply friction and decelerate objects
+    this->m_pPathfindingManager->UpdateEntities(delta);
+
+    // Update velocity components to apply friction and decelerate objects
     for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
         velocity.Update(delta);  // Update velocity with friction and other forces
     }
 
+
     // Update collisions
     this->m_pColliderManager->Update(delta);
-    
     // Apply velocity for all objects with Transform2D and VelocityComponent
     for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
         if (!velocity.IsActive()) continue;
@@ -654,6 +693,10 @@ void PlayState::Update(float delta)
     // Update damage indicators
     for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>()) {
         health.UpdateDamageIndicators(delta);
+    }
+
+    for (auto&& [_, monsterSpawner] : m_pGameInstance->GetScene().Each<MonsterSpawnerComponent>()) {
+        monsterSpawner.Update(delta);
     }
 
     // Dispatch events
@@ -728,7 +771,6 @@ void PlayState::CreatePlayer()
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));
 }
-
 
 void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {
     // std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
@@ -964,6 +1006,15 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             wolf::Log("BOSSFIGHT STARTED");
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
             m_pBoss->GetComponent<BossController>()->SetActive(true);
+
+            // Zoom out camera
+            m_bossZoomTimer.Restart();
+
+            // Change filter mode on all tilemaps
+            for (auto&&[_, tilemap] : m_pGameInstance->GetScene().Each<wolf::TileMap>())
+            {
+                tilemap.SetFilterMode(GL_LINEAR_MIPMAP_LINEAR);
+            }
 
             // Set door areas to wall tiles
             for (const auto& door : m_bossRoomDoorTiles)

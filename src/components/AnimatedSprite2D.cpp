@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // File:			AnimatedSprite2D.cpp
 // Original Author:	Aurora Ryder
-//
+// Modifications: Nguyễn Minh Nhật
 // A class representing a renderable, animated 2D sprite component.
 // 
 //-----------------------------------------------------------------------------
@@ -24,6 +24,8 @@ const float AnimatedSprite2D::m_arBaseVertexData[] = {
     1.0f, 1.0f, 1.0f, 0.0f
 };
 
+// Creates an AnimatedSprite using a .yaml file
+// > p_strPathToInit: path to the .yaml file that will be used to initialize the component
 AnimatedSprite2D::AnimatedSprite2D(const std::string& p_strPathToInit)
 {
     // Keep track of how many instances of AnimatedSprite2D exist for resource management
@@ -68,6 +70,11 @@ AnimatedSprite2D::AnimatedSprite2D(const std::string& p_strPathToInit)
     }
 }
 
+/* Creates an AnimatedSprite component
+    Parameters:
+    > p_strPathToAnimSheet: an animation sheet that this component will use
+    > p_v2FrameSize: the size of each frame in the animation sheet
+    > p_fPlaybackSpeed: the speed at which the animation should play*/
 AnimatedSprite2D::AnimatedSprite2D(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize, float p_fPlaybackSpeed)
 {
     // Keep track of how many instances of AnimatedSprite2D exist for resource management
@@ -81,6 +88,10 @@ AnimatedSprite2D::AnimatedSprite2D(const std::string& p_strPathToAnimSheet, cons
     m_fPlaybackSpeed = p_fPlaybackSpeed;
 }
 
+/* Change/set the texture used to animate the sprite. Requires a path to the new animation sheet and the size of each frame
+    Parameters:
+    > p_strPathToAnimSheet: path to the animation sheet that will be used
+    > p_v2FrameSize: the size of each frame in the animation sheet */
 bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize) {
     // If we're given the path to the texture file that we're already using then we don't need
     // to go through the process of setting it again, so we just return true
@@ -177,6 +188,7 @@ bool AnimatedSprite2D::SetTexture(const std::string& p_strPathToAnimSheet, const
     return true;
 }
 
+// Sets the origin of the AnimatedSprite to be the center of the animation frame
 void AnimatedSprite2D::SetOriginToCenterOfFrame()
 {
     // Don't bother if we don't have an animation loaded
@@ -231,6 +243,17 @@ AnimatedSprite2D::~AnimatedSprite2D() {
     }
 }
 
+/* Adds an animation to the AnimatedSprite so that it can be played using SetAnimation, later.
+    Parameters:
+    > p_strName: name that will be used to reference/switch to the animation, later
+    > p_strTexturePath: the animation sheet that this animation is part of
+    > p_vec2FrameSize: the size of each frame in the animation sheet
+    > p_iStartFrame: the frame the animation starts on (indexed from 1-n)
+    > p_iEndFrame: the frame the animation ends on (indexed from 1-n)
+    > p_vec2Origin: the point on each frame that should be treated as the origin of the sprite
+    > p_bLoop: whether or not this animation loops
+    > p_strNextAnimName: the name of the animation that will play immediately after this one if this one does not loop
+*/
 bool AnimatedSprite2D::AddAnimation(const std::string& p_strName, const std::string& p_strTexturePath, const glm::vec2& p_vec2FrameSize, int p_iStartFrame, int p_iEndFrame, const glm::vec2& p_vec2Origin, bool p_bLoop, const std::string& p_strNextAnimName) {
     // Check that the start and end frames are valid
     if (p_iStartFrame > p_iEndFrame || p_iStartFrame < 0 || p_iEndFrame < 0) {
@@ -244,6 +267,8 @@ bool AnimatedSprite2D::AddAnimation(const std::string& p_strName, const std::str
     return true;
 }
 
+// Removes an animation from the component
+// > p_strName: name of the animation that will be removed
 bool AnimatedSprite2D::RemoveAnimation(const std::string& p_strName) {
     // Attempt to erase (and destroy) the map element with key p_strName
     auto animIt = m_mAnimationMap.find(p_strName);
@@ -255,6 +280,8 @@ bool AnimatedSprite2D::RemoveAnimation(const std::string& p_strName) {
     return false; // And false if we couldn't
 }
 
+// Interrupts the current animation and plays a new one from its starting frame onwards
+// > p_strName: name of the animation to switch to
 void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
     auto animIt = m_mAnimationMap.find(p_strName);
     if (animIt != m_mAnimationMap.end()) {
@@ -273,7 +300,9 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName) {
     }
 }
 
-// This override lets you change to a specific frame of the animation you are setting
+// Interrupts the current animation and plays a new one from its starting frame onwards
+// (this override lets you change to a specific frame of the animation you are setting)
+// > p_strName: name of the animation to switch to
 void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetAnimFrame) {
     auto animIt = m_mAnimationMap.find(p_strName);
     if (animIt != m_mAnimationMap.end()) {
@@ -298,7 +327,8 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
     }
 }
 
-// *** This method was heavily informed by Jason Gregory's "Game Engine Architecture" 3rd Ed.
+// Updates the component and advances the current animation
+// **** This method was heavily informed by Jason Gregory's "Game Engine Architecture" 3rd Ed.
 // and Carol Boers' UPEI CS-4650 Animation Controller Component ***
 void AnimatedSprite2D::Update(float p_fDelta) {
     // Check if the animation is paused
@@ -389,6 +419,7 @@ void AnimatedSprite2D::Update(float p_fDelta) {
     }
 }
 
+// Draws the sprite
 void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint) {
     // If we don't have a texture (or the coordinates that go with one) then we shouldn't be trying to draw anything
     if (!m_visible || !m_pTexture || m_vpFrameUVCoords.empty()) {
@@ -461,8 +492,10 @@ void AnimatedSprite2D::Draw(const glm::vec2& position, float rotationRadians, co
     glBindVertexArray(0);
 }
 
-// Note that all animations in an animation set are assumed to have the SAME texture file and frame size,
-// If this is NOT the case, restructure your animation sets until it is.
+/* Adds a set of animations described in a .yaml file to the component
+    (note that all animations in an animation set are assumed to have the SAME texture file and frame size,
+    If this is NOT the case, restructure your animation sets until it is)
+    > p_strPathToSetFile: path to the .yaml file that describes a set of animation*/
 bool AnimatedSprite2D::AddAnimationSet(const std::string& p_strPathToSetFile) {
     try {
         // Grab the file
@@ -503,6 +536,7 @@ bool AnimatedSprite2D::AddAnimationSet(const std::string& p_strPathToSetFile) {
     }
 }
 
+// Update the number of AnimatedSprite components in the scene
 void AnimatedSprite2D::IncreaseReferences()
 {
     // If there are currently no AnimatedSprite2D instances then we need to create shader resources

@@ -1,3 +1,12 @@
+//-----------------------------------------------------------------------------
+// File:			W_GameObject.cpp
+// Original Author:	D'Anyil Landry
+//
+// A class representing a game object that belongs to a scene. Game objects
+// can have components of any type attached to them, and can form hierarchical
+// relationships with other game objects within the same scene.
+//-----------------------------------------------------------------------------
+
 #include "W_GameObject.h"
 
 namespace wolf

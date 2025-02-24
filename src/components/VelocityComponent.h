@@ -3,6 +3,7 @@
 //-----------------------------------------------------------------------------
 // File:            VelocityComponent.h
 // Original Author: Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
 // ver 1.1.
 // A class that's responsible for the Velocity component to be added in certain game objects.
 //-----------------------------------------------------------------------------

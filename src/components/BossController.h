@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File: BossController.h
+// Original Author:	D'Anyil Landry
+// Modifications: Aurora Ryder, Nguyễn Minh Nhật, Youssef Ashraf
+// Controls the  behaviours of the Boss - NOT inherited from EnemyController
+//-----------------------------------------------------------------------------
 #pragma once
 #include <W_BaseComponent.h>
 #include <glm/glm.hpp>
@@ -155,6 +161,7 @@ private:
     wolf::Timer m_axeAttackTimer;
     wolf::Timer m_leapAttackTimer;
     wolf::Timer m_transitionTimer;
+    wolf::Timer m_throneBreakTimer;
     glm::vec2 m_dodgeDir;
     glm::vec2 m_transitionStartPos;
     ColliderComponent* m_pAxeCollider = nullptr;

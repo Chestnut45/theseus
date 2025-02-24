@@ -1,3 +1,14 @@
+//-----------------------------------------------------------------------------
+// File:			LabyrinthManager.cpp
+// Original Author:	D'Anyil Landry
+// Modifications: Nguyễn Minh Nhật, Youssef Ashraf, Aurora Ryder
+// A class representing a game component used to generate and update the labyrinth.
+// 
+// When attached to a game object, calling Generate() will create all the
+// necessary objects and components to represent the labyrinth and add them
+// all as child objects of the object the manager is attached to.
+//-----------------------------------------------------------------------------
+
 #include "LabyrinthManager.h"
 
 // ImGui for GUI windows
@@ -39,6 +50,7 @@
 #include <MinitaurController.h>
 #include <GorgonController.h>
 #include <NPCComponent.h>
+#include <MonsterSpawnerComponent.h>
 
 std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
 std::string LabyrinthManager::s_entityNames[(int)LabyrinthManager::Room::EntityType::ENTITY_COUNT];
@@ -64,7 +76,9 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["daedalus_npc"] = Room::EntityType::DaedalusNPC;
     s_entityIDs["random_npc"] = Room::EntityType::RandomNPC;
     s_entityIDs["boulder_trap"] = Room::EntityType::BoulderTrap;
-
+    s_entityIDs["gorgon_spawner"] = Room::EntityType::GorgonSpawner;
+    s_entityIDs["harpy_spawner"] = Room::EntityType::HarpySpawner;
+    s_entityIDs["minitaur_spawner"] = Room::EntityType::MinitaurSpawner;
 
     // Auto generate ordered array of names
     for (auto entry : s_entityIDs)
@@ -2382,6 +2396,122 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add the object to the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(trap);
+                        break;
+                    }
+
+                    //-------Added By Nhat-------//
+                    case Room::EntityType::GorgonSpawner:
+                    {
+                        wolf::IRectangle roomBounds = room.m_bounds;
+                        glm::ivec2 roomSize = roomBounds.m_size;
+                        glm::ivec2 roomOrigin = roomBounds.m_origin;
+
+                        int roomArea = roomSize.x * roomSize.y;
+
+                        if(roomArea <= 0) return;
+
+                        // Create the spawner object
+                        auto& monsterSpawnerObj = pObject->GetScene().CreateObject2D();
+
+                        // Configure data
+                        MonsterSpawnerComponent::MonsterSpawnerData msd;
+                        msd.spawnerTilePos = glm::ivec2(roomOrigin);
+                        msd.spawnerSize = glm::ivec2(roomSize);
+                        msd.triggerTilePos = glm::ivec2(roomOrigin);
+                        msd.triggerSize = glm::ivec2(roomSize);
+                        msd.harpyCount = 0;
+                        msd.minitaurCount = 0;
+                        
+                        // Configure specific gorgon count
+                        float baseScale = 0.05f;
+                        float capScale = 0.15f;
+
+                        int spawnBase = (int)std::ceil(roomArea * baseScale);
+                        int spawnCap = (int)std::ceil(roomArea * capScale);
+                        
+                        msd.gorgonCount = m_rng.NextInt(spawnBase, spawnCap);
+
+                        // Add the spawner component
+                        MonsterSpawnerComponent* monsterSpawnerComp = &monsterSpawnerObj.AddComponent<MonsterSpawnerComponent>(msd);
+                        monsterSpawnerComp->Init();
+
+                        GetChunk(GetChunkID(GetWorldPosition(roomOrigin)))->AddChild(monsterSpawnerObj);
+                        break;
+                    }
+
+                    //-------Added By Nhat-------//
+                    case Room::EntityType::HarpySpawner:
+                    {
+                        wolf::IRectangle roomBounds = room.m_bounds;
+                        glm::ivec2 roomSize = roomBounds.m_size;
+                        glm::ivec2 roomOrigin = roomBounds.m_origin;
+
+                        int roomArea = roomSize.x * roomSize.y;
+
+                        if(roomArea <= 0) return;
+
+                        // Create the spawner object
+                        auto& monsterSpawnerObj = pObject->GetScene().CreateObject2D();
+
+                        // Configure data
+                        MonsterSpawnerComponent::MonsterSpawnerData msd;
+                        msd.spawnerTilePos = glm::ivec2(roomOrigin);
+                        msd.spawnerSize = glm::ivec2(roomSize);
+                        msd.triggerTilePos = glm::ivec2(roomOrigin);
+                        msd.triggerSize = glm::ivec2(roomSize);
+                        msd.gorgonCount = 0;
+                        msd.minitaurCount = 0;
+                        
+                        // Configure specific harpy count
+                        float baseScale = 0.05f;
+                        float capScale = 0.1f;
+                        int spawnBase = (int)std::ceil(roomArea * baseScale);
+                        int spawnCap = (int)std::ceil(roomArea * capScale);
+                        msd.harpyCount = m_rng.NextInt(spawnBase, spawnCap);          
+
+                        // Add the spawner component
+                        MonsterSpawnerComponent* monsterSpawnerComp = &monsterSpawnerObj.AddComponent<MonsterSpawnerComponent>(msd);
+                        monsterSpawnerComp->Init();
+
+                        GetChunk(GetChunkID(GetWorldPosition(roomOrigin)))->AddChild(monsterSpawnerObj);
+                        break;
+                    }
+
+                    //-------Added By Nhat-------//
+                    case Room::EntityType::MinitaurSpawner:
+                    {
+                        wolf::IRectangle roomBounds = room.m_bounds;
+                        glm::ivec2 roomSize = roomBounds.m_size;
+                        glm::ivec2 roomOrigin = roomBounds.m_origin;
+
+                        int roomArea = roomSize.x * roomSize.y;
+
+                        if(roomArea <= 0) return;
+
+                        // Create the spawner object
+                        auto& monsterSpawnerObj = pObject->GetScene().CreateObject2D();
+
+                        // Configure data
+                        MonsterSpawnerComponent::MonsterSpawnerData msd;
+                        msd.spawnerTilePos = glm::ivec2(roomOrigin);
+                        msd.spawnerSize = glm::ivec2(roomSize);
+                        msd.triggerTilePos = glm::ivec2(roomOrigin);
+                        msd.triggerSize = glm::ivec2(roomSize);
+                        msd.gorgonCount = 0;
+                        msd.harpyCount = 0;
+                        
+                        // Configure specific minitaur count
+                        float baseScale = 0.1f;
+                        float capScale = 0.2f;
+                        int spawnBase = (int)std::ceil(roomArea * baseScale);
+                        int spawnCap = (int)std::ceil(roomArea * capScale);
+                        msd.minitaurCount = m_rng.NextInt(spawnBase, spawnCap);         
+
+                        // Add the spawner component
+                        MonsterSpawnerComponent* monsterSpawnerComp = &monsterSpawnerObj.AddComponent<MonsterSpawnerComponent>(msd);
+                        monsterSpawnerComp->Init();
+
+                        GetChunk(GetChunkID(GetWorldPosition(roomOrigin)))->AddChild(monsterSpawnerObj);
                         break;
                     }
                 }
