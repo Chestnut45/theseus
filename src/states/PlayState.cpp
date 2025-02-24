@@ -744,7 +744,7 @@ void PlayState::Update(float delta)
 
     m_particleSystem->Update(delta);
     // Toggle particle system editor with Right Alt
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_ALT)) {
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_ALT)&&m_debugHotkeys) {
         m_particleSystem->ToggleEditor();
     }
     
