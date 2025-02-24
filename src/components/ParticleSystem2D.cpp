@@ -74,61 +74,59 @@ void ParticleSystem2D::Update(float delta)
 // Renders all active particles from registered components
 void ParticleSystem2D::Render()
 {
-    if (!s_pShader) return;
+    // if (!s_pShader) return;
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_DEPTH_TEST);
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glDisable(GL_DEPTH_TEST);
 
-    s_pShader->Bind();
-    glBindVertexArray(m_vao);
+    // s_pShader->Bind();
+    // glBindVertexArray(m_vao);
 
-    std::vector<glm::vec2> positions;
-    std::vector<glm::vec4> colors;
-    std::vector<float> sizes;
+    // std::vector<glm::vec2> positions;
+    // std::vector<glm::vec4> colors;
+    // std::vector<float> sizes;
 
-    int renderCount = 0;
+    // int renderCount = 0;
 
-    for (auto* component : m_components)
-    {
-        for (const auto& particle : component->GetParticles())
-        {
-            if (particle.m_active)
-            {
-                positions.push_back(particle.m_pos);
-                colors.push_back(particle.m_color);
-                sizes.push_back(particle.m_size);
-                renderCount++;
-            }
-        }
-    }
+    // for (auto* component : m_components)
+    // {
+    //     for (const auto& particle : component->GetParticles())
+    //     {
+    //         if (particle.m_active)
+    //         {
+    //             positions.push_back(particle.m_pos);
+    //             colors.push_back(particle.m_color);
+    //             sizes.push_back(particle.m_size);
+    //             renderCount++;
+    //         }
+    //     }
+    // }
 
-    std::cout << "Particles to render: " << renderCount << std::endl;
+    // std::cout << "Particles to render: " << renderCount << std::endl;
 
-    if (positions.empty()) return;
+    // if (positions.empty()) return;
 
-    // Upload updated particle data
-    glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
-    glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec2), positions.data(), GL_STREAM_DRAW);
+    // // Upload updated particle data
+    // glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
+    // glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec2), positions.data(), GL_STREAM_DRAW);
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_colorVBO);
-    glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec4), colors.data(), GL_STREAM_DRAW);
+    // glBindBuffer(GL_ARRAY_BUFFER, m_colorVBO);
+    // glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec4), colors.data(), GL_STREAM_DRAW);
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_sizeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizes.size() * sizeof(float), sizes.data(), GL_STREAM_DRAW);
+    // glBindBuffer(GL_ARRAY_BUFFER, m_sizeVBO);
+    // glBufferData(GL_ARRAY_BUFFER, sizes.size() * sizeof(float), sizes.data(), GL_STREAM_DRAW);
 
-    // **REMOVE Quad VBO BINDING HERE** 
-    // because it's not needed for point rendering
+    // // **REMOVE Quad VBO BINDING HERE** 
+    // // because it's not needed for point rendering
 
-    // ✅ Small Particles Fix  
-    glPointSize(3.0f); // Adjust particle size  
+    // glPointSize(3.0f); // Adjust particle size  
 
-    // 🔥 Proper particle rendering  
-    glDrawArraysInstanced(GL_POINTS, 0, 1, positions.size()); // Now correctly instanced
+    // glDrawArraysInstanced(GL_POINTS, 0, 1, positions.size()); // Now correctly instanced
 
-    glBindVertexArray(0);
-    glDisable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
+    // glBindVertexArray(0);
+    // glDisable(GL_BLEND);
+    // glEnable(GL_DEPTH_TEST);
 }
 
 
