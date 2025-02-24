@@ -50,7 +50,7 @@ rooms: [
 	},
 	{
 		name: Explode Trapped Chest Rooms,
-		instances: 3,
+		instances: 1,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
@@ -61,37 +61,37 @@ rooms: [
 	},
 	{
 		name: Gorgon Trapped Chest Rooms,
-		instances: 3,
+		instances: 2,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
 			{type: trapped_chest_gorgon, amount: 1, placement: center},
-			{type: gorgon_spawner},
+			{type: gorgon_spawner, amount: 1, placement: center},
 			{type: throwable_object, amount: 2, placement: random},
 		]
 	},
 	{
 		name: Harpy Trapped Chest Rooms,
-		instances: 3,
+		instances: 1,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
 			{type: trapped_chest_harpy, amount: 1, placement: center},
-			{type: harpy_spawner},
+			{type: harpy_spawner, amount: 1, placement: center},
 			{type: throwable_object, amount: 2, placement: random},
 		]
 	},
 	{
 		name: Minitaur Trapped Chest Rooms,
-		instances: 3,
+		instances: 2,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
 			{type: trapped_chest_minitaur, amount: 1, placement: center},
-			{type: minitaur_spawner},
+			{type: minitaur_spawner, amount: 1, placement: center},
 			{type: throwable_object, amount: 3, placement: random},
 		]
 	},
@@ -108,13 +108,81 @@ rooms: [
 	},
 	{
 		name: NPC Room,
-		instances: 8,
+		instances: 5,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: random_npc, amount: 1, placement: random},
 			{type: throwable_object, amount: 2, placement: random},
+		]
+	},
+	{
+		name: Boulder Trap Room,
+		instances: 2,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 9, y: 9}},
+		entities: [
+			{type: boulder_trap, amount: 1, placement: random},
+			{type: minitaur, amount: 2, placement: random},
+			{type: gorgon, amount: 1, placement: random},
+		]
+	},
+	{
+		name: Common Chest Room,
+		instances: 4,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 9, y: 9}},
+		entities: [
+			{type: common_chest, amount: 1, placement: center},
+		]
+	},
+	{
+		name: Uncommon Chest Room,
+		instances: 3,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: minitaur, amount: 2, placement: random},
+			{type: uncommon_chest, amount: 1, placement: center},
+		]
+	},
+	{
+		name: Rare Chest Room,
+		instances: 3,
+		force: false,
+		position: {type: random_radius, position: {x: 47, y: 47}, radius: 20},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: rare_chest, amount: 1, placement: center},
+			{type: spike_trap, amount: 3, placement: random},
+		]
+	},
+	{
+		name: Epic Chest Room,
+		instances: 2,
+		force: false,
+		position: {type: random_radius, position: {x: 47, y: 47}, radius: 20},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 9, y: 9}},
+		entities: [
+			{type: epic_chest, amount: 1, placement: center},
+			{type: harpy, amount: 2, placement: random},
+			{type: spike_trap, amount: 2, placement: random},
+		]
+	},
+	{
+		name: Legendary Chest Room,
+		instances: 1,
+		force: false,
+		position: {type: random_radius, position: {x: 47, y: 47}, radius: 20},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 9, y: 9}},
+		entities: [
+			{type: gorgon, amount: 1, placement: random},
+			{type: minitaur, amount: 3, placement: random},
+			{type: legendary_chest, amount: 1, placement: center},
 		]
 	}
 ]
