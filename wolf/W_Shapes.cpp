@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:			W_Shapes.cpp
+// Original Author:	D'Anyil Landry
+//
+// Some helper classes for testing intersections with 2D shapes and points.
+//-----------------------------------------------------------------------------
+
 #include "W_Shapes.h"
 
 namespace wolf

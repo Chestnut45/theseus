@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:			W_TileMap.cpp
+// Original Author:	D'Anyil Landry
+//
+// A renderable component representing a regular 2D grid of textured tiles.
+//-----------------------------------------------------------------------------
+
 #include "W_TileMap.h"
 
 #include <fstream>

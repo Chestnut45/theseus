@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // File:			LabyrinthManager.h
 // Original Author:	D'Anyil Landry
-// Modifications: Nguyễn Minh Nhật
+// Modifications: Nguyễn Minh Nhật, Youssef Ashraf, Aurora Ryder
 // A class representing a game component used to generate and update the labyrinth.
 // 
 // When attached to a game object, calling Generate() will create all the

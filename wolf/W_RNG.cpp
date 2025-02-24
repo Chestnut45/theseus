@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:			W_RNG.cpp
+// Original Author:	D'Anyil Landry
+//
+// A class representing a seeded instance of a pseudo random number generator.
+//-----------------------------------------------------------------------------
+
 #include "W_RNG.h"
 
 namespace wolf

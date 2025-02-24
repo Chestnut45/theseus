@@ -1,3 +1,11 @@
+//-----------------------------------------------------------------------------
+// File:			W_Scene.cpp
+// Original Author:	D'Anyil Landry
+//
+// A class representing a hierarchical collection of game objects with arbitrary
+// structs or classes as components.
+//-----------------------------------------------------------------------------
+
 #include "W_Scene.h"
 
 #include <map>
@@ -12,7 +20,6 @@
 
 #include "../src/components/ColliderComponent.h"
 #include "GLShapesRenderer.h"
-
 
 namespace wolf
 {
