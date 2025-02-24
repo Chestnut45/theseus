@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File: MinitaurBuilder.cpp
+// Original Author:	Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
+// Constructs minitaur enemies.
+//-----------------------------------------------------------------------------
+
 #include "MinitaurBuilder.h"
 #include "MinitaurController.h"
 #include "StatusComponent.h"

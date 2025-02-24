@@ -12,12 +12,14 @@
 
 #include "EquipmentItem.h"
 
+// Types of weapons
 enum class WeaponType {
     SWORD,
     SPEAR,
     BOW
 };
 
+// Struct to hold the properties of a projectile that a weapon can shoot
 struct ProjectileProperties {
     float fDamage; // How much damage does the projectile do?
 
@@ -62,13 +64,20 @@ class WeaponItem : public EquipmentItem {
         bool SetProjectileProperties(float p_fDamage, const glm::vec2& p_v2HurtBoxSize, const glm::vec2& p_v2Velocity, const std::string& p_strPathToSprite);
         ProjectileProperties GetProjectileProperties() const {return m_Projectile;};
 
+        // Constructs a string containing all of the item details that will be displayed in the on-hover GUI tooltip
         inline virtual std::string GetToolTipText() const {
+            // Get the base tooltip text, then add the weapon damage and cooldown time
             std::string strBaseText = EquipmentItem::GetToolTipText() 
                 + "\nWeapon Damage: " + std::format("{:.2f}", m_fDamage)
                 + "\nCooldown: " + std::format("{:.2f}", m_fDelay);
+
+            // Then, if the item can shoot projectiles
             if (m_bHasProjectiles) {
+                // List the projectile properties
                 strBaseText += "\nProjectile Damage: " + std::format("{:.2f}", m_Projectile.fDamage);
             }
+
+            // Then retrn the constructed string
             return strBaseText;
         };
 

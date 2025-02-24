@@ -4,6 +4,7 @@
 //-----------------------------------------------------------------------------
 // File:            VelocityComponent.cpp
 // Original Author: Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
 // ver 1.2, updated to handle object transform.
 //-----------------------------------------------------------------------------
 

@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File: HarpyController.cpp
+// Original Author:	Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
+// Controls harpy attacks & behaviours.
+//-----------------------------------------------------------------------------
 #include "HarpyController.h"
 #include "PlayerController.h"
 #include "AttackDamageComponent.h"

@@ -1,4 +1,10 @@
 #pragma once
+//-----------------------------------------------------------------------------
+// File: HarpyBuilder.h
+// Original Author:	Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
+// Constructs harpy enemies.
+//-----------------------------------------------------------------------------
 
 #include <wolf.h>
 #include "HarpyController.h"

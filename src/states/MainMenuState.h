@@ -1,10 +1,12 @@
+#pragma once
+
 //-----------------------------------------------------------------------------
 // File:			MainMenuState.h
 // Original Author:	Youssef Ashraf
+// Modifications: D'Anyil Landry
 // ver 1.1
 // A class that's responsible for the Concrete Main Menu State.
 //-----------------------------------------------------------------------------
-#pragma once
 #include "GameState.h"
 #include <theseus.h>
 

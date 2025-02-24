@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:			W_Audio.cpp
+// Original Author:	D'Anyil Landry
+//
+// A static class providing simple access to audio playback for applications.
+//-----------------------------------------------------------------------------
+
 #include "W_Audio.h"
 
 namespace wolf

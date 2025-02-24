@@ -1,3 +1,11 @@
+//-----------------------------------------------------------------------------
+// File:			W_App.cpp
+// Original Author:	Gordon Wood
+// Modifications:   D'Anyil Landry
+//
+// Abstract class representing an OpenGL application.
+//-----------------------------------------------------------------------------
+
 #include "W_App.h"
 #include <W_Audio.h>
 #include "W_Input.h"

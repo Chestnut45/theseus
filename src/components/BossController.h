@@ -1,4 +1,10 @@
 #pragma once
+//-----------------------------------------------------------------------------
+// File: BossController.h
+// Original Author:	D'Anyil Landry
+// Modifications: Aurora Ryder, Nguyễn Minh Nhật, Youssef Ashraf
+// Controls the  behaviours of the Boss - NOT inherited from EnemyController
+//-----------------------------------------------------------------------------
 #include <W_BaseComponent.h>
 #include <glm/glm.hpp>
 #include <W_RNG.h>

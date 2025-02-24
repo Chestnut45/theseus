@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:			ThrwoableObjectComponent.cpp
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// class responsible for throwable objects
+//-----------------------------------------------------------------------------
+
 #include "ThrowableObjectComponent.h"
 #include "PlayerController.h"
 #include "GorgonController.h"

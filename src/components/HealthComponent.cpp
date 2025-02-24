@@ -218,7 +218,9 @@ void HealthComponent::AddDamageIndicator(std::string p_damage_str, ImVec4 p_text
     dmg_ind->lifetime = 1.0f;
 }
 
-// !-- Aurora added these events --!
+// !-- Aurora added this event --!
+// Handler for PercentHealthItemEvents that heals the HealthComponent by a given percentage of its total health
+// > p_event: the PercentHealthItemEvent object
 void HealthComponent::HandlePercentHealthItemEvent(const PercentHealthItemEvent& p_event) {
     if (!GetGameObject()->HasAll<PlayerController>()) return;
     if (p_event.fHealthChangeAmt >= 0) {
@@ -229,6 +231,9 @@ void HealthComponent::HandlePercentHealthItemEvent(const PercentHealthItemEvent&
     }
 }
 
+// !-- Aurora added this event --!
+// Handler for FlatHealthItemEvents that heals the HealthComponent by a given amount
+// > p_event: the FlatHealthItemEvent object
 void HealthComponent::HandleFlatHealthItemEvent(const FlatHealthItemEvent& p_event) {
     if (!GetGameObject()->HasAll<PlayerController>()) return;
     if (p_event.fHealthChangeAmt >= 0) {

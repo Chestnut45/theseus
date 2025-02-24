@@ -1,4 +1,11 @@
 
+//-----------------------------------------------------------------------------
+// File: PlayerController.cpp
+// Original Author: Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật, D'Anyil Landry, Aurora Ryder
+// ver 2.0. Updated to remove deprecated hitbox and hurtbox components.
+//-----------------------------------------------------------------------------
+
 #include "AttackDamageComponent.h"
 #include "ColliderComponent.h"
 #include "HealthComponent.h"
@@ -21,12 +28,6 @@
 #include <W_Logging.h>
 #include <W_EventManager.h>
 #include <W_Audio.h>
-
-//-----------------------------------------------------------------------------
-// File:            PlayerController.cpp
-// Original Author: Youssef Ashraf
-// ver 2.0: Optimized and restructured for readability and performance.
-//-----------------------------------------------------------------------------
 
 PlayerController::PlayerController() = default;
 
@@ -193,6 +194,8 @@ void PlayerController::InitializeAnimations()
 // Main update loop for the player controller
 void PlayerController::Update(float delta)
 {
+    if (!m_active) return;
+
     auto* pGameObject = GetGameObject();
     if (!pGameObject) return;
 
@@ -422,6 +425,9 @@ void PlayerController::HandlePlayerInput(float delta)
 }
 
 void PlayerController::PickUpObject() {
+    // If the player is attacking, don't bother trying to pick anything up
+    if (m_action == PlayerAction::ATTACKING) return;
+    
     // If the player is rolling, reset the rolling state before picking up an object
     if (m_action == PlayerAction::ROLLING) {
         EndRoll(); // Ensure rolling-related mechanics are stopped
@@ -430,7 +436,7 @@ void PlayerController::PickUpObject() {
 
     // Attempt to pick up a nearby throwable object
     for (auto&& [entity, throwable] : GetGameObject()->GetScene().Each<ThrowableObjectComponent>()) {
-        if (throwable.IsCloseToPlayer(150.0f)) {  // Check proximity
+        if (!throwable.IsThrown() && throwable.IsCloseToPlayer(150.0f)) {  // Check proximity
             throwable.PickUp();
             m_pHeldObject = &throwable;           // Store reference to the held object
             m_isHoldingObject = true;
@@ -1457,7 +1463,7 @@ std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirecti
 
 void PlayerController::Render(float delta)
 {
-    if (!m_pTransform) return;
+    if (!m_active || !m_pTransform) return;
     if (m_action == PlayerAction::DEAD) {
         RenderDeathScreen();
         return;

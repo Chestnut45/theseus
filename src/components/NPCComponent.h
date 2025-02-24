@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // File:            NPCComponent.h
 // Original Author: Aurora Ryder
-//
+// Modifications: Nguyễn Minh Nhật
 // A class representing a Non-Player Character (NPC)
 //-----------------------------------------------------------------------------
 
@@ -23,21 +23,6 @@
 #include "../inventory/ItemDropCreator.h"
 #include "../events/DialogueAndCutsceneEvent.h"
 #include "events/DialogueOrCutsceneEndEvent.h"
-
-// ---------- TO DO -----------
-// [x] - Get it to build
-// [?] - Test dialogue
-// [?] - Open merchant after
-//       dialogue and start
-//       goodbye when shop is
-//       closed
-// [x] - Write Daedalus .yaml
-// [x] - Test merchant
-// [!] - Add hit effect
-// [x] - Get NPCs to die
-// [x] - Random selection for
-//       BuildNPC()
-// ----------------------------
 
 // Struct used to sort all of the NPC's possible dialogues into a minimum priority queue
 // so that we can programmatically control the ordering and repeatability of each conversation

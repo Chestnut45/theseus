@@ -1,4 +1,18 @@
+//-----------------------------------------------------------------------------
+// File:            ArmourItem.cpp
+// Original Author: Aurora Ryder
+// Modifications: Nguyễn Minh Nhật
+// A class representing the item version of a piece of armour
+//-----------------------------------------------------------------------------
+
 #include "ArmourItem.h"
+
+//-----------------------------------------------------------------------------
+// File:            ArmourItem.cpp
+// Original Author: Aurora Ryder
+//
+// A class representing the item version of a piece of armour
+//-----------------------------------------------------------------------------
 
 // We want to send an armour equipped event anytime we equip armour so we overload the SetEquipped method
 void ArmourItem::SetEquipped(bool p_bEquip) {

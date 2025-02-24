@@ -1,5 +1,14 @@
 #include "StatusEffectItem.h"
 
+//-----------------------------------------------------------------------------
+// File:            StatusEffectItem.cpp
+// Original Author: Aurora Ryder
+//
+// A class representing a consumable item which causes Theseus to incur a given
+// status effect
+//-----------------------------------------------------------------------------
+
+// Uses the item by sending off a ApplyStatusEffectEvent
 void StatusEffectItem::Use() {
     wolf::EventManager::EnqueueEvent(ApplyStatusEffectEvent(m_enType, m_fDuration));
 

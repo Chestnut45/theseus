@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File: BossController.cpp
+// Original Author:	D'Anyil Landry
+// Modifications: Aurora Ryder, Nguyễn Minh Nhật, Youssef Ashraf
+// Controls the  behaviours of the Boss - NOT inherited from EnemyController 
+//-----------------------------------------------------------------------------
+
 #include "BossController.h"
 #include <W_GameObject.h>
 #include <W_Transform2D.h>
@@ -684,7 +691,7 @@ void BossController::SpawnWave(int waveIndex)
 
     // Load enemy data
     EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
+    loader.LoadAllEnemyData("data/enemies_bossfight.yaml");
 
     EnemyData minitaurData = loader.LoadEnemyData("minitaur");
     EnemyData harpyData = loader.LoadEnemyData("harpy");

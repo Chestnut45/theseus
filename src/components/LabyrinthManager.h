@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // File:			LabyrinthManager.h
 // Original Author:	D'Anyil Landry
-//
+// Modifications: Nguyễn Minh Nhật, Youssef Ashraf, Aurora Ryder
 // A class representing a game component used to generate and update the labyrinth.
 // 
 // When attached to a game object, calling Generate() will create all the
@@ -264,10 +264,10 @@ private:
             RareChest,
             EpicChest,
             LegendaryChest,
-            TrappedChestExplode,
-            TrappedChestGorgon,
-            TrappedChestHarpy,
-            TrappedChestMinitaur,
+            TrappedChestExplode,    //-------Added By Nhat-------//
+            TrappedChestGorgon,     //-------Added By Nhat-------//
+            TrappedChestHarpy,      //-------Added By Nhat-------//
+            TrappedChestMinitaur,   //-------Added By Nhat-------//
             DaedalusDispensary, // !-- Aurora added this --!
             ThrowableObject,
             SpikeTrap,
@@ -275,11 +275,14 @@ private:
             AriadneNPC,
             RandomNPC,
             BoulderTrap,
+            GorgonSpawner,         //-------Added By Nhat-------//
+            HarpySpawner,         //-------Added By Nhat-------//
+            MinitaurSpawner,         //-------Added By Nhat-------//
 
             // CONSTANT, LEAVE AT END
             ENTITY_COUNT
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC", "Boulder Trap"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC", "Boulder Trap", "Gorgon Spawner", "Harpy Spawner", "Minitaur Spawner"};
 
         enum class SpawnPosType
         {
