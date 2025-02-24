@@ -310,7 +310,7 @@ void PlayState::Update(float delta)
 
         // DEBUG: Apply force where player is
         bool playerRolling = m_pPlayerObject->GetComponent<PlayerController>()->GetPlayerAction() == PlayerController::PlayerAction::ROLLING;
-        float strength = playerRolling ? 100.0f : 10.0f;
+        float strength = playerRolling ? 50.0f : 5.0f;
         system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 100.0f, strength);
 
         // DEBUG: Show editor and break after updating one system
