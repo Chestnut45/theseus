@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File:            MerchantInventoryComponent.cpp
+// Original Author: Aurora Ryder
+//
+// A class representing a given merchant's inventory
+//-----------------------------------------------------------------------------
 #include "MerchantInventoryComponent.h"
 
 #include <yaml-cpp/yaml.h>

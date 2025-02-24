@@ -1,10 +1,11 @@
+#pragma once
+
 //-----------------------------------------------------------------------------
 // File: MinitaurBuilder.h
 // Original Author:	Youssef Ashraf
 // Modifications: Nguyễn Minh Nhật
 // Constructs minitaur enemies.
 //-----------------------------------------------------------------------------
-#pragma once
 
 #include <wolf.h>
 #include "MinitaurController.h"
