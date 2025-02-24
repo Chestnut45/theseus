@@ -1,6 +1,7 @@
 //-----------------------------------------------------------------------------
 // File: ColliderComponent.h
 // Original Author: Nguyễn Minh Nhật
+// Modifications: D'Anyil Landry, Youssef Ashraf
 // Collider.
 // User Guide:
 //     + Create component

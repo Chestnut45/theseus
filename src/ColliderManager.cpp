@@ -1,6 +1,7 @@
 //-----------------------------------------------------------------------------
 // File: ColliderManager.cpp
 // Original Author: Nguyễn Minh Nhật
+// Modifications / Optimizations: D'Anyil Landry, Youssef Ashraf
 // Manages collider collisions.
 // User Guide:
 //     + Create new Manager object before any game object is added to scene

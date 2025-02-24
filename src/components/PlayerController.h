@@ -1,5 +1,12 @@
 #pragma once
 
+//-----------------------------------------------------------------------------
+// File: PlayerController.h
+// Original Author: Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật, D'Anyil Landry, Aurora Ryder
+// ver 2.0. Updated to remove deprecated hitbox and hurtbox components.
+//-----------------------------------------------------------------------------
+
 #include <wolf.h>
 #include <components/VelocityComponent.h>
 #include <components/AnimatedSprite2D.h>
@@ -19,13 +26,6 @@
 #include "../events/GameOverEvent.h"
 
 #include <DamageEvent.h>
-
-//-----------------------------------------------------------------------------
-// File: PlayerController.h
-// Original Author: Youssef Ashraf
-// Modifications: Nguyễn Minh Nhật
-// ver 2.0. Updated to remove deprecated hitbox and hurtbox components.
-//-----------------------------------------------------------------------------
 
 class PlayerController : public wolf::BaseComponent
 {
