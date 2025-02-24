@@ -33,7 +33,7 @@ void ParticleComponent::Emit(const glm::vec2& position, const glm::vec2& velocit
         if (!particle.m_active)
         {
             particle.Reset(position, velocity, color, size, lifetime);
-            particle.m_active = true; // <-- Make sure it's set as active
+            particle.m_active = true;
             // std::cout << "Emitted a new particle at (" << position.x << ", " << position.y << ")" << std::endl;
             return;
         }

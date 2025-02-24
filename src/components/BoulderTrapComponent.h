@@ -1,10 +1,10 @@
+#pragma once
 //-----------------------------------------------------------------------------
 // File:			BoulderTrapComponent.h
 // Original Author:	Youssef Ashraf
 // ver 1.1
 // class responsible for the boulder traps
 //-----------------------------------------------------------------------------
-#pragma once
 
 #include "W_BaseComponent.h"
 #include "LabyrinthManager.h"

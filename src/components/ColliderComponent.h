@@ -7,7 +7,6 @@
 //     + Create component
 //     + Add at least 1 hitbox for component to function
 //-----------------------------------------------------------------------------
-#pragma once
 
 #include <glm/glm.hpp>
 #include <wolf.h>

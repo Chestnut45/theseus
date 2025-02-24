@@ -56,7 +56,6 @@ void ParticleSystem2D::TrackNewComponents()
 
     // Get the scene from that game object
     wolf::Scene& scene = sampleGameObject->GetScene();
-    // ✅ **Efficiently iterating over all `ParticleComponent` instances**
     for (auto&& [entity, particleComponent] : scene.Each<ParticleComponent>())
     {
         if (m_components.find(&particleComponent) == m_components.end())
@@ -121,7 +120,7 @@ void ParticleSystem2D::Render()
     glBindBuffer(GL_ARRAY_BUFFER, m_sizeVBO);
     glBufferData(GL_ARRAY_BUFFER, sizes.size() * sizeof(float), sizes.data(), GL_STREAM_DRAW);
 
-    glPointSize(3.0f); // ✅ Adjust particle size  
+    glPointSize(3.0f);
 
     glDrawArrays(GL_POINTS, 0, positions.size());
 
