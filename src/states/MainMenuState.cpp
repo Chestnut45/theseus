@@ -54,6 +54,7 @@ void MainMenuState::Update(float delta)
     }
 
     // Draw the background image
+    ImGui::SetCursorPos(ImVec2(0, 0));
     ImGui::Image(backgroundTextureID, ImGui::GetWindowSize(), ImVec2(0,0), ImVec2(1,1));
 
     // Centered title
