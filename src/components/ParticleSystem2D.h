@@ -39,6 +39,11 @@ private:
     static inline wolf::Program* s_pShader = nullptr;
     static inline size_t s_refCount = 0;
 
+    GLuint m_quadVBO;
+    GLuint m_posVBO;
+    GLuint m_colorVBO;
+    GLuint m_sizeVBO;
+
     void InitGLResources();
     void TrackNewComponents(); // New function for tracking dynamically added components
 

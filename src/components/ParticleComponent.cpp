@@ -1,4 +1,5 @@
 #include "ParticleComponent.h"
+#include "iostream"
 
 ParticleComponent::ParticleComponent(size_t maxParticles)
 {
@@ -7,14 +8,18 @@ ParticleComponent::ParticleComponent(size_t maxParticles)
 
 void ParticleComponent::Update(float delta)
 {
+    int activeParticles = 0;
     for (auto& particle : m_particles)
     {
         if (particle.m_active)
         {
             particle.Update(delta);
+            activeParticles++; // Count active particles
         }
     }
+    std::cout << "Active Particles: " << activeParticles << std::endl;
 }
+
 
 void ParticleComponent::Emit(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime)
 {
@@ -23,7 +28,10 @@ void ParticleComponent::Emit(const glm::vec2& position, const glm::vec2& velocit
         if (!particle.m_active)
         {
             particle.Reset(position, velocity, color, size, lifetime);
+            particle.m_active = true; // <-- Make sure it's set as active
+            std::cout << "Emitted a new particle at (" << position.x << ", " << position.y << ")" << std::endl;
             return;
         }
     }
+    std::cout << "No available particle slots!" << std::endl;
 }

@@ -78,6 +78,7 @@ void ParticleSystem2D::Render()
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glDisable(GL_DEPTH_TEST);  // Ensure particles render above everything
 
     s_pShader->Bind();
     glBindVertexArray(m_vao);
@@ -85,6 +86,8 @@ void ParticleSystem2D::Render()
     std::vector<glm::vec2> positions;
     std::vector<glm::vec4> colors;
     std::vector<float> sizes;
+
+    int renderCount = 0;
 
     for (auto* component : m_components)
     {
@@ -95,41 +98,74 @@ void ParticleSystem2D::Render()
                 positions.push_back(particle.m_pos);
                 colors.push_back(particle.m_color);
                 sizes.push_back(particle.m_size);
+                renderCount++;
             }
         }
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    std::cout << "Particles to render: " << renderCount << std::endl;
+
+    if (positions.empty()) return;
+
+    // Upload updated particle data
+    glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
     glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec2), positions.data(), GL_STREAM_DRAW);
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_instanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_colorVBO);
     glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec4), colors.data(), GL_STREAM_DRAW);
 
-    glDrawArrays(GL_POINTS, 0, positions.size());
+    glBindBuffer(GL_ARRAY_BUFFER, m_sizeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizes.size() * sizeof(float), sizes.data(), GL_STREAM_DRAW);
+
+    // Ensure quad data is bound properly
+    glBindBuffer(GL_ARRAY_BUFFER, m_quadVBO);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(3);
+    glVertexAttribDivisor(3, 0); // Quads are NOT instanced
+
+    // Draw quads as instanced geometry
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, positions.size());
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
 }
+
+
+
 
 // Initializes OpenGL resources for rendering
 void ParticleSystem2D::InitGLResources()
 {
+    // Generate quad VBO
+    float quadVertices[] = {
+        -0.5f, -0.5f,
+         0.5f, -0.5f,
+         0.5f,  0.5f,
+        -0.5f, -0.5f,
+         0.5f,  0.5f,
+        -0.5f,  0.5f
+    };
+    glGenBuffers(1, &m_quadVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
     glGenVertexArrays(1, &m_vao);
     glBindVertexArray(m_vao);
 
-    // Vertex buffer (positions)
-    glGenBuffers(1, &m_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glGenBuffers(1, &m_posVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_posVBO);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // Instance buffer (colors + size)
-    glGenBuffers(1, &m_instanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, m_instanceVBO);
+    glGenBuffers(1, &m_colorVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_colorVBO);
     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
     glEnableVertexAttribArray(1);
-    
+
+    glGenBuffers(1, &m_sizeVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_sizeVBO);
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
     glEnableVertexAttribArray(2);
 }
@@ -172,6 +208,7 @@ void ParticleSystem2D::ShowEditor()
             // Spawn particle manually
             if (ImGui::Button("Emit Particle"))
             {
+                std::cout << "Emit button pressed!" << std::endl;
                 glm::vec2 position = owner->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
                 component->Emit(position, velocity, color, size, lifetime);
             }
