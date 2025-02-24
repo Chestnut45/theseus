@@ -133,7 +133,7 @@ private:
 
     void RenderFadeOverlay(float alpha);
     void RenderTextCentered(const std::string& text, float size);
-    void RenderCredits();
+    void RenderCredits(float delta);
     bool m_isExiting = false;
 
 };

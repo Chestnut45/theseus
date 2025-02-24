@@ -345,7 +345,7 @@ void PlayState::Update(float delta)
     // Show credits after message disappears
     if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() < 15.0f)
     {
-        RenderCredits();
+        RenderCredits(delta);
     }
 
 
@@ -1511,7 +1511,7 @@ void PlayState::RenderTextCentered(const std::string& text, float size)
     ImGui::PopStyleColor();
 }
 
-void PlayState::RenderCredits()
+void PlayState::RenderCredits(float delta)
 {
     static const char* credits[] = {
         "Theseus Development Team",
@@ -1535,21 +1535,46 @@ void PlayState::RenderCredits()
         "Thank you for playing!"
     };
 
-    float baseY = ImGui::GetIO().DisplaySize.y - (m_showCreditsTimer.Elapsed() * 50.0f); // Scroll effect
+    // Smooth scrolling effect
+    float elapsed = m_showCreditsTimer.Elapsed();
 
-    ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, baseY), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    // Set window position and center it
+    float windowWidth = 500.0f;
+    float windowHeight = 300.0f;
+    float baseY = ImGui::GetIO().DisplaySize.y - (elapsed * (ImGui::GetIO().DisplaySize.y / 15.0f)); // Adjust scrolling speed
+
+    ImVec2 windowPos(ImGui::GetIO().DisplaySize.x * 0.5f - windowWidth * 0.5f, baseY);
+    ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(windowWidth, windowHeight));
     ImGui::SetNextWindowBgAlpha(0.0f);
 
+    // Style adjustments
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 5));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 
-    ImGui::Begin("Credits", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs);
-    for (const char* line : credits)
+    if (ImGui::Begin("Credits", nullptr, 
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | 
+        ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
     {
-        ImGui::Text("%s", line);
-    }
-    ImGui::End();
+        // Increase font size for readability
+        ImGui::SetWindowFontScale(1.2f);
 
-    ImGui::PopStyleVar();
+        // Center text
+        for (const char* line : credits)
+        {
+            float textWidth = ImGui::CalcTextSize(line).x;
+            float windowCenter = ImGui::GetWindowSize().x * 0.5f;
+            ImGui::SetCursorPosX(windowCenter - textWidth * 0.5f);
+            ImGui::TextUnformatted(line);
+        }
+
+        ImGui::End();
+    }
+
+    // Restore styles
+    ImGui::PopStyleVar(3);
     ImGui::PopStyleColor();
+
 }
