@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // File:            NPCComponent.h
 // Original Author: Aurora Ryder
-//
+// Modifications: Nguyễn Minh Nhật
 // A class representing a Non-Player Character (NPC)
 //-----------------------------------------------------------------------------
 

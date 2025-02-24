@@ -11,7 +11,7 @@
 //-----------------------------------------------------------------------------
 // File:            ItemCreator.h
 // Original Author: Aurora Ryder
-//
+// Modifications: Nguyễn Minh Nhật
 // This namespace and static method lets the user create an item of any type
 // by searching a .yaml directory for an entry with a given name
 //-----------------------------------------------------------------------------

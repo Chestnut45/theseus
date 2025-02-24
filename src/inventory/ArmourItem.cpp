@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:            ArmourItem.cpp
+// Original Author: Aurora Ryder
+// Modifications: Nguyễn Minh Nhật
+// A class representing the item version of a piece of armour
+//-----------------------------------------------------------------------------
+
 #include "ArmourItem.h"
 
 //-----------------------------------------------------------------------------

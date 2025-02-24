@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 // File:			AnimatedSprite2D.cpp
 // Original Author:	Aurora Ryder
-//
+// Modifications: Nguyễn Minh Nhật
 // A class representing a renderable, animated 2D sprite component.
 // 
 //-----------------------------------------------------------------------------
