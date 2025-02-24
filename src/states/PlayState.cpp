@@ -329,7 +329,7 @@ void PlayState::Update(float delta)
                 ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
 
                 ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
-                ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
+                ItemBase* pSpear = ItemCreator::CreateItem("Spear");
 
                 ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
                 ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
