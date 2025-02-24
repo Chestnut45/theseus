@@ -194,6 +194,8 @@ void PlayerController::InitializeAnimations()
 // Main update loop for the player controller
 void PlayerController::Update(float delta)
 {
+    if (!m_active) return;
+
     auto* pGameObject = GetGameObject();
     if (!pGameObject) return;
 
@@ -1458,7 +1460,7 @@ std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirecti
 
 void PlayerController::Render(float delta)
 {
-    if (!m_pTransform) return;
+    if (!m_active || !m_pTransform) return;
     if (m_action == PlayerAction::DEAD) {
         RenderDeathScreen();
         return;

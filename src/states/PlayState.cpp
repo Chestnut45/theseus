@@ -1114,6 +1114,10 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 void PlayState::OnGameWinEvent(const GameWinEvent& event)
 {
     m_gameCompletionTime.Pause();
+
+    // Deactivate the player controller
+    m_pPlayerObject->GetComponent<PlayerController>()->SetActive(false);
+
     // Play game win sound
     wolf::Audio::Play("data/sounds/sfx_game_win.wav", 1.0f);
 
@@ -1467,7 +1471,9 @@ void PlayState::RenderFadeOverlay(float alpha)
 
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, alpha));
 
-    if (ImGui::Begin("FadeOverlay", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove ))
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+    if (m_showCreditsTimer.Elapsed() < 15.0f) flags |= ImGuiWindowFlags_NoInputs;
+    if (ImGui::Begin("FadeOverlay", nullptr, flags ))
     {
         if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() >= 15.0f)
         {
@@ -1509,13 +1515,23 @@ void PlayState::RenderCredits()
 {
     static const char* credits[] = {
         "Theseus Development Team",
+        "------------------------",
+        "",
         "Project Lead: Aurora Ryder",
+        "",
         "Lead Programmer: D'Anyil Landry",
+        "",
         "Programmers:",
+        "------------------------",
+        "Aurora Ryder",
+        "D'Anyil Landry",
         "Youssef Ashraf",
         "Nguyen Minh Nhat",
-        "SFX / Music: D'Anyil Landry",
+        "",
+        "Music / SFX: D'Anyil Landry",
+        "",
         "lots of love, if you got here, ur an amazing person",
+        "",
         "Thank you for playing!"
     };
 
