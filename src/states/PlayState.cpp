@@ -379,8 +379,8 @@ void PlayState::Update(float delta)
                     ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
                     ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
 
-                    ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
-                    ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
+                ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
+                ItemBase* pSpear = ItemCreator::CreateItem("Spear");
 
                     ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
                     ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
@@ -1482,6 +1482,14 @@ void PlayState::RenderFadeOverlay(float alpha)
     {
         if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() >= 15.0f)
         {
+            // Style taken from PauseState
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+
             ImGui::SetCursorPosY(ImGui::GetIO().DisplaySize.y * 0.6f); // Center 
             ImGui::SetCursorPosX((ImGui::GetIO().DisplaySize.x - 200.0f) * 0.5f); // Center
             if (ImGui::Button("Return to Main Menu", ImVec2(200.0f, 50.0f)))
@@ -1490,6 +1498,9 @@ void PlayState::RenderFadeOverlay(float alpha)
                 wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
                 m_isExiting = true;
             }
+
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(4);
         }
 
         ImGui::End();

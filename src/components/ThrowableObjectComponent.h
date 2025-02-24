@@ -44,7 +44,7 @@ public:
     //Set Thrown
     void SetThrown();
 
-
+    inline bool IsThrown() const { return m_state == ThrowableState::THROWN; }
 
 private:
     void FollowPlayer(); // Makes the object follow the player when picked up

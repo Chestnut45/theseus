@@ -425,6 +425,9 @@ void PlayerController::HandlePlayerInput(float delta)
 }
 
 void PlayerController::PickUpObject() {
+    // If the player is attacking, don't bother trying to pick anything up
+    if (m_action == PlayerAction::ATTACKING) return;
+    
     // If the player is rolling, reset the rolling state before picking up an object
     if (m_action == PlayerAction::ROLLING) {
         EndRoll(); // Ensure rolling-related mechanics are stopped
@@ -433,7 +436,7 @@ void PlayerController::PickUpObject() {
 
     // Attempt to pick up a nearby throwable object
     for (auto&& [entity, throwable] : GetGameObject()->GetScene().Each<ThrowableObjectComponent>()) {
-        if (throwable.IsCloseToPlayer(150.0f)) {  // Check proximity
+        if (!throwable.IsThrown() && throwable.IsCloseToPlayer(150.0f)) {  // Check proximity
             throwable.PickUp();
             m_pHeldObject = &throwable;           // Store reference to the held object
             m_isHoldingObject = true;

@@ -5,7 +5,7 @@ enemies:
     melee_range: 80.0
     melee_cooldown: 1
     melee_windup: 0.2
-    detection_range: 500
+    detection_range: 2000
     base_damage: 20.0
     chase_speed: 120.0
     animation_init_file: "data/minitaur_anim_init.yaml"
@@ -16,7 +16,7 @@ enemies:
     ranged_range: 300
     ranged_cooldown: 2
     ranged_windup: 1.5
-    detection_range: 600
+    detection_range: 2000
     base_damage: 25
     chase_speed: 80
     animation_init_file: "data/harpy_anim_init.yaml"
@@ -27,7 +27,7 @@ enemies:
     ranged_range: 300
     ranged_cooldown: 1
     ranged_windup: 2
-    detection_range: 300
+    detection_range: 2000
     base_damage: 50
     chase_speed: 120
     animation_init_file: "data/gorgon_anim_init.yaml"
