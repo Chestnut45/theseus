@@ -25,6 +25,7 @@
 #include "../components/VelocityComponent.h"
 #include "../components/ThrowableObjectComponent.h"
 #include "../components/BoulderTrapComponent.h"
+#include "../components/MonsterSpawnerComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
 #include "DDACalculator.h"
@@ -690,6 +691,10 @@ void PlayState::Update(float delta)
         health.UpdateDamageIndicators(delta);
     }
 
+    for (auto&& [_, monsterSpawner] : m_pGameInstance->GetScene().Each<MonsterSpawnerComponent>()) {
+        monsterSpawner.Update(delta);
+    }
+
     // Dispatch events
     wolf::EventManager::Dispatch();
 
@@ -762,7 +767,6 @@ void PlayState::CreatePlayer()
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));
 }
-
 
 void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {
     // std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
