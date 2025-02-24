@@ -77,8 +77,8 @@ void ParticleSystem2D::Render()
     if (!s_pShader) return;
 
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-    glDisable(GL_DEPTH_TEST);  // Ensure particles render above everything
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);
 
     s_pShader->Bind();
     glBindVertexArray(m_vao);
@@ -117,20 +117,21 @@ void ParticleSystem2D::Render()
     glBindBuffer(GL_ARRAY_BUFFER, m_sizeVBO);
     glBufferData(GL_ARRAY_BUFFER, sizes.size() * sizeof(float), sizes.data(), GL_STREAM_DRAW);
 
-    // Ensure quad data is bound properly
-    glBindBuffer(GL_ARRAY_BUFFER, m_quadVBO);
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(3);
-    glVertexAttribDivisor(3, 0); // Quads are NOT instanced
+    // **REMOVE Quad VBO BINDING HERE** 
+    // because it's not needed for point rendering
 
-    // Draw quads as instanced geometry
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, positions.size());
+    // ✅ Small Particles Fix  
+    glPointSize(3.0f); // Adjust particle size  
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // 🔥 Proper particle rendering  
+    glDrawArraysInstanced(GL_POINTS, 0, 1, positions.size()); // Now correctly instanced
+
     glBindVertexArray(0);
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
 }
+
+
 
 
 
