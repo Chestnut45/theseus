@@ -1,9 +1,9 @@
+#pragma once 
 //-----------------------------------------------------------------------------
 // File: HealthComponent.h
 // Original Author: Nguyễn Minh Nhật
 // Health.
 //-----------------------------------------------------------------------------
-#pragma once 
 
 #include <glm/glm.hpp>
 #include <wolf.h>

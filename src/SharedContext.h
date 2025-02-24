@@ -1,4 +1,9 @@
 #include "wolf.h"
+//-----------------------------------------------------------------------------
+// File: SharedContext.h
+// Original Author: Youssef Ashraf
+// stores entity id's to be shared between states.
+//-----------------------------------------------------------------------------
 class SharedContext {
 public:
     void RegisterEntity(const std::string& name, wolf::GameObjectID id) {

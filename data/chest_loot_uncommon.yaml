@@ -2,5 +2,6 @@ min_items: 2
 max_items: 4
 loot_table: [
   {name: Uncommon Schematic, probability: 2},
-  {name: Old Bow, probability: 1}
+  {name: Old Bow, probability: 1},
+  {name: Theezys, probability: 2},
 ]

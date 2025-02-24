@@ -1,3 +1,5 @@
+#pragma once
+
 //-----------------------------------------------------------------------------
 // File: TrappedChestComponent.h
 // Original Author: Nguyễn Minh Nhật

@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:            PlayerInventoryComponent.cpp
+// Original Author: Aurora Ryder
+//
+// A class representing the player's inventory
+//-----------------------------------------------------------------------------
+
 #include "PlayerInventoryComponent.h"
 
 #include "../inventory/ArmourItem.h"
