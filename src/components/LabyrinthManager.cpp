@@ -2194,7 +2194,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     {
                         // ?-- It would be nice to choose the loot table randomly or based on where the dispensary is spawned
                         //     could use an RNG to index an array or use numbered filenames e.g. "dispensary_loot_N.yaml" --?
-                        std::string strLootTablePath = "data/dispensary_contents" + std::to_string(m_rng.NextInt(1, 2)) + ".yaml";
+                        std::string strLootTablePath = "data/dispensary_contents" + std::to_string(m_rng.NextInt(1, 4)) + ".yaml";
 
                         // Create the dispensary object
                         auto& dispensary = pObject->GetScene().CreateObject2D();
