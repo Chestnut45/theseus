@@ -57,10 +57,6 @@ void MonsterSpawnerComponent::Update(float p_delta)
         playerControllerComp = &pcComp;
         break;
     }
-
-    // std::cout << "worldPos: " << worldPos.x << ", y: " << worldPos.y << std::endl;
-    HandleSpawnerBoundLines();
-    HandleTriggerBoundLines();
     
     // if player is on spawner tile, spawn monsters
     glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerControllerComp->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
