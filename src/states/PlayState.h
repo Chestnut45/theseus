@@ -31,6 +31,7 @@
 #include "PathfindingManager.h"
 #include <events/GameWinEvent.h>
 #include <W_Timer.h>
+#include <ParticleSystem2D.h>
 
 #include <unordered_map>
 #include <unordered_set>
@@ -69,6 +70,8 @@ private:
 
     //pathfinding manager
     PathfindingManager* m_pPathfindingManager = nullptr;
+
+    ParticleSystem2D* m_particleSystem = nullptr;
 
     // Flags
     bool m_debugHotkeys = false;

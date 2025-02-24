@@ -51,6 +51,7 @@ void PlayState::Enter()
     
  
     this->m_pColliderManager = new ColliderManager(&scene);
+    m_particleSystem = new ParticleSystem2D();
 
     // Initialize the player object
     CreatePlayer();
@@ -206,6 +207,8 @@ void PlayState::Enter()
     {
         m_pPathfindingManager->RegisterEntity(minitaur.GetGameObject());
     }
+
+
 }
 
 void PlayState::Exit()
@@ -234,6 +237,12 @@ void PlayState::Exit()
 
     ItemDropCreator::DestroyInstance();
     NPCBuilder::DestroyInstance();
+
+    if (m_particleSystem)
+    {
+        delete m_particleSystem;
+        m_particleSystem = nullptr;
+    }
 }
 
 void PlayState::Pause()
@@ -699,6 +708,15 @@ void PlayState::Update(float delta)
     wolf::EventManager::Dispatch();
 
     // ImGui::ShowDemoWindow();
+    m_particleSystem->Update(delta);
+    // Toggle particle system editor with Right Alt
+    if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_ALT)) {
+        m_particleSystem->ToggleEditor();
+    }
+    
+    // Call the editor function inside update
+    m_particleSystem->ShowEditor();
+
 }
 
 void PlayState::Render(float delta)
@@ -722,7 +740,11 @@ void PlayState::Render(float delta)
     }
 
     RenderMap();
+
+    if (m_particleSystem)
+        m_particleSystem->Render();
 }
+
 
 void PlayState::BackgroundUpdate(float delta)
 {
@@ -759,10 +781,15 @@ void PlayState::CreatePlayer()
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
 
-    // Add player controller and initialize
+    // Add player controller and initialize 
     // NOTE: This manages all player animations and the animated sprite component for the player
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
+
+    // Add ParticleComponent to the player
+    auto& playerParticles = m_pPlayerObject->AddComponent<ParticleComponent>();
+    // Register the player's ParticleComponent in the ParticleSystem
+    m_particleSystem->RegisterComponent(&playerParticles);
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));

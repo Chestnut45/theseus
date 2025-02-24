@@ -6,6 +6,8 @@
 #include <W_ProgramManager.h>
 #include <imgui/imgui.h>
 #include "ParticleComponent.h"
+#include "W_GameObject.h"
+#include "W_Transform2D.h"
 
 class ParticleSystem2D
 {
@@ -21,6 +23,8 @@ public:
 
     // ImGui Debug Editor
     void ShowEditor();
+    void ToggleEditor() { m_showEditor = !m_showEditor; }  // New toggle function
+    bool IsEditorOpen() const { return m_showEditor; }
 
 private:
     std::unordered_set<ParticleComponent*> m_components;
@@ -36,4 +40,8 @@ private:
     static inline size_t s_refCount = 0;
 
     void InitGLResources();
+    void TrackNewComponents(); // New function for tracking dynamically added components
+
+    bool m_showEditor = false;  // Store the UI state inside the system
+
 };
