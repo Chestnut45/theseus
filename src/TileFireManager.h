@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // File: TileFireManager.h
 // Original Author: Nguyễn Minh Nhật
-// Fire on a tile
+// Manages tile-based fire.
 //-----------------------------------------------------------------------------
 #pragma once
 

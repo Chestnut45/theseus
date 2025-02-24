@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File: BossController.cpp
+// Original Author:	D'Anyil Landry
+// Modifications: Aurora Ryder, Nguyễn Minh Nhật, Youssef Ashraf
+// Controls the  behaviours of the Boss - NOT inherited from EnemyController 
+//-----------------------------------------------------------------------------
+
 #include "BossController.h"
 #include <W_GameObject.h>
 #include <W_Transform2D.h>

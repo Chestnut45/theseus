@@ -1,9 +1,35 @@
+//-----------------------------------------------------------------------------
+// File:            NPCComponent.cpp
+// Original Author: Aurora Ryder
+// Modifications: Nguyễn Minh Nhật
+// A class representing a Non-Player Character (NPC)
+//-----------------------------------------------------------------------------
+
 #include <NPCComponent.h>
 #include <ColliderComponent.h>
 #include <LabyrinthManager.h>
+
+//-----------------------------------------------------------------------------
+// File:            NPCComponent.cpp
+// Original Author: Aurora Ryder
+//
+// A class representing a Non-Player Character (NPC)
+//-----------------------------------------------------------------------------
+
+// Static ID number for resource management and distinguishing between NPCs
 int NPCComponent::m_iNextID = 0;
+
 wolf::RNG NPCComponent::s_RNG;
 
+/* Creates an NPC component
+    Parameters:
+    > p_strName: the NPC's name
+    > p_strDialogueFilePath: path to the .yaml file which contains all of the NPC's dialogue
+    > p_mDialogueEntries: map of dialogue segments indexed by name
+    > p_strDropTableFilePath: path to the .yaml loot table that will be used to spawn the NPC's loot if/when they die
+    > p_bIsMerchant: boolean indicator of whether or not the NPC is CURRENTLY a merchant
+    > p_bCanBeMerchant: boolean indicator of whether or not the NPC CAN BE a merchant
+*/
 NPCComponent::NPCComponent(const std::string& p_strName, const std::string& p_strDialogueFilePath, std::unordered_map<std::string, NPCDialogueEntry*>& p_mDialogueEntries, const std::string& p_strDropTableFilePath, bool p_bIsMerchant, bool p_bCanBeMerchant)
     : m_strName(p_strName), m_strDialogueFilePath(p_strDialogueFilePath), m_strDropTableFilePath(p_strDropTableFilePath), m_bCanBeMerchant(p_bCanBeMerchant)
 {
@@ -48,6 +74,7 @@ NPCComponent::~NPCComponent() {
     wolf::EventManager::RemoveListener<DialogueOrCutsceneEndEvent, NPCComponent, &NPCComponent::HandleDialogueOrCutsceneEndEvent>(*this);
 }
 
+// Update the component
 void NPCComponent::Update(float p_fDelta) {
     // If the NPC is inactive, do not update
     if (!m_isActive)
@@ -127,8 +154,9 @@ void NPCComponent::Update(float p_fDelta) {
     }
 }
 
-// Call this method once the Health, AnimatedSprite2D, Velocity, and optionally the MerchantInventory
-// components have been added to the NPC GameObject
+// Initializes the NPC component by retrieving the Health, AnimatedSprite2D, Velocity, and
+// optionally, MerchantInventory components from the NPC's GameObject.
+// THIS METHOD SHOULD ONLY BE CALLED AFTER THOSE COMPONENTS HAVE BEEN ADDED TO THE GAMEOBJECT
 void NPCComponent::Init() {
     // Retrieve the Transform2D Component
     m_pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
@@ -213,6 +241,7 @@ void NPCComponent::PlayNextDialogue() {
 }
 
 // Add a dialogue entry to the priority queue
+// > p_strEntryID: the string ID (or name) of the dialogue segment that will be added to the queue
 void NPCComponent::QueueDialogue(const std::string& p_strEntryID) {
     // Ensure the entry exists before accessing it
     auto it = m_mDialogueEntries.find(p_strEntryID);
@@ -235,6 +264,7 @@ void NPCComponent::QueueDialogue(const std::string& p_strEntryID) {
 }
 
 // Immediately play a given dialogue/cutscene sequence regardless of what is in the queue
+// > p_strEntryID: the string ID/name of the dialogue segment that will play
 void NPCComponent::TriggerDialogue(const std::string& p_strEntryID) {
     // If we are not already playing a dialogue or cutscene sequence
     if (!m_bPlayingDialogue) {
@@ -248,6 +278,7 @@ void NPCComponent::TriggerDialogue(const std::string& p_strEntryID) {
 }
 
 // Check whether or not a given dialogue entry has been played yet
+// > p_strEntryID: the string ID/name of the dialogue segment
 bool NPCComponent::HasDialoguePlayed(const std::string& p_strEntryID) {
     NPCDialogueEntry* dialogue = m_mDialogueEntries.at(p_strEntryID);
     if (dialogue) {
@@ -257,7 +288,8 @@ bool NPCComponent::HasDialoguePlayed(const std::string& p_strEntryID) {
 }
 
 // Change the priority level of a given dialogue entry
-// ?-- Need to figure out how this will work with the priority queue --?
+// > p_strEntryID: the string ID/name of the dialogue segment that will be updated
+// > p_iNewPriority: the priority level that will be assigned to the given dialogue entry
 bool NPCComponent::ChangeDialoguePriority(const std::string& p_strEntryID, int p_iNewPriority) {
     NPCDialogueEntry* dialogue = m_mDialogueEntries.at(p_strEntryID);
     if (dialogue) {
@@ -274,6 +306,9 @@ void NPCComponent::EmptyDialogueQueue() {
     }
 }
 
+// Handler for DialogueOrCutsceneEndEvents that checks if the dialogue/cutscene that just ended was started by this
+// NPC and, if so, checks if this NPC is a merchant and needs to say goodbye
+// > p_event: the DialogueOrCutsceneEvent object
 void NPCComponent::HandleDialogueOrCutsceneEndEvent(const DialogueOrCutsceneEndEvent& p_event) {
     // If we were the NPC who triggered the dialogue (if the dialogue was triggered by an npc)
     if (p_event.triggerNPCID == m_iID) {
@@ -530,6 +565,7 @@ void NPCComponent::CheckRoamSpeed()
     }
 }
 
+// Switches to the NPC's current animation to "face" the player
 void NPCComponent::TurnTowardsPlayer()
 {
     // Figure out where the player is and rotate to face them

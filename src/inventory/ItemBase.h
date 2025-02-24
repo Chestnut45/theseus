@@ -12,6 +12,7 @@
 #include <string>
 #include "InventoryEvents.h"
 
+// THIS IS POORLY NAMED but it represents the different TYPEs of items that are possible
 enum ItemID {
     NONE = 1,
     CONSUMABLE,

@@ -36,8 +36,12 @@ class FlatAmtItem : public ConsumableItem {
 
         virtual void Use();
 
+        // Constructs a string containing all of the item details that will be displayed in the on-hover GUI tooltip
         inline virtual std::string GetToolTipText() const {
+            // Get the base ConsumableItem tooltip text...
             std::string strBaseText = ConsumableItem::GetToolTipText() + "\nEffect: ";
+
+            // ...then add the attribute name and...
             switch(m_enAttrib) {
                 case HEALTH:
                     strBaseText += "HEALTH ";
@@ -47,12 +51,16 @@ class FlatAmtItem : public ConsumableItem {
                     strBaseText += "STAMINA ";
                 break;
             }
+            
+            // ...the amount it will affect that attribute by
             if (m_fAmt > 0) {
                 strBaseText += "+ " + std::format("{:.2f}", m_fAmt);
             }
             else {
                 strBaseText += "- " + std::format("{:.2f}", -m_fAmt);
             }
+
+            // Then return the constructed string
             return strBaseText;
         };
 

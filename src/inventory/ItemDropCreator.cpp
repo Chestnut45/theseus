@@ -1,5 +1,14 @@
 #include "ItemDropCreator.h"
 
+//-----------------------------------------------------------------------------
+// File:            ItemDropCreator.cpp
+// Original Author: Aurora Ryder
+//
+// A singleton class that is used to create GameObject representations
+// of inventory items that can be dropped by entities and picked up by the
+// player. Note that this class requires a <> instance to create items.
+//-----------------------------------------------------------------------------
+
 #include <ColliderComponent.h>
 #include <VelocityComponent.h>
 
@@ -12,6 +21,9 @@ std::map<std::string, YAML::Node> ItemDropCreator::m_mLootTables;
 
 const std::string ItemDropCreator::ITEM_TEXTURE_PATH = "data/textures/ItemIcons-Sheet.png";
 
+// Creates the ItemDropCreator instance (provided one does not exist already)
+// > p_pScene: the Scene the ItemDropCreator will spawn items into
+// > p_iRNGSeed: the random number generator seed used to choose items
 void ItemDropCreator::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
     // If there is not already an existing instance
     assert(m_pInstance == nullptr);
@@ -23,6 +35,7 @@ void ItemDropCreator::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
     m_iRNGSeed = p_iRNGSeed;
 }
 
+// Destroys the ItemDropCreator instance (provided one exists)
 void ItemDropCreator::DestroyInstance() {
     // If an instance exists
     assert(m_pInstance != nullptr);
@@ -36,6 +49,7 @@ void ItemDropCreator::DestroyInstance() {
     m_pRNG = nullptr;
 }
 
+// Returns a pointer to the ItemDropCreator instance (provided one exists)
 ItemDropCreator* ItemDropCreator::Instance() {
     // If an instance exists
     assert(m_pInstance);
@@ -44,11 +58,15 @@ ItemDropCreator* ItemDropCreator::Instance() {
     return m_pInstance;
 }
 
+// Sets the scene that the ItemDropCreator will spawn ItemDrops into
 void ItemDropCreator::SetScene(wolf::Scene* p_pScene) {
     m_pScene = p_pScene;
 }
 
 // Create a single drop item using a pointer to an existing item (use when you are dropping an item from an inventory)
+// > p_pItem: pointer to the item you are dropping
+// > p_v2SpawnPos: world-space location the item should be spawned at
+// > p_fLifeSpan: how long the item will stay "alive" for before disappearing
 wolf::GameObject* ItemDropCreator::CreateItemDropFromExistingItem(ItemBase* p_pItem, const glm::vec2& p_v2SpawnPos, float p_fLifespan) {
     // Create the item's gameobject
     wolf::GameObject* pItemDropGO = &m_pScene->CreateObject2D();
@@ -77,6 +95,9 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromExistingItem(ItemBase* p_pI
 }
 
 // Create a single drop item using the .yaml item directory (use when you want to drop a specific item)
+// > p_strItemName: name of the item to be spawned
+// > p_v2SpawnPos: the world-space location this item should be spawned at
+// > p_fLifespan: how long the item should be "alive" for before disappearing
 wolf::GameObject* ItemDropCreator::CreateItemDropFromDirectory(const std::string& p_strItemName, const glm::vec2& p_v2SpawnPos, float p_fLifespan) {
     // Attempt to create the item requested
     ItemBase* pItem = ItemCreator::CreateItem(p_strItemName);
@@ -114,6 +135,9 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromDirectory(const std::string
 }
 
 // Create a single drop item using a .yaml loot table (use when you want to drop a non-specific item)
+// > p_strLootTable: path to the .yaml loot table an item (or items) will be selected from
+// > p_v2SpawnPos: world-space location the item (or items) will be spawned at
+// > p_fLifespan: how long the items should stay "alive" for before disappearing
 std::vector<wolf::GameObject*> ItemDropCreator::CreateItemDropFromLootTable(const std::string& p_strLootTable, const glm::vec2& p_v2SpawnPos, float p_fLifespan) {
     // Temporary variables to hold the YAML loot table file and the item we create from it
     YAML::Node node;
