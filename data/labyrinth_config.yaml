@@ -1,5 +1,5 @@
 random_seed: true
-seed: 895595971
+seed: 204593467
 width: 95
 height: 95
 spike_trap_ratio: 0.020000
@@ -135,7 +135,7 @@ rooms: [
 		instances: 4,
 		force: false,
 		position: {type: random},
-		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 9, y: 9}},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: common_chest, amount: 1, placement: center},
 		]
