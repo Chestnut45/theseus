@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
-// File: GLShapesRenderer. pp
+// File: GLShapesRenderer.cpp
 // Original Author: Nguyễn Minh Nhật
-// Renders Points, Lines & Triangles.
+// Renders lines, triangles & regular polygons.
 //-----------------------------------------------------------------------------
 
 #include "GLShapesRenderer.h"

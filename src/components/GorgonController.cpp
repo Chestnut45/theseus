@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File: GorgonController.cpp
+// Original Author:	Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
+// Controls gorgon attacks & behaviours.
+//-----------------------------------------------------------------------------
+
 #include "GorgonController.h"
 #include "PlayerController.h"
 #include "HarpyController.h"

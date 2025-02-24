@@ -1,6 +1,7 @@
 #pragma once
-
 #include <string>
+
+// Created by Aurora Ryder for use with Inventory components
 
 struct PercentHealthItemEvent {
     float fHealthChangeAmt;

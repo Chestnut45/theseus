@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // File: GLShapesRenderer.h
 // Original Author: Nguyễn Minh Nhật
-// Renders Points, Lines & Triangles.
+// Renders lines, triangles & regular polygons.
 //-----------------------------------------------------------------------------
 
 #pragma once

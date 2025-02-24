@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:			W_EventManager.cpp
+// Original Author:	D'Anyil Landry
+//
+// A static class providing general event dispatching and listener connection.
+//-----------------------------------------------------------------------------
+
 #include "W_EventManager.h"
 
 namespace wolf

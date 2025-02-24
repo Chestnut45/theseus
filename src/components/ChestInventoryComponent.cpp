@@ -1,9 +1,17 @@
 #include "ChestInventoryComponent.h"
 
+//-----------------------------------------------------------------------------
+// File:            ChestInventoryComponent.cpp
+// Original Author: Aurora Ryder
+//
+// A class representing a given chest's inventory
+//-----------------------------------------------------------------------------
+
 #include <yaml-cpp/yaml.h>
 #include "../inventory/ItemCreator.h"
 
 #include <AnimatedSprite2D.h>
+
 
 ChestInventoryComponent::~ChestInventoryComponent() {
     // Empty each of the stacks in the contents vector
@@ -19,6 +27,9 @@ ChestInventoryComponent::~ChestInventoryComponent() {
     wolf::EventManager::RemoveListener<CloseInventoryEvent, ChestInventoryComponent, &ChestInventoryComponent::HandleCloseInventoryEvent>(*this);
 }
 
+// Fills the chest using the given rng to choose items from a .yaml loot table
+// > filepath: path to the .yaml loot table
+// > rng: random number generator that will be used to randomly select items from the loot table
 bool ChestInventoryComponent::FillFromLootTable(const std::string& filepath, wolf::RNG& rng)
 {
     try
@@ -91,6 +102,7 @@ bool ChestInventoryComponent::FillFromLootTable(const std::string& filepath, wol
     return true;
 }
 
+// Displays the chest's GUI
 void ChestInventoryComponent::ShowInventoryGUI() {
     if (m_bIsOpen) {
         ImGuiStyle* pStyle = &ImGui::GetStyle();
@@ -318,6 +330,7 @@ void ChestInventoryComponent::ShowInventoryGUI() {
     }
 }
 
+// Sends the item stored at p_iItemIndex to the player by triggering a SendItemToPlayerInventoryEvent
 void ChestInventoryComponent::SendItemToPlayer(int p_iItemIndex) {
     // Retrieve the item from the inventory and send it to the player via an event.
     wolf::EventManager::TriggerEvent(SendItemToPlayerInventoryEvent(m_enType, m_iIdNum, this->GetItem(p_iItemIndex), p_iItemIndex));
@@ -327,6 +340,8 @@ void ChestInventoryComponent::SendItemToPlayer(int p_iItemIndex) {
     // we sent rather than the first instance of it (in case we have multiple items with the same name) --!
 }
 
+// Handler for OpenInventoryEvents that will close this chest if another inventory opens
+// p_event: the OpenInventoryEvent object
 void ChestInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
     // If this chest is open
     if (m_bIsOpen) {
@@ -347,6 +362,8 @@ void ChestInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent&
     }
 }
 
+// Handler for CloseInventoryEvents that will close this chest if it was open and the player closed their inventory
+// > p_event: the CloseInventoryEvent object
 void ChestInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
     // If the player just closed their inventory
     if (p_event.enType == PLAYER_INVENTORY || p_event.enType == CHEST_INVENTORY) {
@@ -367,6 +384,9 @@ void ChestInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEven
     }
 }
 
+// Handler for AddToChestEvents that will add an item to the chest as long is there is space to hold it.
+// Otherwise, the item will be returned to the player
+// > p_event: the AddToChestEvent object
 void ChestInventoryComponent::HandleAddToChestEvent(const SendItemToChestEvent& p_event) {
     // If the player is trying to add an item to this specific chest
     if (p_event.iChestIdNum == m_iIdNum) {
@@ -385,6 +405,8 @@ void ChestInventoryComponent::HandleAddToChestEvent(const SendItemToChestEvent& 
     }
 }
 
+// Handler for RemoveFromChestEvents that will remove an item from this chest
+// > p_event: the RemoveFromChestEvent object
 void ChestInventoryComponent::HandleRemoveFromChestEvent(const RemoveFromChestEvent& p_event) {
     // If someone has taken an item out of this specific chest
     if (p_event.iChestIdNum == m_iIdNum) {

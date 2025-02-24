@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File: GorgonBuilder.h
+// Original Author:	Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
+// Constructs gorgon enemies.
+//-----------------------------------------------------------------------------
 #include "GorgonBuilder.h"
 #include "GorgonController.h"
 #include "StatusComponent.h"

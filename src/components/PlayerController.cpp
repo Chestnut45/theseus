@@ -23,9 +23,10 @@
 #include <W_Audio.h>
 
 //-----------------------------------------------------------------------------
-// File:            PlayerController.cpp
+// File: PlayerController.cpp
 // Original Author: Youssef Ashraf
-// ver 2.0: Optimized and restructured for readability and performance.
+// Modifications: Nguyễn Minh Nhật, D'Anyil Landry, Aurora Ryder
+// ver 2.0. Updated to remove deprecated hitbox and hurtbox components.
 //-----------------------------------------------------------------------------
 
 PlayerController::PlayerController() = default;
