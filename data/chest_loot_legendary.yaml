@@ -4,5 +4,5 @@ loot_table: [
   {name: Legendary Schematic, probability: 3},
   {name: Healing Heart, probability: 2},
   {name: The Floor is Lava Boots, probability: 4},
-  {name: Dented Helmet, probability: 1}
+  {name: Lapis Lazuli Ring, probability: 4}
 ]
