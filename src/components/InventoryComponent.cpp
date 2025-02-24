@@ -1,9 +1,18 @@
 #include "InventoryComponent.h"
+
+//-----------------------------------------------------------------------------
+// File:            InventoryComponent.cpp
+// Original Author: Aurora Ryder
+//
+// A class representing a basic inventory
+//-----------------------------------------------------------------------------
+
 #include "W_Logging.h"
 
 #include <yaml-cpp/yaml.h>
 #include "../inventory/ItemCreator.h"
 
+// Static ID number used for resource management and inventory identification
 int InventoryComponent::m_iNextIdNum = 0;
 
 const float InventoryComponent::TOOLTIP_WRAP_POS = 176.0f;
@@ -17,6 +26,12 @@ std::vector<ImGuiUVSet*> InventoryComponent::m_vv2ItemTextureCoords;
 const std::string InventoryComponent::m_strFrameTexturePath = "data/textures/InventoryUI.png";
 std::vector<ImGuiUVSet*> InventoryComponent::m_vv2FrameTextureCoords;
 
+/* Creates a basic InventoryComponent
+    Parameters:
+    > p_iSize: the total number of slots in the inventory
+    > p_iSlotsPerRow: the maximum number of slots that can be displayed in a row
+    > p_v2DrawPos: the position this inventory's GUI should be drawn at
+*/
 InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos) : m_iSize(p_iSize), m_iMaxPerRow(p_iSlotsPerRow), m_iIdNum(m_iNextIdNum), m_v2DrawPos(p_v2DrawPos){
     // Reserve the amount of space we've been asked for
     m_vvpContents.reserve(p_iSize);
@@ -39,6 +54,9 @@ InventoryComponent::InventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p
     m_iNextIdNum++;
 }
 
+// Initializes the texture used for all the icons of all the items that can be added to an inventory
+// > p_strTexturePath: path to the texture/image containing all of the item icons
+// > p_vv2TextureCoords: vector used to hold the texture coordinates of each icon in the texture (this will be indexed later to access specific icons)
 wolf::Texture* InventoryComponent::InitTexture(const std::string& p_strTexturePath, std::vector<ImGuiUVSet*>& p_vv2TextureCoords) {
     // We need to initalize the shared textures
     wolf::Texture* pNewTexture = wolf::TextureManager::CreateTexture(p_strTexturePath);
@@ -114,6 +132,9 @@ InventoryComponent::~InventoryComponent() {
     m_vvpContents.clear();
 }
 
+// Gets and returns a pointer to first item in the inventory whose name is p_strItemName.
+// Returns nullptr if there is not an item with that name in the inventory
+// > p_strItemName: the name of the item to be retrieved
 ItemBase* InventoryComponent::GetItem(const std::string& p_strItemName) {
     // If there are no slots in use then we can't return anything!
     if (m_iSlotsInUse == 0) {
@@ -136,7 +157,9 @@ ItemBase* InventoryComponent::GetItem(const std::string& p_strItemName) {
     return nullptr;
 }
 
-// Follows the same process as GetItem with the item name as the parameter
+// Gets and returns a pointer to first item in the inventory whose ID is p_enItemID
+// Returns nullptr if there is not an item with that ID in the inventory
+// > p_enItemID: the ID of the item to be retrieved
 ItemBase* InventoryComponent::GetItem(ItemID p_enItemID) {
     // If there are no slots in use then we can't return anything!
     if (m_iSlotsInUse == 0) {
@@ -159,7 +182,10 @@ ItemBase* InventoryComponent::GetItem(ItemID p_enItemID) {
     return nullptr;
 }
 
-// This GetItem method is for when we know the index (inventory "slot" number) of the item we're looking for
+// Gets and returns a pointer to the item stored in the p_iItemIndex-th slot in the inventory
+// Returns nullptr if there is not an item with that name in the inventory, and returns the top
+// item in the stack if there is multiple items stored at that index
+// > p_iItemIndex: the slot the item will be retrieved from
 ItemBase* InventoryComponent::GetItem(int p_iItemIndex) {
     if (p_iItemIndex > m_vvpContents.size() || p_iItemIndex < 0 || p_iItemIndex >= m_iSlotsInUse) {
         // That's an invalid index so we can't get the item there
@@ -170,6 +196,10 @@ ItemBase* InventoryComponent::GetItem(int p_iItemIndex) {
     return m_vvpContents[p_iItemIndex].top();
 }
 
+// Attempts to add an item to the inventory by either stacking it on top of an existing, stackable item
+// or by occupying the next available slot. Returns true if the item was successfully added to the
+// inventory and false, otherwise.
+// > p_pItem: pointer to the item to be added
 bool InventoryComponent::AddItem(ItemBase* p_pItem) {
     // If we're not using any of the slots then we can just insert the item
     if (m_iSlotsInUse == 0) {
@@ -211,7 +241,11 @@ bool InventoryComponent::AddItem(ItemBase* p_pItem) {
     return false;
 }
 
-// Note that removing an item from the inventory DOES NOT DELETE IT.
+/* Removes the first item in the inventory whose name is p_strItemName.
+    Returns true if the item was successfully removed and false, otherwise.
+    If the item is in a stack, only the top item will be removed.
+    (note that removing an item from the inventory DOES NOT DELETE IT)
+    > p_strItemName: the name of the item to be removed */
 bool InventoryComponent::RemoveItem(const std::string& p_strItemName) {
     // If our inventory is empty then we can't remove anything!
     if (m_iSlotsInUse == 0) {
@@ -250,7 +284,11 @@ bool InventoryComponent::RemoveItem(const std::string& p_strItemName) {
     return false;
 }
 
-// Once again, note that removing an item from the inventory DOES NOT DELETE IT.
+/* Removes the first item in the inventory whose ID is p_enItemID.
+    Returns true if the item was successfully removed and false, otherwise.
+    If the item is in a stack, only the top item will be removed.
+    (note that removing an item from the inventory DOES NOT DELETE IT)
+    > p_enItemID: the ID of the item to be removed */
 bool InventoryComponent::RemoveItem(ItemID p_enItemID) {
     // If our inventory is empty then we can't remove anything!
     if (m_iSlotsInUse == 0) {
@@ -290,7 +328,11 @@ bool InventoryComponent::RemoveItem(ItemID p_enItemID) {
     return false;
 }
 
-// Keep in mind that removing an item from the inventory DOES NOT DELETE IT.
+/* Removes the item stored at the p_iItemIndex-th slot
+    Returns true if the item was successfully removed and false, otherwise.
+    If the item is in a stack, only the top item will be removed.
+    (note that removing an item from the inventory DOES NOT DELETE IT)
+    > p_iItemIndex: the inventory slot an item will be removed from */
 bool InventoryComponent::RemoveItem(int p_iItemIndex) {
     if (p_iItemIndex > m_vvpContents.size() || p_iItemIndex < 0 || p_iItemIndex >= m_iSlotsInUse) {
         // If we're given an invalid index then we return false
@@ -327,6 +369,8 @@ bool InventoryComponent::RemoveItem(int p_iItemIndex) {
     return true;
 }
 
+// Removes all items from the inventory
+// (note that this DOES NOT DELETE the items)
 void InventoryComponent::EmptyInventory() {
     // Go through the contents vector
     for (std::vector<std::stack<ItemBase*>>::iterator it = m_vvpContents.begin(); it != m_vvpContents.end(); ++it) {
@@ -342,6 +386,7 @@ void InventoryComponent::EmptyInventory() {
     m_iSlotsInUse = 0;
 }
 
+// Show the inventory's GUI
 void InventoryComponent::ShowInventoryGUI() {  
     if (m_bIsOpen) {
         ImGuiStyle* pStyle = &ImGui::GetStyle();
@@ -461,7 +506,9 @@ void InventoryComponent::ShowInventoryGUI() {
     }
 }
 
-
+// Fills the inventory with the items listed in a given .yaml file, provided those
+// items have been properly described and can be created.
+// > p_strFilePath: the .yaml file that will be used to fill the inventory
 bool InventoryComponent::FillInventoryFromFile(const std::string& p_strFilePath) {
     try {
         // Load the file
@@ -497,6 +544,7 @@ bool InventoryComponent::FillInventoryFromFile(const std::string& p_strFilePath)
     return true;
 }
 
+// Open the inventory and send out an OpenInventoryEvent
 void InventoryComponent::Open() {
     m_bIsOpen = true;
 
@@ -504,12 +552,15 @@ void InventoryComponent::Open() {
     wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
 }
 
+// Close the inventory and send out a CloseInventoryEvent
 void InventoryComponent::Close() {
     // Let anyone interested know which specific chest was closed
     wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
     m_bIsOpen = false;
 }
 
+// Closes the inventory if it is open and opens the inventory if it is closed.
+// Sends out an OpenInventoryEvent on open and a CloseInventoryEvent on close
 void InventoryComponent::ToggleOpen() {
     m_bIsOpen = !m_bIsOpen;
 

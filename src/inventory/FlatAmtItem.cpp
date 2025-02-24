@@ -1,5 +1,14 @@
 #include "FlatAmtItem.h"
 
+//-----------------------------------------------------------------------------
+// File:            FlatAmtItem.cpp
+// Original Author: Aurora Ryder
+//
+// A class representing a consumable item which changes a given attribute
+// by a flat amount (i.e. not a percentage or over time)
+//-----------------------------------------------------------------------------
+
+// Use the item by sending out a Flat<ATTRIBUTE_NAME>ItemEvent
 void FlatAmtItem::Use() {
     // Figure out which attribute this item is affecting and send the corresponding event
     switch(this->m_enAttrib) {

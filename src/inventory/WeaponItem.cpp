@@ -1,5 +1,15 @@
 #include "WeaponItem.h"
 
+//-----------------------------------------------------------------------------
+// File:            WeaponItem.cpp
+// Original Author: Aurora Ryder
+//
+// A class representing the item version of a weapon
+//
+// Note that all weapons CAN have projectiles associated with them,
+// but that does not mean that all weapons SHOOT projectiles.
+//-----------------------------------------------------------------------------
+
 // Because we want to send a weapon event when we equip a weapon, we overload the equip method
 void WeaponItem::SetEquipped(bool p_bEquip) {
     m_bEquipped = p_bEquip;

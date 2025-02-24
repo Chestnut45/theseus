@@ -11,6 +11,7 @@
 #include "../components/StatusComponent.h"
 #include <vector>
 
+// Struct for status effects that can be applied via ArmourItems
 struct ArmourStatusEffect {
     StatusComponent::StatusEffectType enType;
     float fDuration;
@@ -35,11 +36,18 @@ class ArmourItem : public EquipmentItem {
 
         std::vector<ArmourStatusEffect>* GetStatusEffectList() {return &m_vStatusEffects;};
         const float* GetStatusEffectResistances() const {return m_aStatusEffectResistances;};
+
+        // Constructs a string containing all of the item details that will be displayed in the on-hover GUI tooltip
         inline virtual std::string GetToolTipText() const {
+            // Get the basic tooltip text and add the defense stat
             std::string strBaseText = EquipmentItem::GetToolTipText() + "\nDefense: " + std::format("{:.2f}", m_fDamageReduction);
+            
+            // If this item applies status effects
             if (!m_vStatusEffects.empty()) {
+                // Iterate through the list of status effects...
                 strBaseText += "\nApplies: ";
                 for (auto& effect : m_vStatusEffects) {
+                    // ...and add their name...
                     switch (effect.enType) {
                         case StatusComponent::BURNING:
                             strBaseText += "\n\tBURNING ";
@@ -57,9 +65,13 @@ class ArmourItem : public EquipmentItem {
                             strBaseText += "\n\tHEALING ";
                         break;
                     }
+
+                    // ...and durations
                     strBaseText += "for " + std::format("{:.2f}", effect.fDuration);
                 }
             }
+            
+            // Then return the constructed string
             return strBaseText;
         };
 

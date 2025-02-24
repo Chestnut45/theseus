@@ -1,5 +1,14 @@
 #include "PercentItem.h"
 
+//-----------------------------------------------------------------------------
+// File:            PercentItem.cpp
+// Original Author: Aurora Ryder
+//
+// A class representing a consumable item which changes a given attribute
+// by a percentage of its maximum value
+//-----------------------------------------------------------------------------
+
+// Use the item by sending out a Percent<ATTRIBUTE_NAME>ItemEvent
 void PercentItem::Use() {
     // Figure out which attribute this item is affecting and send the corresponding event
     switch(this->m_enAttrib) {
