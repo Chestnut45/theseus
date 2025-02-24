@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File:			DialogueAndCutsceneState.h
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// A class that's responsible for the Concrete Dialogue and Cutscene State.
+//-----------------------------------------------------------------------------
 #include "DialogueAndCutsceneState.h"
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
@@ -153,22 +159,23 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
         m_isLineFinished = (m_timeSinceLastKeyframe >= currentLine.length() * 0.05f || m_showFullText);
 
         // Check user input for skipping
-        bool isInputPressed = (m_lmbCooldown <= 0.0f) &&
-                              (wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE));
+        bool isInputPressed = (wolf::Input::IsLMBJustDown() || wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE));
         bool isLastLine = (m_currentSequenceIndex >= m_currentSequence->size() - 1);
 
         if (isInputPressed) {
-            m_lmbCooldown = LMB_DELAY;
-
             if (!m_showFullText) {
                 m_showFullText = true;
+                m_isLineFinished = true;
             } else if (!m_isLineFinished) {
                 m_isLineFinished = true;
             } else if (isLastLine) {
-                dialogueFinished = true;
+                m_isDialogueActive = false;
             } else {
-                dialogueFinished = true;
                 m_timeSinceLastKeyframe = 0.0f;
+                m_showFullText = false;
+                m_isLineFinished = false;
+                m_currentSequenceIndex++;
+                ResetCutsceneState();
             }
         }
 
@@ -220,13 +227,13 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
 
     // Combined logic
     if (currentItem.type == "combined") {
-        if (cutsceneFinished && dialogueFinished) {
+        if (cutsceneFinished && dialogueFinished && m_showFullText) {
             m_timeSinceLastKeyframe = 0.0f;
             m_showFullText = false;
             m_currentSequenceIndex++;
             ResetCutsceneState();
         }
-    } else if ((currentItem.type == "dialogue" && dialogueFinished) ||
+    } else if ((currentItem.type == "dialogue" && dialogueFinished && m_showFullText) ||
                (currentItem.type == "cutscene" && cutsceneFinished)) {
         m_timeSinceLastKeyframe = 0.0f;
         m_showFullText = false;

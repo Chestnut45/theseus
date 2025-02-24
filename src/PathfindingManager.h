@@ -2,6 +2,7 @@
 // File:            PathfindingManager.h
 // Original Author: Youssef Ashraf
 // ver 1.3.
+// Pathfinding for entities
 //-----------------------------------------------------------------------------
 
 #ifndef PATHFINDING_MANAGER_H

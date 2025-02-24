@@ -1,3 +1,11 @@
+//-----------------------------------------------------------------------------
+// File:			TriggerComponent.cpp
+// Original Author:	Youssef Ashraf
+// Modifications:
+// ver 1.3
+// class responsible for a generalized trigger component
+//-----------------------------------------------------------------------------
+
 #include "TriggerComponent.h"
 #include "TriggerEvent.h"
 #include "W_GameObject.h"

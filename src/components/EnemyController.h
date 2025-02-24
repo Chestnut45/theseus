@@ -1,3 +1,5 @@
+#pragma once
+
 //-----------------------------------------------------------------------------
 // File: EnemyController.h
 // Original Author:	Youssef Ashraf
@@ -5,7 +7,6 @@
 // A template for controllers of specific enemies.
 //-----------------------------------------------------------------------------
 
-#pragma once
 
 #include <wolf.h>
 #include <components/HealthComponent.h>

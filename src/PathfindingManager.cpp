@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:            PathfindingManager.h
+// Original Author: Youssef Ashraf
+// ver 1.3.
+// Pathfinding for entities
+//-----------------------------------------------------------------------------
+
 #include "PathfindingManager.h"
 #include "MinitaurController.h"
 #include <cmath> // for abs and sqrt

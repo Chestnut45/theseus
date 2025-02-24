@@ -1,3 +1,5 @@
+#pragma once
+
 //-----------------------------------------------------------------------------
 // File: MonsterSpawnerComponent.h
 // Original Author: Nguyễn Minh Nhật
@@ -5,7 +7,6 @@
 // Note: The owner GameObject does NOT need to be moved for this component to move
 //-----------------------------------------------------------------------------
 
-#pragma once
 
 #include <wolf.h>
 #include <LabyrinthManager.h>

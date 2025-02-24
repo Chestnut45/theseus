@@ -1,5 +1,13 @@
 #pragma once
 
+//-----------------------------------------------------------------------------
+// File:			ThrwoableObjectComponent.h
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// class responsible for throwable objects
+//-----------------------------------------------------------------------------
+
+
 #include "ColliderComponent.h"
 #include "MinitaurController.h"
 #include "HealthComponent.h"

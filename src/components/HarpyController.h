@@ -1,10 +1,10 @@
+#pragma once
 //-----------------------------------------------------------------------------
 // File: HarpyController.h
 // Original Author:	Youssef Ashraf
 // Modifications: Nguyễn Minh Nhật
 // Controls harpy attacks & behaviours.
 //-----------------------------------------------------------------------------
-#pragma once
 
 #include "EnemyController.h"
 #include <wolf.h>

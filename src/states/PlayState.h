@@ -31,6 +31,7 @@
 #include "PathfindingManager.h"
 #include <events/GameWinEvent.h>
 #include <W_Timer.h>
+#include <ParticleSystem2D.h>
 
 #include <unordered_map>
 #include <unordered_set>
@@ -69,6 +70,8 @@ private:
 
     //pathfinding manager
     PathfindingManager* m_pPathfindingManager = nullptr;
+
+    ParticleSystem2D* m_particleSystem = nullptr;
 
     // Flags
     bool m_debugHotkeys = false;
@@ -120,4 +123,17 @@ private:
 
     std::unordered_set<glm::ivec2> m_visitedChunks; // Track visited chunks
     bool m_isMapExpanded = false;                  // Toggle for expanded map
+
+    wolf::Timer m_cameraShakeTimer;
+    wolf::Timer m_fadeToBlackTimer;
+    wolf::Timer m_completionMessageTimer;
+    wolf::Timer m_showCreditsTimer;
+    wolf::Timer m_returnToMainMenuTimer;
+    wolf::Timer m_gameCompletionTime;
+
+    void RenderFadeOverlay(float alpha);
+    void RenderTextCentered(const std::string& text, float size);
+    void RenderCredits(float delta);
+    bool m_isExiting = false;
+
 };

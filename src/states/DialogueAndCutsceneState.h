@@ -1,5 +1,12 @@
 #pragma once
 
+//-----------------------------------------------------------------------------
+// File:			DialogueAndCutsceneState.h
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// A class that's responsible for the Concrete Dialogue and Cutscene State.
+//-----------------------------------------------------------------------------
+
 #include "GameState.h"
 #include "theseus.h"
 #include <unordered_map>

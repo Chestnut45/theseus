@@ -1,10 +1,10 @@
+#pragma once
 //-----------------------------------------------------------------------------
 // File: MinitaurController.h
 // Original Author:	Youssef Ashraf
 // Modifications: Nguyễn Minh Nhật
 // Controls minitaur attacks & behaviours.
 //-----------------------------------------------------------------------------
-#pragma once
 
 #include "EnemyController.h"
 #include <wolf.h>
