@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // File:			PlayState.h
 // Original Author:	Youssef Ashraf
-// Modifications : D'Anyil Landry
+// Modifications : D'Anyil Landry, Nguyễn Minh Nhật
 // ver 1.1
 // A class that's responsible for the Concrete Play State.
 //-----------------------------------------------------------------------------

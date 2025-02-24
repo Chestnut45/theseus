@@ -1,3 +1,13 @@
+//-----------------------------------------------------------------------------
+// File:			LabyrinthManager.cpp
+// Original Author:	D'Anyil Landry
+// Modifications: Nguyễn Minh Nhật
+// A class representing a game component used to generate and update the labyrinth.
+// 
+// When attached to a game object, calling Generate() will create all the
+// necessary objects and components to represent the labyrinth and add them
+// all as child objects of the object the manager is attached to.
+//-----------------------------------------------------------------------------
 #include "LabyrinthManager.h"
 
 // ImGui for GUI windows

@@ -23,8 +23,9 @@
 #include <W_Audio.h>
 
 //-----------------------------------------------------------------------------
-// File:            PlayerController.cpp
+// File: PlayerController.cpp
 // Original Author: Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
 // ver 2.0: Optimized and restructured for readability and performance.
 //-----------------------------------------------------------------------------
 

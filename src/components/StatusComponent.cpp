@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // File: StatusComponent.cpp
 // Original Author: Nguyễn Minh Nhật
-// Status.
+// Applies status effects onto player/enemies/NPCs.
 // Notes: 
 //      + DO NOT move StatusEffectType::NONE into any position other than last place in the enum
 //-----------------------------------------------------------------------------

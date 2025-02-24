@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File: MinitaurController.cpp
+// Original Author:	Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
+// Controls minitaur attacks & behaviours.
+//-----------------------------------------------------------------------------
 #include "MinitaurController.h"
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
