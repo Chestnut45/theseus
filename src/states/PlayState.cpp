@@ -313,6 +313,8 @@ void PlayState::Update(float delta)
     
     // Update the labyrinth manager
     m_pLabyrinthManager->Update(delta);
+
+    // Shake the camera
     if (m_cameraShakeTimer.IsRunning() && m_cameraShakeTimer.Elapsed() < 2.0f)
     {
         float intensity = 5.0f; // Shake intensity
@@ -348,408 +350,411 @@ void PlayState::Update(float delta)
         RenderCredits(delta);
     }
 
-
-    PortalTileManager::GetInstance()->Update(delta);
-    TileFireManager::GetInstance()->Update(delta);
-
-    // Update timed destroyer components
-    for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
+    // Don't bother updating most of the code if we're in the credits
+    if (!m_showCreditsTimer.IsRunning())
     {
-        TimedDestroyerComponent.Update(delta);
-    }
+        PortalTileManager::GetInstance()->Update(delta);
+        TileFireManager::GetInstance()->Update(delta);
 
-    // INVENTORY TESTING
-    auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
-    if (playerInventory) {
-        if (m_debugHotkeys)
+        // Update timed destroyer components
+        for (auto&& [_, TimedDestroyerComponent] : m_pGameInstance->GetScene().Each<TimedDestroyerComponent>())
         {
-            if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
+            TimedDestroyerComponent.Update(delta);
+        }
 
-            if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-                ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
-                ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
-                ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
-                ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
-                ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
-                ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
-                ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
-                ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
+        // INVENTORY TESTING
+        auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
+        if (playerInventory) {
+            if (m_debugHotkeys)
+            {
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
 
-                ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
-                ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
+                    ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
+                    ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
+                    ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
+                    ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
+                    ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
+                    ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
+                    ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
+                    ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
 
-                ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
-                ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
-                ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
-                
-                playerInventory->AddItemOrDelete(pBoots);
-                playerInventory->AddItemOrDelete(pDentedHelmet);
-                playerInventory->AddItemOrDelete(pRustyChestplate);
-                playerInventory->AddItemOrDelete(pCopperVambraces);
-                playerInventory->AddItemOrDelete(pKilt);
-                playerInventory->AddItemOrDelete(pTheezys);
-                playerInventory->AddItemOrDelete(pFauxLeatherGloves);
-                playerInventory->AddItemOrDelete(pLapisLazuliRing);
+                    ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
+                    ItemBase* pSpear = ItemCreator::CreateItem("Shaky Spear");
 
-                playerInventory->AddItemOrDelete(pBow);
-                playerInventory->AddItemOrDelete(pSpear);
-                playerInventory->AddItemOrDelete(pHealHeart);
-                playerInventory->AddItemOrDelete(pHurtHeart);
-                playerInventory->AddItemOrDelete(pBurnHeart);
+                    ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
+                    ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
+                    ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
+                    
+                    playerInventory->AddItemOrDelete(pBoots);
+                    playerInventory->AddItemOrDelete(pDentedHelmet);
+                    playerInventory->AddItemOrDelete(pRustyChestplate);
+                    playerInventory->AddItemOrDelete(pCopperVambraces);
+                    playerInventory->AddItemOrDelete(pKilt);
+                    playerInventory->AddItemOrDelete(pTheezys);
+                    playerInventory->AddItemOrDelete(pFauxLeatherGloves);
+                    playerInventory->AddItemOrDelete(pLapisLazuliRing);
+
+                    playerInventory->AddItemOrDelete(pBow);
+                    playerInventory->AddItemOrDelete(pSpear);
+                    playerInventory->AddItemOrDelete(pHealHeart);
+                    playerInventory->AddItemOrDelete(pHurtHeart);
+                    playerInventory->AddItemOrDelete(pBurnHeart);
+                }
+
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
+                    playerInventory->AddGold(10);
+                }
+
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
+                    playerInventory->TakeGold(5);
+                }
             }
 
-            if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
-                playerInventory->AddGold(10);
-            }
+            playerInventory->ShowToggleButtonGUI();
+            playerInventory->ShowInventoryGUI();
+        }
 
-            if (wolf::Input::IsKeyJustDown(GLFW_KEY_3)) {
-                playerInventory->TakeGold(5);
+        // DEBUG: Noclip hotkey
+        if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_SLASH))
+        {
+            auto* pCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
+            if (pCollider)
+            {
+                m_noClip = !m_noClip;
+                if (m_noClip)
+                {
+                    pCollider->SetActive(false);
+                    pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
+                }
+                else
+                {
+                    pCollider->SetActive(true);
+                    pCollider->SetColliderType(ColliderComponent::ColliderType::HITHURTBOXDR);
+                }
             }
         }
 
-        playerInventory->ShowToggleButtonGUI();
-        playerInventory->ShowInventoryGUI();
-    }
-
-    // DEBUG: Noclip hotkey
-    if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_SLASH))
-    {
-        auto* pCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
-        if (pCollider)
+        // Update all player controllers
+        for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<PlayerController>())
         {
-            m_noClip = !m_noClip;
-            if (m_noClip)
+            controller.Update(delta);
+        }
+
+        // Update boss controller
+        for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<BossController>())
+        {
+            controller.Update(delta);
+        }
+
+
+        // Update all minitaur controllers
+        // First pass: Update all minitaur controllers (without deletion)
+        for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
+        {
+            minitaurController.Update(delta);  // Update logic for Minitaurs
+        }
+        for (auto&& [_, harpyController] : m_pGameInstance->GetScene().Each<HarpyController>())
+        {
+            harpyController.Update(delta);  // Update logic for Harpies
+        }
+        for (auto&& [_, gorgonController] : m_pGameInstance->GetScene().Each<GorgonController>())
+        {
+            gorgonController.Update(delta);  // Update logic for Harpies
+        }
+        for (auto&& [_, trigger] : m_pGameInstance->GetScene().Each<TriggerComponent>()) {
+            trigger.Update(delta);
+        }
+        for (auto&& [_, trap] : m_pGameInstance->GetScene().Each<TrapComponent>()) {
+            trap.Update(delta);
+        }
+
+        for (auto&& [_, boulder] : m_pGameInstance->GetScene().Each<BoulderTrapComponent>()) {
+            boulder.Update(delta);
+        }
+            
+        for (auto&& [_, throwable] : m_pGameInstance->GetScene().Each<ThrowableObjectComponent>()) 
+        {
+            throwable.Update(delta);  // Update logic for throwable objects
+        }
+        
+        // Update all animated sprites
+        for (auto&&[_, anim] : m_pGameInstance->GetScene().Each<AnimatedSprite2D>())
+        {
+            anim.Update(delta);
+        }
+
+        for (auto&&[_, homing] : m_pGameInstance->GetScene().Each<HomingComponent>())
+        {
+            homing.Update(delta);
+        }
+
+        for(auto&& [_, attackDamageComponent] : m_pGameInstance->GetScene().Each<AttackDamageComponent>())
+        {
+            attackDamageComponent.Update(delta);
+        }
+
+        // Update all dropped items
+        for (auto&&[_, itemDrop] : m_pGameInstance->GetScene().Each<DroppedItemComponent>())
+        {
+            itemDrop.Update(delta);
+        }
+
+        // Update the NPCs
+        for (auto&&[_, npc] : m_pGameInstance->GetScene().Each<NPCComponent>()) {
+            npc.Update(delta);
+        }
+
+        // Inflict status effects upon the player
+        for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
+        {
+            status.Update(delta);
+        }
+
+        
+
+        // Display all open chest GUIs
+        const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        for (auto&&[_, chestInventory, transform, sprite] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
+        {
+            // Show GUI
+            chestInventory.ShowInventoryGUI();
+
+            // Distance checking
+            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
             {
-                pCollider->SetActive(false);
-                pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
+                // Player is in range of the chest, display tooltip
+                std::string tooltip = chestInventory.IsOpen() ? "Press E to Close Chest" : "Press E to Open Chest";
+                ShowTooltip(tooltip);
+
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                {
+                    auto name = sprite.GetCurrentAnimation()->m_strName;
+                    if (chestInventory.IsOpen())
+                        sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
+                    else
+                        sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
+                    
+                    chestInventory.ToggleOpen();
+                    
+                    if (!chestInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                    break;
+                }
             }
             else
             {
-                pCollider->SetActive(true);
-                pCollider->SetColliderType(ColliderComponent::ColliderType::HITHURTBOXDR);
-            }
-        }
-    }
-
-    // Update all player controllers
-    for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<PlayerController>())
-    {
-        controller.Update(delta);
-    }
-
-    // Update boss controller
-    for (auto&&[_, controller] : m_pGameInstance->GetScene().Each<BossController>())
-    {
-        controller.Update(delta);
-    }
-
-
-    // Update all minitaur controllers
-    // First pass: Update all minitaur controllers (without deletion)
-    for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
-    {
-        minitaurController.Update(delta);  // Update logic for Minitaurs
-    }
-    for (auto&& [_, harpyController] : m_pGameInstance->GetScene().Each<HarpyController>())
-    {
-        harpyController.Update(delta);  // Update logic for Harpies
-    }
-    for (auto&& [_, gorgonController] : m_pGameInstance->GetScene().Each<GorgonController>())
-    {
-        gorgonController.Update(delta);  // Update logic for Harpies
-    }
-    for (auto&& [_, trigger] : m_pGameInstance->GetScene().Each<TriggerComponent>()) {
-        trigger.Update(delta);
-    }
-    for (auto&& [_, trap] : m_pGameInstance->GetScene().Each<TrapComponent>()) {
-        trap.Update(delta);
-    }
-
-    for (auto&& [_, boulder] : m_pGameInstance->GetScene().Each<BoulderTrapComponent>()) {
-        boulder.Update(delta);
-    }
-        
-    for (auto&& [_, throwable] : m_pGameInstance->GetScene().Each<ThrowableObjectComponent>()) 
-    {
-        throwable.Update(delta);  // Update logic for throwable objects
-    }
-    
-    // Update all animated sprites
-    for (auto&&[_, anim] : m_pGameInstance->GetScene().Each<AnimatedSprite2D>())
-    {
-        anim.Update(delta);
-    }
-
-    for (auto&&[_, homing] : m_pGameInstance->GetScene().Each<HomingComponent>())
-    {
-        homing.Update(delta);
-    }
-
-    for(auto&& [_, attackDamageComponent] : m_pGameInstance->GetScene().Each<AttackDamageComponent>())
-    {
-        attackDamageComponent.Update(delta);
-    }
-
-    // Update all dropped items
-    for (auto&&[_, itemDrop] : m_pGameInstance->GetScene().Each<DroppedItemComponent>())
-    {
-        itemDrop.Update(delta);
-    }
-
-    // Update the NPCs
-    for (auto&&[_, npc] : m_pGameInstance->GetScene().Each<NPCComponent>()) {
-        npc.Update(delta);
-    }
-
-    // Inflict status effects upon the player
-    for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
-    {
-        status.Update(delta);
-    }
-
-    
-
-    // Display all open chest GUIs
-    const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    for (auto&&[_, chestInventory, transform, sprite] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
-    {
-        // Show GUI
-        chestInventory.ShowInventoryGUI();
-
-        // Distance checking
-        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
-        {
-            // Player is in range of the chest, display tooltip
-            std::string tooltip = chestInventory.IsOpen() ? "Press E to Close Chest" : "Press E to Open Chest";
-            ShowTooltip(tooltip);
-
-            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
-            {
-                auto name = sprite.GetCurrentAnimation()->m_strName;
+                // Close chest if the player walks away
                 if (chestInventory.IsOpen())
+                {
+                    chestInventory.Close();
+                    auto name = sprite.GetCurrentAnimation()->m_strName;
                     sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
-                else
-                    sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
-                
-                chestInventory.ToggleOpen();
-                
-                if (!chestInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
-                break;
+                    m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                }
             }
         }
-        else
-        {
-            // Close chest if the player walks away
-            if (chestInventory.IsOpen())
-            {
-                chestInventory.Close();
-                auto name = sprite.GetCurrentAnimation()->m_strName;
-                sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
-                m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
-            }
-        }
-    }
 
-    // Trapped chests
-    for (auto&&[_, trappedChest, transform, sprite] : m_pGameInstance->GetScene().Each<TrappedChestComponent, wolf::Transform2D, AnimatedSprite2D>())
-    {
-        // Update trapped chests
-        trappedChest.Update(delta);
-        // Distance checking
-        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+        // Trapped chests
+        for (auto&&[_, trappedChest, transform, sprite] : m_pGameInstance->GetScene().Each<TrappedChestComponent, wolf::Transform2D, AnimatedSprite2D>())
         {
-            if(trappedChest.IsOpen() == false)
+            // Update trapped chests
+            trappedChest.Update(delta);
+            // Distance checking
+            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
             {
-                std::string tooltip = "Press E to Open Chest";
+                if(trappedChest.IsOpen() == false)
+                {
+                    std::string tooltip = "Press E to Open Chest";
+                    ShowTooltip(tooltip);
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                    {
+                        trappedChest.OpenTrappedChest();
+                    }
+                }
+            }
+        }
+
+        // Display all open dispensary GUIs
+        for (auto&&[_, dispensaryInventory, transform] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent, wolf::Transform2D>())
+        {
+
+            // If the dispensary has an animated sprite we're going to want to retrieve it
+            AnimatedSprite2D* dispensarySprite = dispensaryInventory.GetGameObject()->GetComponent<AnimatedSprite2D>();
+
+            // Show GUI
+            dispensaryInventory.ShowInventoryGUI();
+
+            // Distance checking
+            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+            {
+                // Player is in range of the chest, display tooltip
+                std::string tooltip = dispensaryInventory.IsOpen() ? "Press E to Close Daedalus Dispensary" : "Press E to Open Daedalus Dispensary";
                 ShowTooltip(tooltip);
+
+                // When you interact with the dispensary
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
                 {
-                    trappedChest.OpenTrappedChest();
+                    // Either open or close it
+                    dispensaryInventory.ToggleOpen();
+
+                    // If the dispensary has an AnimatedSprite
+                    if (dispensarySprite) {
+                        // Play the activation animation when we open it
+                        if (dispensaryInventory.IsOpen()) {
+                            dispensarySprite->SetAnimation("Activate");
+                        }
+                        else {
+                            // And set it back to inactive when we close it
+                            dispensarySprite->SetAnimation("Deactivate");
+                        }
+                    }
+
+                    // Hide the child icon
+                    for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
+                        AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                        if (anim) {
+                            anim->SetAnimation("Transparent");
+                        }
+                    }
+
+                    // Also, if we close it, close the player inventory as well
+                    if (!dispensaryInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                    break;
                 }
             }
-        }
-    }
-
-    // Display all open dispensary GUIs
-    for (auto&&[_, dispensaryInventory, transform] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent, wolf::Transform2D>())
-    {
-
-        // If the dispensary has an animated sprite we're going to want to retrieve it
-        AnimatedSprite2D* dispensarySprite = dispensaryInventory.GetGameObject()->GetComponent<AnimatedSprite2D>();
-
-        // Show GUI
-        dispensaryInventory.ShowInventoryGUI();
-
-        // Distance checking
-        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
-        {
-            // Player is in range of the chest, display tooltip
-            std::string tooltip = dispensaryInventory.IsOpen() ? "Press E to Close Daedalus Dispensary" : "Press E to Open Daedalus Dispensary";
-            ShowTooltip(tooltip);
-
-            // When you interact with the dispensary
-            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+            else
             {
-                // Either open or close it
-                dispensaryInventory.ToggleOpen();
+                // Close dispensary if the player walks away
+                if (dispensaryInventory.IsOpen())
+                {
+                    dispensaryInventory.Close();
 
-                // If the dispensary has an AnimatedSprite
-                if (dispensarySprite) {
-                    // Play the activation animation when we open it
-                    if (dispensaryInventory.IsOpen()) {
-                        dispensarySprite->SetAnimation("Activate");
-                    }
-                    else {
-                        // And set it back to inactive when we close it
+                    // If the dispensary has an AnimatedSprite, play the inactive animation
+                    if (dispensarySprite) {
                         dispensarySprite->SetAnimation("Deactivate");
                     }
-                }
 
-                // Hide the child icon
-                for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
-                    AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
-                    if (anim) {
-                        anim->SetAnimation("Transparent");
+                    // Hide the child icon
+                    for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
+                        AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                        if (anim) {
+                            anim->SetAnimation("Transparent");
+                        }
                     }
-                }
 
-                // Also, if we close it, close the player inventory as well
-                if (!dispensaryInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
-                break;
+                    // Close the player's inventory as well
+                    m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                }
             }
         }
-        else
+        
+        for (auto&&[_, droppedItem, transform] : m_pGameInstance->GetScene().Each<DroppedItemComponent, wolf::Transform2D>())
         {
-            // Close dispensary if the player walks away
-            if (dispensaryInventory.IsOpen())
+            // Distance checking
+            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
             {
-                dispensaryInventory.Close();
+                // Player is in range of the chest, display tooltip
+                std::string tooltip = "Press E to pickup";
+                ShowTooltip(tooltip);
 
-                // If the dispensary has an AnimatedSprite, play the inactive animation
-                if (dispensarySprite) {
-                    dispensarySprite->SetAnimation("Deactivate");
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                {
+                    droppedItem.PickUpItem();
+                    break;
                 }
-
-                // Hide the child icon
-                for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
-                    AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
-                    if (anim) {
-                        anim->SetAnimation("Transparent");
-                    }
-                }
-
-                // Close the player's inventory as well
-                m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
             }
         }
-    }
-    
-    for (auto&&[_, droppedItem, transform] : m_pGameInstance->GetScene().Each<DroppedItemComponent, wolf::Transform2D>())
-    {
-        // Distance checking
-        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
-        {
-            // Player is in range of the chest, display tooltip
-            std::string tooltip = "Press E to pickup";
-            ShowTooltip(tooltip);
 
-            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+        for (auto&&[_, npc, transform] : m_pGameInstance->GetScene().Each<NPCComponent, wolf::Transform2D>()) {
+            // Distance check
+            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f) {
+                // Player is in range of the NPC so we display the tooltip
+                std::string tooltip = "Press E to talk to " + npc.GetName();
+                ShowTooltip(tooltip);
+
+                // And if the player interacts with the NPC we play their next dialogue/cutscene
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+                    npc.PlayNextDialogue();
+                    break;
+                }
+            }
+        }
+
+        // Display all open merchant GUIs
+        for (auto&&[_, merchantInventory, transform, sprite] : m_pGameInstance->GetScene().Each<MerchantInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
+        {
+            // Show GUI
+            merchantInventory.ShowInventoryGUI();
+
+            // If the player walks too far away
+            if (!(glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f))
             {
-                droppedItem.PickUpItem();
-                break;
+                // And the merchant GUI is open
+                if (merchantInventory.IsOpen()) {
+                    // Close it (and the player's inventory)
+                    merchantInventory.Close();
+                    m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                }
             }
         }
-    }
 
-    for (auto&&[_, npc, transform] : m_pGameInstance->GetScene().Each<NPCComponent, wolf::Transform2D>()) {
-        // Distance check
-        if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f) {
-            // Player is in range of the NPC so we display the tooltip
-            std::string tooltip = "Press E to talk to " + npc.GetName();
-            ShowTooltip(tooltip);
-
-            // And if the player interacts with the NPC we play their next dialogue/cutscene
-            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
-                npc.PlayNextDialogue();
-                break;
-            }
-        }
-    }
-
-    // Display all open merchant GUIs
-    for (auto&&[_, merchantInventory, transform, sprite] : m_pGameInstance->GetScene().Each<MerchantInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
-    {
-        // Show GUI
-        merchantInventory.ShowInventoryGUI();
-
-        // If the player walks too far away
-        if (!(glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f))
+        // Trigger CutsceneDialogueEvent when pressing 9
+        if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_9))
         {
-            // And the merchant GUI is open
-            if (merchantInventory.IsOpen()) {
-                // Close it (and the player's inventory)
-                merchantInventory.Close();
-                m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
-            }
+            // Trigger both cutscene and dialogue with IDs
+            wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
         }
+
+        this->m_pPathfindingManager->UpdateEntities(delta);
+
+        // Update velocity components to apply friction and decelerate objects
+        for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
+            velocity.Update(delta);  // Update velocity with friction and other forces
+        }
+
+
+        // Update collisions
+        this->m_pColliderManager->Update(delta);
+        // Apply velocity for all objects with Transform2D and VelocityComponent
+        for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
+            if (!velocity.IsActive()) continue;
+            transform.Translate(velocity.GetVelocity() * delta);
+        }
+        ConvertPlayerTileToGold();
+
+        auto playerPosition = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::ivec2 currentChunk = m_pLabyrinthManager->GetChunkID(playerPosition);
+
+        if (m_visitedChunks.find(currentChunk) == m_visitedChunks.end()) {
+            m_visitedChunks.insert(currentChunk);
+        }
+
+        // Toggle expanded map view
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_M)) {
+            m_isMapExpanded = !m_isMapExpanded;
+        }
+        
+        // Base update for all game objects and components in the scene
+        m_pGameInstance->GetScene().Update(delta);
+
+        // Update damage indicators
+        for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>()) {
+            health.UpdateDamageIndicators(delta);
+        }
+
+        for (auto&& [_, monsterSpawner] : m_pGameInstance->GetScene().Each<MonsterSpawnerComponent>()) {
+            monsterSpawner.Update(delta);
+        }
+
+        m_particleSystem->Update(delta);
+        // Toggle particle system editor with Right Alt
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_ALT) && m_debugHotkeys) {
+            m_particleSystem->ToggleEditor();
+        }
+        
+        // Call the editor function inside update
+        m_particleSystem->ShowEditor();
     }
-
-    // Trigger CutsceneDialogueEvent when pressing 9
-    if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_9))
-    {
-        // Trigger both cutscene and dialogue with IDs
-        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
-    }
-
-    this->m_pPathfindingManager->UpdateEntities(delta);
-
-    // Update velocity components to apply friction and decelerate objects
-    for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
-        velocity.Update(delta);  // Update velocity with friction and other forces
-    }
-
-
-    // Update collisions
-    this->m_pColliderManager->Update(delta);
-    // Apply velocity for all objects with Transform2D and VelocityComponent
-    for (auto&& [_, transform, velocity] : m_pGameInstance->GetScene().Each<wolf::Transform2D, VelocityComponent>()) {
-        if (!velocity.IsActive()) continue;
-        transform.Translate(velocity.GetVelocity() * delta);
-    }
-    ConvertPlayerTileToGold();
-
-    auto playerPosition = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::ivec2 currentChunk = m_pLabyrinthManager->GetChunkID(playerPosition);
-
-    if (m_visitedChunks.find(currentChunk) == m_visitedChunks.end()) {
-        m_visitedChunks.insert(currentChunk);
-    }
-
-    // Toggle expanded map view
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_M)) {
-        m_isMapExpanded = !m_isMapExpanded;
-    }
-    
-    // Base update for all game objects and components in the scene
-    m_pGameInstance->GetScene().Update(delta);
-
-    // Update damage indicators
-    for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>()) {
-        health.UpdateDamageIndicators(delta);
-    }
-
-    for (auto&& [_, monsterSpawner] : m_pGameInstance->GetScene().Each<MonsterSpawnerComponent>()) {
-        monsterSpawner.Update(delta);
-    }
-
-    m_particleSystem->Update(delta);
-    // Toggle particle system editor with Right Alt
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_ALT)&&m_debugHotkeys) {
-        m_particleSystem->ToggleEditor();
-    }
-    
-    // Call the editor function inside update
-    m_particleSystem->ShowEditor();
 
     // Dispatch events
     wolf::EventManager::Dispatch();
@@ -1483,6 +1488,7 @@ void PlayState::RenderFadeOverlay(float alpha)
             {
                 // Return to the main menu when clicked
                 wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
+                m_isExiting = true;
             }
         }
 
@@ -1540,7 +1546,7 @@ void PlayState::RenderCredits(float delta)
 
     // Set window position and center it
     float windowWidth = 500.0f;
-    float windowHeight = 300.0f;
+    float windowHeight = 380.0f;
     float baseY = ImGui::GetIO().DisplaySize.y - (elapsed * (ImGui::GetIO().DisplaySize.y / 15.0f)); // Adjust scrolling speed
 
     ImVec2 windowPos(ImGui::GetIO().DisplaySize.x * 0.5f - windowWidth * 0.5f, baseY);
