@@ -68,6 +68,7 @@ TileMap::~TileMap()
         wolf::ProgramManager::DestroyProgram(s_pProgram);
         wolf::BufferManager::DestroyBuffer(s_pQuadVertexBuffer);
         wolf::BufferManager::DestroyBuffer(s_pQuadIndexBuffer);
+        s_tileSetIDMap.clear();
     }
 }
 
