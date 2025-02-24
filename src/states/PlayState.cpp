@@ -302,6 +302,21 @@ void PlayState::Update(float delta)
         if (m_showLabyrinthManager) 
             m_pLabyrinthManager->ShowGUI();
     }
+
+    // Update fluid system components
+    for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
+    {
+        system.Update(delta);
+
+        // DEBUG: Apply force where player is
+        bool playerRolling = m_pPlayerObject->GetComponent<PlayerController>()->GetPlayerAction() == PlayerController::PlayerAction::ROLLING;
+        float strength = playerRolling ? 100.0f : 10.0f;
+        system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 100.0f, strength);
+
+        // DEBUG: Show editor and break after updating one system
+        system.ShowEditor();
+        break;
+    }
     
     // Update the labyrinth manager
     m_pLabyrinthManager->Update(delta);
