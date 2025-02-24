@@ -23,7 +23,6 @@ void ParticleComponent::Update(float delta)
             activeParticles++; // Count active particles
         }
     }
-    std::cout << "Active Particles: " << activeParticles << std::endl;
 }
 
 
@@ -35,7 +34,7 @@ void ParticleComponent::Emit(const glm::vec2& position, const glm::vec2& velocit
         {
             particle.Reset(position, velocity, color, size, lifetime);
             particle.m_active = true; // <-- Make sure it's set as active
-            std::cout << "Emitted a new particle at (" << position.x << ", " << position.y << ")" << std::endl;
+            // std::cout << "Emitted a new particle at (" << position.x << ", " << position.y << ")" << std::endl;
             return;
         }
     }
