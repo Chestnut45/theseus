@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:			ThrwoableObjectComponent.h
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// class responsible for throwable objects
+//-----------------------------------------------------------------------------
+
 #pragma once
 
 #include "ColliderComponent.h"

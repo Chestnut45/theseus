@@ -1,4 +1,11 @@
 
+//-----------------------------------------------------------------------------
+// File: PlayerController.cpp
+// Original Author: Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật, D'Anyil Landry, Aurora Ryder
+// ver 2.0. Updated to remove deprecated hitbox and hurtbox components.
+//-----------------------------------------------------------------------------
+
 #include "AttackDamageComponent.h"
 #include "ColliderComponent.h"
 #include "HealthComponent.h"
@@ -21,13 +28,6 @@
 #include <W_Logging.h>
 #include <W_EventManager.h>
 #include <W_Audio.h>
-
-//-----------------------------------------------------------------------------
-// File: PlayerController.cpp
-// Original Author: Youssef Ashraf
-// Modifications: Nguyễn Minh Nhật, D'Anyil Landry, Aurora Ryder
-// ver 2.0. Updated to remove deprecated hitbox and hurtbox components.
-//-----------------------------------------------------------------------------
 
 PlayerController::PlayerController() = default;
 

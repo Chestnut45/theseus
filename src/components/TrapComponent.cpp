@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File:			TrapComponent.cpp
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// class responsible for spike traps
+//-----------------------------------------------------------------------------
 #include "TrapComponent.h"
 #include "PlayerController.h"
 #include "MinitaurController.h"

@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:			TriggerComponent.h
+// Original Author:	Youssef Ashraf
+// Modifications:
+// ver 1.3
+// class responsible for a generalized trigger component
+//-----------------------------------------------------------------------------
 #pragma once
 
 #include <cstdint>

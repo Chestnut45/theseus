@@ -1,6 +1,7 @@
 //-----------------------------------------------------------------------------
-// File: ProjectileComponent.h
+// File: AttackDamageComponent.cpp
 // Original Author: Nguyễn Minh Nhật
+// Modifications: Youssef Ashraf
 // Checks for collision with HURTBOXDRs if owner object has HURTBOXDD.
 //-----------------------------------------------------------------------------
 

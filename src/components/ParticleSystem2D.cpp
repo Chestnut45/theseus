@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File:			ParticleSystem2D.cpp
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// class responsible for managing all instances of particles
+//-----------------------------------------------------------------------------
 #include "ParticleSystem2D.h"
 #include <iostream>
 

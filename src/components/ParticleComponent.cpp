@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File:			ParticleComponent.h
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// class responsible for particle data, update and emission.
+//-----------------------------------------------------------------------------
 #include "ParticleComponent.h"
 #include "iostream"
 

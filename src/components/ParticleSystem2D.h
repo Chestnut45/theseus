@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File:			ParticleSystem2D.h
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// class responsible for managing all instances of particles
+//-----------------------------------------------------------------------------
 #pragma once
 
 #include <vector>
