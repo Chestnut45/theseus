@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // File:			W_TextureManager.cpp
 // Original Author:	Gordon Wood
-// Modifications : Nguyễn Minh Nhật
+//
 // See header for notes
 //-----------------------------------------------------------------------------
 #include "W_TextureManager.h"
@@ -29,12 +29,6 @@ Texture* TextureManager::CreateTexture(const std::string& path)
 	Entry* pEntry = new Entry(pTex);
 	m_textures[path] = pEntry;
 	return pTex;
-}
-
-
-Texture* TextureManager::CreateTexture(unsigned int width, unsigned int height, Texture::Format fmt)
-{
-	return new Texture(width, height, fmt);
 }
 
 //----------------------------------------------------------
