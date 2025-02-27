@@ -11,6 +11,9 @@
 #include <theseus.h> // Include the main game class
 #include <W_Sprite2D.h>
 
+#include <W_FrameBuffer.h>
+#include <W_Texture.h>
+
 #include "../inventory/EquipmentItem.h"
 #include "../inventory/FlatAmtItem.h"
 #include "../inventory/PercentItem.h"
@@ -43,8 +46,8 @@ class PlayState : public GameState
 {
 public:
     PlayState(GameStateManager* manager, Theseus* gameInstance)
-        : GameState(manager, gameInstance) {}
-
+        : GameState(manager, gameInstance) {
+        }
 
     void Enter() override;
     void Exit() override;
@@ -136,4 +139,5 @@ private:
     void RenderCredits(float delta);
     bool m_isExiting = false;
 
+    wolf::FrameBuffer* m_pFBO = nullptr;
 };

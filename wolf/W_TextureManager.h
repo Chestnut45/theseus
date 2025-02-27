@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // File:			W_TextureManager.h
 // Original Author:	Gordon Wood
-//
+// Modifications : Nguyễn Minh Nhật
 // Class to manage textures. Handles creation of them and dealing with duplicate
 // requests for the same texture. Also provides a place for a central means 
 // to reload all textures when a context is lost (in a potential future update)
@@ -23,6 +23,7 @@ class TextureManager
 		// PUBLIC INTERFACE
 		//-------------------------------------------------------------------------
 		static Texture* CreateTexture(const std::string& path);
+		static Texture* CreateTexture(unsigned int width, unsigned int height, Texture::Format fmt);
 		static Texture* CreateTexture(void* pData, unsigned int width, unsigned int height, Texture::Format fmt);
 		static void DestroyTexture(Texture* pTex);
 

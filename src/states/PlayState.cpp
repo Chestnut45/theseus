@@ -39,8 +39,11 @@
 #include <events/PauseEvent.h>
 #include <glm/gtc/random.hpp>
 
+#include <W_BufferManager.h>
+
 void PlayState::Enter()
 {
+
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
 
@@ -64,6 +67,10 @@ void PlayState::Enter()
     camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
+
+    // Create framebuffer & scene texture
+    glm::vec2 viewSize = camera.GetViewSize();
+    m_pFBO = wolf::BufferManager::CreateFrameBuffer(viewSize.x, viewSize.y, viewSize.x, viewSize.y);
 
     // Add the labyrinth manager and generate the default labyrinth config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
@@ -244,6 +251,8 @@ void PlayState::Exit()
         delete m_particleSystem;
         m_particleSystem = nullptr;
     }
+    
+    wolf::BufferManager::DestroyBuffer(m_pFBO);
 }
 
 void PlayState::Pause()
@@ -766,8 +775,21 @@ void PlayState::Update(float delta)
 
 void PlayState::Render(float delta)
 {
+    wolf::Scene* scene = &m_pGameInstance->GetScene();
+    wolf::Camera2D* camera = scene->GetActiveCamera();
+    if(camera != nullptr)
+    {
+        glm::vec2 viewSize = camera->GetViewSize();
+        m_pFBO->SetTexSize(viewSize.x, viewSize.y);
+        m_pFBO->SetWindowSize(viewSize.x, viewSize.y);
+    }
+    m_pFBO->Bind();
+
     // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
+    m_pFBO->BindDefault();
+    m_pFBO->Blit();
+
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
         playerController->Render(delta);
