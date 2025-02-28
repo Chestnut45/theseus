@@ -1,11 +1,17 @@
+//-----------------------------------------------------------------------------
+// File: W_FrameBuffer.cpp
+// Original Author: Nguyễn Minh Nhật
+// Frame Buffer
+//-----------------------------------------------------------------------------
+
 #include "W_FrameBuffer.h"
 
 namespace wolf
 {
     FrameBuffer::FrameBuffer(unsigned int p_iTexWidth, unsigned int p_iTexHeight, unsigned int p_iWinWidth, unsigned int p_iWinHeight)
     {
-        m_iTexWidth = p_iTexWidth,
-        m_iTexHeight = p_iTexHeight;
+        m_iTexWidth = p_iTexWidth != 0 ? p_iTexWidth : 320;
+        m_iTexHeight = p_iTexHeight  != 0 ? p_iTexHeight : 200;
 
         m_iWinWidth = p_iWinWidth;
         m_iWinHeight = p_iWinHeight;
@@ -39,7 +45,7 @@ namespace wolf
 
     void FrameBuffer::SetTexSize(unsigned int p_iTexWidth, unsigned int p_iTexHeight)
     {
-        if(this->m_iTexWidth == 0 || this->m_iTexHeight == 0) return;
+        if(p_iTexWidth == 0 || p_iTexHeight == 0) return;
         if(this->m_iTexWidth == p_iTexWidth && this->m_iTexHeight == p_iTexHeight) return;
 
         this->m_iTexWidth = p_iTexWidth;
@@ -60,6 +66,9 @@ namespace wolf
 
     void FrameBuffer::SetWindowSize(unsigned int p_iWinWidth, unsigned int p_iWinHeight)
     {
+        if(p_iWinWidth == 0 || p_iWinHeight == 0) return;
+        if(this->m_iWinWidth == p_iWinWidth && this->m_iTexHeight == p_iWinHeight) return;
+
         this->m_iWinWidth = p_iWinWidth;
         this->m_iWinHeight = p_iWinHeight;
     }

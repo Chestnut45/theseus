@@ -31,6 +31,7 @@
 #include "DDACalculator.h"
 #include "GLShapesRenderer.h"
 #include "PortalTileManager.h"
+#include "Postprocessor.h"
 #include "TileFireManager.h"
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
@@ -86,6 +87,8 @@ void PlayState::Enter()
 
     PortalTileManager::CreateInstance(m_pLabyrinthManager);
     TileFireManager::CreateInstance(m_pLabyrinthManager);
+
+    Postprocessor::CreateInstance(&scene);
 
     // Place the bossfight trigger
     const auto& rooms = m_pLabyrinthManager->GetRooms();
@@ -242,6 +245,8 @@ void PlayState::Exit()
     
     PortalTileManager::DestroyInstance();
     TileFireManager::DestroyInstance();
+
+    Postprocessor::DestroyInstance();
 
     ItemDropCreator::DestroyInstance();
     NPCBuilder::DestroyInstance();
@@ -788,7 +793,9 @@ void PlayState::Render(float delta)
     // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
     m_pFBO->BindDefault();
-    m_pFBO->Blit();
+
+    Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), Postprocessor::Effect::GRAYSCALE);
+    // m_pFBO->Blit();
 
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)

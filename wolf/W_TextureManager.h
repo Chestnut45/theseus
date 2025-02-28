@@ -23,6 +23,7 @@ class TextureManager
 		// PUBLIC INTERFACE
 		//-------------------------------------------------------------------------
 		static Texture* CreateTexture(const std::string& path);
+		static Texture* CreateTexture(unsigned int width, unsigned int height, Texture::Format fmt);
 		static Texture* CreateTexture(void* pData, unsigned int width, unsigned int height, Texture::Format fmt);
 		static void DestroyTexture(Texture* pTex);
 

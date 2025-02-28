@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File: W_FrameBuffer.h
+// Original Author: Nguyễn Minh Nhật
+// Frame Buffer
+//-----------------------------------------------------------------------------
+
 #ifndef W_FRAMEBUFFER_H
 #define W_FRAMEBUFFER_H
 

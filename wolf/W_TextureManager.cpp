@@ -31,6 +31,11 @@ Texture* TextureManager::CreateTexture(const std::string& path)
 	return pTex;
 }
 
+Texture* TextureManager::CreateTexture(unsigned int width, unsigned int height, Texture::Format fmt)
+{
+	return new Texture(width, height, fmt);
+}
+
 //----------------------------------------------------------
 // When creating directly from data, we don't check for duplicates
 // and just delegate directly to the texture class
