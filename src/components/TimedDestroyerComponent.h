@@ -1,3 +1,4 @@
+#pragma once
 //-----------------------------------------------------------------------------
 // File: TimedDestroyerComponent.h
 // Original Author: Nguyễn Minh Nhật

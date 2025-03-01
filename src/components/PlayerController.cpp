@@ -1,4 +1,11 @@
 
+//-----------------------------------------------------------------------------
+// File: PlayerController.cpp
+// Original Author: Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật, D'Anyil Landry, Aurora Ryder
+// ver 2.0. Updated to remove deprecated hitbox and hurtbox components.
+//-----------------------------------------------------------------------------
+
 #include "AttackDamageComponent.h"
 #include "ColliderComponent.h"
 #include "HealthComponent.h"
@@ -21,12 +28,6 @@
 #include <W_Logging.h>
 #include <W_EventManager.h>
 #include <W_Audio.h>
-
-//-----------------------------------------------------------------------------
-// File:            PlayerController.cpp
-// Original Author: Youssef Ashraf
-// ver 2.0: Optimized and restructured for readability and performance.
-//-----------------------------------------------------------------------------
 
 PlayerController::PlayerController() = default;
 
@@ -193,12 +194,14 @@ void PlayerController::InitializeAnimations()
 // Main update loop for the player controller
 void PlayerController::Update(float delta)
 {
+    if (!m_active) return;
+
     auto* pGameObject = GetGameObject();
     if (!pGameObject) return;
 
     // Retrieve the active camera through the game's scene using the game object
     auto* pCamera = pGameObject->GetScene().GetActiveCamera();
-    if (pCamera)
+    if (pCamera && m_debugHotkeys)
     {
         float prevZoom = pCamera->GetZoom();
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_EQUAL)) pCamera->SetZoom(prevZoom * 2);
@@ -304,67 +307,71 @@ void PlayerController::Update(float delta)
 
 void PlayerController::HandlePlayerInput(float delta)
 {
-    // Godmode hotkey
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
+    if (m_debugHotkeys)
     {
-        m_godmode = !m_godmode;
-    }
-
-    // Status effect hotkeys
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_UP))
-    {
-        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::HEALING, 5.0f);
-    }
-
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_DOWN))
-    {
-        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
-    }
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_LEFT))
-    {
-        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
-    }
-
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT))
-    {
-        StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-        statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
-    }
-
-    // Super speed hotkey
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
-    {
-        m_superSpeed = !m_superSpeed;
-        if (m_superSpeed)
+        // Godmode hotkey
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_DOWN))
         {
-            m_normalMoveSpeed = 800.0f;
-            m_rollSpeed = 1600.0f;
-            m_inventoryMoveSpeed = 400.0f;
-        }
-        else
-        {
-            m_normalMoveSpeed = 200.0f;
-            m_rollSpeed = 400.0f;
-            m_inventoryMoveSpeed = 100.0f;
+            m_godmode = !m_godmode;
         }
 
-        // Update current speed
-        m_currentMoveSpeed = m_action == PlayerAction::IN_INVENTORY ? m_inventoryMoveSpeed : m_normalMoveSpeed;
-    }
-
-    // Teleport to labyrinth spawn location hotkey
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
-    {
-        // Teleport to the spawn position
-        for (const auto&&[_, labMan] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+        // Status effect hotkeys
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_UP))
         {
-            GetGameObject()->GetComponent<wolf::Transform2D>()->SetPosition(labMan.GetSpawnLocation());
-            break;
+            StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::HEALING, 5.0f);
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_DOWN))
+        {
+            StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
+        }
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_LEFT))
+        {
+            StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+        }
+
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT))
+        {
+            StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
+        }
+
+        // Super speed hotkey
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_PAGE_UP))
+        {
+            m_superSpeed = !m_superSpeed;
+            if (m_superSpeed)
+            {
+                m_normalMoveSpeed = 800.0f;
+                m_rollSpeed = 1600.0f;
+                m_inventoryMoveSpeed = 400.0f;
+            }
+            else
+            {
+                m_normalMoveSpeed = 200.0f;
+                m_rollSpeed = 400.0f;
+                m_inventoryMoveSpeed = 100.0f;
+            }
+
+            // Update current speed
+            m_currentMoveSpeed = m_action == PlayerAction::IN_INVENTORY ? m_inventoryMoveSpeed : m_normalMoveSpeed;
+        }
+
+        // Teleport to labyrinth spawn location hotkey
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_HOME))
+        {
+            // Teleport to the spawn position
+            for (const auto&&[_, labMan] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+            {
+                GetGameObject()->GetComponent<wolf::Transform2D>()->SetPosition(labMan.GetSpawnLocation());
+                break;
+            }
         }
     }
+
     auto* playerInventory = GetGameObject()->GetComponent<PlayerInventoryComponent>();
 
     // Handle inventory management with left alt
@@ -418,6 +425,9 @@ void PlayerController::HandlePlayerInput(float delta)
 }
 
 void PlayerController::PickUpObject() {
+    // If the player is attacking, don't bother trying to pick anything up
+    if (m_action == PlayerAction::ATTACKING) return;
+    
     // If the player is rolling, reset the rolling state before picking up an object
     if (m_action == PlayerAction::ROLLING) {
         EndRoll(); // Ensure rolling-related mechanics are stopped
@@ -426,7 +436,7 @@ void PlayerController::PickUpObject() {
 
     // Attempt to pick up a nearby throwable object
     for (auto&& [entity, throwable] : GetGameObject()->GetScene().Each<ThrowableObjectComponent>()) {
-        if (throwable.IsCloseToPlayer(150.0f)) {  // Check proximity
+        if (!throwable.IsThrown() && throwable.IsCloseToPlayer(150.0f)) {  // Check proximity
             throwable.PickUp();
             m_pHeldObject = &throwable;           // Store reference to the held object
             m_isHoldingObject = true;
@@ -1375,8 +1385,13 @@ void PlayerController::StartRoll()
 
     // Update velocity
     m_pVelocity->SetVelocity(rollDirection * m_rollSpeed);
-    m_stamina -= 25.0f;
-    m_staminaRegenTimer.Restart();
+    
+    // Only take stamina if not in godmode
+    if (!m_godmode)
+    {
+        m_stamina -= 25.0f;
+        m_staminaRegenTimer.Restart();
+    }
 
     // Compass direction animation names
     static const char* s_dirNames[] =
@@ -1448,7 +1463,7 @@ std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirecti
 
 void PlayerController::Render(float delta)
 {
-    if (!m_pTransform) return;
+    if (!m_active || !m_pTransform) return;
     if (m_action == PlayerAction::DEAD) {
         RenderDeathScreen();
         return;

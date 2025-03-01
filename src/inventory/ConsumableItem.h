@@ -10,11 +10,13 @@
 #include "ItemBase.h"
 #include <format>
 
+// Attributes that items are allowed to affect
 enum Attribute {
     HEALTH = 1,
     STAMINA = 2
 };
 
+// Types of consumables
 enum ConsumableType {
     BASIC_CONSUMABLE = 1,
     FLAT_AMT = 2,
@@ -42,13 +44,17 @@ class ConsumableItem : public ItemBase {
 
         ConsumableType GetConsumableType() {return m_enType;};
 
+        // Overload of ItemBase::Use
         virtual void Use() {
+            // Deplete the number of uses this item has
             m_iNumUses--;
             if (m_iNumUses <= 0) {
+                // And if the item has run out of uses, delete it
                 this->~ConsumableItem();
             }
         };
 
+        // Constructs a string containing all of the item details that will be displayed in the on-hover GUI tooltip
         inline virtual std::string GetToolTipText() const {
             return m_strDesc + "\n\nUses: " + std::to_string(m_iNumUses);
         };

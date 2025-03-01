@@ -31,8 +31,12 @@ class StatusEffectItem : public ConsumableItem {
 
         virtual void Use();
 
+        // Constructs a string containing all of the item details that will be displayed in the on-hover GUI tooltip
         inline virtual std::string GetToolTipText() const {
+            // Get the base tooltip text...
             std::string strBaseText = ConsumableItem::GetToolTipText() + "\nApplies ";
+
+            // ...then retrieve the name of the status effect this item applies...
             switch (m_enType) {
                 case StatusComponent::BURNING:
                     strBaseText += "BURNING ";
@@ -46,7 +50,11 @@ class StatusEffectItem : public ConsumableItem {
                         strBaseText += "POISONED ";
                 break;
             }
+
+            // ...and the duration of the effect
             strBaseText += "for " + std::format("{:.2f}", m_fDuration);
+
+            // Then return the constructed string
             return strBaseText;
         };
 

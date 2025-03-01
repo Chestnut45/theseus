@@ -1,3 +1,11 @@
+//-----------------------------------------------------------------------------
+// File:			W_Transform2D.cpp
+// Original Author:	D'Anyil Landry
+//
+// A class representing a 2D transformation component including
+// position, rotation, and scale.
+//-----------------------------------------------------------------------------
+
 #include "W_Transform2D.h"
 
 #include "W_GameObject.h"

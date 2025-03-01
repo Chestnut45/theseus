@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:			MainMenuState.h
+// Original Author:	Youssef Ashraf
+// Modifications: D'Anyil Landry
+// ver 1.1
+// A class that's responsible for the Concrete Main Menu State.
+//-----------------------------------------------------------------------------
 #include "MainMenuState.h"
 #include "PlayState.h"
 #include <imgui/imgui.h>
@@ -54,6 +61,7 @@ void MainMenuState::Update(float delta)
     }
 
     // Draw the background image
+    ImGui::SetCursorPos(ImVec2(0, 0));
     ImGui::Image(backgroundTextureID, ImGui::GetWindowSize(), ImVec2(0,0), ImVec2(1,1));
 
     // Centered title

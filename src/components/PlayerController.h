@@ -1,5 +1,12 @@
 #pragma once
 
+//-----------------------------------------------------------------------------
+// File: PlayerController.h
+// Original Author: Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật, D'Anyil Landry, Aurora Ryder
+// ver 2.0. Updated to remove deprecated hitbox and hurtbox components.
+//-----------------------------------------------------------------------------
+
 #include <wolf.h>
 #include <components/VelocityComponent.h>
 #include <components/AnimatedSprite2D.h>
@@ -19,12 +26,6 @@
 #include "../events/GameOverEvent.h"
 
 #include <DamageEvent.h>
-
-//-----------------------------------------------------------------------------
-// File:            PlayerController.h
-// Original Author: Youssef Ashraf
-// ver 2.0. Updated to remove deprecated hitbox and hurtbox components.
-//-----------------------------------------------------------------------------
 
 class PlayerController : public wolf::BaseComponent
 {
@@ -97,6 +98,10 @@ public:
     // This getter simply returns the current value of m_lastFaceDirectionEnum, allowing ThrowableObjectComponent to access it.
     PlayerDirection GetLastFacingDirection() const { return m_lastFaceDirectionEnum; }
     glm::vec2 GetLastFacingDirectionVector() const;
+
+    // Activate / deactivate the player controller
+    void SetActive(bool value) { m_active = value; }
+    bool IsActive() const { return m_active; }
 
 private:
     // Initialization and animation management
@@ -186,6 +191,7 @@ private:
     float m_walkSoundInterval = 0.333333333f;
 
     // DEBUG: Godmode flags
+    bool m_debugHotkeys = false;
     bool m_godmode = false;
     bool m_superSpeed = false;
 
@@ -271,5 +277,9 @@ private:
     float m_runtimeOpacity = 0.0f;
     bool m_runtimeFadeComplete = false;
     float m_optionsOpacity = 0.0f;
+
+    bool m_active = true;
+
+    friend class PlayState;
 };
 

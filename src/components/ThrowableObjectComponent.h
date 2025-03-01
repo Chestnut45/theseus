@@ -1,5 +1,13 @@
 #pragma once
 
+//-----------------------------------------------------------------------------
+// File:			ThrwoableObjectComponent.h
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// class responsible for throwable objects
+//-----------------------------------------------------------------------------
+
+
 #include "ColliderComponent.h"
 #include "MinitaurController.h"
 #include "HealthComponent.h"
@@ -36,7 +44,7 @@ public:
     //Set Thrown
     void SetThrown();
 
-
+    inline bool IsThrown() const { return m_state == ThrowableState::THROWN; }
 
 private:
     void FollowPlayer(); // Makes the object follow the player when picked up

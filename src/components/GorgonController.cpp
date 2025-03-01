@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File: GorgonController.cpp
+// Original Author:	Youssef Ashraf
+// Modifications: Nguyễn Minh Nhật
+// Controls gorgon attacks & behaviours.
+//-----------------------------------------------------------------------------
+
 #include "GorgonController.h"
 #include "PlayerController.h"
 #include "HarpyController.h"
@@ -285,6 +292,7 @@ void GorgonController::SetUpAnimations(const std::string& animationInitPath)
 
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
+    m_pAnimComponent->SetLayer(9);
 }
 
 void GorgonController::MoveTowardsTarget(float delta)

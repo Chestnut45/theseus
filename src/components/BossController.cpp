@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File: BossController.cpp
+// Original Author:	D'Anyil Landry
+// Modifications: Aurora Ryder, Nguyễn Minh Nhật, Youssef Ashraf
+// Controls the  behaviours of the Boss - NOT inherited from EnemyController 
+//-----------------------------------------------------------------------------
+
 #include "BossController.h"
 #include <W_GameObject.h>
 #include <W_Transform2D.h>
@@ -142,7 +149,7 @@ void BossController::Init()
     // Create collider
     pObject->DeleteComponent<ColliderComponent>();
     m_pCollider = &pObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
-    m_pCollider->AddColliderBox(glm::vec2(111, 170), glm::vec2(-52, 84));
+    m_pCollider->AddColliderBox(glm::vec2(190, 264), glm::vec2(-92, 170));
 
     // Grab a reference to the labyrinth manager
     for (auto&&[_, manager] : pObject->GetScene().Each<LabyrinthManager>())
@@ -182,10 +189,11 @@ void BossController::Init()
 
     for (const auto& tile : locations)
     {
+        m_pLabyrinthManager->SetTile(tile.x, tile.y, Tile::WallMinotaur);
+
         // Spawn a pillar as a child object of the pillar group object
         wolf::GameObject& pillar = pObject->GetScene().CreateObject2D();
         m_pBossPillarGroup->AddChild(pillar);
-        pillar.AddComponent<wolf::Sprite2D>("data/textures/tile_wall_minotaur.png");
         
         // Set position and scale
         auto& transform = *pillar.GetComponent<wolf::Transform2D>();
@@ -211,6 +219,18 @@ void BossController::Init()
     {
         wolf::Error("Boss controller init could not find player controller!");
     }
+
+    // Create the shadow sprite object
+    if (m_pShadowObject) m_pShadowObject->Delete();
+    m_pShadowObject = &GetGameObject()->GetScene().CreateObject2D();
+    GetGameObject()->AddChild(*m_pShadowObject);
+
+    auto& transform = *m_pShadowObject->GetComponent<wolf::Transform2D>();
+    transform.SetPosition(glm::vec2(0.0f, -m_shadowDistance));
+
+    // Add the sprite
+    wolf::Sprite2D& sprite = m_pShadowObject->AddComponent<wolf::Sprite2D>("data/textures/boss_shadow.png");
+    sprite.SetOriginToCenterOfTexture();
 
     EnterPhase1();
 }
@@ -255,6 +275,26 @@ void BossController::UpdateAnimation()
         "South"
     };
 
+    // Don't update animation until throne break is done playing!
+    auto* pAnim = m_pAnimSprite->GetCurrentAnimation();
+    if (pAnim->m_strName == "ThroneBreak")
+    {
+        if (!m_pAnimSprite->IsAnimationFinished() || m_throneBreakTimer.Elapsed() < 3.0f)
+        {
+            static bool growled = false;
+            if (!growled && m_throneBreakTimer.Elapsed() > 1.0f)
+            {
+                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f);
+                growled = true;
+            }
+            return;
+        }
+
+        // This section is only called when the ThroneBreak animation finishes
+        m_state = State::APPROACH;
+        m_throneBreakTimer.Reset();
+    }
+
     // Query player spatial info
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 dirToPlayer = glm::normalize(playerPos - m_pTransform->GetGlobalPosition());
@@ -267,7 +307,7 @@ void BossController::UpdateAnimation()
     switch (m_state)
     {
         case State::SIT:
-            baseAnimName = "ThroneSitEyesClosed";
+            baseAnimName = "ThroneSit";
             break;
         case State::SUMMONING:
             break;
@@ -651,7 +691,7 @@ void BossController::SpawnWave(int waveIndex)
 
     // Load enemy data
     EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
+    loader.LoadAllEnemyData("data/enemies_bossfight.yaml");
 
     EnemyData minitaurData = loader.LoadEnemyData("minitaur");
     EnemyData harpyData = loader.LoadEnemyData("harpy");
@@ -904,27 +944,22 @@ void BossController::RenderImGui()
 void BossController::EnterPhase2()
 {
     m_phase = FightPhase::PHASE_2;
-    m_state = State::APPROACH;
     m_nextAttackTimer.Restart();
     m_axeAttackTimer.Reset();
     m_pHealth->SetActive(true);
     m_pVelocity->SetKnockbackEnabled(true);
     m_renderHealthBar = true;
 
-    // Create the shadow sprite object
-    if (m_pShadowObject) m_pShadowObject->Delete();
-    m_pShadowObject = &GetGameObject()->GetScene().CreateObject2D();
-    GetGameObject()->AddChild(*m_pShadowObject);
+    // Adjust collider
+    auto* pObject = GetGameObject();
+    pObject->DeleteComponent<ColliderComponent>();
+    m_pCollider = &pObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, false, false);
+    m_pCollider->AddColliderBox(glm::vec2(111, 170), glm::vec2(-52, 84));
 
-    auto& transform = *m_pShadowObject->GetComponent<wolf::Transform2D>();
-    transform.SetPosition(glm::vec2(0.0f, -m_shadowDistance));
-
-    // Add the sprite
-    wolf::Sprite2D& sprite = m_pShadowObject->AddComponent<wolf::Sprite2D>("data/textures/boss_shadow.png");
-    sprite.SetOriginToCenterOfTexture();
-
-    // Scream
-    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f);
+    // Destroy the throne
+    m_pAnimSprite->SetAnimation("ThroneBreak");
+    wolf::Audio::Play("data/sounds/sfx_pillar_break.wav", 0.64f);
+    m_throneBreakTimer.Restart();
 }
 
 void BossController::UpdatePhase2(float delta)
@@ -932,6 +967,9 @@ void BossController::UpdatePhase2(float delta)
     // Timing variables
     static float nextStrafeSwap = 1.0f;
     static float nextAttackTime = 2.0f;
+
+    // Don't update until fully entered
+    if (m_state == State::SIT) return;
 
     // Query player spatial info
     glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -1254,6 +1292,8 @@ void BossController::UpdatePhase2(float delta)
                         if (pCollider && ColliderManager::StaticMethodIsColliding(*m_pCollider, *pCollider, delta))
                         {
                             // Destroy pillar
+                            auto pos = m_pLabyrinthManager->GetTilePosition(pObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+                            m_pLabyrinthManager->SetTile(pos.x, pos.y, Tile::FloorSquare);
                             pObject->Delete();
                             wolf::Audio::Play("data/sounds/sfx_pillar_break.wav", 0.64f);
                         }
@@ -1403,6 +1443,9 @@ void BossController::UpdatePhase3(float delta)
         // Stop music, play death growl
         wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
         wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -10000.0f);
+
+        // Instantly make the player invulnerable
+        m_pPlayerObject->GetComponent<HealthComponent>()->SetActive(false);
 
         ChangeStatesPhase3(State::DEAD);
         wolf::Log("It may have been the Minotaur's labyrinth but Theseus the GOAT");
@@ -2138,7 +2181,9 @@ void BossController::AttackCharge(float delta)
                         {
                             if(pillar->GetID() == id)
                             {   
-                                this->GetGameObject()->GetScene().DeleteObject(pillar->GetID());
+                                auto pos = m_pLabyrinthManager->GetTilePosition(pillar->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+                                m_pLabyrinthManager->SetTile(pos.x, pos.y, Tile::FloorSquare);
+                                pillar->Delete();
                                 wolf::Audio::Play("data/sounds/sfx_pillar_break.wav", 0.64f);
                                 break;
                             }

@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File:            MerchantInventoryComponent.cpp
+// Original Author: Aurora Ryder
+//
+// A class representing a given merchant's inventory
+//-----------------------------------------------------------------------------
 #include "MerchantInventoryComponent.h"
 
 #include <yaml-cpp/yaml.h>
@@ -49,6 +55,8 @@ bool MerchantInventoryComponent::CanAddItem(ItemBase* p_pItem) {
     return false;
 }
 
+// Handler for OpenInventoryEvents that closes this inventory if it is open and another is opening
+// > p_event: the OpenInventoryEvents object
 void MerchantInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent& p_event) {
     // If this merchant is open
     if (m_bIsOpen) {
@@ -60,6 +68,8 @@ void MerchantInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEve
     }
 }
 
+// Closes the inventory, sends out a CloseInventoryEvent, and if this component is
+// attached to an NPC, triggers the NPC's "goodbye" dialogue
 void MerchantInventoryComponent::Close() {
     // Close the inventory and let anyone interested know it happened
     m_bIsOpen = false;
@@ -73,6 +83,9 @@ void MerchantInventoryComponent::Close() {
     }
 }
 
+// Handler for CloseInventoryEvents that closes the merchant if the player just closed their inventory
+// and, if the component is attached to an NPC, triggers the NPC's "goodbye" dialogue
+// > p_event: the CloseInventoryEvent object
 void MerchantInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEvent& p_event) {
     // If the player just closed their inventory
     if (p_event.enType == PLAYER_INVENTORY) {
@@ -94,6 +107,11 @@ void MerchantInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryE
     }
 }
 
+/* Handler for SellItemToMerchantEvents that checks if the merchant has room for the item, then checks if
+    the merchant can afford it. If the merchant does not have enough room in their inventory, the item is returned
+    to the player. If the merchant cannot afford the item, the player is prompted to sell it to them at a discount
+    and if the player agrees, the item is taken from the player and added to the merchant's inventory.
+    > p_event: the SellItemToMerchantEvent object */
 void MerchantInventoryComponent::HandleSellItemToMerchantEvent(const SellItemToMerchantEvent& p_event) {
     // If the player is selling an item to this specific merchant
     if (p_event.iMerchantIdNum == m_iIdNum) {
@@ -126,6 +144,9 @@ void MerchantInventoryComponent::HandleSellItemToMerchantEvent(const SellItemToM
     }
 }
 
+// Handler for BoughtItemFromMerchantEvents that removes the item the player just purchased from the merchant's
+// inventory and adds the gold the player paid to the merchant's gold.
+// > p_event: the BoughtItemFromMerchantEvent object
 void MerchantInventoryComponent::HandleBoughtItemFromMerchantEvent(const BoughtItemFromMerchantEvent& p_event) {
     // If this is the merchant instance that the item was purchased from
     if (p_event.iMerchantIdNum == m_iIdNum) {
@@ -144,6 +165,10 @@ void MerchantInventoryComponent::HandleBoughtItemFromMerchantEvent(const BoughtI
     }
 }
 
+// Internal method that is used to take an item out of "stasis" and add it to either the player's
+// inventory or the merchant's depending on whether or not it was sold.
+// (Items are put into stasis when the player is attempting to sell the merchant an item they cannot afford)
+// p_bSold: boolean indicator of whether or not the player agreed to sell the merchant the item for a discount
 void MerchantInventoryComponent::TakeItemOutOfStasis(bool p_bSold) {
     // If the item is being taken out of stasis because the player sold it,
     if (p_bSold) {
@@ -173,6 +198,9 @@ void MerchantInventoryComponent::TakeItemOutOfStasis(bool p_bSold) {
     m_ItemInStasis.iPlayerInventoryIndex = -1;
 }
 
+// Sells the item stored at p_iItemIndex to the player for p_iItemPrice gold via a SellItemToPlayerEvent
+// > p_iItemIndex: the inventory slot the item is stored at
+// > p_iItemPrice: the amount of gold the item will be sold for
 void MerchantInventoryComponent::SellItemToPlayer(int p_iItemIndex, int p_iItemPrice) {
     // Retrieve the item at that index and send it to the player.
     // If they can afford it and fit it in their inventory, we'll get a "BuyItemFromMerchantEvent" in response    
@@ -182,6 +210,7 @@ void MerchantInventoryComponent::SellItemToPlayer(int p_iItemIndex, int p_iItemP
     // if the sale goes through, rather than just the first occurence of an item by that name, later
 }
 
+// Show the merchant's inventory GUI
 void MerchantInventoryComponent::ShowInventoryGUI() {
     if (m_bIsOpen) {
         ImGuiStyle* pStyle = &ImGui::GetStyle();

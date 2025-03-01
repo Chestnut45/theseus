@@ -1,4 +1,11 @@
 #pragma once
+
+//-----------------------------------------------------------------------------
+// File:			TrapComponent.h
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// class responsible for spike traps
+//-----------------------------------------------------------------------------
 #include "W_BaseComponent.h"
 #include "ColliderComponent.h"
 #include "W_Timer.h"

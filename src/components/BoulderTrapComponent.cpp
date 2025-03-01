@@ -1,3 +1,9 @@
+//-----------------------------------------------------------------------------
+// File:			BoulderTrapComponent.cpp
+// Original Author:	Youssef Ashraf
+// ver 1.1
+// class responsible for the boulder traps
+//-----------------------------------------------------------------------------
 #include "BoulderTrapComponent.h"
 #include "W_GameObject.h"
 #include "W_EventManager.h"

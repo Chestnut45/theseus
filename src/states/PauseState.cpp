@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:			PauseState.h
+// Original Author:	Youssef Ashraf
+// Modifications: Aurora Ryder
+// ver 1.1
+// A class responsible for the Concrete Pause State.
+//-----------------------------------------------------------------------------
 #include "PauseState.h"
 #include "MainMenuState.h"
 #include <imgui/imgui.h>

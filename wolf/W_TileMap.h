@@ -75,6 +75,10 @@ public:
     inline bool IsVisible() const { return m_visible; }
     inline void SetVisibility(bool visible) { m_visible = visible; }
 
+    // Changes the filter mode of the textures
+    // NOTE: Use OpenGL modes like GL_NEAREST
+    void SetFilterMode(GLint mode);
+
     // TODO: Set origin to center of tilemap (including tile texture size)
 
     // Draw the tilemap at the given position, rotation, and scale in world space

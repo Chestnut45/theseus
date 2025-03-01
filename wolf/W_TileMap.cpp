@@ -1,3 +1,10 @@
+//-----------------------------------------------------------------------------
+// File:			W_TileMap.cpp
+// Original Author:	D'Anyil Landry
+//
+// A renderable component representing a regular 2D grid of textured tiles.
+//-----------------------------------------------------------------------------
+
 #include "W_TileMap.h"
 
 #include <fstream>
@@ -61,6 +68,7 @@ TileMap::~TileMap()
         wolf::ProgramManager::DestroyProgram(s_pProgram);
         wolf::BufferManager::DestroyBuffer(s_pQuadVertexBuffer);
         wolf::BufferManager::DestroyBuffer(s_pQuadIndexBuffer);
+        s_tileSetIDMap.clear();
     }
 }
 
@@ -213,6 +221,9 @@ bool TileMap::LoadTileSet(const std::string& filepath)
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+        // Generate mipmaps
+        glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+
         // Create the map entry so the array texture can be shared between multiple tilemaps
         // NOTE: Entry's reference counter initializes to one automatically
         TileSetEntry entry;
@@ -274,6 +285,15 @@ void TileMap::Resize(int width, int height, int clearTile)
 
     // Regenerate VAO and VBO
     _GenerateVAO();
+}
+
+void TileMap::SetFilterMode(GLint mode)
+{
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_arrayTexture);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, mode);
+
+    // Setting mipmap modes for magnification is an OpenGL error. Dirty hack but works.
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, mode == GL_LINEAR_MIPMAP_LINEAR ? GL_LINEAR : mode);
 }
 
 void TileMap::Draw(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint)
