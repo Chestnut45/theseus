@@ -22,6 +22,7 @@ void Postprocessor::CreateInstance(wolf::Scene* p_scene)
         s_pPostprocessor = new Postprocessor(p_scene);
         s_pPostprocessor->AddShaders("data/shaders/postprocessors/none.vsh","data/shaders/postprocessors/burning.fsh");
         s_pPostprocessor->AddShaders("data/shaders/postprocessors/none.vsh","data/shaders/postprocessors/grayscale.fsh");
+        s_pPostprocessor->AddShaders("data/shaders/postprocessors/none.vsh","data/shaders/postprocessors/poisoned.fsh");
         s_pPostprocessor->AddShaders("data/shaders/postprocessors/none.vsh","data/shaders/postprocessors/none.fsh");
 
     }
@@ -74,6 +75,12 @@ void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
                 HandleGrayscaleEffect(currentTex);
                 break;
             }
+
+            case Effect::POISONED:
+            {
+                HandlePoisonedEffect(currentTex);
+                break;
+            }
             
             default:
                 HandleNoneEffect(currentTex);   // Only implemented to ensure SwitchFramebuffers() does not break when defaulted - Should NEVER be called
@@ -89,6 +96,7 @@ void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
 Postprocessor::Postprocessor(wolf::Scene* p_scene)
 {
     m_pScene = p_scene;
+    m_timer.Start();
 
     m_pFBO_01 = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
     m_pFBO_02 = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
@@ -160,6 +168,20 @@ void Postprocessor::HandleGrayscaleEffect(GLuint p_tex)
     m_pWriteFBO->Bind();
     wolf::Program* program = m_vShaderPrograms.at(Effect::GRAYSCALE);
     program->Bind();
+    glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, p_tex);
+    m_pVAO->Bind();
+    glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+    glBindVertexArray(0);
+    m_pWriteFBO->BindDefault();
+}
+
+void Postprocessor::HandlePoisonedEffect(GLuint p_tex)
+{
+    m_pWriteFBO->Bind();
+    wolf::Program* program = m_vShaderPrograms.at(Effect::POISONED);
+    program->Bind();
+    program->SetUniform("time", (float)m_timer.Elapsed() * 5.0f);
     glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, p_tex);
     m_pVAO->Bind();

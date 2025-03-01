@@ -16,6 +16,7 @@ public:
     {
         BURNING,
         GRAYSCALE,
+        POISONED,
         NONE
     };
 
@@ -33,6 +34,7 @@ private:
     void SwitchFramebuffers();
     void HandleBurningEffect(GLuint p_tex);
     void HandleGrayscaleEffect(GLuint p_tex);
+    void HandlePoisonedEffect(GLuint p_tex);
     void HandleNoneEffect(GLuint p_tex);
 
 
@@ -49,5 +51,5 @@ private:
     
     wolf::Scene* m_pScene = nullptr;
 
-
+    wolf::Timer m_timer;
 };

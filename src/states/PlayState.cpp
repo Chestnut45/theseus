@@ -804,7 +804,7 @@ void PlayState::Render(float delta)
         
         if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
         {
-            effects.push_back(Postprocessor::Effect::GRAYSCALE);
+            effects.push_back(Postprocessor::Effect::POISONED);
         }
         break;
     }
