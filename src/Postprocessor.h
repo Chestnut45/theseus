@@ -52,4 +52,5 @@ private:
     wolf::Scene* m_pScene = nullptr;
 
     wolf::Timer m_timer;
+    wolf::RNG m_rng;
 };

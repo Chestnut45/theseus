@@ -97,6 +97,7 @@ Postprocessor::Postprocessor(wolf::Scene* p_scene)
 {
     m_pScene = p_scene;
     m_timer.Start();
+    m_rng.NextInt(0, 1);
 
     m_pFBO_01 = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
     m_pFBO_02 = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
@@ -181,7 +182,9 @@ void Postprocessor::HandlePoisonedEffect(GLuint p_tex)
     m_pWriteFBO->Bind();
     wolf::Program* program = m_vShaderPrograms.at(Effect::POISONED);
     program->Bind();
-    program->SetUniform("time", (float)m_timer.Elapsed() * 5.0f);
+    program->SetUniform("time", (float)(m_timer.Elapsed()) * 6.0f);
+    program->SetUniform("amplitude", 0.05f);
+    program->SetUniform("frequency", (float)M_PI * 3.0f);
     glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, p_tex);
     m_pVAO->Bind();
