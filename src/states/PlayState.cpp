@@ -794,8 +794,28 @@ void PlayState::Render(float delta)
     m_pGameInstance->GetScene().Render(delta);
     m_pFBO->BindDefault();
 
-    Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), Postprocessor::Effect::GRAYSCALE);
-    // m_pFBO->Blit();
+    std::vector<Postprocessor::Effect> effects;
+    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
+    {
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
+        {
+            effects.push_back(Postprocessor::Effect::BURNING);
+        }
+        
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
+        {
+            effects.push_back(Postprocessor::Effect::GRAYSCALE);
+        }
+        break;
+    }
+    if(effects.size() > 0)
+    {
+        Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), effects);
+    }
+    else
+    {
+        m_pFBO->Blit();
+    }
 
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
