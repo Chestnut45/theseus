@@ -4,18 +4,55 @@
 #include <GLShapesRenderer.h>
 #include <ColliderManager.h>
 
-int LightComponent::m_iNextIDNum = 0;
+int LightComponent::s_iNextIDNum = 0;
+int LightComponent::s_iRefCount = 0;
+
+GLfloat LightComponent::s_arfBaseVertexData[6] {
+    // x,    y,    r,    g,    b,    a
+    0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f
+};
 
 LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2Radius, bool p_bCanMove) 
-    : m_v4Color(p_v4Color), m_v2Radius(p_v2Radius), m_iIDNum(m_iNextIDNum), m_bCanMove(p_bCanMove)
+    : m_v4Color(p_v4Color), m_v2Radius(p_v2Radius), m_iIDNum(s_iNextIDNum), m_bCanMove(p_bCanMove)
 {
+    // If this is the first LightComponent instance in the scene
+    if (s_iRefCount == 0) {
+        // We need to create the shader resources
+        s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/triangles.vsh", "data/shaders/triangles.fsh");
+        s_pVBO = wolf::BufferManager::CreateVertexBuffer(s_arfBaseVertexData, sizeof(s_arfBaseVertexData));
+        s_pVAO= new wolf::VertexDeclaration();
+        s_pVAO->Begin();
+        s_pVAO->AppendAttribute(wolf::AT_Position, 2, wolf::CT_Float);
+        s_pVAO->AppendAttribute(wolf::AT_Color, 4, wolf::CT_Float);
+        s_pVAO->SetVertexBuffer(s_pVBO);
+        s_pVAO->End();
+    }
+
     // Get the next ID number ready
-    m_iNextIDNum++;
+    s_iNextIDNum++;
+
+    // Increase the number of LightComponent references
+    s_iRefCount++;
 }
 
 LightComponent::~LightComponent() {
     // Clear out the colliding points map
     m_vv2fCollidingPoints.clear();
+
+    // Decrease the number of LightComponent references
+    s_iRefCount -= 1;
+
+    // If this was the last LightComponent instance in the scene
+    if (s_iRefCount == 0) {
+        // Delete the shader resources
+        s_pVAO = nullptr;
+
+        wolf::BufferManager::DestroyBuffer(s_pVBO);
+        s_pVBO = nullptr;
+
+        wolf::ProgramManager::DestroyProgram(s_pProgram);
+        s_pProgram = nullptr;
+    }
 }
 
 void LightComponent::Init() {
@@ -476,4 +513,22 @@ bool LightComponent::CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, st
     }
 
     return false;
+}
+
+void LightComponent::Render() {
+    // If there is nothing colliding with the light
+    if (m_vv2fCollidingPoints.empty()) {
+        // We don't need to render anything
+        return;
+    }
+
+    glm::mat4 model = glm::mat4(1.0f);
+    s_pProgram->SetUniform("model", model);
+    s_pProgram->Bind();
+    s_pVAO->Bind();
+    s_pVBO->Bind();
+    // !-- THIS IS WILDLY INCORRECT AND NEEDS TO BE REMEDIED --!
+    glBufferData(GL_ARRAY_BUFFER, sizeof(ColouredVertex2D) * m_vv2fCollidingPoints.size(), m_vv2fCollidingPoints.data(), GL_STATIC_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, m_vv2fCollidingPoints.size());
+    m_vv2fCollidingPoints.clear();
 }

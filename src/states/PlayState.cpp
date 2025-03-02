@@ -203,7 +203,7 @@ void PlayState::Enter()
     // Create a test light
     wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
     auto& pLightTransform = *pLightGO->GetComponent<wolf::Transform2D>();
-    pLightTransform.SetPosition(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + glm::vec2(400.0f, 500.0f));
+    pLightTransform.SetPosition(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     auto& pLightSprite = pLightGO->AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
     pLightSprite.SetOriginToCenterOfTexture();
     auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec2(500.0f, 500.0f), false);
@@ -804,7 +804,7 @@ void PlayState::Render(float delta)
     if (m_particleSystem) {
         m_particleSystem->Render();
     }
-    
+
     GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
     GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
 }

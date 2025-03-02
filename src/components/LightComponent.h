@@ -43,6 +43,8 @@ class LightComponent : public wolf::BaseComponent {
         inline bool CanMove() const {return m_bCanMove;};
         inline void SetCanMove(bool p_bCanMove) {m_bCanMove = p_bCanMove;};
 
+        void Render();
+
     private:
 
         enum RoughPosition {
@@ -56,6 +58,8 @@ class LightComponent : public wolf::BaseComponent {
             BOT_CENTER,
             BOT_RIGHT,
         };
+
+        static GLfloat s_arfBaseVertexData[6];
 
         static bool CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, std::pair<glm::vec2, float> p_v2fB);
 
@@ -76,7 +80,7 @@ class LightComponent : public wolf::BaseComponent {
         bool IsAOERect(const wolf::Rectangle& p_pRect);
 
         // ID number to discern between lights
-        static int m_iNextIDNum;
+        static int s_iNextIDNum;
         const int m_iIDNum;
         
         // Bool to determine whether or not this light can move
@@ -98,4 +102,14 @@ class LightComponent : public wolf::BaseComponent {
         // Vector to hold the points that collide with the light and the
         // angle of the line they intersect on
         std::vector<std::pair<glm::vec2, float>> m_vv2fCollidingPoints;
+
+        // Shader resources
+        static inline wolf::Program* s_pProgram = nullptr;
+        static inline wolf::VertexBuffer* s_pVBO = nullptr;
+        static inline wolf::IndexBuffer* s_pIndexBuffer = nullptr;
+        static inline wolf::VertexDeclaration* s_pVAO = nullptr;
+
+        static int s_iRefCount;
+
+        wolf::Texture* m_pTexture = nullptr;
 };
