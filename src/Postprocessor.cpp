@@ -156,6 +156,12 @@ void Postprocessor::HandleBurningEffect(GLuint p_tex)
     m_pWriteFBO->Bind();
     wolf::Program* program = m_vShaderPrograms.at(Effect::BURNING);
     program->Bind();
+    program->SetUniform("fireGradientRate", 16.0f);
+    program->SetUniform("fireSineAmplitude", 0.016f);
+    program->SetUniform("fireSineFrequency", 32.0f);
+    program->SetUniform("fireSineMidline", 0.32f);
+    program->SetUniform("time", (float)m_timer.Elapsed() * 4.0f);
+    program->SetUniform("burnRGB", glm::vec3(1.2f, 0.4f, 0.04f));   // Red tint of screen
     glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, p_tex);
     m_pVAO->Bind();
