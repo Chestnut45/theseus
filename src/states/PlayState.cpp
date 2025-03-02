@@ -788,12 +788,17 @@ void PlayState::Render(float delta)
         m_pFBO->SetTexSize(viewSize.x, viewSize.y);
         m_pFBO->SetWindowSize(viewSize.x, viewSize.y);
     }
+
+    // Bind framebuffer for rendering scene - leave out UI elements
     m_pFBO->Bind();
 
     // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
+    
+    // Bind to default framebuffer(screen)
     wolf::FrameBuffer::BindDefault();
 
+    // Query postprocessing effects based on current active status effects of player
     std::vector<Postprocessor::Effect> effects;
     for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
     {
@@ -808,10 +813,13 @@ void PlayState::Render(float delta)
         }
         break;
     }
+
+    // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
     if(effects.size() > 0)
     {
         Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), effects);
     }
+    // If not, copy texture to screen
     else
     {
         m_pFBO->Blit();
