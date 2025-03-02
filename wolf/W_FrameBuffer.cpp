@@ -113,6 +113,8 @@ FrameBuffer::FrameBuffer(unsigned int p_iTexWidth, unsigned int p_iTexHeight, un
 
 FrameBuffer::~FrameBuffer()
 {
+    DeleteTexture();
+    DeleteDepthBuffer();
     glDeleteFramebuffers(1, &m_uiBuffer);
 }
 
