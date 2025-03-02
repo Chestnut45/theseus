@@ -9,14 +9,22 @@ layout(binding = 0) uniform sampler2D spriteTexture;
 
 void main()
 {
+    float tintLimit = 0.25;
+
     // Sample sprite texture
     vec4 textureColor = texture(spriteTexture, texCoords);
 
     // Discard transparent pixels
     if (textureColor.a == 0.0) discard;
     
-    vec3 tempcolor = textureColor.rgb;
+    float y_tint = texCoords.y <= tintLimit ? 1.0 + (tintLimit - texCoords.y) * 25.0 : 1.0;
 
-    // grayscale pixels
-    color = vec3(tempcolor.r * 1.5, tempcolor.g * 0.8, tempcolor.b * 0.8);
+    vec3 tempcolor = textureColor.rgb;
+    tempcolor = vec3(tempcolor.r * 1.2 , tempcolor.g * 0.8, tempcolor.b * 0.8);
+    tempcolor = vec3(
+        tempcolor.r * y_tint, 
+        tempcolor.g * y_tint * 0.5, 
+        tempcolor.b * y_tint * 0.05
+        );
+    color = tempcolor;
 }
