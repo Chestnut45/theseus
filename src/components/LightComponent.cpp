@@ -7,9 +7,9 @@
 int LightComponent::s_iNextIDNum = 0;
 int LightComponent::s_iRefCount = 0;
 
-GLfloat LightComponent::s_arfBaseVertexData[6] {
+float LightComponent::s_arfBaseVertexData[6] {
     // x,    y,    r,    g,    b,    a
-    0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f
+    0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
 };
 
 LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2Radius, bool p_bCanMove) 
@@ -19,7 +19,7 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
     if (s_iRefCount == 0) {
         // We need to create the shader resources
         s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/triangles.vsh", "data/shaders/triangles.fsh");
-        s_pVBO = wolf::BufferManager::CreateVertexBuffer(s_arfBaseVertexData, sizeof(s_arfBaseVertexData));
+        s_pVBO = wolf::BufferManager::CreateVertexBuffer(s_arfBaseVertexData, sizeof(ColouredVertex2D));
         s_pVAO= new wolf::VertexDeclaration();
         s_pVAO->Begin();
         s_pVAO->AppendAttribute(wolf::AT_Position, 2, wolf::CT_Float);
@@ -344,7 +344,10 @@ void LightComponent::Update(float p_fDelta) {
         // We don't pop the second point because we want the triangles to connect to each other
 
         //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y});
-        GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
+        //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
+        m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
+        m_vcvVertexData.push_back({v2Point1.x, v2Point1.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
+        m_vcvVertexData.push_back({v2Point2.x, v2Point2.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
     }
 
     // Pop the last point and use it to form the final triangle
@@ -353,8 +356,10 @@ void LightComponent::Update(float p_fDelta) {
 
     // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
     //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2LastPoint.x, v2LastPoint.y});
-    GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
-
+    //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
+    m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
+    m_vcvVertexData.push_back({v2FirstPoint.x, v2FirstPoint.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
+    m_vcvVertexData.push_back({v2LastPoint.x, v2LastPoint.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
 }
 
 // Determines if a ray can be shot to the given corner without intersecting the given side and adds the corner to the vector
@@ -517,18 +522,23 @@ bool LightComponent::CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, st
 
 void LightComponent::Render() {
     // If there is nothing colliding with the light
-    if (m_vv2fCollidingPoints.empty()) {
+    if (m_vcvVertexData.empty()) {
         // We don't need to render anything
         return;
     }
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+
     glm::mat4 model = glm::mat4(1.0f);
     s_pProgram->SetUniform("model", model);
+    s_pProgram->SetUniform("colour", m_v4Color);
     s_pProgram->Bind();
     s_pVAO->Bind();
     s_pVBO->Bind();
-    // !-- THIS IS WILDLY INCORRECT AND NEEDS TO BE REMEDIED --!
-    glBufferData(GL_ARRAY_BUFFER, sizeof(ColouredVertex2D) * m_vv2fCollidingPoints.size(), m_vv2fCollidingPoints.data(), GL_STATIC_DRAW);
-    glDrawArrays(GL_TRIANGLES, 0, m_vv2fCollidingPoints.size());
-    m_vv2fCollidingPoints.clear();
+    glBufferData(GL_ARRAY_BUFFER, sizeof(ColouredVertex2D) * m_vcvVertexData.size(), m_vcvVertexData.data(), GL_STATIC_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, m_vcvVertexData.size());
+    m_vcvVertexData.clear();
+
+    glDisable(GL_BLEND);
 }

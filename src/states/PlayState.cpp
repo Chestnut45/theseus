@@ -198,17 +198,6 @@ void PlayState::Enter()
     }
     wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
 
-
-
-    // Create a test light
-    wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
-    auto& pLightTransform = *pLightGO->GetComponent<wolf::Transform2D>();
-    pLightTransform.SetPosition(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
-    auto& pLightSprite = pLightGO->AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    pLightSprite.SetOriginToCenterOfTexture();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), glm::vec2(500.0f, 500.0f), false);
-    pLightComponent.Init();
-
     // Stop all audio and begin the maze music
     wolf::Audio::Stop();
     wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, true, 13.714f);
@@ -807,6 +796,11 @@ void PlayState::Render(float delta)
 
     GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
     GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
+
+    // Render lighting
+    for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
+        lightComp.Render();
+    }
 }
 
 
@@ -857,6 +851,14 @@ void PlayState::CreatePlayer()
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));
+
+    // Create a test light
+    wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
+    auto& pLightSprite = pLightGO->AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
+    pLightSprite.SetOriginToCenterOfTexture();
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.9f, 0.0f, 0.5f), glm::vec2(500.0f, 500.0f), true);
+    pLightComponent.Init();
+    m_pPlayerObject->AddChild(*pLightGO);
 }
 
 void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {

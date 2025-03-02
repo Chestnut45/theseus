@@ -13,6 +13,7 @@
 #include <W_Scene.h>
 #include <string>
 
+#include <VertexDeclarations.h>
 #include "ColliderComponent.h"
 #include <LabyrinthManager.h>
 
@@ -59,7 +60,7 @@ class LightComponent : public wolf::BaseComponent {
             BOT_RIGHT,
         };
 
-        static GLfloat s_arfBaseVertexData[6];
+        static float s_arfBaseVertexData[6];
 
         static bool CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, std::pair<glm::vec2, float> p_v2fB);
 
@@ -102,6 +103,8 @@ class LightComponent : public wolf::BaseComponent {
         // Vector to hold the points that collide with the light and the
         // angle of the line they intersect on
         std::vector<std::pair<glm::vec2, float>> m_vv2fCollidingPoints;
+
+        std::vector<ColouredVertex2D> m_vcvVertexData;
 
         // Shader resources
         static inline wolf::Program* s_pProgram = nullptr;

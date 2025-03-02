@@ -7,7 +7,6 @@ layout(std140, binding = 0) uniform cameraBuffer
 
 in vec4 a_position;
 
-
 void main() {
     gl_Position = viewProj * model * a_position;
 }
