@@ -12,7 +12,6 @@
 #include <W_Sprite2D.h>
 
 #include <W_FrameBuffer.h>
-#include <W_Texture.h>
 
 #include "../inventory/EquipmentItem.h"
 #include "../inventory/FlatAmtItem.h"
