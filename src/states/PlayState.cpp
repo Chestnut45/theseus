@@ -811,6 +811,11 @@ void PlayState::Render(float delta)
         {
             effects.push_back(Postprocessor::Effect::POISONED);
         }
+
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+        {
+            effects.push_back(Postprocessor::Effect::GRAYSCALE);
+        }
         break;
     }
 
