@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// File: Postprocessor.cpp
+// Original Author: Nguyễn Minh Nhật
+// Handles postprocessing effects
+//-----------------------------------------------------------------------------
 
 
 #include "Postprocessor.h"
@@ -14,6 +19,10 @@ const std::vector<TexturedVertex2D> vertices =
 };
 
 Postprocessor* Postprocessor::s_pPostprocessor = nullptr;
+
+//------------------//
+//  PUBLIC METHODS  //
+//------------------//
 
 void Postprocessor::CreateInstance(wolf::Scene* p_scene)
 {
@@ -43,7 +52,8 @@ Postprocessor* Postprocessor::GetInstance()
     return s_pPostprocessor;
 }
 
-// Process the given texture using the effects specified
+// Process the given texture using the effects specified, in order of appearance in the vector
+// Will process the same effect twice if so specified 
 void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
 {
     if(p_effects.size() <= 0) return;
@@ -53,13 +63,17 @@ void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
         return;
     }
     
+    // Update framebuffers if window size has changed
     glm::vec2 viewSize = camera->GetViewSize();
     m_pFBO_01->SetTexSize(viewSize.x, viewSize.y);
     m_pFBO_01->SetWindowSize(viewSize.x, viewSize.y);
     m_pFBO_02->SetTexSize(viewSize.x, viewSize.y);
     m_pFBO_02->SetWindowSize(viewSize.x, viewSize.y);
 
+    // Set initual value of current texture
     GLuint currentTex = p_tex;
+
+    // Iterate & apply effects
     for(auto effect: p_effects)
     {
         switch (effect)
@@ -87,11 +101,20 @@ void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
                 break;
         }
 
+        // Switch framebuffers after every effect
         SwitchFramebuffers();
+
+        // Set current texture to be the texture that was just rendered to
         currentTex = m_pReadFBO->GetTextureID();
     }
+
+    // Render to screen
     m_pReadFBO->Blit();
 }
+
+//-------------------//
+//  PRIVATE METHODS  //
+//-------------------//
 
 Postprocessor::Postprocessor(wolf::Scene* p_scene)
 {
@@ -99,17 +122,17 @@ Postprocessor::Postprocessor(wolf::Scene* p_scene)
     m_timer.Start();
     m_rng.NextInt(0, 1);
 
+    // Create framebuffers
     m_pFBO_01 = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
     m_pFBO_02 = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
     m_pReadFBO = m_pFBO_01;
     m_pWriteFBO = m_pFBO_02;
 
-    // Create vertex buffer
+    // Create VBO
     m_pVBO = wolf::BufferManager::CreateVertexBuffer(vertices.data(), sizeof(TexturedVertex2D) * vertices.size());
 
-    // Create vertex declaration (VAO)
+    // Create VAO
     m_pVAO = new wolf::VertexDeclaration();
-
     m_pVAO->Begin();
     m_pVAO->SetVertexBuffer(m_pVBO);
     m_pVAO->AppendAttribute(wolf::Attribute::AT_Position, 2, wolf::ComponentType::CT_Float, 0);
@@ -153,7 +176,10 @@ void Postprocessor::SwitchFramebuffers()
 
 void Postprocessor::HandleBurningEffect(GLuint p_tex)
 {
+    // Bine the framebuffer whose texture will be rendered to
     m_pWriteFBO->Bind();
+
+    // Set up the program for the burning effect & specify uniforms
     wolf::Program* program = m_vShaderPrograms.at(Effect::BURNING);
     program->Bind();
     program->SetUniform("fireGradientRate", 16.0f);
@@ -162,12 +188,22 @@ void Postprocessor::HandleBurningEffect(GLuint p_tex)
     program->SetUniform("fireSineMidline", 0.32f);
     program->SetUniform("time", (float)m_timer.Elapsed() * 4.0f);
     program->SetUniform("burnRGB", glm::vec3(1.2f, 0.4f, 0.04f));   // Red tint of screen
+
+    // Bind the texture to apply postprocessing effects to
     glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, p_tex);
+
+    // Bind the VAO
     m_pVAO->Bind();
+
+    // Render
     glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+    
+    // Unbind the VAO
     glBindVertexArray(0);
-    m_pWriteFBO->BindDefault();
+
+    // Bind default framebuffer (screen)
+    wolf::FrameBuffer::BindDefault();
 }
 
 void Postprocessor::HandleGrayscaleEffect(GLuint p_tex)
@@ -180,7 +216,7 @@ void Postprocessor::HandleGrayscaleEffect(GLuint p_tex)
     m_pVAO->Bind();
     glDrawArrays(GL_TRIANGLES, 0, vertices.size());
     glBindVertexArray(0);
-    m_pWriteFBO->BindDefault();
+    wolf::FrameBuffer::BindDefault();
 }
 
 void Postprocessor::HandlePoisonedEffect(GLuint p_tex)
@@ -196,7 +232,7 @@ void Postprocessor::HandlePoisonedEffect(GLuint p_tex)
     m_pVAO->Bind();
     glDrawArrays(GL_TRIANGLES, 0, vertices.size());
     glBindVertexArray(0);
-    m_pWriteFBO->BindDefault();
+    wolf::FrameBuffer::BindDefault();
 }
 
 void Postprocessor::HandleNoneEffect(GLuint p_tex)
@@ -209,5 +245,5 @@ void Postprocessor::HandleNoneEffect(GLuint p_tex)
     m_pVAO->Bind();
     glDrawArrays(GL_TRIANGLES, 0, vertices.size());
     glBindVertexArray(0);
-    m_pWriteFBO->BindDefault();
+    wolf::FrameBuffer::BindDefault();
 }

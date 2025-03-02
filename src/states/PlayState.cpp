@@ -792,7 +792,7 @@ void PlayState::Render(float delta)
 
     // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
-    m_pFBO->BindDefault();
+    wolf::FrameBuffer::BindDefault();
 
     std::vector<Postprocessor::Effect> effects;
     for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
