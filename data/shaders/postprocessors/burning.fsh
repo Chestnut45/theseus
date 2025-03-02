@@ -19,12 +19,11 @@ void main()
     
     float y_tint = texCoords.y <= tintLimit ? 1.0 + (tintLimit - texCoords.y) * 25.0 : 1.0;
 
-    vec3 tempcolor = textureColor.rgb;
-    tempcolor = vec3(tempcolor.r * 1.2 , tempcolor.g * 0.8, tempcolor.b * 0.8);
-    tempcolor = vec3(
-        tempcolor.r * y_tint, 
-        tempcolor.g * y_tint * 0.5, 
-        tempcolor.b * y_tint * 0.05
-        );
+    vec3 tempcolor = vec3(
+        textureColor.r * 1.2, 
+        textureColor.g * 0.4, 
+        textureColor.b * 0.04
+        ) * y_tint;
+
     color = tempcolor;
 }
