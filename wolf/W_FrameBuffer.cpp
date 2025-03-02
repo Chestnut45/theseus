@@ -13,6 +13,7 @@ namespace wolf
 //  PUBLIC METHODS  //
 //------------------//
 
+// Bind framebuffer so that everything is rendered to the texture of this framebuffer
 void FrameBuffer::Bind()
 {
     if(m_bIsFBOComplete == false) return;
@@ -22,38 +23,49 @@ void FrameBuffer::Bind()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void FrameBuffer::Write(const void *p_pData, int p_iLength)
-{
-}
-
+// Set new texture size
 void FrameBuffer::SetTexSize(unsigned int p_iTexWidth, unsigned int p_iTexHeight)
 {
+    // return immediately if texture size is 0
     if(p_iTexWidth == 0 || p_iTexHeight == 0) return;
+    
+    // return immediately if texture size is the same
     if(this->m_iTexWidth == p_iTexWidth && this->m_iTexHeight == p_iTexHeight) return;
-
+    
+    // Set new texture size
     this->m_iTexWidth = p_iTexWidth;
     this->m_iTexHeight = p_iTexHeight;
 
     glBindFramebuffer(GL_FRAMEBUFFER, m_uiBuffer);
 
+    // Delete & create new texture with the updated size
     DeleteTexture();
     CreateTexture();
 
+    // Delete & create new depth buffer
     DeleteDepthBuffer();
     CreateDepthBuffer();   
+
+    // Check framebuffer completeness then bind to default framebuffer
     CheckFrameBuffer();
     BindDefault();
 }
 
+// Set new window size
 void FrameBuffer::SetWindowSize(unsigned int p_iWinWidth, unsigned int p_iWinHeight)
 {
+    // return immediately if window size is 0
     if(p_iWinWidth == 0 || p_iWinHeight == 0) return;
+    
+    // return immediately if window size is the same
     if(this->m_iWinWidth == p_iWinWidth && this->m_iTexHeight == p_iWinHeight) return;
 
+    // Set new window size
     this->m_iWinWidth = p_iWinWidth;
     this->m_iWinHeight = p_iWinHeight;
 }
 
+// Copy the texture of the framebuffer to the default framebuffer
 void FrameBuffer::Blit()
 {
     if(m_bIsFBOComplete == false) return;
@@ -72,7 +84,7 @@ GLuint FrameBuffer::GetTextureID() const
     return m_uiTex;
 }
 
-
+// Bind the default framebuffer (screen)
 void FrameBuffer::BindDefault()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -148,6 +160,7 @@ void FrameBuffer::DeleteDepthBuffer()
     }
 }
 
+// Verify if the framebuffer is complete
 void FrameBuffer::CheckFrameBuffer()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, m_uiBuffer);
@@ -160,6 +173,12 @@ void FrameBuffer::CheckFrameBuffer()
     }
 
     m_bIsFBOComplete = true;
+}
+
+// Framebuffer has no use for Write() - Should NOT be called
+void FrameBuffer::Write(const void *p_pData, int p_iLength)
+{
+    return;
 }
 
 }

@@ -176,7 +176,7 @@ void Postprocessor::SwitchFramebuffers()
 
 void Postprocessor::HandleBurningEffect(GLuint p_tex)
 {
-    // Bine the framebuffer whose texture will be rendered to
+    // Bind the framebuffer whose texture will be rendered to
     m_pWriteFBO->Bind();
 
     // Set up the program for the burning effect & specify uniforms
@@ -208,42 +208,80 @@ void Postprocessor::HandleBurningEffect(GLuint p_tex)
 
 void Postprocessor::HandleGrayscaleEffect(GLuint p_tex)
 {
+    // Bind the framebuffer whose texture will be rendered to
     m_pWriteFBO->Bind();
+    
+    // Set up the program for the grayscale effect
     wolf::Program* program = m_vShaderPrograms.at(Effect::GRAYSCALE);
     program->Bind();
+
+    // Bind the texture to apply postprocessing effects to
     glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, p_tex);
+
+    // Bind the VAO
     m_pVAO->Bind();
+
+    // Render
     glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+
+    // Unbind the VAO
     glBindVertexArray(0);
+
+    // Bind default framebuffer (screen)
     wolf::FrameBuffer::BindDefault();
 }
 
 void Postprocessor::HandlePoisonedEffect(GLuint p_tex)
 {
+    // Bind the framebuffer whose texture will be rendered to
     m_pWriteFBO->Bind();
+
+    // Set up the program for the poisoned effect & specify uniforms
     wolf::Program* program = m_vShaderPrograms.at(Effect::POISONED);
     program->Bind();
     program->SetUniform("time", (float)(m_timer.Elapsed()) * 6.0f);
     program->SetUniform("amplitude", 0.05f);
     program->SetUniform("frequency", (float)M_PI * 3.0f);
+
+    // Bind the texture to apply postprocessing effects to
     glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, p_tex);
+
+    // Bind the VAO
     m_pVAO->Bind();
+
+    // Render
     glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+
+    // Unbind the VAO
     glBindVertexArray(0);
+
+    // Bind default framebuffer (screen)
     wolf::FrameBuffer::BindDefault();
 }
 
 void Postprocessor::HandleNoneEffect(GLuint p_tex)
 {
+    // Bind the framebuffer whose texture will be rendered to
     m_pWriteFBO->Bind();
+    // Set up the program
     wolf::Program* program = m_vShaderPrograms.at(Effect::NONE);
     program->Bind();
+
+    // Bind the texture to apply postprocessing effects to
     glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, p_tex);
+
+    // Bind the VAO
     m_pVAO->Bind();
+
+    // Render
     glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+
+    // Unbind the VAO
     glBindVertexArray(0);
+
+    // Bind default framebuffer (screen)
     wolf::FrameBuffer::BindDefault();
 }

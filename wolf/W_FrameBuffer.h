@@ -20,7 +20,6 @@ class FrameBuffer : public Buffer
 
 public:
     virtual void Bind();
-    virtual void Write(const void *p_pData, int p_iLength = -1);
 
     void SetTexSize(unsigned int p_iFTexWidth, unsigned int p_iFTexHeight);
     void SetWindowSize(unsigned int p_iWinWidth, unsigned int p_iWinHeight);
@@ -40,14 +39,14 @@ private:
     void DeleteDepthBuffer();
     void CheckFrameBuffer();
 
+    virtual void Write(const void *p_pData, int p_iLength = -1);
+
     GLuint m_uiBuffer;
     GLuint m_uiTex;
     GLuint m_uiDepthBuf;
 
     unsigned int m_iWinWidth = 1280;
     unsigned int m_iWinHeight = 720;
-    // int m_iWidth = 1280;
-    // int m_iHeight = 720;
     int m_iTexWidth = 320;
     int m_iTexHeight = 180;
 
