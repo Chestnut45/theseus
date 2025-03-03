@@ -53,7 +53,7 @@ void BossController::Init()
 {
     // Initialize stats
     m_active = false;
-    m_maxHealth = 5;
+    m_maxHealth = 4500;
     m_prevHealthFraction = 1.0f;
 
     // Phase 1 stats
@@ -233,8 +233,6 @@ void BossController::Init()
     sprite.SetOriginToCenterOfTexture();
 
     EnterPhase1();
-    EnterPhase2();
-    EnterPhase3();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
