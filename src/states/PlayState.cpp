@@ -208,6 +208,12 @@ void PlayState::Enter()
         m_pPathfindingManager->RegisterEntity(minitaur.GetGameObject());
     }
 
+    // Add a test light to the player
+    wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.9f, 0.0f, 0.5f), glm::vec2(500.0f, 500.0f), true);
+    pLightComponent.Init();
+    m_pPlayerObject->AddChild(*pLightGO);
+
     m_gameCompletionTime.Start();
 }
 
@@ -851,14 +857,6 @@ void PlayState::CreatePlayer()
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));
-
-    // Create a test light
-    wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
-    auto& pLightSprite = pLightGO->AddComponent<wolf::Sprite2D>("data/textures/DebugSprites/debug_sprite.png");
-    pLightSprite.SetOriginToCenterOfTexture();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.9f, 0.0f, 0.5f), glm::vec2(500.0f, 500.0f), true);
-    pLightComponent.Init();
-    m_pPlayerObject->AddChild(*pLightGO);
 }
 
 void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {

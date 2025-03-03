@@ -105,6 +105,12 @@ void LightComponent::Update(float p_fDelta) {
                     }
                 }
 
+                // Check if the collider belongs to our parent
+                if (this->GetGameObject()->GetParent()->GetID() == collider.GetGameObject()->GetID()) {
+                    // If it does, we want to skip it
+                    continue;
+                }
+
                 // Check if the rectangle is completely outside of the light's radius
                 // (This can happen because wall colliders are grouped by chunk)
                 if ((v2TopLeft.x > m_v2Origin.x + m_v2Radius.x * 0.5f) ||
