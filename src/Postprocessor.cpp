@@ -241,7 +241,7 @@ void Postprocessor::HandlePoisonedEffect(GLuint p_tex)
     wolf::Program* program = m_vShaderPrograms.at(Effect::POISONED);
     program->Bind();
     program->SetUniform("time", (float)(m_timer.Elapsed()) * 6.0f);
-    program->SetUniform("amplitude", 0.05f);
+    program->SetUniform("amplitude", 0.01f);
     program->SetUniform("frequency", (float)M_PI * 3.0f);
 
     // Bind the texture to apply postprocessing effects to
