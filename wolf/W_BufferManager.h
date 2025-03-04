@@ -14,6 +14,7 @@
 #include "W_Types.h"
 #include "W_VertexBuffer.h"
 #include "W_IndexBuffer.h"
+#include "W_FrameBuffer.h"
 #include <string>
 #include <map>
 
@@ -29,6 +30,7 @@ class BufferManager
 		static VertexBuffer* CreateVertexBuffer(const void* pData, unsigned int length);
 		static IndexBuffer* CreateIndexBuffer(unsigned int numIndices);
 		static IndexBuffer* CreateIndexBuffer(const unsigned short* pData, unsigned int numIndices);
+		static FrameBuffer *CreateFrameBuffer(unsigned int p_iFBOTexWidth, unsigned int p_iFBOTexHeight, unsigned int p_iWinWidth, unsigned int p_iWinHeight);
 
 		static void DestroyBuffer(Buffer* pBuf);
 		//-------------------------------------------------------------------------

@@ -43,6 +43,11 @@ IndexBuffer* BufferManager::CreateIndexBuffer(const unsigned short* pData, unsig
 	return pRet;
 }
 
+FrameBuffer *BufferManager::CreateFrameBuffer(unsigned int p_iFBOTexWidth, unsigned int p_iFBOTexHeight, unsigned int p_iWinWidth, unsigned int p_iWinHeight)
+{
+	return new FrameBuffer(p_iFBOTexWidth, p_iFBOTexHeight, p_iWinWidth, p_iWinHeight);
+}
+
 //----------------------------------------------------------
 // Destroys a buffer. 
 //----------------------------------------------------------
