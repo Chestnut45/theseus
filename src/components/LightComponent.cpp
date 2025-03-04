@@ -13,7 +13,7 @@ float LightComponent::s_arfBaseVertexData[6] {
 };
 
 LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2Radius, bool p_bCanMove) 
-    : m_v4Color(p_v4Color), m_v2Radius(p_v2Radius), m_iIDNum(s_iNextIDNum), m_bCanMove(p_bCanMove)
+    : m_v4Color(p_v4Color), m_v2InitRadius(p_v2Radius), m_iIDNum(s_iNextIDNum), m_bCanMove(p_bCanMove)
 {
     // If this is the first LightComponent instance in the scene
     if (s_iRefCount == 0) {
@@ -27,6 +27,9 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
         s_pVAO->SetVertexBuffer(s_pVBO);
         s_pVAO->End();
     }
+
+    // Initialize the radius
+    m_v2CurRadius = m_v2InitRadius;
 
     // Get the next ID number ready
     s_iNextIDNum++;
@@ -55,6 +58,7 @@ LightComponent::~LightComponent() {
     }
 }
 
+// Init MUST be called before LightComponent::Update is called or an error WILL be thrown
 void LightComponent::Init() {
     // Retrieve the transform
     m_pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
@@ -65,7 +69,7 @@ void LightComponent::Init() {
 
     // Add the light collider
     m_pCollider = &this->GetGameObject()->AddComponent<ColliderComponent>(ColliderComponent::NONE, false, true);
-    m_pCollider->AddColliderBox(m_v2Radius, glm::vec2(-m_v2Radius.x / 2.0f, m_v2Radius.y / 2.0f));
+    m_pCollider->AddColliderBox(m_v2CurRadius, glm::vec2(-m_v2CurRadius.x / 2.0f, m_v2CurRadius.y / 2.0f));
 
     // Retrieve the labyrinth manager
     for (auto&& [_, lbmg] : this->m_pScene->Each<LabyrinthManager>())
@@ -79,17 +83,35 @@ void LightComponent::Update(float p_fDelta) {
     // Update the origin point of the light's radius
     m_v2Origin = m_pTransform->GetGlobalPosition();
 
+    // Scale the radius to match the GlobalScale
+    // (this happens repeatedly in case the light's GameObject suddenly gains a parent and the scale changes)
+    m_v2CurRadius = m_v2InitRadius * m_pTransform->GetGlobalScale(); 
+
     // Empty out the map of last frame's ray end points
     m_vv2fCollidingPoints.clear();
 
     // Create a vector to hold all of the colliders that are in the light's AOE
     std::vector<wolf::Rectangle> vpRectanglesInAOE;
 
+    // GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f}, {m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f});
+    // GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f}, {m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f});
+    // GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f}, {m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f});
+    // GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f}, {m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f});
+
+    // Get a pointer to the LightComponent's GameObject's parent (if one exists)
+    wolf::GameObject* pParentGO = this->GetGameObject()->GetParent();
+
     // Find the colliders that are inside the area of effect by iterating through the colliders in the scene
     for (auto&& [_, collider] : m_pScene->Each<ColliderComponent>()) {
         // If the collider is active and in this area of effect
         if (collider.IsActive() && ColliderManager::StaticMethodIsColliding(*m_pCollider, collider, p_fDelta)) {
-            
+
+            // If this light's GameObject has a parent and the collider we're looking at belongs to them
+            if (pParentGO && pParentGO->GetID() == collider.GetGameObject()->GetID()) {
+                // Then we want to ignore it
+                continue;
+            }
+
             // Go through the corner points of each rectangle in the collider
             std::vector<glm::vec2> vv2ColliderCorners = collider.GetWorldSpaceCorners();
             for (int k = 0; k < vv2ColliderCorners.size(); k += 4) {
@@ -105,18 +127,12 @@ void LightComponent::Update(float p_fDelta) {
                     }
                 }
 
-                // Check if the collider belongs to our parent
-                if (this->GetGameObject()->GetParent()->GetID() == collider.GetGameObject()->GetID()) {
-                    // If it does, we want to skip it
-                    continue;
-                }
-
                 // Check if the rectangle is completely outside of the light's radius
                 // (This can happen because wall colliders are grouped by chunk)
-                if ((v2TopLeft.x > m_v2Origin.x + m_v2Radius.x * 0.5f) ||
-                    (v2TopLeft.y < m_v2Origin.y - m_v2Radius.y * 0.5f) ||
-                    (v2BotRight.x < m_v2Origin.x - m_v2Radius.x * 0.5f) ||
-                    (v2BotRight.y > m_v2Origin.y + m_v2Radius.y * 0.5f))
+                if ((v2TopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
+                    (v2TopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
+                    (v2BotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
+                    (v2BotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
                 {
                     // If it is, we do not want to cast rays to it
                     continue;
@@ -351,6 +367,7 @@ void LightComponent::Update(float p_fDelta) {
 
         //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y});
         //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
+
         m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
         m_vcvVertexData.push_back({v2Point1.x, v2Point1.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
         m_vcvVertexData.push_back({v2Point2.x, v2Point2.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
@@ -363,6 +380,7 @@ void LightComponent::Update(float p_fDelta) {
     // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
     //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2LastPoint.x, v2LastPoint.y});
     //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
+    
     m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
     m_vcvVertexData.push_back({v2FirstPoint.x, v2FirstPoint.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
     m_vcvVertexData.push_back({v2LastPoint.x, v2LastPoint.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
@@ -373,10 +391,10 @@ void LightComponent::Update(float p_fDelta) {
 // colliding points vector, instead
 void LightComponent::CheckForCollisionAndAdd(const glm::vec2& p_v2Corner, std::pair<const glm::vec2&, const glm::vec2&> p_v2v2Side) {
     // Check that the corner point is not outside of the radius
-    if (!(p_v2Corner.x > m_v2Origin.x + m_v2Radius.x * 0.5f) &&
-        !(p_v2Corner.x < m_v2Origin.x - m_v2Radius.x * 0.5f) &&
-        !(p_v2Corner.y > m_v2Origin.y + m_v2Radius.y * 0.5f) &&
-        !(p_v2Corner.y < m_v2Origin.y - m_v2Radius.y * 0.5f))
+    if (!(p_v2Corner.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) &&
+        !(p_v2Corner.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) &&
+        !(p_v2Corner.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f) &&
+        !(p_v2Corner.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f))
     {
         // Then check if the ray we're casting goes through the rectangle this corner is a part of
         glm::vec2 v2FinalPoint = this->LineLineCollisionTest(m_v2Origin, p_v2Corner, p_v2v2Side.first, p_v2v2Side.second).second;
@@ -390,10 +408,10 @@ void LightComponent::CheckForCollisionAndAdd(const glm::vec2& p_v2Corner, std::p
         float fNegOffsetAngle = fAngle - glm::radians(1.0f);
 
         // And use them to shoot two more rays that will go beyond the object's corners and hit the wall behind them
-        glm::vec2 v2PosOffset = {m_v2Origin.x + m_v2Radius.x * glm::sin(fPosOffsetAngle), m_v2Origin.y + m_v2Radius.y * glm::cos(fPosOffsetAngle)};
+        glm::vec2 v2PosOffset = {m_v2Origin.x + m_v2CurRadius.x * glm::sin(fPosOffsetAngle), m_v2Origin.y + m_v2CurRadius.y * glm::cos(fPosOffsetAngle)};
         this->CheckForAOECollisionAndAdd(m_v2Origin, v2PosOffset);
 
-        glm::vec2 v2NegOffset = {m_v2Origin.x + m_v2Radius.x * glm::sin(fNegOffsetAngle), m_v2Origin.y + m_v2Radius.y * glm::cos(fNegOffsetAngle)};
+        glm::vec2 v2NegOffset = {m_v2Origin.x + m_v2CurRadius.x * glm::sin(fNegOffsetAngle), m_v2Origin.y + m_v2CurRadius.y * glm::cos(fNegOffsetAngle)};
         this->CheckForAOECollisionAndAdd(m_v2Origin, v2NegOffset);
     }
 }
@@ -402,10 +420,10 @@ void LightComponent::CheckForCollisionAndAdd(const glm::vec2& p_v2Corner, std::p
 // of intersection to the list of colliding points if so
 void LightComponent::CheckForAOECollisionAndAdd(const glm::vec2& p_v2LineStart, const glm::vec2& p_v2LineEnd) {
     // Find the AOE's corner points
-    glm::vec2 v2TopLeft = {m_v2Origin.x - m_v2Radius.x * 0.5f, m_v2Origin.y + m_v2Radius.y * 0.5f};
-    glm::vec2 v2TopRight = {m_v2Origin.x + m_v2Radius.x * 0.5f, m_v2Origin.y + m_v2Radius.y * 0.5f};
-    glm::vec2 v2BotLeft = {m_v2Origin.x - m_v2Radius.x * 0.5f, m_v2Origin.y - m_v2Radius.y * 0.5f};
-    glm::vec2 v2BotRight = {m_v2Origin.x + m_v2Radius.x * 0.5f, m_v2Origin.y - m_v2Radius.y * 0.5f};
+    glm::vec2 v2TopLeft = {m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f};
+    glm::vec2 v2TopRight = {m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f};
+    glm::vec2 v2BotLeft = {m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f};
+    glm::vec2 v2BotRight = {m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f};
 
     // Check for a collison with the left side
     std::pair<bool, glm::vec2> bv2LeftResult = this->LineLineCollisionTest(v2TopLeft, v2BotLeft, p_v2LineStart, p_v2LineEnd);
@@ -511,10 +529,10 @@ bool LightComponent::IsAOERect(const wolf::Rectangle& p_pRect) {
     std::array<glm::vec2, 4> arv2Corners = p_pRect.GetCorners();
 
     // Check if each of the points correspond to the AOE's corners
-    return (arv2Corners[0] == glm::vec2(m_v2Origin.x - m_v2Radius.x * 0.5f, m_v2Origin.y + m_v2Radius.y * 0.5f) && // Top left
-            arv2Corners[1] == glm::vec2(m_v2Origin.x + m_v2Radius.x * 0.5f, m_v2Origin.y + m_v2Radius.y * 0.5f) && // Top Right
-            arv2Corners[2] == glm::vec2(m_v2Origin.x - m_v2Radius.x * 0.5f, m_v2Origin.y - m_v2Radius.y * 0.5f) && // Bottom Left
-            arv2Corners[3] == glm::vec2(m_v2Origin.x + m_v2Radius.x * 0.5f, m_v2Origin.y - m_v2Radius.y * 0.5f));  // Bottom Right
+    return (arv2Corners[0] == glm::vec2(m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f) && // Top left
+            arv2Corners[1] == glm::vec2(m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f) && // Top Right
+            arv2Corners[2] == glm::vec2(m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f) && // Bottom Left
+            arv2Corners[3] == glm::vec2(m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f));  // Bottom Right
 }
 
 // Compares two glm::vec2-float pairs and returns the one with the largest float value (break ties using the y coordinate)

@@ -39,7 +39,7 @@ class LightComponent : public wolf::BaseComponent {
         inline glm::vec4 GetColor() const {return m_v4Color;};
         inline void SetColor(const glm::vec4& p_v4Color) {m_v4Color = p_v4Color;};
 
-        inline glm::vec2 GetRadius() const {return m_v2Radius;};
+        inline glm::vec2 GetRadius() const {return m_v2CurRadius;};
 
         inline bool CanMove() const {return m_bCanMove;};
         inline void SetCanMove(bool p_bCanMove) {m_bCanMove = p_bCanMove;};
@@ -89,7 +89,8 @@ class LightComponent : public wolf::BaseComponent {
 
         // Color, radius, and origin point of the light
         glm::vec4 m_v4Color;
-        glm::vec2 m_v2Radius;
+        glm::vec2 m_v2CurRadius;
+        glm::vec2 m_v2InitRadius;
         glm::vec2 m_v2Origin;
 
         // Pointer to the scene this light is in
@@ -104,6 +105,7 @@ class LightComponent : public wolf::BaseComponent {
         // angle of the line they intersect on
         std::vector<std::pair<glm::vec2, float>> m_vv2fCollidingPoints;
 
+        // Vector to hold the points that will be written to the shader
         std::vector<ColouredVertex2D> m_vcvVertexData;
 
         // Shader resources
