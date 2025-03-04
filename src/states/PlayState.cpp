@@ -359,7 +359,7 @@ void PlayState::Update(float delta)
     }
 
     // Show credits after message disappears
-    if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() < 15.0f)
+    if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() < 20.0f)
     {
         RenderCredits(delta);
     }
@@ -1539,10 +1539,10 @@ void PlayState::RenderFadeOverlay(float alpha)
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, alpha));
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-    if (m_showCreditsTimer.Elapsed() < 15.0f) flags |= ImGuiWindowFlags_NoInputs;
+    if (m_showCreditsTimer.Elapsed() < 20.0f) flags |= ImGuiWindowFlags_NoInputs;
     if (ImGui::Begin("FadeOverlay", nullptr, flags ))
     {
-        if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() >= 15.0f)
+        if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() >= 20.0f)
         {
             // Style taken from PauseState
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
@@ -1607,7 +1607,9 @@ void PlayState::RenderCredits(float delta)
         "Youssef Ashraf",
         "Nguyen Minh Nhat",
         "",
-        "Music / SFX: D'Anyil Landry",
+        "Lead Artist: Aurora Ryder",
+        "",
+        "Music / SFX Design: D'Anyil Landry",
         "",
         "lots of love, if you got here, ur an amazing person",
         "",
@@ -1619,8 +1621,8 @@ void PlayState::RenderCredits(float delta)
 
     // Set window position and center it
     float windowWidth = 500.0f;
-    float windowHeight = 380.0f;
-    float baseY = ImGui::GetIO().DisplaySize.y - (elapsed * (ImGui::GetIO().DisplaySize.y / 15.0f)); // Adjust scrolling speed
+    float windowHeight = 420.0f;
+    float baseY = ImGui::GetIO().DisplaySize.y - (elapsed * ((ImGui::GetIO().DisplaySize.y + windowHeight) / 20.0f)); // Adjust scrolling speed
 
     ImVec2 windowPos(ImGui::GetIO().DisplaySize.x * 0.5f - windowWidth * 0.5f, baseY);
     ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
