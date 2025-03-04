@@ -144,11 +144,62 @@ void LightComponent::Update(float p_fDelta) {
 
                 // Check if the rectangle is part of a wall
                 if (CheckForWallAtPos({(v2TopLeft.x + v2BotRight.x) * 0.5f, (v2TopLeft.y + v2BotRight.y) * 0.5f})) {
-                    // DIVIDE WALL INTO SMALLER RECTANGLES AND PUSH THOSE
+                    // If it is, we want to make a rectangle for each individual tile within it.
+                    // To do that, we get the width and height of the rectangle
+
+                    GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 1.0f, 1.0f, 1.0f, 1.0f}, 10.0f, 10.0f);
+                    GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 0.0f, 0.0f, 1.0f}, 10.0f, 10.0f);
+
+                    int iWidth = v2BotRight.x - v2TopLeft.x;
+                    int iHeight = v2TopLeft.y - v2BotRight.y;
+
+                    int iNumTilesX = iWidth / 32;
+                    int iNumTilesY = iHeight / 32;
+
+                    if (iWidth > 96) {
+                        for (int i = 0; i < iNumTilesX - 1; i++) {
+                            float fXInc = i * 96.0f;
+
+                            glm::vec2 v2SubTopLeft = {v2TopLeft.x + fXInc, v2TopLeft.y};
+                            glm::vec2 v2SubBotRight = {v2BotRight.x + fXInc, v2BotRight.y};
+
+                            if ((v2SubTopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
+                                (v2SubTopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
+                                (v2SubBotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
+                                (v2SubBotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
+                            {
+                                // If it is, we do not want to cast rays to it
+                                continue;
+                            }
+
+                            //GLShapesRenderer::GetInstance()->AddQuad({v2SubTopLeft.x, v2SubTopLeft.y, 0.0f, 1.0f, 0.0f, 1.0f}, 10.0f, 10.0f);
+                            vpRectanglesInAOE.push_back(wolf::Rectangle(v2SubTopLeft.x, v2SubTopLeft.y, v2SubBotRight.x, v2SubBotRight.y)); 
+                        }
+                    }
+                    else if (iHeight > 96) {
+                        for (int j = 0; j < iNumTilesY - 1; j++) {
+                            float fYInc = j * 96.0f;
+
+                            glm::vec2 v2SubTopLeft = {v2TopLeft.x, v2TopLeft.y - fYInc};
+                            glm::vec2 v2SubBotRight = {v2BotRight.x, v2BotRight.y - fYInc};
+
+                            if ((v2SubTopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
+                                (v2SubTopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
+                                (v2SubBotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
+                                (v2SubBotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
+                            {
+                                // If it is, we do not want to cast rays to it
+                                continue;
+                            }
+
+                            //GLShapesRenderer::GetInstance()->AddQuad({v2SubTopLeft.x, v2SubTopLeft.y, 1.0f, 0.0f, 0.0f, 1.0f}, 10.0f, 10.0f);
+                            vpRectanglesInAOE.push_back(wolf::Rectangle(v2SubTopLeft.x, v2SubTopLeft.y, v2SubBotRight.x, v2SubBotRight.y)); 
+                        }
+                    }
                 }
                 else {
                     // If we've made it this far, we send a copy of this rectangle to the next phase of the collision testing
-                    vpRectanglesInAOE.push_back(wolf::Rectangle(v2TopLeft.x, v2TopLeft.y, v2BotRight.x, v2BotRight.y));    
+                    vpRectanglesInAOE.push_back(wolf::Rectangle(v2TopLeft.x, v2TopLeft.y, v2BotRight.x, v2BotRight.y));  
                 }
             }
         }
@@ -165,7 +216,7 @@ void LightComponent::Update(float p_fDelta) {
         glm::vec2 v2TopRight = arv2Corners[1];
         glm::vec2 v2BotLeft = arv2Corners[2];
         glm::vec2 v2BotRight = arv2Corners[3];
-       
+
         // Figure out the approximate location of the rectangle in relation to the light source
         glm::vec2 v2RectPos = glm::vec2((v2TopLeft.x + v2TopRight.x) * 0.5f, (v2TopLeft.y + v2BotLeft.y) * 0.5f);
         RoughPosition enRoughPos = this->CalculateRoughObjPosition(v2RectPos);
@@ -186,9 +237,9 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2TopRight, v2BotRight});
                 this->CheckForCollisionAndAdd(v2TopRight, {v2BotLeft, v2BotRight});
 
-                GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 1.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 1.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
         
             break;
             
@@ -197,8 +248,8 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
                 this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
 
-                GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 0.5f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.5f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 0.5f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.5f, 0.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -210,9 +261,9 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2BotLeft});
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2BotLeft, v2BotRight});
 
-                GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -221,8 +272,8 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
 
-                GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 0.5f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.0f, 0.5f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 0.5f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.0f, 0.5f, 1.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -231,8 +282,8 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
 
-                GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -244,9 +295,9 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopRight, v2BotRight});
                 this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2TopRight});
 
-                GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.5f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.5f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.5f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.5f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.5f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.5f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -255,8 +306,8 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
 
-                GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 1.0f, 1.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 1.0f, 1.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 1.0f, 1.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 1.0f, 1.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -268,9 +319,9 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2BotLeft});
 
-                GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                // GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
 
@@ -400,13 +451,13 @@ void LightComponent::Update(float p_fDelta) {
         for (std::pair<glm::vec2, float> v2fBadCorner : vv2fPointsToRemove) {
             auto it = std::find(m_vv2fCollidingPoints.begin(), m_vv2fCollidingPoints.end(), v2fBadCorner);
             if (it != m_vv2fCollidingPoints.end()) {
-                m_vv2fCollidingPoints.erase(it);
+                //m_vv2fCollidingPoints.erase(it);
             }
         }
 
         // Add in the new intersection points for wall-wall collisions
         for (std::pair<glm::vec2, float> v2fGoodPoint : vv2fPointsToAdd) {
-            m_vv2fCollidingPoints.push_back(v2fGoodPoint);
+            //m_vv2fCollidingPoints.push_back(v2fGoodPoint);
         }
     }
 
