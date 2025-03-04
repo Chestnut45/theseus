@@ -98,6 +98,9 @@ void LightComponent::Update(float p_fDelta) {
     // GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f}, {m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f});
     // GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f}, {m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f});
 
+    //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y, 0.0f, 0.0f, 1.0f, 1.0f}, {m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y, 0.0f, 0.0f, 1.0f, 1.0f});
+    //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y + m_v2CurRadius.y * 0.5f, 0.0f, 0.0f, 1.0f, 1.0f}, {m_v2Origin.x, m_v2Origin.y - m_v2CurRadius.y * 0.5f, 0.0f, 0.0f, 1.0f, 1.0f});
+
     // Get a pointer to the LightComponent's GameObject's parent (if one exists)
     wolf::GameObject* pParentGO = this->GetGameObject()->GetParent();
 
@@ -121,9 +124,10 @@ void LightComponent::Update(float p_fDelta) {
 
                 // Check if the light's origin is inside of the rectangle
                 if (m_v2Origin.x > v2TopLeft.x && m_v2Origin.x < v2BotRight.x && m_v2Origin.y > v2BotRight.y && m_v2Origin.y < v2TopLeft.y) {
-                    // If it is, we do not want to cast rays to its corners unless it is the light's AOE collider
+                    // If it is, and the rectangle is NOT the light's AOE collider
                     if (this->GetGameObject()->GetID() != collider.GetGameObject()->GetID()) {
-                        continue;
+                        // Then the light is inside of a wall/solid object and we don't want to draw ANY rays
+                        return;
                     }
                 }
 
@@ -138,8 +142,14 @@ void LightComponent::Update(float p_fDelta) {
                     continue;
                 }
 
-                // If we've made it this far, we send a copy of this rectangle to the next phase of the collision testing
-                vpRectanglesInAOE.push_back(wolf::Rectangle(v2TopLeft.x, v2TopLeft.y, v2BotRight.x, v2BotRight.y));
+                // Check if the rectangle is part of a wall
+                if (CheckForWallAtPos({(v2TopLeft.x + v2BotRight.x) * 0.5f, (v2TopLeft.y + v2BotRight.y) * 0.5f})) {
+                    // DIVIDE WALL INTO SMALLER RECTANGLES AND PUSH THOSE
+                }
+                else {
+                    // If we've made it this far, we send a copy of this rectangle to the next phase of the collision testing
+                    vpRectanglesInAOE.push_back(wolf::Rectangle(v2TopLeft.x, v2TopLeft.y, v2BotRight.x, v2BotRight.y));    
+                }
             }
         }
     }
@@ -157,7 +167,7 @@ void LightComponent::Update(float p_fDelta) {
         glm::vec2 v2BotRight = arv2Corners[3];
        
         // Figure out the approximate location of the rectangle in relation to the light source
-        glm::vec2 v2RectPos = glm::vec4((v2TopLeft.x + v2TopRight.x) * 0.5f, (v2TopLeft.y + v2BotLeft.y) * 0.5f, 0, 1) * m_pTransform->GetGlobalMatrix();
+        glm::vec2 v2RectPos = glm::vec2((v2TopLeft.x + v2TopRight.x) * 0.5f, (v2TopLeft.y + v2BotLeft.y) * 0.5f);
         RoughPosition enRoughPos = this->CalculateRoughObjPosition(v2RectPos);
 
         // Use said location to figure out which sides of the rectangle the light could
@@ -175,6 +185,10 @@ void LightComponent::Update(float p_fDelta) {
                 // --------------------------------------------------------------------------------------- */
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2TopRight, v2BotRight});
                 this->CheckForCollisionAndAdd(v2TopRight, {v2BotLeft, v2BotRight});
+
+                GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 1.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
         
             break;
             
@@ -182,6 +196,9 @@ void LightComponent::Update(float p_fDelta) {
                 // Shoot a line to the bottom-left and bottom-right corners
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
                 this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
+
+                GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 0.5f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.5f, 0.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -193,6 +210,10 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2BotLeft});
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2BotLeft, v2BotRight});
 
+                GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+
             break;
             
             case MID_LEFT:
@@ -200,12 +221,18 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
 
+                GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 0.5f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.0f, 0.5f, 1.0f, 1.0f}, 7.0f, 7.0f);
+
             break;
             
             case MID_RIGHT:
                 // Shoot a line to the top-left and bottom-left corners
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
+
+                GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -217,12 +244,19 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopRight, v2BotRight});
                 this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2TopRight});
 
+                GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.5f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.5f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.5f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+
             break;
             
             case BOT_CENTER:
                 // Shoot a line to the top-left and top-right corners
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
+
+                GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 1.0f, 1.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 1.0f, 1.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -234,16 +268,20 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2BotLeft});
 
+                GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+
             break;
 
             case SELF:
-                // Shoot a line to the four corners of the light's radius rectangle
+                // Shoot a line to the four corners of the light's radius rectangle and in a + shape centered at the light's origin
                 // (If these lines intersect something they'll be removed in the next pass)
                 m_vv2fCollidingPoints.push_back({v2TopLeft, CalculateAngleOfIntersection(v2TopLeft)});
                 m_vv2fCollidingPoints.push_back({v2TopRight, CalculateAngleOfIntersection(v2TopRight)});
                 m_vv2fCollidingPoints.push_back({v2BotLeft, CalculateAngleOfIntersection(v2BotLeft)});
                 m_vv2fCollidingPoints.push_back({v2BotRight, CalculateAngleOfIntersection(v2BotRight)});
-                
+            
             break;
         }
 
@@ -285,6 +323,22 @@ void LightComponent::Update(float p_fDelta) {
         bool bRectIsWall = CheckForWallAtPos({(v2TopStart.x + v2BotEnd.x) * 0.5f, (v2TopStart.y + v2BotEnd.y) * 0.5f});
         bool bIsAOE = this->IsAOERect(rect);
 
+        // DEBUG: Draw the AOE
+        if (bIsAOE) {
+            GLShapesRenderer::GetInstance()->AddLine({v2TopStart.x, v2TopStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2TopEnd.x, v2TopEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
+            GLShapesRenderer::GetInstance()->AddLine({v2BotStart.x, v2BotStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2BotEnd.x, v2BotEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
+            GLShapesRenderer::GetInstance()->AddLine({v2LeftStart.x, v2LeftStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2LeftEnd.x, v2LeftEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
+            GLShapesRenderer::GetInstance()->AddLine({v2RightStart.x, v2RightStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2RightEnd.x, v2RightEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
+        }
+
+        // DEBUG: Highlight the walls
+        if (bRectIsWall) {
+            GLShapesRenderer::GetInstance()->AddLine({v2TopStart.x, v2TopStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2TopEnd.x, v2TopEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
+            GLShapesRenderer::GetInstance()->AddLine({v2BotStart.x, v2BotStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2BotEnd.x, v2BotEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
+            GLShapesRenderer::GetInstance()->AddLine({v2LeftStart.x, v2LeftStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2LeftEnd.x, v2LeftEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
+            GLShapesRenderer::GetInstance()->AddLine({v2RightStart.x, v2RightStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2RightEnd.x, v2RightEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
+        }
+
         // Then go through all of the corner points that we KNOW we'll be casting a light ray to
         for (std::pair<glm::vec2, float> v2fCorner : m_vv2fCollidingPoints) {
             // Skip corner points that belong to the rectangle we're currently looking at
@@ -317,23 +371,28 @@ void LightComponent::Update(float p_fDelta) {
                     if (fMinDist == fLeftDist) {
                         // Left intersection point
                         vv2fPointsToAdd.push_back({v2fLeftResullt.second, CalculateAngleOfIntersection(v2fLeftResullt.second)});
+                        GLShapesRenderer::GetInstance()->AddQuad({v2fLeftResullt.second.x, v2fLeftResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                     }
                     else if (fMinDist == fRightDist) {
                         // Right intersection point
                         vv2fPointsToAdd.push_back({v2fRightResullt.second, CalculateAngleOfIntersection(v2fRightResullt.second)});
+                        GLShapesRenderer::GetInstance()->AddQuad({v2fRightResullt.second.x, v2fRightResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                     }
                     else if (fMinDist == fTopDist) {
                         // Top intersection point
                         vv2fPointsToAdd.push_back({v2fTopResullt.second, CalculateAngleOfIntersection(v2fTopResullt.second)});
+                        GLShapesRenderer::GetInstance()->AddQuad({v2fTopResullt.second.x, v2fTopResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                     }
                     else if (fMinDist == fBotDist) {
                         // Bottom intersection point
                         vv2fPointsToAdd.push_back({v2fBotResullt.second, CalculateAngleOfIntersection(v2fBotResullt.second)});
+                        GLShapesRenderer::GetInstance()->AddQuad({v2fBotResullt.second.x, v2fBotResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                     }
                 }
                 
                 // Then mark this intersection point for removal
                 vv2fPointsToRemove.push_back(v2fCorner);
+                GLShapesRenderer::GetInstance()->AddQuad({v2fCorner.first.x, v2fCorner.first.y, 1.0f, 0.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
             }
         }
 
@@ -365,7 +424,7 @@ void LightComponent::Update(float p_fDelta) {
         glm::vec2 v2Point2 = m_vv2fCollidingPoints.back().first;
         // We don't pop the second point because we want the triangles to connect to each other
 
-        //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y});
+        GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y});
         //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
 
         m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
@@ -378,7 +437,7 @@ void LightComponent::Update(float p_fDelta) {
     m_vv2fCollidingPoints.pop_back();
 
     // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
-    //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2LastPoint.x, v2LastPoint.y});
+    GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2LastPoint.x, v2LastPoint.y});
     //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
     
     m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
