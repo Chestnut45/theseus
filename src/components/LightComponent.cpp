@@ -144,56 +144,63 @@ void LightComponent::Update(float p_fDelta) {
 
                 // Check if the rectangle is part of a wall
                 if (CheckForWallAtPos({(v2TopLeft.x + v2BotRight.x) * 0.5f, (v2TopLeft.y + v2BotRight.y) * 0.5f})) {
+
                     // If it is, we want to make a rectangle for each individual tile within it.
-                    // To do that, we get the width and height of the rectangle
-
-                    GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 1.0f, 1.0f, 1.0f, 1.0f}, 10.0f, 10.0f);
-                    GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 0.0f, 0.0f, 1.0f}, 10.0f, 10.0f);
-
+                    // To do that, we get the width and height of the rectangle...
                     int iWidth = v2BotRight.x - v2TopLeft.x;
                     int iHeight = v2TopLeft.y - v2BotRight.y;
 
-                    int iNumTilesX = iWidth / 32;
-                    int iNumTilesY = iHeight / 32;
+                    // ...and use that to determine how many tiles are inside of it
+                    int iNumTilesX = iWidth / 96;
+                    int iNumTilesY = iHeight / 96;
 
+                    // If we're subdividing along the X-axis
                     if (iWidth > 96) {
-                        for (int i = 0; i < iNumTilesX - 1; i++) {
+                        // We iterate through each of the tiles
+                        for (int i = 0; i <= iNumTilesX - 1; i++) {
+                            // Figure out what we need to increment the initial X coordinate by for the next "step" in the subdivision
                             float fXInc = i * 96.0f;
 
-                            glm::vec2 v2SubTopLeft = {v2TopLeft.x + fXInc, v2TopLeft.y};
-                            glm::vec2 v2SubBotRight = {v2BotRight.x + fXInc, v2BotRight.y};
+                            // Use that incremental value to find the top-left and bottom-right of the next rectangle
+                            glm::vec2 v2SubXTopLeft = {v2TopLeft.x + fXInc, v2TopLeft.y};
+                            glm::vec2 v2SubXBotRight = {v2TopLeft.x + 96.0f + fXInc, v2BotRight.y};
 
-                            if ((v2SubTopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
-                                (v2SubTopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
-                                (v2SubBotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
-                                (v2SubBotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
+                            // Check if the new rectangle is outside of the light's AOE
+                            if ((v2SubXTopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
+                                (v2SubXTopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
+                                (v2SubXBotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
+                                (v2SubXBotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
                             {
-                                // If it is, we do not want to cast rays to it
+                                // If it is, we move onto the next subdivision
                                 continue;
                             }
 
-                            //GLShapesRenderer::GetInstance()->AddQuad({v2SubTopLeft.x, v2SubTopLeft.y, 0.0f, 1.0f, 0.0f, 1.0f}, 10.0f, 10.0f);
-                            vpRectanglesInAOE.push_back(wolf::Rectangle(v2SubTopLeft.x, v2SubTopLeft.y, v2SubBotRight.x, v2SubBotRight.y)); 
+                            // Then add the new rectangle to the list of rects that will be checked later
+                            vpRectanglesInAOE.push_back(wolf::Rectangle(v2SubXTopLeft.x, v2SubXTopLeft.y, v2SubXBotRight.x, v2SubXBotRight.y)); 
                         }
                     }
-                    else if (iHeight > 96) {
-                        for (int j = 0; j < iNumTilesY - 1; j++) {
-                            float fYInc = j * 96.0f;
+                    else if (iHeight > 96) { // If we're subdividing along the Y axis
+                        // We follow the same process as the X-axis and iterate through the tiles
+                        for (int j = 0; j <= iNumTilesY - 1; j++) {
+                            // Find the value we need to decrement the initial Y coordinate by for the next "step" in the subdivision
+                            float fYDec = j * 96.0f;
 
-                            glm::vec2 v2SubTopLeft = {v2TopLeft.x, v2TopLeft.y - fYInc};
-                            glm::vec2 v2SubBotRight = {v2BotRight.x, v2BotRight.y - fYInc};
+                            // Find the top-left and bottom-right points on the new rectangle
+                            glm::vec2 v2SubYTopLeft = {v2TopLeft.x, v2TopLeft.y - fYDec};
+                            glm::vec2 v2SubYBotRight = {v2TopLeft.x + 96.0f, v2TopLeft.y - 96.0f - fYDec};
 
-                            if ((v2SubTopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
-                                (v2SubTopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
-                                (v2SubBotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
-                                (v2SubBotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
+                            // Check if the rectangle is outside of the light's AOE
+                            if ((v2SubYTopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
+                                (v2SubYTopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
+                                (v2SubYBotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
+                                (v2SubYBotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
                             {
-                                // If it is, we do not want to cast rays to it
+                                // If it is, we move onto the next subdivision
                                 continue;
                             }
 
-                            //GLShapesRenderer::GetInstance()->AddQuad({v2SubTopLeft.x, v2SubTopLeft.y, 1.0f, 0.0f, 0.0f, 1.0f}, 10.0f, 10.0f);
-                            vpRectanglesInAOE.push_back(wolf::Rectangle(v2SubTopLeft.x, v2SubTopLeft.y, v2SubBotRight.x, v2SubBotRight.y)); 
+                            // Then we add the new rectangle to the list of rects that will be checked later
+                            vpRectanglesInAOE.push_back(wolf::Rectangle(v2SubYTopLeft.x, v2SubYTopLeft.y, v2SubYBotRight.x, v2SubYBotRight.y)); 
                         }
                     }
                 }
@@ -451,13 +458,13 @@ void LightComponent::Update(float p_fDelta) {
         for (std::pair<glm::vec2, float> v2fBadCorner : vv2fPointsToRemove) {
             auto it = std::find(m_vv2fCollidingPoints.begin(), m_vv2fCollidingPoints.end(), v2fBadCorner);
             if (it != m_vv2fCollidingPoints.end()) {
-                //m_vv2fCollidingPoints.erase(it);
+                m_vv2fCollidingPoints.erase(it);
             }
         }
 
         // Add in the new intersection points for wall-wall collisions
         for (std::pair<glm::vec2, float> v2fGoodPoint : vv2fPointsToAdd) {
-            //m_vv2fCollidingPoints.push_back(v2fGoodPoint);
+            m_vv2fCollidingPoints.push_back(v2fGoodPoint);
         }
     }
 
@@ -475,7 +482,7 @@ void LightComponent::Update(float p_fDelta) {
         glm::vec2 v2Point2 = m_vv2fCollidingPoints.back().first;
         // We don't pop the second point because we want the triangles to connect to each other
 
-        GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y});
+        //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y});
         //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
 
         m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
@@ -488,7 +495,7 @@ void LightComponent::Update(float p_fDelta) {
     m_vv2fCollidingPoints.pop_back();
 
     // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
-    GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2LastPoint.x, v2LastPoint.y});
+    //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2LastPoint.x, v2LastPoint.y});
     //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
     
     m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
