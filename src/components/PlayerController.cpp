@@ -428,6 +428,7 @@ void PlayerController::HandlePlayerInput(float delta)
         wolf::Input::IsLMBJustDown()                            && 
         m_pCurrentWeapon                                        && 
         m_action != PlayerAction::ATTACKING                     &&
+        m_action != PlayerAction::PLACING                       &&
         m_action != PlayerAction::PETRIFIED                     &&
         m_attackTimer.Elapsed() >= m_pCurrentWeapon->GetDelay() && 
         !m_inventoryOpen                                        && 
@@ -509,19 +510,33 @@ void PlayerController::HandlePlacing(float delta)
     if(wolf::Input::IsLMBJustDown())
     {
         glm::vec2 cursorWorldPos = CalculateCursorWorldPosition();
+        
         // Return if attempting to place item out of bounds
         if(cursorWorldPos.x < 0 || cursorWorldPos.y < 0) return;
 
+        // Get the position of the tile that the cursor is on
         glm::ivec2 cursorTilePos;
         for (const auto&&[_, lbmg] : GetGameObject()->GetScene().Each<LabyrinthManager>())
         {
             cursorTilePos = lbmg.GetTilePosition(cursorWorldPos);
+
+            // Return if tile is a wall
+            int tileId = lbmg.GetTile(cursorTilePos.x, cursorTilePos.y);
+            if((tileId >= Tile::WallBottomLeft) && (tileId <= Tile::WallTop)) return;
+         
             break;
+        }
+
+        if(this->m_pCurrentPlaceable->GetName() == "Portal")
+        {
+
         }
 
         SetAction(PlayerAction::NONE);
         printf("END_PLACING\n");
     }
+
+    HandlePlacingAnimation();
 }
 
 void PlayerController::HandleDeath(float delta)
@@ -991,6 +1006,35 @@ void PlayerController::RenderBowPowerBar()
     ImGui::PopStyleColor(2);
 }
 
+
+void PlayerController::HandlePlacingAnimation()
+{
+    std::string animationName;
+
+    if(glm::length(m_pVelocity->GetVelocity()) <= 0.001f)
+    {
+        animationName = GetIdleAnimationForDirection(m_lastMoveDirectionEnum);
+    }
+    else
+    {
+        animationName = GetWalkAnimationForDirection(m_lastMoveDirectionEnum);
+    }
+    
+
+    // Set facing direction
+    m_lastFaceDirectionEnum = m_lastMoveDirectionEnum;
+
+    // Check if the desired animation is different from the currently playing one.
+    if (!animationName.empty() && animationName != m_currentAnimation)
+    {
+        // Set the new animation.
+        m_pAnimComponent->SetAnimation(animationName);
+
+        // Update the current animation name.
+        m_currentAnimation = animationName;
+    }
+}
+
 glm::vec2 PlayerController::CalculateCursorWorldPosition() const
 {
     wolf::Scene* scene = &this->GetGameObject()->GetScene();
@@ -1052,7 +1096,6 @@ void PlayerController::EndPetrified()
 
 void PlayerController::EndPlacing()
 {
-    
     wolf::EventManager::TriggerEvent(EndPlacingPlaceableEvent(this->m_pCurrentPlaceable));
     this->m_pCurrentPlaceable = nullptr;
 }
@@ -1219,18 +1262,6 @@ void PlayerController::SetAnimationBasedOnState()
     {
         case PlayerAction::WALKING:
             animationName = GetWalkAnimationForDirection(m_lastMoveDirectionEnum);
-            break;
-        
-        case PlayerAction::PLACING:
-            if(glm::length(m_pVelocity->GetVelocity()) <= 0)
-            {
-                animationName = GetIdleAnimationForDirection(m_lastMoveDirectionEnum);
-            }
-            else
-            {
-                animationName = GetWalkAnimationForDirection(m_lastMoveDirectionEnum);
-            }
-            
             break;
 
         case PlayerAction::NONE:  // Idle state.

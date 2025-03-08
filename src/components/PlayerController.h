@@ -129,6 +129,8 @@ private:
     void CalculateAttackDirection();
     void RenderBowPowerBar();
 
+    void HandlePlacingAnimation();
+
     glm::vec2 CalculateCursorWorldPosition() const;
     glm::vec2 ClampDirection(const glm::vec2& direction) const;
 
@@ -140,6 +142,7 @@ private:
 
     //-------Added By Nhat-------//
     void HandleBeginPlacingItemEvent(const BeginPlacingPlaceableEvent& p_event);
+    void HandleEndPlacingItemEvent(const EndPlacingPlaceableEvent& p_event);
 
     void OnDamageEvent(const DamageEvent& event);
 

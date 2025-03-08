@@ -102,4 +102,7 @@ class PlayerInventoryComponent : public InventoryComponent {
         static const int TOG_BUTTON_CLOSED_HOVER;
         static const int TOG_BUTTON_OPEN;
         static const int TOG_BUTTON_OPEN_HOVER;
+
+        // Prevents the player clicking on a tile position that overlaps the inventory button
+        bool m_bIsPlacing = false;
 };

@@ -136,6 +136,7 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
 }
 
 void PlayerInventoryComponent::ShowToggleButtonGUI() {
+    if(m_bIsPlacing) return;
     ImGuiStyle* pStyle = &ImGui::GetStyle();
     pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
 
@@ -875,12 +876,16 @@ void PlayerInventoryComponent::BeginPlacingPlaceable(ItemBase* p_pItem)
     PlaceableItem* pPlaceable = dynamic_cast<PlaceableItem*>(p_pItem);
     if (pPlaceable){
         printf("BGN_PLC\n");
+        m_bIsPlacing = true;
         wolf::EventManager::TriggerEvent(BeginPlacingPlaceableEvent(pPlaceable));
+        Close();
     }
-    }
+}
 void PlayerInventoryComponent::EndPlacingPlaceable(ItemBase* p_pItem)
 {
     printf("END_PLC\n");
+    m_bIsPlacing = false;
+    Open();
 }
 
 void PlayerInventoryComponent::AddGold(int p_iAmt) {
