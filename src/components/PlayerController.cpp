@@ -527,13 +527,11 @@ void PlayerController::HandlePlacing(float delta)
             break;
         }
 
-        if(this->m_pCurrentPlaceable->GetName() == "Portal")
-        {
-
+        if(this->m_pCurrentPlaceable->GetType() == PlaceableType::PORTAL)
+        {   
         }
 
         SetAction(PlayerAction::NONE);
-        printf("END_PLACING\n");
     }
 
     HandlePlacingAnimation();
@@ -1731,7 +1729,6 @@ void PlayerController::HandleArmourUnequippedEvent(const ArmourUnequippedEvent& 
 }
 void PlayerController::HandleBeginPlacingItemEvent(const BeginPlacingPlaceableEvent& p_event)
 {
-    printf("BEGIN_PLACING\n");
     this->m_pCurrentPlaceable = p_event.pItem;
     SetAction(PlayerAction::PLACING);
 }

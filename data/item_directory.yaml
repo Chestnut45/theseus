@@ -237,6 +237,7 @@ Lapis Lazuli Ring: {
 
 Portal: {
   id: PLACEABLE,
+  placeable_type: PORTAL,
   description: Think With Portals!(TM),
   value: 30,
   texture_frame: 26,

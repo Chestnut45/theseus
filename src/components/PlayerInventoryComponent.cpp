@@ -136,6 +136,7 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
 }
 
 void PlayerInventoryComponent::ShowToggleButtonGUI() {
+    //  Prevents the player clicking on a tile position that overlaps the inventory button
     if(m_bIsPlacing) return;
     ImGuiStyle* pStyle = &ImGui::GetStyle();
     pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
@@ -365,6 +366,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     }
                     else if (pItem->GetID() == PLACEABLE) {
                         if (ImGui::Button("Place")) {
+                            m_iCurrentPlaceableIndex = k;
                             this->BeginPlacingPlaceable(pItem);
                             ImGui::CloseCurrentPopup();
                         }
@@ -875,17 +877,10 @@ void PlayerInventoryComponent::BeginPlacingPlaceable(ItemBase* p_pItem)
 {
     PlaceableItem* pPlaceable = dynamic_cast<PlaceableItem*>(p_pItem);
     if (pPlaceable){
-        printf("BGN_PLC\n");
         m_bIsPlacing = true;
         wolf::EventManager::TriggerEvent(BeginPlacingPlaceableEvent(pPlaceable));
         Close();
     }
-}
-void PlayerInventoryComponent::EndPlacingPlaceable(ItemBase* p_pItem)
-{
-    printf("END_PLC\n");
-    m_bIsPlacing = false;
-    Open();
 }
 
 void PlayerInventoryComponent::AddGold(int p_iAmt) {
@@ -1106,5 +1101,8 @@ void PlayerInventoryComponent::HandlePickupDroppedItemEvent(const PickupDroppedI
 
 void PlayerInventoryComponent::HandleEndPlacingPlaceableEvent(const EndPlacingPlaceableEvent& p_event)
 {
-    this->EndPlacingPlaceable(p_event.pItem);
+    RemoveItem(m_iCurrentPlaceableIndex);
+    m_iCurrentPlaceableIndex = -1;
+    m_bIsPlacing = false;
+    Open();
 }

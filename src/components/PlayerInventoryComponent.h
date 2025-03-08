@@ -72,7 +72,6 @@ class PlayerInventoryComponent : public InventoryComponent {
         void DiscardEquipment(EquipmentSlot p_enSlot);
         
         void BeginPlacingPlaceable(ItemBase* p_pItem);
-        void EndPlacingPlaceable(ItemBase* p_pItem);
 
         bool m_bShowFullInventoryPrompt = false;
         bool m_bShowTooExpensivePrompt = false;
@@ -103,6 +102,7 @@ class PlayerInventoryComponent : public InventoryComponent {
         static const int TOG_BUTTON_OPEN;
         static const int TOG_BUTTON_OPEN_HOVER;
 
-        // Prevents the player clicking on a tile position that overlaps the inventory button
+        // Placeable-related members
         bool m_bIsPlacing = false;
+        int m_iCurrentPlaceableIndex = -1;
 };

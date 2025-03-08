@@ -348,8 +348,17 @@ namespace ItemCreator {
                 }
             }
             else if (strItemId == "PLACEABLE") { // If it is a placeable item
+                std::string placeableTypeStr = itemEntry["placeable_type"] ? itemEntry["placeable_type"].as<std::string>() : "";
+                PlaceableType plcType = END_OF_PLACEABLE_TYPES;
+                if(placeableTypeStr == "PORTAL") {                    
+                    plcType = PlaceableType::PORTAL;
+                }
+                else
+                {
+                    printf("Error: Unknown Placeable Type - Set Type To Default\n");
+                }
                 bool bStackable = itemEntry["is_stackable"] ? itemEntry["is_stackable"].as<bool>() : bStackable;
-                pCreatedItem = new PlaceableItem(PLACEABLE, p_strItemName, strDesc, iValue, bStackable, iTextureFrameIndex, enRarity);
+                pCreatedItem = new PlaceableItem(PLACEABLE, plcType, p_strItemName, strDesc, iValue, bStackable, iTextureFrameIndex, enRarity);
             }
 
             else {
