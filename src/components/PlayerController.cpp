@@ -36,6 +36,8 @@ PlayerController::~PlayerController() {
     wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::RemoveListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
+    wolf::EventManager::RemoveListener<BeginPlacingPlaceableEvent, PlayerController, &PlayerController::HandleBeginPlacingItemEvent>(*this);
+    wolf::EventManager::RemoveListener<EndPlacingPlaceableEvent, PlayerController, &PlayerController::HandleEndPlacingItemEvent>(*this);
     wolf::EventManager::RemoveListener<DamageEvent, PlayerController, &PlayerController::OnDamageEvent>(*this);
     if (m_deathScreenTexture) {
         wolf::TextureManager::DestroyTexture(m_deathScreenTexture);
@@ -108,6 +110,10 @@ void PlayerController::SetAction(PlayerAction action)
             StartPetrified();
             break;
         }
+        case PlayerAction::PLACING:
+        {
+            break;
+        }
         case PlayerAction::ROLLING:
         {
             StartRoll();
@@ -154,6 +160,11 @@ void PlayerController::LateInitialize()
     wolf::EventManager::AddListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
+    
+    //-------Added By Nhat-------//
+    wolf::EventManager::AddListener<BeginPlacingPlaceableEvent, PlayerController, &PlayerController::HandleBeginPlacingItemEvent>(*this);
+    wolf::EventManager::AddListener<EndPlacingPlaceableEvent, PlayerController, &PlayerController::HandleEndPlacingItemEvent>(*this);
+    
 
     // Listen for damage events
     wolf::EventManager::AddListener<DamageEvent, PlayerController, &PlayerController::OnDamageEvent>(*this);
@@ -294,6 +305,10 @@ void PlayerController::Update(float delta)
             break;
         case PlayerAction::PETRIFIED:
             HandlePetrified(delta);
+            break;
+        case PlayerAction::PLACING:
+            HandlePlacing(delta);
+            HandleMovement(delta);
             break;
         case PlayerAction::DEAD:
             HandleDeath(delta);
@@ -480,6 +495,16 @@ void PlayerController::HandleThrowing(float delta) {
 void PlayerController::HandlePetrified(float delta)
 {
         
+}
+
+
+void PlayerController::HandlePlacing(float delta)
+{
+    if(wolf::Input::IsLMBJustDown())
+    {
+        SetAction(PlayerAction::NONE);
+        printf("END_PLACING\n");
+    }
 }
 
 void PlayerController::HandleDeath(float delta)
@@ -1060,9 +1085,9 @@ void PlayerController::HandleMovement(float delta)
     direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
     direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
     
-    // If player is not moving, attacking or rolling, then idle
+    // If player is not moving, attacking, placing or rolling, then idle
     if (glm::length(direction) == 0.0f) {
-        if (m_action != PlayerAction::ATTACKING && m_action != PlayerAction::ROLLING) SetAction(PlayerAction::NONE);
+        if (m_action != PlayerAction::ATTACKING && m_action != PlayerAction::PLACING && m_action != PlayerAction::ROLLING) SetAction(PlayerAction::NONE);
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
         m_walkSoundTimer.Reset();
         return;
@@ -1630,6 +1655,15 @@ void PlayerController::HandleArmourUnequippedEvent(const ArmourUnequippedEvent& 
             statusComponent->SetStatusEffectResistance(seType, 0);
         }
     }
+}
+void PlayerController::HandleBeginPlacingItemEvent(const BeginPlacingPlaceableEvent& p_event)
+{
+    SetAction(PlayerAction::PLACING);
+}
+
+void PlayerController::HandleEndPlacingItemEvent(const EndPlacingPlaceableEvent& p_event)
+{
+
 }
 
 void PlayerController::OnDamageEvent(const DamageEvent& event)

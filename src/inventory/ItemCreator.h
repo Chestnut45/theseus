@@ -344,9 +344,12 @@ namespace ItemCreator {
 
                     // Then we can create the armour item!
                     pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enRarity, enSlot, fDamageReduction, vStatusEffects, aStatusEffectResistances);
-
                 }
             }
+            else if (strItemId == "PLACEABLE") { // If it is a placeable item
+                pCreatedItem = new ItemBase(PLACEABLE, p_strItemName, strDesc, iValue, false, iTextureFrameIndex, enRarity);
+            }
+
             else {
                 // If the ID doesn't match one of the enums that we use then we can't create the item
                 wolf::Error("ItemCreator Error: Invalid item type id ", strItemId.c_str(), " for ", p_strItemName.c_str());

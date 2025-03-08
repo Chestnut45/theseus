@@ -21,6 +21,7 @@
 // !-- Aurora added this --!
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
+#include "../inventory/PlaceableItem.h"
 
 // !-- Death Screen Handling --!
 #include "../events/GameOverEvent.h"
@@ -42,6 +43,7 @@ public:
         PICKING_UP,
         THROWING,
         PETRIFIED,
+        PLACING,
         DEAD
     };
 
@@ -115,6 +117,7 @@ private:
     void HandleAttacking(float delta);   // Declaration for HandleAttacking
     void HandleThrowing(float delta);  // Method to handle throwing
     void HandlePetrified(float delta);  // Method to handle being petrified
+    void HandlePlacing(float delta);  // Method to handle placing placeable items
     void HandleDeath(float delta);  // New method to handle the existential fear of death
 
     void HandleBowAttack(float delta);
@@ -133,6 +136,10 @@ private:
     void HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& p_event);
     void HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event);
     void HandleArmourUnequippedEvent(const ArmourUnequippedEvent& p_event);
+
+    //-------Added By Nhat-------//
+    void HandleBeginPlacingItemEvent(const BeginPlacingPlaceableEvent& p_event);
+    void HandleEndPlacingItemEvent(const EndPlacingPlaceableEvent& p_event);
 
     void OnDamageEvent(const DamageEvent& event);
 

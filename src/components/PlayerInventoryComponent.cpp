@@ -359,6 +359,12 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                             ImGui::CloseCurrentPopup();
                         }
                     }
+                    else if (pItem->GetID() == PLACEABLE) {
+                        if (ImGui::Button("Place")) {
+                            this->BeginPlacingPlaceable(pItem);
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
 
                     // If we currently have a chest open
                     if (m_iOpenChestIdNum != -1) {
@@ -859,6 +865,11 @@ void PlayerInventoryComponent::DiscardEquipment(EquipmentSlot p_enSlot) {
 
     // And delete it!
     delete pEquipment;
+}
+
+void PlayerInventoryComponent::BeginPlacingPlaceable(ItemBase* p_pItem)
+{
+    wolf::EventManager::TriggerEvent(BeginPlacingPlaceableEvent(p_pItem));
 }
 
 void PlayerInventoryComponent::AddGold(int p_iAmt) {

@@ -392,6 +392,7 @@ void PlayState::Update(float delta)
                     ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
                     ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
                     ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
+                    ItemBase* pPortal = ItemCreator::CreateItem("Portal");
 
                 ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
                 ItemBase* pSpear = ItemCreator::CreateItem("Spear");
@@ -408,6 +409,7 @@ void PlayState::Update(float delta)
                     playerInventory->AddItemOrDelete(pTheezys);
                     playerInventory->AddItemOrDelete(pFauxLeatherGloves);
                     playerInventory->AddItemOrDelete(pLapisLazuliRing);
+                    playerInventory->AddItemOrDelete(pPortal);
 
                     playerInventory->AddItemOrDelete(pBow);
                     playerInventory->AddItemOrDelete(pSpear);

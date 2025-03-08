@@ -19,6 +19,8 @@
 #include "inventory/ArmourItem.h"
 #include "inventory/WeaponItem.h"
 
+#include "inventory/PlaceableItem.h"
+
 class PlayerInventoryComponent : public InventoryComponent {
     public:
         PlayerInventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos);
@@ -66,6 +68,8 @@ class PlayerInventoryComponent : public InventoryComponent {
         void UnequipItem(ItemBase* p_pItem);
         void DiscardItem(int p_iItemIndex);
         void DiscardEquipment(EquipmentSlot p_enSlot);
+        
+        void BeginPlacingPlaceable(ItemBase* p_pItem);
 
         bool m_bShowFullInventoryPrompt = false;
         bool m_bShowTooExpensivePrompt = false;
