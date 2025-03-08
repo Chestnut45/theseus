@@ -7,6 +7,7 @@
 #include "StatusEffectItem.h"
 #include "WeaponItem.h"
 #include "ArmourItem.h"
+#include "PlaceableItem.h"
 
 //-----------------------------------------------------------------------------
 // File:            ItemCreator.h
@@ -347,7 +348,8 @@ namespace ItemCreator {
                 }
             }
             else if (strItemId == "PLACEABLE") { // If it is a placeable item
-                pCreatedItem = new ItemBase(PLACEABLE, p_strItemName, strDesc, iValue, false, iTextureFrameIndex, enRarity);
+                bool bStackable = itemEntry["is_stackable"] ? itemEntry["is_stackable"].as<bool>() : bStackable;
+                pCreatedItem = new PlaceableItem(PLACEABLE, p_strItemName, strDesc, iValue, bStackable, iTextureFrameIndex, enRarity);
             }
 
             else {

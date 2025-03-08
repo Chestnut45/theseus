@@ -129,6 +129,7 @@ private:
     void CalculateAttackDirection();
     void RenderBowPowerBar();
 
+    glm::vec2 CalculateCursorWorldPosition() const;
     glm::vec2 ClampDirection(const glm::vec2& direction) const;
 
     // !-- Aurora added this --!
@@ -139,7 +140,6 @@ private:
 
     //-------Added By Nhat-------//
     void HandleBeginPlacingItemEvent(const BeginPlacingPlaceableEvent& p_event);
-    void HandleEndPlacingItemEvent(const EndPlacingPlaceableEvent& p_event);
 
     void OnDamageEvent(const DamageEvent& event);
 
@@ -153,6 +153,7 @@ private:
     void EndAttacking();
     void EndJump();         // Ends a jumping action
     void EndPetrified();
+    void EndPlacing();
     void EndRoll();         // Ends a rolling action
     
     void ThrowHeldObject();
@@ -264,6 +265,9 @@ private:
 
     // Equipped weapon (no default)
     WeaponItem* m_pCurrentWeapon = nullptr;
+
+    // Placeable item
+    PlaceableItem* m_pCurrentPlaceable = nullptr;
 
     // Death screen related variables
     wolf::Timer m_runtimeTimer;
