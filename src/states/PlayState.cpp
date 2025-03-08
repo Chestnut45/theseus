@@ -210,13 +210,8 @@ void PlayState::Enter()
 
     // Add a test light to the player
     wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.9f, 0.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.9f, 0.0f, 0.5f), glm::vec2(116.0f, 116.0f), true);
     m_pPlayerObject->AddChild(*pLightGO);
-
-    // Add a test light to ariadne
-    // wolf::GameObject* pLightGOAri = &m_pGameInstance->GetScene().CreateObject2D();
-    // auto& pLightComponentAri = pLightGOAri->AddComponent<LightComponent>(glm::vec4(1.0f, 0.9f, 0.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
-    // ariadne.AddChild(*pLightGOAri);
 
     // Initialize all of the lights in the scene now that we are sure they have been set up
     for (auto&& [_, light] : m_pGameInstance->GetScene().Each<LightComponent>()) {

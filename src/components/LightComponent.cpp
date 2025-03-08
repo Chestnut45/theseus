@@ -80,6 +80,12 @@ void LightComponent::Init() {
 }
 
 void LightComponent::Update(float p_fDelta) {
+    // If the light's AOE collider isn't active
+    if (!m_pCollider->IsActive()) {
+        // Then we don't want to do anything at all!
+        return;
+    }
+
     // Update the origin point of the light's radius
     m_v2Origin = m_pTransform->GetGlobalPosition();
 
@@ -111,6 +117,12 @@ void LightComponent::Update(float p_fDelta) {
 
             // If this light's GameObject has a parent and the collider we're looking at belongs to them
             if (pParentGO && pParentGO->GetID() == collider.GetGameObject()->GetID()) {
+                // Then we want to ignore it
+                continue;
+            }
+
+            // If the collider we're looking at is another light's AOE collider
+            if (collider.GetGameObject()->GetComponent<LightComponent>()) {
                 // Then we want to ignore it
                 continue;
             }
@@ -155,7 +167,7 @@ void LightComponent::Update(float p_fDelta) {
                     int iNumTilesY = iHeight / 96;
 
                     // If we're subdividing along the X-axis
-                    if (iWidth > 96) {
+                    if (iWidth >= 96) {
                         // We iterate through each of the tiles
                         for (int i = 0; i <= iNumTilesX - 1; i++) {
                             // Figure out what we need to increment the initial X coordinate by for the next "step" in the subdivision
@@ -244,9 +256,9 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2TopRight, v2BotRight});
                 this->CheckForCollisionAndAdd(v2TopRight, {v2BotLeft, v2BotRight});
 
-                //GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 1.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 1.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
         
             break;
             
@@ -255,8 +267,8 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
                 this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
 
-                // GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 0.5f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                // GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.5f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 0.65f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.65f, 0.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -268,9 +280,9 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2BotLeft});
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2BotLeft, v2BotRight});
 
-                // GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                // GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                // GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 1.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -279,8 +291,8 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
 
-                // GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 0.5f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                // GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.0f, 0.5f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -289,8 +301,8 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
 
-                // GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                // GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 1.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 1.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -302,9 +314,9 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopRight, v2BotRight});
                 this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2TopRight});
 
-                // GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.5f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                // GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.5f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                // GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.5f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -313,8 +325,8 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
 
-                // GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 1.0f, 1.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                // GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 1.0f, 1.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.5f, 0.0f, 0.5f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.5f, 0.0f, 0.5f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -326,9 +338,9 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2BotLeft});
 
-                // GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                // GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                // GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 1.0f, 0.75f, 0.8f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.75f, 0.8f, 1.0f}, 7.0f, 7.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 1.0f, 0.75f, 0.8f, 1.0f}, 7.0f, 7.0f);
 
             break;
 
@@ -400,7 +412,7 @@ void LightComponent::Update(float p_fDelta) {
         // Then go through all of the corner points that we KNOW we'll be casting a light ray to
         for (std::pair<glm::vec2, float> v2fCorner : m_vv2fCollidingPoints) {
             // Skip corner points that belong to the rectangle we're currently looking at
-            if (std::find(arv2RectCorners.begin(), arv2RectCorners.end(), v2fCorner.first) != arv2RectCorners.end()) {
+            if (!bRectIsWall && std::find(arv2RectCorners.begin(), arv2RectCorners.end(), v2fCorner.first) != arv2RectCorners.end()) {
                 continue;
             }
 
@@ -466,6 +478,13 @@ void LightComponent::Update(float p_fDelta) {
         for (std::pair<glm::vec2, float> v2fGoodPoint : vv2fPointsToAdd) {
             m_vv2fCollidingPoints.push_back(v2fGoodPoint);
         }
+    }
+
+    // If by some devilry we have removed every point in m_vv2fCollidingPoints,
+    // we want to fail gracefully rather than SegFaulting so we stop here and throw an error
+    if (m_vv2fCollidingPoints.empty()) {
+        wolf::Error("Problem in LightingComponent: all points removed from m_vv2fCollidingPoints");
+        return;
     }
 
     // Sort the collision points by the slopes of their intersection lines
