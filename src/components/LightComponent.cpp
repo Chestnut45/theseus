@@ -441,28 +441,28 @@ void LightComponent::Update(float p_fDelta) {
                     if (fMinDist == fLeftDist) {
                         // Left intersection point
                         vv2fPointsToAdd.push_back({v2fLeftResullt.second, CalculateAngleOfIntersection(v2fLeftResullt.second)});
-                        GLShapesRenderer::GetInstance()->AddQuad({v2fLeftResullt.second.x, v2fLeftResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                        //GLShapesRenderer::GetInstance()->AddQuad({v2fLeftResullt.second.x, v2fLeftResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                     }
                     else if (fMinDist == fRightDist) {
                         // Right intersection point
                         vv2fPointsToAdd.push_back({v2fRightResullt.second, CalculateAngleOfIntersection(v2fRightResullt.second)});
-                        GLShapesRenderer::GetInstance()->AddQuad({v2fRightResullt.second.x, v2fRightResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                        //GLShapesRenderer::GetInstance()->AddQuad({v2fRightResullt.second.x, v2fRightResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                     }
                     else if (fMinDist == fTopDist) {
                         // Top intersection point
                         vv2fPointsToAdd.push_back({v2fTopResullt.second, CalculateAngleOfIntersection(v2fTopResullt.second)});
-                        GLShapesRenderer::GetInstance()->AddQuad({v2fTopResullt.second.x, v2fTopResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                        //GLShapesRenderer::GetInstance()->AddQuad({v2fTopResullt.second.x, v2fTopResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                     }
                     else if (fMinDist == fBotDist) {
                         // Bottom intersection point
                         vv2fPointsToAdd.push_back({v2fBotResullt.second, CalculateAngleOfIntersection(v2fBotResullt.second)});
-                        GLShapesRenderer::GetInstance()->AddQuad({v2fBotResullt.second.x, v2fBotResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                        //GLShapesRenderer::GetInstance()->AddQuad({v2fBotResullt.second.x, v2fBotResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                     }
                 }
                 
                 // Then mark this intersection point for removal
                 vv2fPointsToRemove.push_back(v2fCorner);
-                GLShapesRenderer::GetInstance()->AddQuad({v2fCorner.first.x, v2fCorner.first.y, 1.0f, 0.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2fCorner.first.x, v2fCorner.first.y, 1.0f, 0.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
             }
         }
 
@@ -686,6 +686,13 @@ void LightComponent::Render() {
         // We don't need to render anything
         return;
     }
+
+    glEnable(GL_STENCIL_TEST);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glStencilMask(0xFF);
+    glStencilFunc(GL_NEVER, 0, 0);
+    glStencilOp(GL_INCR, GL_KEEP, GL_KEEP);
+    glClear(GL_STENCIL_BUFFER_BIT);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 

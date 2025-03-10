@@ -780,6 +780,15 @@ void PlayState::Update(float delta)
 
 void PlayState::Render(float delta)
 {
+    // Render lighting
+    for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
+        lightComp.Render();
+    }
+
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glStencilFunc(GL_EQUAL, 1, 0xFF);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
     // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
@@ -807,10 +816,8 @@ void PlayState::Render(float delta)
     GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
     GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
 
-    // Render lighting
-    for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
-        lightComp.Render();
-    }
+    glClear(GL_STENCIL_BUFFER_BIT);
+    glDisable(GL_STENCIL_TEST);
 }
 
 
