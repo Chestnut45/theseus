@@ -31,6 +31,7 @@
 #include "DDACalculator.h"
 #include "GLShapesRenderer.h"
 #include "PortalTileManager.h"
+#include "Postprocessor.h"
 #include "TileFireManager.h"
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
@@ -40,8 +41,11 @@
 #include <events/PauseEvent.h>
 #include <glm/gtc/random.hpp>
 
+#include <W_BufferManager.h>
+
 void PlayState::Enter()
 {
+
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
 
@@ -66,6 +70,10 @@ void PlayState::Enter()
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
 
+    // Create framebuffer & scene texture
+    glm::vec2 viewSize = camera.GetViewSize();
+    m_pFBO = wolf::BufferManager::CreateFrameBuffer(viewSize.x, viewSize.y, viewSize.x, viewSize.y);
+
     // Add the labyrinth manager and generate the default labyrinth config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
@@ -80,6 +88,8 @@ void PlayState::Enter()
 
     PortalTileManager::CreateInstance(m_pLabyrinthManager);
     TileFireManager::CreateInstance(m_pLabyrinthManager);
+
+    Postprocessor::CreateInstance(&scene);
 
     // Place the bossfight trigger
     const auto& rooms = m_pLabyrinthManager->GetRooms();
@@ -245,6 +255,8 @@ void PlayState::Exit()
     PortalTileManager::DestroyInstance();
     TileFireManager::DestroyInstance();
 
+    Postprocessor::DestroyInstance();
+
     ItemDropCreator::DestroyInstance();
     NPCBuilder::DestroyInstance();
 
@@ -253,6 +265,8 @@ void PlayState::Exit()
         delete m_particleSystem;
         m_particleSystem = nullptr;
     }
+    
+    wolf::BufferManager::DestroyBuffer(m_pFBO);
 }
 
 void PlayState::Pause()
@@ -354,7 +368,7 @@ void PlayState::Update(float delta)
     }
 
     // Show credits after message disappears
-    if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() < 15.0f)
+    if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() < 20.0f)
     {
         RenderCredits(delta);
     }
@@ -789,8 +803,56 @@ void PlayState::Render(float delta)
     glStencilFunc(GL_EQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
+    wolf::Scene* scene = &m_pGameInstance->GetScene();
+    wolf::Camera2D* camera = scene->GetActiveCamera();
+    if(camera != nullptr)
+    {
+        glm::vec2 viewSize = camera->GetViewSize();
+        m_pFBO->SetTexSize(viewSize.x, viewSize.y);
+        m_pFBO->SetWindowSize(viewSize.x, viewSize.y);
+    }
+
+    // Bind framebuffer for rendering scene - leave out UI elements
+    m_pFBO->Bind();
+
     // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
+    
+    // Bind to default framebuffer(screen)
+    wolf::FrameBuffer::BindDefault();
+
+    // Query postprocessing effects based on current active status effects of player
+    std::vector<Postprocessor::Effect> effects;
+    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
+    {
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
+        {
+            effects.push_back(Postprocessor::Effect::BURNING);
+        }
+        
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
+        {
+            effects.push_back(Postprocessor::Effect::POISONED);
+        }
+
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+        {
+            effects.push_back(Postprocessor::Effect::GRAYSCALE);
+        }
+        break;
+    }
+
+    // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
+    if(effects.size() > 0)
+    {
+        Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), effects);
+    }
+    // If not, copy texture to screen
+    else
+    {
+        m_pFBO->Blit();
+    }
+
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
         playerController->Render(delta);
@@ -1507,10 +1569,10 @@ void PlayState::RenderFadeOverlay(float alpha)
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, alpha));
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-    if (m_showCreditsTimer.Elapsed() < 15.0f) flags |= ImGuiWindowFlags_NoInputs;
+    if (m_showCreditsTimer.Elapsed() < 20.0f) flags |= ImGuiWindowFlags_NoInputs;
     if (ImGui::Begin("FadeOverlay", nullptr, flags ))
     {
-        if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() >= 15.0f)
+        if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() >= 20.0f)
         {
             // Style taken from PauseState
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
@@ -1575,7 +1637,9 @@ void PlayState::RenderCredits(float delta)
         "Youssef Ashraf",
         "Nguyen Minh Nhat",
         "",
-        "Music / SFX: D'Anyil Landry",
+        "Lead Artist: Aurora Ryder",
+        "",
+        "Music / SFX Design: D'Anyil Landry",
         "",
         "lots of love, if you got here, ur an amazing person",
         "",
@@ -1587,8 +1651,8 @@ void PlayState::RenderCredits(float delta)
 
     // Set window position and center it
     float windowWidth = 500.0f;
-    float windowHeight = 380.0f;
-    float baseY = ImGui::GetIO().DisplaySize.y - (elapsed * (ImGui::GetIO().DisplaySize.y / 15.0f)); // Adjust scrolling speed
+    float windowHeight = 420.0f;
+    float baseY = ImGui::GetIO().DisplaySize.y - (elapsed * ((ImGui::GetIO().DisplaySize.y + windowHeight) / 20.0f)); // Adjust scrolling speed
 
     ImVec2 windowPos(ImGui::GetIO().DisplaySize.x * 0.5f - windowWidth * 0.5f, baseY);
     ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);

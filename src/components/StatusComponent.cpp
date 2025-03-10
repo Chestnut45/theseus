@@ -215,7 +215,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             if(health != nullptr)
             {
                 float resistance = m_OwnerComponent->m_aStatusEffectResistance[StatusEffectType::POISONED];
-                health->Pierce(32.0f * (1.0f - resistance));
+                health->Pierce(8.0f * (1.0f - resistance));
             }
             else
             {

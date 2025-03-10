@@ -9,3 +9,8 @@ struct ColouredVertex2D
 {
     float x, y, r, g, b, a;
 };
+
+struct TexturedVertex2D
+{
+    float x, y, u, v;
+};

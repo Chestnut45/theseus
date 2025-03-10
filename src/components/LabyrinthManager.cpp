@@ -349,7 +349,8 @@ void LabyrinthManager::GenerateLabyrinth()
     // Reseed the rng before generating
     if (m_randomizeSeed)
     {
-        m_rng.SetSeed(m_rng.NextInt(0, INT32_MAX));
+        size_t msSinceEpoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        m_rng.SetSeed(msSinceEpoch);
     }
     m_rng.Reseed();
 
