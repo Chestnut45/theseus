@@ -26,6 +26,7 @@
 #include "../components/ThrowableObjectComponent.h"
 #include "../components/BoulderTrapComponent.h"
 #include "../components/MonsterSpawnerComponent.h"
+#include "../components/ParticleComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
 #include "DDACalculator.h"
@@ -56,7 +57,6 @@ void PlayState::Enter()
     
  
     this->m_pColliderManager = new ColliderManager(&scene);
-    m_particleSystem = new ParticleSystem2D();
 
     // Initialize the player object
     CreatePlayer();
@@ -220,6 +220,9 @@ void PlayState::Enter()
     }
 
     m_gameCompletionTime.Start();
+
+    auto& particleEditorObj = m_pGameInstance->GetScene().CreateObject2D();
+    m_pParticleEditor = &particleEditorObj.AddComponent<ParticleEditor>();
 }
 
 void PlayState::Exit()
@@ -251,11 +254,7 @@ void PlayState::Exit()
     ItemDropCreator::DestroyInstance();
     NPCBuilder::DestroyInstance();
 
-    if (m_particleSystem)
-    {
-        delete m_particleSystem;
-        m_particleSystem = nullptr;
-    }
+
     
     wolf::BufferManager::DestroyBuffer(m_pFBO);
 }
@@ -760,22 +759,22 @@ void PlayState::Update(float delta)
             monsterSpawner.Update(delta);
         }
 
-        m_particleSystem->Update(delta);
-        // Toggle particle system editor with Right Alt
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_ALT) && m_debugHotkeys) {
-            m_particleSystem->ToggleEditor();
+        for (auto&& [_, particleComponent] : m_pGameInstance->GetScene().Each<ParticleComponent>())
+        {
+            particleComponent.Update(delta);
         }
-        
-        // Call the editor function inside update
-        m_particleSystem->ShowEditor();
+
+    }
+
+    if (m_pParticleEditor)
+    {
+        m_pParticleEditor->Update(delta);
     }
 
     // Dispatch events
     wolf::EventManager::Dispatch();
 
     // ImGui::ShowDemoWindow();
-
-
 }
 
 void PlayState::Render(float delta)
@@ -848,8 +847,11 @@ void PlayState::Render(float delta)
 
     RenderMap();
 
-    if (m_particleSystem)
-        m_particleSystem->Render();
+    for (auto&& [_, particleComponent] : m_pGameInstance->GetScene().Each<ParticleComponent>())
+    {
+        particleComponent.Render();
+    }
+    
 }
 
 
@@ -895,8 +897,6 @@ void PlayState::CreatePlayer()
 
     // Add ParticleComponent to the player
     auto& playerParticles = m_pPlayerObject->AddComponent<ParticleComponent>();
-    // Register the player's ParticleComponent in the ParticleSystem
-    m_particleSystem->RegisterComponent(&playerParticles);
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));
