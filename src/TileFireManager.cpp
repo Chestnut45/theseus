@@ -178,7 +178,7 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
     m_fBurntCooldown = p_cooldown;
 
     m_vTilePos = p_tile_pos;
-    m_vtilePosLRTB = glm::ivec4(p_tile_pos.x - 1, p_tile_pos.x + 1, p_tile_pos.y - 1, p_tile_pos.y + 1);
+    m_vtilePosLRTB = glm::ivec4(p_tile_pos.x - 1, p_tile_pos.x + 1, p_tile_pos.y + 1, p_tile_pos.y - 1);
     
     int tileLID = p_lbmg->GetTile(m_vtilePosLRTB.r, m_vTilePos.y);    // Left
     int tileRID = p_lbmg->GetTile(m_vtilePosLRTB.g, m_vTilePos.y);    // Right
@@ -186,10 +186,10 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
     int tileBID = p_lbmg->GetTile(m_vTilePos.x, m_vtilePosLRTB.a);    // Bottom
  
     m_vtilePosLRTB = glm::ivec4(
-        tileLID > -2 ? m_vtilePosLRTB.x : tileLID, 
-        tileBID > -2 ? m_vtilePosLRTB.y : tileBID,
-        tileRID > -2 ? m_vtilePosLRTB.x : tileRID,
-        tileTID > -2 ? m_vtilePosLRTB.y : tileTID
+        tileLID > -2 ? m_vtilePosLRTB.r : tileLID, 
+        tileRID > -2 ? m_vtilePosLRTB.g : tileRID,
+        tileTID > -2 ? m_vtilePosLRTB.b : tileTID,
+        tileBID > -2 ? m_vtilePosLRTB.a : tileBID
     );
 
     wolf::Scene* scene = &p_lbmg->GetGameObject()->GetScene();
@@ -396,7 +396,7 @@ void TileFireManager::FireTile::HandleBurningState(float p_delta)
             m_fSpreadDelayTimer = m_fSpreadDelay;
             
             // Attempt to propagate fire
-            //AttemptPropagation();
+            // AttemptPropagation();
         }
     }
 }
