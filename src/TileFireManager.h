@@ -34,16 +34,18 @@ private:
         };
 
         glm::ivec2 m_vTilePos = glm::ivec2(0, 0);
+        glm::ivec4 m_vtilePosLRTB = glm::ivec4(-1, -1, -1, -1);
+
         wolf::GameObject* m_pFireObj = nullptr;
         wolf::GameObject* m_pBurntTileObj = nullptr;
         BurnState m_currentBurnState = BurnState::UNBURNT;
         float m_fLifespan = 0.0f;
         float m_fBurntCooldown = 0.0f;
         
-        float m_fSpreadDelay = 0.1f;    // Delay between propagation attempts
+        float m_fSpreadDelay = 0.2f;    // Delay between propagation attempts
         float m_fSpreadDelayTimer = 0.0f;    // Delay between propagation attempts
         float m_fSpreadChance = 0.01f;  // Chance of spreading fire to a neighbour tile
-        float m_fAttractChance = 0.01f; // Chance of making fire from a neighbour tile spread to it
+        float m_fAttractChance = 0.0f; // Chance of making fire from a neighbour tile spread to it
 
         static wolf::RNG s_rng;
 
@@ -58,6 +60,7 @@ private:
         void HandleBurntState(float p_delta);
         void HandleUnburntState(float p_delta);
 
+        
     };
 
     float m_fStockLifespan = 10.0f;
@@ -73,5 +76,5 @@ private:
 
     TileFireManager(LabyrinthManager* p_lbmg);
     ~TileFireManager();
-
+    bool IsWallTile(int p_tile_id);
 };
