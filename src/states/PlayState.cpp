@@ -794,14 +794,9 @@ void PlayState::Update(float delta)
 
 void PlayState::Render(float delta)
 {
-    // Render lighting
-    for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
-        lightComp.Render();
-    }
-
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glStencilFunc(GL_EQUAL, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    // glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    // glStencilFunc(GL_EQUAL, 1, 0xFF);
+    // glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
     wolf::Scene* scene = &m_pGameInstance->GetScene();
     wolf::Camera2D* camera = scene->GetActiveCamera();
@@ -817,6 +812,11 @@ void PlayState::Render(float delta)
 
     // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
+
+    // Render lighting
+    for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
+        lightComp.Render();
+    }
     
     // Bind to default framebuffer(screen)
     wolf::FrameBuffer::BindDefault();
@@ -878,8 +878,6 @@ void PlayState::Render(float delta)
     GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
     GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
 
-    glClear(GL_STENCIL_BUFFER_BIT);
-    glDisable(GL_STENCIL_TEST);
 }
 
 

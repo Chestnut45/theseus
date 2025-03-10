@@ -1,4 +1,5 @@
 uniform mat4 model;
+
 // Camera UBO
 layout(std140, binding = 0) uniform cameraBuffer
 {

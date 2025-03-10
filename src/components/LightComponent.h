@@ -80,6 +80,8 @@ class LightComponent : public wolf::BaseComponent {
 
         bool IsAOERect(const wolf::Rectangle& p_pRect);
 
+        void BindAndClearFBO();
+
         // ID number to discern between lights
         static int s_iNextIDNum;
         const int m_iIDNum;
@@ -113,8 +115,12 @@ class LightComponent : public wolf::BaseComponent {
         static inline wolf::VertexBuffer* s_pVBO = nullptr;
         static inline wolf::IndexBuffer* s_pIndexBuffer = nullptr;
         static inline wolf::VertexDeclaration* s_pVAO = nullptr;
+        static inline wolf::FrameBuffer* s_pFBO = nullptr;
 
         static int s_iRefCount;
 
         wolf::Texture* m_pTexture = nullptr;
+
+        static bool s_bFBOIsClear;
+        static int s_iLightsRendered;
 };

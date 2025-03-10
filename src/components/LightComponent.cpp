@@ -6,6 +6,9 @@
 
 int LightComponent::s_iNextIDNum = 0;
 int LightComponent::s_iRefCount = 0;
+int LightComponent::s_iLightsRendered = 0;
+
+bool LightComponent::s_bFBOIsClear = false;
 
 float LightComponent::s_arfBaseVertexData[6] {
     // x,    y,    r,    g,    b,    a
@@ -15,10 +18,18 @@ float LightComponent::s_arfBaseVertexData[6] {
 LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2Radius, bool p_bCanMove) 
     : m_v4Color(p_v4Color), m_v2InitRadius(p_v2Radius), m_iIDNum(s_iNextIDNum), m_bCanMove(p_bCanMove)
 {
-    // If this is the first LightComponent instance in the scene
+    // If this is the first LightComponent instance in the scene...
     if (s_iRefCount == 0) {
-        // We need to create the shader resources
+        // ...we need to create the shader resources
+
+        // Create the shader program
         s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/triangles.vsh", "data/shaders/triangles.fsh");
+
+        // Create the FBO
+        // !-- The size really shouldn't be constant --!
+        s_pFBO = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
+
+        // Create the VBO
         s_pVBO = wolf::BufferManager::CreateVertexBuffer(s_arfBaseVertexData, sizeof(ColouredVertex2D));
         s_pVAO= new wolf::VertexDeclaration();
         s_pVAO->Begin();
@@ -683,29 +694,64 @@ bool LightComponent::CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, st
 void LightComponent::Render() {
     // If there is nothing colliding with the light
     if (m_vcvVertexData.empty()) {
-        // We don't need to render anything
+        // We don't need to render anything, but we do need to mark this light as having "finished rendering"
+        s_iLightsRendered++;
         return;
     }
 
-    glEnable(GL_STENCIL_TEST);
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    glStencilMask(0xFF);
-    glStencilFunc(GL_NEVER, 0, 0);
-    glStencilOp(GL_INCR, GL_KEEP, GL_KEEP);
-    glClear(GL_STENCIL_BUFFER_BIT);
+    // // If this is not first light drawing to the FBO
+    // if (s_bFBOIsClear) {
+    //     // Then just bind it
+    //     s_pFBO->Bind();
+    // }
+    // else {
+    //     // Otherwise, bind AND clear it
+    //     BindAndClearFBO();
+    // }
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
 
+    // Then render this light's geometry to the FBO
     glm::mat4 model = glm::mat4(1.0f);
     s_pProgram->SetUniform("model", model);
     s_pProgram->SetUniform("colour", m_v4Color);
     s_pProgram->Bind();
+
     s_pVAO->Bind();
+
     s_pVBO->Bind();
     glBufferData(GL_ARRAY_BUFFER, sizeof(ColouredVertex2D) * m_vcvVertexData.size(), m_vcvVertexData.data(), GL_STATIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, m_vcvVertexData.size());
     m_vcvVertexData.clear();
 
     glDisable(GL_BLEND);
+
+    // // This light is finished rendering now, so we update the number of lights that have rendered thus far
+    // s_iLightsRendered++;
+
+    // // If that was the last light we had to process
+    // if (s_iLightsRendered == s_iRefCount) {
+    //     // Then we know that all of the lights have rendered their geometry to the FBO texture
+    //     // so we can safely blend it with the screen texture
+
+    //     s_pFBO->Blit();
+
+    //     // And reset the counter and FBOIsClear flag to prepare for the next lighting pass
+    //     s_iLightsRendered = 0;
+    //     s_bFBOIsClear = false;
+    // }
+
+    // Unbind the VAO
+    glBindVertexArray(0);
+
+    // Bind default framebuffer (screen)
+    wolf::FrameBuffer::BindDefault();
+}
+
+void LightComponent::BindAndClearFBO() {
+    s_pFBO->Bind();
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    s_bFBOIsClear = true;
 }
