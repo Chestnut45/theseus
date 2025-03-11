@@ -8,6 +8,7 @@
 #include "W_Camera2D.h"
 #include "W_Common.h"
 #include "W_EventManager.h"
+#include "W_FrameBuffer.h"
 #include "W_GameObject.h"
 #include "W_Grid2D.h"
 #include "W_IndexBuffer.h"
