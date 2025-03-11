@@ -813,10 +813,13 @@ void PlayState::Render(float delta)
     // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
 
-    // Render lighting
+    // Render light geometry to the shared FBO
     for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
-        lightComp.Render();
+        lightComp.RenderToFBO();
     }
+
+    // Then blit the light FBO to the screen
+    LightComponent::BlitAndClear();
     
     // Bind to default framebuffer(screen)
     wolf::FrameBuffer::BindDefault();

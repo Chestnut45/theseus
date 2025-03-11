@@ -22,6 +22,15 @@ float LightComponent::s_arfBaseVertexData[6] {
     0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
 };
 
+std::vector<TexturedVertex2D> LightComponent::s_vtvQuadVertices {
+    {-1.0f, -1.0f, 0.0f, 0.0f},
+    {1.0f, -1.0f, 1.0f, 0.0f},
+    {1.0f, 1.0f, 1.0f, 1.0f},
+    {1.0f, 1.0f, 1.0f, 1.0f},
+    {-1.0f, 1.0f, 0.0f, 1.0f},
+    {-1.0f, -1.0f, 0.0f, 0.0f},
+};
+
 // ------------------------------------------------------------------------------------------------------------
 //                                  Resource Management & Init Methods
 // ------------------------------------------------------------------------------------------------------------
@@ -31,10 +40,10 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
 {
     // If this is the first LightComponent instance in the scene...
     if (s_iRefCount == 0) {
-        // ...we need to create the shader resources
+        // ...we need to create the shader resources for the lights
 
         // Create the shader program
-        s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/triangles.vsh", "data/shaders/triangles.fsh");
+        s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/light2D.vs", "data/shaders/light2D.fs");
 
         // Create the FBO
         // !-- The size really shouldn't be constant --!
@@ -42,12 +51,22 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
 
         // Create the VBO
         s_pVBO = wolf::BufferManager::CreateVertexBuffer(s_arfBaseVertexData, sizeof(ColouredVertex2D));
-        s_pVAO= new wolf::VertexDeclaration();
+        s_pVAO = new wolf::VertexDeclaration();
         s_pVAO->Begin();
         s_pVAO->AppendAttribute(wolf::AT_Position, 2, wolf::CT_Float);
         s_pVAO->AppendAttribute(wolf::AT_Color, 4, wolf::CT_Float);
         s_pVAO->SetVertexBuffer(s_pVBO);
         s_pVAO->End();
+
+        // We also need to create the shader resources for the textured quad we'll be blending with the scene later
+        s_pQuadProgram = wolf::ProgramManager::CreateProgram("data/shaders/lightQuad2D.vsh", "data/shaders/lightQuad2D.fsh");
+
+        s_pQuadVBO = wolf::BufferManager::CreateVertexBuffer(s_vtvQuadVertices.data(), sizeof(TexturedVertex2D) * s_vtvQuadVertices.size());
+        s_pQuadVAO = new wolf::VertexDeclaration();
+        s_pQuadVAO->Begin();
+        s_pQuadVAO->AppendAttribute(wolf::Attribute::AT_Position, 2, wolf::ComponentType::CT_Float, 0);
+        s_pQuadVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
+        s_pQuadVAO->End();
     }
 
     // Initialize the radius
@@ -424,20 +443,20 @@ void LightComponent::Update(float p_fDelta) {
         bool bIsAOE = this->IsAOERect(rect);
 
         // DEBUG: Draw the AOE
-        if (bIsAOE) {
-            GLShapesRenderer::GetInstance()->AddLine({v2TopStart.x, v2TopStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2TopEnd.x, v2TopEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
-            GLShapesRenderer::GetInstance()->AddLine({v2BotStart.x, v2BotStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2BotEnd.x, v2BotEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
-            GLShapesRenderer::GetInstance()->AddLine({v2LeftStart.x, v2LeftStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2LeftEnd.x, v2LeftEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
-            GLShapesRenderer::GetInstance()->AddLine({v2RightStart.x, v2RightStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2RightEnd.x, v2RightEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
-        }
+        // if (bIsAOE) {
+        //     GLShapesRenderer::GetInstance()->AddLine({v2TopStart.x, v2TopStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2TopEnd.x, v2TopEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
+        //     GLShapesRenderer::GetInstance()->AddLine({v2BotStart.x, v2BotStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2BotEnd.x, v2BotEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
+        //     GLShapesRenderer::GetInstance()->AddLine({v2LeftStart.x, v2LeftStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2LeftEnd.x, v2LeftEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
+        //     GLShapesRenderer::GetInstance()->AddLine({v2RightStart.x, v2RightStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2RightEnd.x, v2RightEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
+        // }
 
         // DEBUG: Highlight the walls
-        if (bRectIsWall) {
-            GLShapesRenderer::GetInstance()->AddLine({v2TopStart.x, v2TopStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2TopEnd.x, v2TopEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
-            GLShapesRenderer::GetInstance()->AddLine({v2BotStart.x, v2BotStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2BotEnd.x, v2BotEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
-            GLShapesRenderer::GetInstance()->AddLine({v2LeftStart.x, v2LeftStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2LeftEnd.x, v2LeftEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
-            GLShapesRenderer::GetInstance()->AddLine({v2RightStart.x, v2RightStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2RightEnd.x, v2RightEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
-        }
+        // if (bRectIsWall) {
+        //     GLShapesRenderer::GetInstance()->AddLine({v2TopStart.x, v2TopStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2TopEnd.x, v2TopEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
+        //     GLShapesRenderer::GetInstance()->AddLine({v2BotStart.x, v2BotStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2BotEnd.x, v2BotEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
+        //     GLShapesRenderer::GetInstance()->AddLine({v2LeftStart.x, v2LeftStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2LeftEnd.x, v2LeftEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
+        //     GLShapesRenderer::GetInstance()->AddLine({v2RightStart.x, v2RightStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2RightEnd.x, v2RightEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
+        // }
 
         // Then go through all of the corner points that we THINK we'll be casting a light ray to
         for (std::pair<glm::vec2, float> v2fCorner : m_vv2fCollidingPoints) {
@@ -469,27 +488,27 @@ void LightComponent::Update(float p_fDelta) {
                 if (fMinDist == fLeftDist) {
                     // Left intersection point
                     vv2fPointsToAdd.push_back({v2fLeftResullt.second, CalculateAngleOfIntersection(v2fLeftResullt.second)});
-                    GLShapesRenderer::GetInstance()->AddQuad({v2fLeftResullt.second.x, v2fLeftResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                    //GLShapesRenderer::GetInstance()->AddQuad({v2fLeftResullt.second.x, v2fLeftResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                 }
                 else if (fMinDist == fRightDist) {
                     // Right intersection point
                     vv2fPointsToAdd.push_back({v2fRightResullt.second, CalculateAngleOfIntersection(v2fRightResullt.second)});
-                    GLShapesRenderer::GetInstance()->AddQuad({v2fRightResullt.second.x, v2fRightResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                    //GLShapesRenderer::GetInstance()->AddQuad({v2fRightResullt.second.x, v2fRightResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                 }
                 else if (fMinDist == fTopDist) {
                     // Top intersection point
                     vv2fPointsToAdd.push_back({v2fTopResullt.second, CalculateAngleOfIntersection(v2fTopResullt.second)});
-                    GLShapesRenderer::GetInstance()->AddQuad({v2fTopResullt.second.x, v2fTopResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                    //GLShapesRenderer::GetInstance()->AddQuad({v2fTopResullt.second.x, v2fTopResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                 }
                 else if (fMinDist == fBotDist) {
                     // Bottom intersection point
                     vv2fPointsToAdd.push_back({v2fBotResullt.second, CalculateAngleOfIntersection(v2fBotResullt.second)});
-                    GLShapesRenderer::GetInstance()->AddQuad({v2fBotResullt.second.x, v2fBotResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                    //GLShapesRenderer::GetInstance()->AddQuad({v2fBotResullt.second.x, v2fBotResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                 }
                 
                 // Then mark the original point for removal
                 vv2fPointsToRemove.push_back(v2fCorner);
-                GLShapesRenderer::GetInstance()->AddQuad({v2fCorner.first.x, v2fCorner.first.y, 1.0f, 0.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                //GLShapesRenderer::GetInstance()->AddQuad({v2fCorner.first.x, v2fCorner.first.y, 1.0f, 0.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
             }
         }
 
@@ -721,23 +740,14 @@ bool LightComponent::CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, st
 //                                              Rendering
 // ------------------------------------------------------------------------------------------------------------
 
-void LightComponent::Render() {
+void LightComponent::RenderToFBO() {
     // If there is nothing colliding with the light
     if (m_vcvVertexData.empty()) {
-        // We don't need to render anything, but we do need to mark this light as having "finished rendering"
-        s_iLightsRendered++;
+        // We don't need to render anything
         return;
     }
 
-    // // If this is not first light drawing to the FBO
-    // if (s_bFBOIsClear) {
-    //     // Then just bind it
-    //     s_pFBO->Bind();
-    // }
-    // else {
-    //     // Otherwise, bind AND clear it
-    //     BindAndClearFBO();
-    // }
+    //s_pFBO->Bind();
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
@@ -755,33 +765,40 @@ void LightComponent::Render() {
     glDrawArrays(GL_TRIANGLES, 0, m_vcvVertexData.size());
     m_vcvVertexData.clear();
 
-    glDisable(GL_BLEND);
-
-    // // This light is finished rendering now, so we update the number of lights that have rendered thus far
-    // s_iLightsRendered++;
-
-    // // If that was the last light we had to process
-    // if (s_iLightsRendered == s_iRefCount) {
-    //     // Then we know that all of the lights have rendered their geometry to the FBO texture
-    //     // so we can safely blend it with the screen texture
-
-    //     s_pFBO->Blit();
-
-    //     // And reset the counter and FBOIsClear flag to prepare for the next lighting pass
-    //     s_iLightsRendered = 0;
-    //     s_bFBOIsClear = false;
-    // }
-
     // Unbind the VAO
     glBindVertexArray(0);
 
     // Bind default framebuffer (screen)
     wolf::FrameBuffer::BindDefault();
+
+    glDisable(GL_BLEND);
 }
 
-void LightComponent::BindAndClearFBO() {
+void LightComponent::BlitAndClear() {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glm::mat4 model = glm::mat4(1.0f);
+    s_pQuadProgram->SetUniform("model", model);
+    s_pQuadProgram->Bind();
+
+    glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, s_pFBO->GetTextureID());
+
+    s_pVAO->Bind();
+    
+    s_pVBO->Bind();
+    glBufferData(GL_ARRAY_BUFFER, sizeof(TexturedVertex2D) * s_vtvQuadVertices.size(), s_vtvQuadVertices.data(), GL_STATIC_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, s_vtvQuadVertices.size());
+
+    glBindVertexArray(0);
+
+    // Clear the FBO to black
     s_pFBO->Bind();
+
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    s_bFBOIsClear = true;
+
+    // Bind default framebuffer (screen)
+    wolf::FrameBuffer::BindDefault();
 }

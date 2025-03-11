@@ -44,7 +44,8 @@ class LightComponent : public wolf::BaseComponent {
         inline bool CanMove() const {return m_bCanMove;};
         inline void SetCanMove(bool p_bCanMove) {m_bCanMove = p_bCanMove;};
 
-        void Render();
+        void RenderToFBO();
+        static void BlitAndClear();
 
     private:
 
@@ -61,6 +62,7 @@ class LightComponent : public wolf::BaseComponent {
         };
 
         static float s_arfBaseVertexData[6];
+        static std::vector<TexturedVertex2D> s_vtvQuadVertices;
 
         static bool CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, std::pair<glm::vec2, float> p_v2fB);
 
@@ -79,8 +81,6 @@ class LightComponent : public wolf::BaseComponent {
         bool CheckForWallAtPos(const glm::vec2& p_v2Pos);
 
         bool IsAOERect(const wolf::Rectangle& p_pRect);
-
-        void BindAndClearFBO();
 
         // ID number to discern between lights
         static int s_iNextIDNum;
@@ -110,17 +110,21 @@ class LightComponent : public wolf::BaseComponent {
         // Vector to hold the points that will be written to the shader
         std::vector<ColouredVertex2D> m_vcvVertexData;
 
-        // Shader resources
+        // Light shader resources
         static inline wolf::Program* s_pProgram = nullptr;
         static inline wolf::VertexBuffer* s_pVBO = nullptr;
-        static inline wolf::IndexBuffer* s_pIndexBuffer = nullptr;
         static inline wolf::VertexDeclaration* s_pVAO = nullptr;
         static inline wolf::FrameBuffer* s_pFBO = nullptr;
 
         static int s_iRefCount;
 
-        wolf::Texture* m_pTexture = nullptr;
+        static inline wolf::Texture* s_pLightAndShadowTex = nullptr;
 
         static bool s_bFBOIsClear;
         static int s_iLightsRendered;
+
+        // Textured quad shader resources
+        static inline wolf::Program* s_pQuadProgram = nullptr;
+        static inline wolf::VertexBuffer* s_pQuadVBO = nullptr;
+        static inline wolf::VertexDeclaration* s_pQuadVAO = nullptr;
 };
