@@ -180,16 +180,16 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
     m_vTilePos = p_tile_pos;
     m_vtilePosLRTB = glm::ivec4(p_tile_pos.x - 1, p_tile_pos.x + 1, p_tile_pos.y + 1, p_tile_pos.y - 1);
     
-    int tileLID = p_lbmg->GetTile(m_vtilePosLRTB.r, m_vTilePos.y);    // Left
-    int tileRID = p_lbmg->GetTile(m_vtilePosLRTB.g, m_vTilePos.y);    // Right
-    int tileTID = p_lbmg->GetTile(m_vTilePos.x, m_vtilePosLRTB.b);    // Top
-    int tileBID = p_lbmg->GetTile(m_vTilePos.x, m_vtilePosLRTB.a);    // Bottom
+    int tileLID = p_lbmg->GetTile(m_vtilePosLRTB.x, m_vTilePos.y);    // Left
+    int tileRID = p_lbmg->GetTile(m_vtilePosLRTB.y, m_vTilePos.y);    // Right
+    int tileTID = p_lbmg->GetTile(m_vTilePos.x, m_vtilePosLRTB.z);    // Top
+    int tileBID = p_lbmg->GetTile(m_vTilePos.x, m_vtilePosLRTB.w);    // Bottom
  
     m_vtilePosLRTB = glm::ivec4(
-        tileLID > -2 ? m_vtilePosLRTB.r : tileLID, 
-        tileRID > -2 ? m_vtilePosLRTB.g : tileRID,
-        tileTID > -2 ? m_vtilePosLRTB.b : tileTID,
-        tileBID > -2 ? m_vtilePosLRTB.a : tileBID
+        tileLID > -2 ? m_vtilePosLRTB.x : tileLID, 
+        tileRID > -2 ? m_vtilePosLRTB.y : tileRID,
+        tileTID > -2 ? m_vtilePosLRTB.z : tileTID,
+        tileBID > -2 ? m_vtilePosLRTB.w : tileBID
     );
 
     wolf::Scene* scene = &p_lbmg->GetGameObject()->GetScene();
@@ -248,7 +248,7 @@ void TileFireManager::FireTile::Update(float p_delta)
 }
 void TileFireManager::FireTile::Reset(float p_lifespan, float p_cooldown)
 {
-    // If tile is in UNBURNT state
+    // If tile is in BURNT state
     if(m_currentBurnState == FireTile::BurnState::BURNT) return;
 
     // If tile is in UNBURNT state
@@ -267,106 +267,37 @@ void TileFireManager::FireTile::Reset(float p_lifespan, float p_cooldown)
 
 void TileFireManager::FireTile::AttemptPropagation()
 {
-    if(m_vtilePosLRTB.r > -2) // If left side is not out of bounds
-    {    
-        {
-            glm::ivec2 leftCentre = glm::ivec2(m_vtilePosLRTB.r, m_vTilePos.y);
-            if(!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(leftCentre.x, leftCentre.y)))
-            {
-                if(s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance)
-                {
-                    printf("LC\n");
-                    s_pTFMG->AddFireTile(leftCentre);
-                }
-            }
-        }
-        if(m_vtilePosLRTB.b > -2) // If top side is not out of bounds
-        {
-            glm::ivec2 leftTop = glm::ivec2(m_vtilePosLRTB.r, m_vtilePosLRTB.b);
-            if(!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(leftTop.x, leftTop.y)))
-            {
-                if(s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance)
-                {
-                    printf("LT\n");
-                    s_pTFMG->AddFireTile(leftTop);
-                }
-            }
-        }
-        if(m_vtilePosLRTB.a > -2) // If bottom side is not out of bounds
-        {
-            glm::ivec2 leftBottom = glm::ivec2(m_vtilePosLRTB.r, m_vtilePosLRTB.a);
-            if(!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(leftBottom.x, leftBottom.y)))
-            {
-                if(s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance)
-                {
-                    printf("LB\n");
-                    s_pTFMG->AddFireTile(leftBottom);
-                }
-            }
-        }
-    }
-    
-    if(m_vtilePosLRTB.g > -2) // If right side is not out of bounds
-    {
-        {
-            glm::ivec2 rightCentre = glm::ivec2(m_vtilePosLRTB.g, m_vTilePos.y);
-            if(!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(rightCentre.x, rightCentre.y)))
-            {
-                if(s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance)
-                {
-                    printf("RC\n");
-                    s_pTFMG->AddFireTile(rightCentre);
-                }
-            }
-        }
-        if(m_vtilePosLRTB.b > -2) // If top side is not out of bounds
-        {
-            glm::ivec2 rightTop = glm::ivec2(m_vtilePosLRTB.g, m_vtilePosLRTB.b);
-            if(!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(rightTop.x, rightTop.y)))
-            {
-                if(s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance)
-                {
-                    printf("RT\n");
-                    s_pTFMG->AddFireTile(rightTop);
-                }
-            }
-        }
-        if(m_vtilePosLRTB.a > -2) // If bottom side is not out of bounds
-        {
-            glm::ivec2 rightBottom = glm::ivec2(m_vtilePosLRTB.g, m_vtilePosLRTB.a);
-            if(!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(rightBottom.x, rightBottom.y)))
-            {
-                if(s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance)
-                {
-                    printf("RB\n");
-                    s_pTFMG->AddFireTile(rightBottom);
-                }
-            }
-        }
-    }
+    const int boundaryCheck = -2;
 
-    if(m_vtilePosLRTB.b > -2) // If top side is not out of bounds
-    {
-        glm::ivec2 topCentre = glm::ivec2(m_vTilePos.x, m_vtilePosLRTB.b);
-        if(!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(topCentre.x, topCentre.y)))
-            {
-                if(s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance)
-                {
-                    printf("TC\n");
-                    s_pTFMG->AddFireTile(topCentre);
+    glm::ivec2 positions[] = {
+        glm::ivec2(m_vtilePosLRTB.x, m_vTilePos.y),     // Left Centre
+        glm::ivec2(m_vtilePosLRTB.x, m_vtilePosLRTB.z), // Left Top
+        glm::ivec2(m_vtilePosLRTB.x, m_vtilePosLRTB.w), // Left Bottom
+        glm::ivec2(m_vtilePosLRTB.y, m_vTilePos.y),     // Right Centre
+        glm::ivec2(m_vtilePosLRTB.y, m_vtilePosLRTB.z), // Right Top
+        glm::ivec2(m_vtilePosLRTB.y, m_vtilePosLRTB.w), // Right Bottom
+        glm::ivec2(m_vTilePos.x, m_vtilePosLRTB.z),     // Top Centre
+        glm::ivec2(m_vTilePos.x, m_vtilePosLRTB.w)      // Bottom Centre
+    };
+
+    bool boundsChecks[] = {
+        m_vtilePosLRTB.x > boundaryCheck,                                       // Left Centre
+        m_vtilePosLRTB.x > boundaryCheck && m_vtilePosLRTB.z > boundaryCheck,   // Left Top
+        m_vtilePosLRTB.x > boundaryCheck && m_vtilePosLRTB.w > boundaryCheck,   // Left Bottom
+        m_vtilePosLRTB.y > boundaryCheck,                                       // Right Centre
+        m_vtilePosLRTB.y > boundaryCheck && m_vtilePosLRTB.z > boundaryCheck,   // Right Top
+        m_vtilePosLRTB.y > boundaryCheck && m_vtilePosLRTB.w > boundaryCheck,   // Right Bottom
+        m_vtilePosLRTB.z > boundaryCheck,                                       // Top Centre
+        m_vtilePosLRTB.w > boundaryCheck                                        // Bottom Centre
+    };
+
+    for (int i = 0; i < 8; ++i) {
+        if (boundsChecks[i]) {
+            if (!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(positions[i].x, positions[i].y))) {
+                if (s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance) {
+                    s_pTFMG->AddFireTile(positions[i]);
                 }
             }
-    }
-    if(m_vtilePosLRTB.a > -2) // If bottom side is not out of bounds
-    {
-        glm::ivec2 bottomCentre = glm::ivec2(m_vTilePos.x, m_vtilePosLRTB.a);
-        if(!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(bottomCentre.x, bottomCentre.y)))
-        {
-            if(s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance)
-                {
-                    printf("BC\n");
-                    s_pTFMG->AddFireTile(bottomCentre);
-                }
         }
     }
 }
@@ -396,7 +327,7 @@ void TileFireManager::FireTile::HandleBurningState(float p_delta)
             m_fSpreadDelayTimer = m_fSpreadDelay;
             
             // Attempt to propagate fire
-            // AttemptPropagation();
+            AttemptPropagation();
         }
     }
 }
