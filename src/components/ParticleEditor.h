@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <W_TextureManager.h>
+
 
 class ParticleEditor : public wolf::BaseComponent
 {
@@ -28,16 +30,13 @@ private:
         size_t maxParticles = 100;
         std::string configFilePath = "data/particles/default.yaml";
 
-        // New Fields for Sprite Selection
-        bool useStaticSprite = false;
-        bool useAnimatedSprite = false;
-        char staticSpritePath[256] = "data/particles/sprites/default.png";
-        char animatedSpritePath[256] = "data/particles/sprites/default_anim.yaml";
+        // New fields for texture selection
+        bool useTexture = false;
+        char texturePath[256] = "data/particles/textures/default.png";
     };
 
     bool editorVisible = false;
     std::unordered_map<ParticleComponent*, EditorState> m_editorStates;
 
     void ApplyEditorSettings(ParticleComponent& particleComponent, EditorState& state);
-    void LoadSpriteForParticles(ParticleComponent& particleComponent, EditorState& state);
 };

@@ -7,8 +7,9 @@
 #include <W_BaseComponent.h>
 #include <string>
 #include "W_Program.h"
-#include "AnimatedSprite2D.h"
-#include "W_Sprite2D.h"
+#include <W_Texture.h>
+#include <W_TextureManager.h>
+
 
 struct Particle
 {
@@ -20,13 +21,15 @@ struct Particle
     float m_initialLifetime;
     bool m_active = false;
     
-    bool m_isAnimated = false;
-    float m_currentFrame = 0.0f;
-    AnimatedSprite2D* m_animatedSprite = nullptr;
-    wolf::Sprite2D* m_staticSprite = nullptr;
+    wolf::Texture* m_texture = nullptr; // Texture support for quads
 
-    void Reset(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime, bool isAnimated, AnimatedSprite2D* animSprite, wolf::Sprite2D* staticSprite)
+    void Reset(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime, wolf::Texture* texture = nullptr)
     {
+        // Destroy previous texture if it exists
+        if (m_texture && m_texture != texture)
+        {
+            wolf::TextureManager::DestroyTexture(m_texture);
+        }
         m_pos = position;
         m_vel = velocity;
         m_color = color;
@@ -34,19 +37,7 @@ struct Particle
         m_lifetime = lifetime;
         m_initialLifetime = lifetime;
         m_active = true;
-        m_isAnimated = isAnimated;
-        m_currentFrame = 0.0f;
-
-        if (isAnimated && animSprite)
-        {
-            m_animatedSprite = animSprite;
-            m_animatedSprite->SetAnimation("default");
-            m_animatedSprite->SetAnimPaused(false);
-        }
-        else
-        {
-            m_staticSprite = staticSprite;
-        }
+        m_texture = texture;
     }
 
     void Update(float delta)
@@ -54,14 +45,8 @@ struct Particle
         if (!m_active) return;
         m_pos += m_vel * delta;
         m_lifetime -= delta;
-
         if (m_lifetime <= 0.0f)
             m_active = false;
-
-        if (m_isAnimated && m_animatedSprite)
-        {
-            m_currentFrame += delta * m_animatedSprite->GetPlaybackSpeed();
-        }
     }
 };
 
@@ -73,7 +58,7 @@ public:
 
     void Update(float delta);
     void Render();
-    void Emit(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime, bool isAnimated = false, AnimatedSprite2D* animSprite = nullptr, wolf::Sprite2D* staticSprite = nullptr);
+    void Emit(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime, wolf::Texture* texture = nullptr);
 
     std::vector<Particle>& GetParticles() { return m_particles; }
     void SetMaxParticles(size_t maxParticles);
@@ -83,9 +68,12 @@ private:
     std::vector<Particle> m_particles;
 
     GLuint m_vao, m_posVBO, m_colorVBO, m_sizeVBO;
+    GLuint m_quadVAO, m_quadVBO, m_quadEBO;
+
     static inline wolf::Program* s_pShader = nullptr;
     static inline size_t s_refCount = 0;
 
     void InitGLResources();
+    void InitQuadResources();
     void CleanupGLResources();
 };

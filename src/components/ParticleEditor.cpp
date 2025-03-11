@@ -12,13 +12,11 @@ bool editorVisible = false;
 
 void ParticleEditor::Update(float delta)
 {
-    // Toggle visibility on Right Alt press
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_ALT))
     {
         editorVisible = !editorVisible;
     }
 
-    // Show the editor if the toggle is on
     if (editorVisible)
     {
         ShowEditor();
@@ -36,13 +34,11 @@ void ParticleEditor::ShowEditor()
         EditorState& state = m_editorStates[particleComponentPtr];
         auto* gameObject = particleComponentPtr->GetGameObject();
 
-        // Unique ID for the collapsible section
         std::string nodeLabel = "Particle Component - GameObject " + std::to_string(gameObject->GetID());
         if (ImGui::TreeNodeEx(nodeLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
         {
             ImGui::Text("Editing GameObject ID: %u", gameObject->GetID());
 
-            // Particle Settings
             ImGui::ColorEdit4("Particle Color", &state.color[0]);
             ImGui::SliderFloat("Size", &state.size, 1.0f, 20.0f);
             ImGui::SliderFloat("Lifetime", &state.lifetime, 0.1f, 5.0f);
@@ -56,37 +52,32 @@ void ParticleEditor::ShowEditor()
             }
 
             ImGui::Separator();
-            ImGui::Text("Sprite Options");
-
-            // Static Sprite Selection
-            ImGui::Checkbox("Use Static Sprite", &state.useStaticSprite);
-            ImGui::InputText("Static Sprite Path", state.staticSpritePath, sizeof(state.staticSpritePath));
-
-            // Animated Sprite Selection
-            ImGui::Checkbox("Use Animated Sprite", &state.useAnimatedSprite);
-            ImGui::InputText("Animated Sprite Path", state.animatedSpritePath, sizeof(state.animatedSpritePath));
-
-            // Load sprite when button is pressed
-            if (ImGui::Button("Load Sprite"))
-            {
-                LoadSpriteForParticles(*particleComponentPtr, state);
-            }
+            ImGui::Text("Texture Options");
+            ImGui::Checkbox("Use Texture", &state.useTexture);
+            ImGui::InputText("Texture Path", state.texturePath, sizeof(state.texturePath));
 
             if (ImGui::Button("Emit Particle"))
             {
-                // Emit particle with user-selected sprites
-                wolf::Sprite2D* staticSprite = state.useStaticSprite ? new wolf::Sprite2D(state.staticSpritePath) : nullptr;
-                AnimatedSprite2D* animatedSprite = state.useAnimatedSprite ? new AnimatedSprite2D(state.animatedSpritePath) : nullptr;
-
+                wolf::Texture* texture = nullptr;
+                if (state.useTexture)
+                {
+                    texture = wolf::TextureManager::CreateTexture(state.texturePath);
+                    if (!texture)
+                    {
+                        wolf::Error("Failed to create texture: ", state.texturePath);
+                    }
+                    else
+                    {
+                        wolf::Log("Texture successfully loaded: ", state.texturePath);
+                    }
+                }
                 particleComponentPtr->Emit(
                     gameObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(),
                     state.velocity,
                     state.color,
                     state.size,
                     state.lifetime,
-                    state.useAnimatedSprite,
-                    animatedSprite,
-                    staticSprite
+                    texture
                 );
             }
 
@@ -113,37 +104,21 @@ void ParticleEditor::ShowEditor()
     ImGui::End();
 }
 
-void ParticleEditor::LoadSpriteForParticles(ParticleComponent& particleComponent, EditorState& state)
-{
-    if (state.useStaticSprite)
-    {
-        wolf::Log("Loading Static Sprite: ", state.staticSpritePath);
-        // Create static sprite and assign it to future particles
-        wolf::Sprite2D* sprite = new wolf::Sprite2D(state.staticSpritePath);
-        for (auto& particle : particleComponent.GetParticles())
-        {
-            if (!particle.m_active)
-                particle.m_staticSprite = sprite;
-        }
-    }
-
-    if (state.useAnimatedSprite)
-    {
-        wolf::Log("Loading Animated Sprite: ", state.animatedSpritePath);
-        // Create animated sprite and assign it to future particles
-        AnimatedSprite2D* animSprite = new AnimatedSprite2D(state.animatedSpritePath);
-        for (auto& particle : particleComponent.GetParticles())
-        {
-            if (!particle.m_active)
-                particle.m_animatedSprite = animSprite;
-        }
-    }
-}
-
-
 void ParticleEditor::ApplyEditorSettings(ParticleComponent& particleComponent, EditorState& state)
 {
     particleComponent.SetMaxParticles(state.maxParticles);
+
+    if (!state.useTexture)
+    {
+        for (auto& particle : particleComponent.GetParticles())
+        {
+            if (particle.m_texture)
+            {
+                wolf::TextureManager::DestroyTexture(particle.m_texture);
+                particle.m_texture = nullptr;
+            }
+        }
+    }
 }
 
 void ParticleEditor::SaveConfigToYAML(ParticleComponent& particleComponent, const std::string& filename)
@@ -163,6 +138,8 @@ void ParticleEditor::SaveConfigToYAML(ParticleComponent& particleComponent, cons
     file << "  lifetime: " << state.lifetime << "\n";
     file << "  velocity: { x: " << state.velocity.x << ", y: " << state.velocity.y << " }\n";
     file << "  max_particles: " << state.maxParticles << "\n";
+    file << "  use_texture: " << (state.useTexture ? "true" : "false") << "\n";
+    file << "  texture_path: " << state.texturePath << "\n";
 
     wolf::Log("Particle configuration saved to ", filename.c_str());
 }
@@ -205,6 +182,16 @@ void ParticleEditor::LoadConfigFromYAML(ParticleComponent& particleComponent, co
         {
             state.maxParticles = particleConfig["max_particles"].as<size_t>();
             particleComponent.SetMaxParticles(state.maxParticles);
+        }
+
+        if (particleConfig["use_texture"])
+        {
+            state.useTexture = particleConfig["use_texture"].as<bool>();
+        }
+
+        if (particleConfig["texture_path"])
+        {
+            strncpy(state.texturePath, particleConfig["texture_path"].as<std::string>().c_str(), sizeof(state.texturePath));
         }
 
         wolf::Log("Particle configuration loaded from ", filename.c_str());
