@@ -224,6 +224,12 @@ void PlayState::Enter()
         m_pPathfindingManager->RegisterEntity(gorgon.GetGameObject());
     }
 
+    auto& navMeshObj = scene.CreateObject2D();
+    m_pNavMeshComponent = &navMeshObj.AddComponent<NavMeshComponent>();
+    m_pNavMeshComponent->Init(m_pPathfindingManager);
+
+    // Generate the NavMesh from the Labyrinth
+    m_pNavMeshComponent->GenerateFromLabyrinth(m_pLabyrinthManager);
 
     m_gameCompletionTime.Start();
 }
@@ -264,6 +270,9 @@ void PlayState::Exit()
     }
     
     wolf::BufferManager::DestroyBuffer(m_pFBO);
+
+    m_pNavMeshComponent = nullptr;
+
 }
 
 void PlayState::Pause()
@@ -774,6 +783,43 @@ void PlayState::Update(float delta)
         
         // Call the editor function inside update
         m_particleSystem->ShowEditor();
+
+        if (m_pNavMeshComponent)
+        {
+            // Collect dynamic obstacles
+            std::vector<wolf::GameObject*> obstacles;
+            
+            // Add player as an obstacle
+            if (m_pPlayerObject)
+            {
+                obstacles.push_back(m_pPlayerObject);
+            }
+            // Add enemies as obstacles
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
+            {
+                obstacles.push_back(controller.GetGameObject());
+            }
+            
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>())
+            {
+                obstacles.push_back(controller.GetGameObject());
+            }
+            
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<HarpyController>())
+            {
+                obstacles.push_back(controller.GetGameObject());
+            }
+            
+            // Add NPCs as obstacles
+            for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>())
+            {
+                obstacles.push_back(component.GetGameObject());
+            }
+            m_pNavMeshComponent->Update(delta);
+
+            // Update the NavMesh with these obstacles
+            m_pNavMeshComponent->UpdateDynamicObstacles(obstacles);
+        }
     }
 
     // Dispatch events
@@ -800,6 +846,11 @@ void PlayState::Render(float delta)
 
     // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
+
+    if (m_pNavMeshComponent && m_pNavMeshComponent->IsDebugDrawEnabled())
+    {
+        m_pNavMeshComponent->DebugDraw();
+    }
     
     // Bind to default framebuffer(screen)
     wolf::FrameBuffer::BindDefault();

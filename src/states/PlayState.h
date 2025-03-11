@@ -34,7 +34,7 @@
 #include <events/GameWinEvent.h>
 #include <W_Timer.h>
 #include <ParticleSystem2D.h>
-
+#include <NavMeshComponent.h>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -139,4 +139,8 @@ private:
     bool m_isExiting = false;
 
     wolf::FrameBuffer* m_pFBO = nullptr;
+
+    NavMeshComponent* m_pNavMeshComponent = nullptr;
+
+
 };
