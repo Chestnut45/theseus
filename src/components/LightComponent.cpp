@@ -4,6 +4,13 @@
 #include <GLShapesRenderer.h>
 #include <ColliderManager.h>
 
+//-----------------------------------------------------------------------------
+// File:            LightComponent.h
+// Original Author: Aurora Ryder
+//
+// A class representing a single colored light with a given radius
+//-----------------------------------------------------------------------------
+
 int LightComponent::s_iNextIDNum = 0;
 int LightComponent::s_iRefCount = 0;
 int LightComponent::s_iLightsRendered = 0;
@@ -14,6 +21,10 @@ float LightComponent::s_arfBaseVertexData[6] {
     // x,    y,    r,    g,    b,    a
     0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
 };
+
+// ------------------------------------------------------------------------------------------------------------
+//                                  Resource Management & Init Methods
+// ------------------------------------------------------------------------------------------------------------
 
 LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2Radius, bool p_bCanMove) 
     : m_v4Color(p_v4Color), m_v2InitRadius(p_v2Radius), m_iIDNum(s_iNextIDNum), m_bCanMove(p_bCanMove)
@@ -69,7 +80,7 @@ LightComponent::~LightComponent() {
     }
 }
 
-// Init MUST be called before LightComponent::Update is called or an error WILL be thrown
+// !-- Init MUST be called before LightComponent::Update is called or a SegFault WILL MOST DEFINITELY occur --!
 void LightComponent::Init() {
     // Retrieve the transform
     m_pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
@@ -89,6 +100,10 @@ void LightComponent::Init() {
         break;
     }
 }
+
+// ------------------------------------------------------------------------------------------------------------
+//                                         Begin Lighting Pass
+// ------------------------------------------------------------------------------------------------------------
 
 void LightComponent::Update(float p_fDelta) {
     // If the light's AOE collider isn't active
@@ -110,16 +125,10 @@ void LightComponent::Update(float p_fDelta) {
     // Create a vector to hold all of the colliders that are in the light's AOE
     std::vector<wolf::Rectangle> vpRectanglesInAOE;
 
-    // GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f}, {m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f});
-    // GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f}, {m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f});
-    // GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f}, {m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f});
-    // GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f}, {m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f});
-
-    //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y, 0.0f, 0.0f, 1.0f, 1.0f}, {m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y, 0.0f, 0.0f, 1.0f, 1.0f});
-    //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y + m_v2CurRadius.y * 0.5f, 0.0f, 0.0f, 1.0f, 1.0f}, {m_v2Origin.x, m_v2Origin.y - m_v2CurRadius.y * 0.5f, 0.0f, 0.0f, 1.0f, 1.0f});
-
     // Get a pointer to the LightComponent's GameObject's parent (if one exists)
     wolf::GameObject* pParentGO = this->GetGameObject()->GetParent();
+
+    // ---------------------------------- Phase 1: Finding colliders in AOE ----------------------------------------------
 
     // Find the colliders that are inside the area of effect by iterating through the colliders in the scene
     for (auto&& [_, collider] : m_pScene->Each<ColliderComponent>()) {
@@ -133,10 +142,12 @@ void LightComponent::Update(float p_fDelta) {
             }
 
             // If the collider we're looking at is another light's AOE collider
-            if (collider.GetGameObject()->GetComponent<LightComponent>()) {
+            if (this->GetGameObject()->GetID() != collider.GetGameObject()->GetID() && collider.GetGameObject()->GetComponent<LightComponent>()) {
                 // Then we want to ignore it
                 continue;
             }
+
+            // !-- Need a way to ignore traps and projectiles --!
 
             // Go through the corner points of each rectangle in the collider
             std::vector<glm::vec2> vv2ColliderCorners = collider.GetWorldSpaceCorners();
@@ -234,6 +245,8 @@ void LightComponent::Update(float p_fDelta) {
             }
         }
     }
+
+    // ------------------------------- Phase 2: Finding potential collision points  --------------------------------------
 
     // Go through all of the rectangles in the AOE
     for (wolf::Rectangle rect : vpRectanglesInAOE) {
@@ -373,21 +386,27 @@ void LightComponent::Update(float p_fDelta) {
         this->CheckForAOECollisionAndAdd(v2BotLeft, v2BotRight);    // Check and addbottom
     }
 
+// ------------------------ Phase 3: Removing obstructed or impossible collision points  -----------------------------
+
     // We don't want to draw light rays that go THROUGH the rectangles in the scene
     // so we are going to need to check if any of our lines intersect with other colliders
+
+    // When we do that check, we're going to be adding and removing things from m_vv2fCollidingPoints
+    // in-between iterations through the list of rectangles in the AOE, so we make two vectors to hold
+    // the points that are being added or removed midway.
     std::vector<std::pair<glm::vec2, float>> vv2fPointsToRemove;
     std::vector<std::pair<glm::vec2, float>> vv2fPointsToAdd;
 
-    // Go through all of the rectangles in the AOE again
+    // Then we go through all of the rectangles in the AOE again
     for (wolf::Rectangle rect : vpRectanglesInAOE) {
         // Clear the lists of points to add and remove
         vv2fPointsToRemove.clear();
         vv2fPointsToAdd.clear();
 
-        // Get the corner points
+        // Get the corner points associated with this rectangle
         std::array<glm::vec2, 4> arv2RectCorners = rect.GetCorners();
 
-        // Construct the sides again
+        // And use them to onstruct the sides again
         glm::vec2 v2TopStart = arv2RectCorners[0]; // Top
         glm::vec2 v2TopEnd = arv2RectCorners[1];
 
@@ -420,9 +439,9 @@ void LightComponent::Update(float p_fDelta) {
             GLShapesRenderer::GetInstance()->AddLine({v2RightStart.x, v2RightStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2RightEnd.x, v2RightEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
         }
 
-        // Then go through all of the corner points that we KNOW we'll be casting a light ray to
+        // Then go through all of the corner points that we THINK we'll be casting a light ray to
         for (std::pair<glm::vec2, float> v2fCorner : m_vv2fCollidingPoints) {
-            // Skip corner points that belong to the rectangle we're currently looking at
+            // Skip corner points that belong to the rectangle we're currently looking at (provided it is not part of a wall)
             if (!bRectIsWall && std::find(arv2RectCorners.begin(), arv2RectCorners.end(), v2fCorner.first) != arv2RectCorners.end()) {
                 continue;
             }
@@ -436,48 +455,45 @@ void LightComponent::Update(float p_fDelta) {
             // Check if the line between the origin and the corner point we're casting to intersects with another collider.
             if (v2fLeftResullt.first || v2fRightResullt.first || v2fTopResullt.first || v2fBotResullt.first)
             {
-                // If it does, and the rectangle we're currently comparing points against is a wall tile or the AOE collider
-                if (bRectIsWall || bIsAOE)
-                {
-                    // Then we're going to want to swap this point out with the point of intersection
-                    float fLeftDist = glm::distance(m_v2Origin, v2fLeftResullt.second);
-                    float fRightDist = glm::distance(m_v2Origin, v2fRightResullt.second);
-                    float fTopDist = glm::distance(m_v2Origin, v2fTopResullt.second);
-                    float fBotDist = glm::distance(m_v2Origin, v2fBotResullt.second);
+                // If it does, then we want to replace corner point we're looking at with the nearest point of intersection
+                // between the light and the rectangle instead, so we get the distance of each potential intersect
+                float fLeftDist = glm::distance(m_v2Origin, v2fLeftResullt.second);
+                float fRightDist = glm::distance(m_v2Origin, v2fRightResullt.second);
+                float fTopDist = glm::distance(m_v2Origin, v2fTopResullt.second);
+                float fBotDist = glm::distance(m_v2Origin, v2fBotResullt.second);
 
-                    // Find the point with the shortest distance
-                    float fMinDist = std::min(fLeftDist, std::min(fRightDist, std::min(fTopDist, fBotDist)));
+                // Then we find the point with the shortest distance
+                float fMinDist = std::min(fLeftDist, std::min(fRightDist, std::min(fTopDist, fBotDist)));
 
-                    // And add the intersection to a vector of points that will be added to m_vv2fCollidingPoints in the next pass
-                    if (fMinDist == fLeftDist) {
-                        // Left intersection point
-                        vv2fPointsToAdd.push_back({v2fLeftResullt.second, CalculateAngleOfIntersection(v2fLeftResullt.second)});
-                        //GLShapesRenderer::GetInstance()->AddQuad({v2fLeftResullt.second.x, v2fLeftResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
-                    }
-                    else if (fMinDist == fRightDist) {
-                        // Right intersection point
-                        vv2fPointsToAdd.push_back({v2fRightResullt.second, CalculateAngleOfIntersection(v2fRightResullt.second)});
-                        //GLShapesRenderer::GetInstance()->AddQuad({v2fRightResullt.second.x, v2fRightResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
-                    }
-                    else if (fMinDist == fTopDist) {
-                        // Top intersection point
-                        vv2fPointsToAdd.push_back({v2fTopResullt.second, CalculateAngleOfIntersection(v2fTopResullt.second)});
-                        //GLShapesRenderer::GetInstance()->AddQuad({v2fTopResullt.second.x, v2fTopResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
-                    }
-                    else if (fMinDist == fBotDist) {
-                        // Bottom intersection point
-                        vv2fPointsToAdd.push_back({v2fBotResullt.second, CalculateAngleOfIntersection(v2fBotResullt.second)});
-                        //GLShapesRenderer::GetInstance()->AddQuad({v2fBotResullt.second.x, v2fBotResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
-                    }
+                // And add it to a vector of points that will be added to m_vv2fCollidingPoints in the next pass
+                if (fMinDist == fLeftDist) {
+                    // Left intersection point
+                    vv2fPointsToAdd.push_back({v2fLeftResullt.second, CalculateAngleOfIntersection(v2fLeftResullt.second)});
+                    GLShapesRenderer::GetInstance()->AddQuad({v2fLeftResullt.second.x, v2fLeftResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                }
+                else if (fMinDist == fRightDist) {
+                    // Right intersection point
+                    vv2fPointsToAdd.push_back({v2fRightResullt.second, CalculateAngleOfIntersection(v2fRightResullt.second)});
+                    GLShapesRenderer::GetInstance()->AddQuad({v2fRightResullt.second.x, v2fRightResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                }
+                else if (fMinDist == fTopDist) {
+                    // Top intersection point
+                    vv2fPointsToAdd.push_back({v2fTopResullt.second, CalculateAngleOfIntersection(v2fTopResullt.second)});
+                    GLShapesRenderer::GetInstance()->AddQuad({v2fTopResullt.second.x, v2fTopResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                }
+                else if (fMinDist == fBotDist) {
+                    // Bottom intersection point
+                    vv2fPointsToAdd.push_back({v2fBotResullt.second, CalculateAngleOfIntersection(v2fBotResullt.second)});
+                    GLShapesRenderer::GetInstance()->AddQuad({v2fBotResullt.second.x, v2fBotResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                 }
                 
-                // Then mark this intersection point for removal
+                // Then mark the original point for removal
                 vv2fPointsToRemove.push_back(v2fCorner);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2fCorner.first.x, v2fCorner.first.y, 1.0f, 0.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
+                GLShapesRenderer::GetInstance()->AddQuad({v2fCorner.first.x, v2fCorner.first.y, 1.0f, 0.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
             }
         }
 
-        // Remove the points this rectangle collided with
+        // Remove the points this rectangle collided with (if any)
         for (std::pair<glm::vec2, float> v2fBadCorner : vv2fPointsToRemove) {
             auto it = std::find(m_vv2fCollidingPoints.begin(), m_vv2fCollidingPoints.end(), v2fBadCorner);
             if (it != m_vv2fCollidingPoints.end()) {
@@ -485,20 +501,22 @@ void LightComponent::Update(float p_fDelta) {
             }
         }
 
-        // Add in the new intersection points for wall-wall collisions
+        // And add in the new intersection points (if any)
         for (std::pair<glm::vec2, float> v2fGoodPoint : vv2fPointsToAdd) {
             m_vv2fCollidingPoints.push_back(v2fGoodPoint);
         }
     }
 
-    // If by some devilry we have removed every point in m_vv2fCollidingPoints,
-    // we want to fail gracefully rather than SegFaulting so we stop here and throw an error
+    // If by some devilry we have removed every point in m_vv2fCollidingPoints, we want to
+    // fail gracefully via error rather than SegFaulting so we return here
     if (m_vv2fCollidingPoints.empty()) {
         wolf::Error("Problem in LightingComponent: all points removed from m_vv2fCollidingPoints");
         return;
     }
 
-    // Sort the collision points by the slopes of their intersection lines
+    // --------------------------------------- Phase 4: Assembling geometry  ---------------------------------------------
+
+    // Otherwise, we sort the collision points by the slopes of their intersection lines
     std::sort(m_vv2fCollidingPoints.begin(), m_vv2fCollidingPoints.end(), LightComponent::CompareVec2FloatPair);
 
     // Get the first collison point (we'll need it for the final triangle)
@@ -532,6 +550,14 @@ void LightComponent::Update(float p_fDelta) {
     m_vcvVertexData.push_back({v2FirstPoint.x, v2FirstPoint.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
     m_vcvVertexData.push_back({v2LastPoint.x, v2LastPoint.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
 }
+
+// ------------------------------------------------------------------------------------------------------------
+//                                         End Lighting Pass
+// ------------------------------------------------------------------------------------------------------------
+
+// ------------------------------------------------------------------------------------------------------------
+//                                         Helper Functions
+// ------------------------------------------------------------------------------------------------------------
 
 // Determines if a ray can be shot to the given corner without intersecting the given side and adds the corner to the vector
 // of colliding points if it can. If the ray does intersect the given side, then the point of intersection is added to the
@@ -690,6 +716,10 @@ bool LightComponent::CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, st
 
     return false;
 }
+
+// ------------------------------------------------------------------------------------------------------------
+//                                              Rendering
+// ------------------------------------------------------------------------------------------------------------
 
 void LightComponent::Render() {
     // If there is nothing colliding with the light
