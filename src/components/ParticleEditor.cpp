@@ -6,9 +6,9 @@
 #include <iostream>
 #include "W_Logging.h"
 #include "W_Transform2D.h"
-#include "W_input.h"
+#include "W_Input.h"
 
-bool editorVisible = false;  // Toggle flag
+bool editorVisible = false;
 
 void ParticleEditor::Update(float delta)
 {
@@ -28,75 +28,118 @@ void ParticleEditor::Update(float delta)
 void ParticleEditor::ShowEditor()
 {
     auto& scene = GetGameObject()->GetScene();
-
     ImGui::Begin("Particle Editor");
 
-    // Iterate over all ParticleComponent instances by reference
     for (auto&& [id, particleComponent] : scene.Each<ParticleComponent>())
     {
-        auto* particleComponentPtr = &particleComponent;  // Fix: Get pointer to component
+        auto* particleComponentPtr = &particleComponent;
         EditorState& state = m_editorStates[particleComponentPtr];
-
         auto* gameObject = particleComponentPtr->GetGameObject();
-        ImGui::Text("Editing GameObject ID: %u", gameObject->GetID());
 
-        // Particle Color
-        ImGui::ColorEdit4("Particle Color", &state.color[0]);
-
-        // Particle Size
-        ImGui::SliderFloat("Size", &state.size, 1.0f, 20.0f);
-
-        // Particle Lifetime
-        ImGui::SliderFloat("Lifetime", &state.lifetime, 0.1f, 5.0f);
-
-        // Particle Velocity
-        ImGui::SliderFloat2("Velocity", &state.velocity[0], -50.0f, 50.0f);
-
-        // Max Particles
-        int maxParticles = static_cast<int>(state.maxParticles);
-        if (ImGui::SliderInt("Max Particles", &maxParticles, 10, 500))
+        // Unique ID for the collapsible section
+        std::string nodeLabel = "Particle Component - GameObject " + std::to_string(gameObject->GetID());
+        if (ImGui::TreeNodeEx(nodeLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
         {
-            state.maxParticles = static_cast<size_t>(maxParticles);
-            particleComponentPtr->SetMaxParticles(state.maxParticles);
-        }
+            ImGui::Text("Editing GameObject ID: %u", gameObject->GetID());
 
-        // Apply settings to ParticleComponent
-        ApplyEditorSettings(*particleComponentPtr, state);
+            // Particle Settings
+            ImGui::ColorEdit4("Particle Color", &state.color[0]);
+            ImGui::SliderFloat("Size", &state.size, 1.0f, 20.0f);
+            ImGui::SliderFloat("Lifetime", &state.lifetime, 0.1f, 5.0f);
+            ImGui::SliderFloat2("Velocity", &state.velocity[0], -50.0f, 50.0f);
 
-        // Emit Particles
-        if (ImGui::Button("Emit Particle"))
-        {
-            particleComponentPtr->Emit(
-                gameObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(),
-                state.velocity,
-                state.color,
-                state.size,
-                state.lifetime
-            );
-        }
+            int maxParticles = static_cast<int>(state.maxParticles);
+            if (ImGui::SliderInt("Max Particles", &maxParticles, 10, 500))
+            {
+                state.maxParticles = static_cast<size_t>(maxParticles);
+                particleComponentPtr->SetMaxParticles(state.maxParticles);
+            }
 
-        // Save and Load Config
-        char buffer[256];
-        strncpy(buffer, state.configFilePath.c_str(), sizeof(buffer));
-        if (ImGui::InputText("Config File Path", buffer, sizeof(buffer)))
-        {
-            state.configFilePath = buffer;
-        }
-        if (ImGui::Button("Save Config"))
-        {
-            SaveConfigToYAML(*particleComponentPtr, state.configFilePath);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Load Config"))
-        {
-            LoadConfigFromYAML(*particleComponentPtr, state.configFilePath);
-        }
+            ImGui::Separator();
+            ImGui::Text("Sprite Options");
 
-        ImGui::Separator();
+            // Static Sprite Selection
+            ImGui::Checkbox("Use Static Sprite", &state.useStaticSprite);
+            ImGui::InputText("Static Sprite Path", state.staticSpritePath, sizeof(state.staticSpritePath));
+
+            // Animated Sprite Selection
+            ImGui::Checkbox("Use Animated Sprite", &state.useAnimatedSprite);
+            ImGui::InputText("Animated Sprite Path", state.animatedSpritePath, sizeof(state.animatedSpritePath));
+
+            // Load sprite when button is pressed
+            if (ImGui::Button("Load Sprite"))
+            {
+                LoadSpriteForParticles(*particleComponentPtr, state);
+            }
+
+            if (ImGui::Button("Emit Particle"))
+            {
+                // Emit particle with user-selected sprites
+                wolf::Sprite2D* staticSprite = state.useStaticSprite ? new wolf::Sprite2D(state.staticSpritePath) : nullptr;
+                AnimatedSprite2D* animatedSprite = state.useAnimatedSprite ? new AnimatedSprite2D(state.animatedSpritePath) : nullptr;
+
+                particleComponentPtr->Emit(
+                    gameObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(),
+                    state.velocity,
+                    state.color,
+                    state.size,
+                    state.lifetime,
+                    state.useAnimatedSprite,
+                    animatedSprite,
+                    staticSprite
+                );
+            }
+
+            char buffer[256];
+            strncpy(buffer, state.configFilePath.c_str(), sizeof(buffer));
+            if (ImGui::InputText("Config File Path", buffer, sizeof(buffer)))
+            {
+                state.configFilePath = buffer;
+            }
+            if (ImGui::Button("Save Config"))
+            {
+                SaveConfigToYAML(*particleComponentPtr, state.configFilePath);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Load Config"))
+            {
+                LoadConfigFromYAML(*particleComponentPtr, state.configFilePath);
+            }
+
+            ImGui::TreePop();
+        }
     }
 
     ImGui::End();
 }
+
+void ParticleEditor::LoadSpriteForParticles(ParticleComponent& particleComponent, EditorState& state)
+{
+    if (state.useStaticSprite)
+    {
+        wolf::Log("Loading Static Sprite: ", state.staticSpritePath);
+        // Create static sprite and assign it to future particles
+        wolf::Sprite2D* sprite = new wolf::Sprite2D(state.staticSpritePath);
+        for (auto& particle : particleComponent.GetParticles())
+        {
+            if (!particle.m_active)
+                particle.m_staticSprite = sprite;
+        }
+    }
+
+    if (state.useAnimatedSprite)
+    {
+        wolf::Log("Loading Animated Sprite: ", state.animatedSpritePath);
+        // Create animated sprite and assign it to future particles
+        AnimatedSprite2D* animSprite = new AnimatedSprite2D(state.animatedSpritePath);
+        for (auto& particle : particleComponent.GetParticles())
+        {
+            if (!particle.m_active)
+                particle.m_animatedSprite = animSprite;
+        }
+    }
+}
+
 
 void ParticleEditor::ApplyEditorSettings(ParticleComponent& particleComponent, EditorState& state)
 {
@@ -108,7 +151,7 @@ void ParticleEditor::SaveConfigToYAML(ParticleComponent& particleComponent, cons
     std::ofstream file(filename, std::ios::binary);
     if (!file.is_open())
     {
-        wolf::Log("Failed to open file for saving: ", filename.c_str());
+        wolf::Error("Failed to open file for saving: ", filename.c_str());
         return;
     }
 
@@ -126,13 +169,14 @@ void ParticleEditor::SaveConfigToYAML(ParticleComponent& particleComponent, cons
 
 void ParticleEditor::LoadConfigFromYAML(ParticleComponent& particleComponent, const std::string& filename)
 {
-    YAML::Node config = YAML::LoadFile(filename);
-    if (!config)
+    std::ifstream file(filename);
+    if (!file.is_open())
     {
-        wolf::Log("Failed to load config file: ", filename.c_str());
+        wolf::Error("Failed to load config file: ", filename.c_str());
         return;
     }
 
+    YAML::Node config = YAML::LoadFile(filename);
     EditorState& state = m_editorStates[&particleComponent];
 
     YAML::Node particleConfig = config["particle_config"];

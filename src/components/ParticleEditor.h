@@ -27,11 +27,17 @@ private:
         glm::vec2 velocity{0.0f, 10.0f};
         size_t maxParticles = 100;
         std::string configFilePath = "data/particles/default.yaml";
+
+        // New Fields for Sprite Selection
+        bool useStaticSprite = false;
+        bool useAnimatedSprite = false;
+        char staticSpritePath[256] = "data/particles/sprites/default.png";
+        char animatedSpritePath[256] = "data/particles/sprites/default_anim.yaml";
     };
 
     bool editorVisible = false;
-
     std::unordered_map<ParticleComponent*, EditorState> m_editorStates;
 
     void ApplyEditorSettings(ParticleComponent& particleComponent, EditorState& state);
+    void LoadSpriteForParticles(ParticleComponent& particleComponent, EditorState& state);
 };

@@ -7,6 +7,9 @@
 #include <W_BaseComponent.h>
 #include <string>
 #include "W_Program.h"
+#include "AnimatedSprite2D.h"
+#include "W_Sprite2D.h"
+
 struct Particle
 {
     glm::vec2 m_pos;
@@ -16,8 +19,13 @@ struct Particle
     float m_lifetime;
     float m_initialLifetime;
     bool m_active = false;
+    
+    bool m_isAnimated = false;
+    float m_currentFrame = 0.0f;
+    AnimatedSprite2D* m_animatedSprite = nullptr;
+    wolf::Sprite2D* m_staticSprite = nullptr;
 
-    void Reset(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime)
+    void Reset(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime, bool isAnimated, AnimatedSprite2D* animSprite, wolf::Sprite2D* staticSprite)
     {
         m_pos = position;
         m_vel = velocity;
@@ -26,6 +34,19 @@ struct Particle
         m_lifetime = lifetime;
         m_initialLifetime = lifetime;
         m_active = true;
+        m_isAnimated = isAnimated;
+        m_currentFrame = 0.0f;
+
+        if (isAnimated && animSprite)
+        {
+            m_animatedSprite = animSprite;
+            m_animatedSprite->SetAnimation("default");
+            m_animatedSprite->SetAnimPaused(false);
+        }
+        else
+        {
+            m_staticSprite = staticSprite;
+        }
     }
 
     void Update(float delta)
@@ -33,7 +54,14 @@ struct Particle
         if (!m_active) return;
         m_pos += m_vel * delta;
         m_lifetime -= delta;
-        if (m_lifetime <= 0.0f) m_active = false;
+
+        if (m_lifetime <= 0.0f)
+            m_active = false;
+
+        if (m_isAnimated && m_animatedSprite)
+        {
+            m_currentFrame += delta * m_animatedSprite->GetPlaybackSpeed();
+        }
     }
 };
 
@@ -45,11 +73,9 @@ public:
 
     void Update(float delta);
     void Render();
-    void Emit(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime);
+    void Emit(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime, bool isAnimated = false, AnimatedSprite2D* animSprite = nullptr, wolf::Sprite2D* staticSprite = nullptr);
 
-    // Accessors for editor
     std::vector<Particle>& GetParticles() { return m_particles; }
-
     void SetMaxParticles(size_t maxParticles);
     size_t GetMaxParticles() const { return m_particles.size(); }
 

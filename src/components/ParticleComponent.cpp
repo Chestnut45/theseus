@@ -80,9 +80,22 @@ void ParticleComponent::Render()
     {
         if (particle.m_active)
         {
-            positions.push_back(particle.m_pos);
-            colors.push_back(particle.m_color);
-            sizes.push_back(particle.m_size);
+            if (particle.m_isAnimated && particle.m_animatedSprite)
+            {
+                particle.m_animatedSprite->SetAnimation("default");
+                particle.m_animatedSprite->SetAnimPaused(false);
+                particle.m_animatedSprite->Draw(particle.m_pos, 0.0f, glm::vec2(1.0f));
+            }
+            else if (particle.m_staticSprite)
+            {
+                particle.m_staticSprite->Draw(particle.m_pos, 0.0f, glm::vec2(1.0f));
+            }
+            else
+            {
+                positions.push_back(particle.m_pos);
+                colors.push_back(particle.m_color);
+                sizes.push_back(particle.m_size);
+            }
         }
     }
 
@@ -100,20 +113,18 @@ void ParticleComponent::Render()
     glBindBuffer(GL_ARRAY_BUFFER, m_sizeVBO);
     glBufferData(GL_ARRAY_BUFFER, sizes.size() * sizeof(float), sizes.data(), GL_STREAM_DRAW);
 
-    glPointSize(10.0f); 
-
+    glPointSize(10.0f);
     glDrawArrays(GL_POINTS, 0, positions.size());
-
     glBindVertexArray(0);
 }
 
-void ParticleComponent::Emit(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime)
+void ParticleComponent::Emit(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime, bool isAnimated, AnimatedSprite2D* animSprite, wolf::Sprite2D* staticSprite)
 {
     for (auto& particle : m_particles)
     {
         if (!particle.m_active)
         {
-            particle.Reset(position, velocity, color, size, lifetime);
+            particle.Reset(position, velocity, color, size, lifetime, isAnimated, animSprite, staticSprite);
             return;
         }
     }
