@@ -10,7 +10,6 @@
 #include <W_Texture.h>
 #include <W_TextureManager.h>
 
-
 struct Particle
 {
     glm::vec2 m_pos;
@@ -25,11 +24,10 @@ struct Particle
 
     void Reset(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime, wolf::Texture* texture = nullptr)
     {
-        // Destroy previous texture if it exists
-        if (m_texture && m_texture != texture)
-        {
-            wolf::TextureManager::DestroyTexture(m_texture);
-        }
+        // Don't destroy textures here
+        // Set pointer to null without attempting to destroy
+        m_texture = texture;
+        
         m_pos = position;
         m_vel = velocity;
         m_color = color;
@@ -37,7 +35,6 @@ struct Particle
         m_lifetime = lifetime;
         m_initialLifetime = lifetime;
         m_active = true;
-        m_texture = texture;
     }
 
     void Update(float delta)
@@ -76,4 +73,8 @@ private:
     void InitGLResources();
     void InitQuadResources();
     void CleanupGLResources();
+    
+    // Helper methods for rendering
+    void RenderPointParticles();
+    void RenderTexturedParticles();
 };

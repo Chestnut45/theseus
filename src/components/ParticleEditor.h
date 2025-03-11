@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <W_TextureManager.h>
 
-
 class ParticleEditor : public wolf::BaseComponent
 {
 public:
@@ -23,20 +22,37 @@ public:
 private:
     struct EditorState
     {
+        // Basic particle properties
         glm::vec4 color{1.0f, 1.0f, 1.0f, 1.0f};
         float size = 5.0f;
         float lifetime = 2.0f;
         glm::vec2 velocity{0.0f, 10.0f};
+        
+        // System properties
         size_t maxParticles = 100;
+        float emissionRate = 5.0f;
+        float emissionTimer = 0.0f;
+        bool continuousEmission = false;
+        int burstCount = 10;
+        
+        // Configuration
         std::string configFilePath = "data/particles/default.yaml";
 
-        // New fields for texture selection
+        // Texture properties
         bool useTexture = false;
         char texturePath[256] = "data/particles/textures/default.png";
+        
+        // Cache for texture preview and emission
+        wolf::Texture* previewTexture = nullptr;
+        bool textureLoaded = false;
     };
 
-    bool editorVisible = false;
+    bool m_editorVisible = false;
     std::unordered_map<ParticleComponent*, EditorState> m_editorStates;
 
+    // Helper methods
     void ApplyEditorSettings(ParticleComponent& particleComponent, EditorState& state);
+    void EmitParticle(ParticleComponent& particleComponent, EditorState& state, const glm::vec2& position);
+    void EmitParticleBurst(ParticleComponent& particleComponent, EditorState& state, const glm::vec2& position, int count);
+    int CountActiveParticles(ParticleComponent& particleComponent);
 };
