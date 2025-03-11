@@ -23,12 +23,13 @@ float LightComponent::s_arfBaseVertexData[6] {
 };
 
 std::vector<TexturedVertex2D> LightComponent::s_vtvQuadVertices {
-    {-1.0f, -1.0f, 0.0f, 0.0f},
-    {1.0f, -1.0f, 1.0f, 0.0f},
-    {1.0f, 1.0f, 1.0f, 1.0f},
-    {1.0f, 1.0f, 1.0f, 1.0f},
-    {-1.0f, 1.0f, 0.0f, 1.0f},
-    {-1.0f, -1.0f, 0.0f, 0.0f},
+    {-1.0f, -1.0f, 0.0f, 0.0f}, // Bot left
+    {1.0f, -1.0f, 1.0f, 0.0f}, // Bot right
+    {1.0f, 1.0f, 1.0f, 1.0f}, // Top right
+
+    {1.0f, 1.0f, 1.0f, 1.0f}, // Top right
+    {-1.0f, 1.0f, 0.0f, 1.0f}, // Top left
+    {-1.0f, -1.0f, 0.0f, 0.0f}, // Bot left
 };
 
 // ------------------------------------------------------------------------------------------------------------
@@ -59,7 +60,7 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
         s_pVAO->End();
 
         // We also need to create the shader resources for the textured quad we'll be blending with the scene later
-        s_pQuadProgram = wolf::ProgramManager::CreateProgram("data/shaders/lightQuad2D.vsh", "data/shaders/lightQuad2D.fsh");
+        s_pQuadProgram = wolf::ProgramManager::CreateProgram("data/shaders/lightQuad2D.vs", "data/shaders/lightQuad2D.fs");
 
         s_pQuadVBO = wolf::BufferManager::CreateVertexBuffer(s_vtvQuadVertices.data(), sizeof(TexturedVertex2D) * s_vtvQuadVertices.size());
         s_pQuadVAO = new wolf::VertexDeclaration();
@@ -747,10 +748,10 @@ void LightComponent::RenderToFBO() {
         return;
     }
 
-    //s_pFBO->Bind();
+    s_pFBO->Bind();
 
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE); 
 
     // Then render this light's geometry to the FBO
     glm::mat4 model = glm::mat4(1.0f);
@@ -759,8 +760,6 @@ void LightComponent::RenderToFBO() {
     s_pProgram->Bind();
 
     s_pVAO->Bind();
-
-    s_pVBO->Bind();
     glBufferData(GL_ARRAY_BUFFER, sizeof(ColouredVertex2D) * m_vcvVertexData.size(), m_vcvVertexData.data(), GL_STATIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, m_vcvVertexData.size());
     m_vcvVertexData.clear();
@@ -774,29 +773,35 @@ void LightComponent::RenderToFBO() {
     glDisable(GL_BLEND);
 }
 
-void LightComponent::BlitAndClear() {
+void LightComponent::BlendFBOAndScreen() {
+    // Enable blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glm::mat4 model = glm::mat4(1.0f);
-    s_pQuadProgram->SetUniform("model", model);
+    // Copy the contents of the FBO
+    s_pFBO->Blit();
+
+    // Bind the shader program
     s_pQuadProgram->Bind();
 
+    // Set the active texture to be the FBO's texture
     glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, s_pFBO->GetTextureID());
 
+    // Bind the VAO and draw a screen-size quad
     s_pVAO->Bind();
-    
-    s_pVBO->Bind();
-    glBufferData(GL_ARRAY_BUFFER, sizeof(TexturedVertex2D) * s_vtvQuadVertices.size(), s_vtvQuadVertices.data(), GL_STATIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, s_vtvQuadVertices.size());
 
+    // Clean-up
     glBindVertexArray(0);
+    glDisable(GL_BLEND);
+}
 
+void LightComponent::ClearFBO() {
     // Clear the FBO to black
     s_pFBO->Bind();
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.25f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Bind default framebuffer (screen)

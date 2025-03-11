@@ -45,7 +45,8 @@ class LightComponent : public wolf::BaseComponent {
         inline void SetCanMove(bool p_bCanMove) {m_bCanMove = p_bCanMove;};
 
         void RenderToFBO();
-        static void BlitAndClear();
+        static void BlendFBOAndScreen();
+        static void ClearFBO();
 
     private:
 

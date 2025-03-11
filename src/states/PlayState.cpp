@@ -794,9 +794,7 @@ void PlayState::Update(float delta)
 
 void PlayState::Render(float delta)
 {
-    // glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    // glStencilFunc(GL_EQUAL, 1, 0xFF);
-    // glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    LightComponent::ClearFBO();
 
     wolf::Scene* scene = &m_pGameInstance->GetScene();
     wolf::Camera2D* camera = scene->GetActiveCamera();
@@ -817,9 +815,6 @@ void PlayState::Render(float delta)
     for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
         lightComp.RenderToFBO();
     }
-
-    // Then blit the light FBO to the screen
-    LightComponent::BlitAndClear();
     
     // Bind to default framebuffer(screen)
     wolf::FrameBuffer::BindDefault();
@@ -855,6 +850,9 @@ void PlayState::Render(float delta)
     {
         m_pFBO->Blit();
     }
+
+    // Blend the light FBO with the screen
+    LightComponent::BlendFBOAndScreen();
 
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
