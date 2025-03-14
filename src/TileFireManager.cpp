@@ -47,39 +47,28 @@ void TileFireManager::Update(float p_delta)
     }
     
     // Go through each fire column
-    for(auto const& [column, columnVector] : m_mFireColumns)
+    for(auto const& [column, columnTiles] : m_mFireColumns)
     {
-        // If column has any active fire tile
-        if(m_vActiveFireColumnsTracker[column] > 0)
+        for (auto& fireTile : columnTiles)
         {
-
-        }
-        for (FireTile* fireTile : columnVector)
-        {
-
-            if
-            (
-                (fireTile->m_fLifespan > 0.0f) && 
-                (fireTile->m_fLifespan - p_delta <= 0.0f)
-            )
+            if(fireTile != nullptr)
             {
-                s_pTFMG->m_vActiveFireColumnsTracker[column] -= 1;
+                // Update each fire tile
+                fireTile->Update(p_delta);
             }
-            // Update each fire tile
-            fireTile->Update(p_delta);
         }
     }
 
-    // If player column has any active fire tile && player is not rolling
+    // Player is not rolling
     if(
-        m_vActiveFireColumnsTracker[playerTileColumn] > 0                                                               &&
-        m_pPlayerObj->GetComponent<PlayerController>()->GetPlayerAction() != PlayerController::PlayerAction::ROLLING
+        m_pPlayerObj->GetComponent<PlayerController>()->GetPlayerAction() != PlayerController::PlayerAction::ROLLING &&
+        m_mFireColumns.find(playerTilePos.x) != m_mFireColumns.end()
     )
     {
         for (FireTile* fireTile : m_mFireColumns[playerTileColumn])
         {
-            // If matching tile position, and fire tile is still active, burn
-            if(playerTilePos.y == fireTile->m_vTilePos.y && fireTile->m_currentBurnState == FireTile::BurnState::BURNING)
+            // If fire tile is still active & matching tile position, burn
+            if(fireTile->m_currentBurnState == FireTile::BurnState::BURNING && playerTilePos.y == fireTile->m_vTilePos.y)
             {
                 m_pPlayerObj->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
                 break;
@@ -92,7 +81,7 @@ void TileFireManager::Render()
 {
 }
 
-void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float p_cooldown)
+void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float p_cooldown, bool p_reset_lifespan)
 {
     float lifespan = p_lifespan < 0.0f ? m_fStockLifespan : p_lifespan;
     float burntCooldown = p_cooldown < 0.0f ? m_fStockBurntCooldown : p_cooldown;
@@ -104,12 +93,9 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
     // If column not registered
     if(itr == m_mFireColumns.end())
     {
-        // Create new column
-        m_mFireColumns.insert({column, {}});
-    
-        // Create new fire tile & update tracker
-        m_mFireColumns[column].emplace_back(new FireTile(m_pLBMG, p_tile_pos, lifespan, burntCooldown));
-        m_vActiveFireColumnsTracker[column] += 1;
+        // Create new column & new fire tile
+        m_mFireColumns.insert({column, {new FireTile(m_pLBMG, p_tile_pos, lifespan, burntCooldown)}});
+        return;
     }
 
     // If column already exists
@@ -119,19 +105,17 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
             // If matching fire tile
             if(fireTile->m_vTilePos.y == p_tile_pos.y)
             {
+                if(p_reset_lifespan == false) return;
                 if(fireTile->m_currentBurnState == FireTile::BurnState::BURNT) return;
-                if(fireTile->m_currentBurnState == FireTile::BurnState::UNBURNT)
-                {
-                    // Update tracker & turn on sprite
-                    m_vActiveFireColumnsTracker[column] += 1;
-                }
+
                 fireTile->Reset(lifespan, burntCooldown);
+                return;
             }
         }
+
+        // If no matching tile, create new fire tile & update tracker
+        m_mFireColumns[column].push_back(new FireTile(m_pLBMG, p_tile_pos, lifespan, burntCooldown));
     }
-
-
-
 
     return;
 }
@@ -145,18 +129,22 @@ TileFireManager::TileFireManager(LabyrinthManager* p_lbmg)
         m_pPlayerObj = playerController.GetGameObject();
         break;
     }
-
-    m_vActiveFireColumnsTracker.resize(LabyrinthManager::MAX_LABYRINTH_DIM);
-    for(int i = 0; i < LabyrinthManager::MAX_LABYRINTH_DIM; i++)
-    {
-        m_vActiveFireColumnsTracker[i] = 0;
-    }
 }
 
 TileFireManager::~TileFireManager()
 {
+    for (auto itr = m_mFireColumns.begin(); itr != m_mFireColumns.end();) {
+        for(auto& fireTile : itr->second)
+        {
+            delete fireTile;
+            fireTile = nullptr;
+        }
+        itr->second.clear();
+        itr = m_mFireColumns.erase(itr);
+    }
     m_pLBMG = nullptr;
     m_pScene = nullptr;
+
 }
 
 bool TileFireManager::IsWallTile(int p_tile_id)
@@ -223,7 +211,6 @@ TileFireManager::FireTile::~FireTile()
 
 void TileFireManager::FireTile::Update(float p_delta)
 {
-    
     switch(m_currentBurnState)
     {
         case FireTile::BurnState::BURNING:
@@ -254,7 +241,7 @@ void TileFireManager::FireTile::Reset(float p_lifespan, float p_cooldown)
     // If tile is in UNBURNT state
     if(m_currentBurnState == FireTile::BurnState::UNBURNT)
     {
-        // Update tracker & turn on sprite
+        // Set sprites visibility
         m_pFireObj->GetComponent<wolf::Sprite2D>()->SetVisibility(true);
         m_pBurntTileObj->GetComponent<wolf::Sprite2D>()->SetVisibility(false);
     }
@@ -295,7 +282,7 @@ void TileFireManager::FireTile::AttemptPropagation()
         if (boundsChecks[i]) {
             if (!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(positions[i].x, positions[i].y))) {
                 if (s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance) {
-                    s_pTFMG->AddFireTile(positions[i]);
+                    s_pTFMG->AddFireTile(positions[i], -1, -1, false);
                 }
             }
         }

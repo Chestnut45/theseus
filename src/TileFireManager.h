@@ -20,7 +20,7 @@ public:
     void Update(float p_delta);
     void Render();
 
-    void AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan = -1.0f, float p_cooldown = -1.0f);
+    void AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan = -1.0f, float p_cooldown = -1.0f, bool p_reset_lifespan = true);
 private:
 
     // FireTile Struct
@@ -64,10 +64,9 @@ private:
     };
 
     float m_fStockLifespan = 10.0f;
-    float m_fStockBurntCooldown = 5.0f;
+    float m_fStockBurntCooldown = 10.0f;
     
     std::map<int, std::vector<FireTile*>> m_mFireColumns;   // Arranges fire tiles in columns
-    std::vector<int> m_vActiveFireColumnsTracker;   // Keeps track of the number of active fire tiles in a column
     LabyrinthManager* m_pLBMG = nullptr;
     wolf::Scene* m_pScene = nullptr;
     wolf::GameObject* m_pPlayerObj = nullptr;
