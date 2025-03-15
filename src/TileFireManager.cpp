@@ -49,8 +49,9 @@ void TileFireManager::Update(float p_delta)
     // Go through each fire column
     for(auto const& [column, columnTiles] : m_mFireColumns)
     {
-        for (auto& fireTile : columnTiles)
+        for (int i = 0; i < columnTiles.size(); i++)
         {
+            FireTile* fireTile = columnTiles.at(i);
             if(fireTile != nullptr)
             {
                 // Update each fire tile
@@ -83,6 +84,9 @@ void TileFireManager::Render()
 
 void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float p_cooldown, bool p_reset_lifespan)
 {
+    int tileID = m_pLBMG->GetTile(p_tile_pos.x, p_tile_pos.y);
+    if(tileID == -2) return;
+    if(IsWallTile(tileID))return;
     float lifespan = p_lifespan < 0.0f ? m_fStockLifespan : p_lifespan;
     float burntCooldown = p_cooldown < 0.0f ? m_fStockBurntCooldown : p_cooldown;
     int column = p_tile_pos.x;
@@ -103,6 +107,7 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
         for(auto fireTile : m_mFireColumns[column])
         {
             // If matching fire tile
+
             if(fireTile->m_vTilePos.y == p_tile_pos.y)
             {
                 if(p_reset_lifespan == false) return;
@@ -166,19 +171,43 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
     m_fBurntCooldown = p_cooldown;
 
     m_vTilePos = p_tile_pos;
-    m_vtilePosLRTB = glm::ivec4(p_tile_pos.x - 1, p_tile_pos.x + 1, p_tile_pos.y + 1, p_tile_pos.y - 1);
+    glm::ivec4 tilePosLRTB = glm::ivec4(p_tile_pos.x - 1, p_tile_pos.x + 1, p_tile_pos.y + 1, p_tile_pos.y - 1);
     
-    int tileLID = p_lbmg->GetTile(m_vtilePosLRTB.x, m_vTilePos.y);    // Left
-    int tileRID = p_lbmg->GetTile(m_vtilePosLRTB.y, m_vTilePos.y);    // Right
-    int tileTID = p_lbmg->GetTile(m_vTilePos.x, m_vtilePosLRTB.z);    // Top
-    int tileBID = p_lbmg->GetTile(m_vTilePos.x, m_vtilePosLRTB.w);    // Bottom
+    int tileLID = p_lbmg->GetTile(tilePosLRTB.x, m_vTilePos.y);    // Left
+    int tileRID = p_lbmg->GetTile(tilePosLRTB.y, m_vTilePos.y);    // Right
+    int tileTID = p_lbmg->GetTile(m_vTilePos.x, tilePosLRTB.z);    // Top
+    int tileBID = p_lbmg->GetTile(m_vTilePos.x, tilePosLRTB.w);    // Bottom
  
-    m_vtilePosLRTB = glm::ivec4(
-        tileLID > -2 ? m_vtilePosLRTB.x : tileLID, 
-        tileRID > -2 ? m_vtilePosLRTB.y : tileRID,
-        tileTID > -2 ? m_vtilePosLRTB.z : tileTID,
-        tileBID > -2 ? m_vtilePosLRTB.w : tileBID
+    tilePosLRTB = glm::ivec4(
+        tileLID > -2 ? tilePosLRTB.x : tileLID, 
+        tileRID > -2 ? tilePosLRTB.y : tileRID,
+        tileTID > -2 ? tilePosLRTB.z : tileTID,
+        tileBID > -2 ? tilePosLRTB.w : tileBID
     );
+
+    const int boundsCheck = -2;
+
+    m_aNeighbourPos = {
+        glm::ivec2(tilePosLRTB.x, m_vTilePos.y),    // Left Centre
+        glm::ivec2(tilePosLRTB.y, m_vTilePos.y),    // Right Centre
+        glm::ivec2(m_vTilePos.x, tilePosLRTB.z),    // Top Centre
+        glm::ivec2(m_vTilePos.x, tilePosLRTB.w),    // Bottom Centre
+        glm::ivec2(tilePosLRTB.x, tilePosLRTB.z),   // Left Top
+        glm::ivec2(tilePosLRTB.x, tilePosLRTB.w),   // Left Bottom
+        glm::ivec2(tilePosLRTB.y, tilePosLRTB.z),   // Right Top
+        glm::ivec2(tilePosLRTB.y, tilePosLRTB.w),   // Right Bottom
+    };
+
+    m_aBounds = {
+        tilePosLRTB.x > boundsCheck,                                // Left Centre
+        tilePosLRTB.y > boundsCheck,                                // Right Centre
+        tilePosLRTB.z > boundsCheck,                                // Top Centre
+        tilePosLRTB.w > boundsCheck,                                // Bottom Centre
+        tilePosLRTB.x > boundsCheck && tilePosLRTB.z > boundsCheck, // Left Top
+        tilePosLRTB.x > boundsCheck && tilePosLRTB.w > boundsCheck, // Left Bottom
+        tilePosLRTB.y > boundsCheck && tilePosLRTB.z > boundsCheck, // Right Top
+        tilePosLRTB.y > boundsCheck && tilePosLRTB.w > boundsCheck, // Right Bottom
+    };
 
     wolf::Scene* scene = &p_lbmg->GetGameObject()->GetScene();
 
@@ -254,35 +283,12 @@ void TileFireManager::FireTile::Reset(float p_lifespan, float p_cooldown)
 
 void TileFireManager::FireTile::AttemptPropagation()
 {
-    const int boundaryCheck = -2;
-
-    glm::ivec2 positions[] = {
-        glm::ivec2(m_vtilePosLRTB.x, m_vTilePos.y),     // Left Centre
-        glm::ivec2(m_vtilePosLRTB.x, m_vtilePosLRTB.z), // Left Top
-        glm::ivec2(m_vtilePosLRTB.x, m_vtilePosLRTB.w), // Left Bottom
-        glm::ivec2(m_vtilePosLRTB.y, m_vTilePos.y),     // Right Centre
-        glm::ivec2(m_vtilePosLRTB.y, m_vtilePosLRTB.z), // Right Top
-        glm::ivec2(m_vtilePosLRTB.y, m_vtilePosLRTB.w), // Right Bottom
-        glm::ivec2(m_vTilePos.x, m_vtilePosLRTB.z),     // Top Centre
-        glm::ivec2(m_vTilePos.x, m_vtilePosLRTB.w)      // Bottom Centre
-    };
-
-    bool boundsChecks[] = {
-        m_vtilePosLRTB.x > boundaryCheck,                                       // Left Centre
-        m_vtilePosLRTB.x > boundaryCheck && m_vtilePosLRTB.z > boundaryCheck,   // Left Top
-        m_vtilePosLRTB.x > boundaryCheck && m_vtilePosLRTB.w > boundaryCheck,   // Left Bottom
-        m_vtilePosLRTB.y > boundaryCheck,                                       // Right Centre
-        m_vtilePosLRTB.y > boundaryCheck && m_vtilePosLRTB.z > boundaryCheck,   // Right Top
-        m_vtilePosLRTB.y > boundaryCheck && m_vtilePosLRTB.w > boundaryCheck,   // Right Bottom
-        m_vtilePosLRTB.z > boundaryCheck,                                       // Top Centre
-        m_vtilePosLRTB.w > boundaryCheck                                        // Bottom Centre
-    };
 
     for (int i = 0; i < 8; ++i) {
-        if (boundsChecks[i]) {
-            if (!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(positions[i].x, positions[i].y))) {
+        if (m_aBounds[i]) {
+            if (!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[i].x, m_aNeighbourPos[i].y))) {
                 if (s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance) {
-                    s_pTFMG->AddFireTile(positions[i], -1, -1, false);
+                    s_pTFMG->AddFireTile(m_aNeighbourPos[i], -1, -1, false);
                 }
             }
         }

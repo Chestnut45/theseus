@@ -34,7 +34,8 @@ private:
         };
 
         glm::ivec2 m_vTilePos = glm::ivec2(0, 0);
-        glm::ivec4 m_vtilePosLRTB = glm::ivec4(-1, -1, -1, -1);
+        std::array<glm::ivec2, 8> m_aNeighbourPos;
+        std::array<bool, 8> m_aBounds;
 
         wolf::GameObject* m_pFireObj = nullptr;
         wolf::GameObject* m_pBurntTileObj = nullptr;
