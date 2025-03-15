@@ -82,7 +82,7 @@ void TileFireManager::Render()
 {
 }
 
-void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float p_cooldown, bool p_reset_lifespan)
+void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float p_cooldown, bool p_reset_burning_lifespan)
 {
     int tileID = m_pLBMG->GetTile(p_tile_pos.x, p_tile_pos.y);
     if(tileID == -2) return;
@@ -110,8 +110,8 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
 
             if(fireTile->m_vTilePos.y == p_tile_pos.y)
             {
-                if(p_reset_lifespan == false) return;
                 if(fireTile->m_currentBurnState == FireTile::BurnState::BURNT) return;
+                if(fireTile->m_currentBurnState == FireTile::BurnState::BURNING && p_reset_burning_lifespan == false) return;
 
                 fireTile->Reset(lifespan, burntCooldown);
                 return;
@@ -239,7 +239,6 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
     fireSprite->SetVisibility(true);
 
     // create burntTileObj
-
     m_pBurntTileObj = &scene->CreateObject2D();
     m_pBurntTileObj->GetComponent<wolf::Transform2D>()->SetPosition(p_lbmg->GetWorldPosition(m_vTilePos) + glm::vec2(LabyrinthManager::TILE_SIZE * 1.5f));
     m_pBurntTileObj->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE));
@@ -247,6 +246,7 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
     scorchSprite->SetOriginToCenterOfTexture();
     scorchSprite->SetVisibility(false);
     
+    // Prevent first RNG roll being constant
     s_rng.NextFloat(0.0f, 1.0f);
 }
 
@@ -303,11 +303,20 @@ void TileFireManager::FireTile::Reset(float p_lifespan, float p_cooldown)
 void TileFireManager::FireTile::AttemptPropagation()
 {
     // Cardinal propagation
-    for (int i = 0; i < 4; ++i) {
-        if (m_aBounds[i]) {
-            if (!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[i].x, m_aNeighbourPos[i].y))) {
-                if (s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance) {
+    for (int i = 0; i < 4; ++i) 
+    {
+        // If the cardinal tile is within bounds
+        if (m_aBounds[i]) 
+        {
+            // If rng check passes       
+            if (s_rng.NextFloat(0.0f, 1.0f) <= m_fCardinalSpreadChance) 
+            {
+                // If the cardinal tile is not a wall
+                if (!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[i].x, m_aNeighbourPos[i].y))) 
+                {
+                    // Propagate
                     s_pTFMG->AddFireTile(m_aNeighbourPos[i], -1, -1, false);
+                    
                 }
             }
         }
@@ -321,18 +330,18 @@ void TileFireManager::FireTile::AttemptPropagation()
         {
 
             // If rng check passes
-            if (s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance) 
+            if (s_rng.NextFloat(0.0f, 1.0f) <= m_fOrdinalSpreadChance) 
             {
                 glm::ivec2 cnpIndices = m_aCardinalNeighbourPairIndices[i-4];
 
-                // If the ordinal tile is not a wall && neither of the neighbouring cardinal tiles is a wall 
+                // If the ordinal tile is not a wall && neither of the cardinal neighbour tiles is a wall 
                 if (
                     !s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[i].x, m_aNeighbourPos[i].y))                         &&
                     !s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[cnpIndices.x].x, m_aNeighbourPos[cnpIndices.x].y))   &&
                     !s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[cnpIndices.y].x, m_aNeighbourPos[cnpIndices.y].y))
                 ) 
                 {
-                // Propagate
+                    // Propagate
                     s_pTFMG->AddFireTile(m_aNeighbourPos[i], -1, -1, false);
                 }
             }

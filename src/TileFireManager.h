@@ -20,7 +20,7 @@ public:
     void Update(float p_delta);
     void Render();
 
-    void AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan = -1.0f, float p_cooldown = -1.0f, bool p_reset_lifespan = true);
+    void AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan = -1.0f, float p_cooldown = -1.0f, bool p_reset_burning_lifespan = true);
 private:
 
     // FireTile Struct
@@ -46,7 +46,8 @@ private:
         
         float m_fSpreadDelay = 0.2f;    // Delay between propagation attempts
         float m_fSpreadDelayTimer = 0.0f;    // Delay between propagation attempts
-        float m_fSpreadChance = 0.01f;  // Chance of spreading fire to a neighbour tile
+        float m_fCardinalSpreadChance = 0.014f;  // Chance of spreading fire to a cardinal neighbour tile (by percentage)
+        float m_fOrdinalSpreadChance =  0.01f;  // Chance of spreading fire to a cardinal neighbour tile (by percentage)
         float m_fAttractChance = 0.0f; // Chance of making fire from a neighbour tile spread to it
 
         static wolf::RNG s_rng;
