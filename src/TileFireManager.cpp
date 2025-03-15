@@ -171,22 +171,25 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
     m_fBurntCooldown = p_cooldown;
 
     m_vTilePos = p_tile_pos;
-    glm::ivec4 tilePosLRTB = glm::ivec4(p_tile_pos.x - 1, p_tile_pos.x + 1, p_tile_pos.y + 1, p_tile_pos.y - 1);
+
+    // Get cardinal X & Y positions around tile
+    glm::ivec4 tilePosLRTB = glm::ivec4(
+        p_tile_pos.x - 1, 
+        p_tile_pos.x + 1, 
+        p_tile_pos.y + 1, 
+        p_tile_pos.y - 1
+    );
     
+    // Out of bounds checkers through ID
     int tileLID = p_lbmg->GetTile(tilePosLRTB.x, m_vTilePos.y);    // Left
     int tileRID = p_lbmg->GetTile(tilePosLRTB.y, m_vTilePos.y);    // Right
     int tileTID = p_lbmg->GetTile(m_vTilePos.x, tilePosLRTB.z);    // Top
     int tileBID = p_lbmg->GetTile(m_vTilePos.x, tilePosLRTB.w);    // Bottom
  
-    tilePosLRTB = glm::ivec4(
-        tileLID > -2 ? tilePosLRTB.x : tileLID, 
-        tileRID > -2 ? tilePosLRTB.y : tileRID,
-        tileTID > -2 ? tilePosLRTB.z : tileTID,
-        tileBID > -2 ? tilePosLRTB.w : tileBID
-    );
 
     const int boundsCheck = -2;
 
+    // Store all neighbour positions
     m_aNeighbourPos = {
         glm::ivec2(tilePosLRTB.x, m_vTilePos.y),    // Left Centre
         glm::ivec2(tilePosLRTB.y, m_vTilePos.y),    // Right Centre
@@ -197,7 +200,16 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
         glm::ivec2(tilePosLRTB.y, tilePosLRTB.z),   // Right Top
         glm::ivec2(tilePosLRTB.y, tilePosLRTB.w),   // Right Bottom
     };
+    
+    // Set to -2 if out of bounds
+    tilePosLRTB = glm::ivec4(
+        tileLID > -2 ? tilePosLRTB.x : tileLID, 
+        tileRID > -2 ? tilePosLRTB.y : tileRID,
+        tileTID > -2 ? tilePosLRTB.z : tileTID,
+        tileBID > -2 ? tilePosLRTB.w : tileBID
+    );
 
+    // Store neighbour bounds check
     m_aBounds = {
         tilePosLRTB.x > boundsCheck,                                // Left Centre
         tilePosLRTB.y > boundsCheck,                                // Right Centre
@@ -207,6 +219,13 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
         tilePosLRTB.x > boundsCheck && tilePosLRTB.w > boundsCheck, // Left Bottom
         tilePosLRTB.y > boundsCheck && tilePosLRTB.z > boundsCheck, // Right Top
         tilePosLRTB.y > boundsCheck && tilePosLRTB.w > boundsCheck, // Right Bottom
+    };
+
+    m_aCardinalNeighbourPairIndices = {
+        glm::ivec2(0, 2),
+        glm::ivec2(0, 3),
+        glm::ivec2(1, 2),
+        glm::ivec2(1, 3),
     };
 
     wolf::Scene* scene = &p_lbmg->GetGameObject()->GetScene();
@@ -283,8 +302,8 @@ void TileFireManager::FireTile::Reset(float p_lifespan, float p_cooldown)
 
 void TileFireManager::FireTile::AttemptPropagation()
 {
-
-    for (int i = 0; i < 8; ++i) {
+    // Cardinal propagation
+    for (int i = 0; i < 4; ++i) {
         if (m_aBounds[i]) {
             if (!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[i].x, m_aNeighbourPos[i].y))) {
                 if (s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance) {
@@ -293,6 +312,33 @@ void TileFireManager::FireTile::AttemptPropagation()
             }
         }
     }
+
+    // Ordinal propagation
+    for (int i = 4; i < 8; ++i) 
+    {
+        // If the ordinal tile is within bounds
+        if (m_aBounds[i]) 
+        {
+
+            // If rng check passes
+            if (s_rng.NextFloat(0.0f, 1.0f) <= m_fSpreadChance) 
+            {
+                glm::ivec2 cnpIndices = m_aCardinalNeighbourPairIndices[i-4];
+
+                // If the ordinal tile is not a wall && neither of the neighbouring cardinal tiles is a wall 
+                if (
+                    !s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[i].x, m_aNeighbourPos[i].y))                         &&
+                    !s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[cnpIndices.x].x, m_aNeighbourPos[cnpIndices.x].y))   &&
+                    !s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[cnpIndices.y].x, m_aNeighbourPos[cnpIndices.y].y))
+                ) 
+                {
+                // Propagate
+                    s_pTFMG->AddFireTile(m_aNeighbourPos[i], -1, -1, false);
+                }
+            }
+        }
+    }
+    
 }
 
 void TileFireManager::FireTile::HandleBurningState(float p_delta)

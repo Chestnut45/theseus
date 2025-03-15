@@ -36,6 +36,7 @@ private:
         glm::ivec2 m_vTilePos = glm::ivec2(0, 0);
         std::array<glm::ivec2, 8> m_aNeighbourPos;
         std::array<bool, 8> m_aBounds;
+        std::array<glm::ivec2, 4> m_aCardinalNeighbourPairIndices;  // For ordinal propagation optimisation
 
         wolf::GameObject* m_pFireObj = nullptr;
         wolf::GameObject* m_pBurntTileObj = nullptr;
