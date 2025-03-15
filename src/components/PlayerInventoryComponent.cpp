@@ -1101,7 +1101,10 @@ void PlayerInventoryComponent::HandlePickupDroppedItemEvent(const PickupDroppedI
 
 void PlayerInventoryComponent::HandleEndPlacingPlaceableEvent(const EndPlacingPlaceableEvent& p_event)
 {
-    RemoveItem(m_iCurrentPlaceableIndex);
+    if(p_event.pItem != nullptr)
+    {
+        RemoveItem(m_iCurrentPlaceableIndex);
+    }
     m_iCurrentPlaceableIndex = -1;
     m_bIsPlacing = false;
     Open();

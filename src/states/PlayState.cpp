@@ -292,8 +292,16 @@ void PlayState::Update(float delta)
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
-        wolf::EventManager::TriggerEvent(PauseEvent(true));
-        m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
+        auto pc = m_pPlayerObject->GetComponent<PlayerController>();
+        if(pc->GetPlayerAction() == PlayerController::PlayerAction::PLACING)
+        {
+            pc->SetAction(PlayerController::PlayerAction::NONE);
+        }
+        else
+        {
+            wolf::EventManager::TriggerEvent(PauseEvent(true));
+            m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
+        }
     }
 
     // Update debug hotkeys

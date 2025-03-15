@@ -142,7 +142,6 @@ private:
 
     //-------Added By Nhat-------//
     void HandleBeginPlacingItemEvent(const BeginPlacingPlaceableEvent& p_event);
-    void HandleEndPlacingItemEvent(const EndPlacingPlaceableEvent& p_event);
 
     void OnDamageEvent(const DamageEvent& event);
 
@@ -269,8 +268,9 @@ private:
     // Equipped weapon (no default)
     WeaponItem* m_pCurrentWeapon = nullptr;
 
-    // Placeable item
+    // Placing-related variables
     PlaceableItem* m_pCurrentPlaceable = nullptr;
+    bool m_bIsPlaced = false;
 
     // Death screen related variables
     wolf::Timer m_runtimeTimer;

@@ -59,6 +59,8 @@ public:
     void OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
     void OnGameWinEvent(const GameWinEvent& event);
+    void OnPauseEvent(const PauseEvent& event);
+    
     std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}
 
 private:

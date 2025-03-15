@@ -45,7 +45,7 @@ struct BeginPlacingPlaceableEvent {
 };
 
 struct EndPlacingPlaceableEvent {
-    PlaceableItem* pItem;
+    PlaceableItem* pItem = nullptr;
 };
 
 struct RetrievePlaceableEvent {

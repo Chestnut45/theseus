@@ -522,11 +522,14 @@ void PlayerController::HandlePlacing(float delta)
 
             // Return if tile is a wall
             int tileId = lbmg.GetTile(cursorTilePos.x, cursorTilePos.y);
-            if((tileId >= Tile::WallBottomLeft) && (tileId <= Tile::WallTop)) return;
-         
+            if((tileId >= Tile::WallBottomLeft) && (tileId <= Tile::WallTop)) return; 
             break;
         }
 
+        // Mark placement as valid
+        m_bIsPlaced = true;
+
+        // If placeable is a portal
         if(this->m_pCurrentPlaceable->GetType() == PlaceableType::PORTAL)
         {   
         }
@@ -1094,8 +1097,16 @@ void PlayerController::EndPetrified()
 
 void PlayerController::EndPlacing()
 {
-    wolf::EventManager::TriggerEvent(EndPlacingPlaceableEvent(this->m_pCurrentPlaceable));
+    if(m_bIsPlaced == true)
+    {
+        wolf::EventManager::TriggerEvent(EndPlacingPlaceableEvent(this->m_pCurrentPlaceable));
+    }
+    else
+    {
+        wolf::EventManager::TriggerEvent(EndPlacingPlaceableEvent(nullptr));
+    }
     this->m_pCurrentPlaceable = nullptr;
+    m_bIsPlaced = false;
 }
 
 void PlayerController::ThrowHeldObject() {
