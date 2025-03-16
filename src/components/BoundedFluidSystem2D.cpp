@@ -172,6 +172,37 @@ void BoundedFluidSystem2D::Update(float delta)
 
         // p.m_vel *= 0.95f; // DEBUG: Extra damping to help with stability
 
+        auto Intersects = [](const glm::vec2& pos, float radius, const wolf::Rectangle& rect) {
+            glm::vec2 circleDistance;
+            float width = rect.m_right - rect.m_left;
+            float height = rect.m_top - rect.m_bottom;
+            circleDistance.x = abs(pos.x - rect.m_left);
+            circleDistance.y = abs(pos.y - rect.m_bottom);
+
+            if (circleDistance.x > (width/2 + radius)) { return false; }
+            if (circleDistance.y > (height/2 + radius)) { return false; }
+
+            if (circleDistance.x <= (width/2)) { return true; } 
+            if (circleDistance.y <= (height/2)) { return true; }
+
+            double cornerDistance_sq =
+                pow((circleDistance.x - width/2), 2) +
+                pow((circleDistance.y - height/2), 2);
+
+            return (cornerDistance_sq <= pow(radius, 2));
+        };
+
+        // Static collision rectangle boundary enforcement
+        for (const auto& rect : m_collisionRects)
+        {
+            bool intersects = Intersects(p.m_pos, m_kernelRadius / 2, rect);
+            if (intersects)
+            {
+                // Push out...
+                
+            }
+        }
+
         // Boundary enforcement
         if (p.m_pos.x - m_boundEpsilon < m_bounds.m_left)
         {
@@ -233,6 +264,11 @@ void BoundedFluidSystem2D::ApplyRadialForce(const glm::vec2& position, float rad
             p.m_vel += direction * glm::mix(strength, 0.0f, distance / totalRadius) / p.m_density;
         }
     }
+}
+
+void BoundedFluidSystem2D::AddStaticCollisionRect(const wolf::Rectangle& rect)
+{
+    m_collisionRects.push_back(rect);
 }
 
 void BoundedFluidSystem2D::ShowEditor()

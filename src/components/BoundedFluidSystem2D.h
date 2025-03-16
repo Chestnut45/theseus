@@ -74,6 +74,10 @@ public:
     // NOTE: A negative strength will pull towards the given position
     void ApplyRadialForce(const glm::vec2& position, float radius, float strength);
 
+    // Add static collision zones to the simulation
+    // TODO: Support more than AABBs
+    void AddStaticCollisionRect(const wolf::Rectangle& rect);
+
     // Set / Get the color of the fluid particles
     void SetFluidColor(const glm::vec4& color) { m_fluidColor = color; }
     const glm::vec4& GetFluidColor() const { return m_fluidColor; }
@@ -90,6 +94,7 @@ private:
     // Data members
     wolf::RNG m_rng;
     wolf::Rectangle m_bounds;
+    std::vector<wolf::Rectangle> m_collisionRects;
     std::vector<FluidParticle> m_particles;
     glm::vec4 m_fluidColor{0.0f, 0.2f, 0.45f, 1.0f};
     glm::vec4 m_waveColor{1.0f};
