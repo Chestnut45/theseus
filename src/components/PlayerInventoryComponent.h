@@ -19,6 +19,8 @@
 #include "inventory/ArmourItem.h"
 #include "inventory/WeaponItem.h"
 
+#include "inventory/PlaceableItem.h"
+
 class PlayerInventoryComponent : public InventoryComponent {
     public:
         PlayerInventoryComponent(int p_iSize, int p_iSlotsPerRow, ImVec2 p_v2DrawPos);
@@ -51,10 +53,12 @@ class PlayerInventoryComponent : public InventoryComponent {
 
         inline int GetNumSchematicsOfRarity(Rarity p_enRarity) const {return m_iSchematics[p_enRarity];};
 
+        
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
         void HandleCloseInventoryEvent(const CloseInventoryEvent& p_event);
         void HandleSellItemToPlayerEvent(const SellItemToPlayerEvent& p_event);
         void HandlePickupDroppedItemEvent(const PickupDroppedItemEvent& p_event);
+        void HandleEndPlacingPlaceableEvent(const EndPlacingPlaceableEvent& p_event);
         void HandleDispenseItemToPlayerEvent(const DispenseItemToPlayerEvent& p_event);
         void HandleAddToPlayerInventoryEvent(const SendItemToPlayerInventoryEvent& p_event);
         void HandleRemoveFromPlayerInventoryEvent(const RemoveFromPlayerInventoryEvent& p_event);
@@ -66,6 +70,8 @@ class PlayerInventoryComponent : public InventoryComponent {
         void UnequipItem(ItemBase* p_pItem);
         void DiscardItem(int p_iItemIndex);
         void DiscardEquipment(EquipmentSlot p_enSlot);
+        
+        void BeginPlacingPlaceable(ItemBase* p_pItem);
 
         bool m_bShowFullInventoryPrompt = false;
         bool m_bShowTooExpensivePrompt = false;
@@ -95,4 +101,8 @@ class PlayerInventoryComponent : public InventoryComponent {
         static const int TOG_BUTTON_CLOSED_HOVER;
         static const int TOG_BUTTON_OPEN;
         static const int TOG_BUTTON_OPEN_HOVER;
+
+        // Placeable-related members
+        bool m_bIsPlacing = false;
+        int m_iCurrentPlaceableIndex = -1;
 };

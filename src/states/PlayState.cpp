@@ -298,8 +298,16 @@ void PlayState::Update(float delta)
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
-        wolf::EventManager::TriggerEvent(PauseEvent(true));
-        m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
+        auto pc = m_pPlayerObject->GetComponent<PlayerController>();
+        if(pc->GetPlayerAction() == PlayerController::PlayerAction::PLACING)
+        {
+            pc->SetAction(PlayerController::PlayerAction::NONE);
+        }
+        else
+        {
+            wolf::EventManager::TriggerEvent(PauseEvent(true));
+            m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
+        }
     }
 
     // Update debug hotkeys
@@ -398,6 +406,7 @@ void PlayState::Update(float delta)
                     ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
                     ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
                     ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
+                    ItemBase* pPortal = ItemCreator::CreateItem("Portal");
 
                 ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
                 ItemBase* pSpear = ItemCreator::CreateItem("Spear");
@@ -414,6 +423,7 @@ void PlayState::Update(float delta)
                     playerInventory->AddItemOrDelete(pTheezys);
                     playerInventory->AddItemOrDelete(pFauxLeatherGloves);
                     playerInventory->AddItemOrDelete(pLapisLazuliRing);
+                    playerInventory->AddItemOrDelete(pPortal);
 
                     playerInventory->AddItemOrDelete(pBow);
                     playerInventory->AddItemOrDelete(pSpear);
