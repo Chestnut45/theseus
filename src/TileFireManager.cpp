@@ -60,12 +60,13 @@ void TileFireManager::Update(float p_delta)
         }
     }
 
-    // Player is not rolling
+    // If player is not rolling & on a registered column
     if(
         m_pPlayerObj->GetComponent<PlayerController>()->GetPlayerAction() != PlayerController::PlayerAction::ROLLING &&
         m_mFireColumns.find(playerTilePos.x) != m_mFireColumns.end()
     )
     {
+        // Interate through every tile in that column
         for (FireTile* fireTile : m_mFireColumns[playerTileColumn])
         {
             // If fire tile is still active & matching tile position, burn
@@ -107,18 +108,20 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
         for(auto fireTile : m_mFireColumns[column])
         {
             // If matching fire tile
-
             if(fireTile->m_vTilePos.y == p_tile_pos.y)
             {
+                // Return if tile is burnt
                 if(fireTile->m_currentBurnState == FireTile::BurnState::BURNT) return;
+                // Return if tile is burning but lifespan reset flag is false
                 if(fireTile->m_currentBurnState == FireTile::BurnState::BURNING && p_reset_burning_lifespan == false) return;
 
+                // Reset & Return
                 fireTile->Reset(lifespan, burntCooldown);
                 return;
             }
         }
 
-        // If no matching tile, create new fire tile & update tracker
+        // If no matching tile, create new fire tile
         m_mFireColumns[column].push_back(new FireTile(m_pLBMG, p_tile_pos, lifespan, burntCooldown));
     }
 
@@ -288,7 +291,7 @@ void TileFireManager::FireTile::Update(float p_delta)
 }
 void TileFireManager::FireTile::Reset(float p_lifespan, float p_cooldown)
 {
-    // If tile is in BURNT state
+    // Return if tile is in BURNT state
     if(m_currentBurnState == FireTile::BurnState::BURNT) return;
 
     // If tile is in UNBURNT state
