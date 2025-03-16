@@ -2,15 +2,13 @@
 in vec2 texCoords;
 
 // Final color output
-out vec4 pixelColour;
+out vec4 FragColor;
 
 // Sprite texture sampler at slot 0
-layout(binding = 0) uniform sampler2D spriteTexture;
+layout(binding = 0) uniform sampler2D screenTexture;
 
 void main()
 {
     // Sample sprite texture
-    vec4 textureColor = texture(spriteTexture, texCoords);
-
-    pixelColour = textureColor.rgba;
+    FragColor = texture(screenTexture, texCoords);
 }

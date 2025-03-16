@@ -3,6 +3,7 @@
 #include <map>
 #include <GLShapesRenderer.h>
 #include <ColliderManager.h>
+#include <W_Camera2D.h>
 
 //-----------------------------------------------------------------------------
 // File:            LightComponent.h
@@ -23,13 +24,13 @@ float LightComponent::s_arfBaseVertexData[6] {
 };
 
 std::vector<TexturedVertex2D> LightComponent::s_vtvQuadVertices {
-    {-1.0f, -1.0f, 0.0f, 0.0f}, // Bot left
-    {1.0f, -1.0f, 1.0f, 0.0f}, // Bot right
-    {1.0f, 1.0f, 1.0f, 1.0f}, // Top right
+    {-1.0f,  1.0f,  0.0f, 1.0f}, // Top Left
+    {-1.0f, -1.0f,  0.0f, 0.0f}, // Bot Left
+    {1.0f, -1.0f,  1.0f, 0.0f}, // Bot Right
 
-    {1.0f, 1.0f, 1.0f, 1.0f}, // Top right
-    {-1.0f, 1.0f, 0.0f, 1.0f}, // Top left
-    {-1.0f, -1.0f, 0.0f, 0.0f}, // Bot left
+    {-1.0f,  1.0f,  0.0f, 1.0f}, // Top Left
+    {1.0f, -1.0f,  1.0f, 0.0f}, // Bot Right
+    {1.0f,  1.0f,  1.0f, 1.0f} // Top Right
 };
 
 // ------------------------------------------------------------------------------------------------------------
@@ -46,8 +47,7 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
         // Create the shader program
         s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/light2D.vs", "data/shaders/light2D.fs");
 
-        // Create the FBO
-        // !-- The size really shouldn't be constant --!
+        // Create the FBO with the base dimensions (these will be changed during the Update loop if necessary)
         s_pFBO = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
 
         // Create the VBO
@@ -131,6 +131,10 @@ void LightComponent::Update(float p_fDelta) {
         // Then we don't want to do anything at all!
         return;
     }
+
+    glm::vec2 v2ViewSize = m_pScene->GetActiveCamera()->GetViewSize();
+    s_pFBO->SetTexSize(v2ViewSize.x, v2ViewSize.y);
+    s_pFBO->SetWindowSize(v2ViewSize.x, v2ViewSize.y);
 
     // Update the origin point of the light's radius
     m_v2Origin = m_pTransform->GetGlobalPosition();
@@ -777,19 +781,23 @@ void LightComponent::BlendFBOAndScreen() {
     // Enable blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    wolf::FrameBuffer::BindDefault();
 
     // Copy the contents of the FBO
-    s_pFBO->Blit();
+    //s_pFBO->Blit();
 
     // Bind the shader program
     s_pQuadProgram->Bind();
 
-    // Set the active texture to be the FBO's texture
-    glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, s_pFBO->GetTextureID());
-
     // Bind the VAO and draw a screen-size quad
     s_pVAO->Bind();
+    
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+
+    glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, s_pFBO->GetTextureID());
     glDrawArrays(GL_TRIANGLES, 0, s_vtvQuadVertices.size());
 
     // Clean-up

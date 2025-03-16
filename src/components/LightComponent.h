@@ -119,8 +119,6 @@ class LightComponent : public wolf::BaseComponent {
 
         static int s_iRefCount;
 
-        static inline wolf::Texture* s_pLightAndShadowTex = nullptr;
-
         static bool s_bFBOIsClear;
         static int s_iLightsRendered;
 
