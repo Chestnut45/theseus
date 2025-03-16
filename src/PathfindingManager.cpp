@@ -7,6 +7,7 @@
 
 #include "PathfindingManager.h"
 #include "MinitaurController.h"
+#include "GorgonController.h"
 #include <cmath> // for abs and sqrt
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp> // For squared length comparisons
@@ -128,14 +129,35 @@ void PathfindingManager::UpdateEntities(float delta)
 
     for (auto& [entity, data] : m_registeredEntities)
     {
+        wolf::GameObject* target = nullptr;
+        
+        // Check for Minitaur
         auto* minitaurController = entity->GetComponent<MinitaurController>();
-        if (!minitaurController || minitaurController->GetState() != MinitaurController::EnemyState::CHASING ||  minitaurController->GetState() == MinitaurController::EnemyState::DEATH)
+        if (minitaurController && minitaurController->GetState() == MinitaurController::EnemyState::CHASING &&  
+            minitaurController->GetState() != MinitaurController::EnemyState::DEATH)
+        {
+            target = minitaurController->GetTarget();
+        }
+        
+        // Check for Gorgon if not a valid Minitaur
+        if (!target)
+        {
+            auto* gorgonController = entity->GetComponent<GorgonController>();
+            if (gorgonController && gorgonController->GetState() == GorgonController::EnemyState::CHASING &&
+                gorgonController->GetState() != GorgonController::EnemyState::DEATH)
+            {
+                target = gorgonController->GetTarget();
+            }
+        }
+        
+        // Skip if no valid target
+        if (!target)
             continue;
 
         glm::ivec2 currentTile = glm::ivec2(entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
                                  (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
 
-        glm::ivec2 targetTile = glm::ivec2(minitaurController->GetTarget()->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
+        glm::ivec2 targetTile = glm::ivec2(target->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
                                 (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
 
         // **Track how long the entity has been stuck**
@@ -252,12 +274,40 @@ void PathfindingManager::RegisterEntity(wolf::GameObject* entity)
     if (m_registeredEntities.find(entity) == m_registeredEntities.end())
     {
         glm::ivec2 startTile = glm::ivec2(entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
-                               (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
-                               
-        glm::ivec2 targetTile = glm::ivec2(entity->GetComponent<MinitaurController>()->GetTarget()->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
-                                (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
-                                
-        m_registeredEntities[entity] = {entity, startTile, targetTile, {}}; // No path yet
+                              (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+                              
+        wolf::GameObject* target = nullptr;
+        glm::ivec2 targetTile;
+        
+        // Check if entity is a Minitaur
+        auto* minitaurController = entity->GetComponent<MinitaurController>();
+        if (minitaurController && minitaurController->GetTarget())
+        {
+            target = minitaurController->GetTarget();
+        }
+        else
+        {
+            // Check if entity is a Gorgon
+            auto* gorgonController = entity->GetComponent<GorgonController>();
+            if (gorgonController && gorgonController->GetTarget())
+            {
+                target = gorgonController->GetTarget();
+            }
+        }
+        
+        // If a valid target was found, calculate its tile position
+        if (target && target->GetComponent<wolf::Transform2D>())
+        {
+            targetTile = glm::ivec2(target->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /
+                        (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+        }
+        else
+        {
+            // If no valid target, use the entity's own position as fallback
+            targetTile = startTile;
+        }
+        
+        m_registeredEntities[entity] = {entity, startTile, targetTile, {}};
     }
 }
 

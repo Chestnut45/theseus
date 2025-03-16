@@ -218,6 +218,12 @@ void PlayState::Enter()
     {
         m_pPathfindingManager->RegisterEntity(minitaur.GetGameObject());
     }
+    // Now it's safe to register entities
+    for (auto&& [_, gorgon] : m_pGameInstance->GetScene().Each<GorgonController>())
+    {
+        m_pPathfindingManager->RegisterEntity(gorgon.GetGameObject());
+    }
+
 
     m_gameCompletionTime.Start();
 }
