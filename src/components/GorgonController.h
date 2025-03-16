@@ -16,6 +16,7 @@
 #include <components/StatusComponent.h>
 #include <EnemyDataLoader.h>
 #include "InfightingEvent.h"
+#include "PathfindingManager.h"
 class GorgonController : public EnemyController
 {
 public:
@@ -24,6 +25,9 @@ public:
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
     void ChangeState(EnemyState newState);
+
+    wolf::GameObject* GetTarget() const { return m_pTarget; }
+    EnemyState GetState() const { return m_state; }
 
 private:
     // Gorgon-specific methods
@@ -78,6 +82,10 @@ private:
     wolf::Timer m_transitionTimer;
     float m_transitionDelay = 0.2f; // Example delay for transitioning states
 
+    PathfindingManager* m_pPathfindingManager = nullptr;
+    void FallbackToDirectMovement(float delta);
+
+
     //-----------------//
     //                 //
     //  Added by Nhật  //
@@ -87,6 +95,8 @@ private:
     wolf::RNG m_RNG; 
 
     float m_targetDetectionTimer = 0.0f; // Taget detecction reaction delay
+
+    
 
     // Prospect state members
     float m_prospectCounter = 0.0f;
