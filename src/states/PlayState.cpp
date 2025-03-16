@@ -409,6 +409,9 @@ void PlayState::Update(float delta)
                     ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
                     ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
                     
+                    playerInventory->AddItemOrDelete(pPortal);
+                    playerInventory->AddItemOrDelete(pPortal);
+
                     playerInventory->AddItemOrDelete(pBoots);
                     playerInventory->AddItemOrDelete(pDentedHelmet);
                     playerInventory->AddItemOrDelete(pRustyChestplate);
@@ -417,7 +420,6 @@ void PlayState::Update(float delta)
                     playerInventory->AddItemOrDelete(pTheezys);
                     playerInventory->AddItemOrDelete(pFauxLeatherGloves);
                     playerInventory->AddItemOrDelete(pLapisLazuliRing);
-                    playerInventory->AddItemOrDelete(pPortal);
 
                     playerInventory->AddItemOrDelete(pBow);
                     playerInventory->AddItemOrDelete(pSpear);

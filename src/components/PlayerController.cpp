@@ -514,11 +514,24 @@ void PlayerController::HandlePlacing(float delta)
         // Return if attempting to place item out of bounds
         if(cursorWorldPos.x < 0 || cursorWorldPos.y < 0) return;
 
+        glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
         // Get the position of the tile that the cursor is on
-        glm::ivec2 cursorTilePos;
+        glm::ivec2 cursorTilePos = glm::ivec2(0, 0);
+        glm::ivec2 playerTilePos = glm::ivec2(0, 0);
         for (const auto&&[_, lbmg] : GetGameObject()->GetScene().Each<LabyrinthManager>())
         {
+            playerTilePos = lbmg.GetTilePosition(playerPos);
             cursorTilePos = lbmg.GetTilePosition(cursorWorldPos);
+
+            // Return if placed out of range
+            // printf("X: %d\n", std::abs(cursorTilePos.x - playerTilePos.x));
+            // printf("Y: %d\n", std::abs(cursorTilePos.y - playerTilePos.y));
+        
+            if (
+                std::abs(cursorTilePos.x - playerTilePos.x) > m_iPlaceablePlacingRange ||
+                std::abs(cursorTilePos.y - playerTilePos.y) > m_iPlaceablePlacingRange
+            ) return;
 
             // Return if tile is a wall
             int tileId = lbmg.GetTile(cursorTilePos.x, cursorTilePos.y);
@@ -526,12 +539,13 @@ void PlayerController::HandlePlacing(float delta)
             break;
         }
 
-        // Mark placement as valid
-        m_bIsPlaced = true;
+
 
         // If placeable is a portal
         if(this->m_pCurrentPlaceable->GetType() == PlaceableType::PORTAL)
         {   
+            // Mark placement flag
+            m_bIsPlaced = PortalTileManager::GetInstance()->CreatePortalTile(cursorTilePos);
         }
 
         SetAction(PlayerAction::NONE);
@@ -2010,3 +2024,5 @@ void PlayerController::ResetDeathScreenState() {
     // Reset options (buttons) fade variables
     m_optionsOpacity = 0.0f;
 }
+
+// Taken from ThrouwableObjectComponent by Youssef

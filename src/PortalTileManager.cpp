@@ -28,17 +28,6 @@ void PortalTileManager::DestroyInstance()
 {
     if(s_pPTMG != nullptr)
     {
-        while(s_pPTMG->m_vPortalTilePairs.size() > 0)
-        {
-            std::pair<PortalTile*, PortalTile*> pair = s_pPTMG->m_vPortalTilePairs.back();
-            s_pPTMG->m_vPortalTilePairs.pop_back();
-            PortalTile::DeletePair(pair.first, pair.second);
-        }
-
-        s_pPTMG->m_vPortalTilePairs.clear();
-
-        s_pPTMG->m_pLBMG = nullptr;
-
         delete s_pPTMG;
         s_pPTMG = nullptr;
     }
@@ -61,20 +50,29 @@ void PortalTileManager::Update(float p_dt)
         pt1->Update(p_dt);
         pt2->Update(p_dt);
     }
-}
-void PortalTileManager::CreatePortalTilePair(glm::ivec2 p_tile_pos_1, glm::ivec2 p_tile_pos_2)
-{
-    // Return immediately if tiles are invalid
-    if(!IsValidTile(p_tile_pos_1) || !IsValidTile(p_tile_pos_2))
+    if(m_pAvailablePortalTile != nullptr)
     {
-        return;
+        m_pAvailablePortalTile->Update(p_dt);
     }
-
-    // Create portal tile pair
-    std::pair<PortalTileManager::PortalTile*, PortalTileManager::PortalTile*> portalTilePair = PortalTile::CreatePair(p_tile_pos_1, p_tile_pos_2, m_pLBMG);
-    m_vPortalTilePairs.push_back(portalTilePair);
 }
 
+bool PortalTileManager::CreatePortalTile(glm::ivec2 p_tile_pos)
+{
+    if(!IsValidTile(p_tile_pos)) return false;
+
+    PortalTile* portalTile = PortalTile::CreatePortalTile(p_tile_pos, m_pLBMG, m_pAvailablePortalTile);
+    if(m_pAvailablePortalTile == nullptr)
+    {
+        m_pAvailablePortalTile = portalTile;
+    }
+    else
+    {
+        m_vPortalTilePairs.push_back(std::pair(portalTile, portalTile->GetSibling()));
+        m_pAvailablePortalTile = nullptr;
+    }
+    return true;
+    
+}
 
 PortalTileManager::PortalTileManager(LabyrinthManager* p_lbmg)
 {
@@ -83,10 +81,24 @@ PortalTileManager::PortalTileManager(LabyrinthManager* p_lbmg)
 
 PortalTileManager::~PortalTileManager()
 {
+    while(m_vPortalTilePairs.size() > 0)
+    {
+        std::pair<PortalTile*, PortalTile*> pair = m_vPortalTilePairs.back();
+        m_vPortalTilePairs.pop_back();
+        PortalTile::DeletePair(pair.first, pair.second);
+    }
+   
+    if(m_pAvailablePortalTile != nullptr)
+    {    
+        PortalTile::DeleteAvailablePortalTile(m_pAvailablePortalTile);
+        m_pAvailablePortalTile = nullptr;
+    }
+
+    m_vPortalTilePairs.clear();    
     m_pLBMG = nullptr;
 }
 
-bool PortalTileManager::IsValidTile(glm::ivec2 p_tile_pos) const
+bool PortalTileManager::IsValidTile(glm::ivec2 p_tile_pos)
 {
     // Check if tile is out of bounds
     return (p_tile_pos.x >= 0 && p_tile_pos.y >= 0);
@@ -96,13 +108,18 @@ bool PortalTileManager::IsValidTile(glm::ivec2 p_tile_pos) const
 //  STRUCT METHODS  //
 //------------------//
 
-std::pair<PortalTileManager::PortalTile*, PortalTileManager::PortalTile*> PortalTileManager::PortalTile::CreatePair(glm::ivec2 p_tile_pos_1, glm::ivec2 p_tile_pos_2, LabyrinthManager* p_lbmg)
+PortalTileManager::PortalTile* PortalTileManager::PortalTile::CreatePortalTile(glm::ivec2 p_tile_pos, LabyrinthManager* p_lbmg, PortalTile* p_sibling)
 {
-    PortalTile* portalTile1 = new PortalTile(p_tile_pos_1, p_lbmg);
-    PortalTile* portalTile2 = new PortalTile(p_tile_pos_2, p_lbmg);
-    portalTile1->m_pSiblingPortalTile = portalTile2;
-    portalTile2->m_pSiblingPortalTile = portalTile1;
-    return std::pair(portalTile1, portalTile2);
+    PortalTile* portalTile = new PortalTile(p_tile_pos, p_lbmg);
+    if(p_sibling != nullptr)
+    {
+        portalTile->m_pSiblingPortalTile = p_sibling;
+        portalTile->m_pSiblingPortalTile->m_pSiblingPortalTile = portalTile;
+        int index = PortalTileManager::GetInstance()->m_vPortalTilePairs.size() - 1;
+        portalTile->m_iPairIndex = index;
+        portalTile->m_pSiblingPortalTile->m_iPairIndex = index;
+    }
+    return portalTile;
 }
 
 void PortalTileManager::PortalTile::DeletePair(PortalTile* p_protal_tile_1, PortalTile* p_protal_tile_2)
@@ -120,6 +137,20 @@ void PortalTileManager::PortalTile::DeletePair(PortalTile* p_protal_tile_1, Port
 
     delete p_protal_tile_1;
     delete p_protal_tile_2;
+}
+
+void PortalTileManager::PortalTile::DeleteAvailablePortalTile(PortalTile* p_protal_tile)
+{
+    // Return if pointer is nullptr or has a sibling
+    if(
+        p_protal_tile == nullptr                || 
+        p_protal_tile->GetSibling() != nullptr
+    )
+    {
+        return;
+    }
+
+    delete p_protal_tile;
 }
 
 PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManager* p_lbmg)
@@ -157,24 +188,65 @@ PortalTileManager::PortalTile::~PortalTile()
     m_pPortalTileSpriteObj = nullptr;
 }
 
+glm::ivec2 PortalTileManager::PortalTile::GetTilePos() const
+{
+    return m_vTilePos;
+}
+
+bool PortalTileManager::PortalTile::IsActive() const
+{
+    return m_bIsActive;
+}
+
+PortalTileManager::PortalTile* PortalTileManager::PortalTile::GetSibling() const
+{
+    return m_pSiblingPortalTile;
+}
+
+wolf::GameObjectID PortalTileManager::PortalTile::GetOccupantID() const
+{
+    return m_occupantID;
+}
+
+wolf::GameObject* PortalTileManager::PortalTile::GetChunk() const
+{
+    return m_pChunk;
+}
+
+glm::ivec2 PortalTileManager::PortalTile::GetChunkID() const
+{
+    return m_vChunkID;
+}
+
+void PortalTileManager::PortalTile::SetActive(bool p_active)
+{
+    m_bIsActive = p_active;
+}
+
+void PortalTileManager::PortalTile::SetOccupantID(wolf::GameObjectID p_occupant_id)
+{
+    m_occupantID = p_occupant_id;
+}
+
 void PortalTileManager::PortalTile::Update(float p_dt)
 {
     bool isChunkActive = m_pLabyrinthManager->IsChunkActive(GetChunkID());
     
     // Return if chunk is inactive
     if(!isChunkActive) return;
-    
+
     // If portal tile is inactive
     if(!IsActive())
     {
         // If reference to player object exists
         if(m_pPlayer != nullptr)
         {
-            glm::vec2 playerPos = m_pPlayer->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            glm::ivec2 playerTilePos  = m_pLabyrinthManager->GetTilePosition(playerPos);
+
             // std::cout << "PlayerTilePos - x: " << playerTilePos.x << ", y: " << playerTilePos.y << std::endl;
             // std::cout << "PortalTilePos - x: " << m_vTilePos.x << ", y: " << m_vTilePos.y << std::endl;
 
+            glm::vec2 playerPos = m_pPlayer->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            glm::ivec2 playerTilePos  = m_pLabyrinthManager->GetTilePosition(playerPos);
             // If player is within vicinity, activate
             if
             (
@@ -189,7 +261,10 @@ void PortalTileManager::PortalTile::Update(float p_dt)
     }
     // If portal tile is active
     else
-    {
+    {        
+        // Return if sibling is nullptr
+        if(m_pSiblingPortalTile == nullptr) return;
+
         // Return if sibling is not active
         if(!m_pSiblingPortalTile->IsActive()) return;
 
@@ -231,46 +306,6 @@ void PortalTileManager::PortalTile::Update(float p_dt)
             CheckTeleport(attackDamage.GetGameObject());
         }
     }
-}
-
-glm::ivec2 PortalTileManager::PortalTile::GetTilePos() const
-{
-    return m_vTilePos;
-}
-
-bool PortalTileManager::PortalTile::IsActive() const
-{
-    return m_bIsActive;
-}
-
-PortalTileManager::PortalTile* PortalTileManager::PortalTile::GetSibling() const
-{
-    return m_pSiblingPortalTile;
-}
-
-wolf::GameObjectID PortalTileManager::PortalTile::GetOccupantID() const
-{
-    return m_occupantID;
-}
-
-wolf::GameObject* PortalTileManager::PortalTile::GetChunk() const
-{
-    return m_pChunk;
-}
-
-glm::ivec2 PortalTileManager::PortalTile::GetChunkID() const
-{
-    return m_vChunkID;
-}
-
-void PortalTileManager::PortalTile::SetActive(bool p_active)
-{
-    m_bIsActive = p_active;
-}
-
-void PortalTileManager::PortalTile::SetOccupantID(wolf::GameObjectID p_occupant_id)
-{
-    m_occupantID = p_occupant_id;
 }
 
 void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
@@ -352,4 +387,55 @@ void PortalTileManager::PortalTile::Teleport(wolf::GameObject* p_obj)
 
     // Set object as new occupant
     m_pSiblingPortalTile->SetOccupantID(p_obj->GetID());
+}
+void PortalTileManager::PortalTile::CheckPlayerCollection()
+{
+    glm::vec2 playerPos = m_pPlayer->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::ivec2 playerTilePos  = m_pLabyrinthManager->GetTilePosition(playerPos);
+    if
+    (
+        abs(playerTilePos.x - m_vTilePos.x) <= 1 &&
+        abs(playerTilePos.y - m_vTilePos.y) <= 1
+    )
+    {
+        RenderCollectPrompt();
+        if(wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+        {
+            // if(GetSibling() != nullptr)
+            // {
+            //     DeletePair(this, GetSibling());
+            // }
+            // else
+            // {
+            //     DeleteAvailablePortalTile(this);
+            // }
+        }
+    }
+}
+
+void PortalTileManager::PortalTile::RenderCollectPrompt()
+{
+    // Set screen-space position for the pickup prompt
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    ImVec2 promptPosition = ImVec2(displaySize.x * 0.5f, displaySize.y * 0.8f);  // Centered horizontally, lower portion vertically
+
+    ImGui::SetNextWindowPos(promptPosition, ImGuiCond_Always, ImVec2(0.5f, 0.5f));  // Centered alignment
+    ImGui::SetNextWindowBgAlpha(0.85f);
+
+    // Pulse color and size animation for visual feedback
+    float alphaPulse = 0.6f + 0.4f * sin(ImGui::GetTime() * 3.0f);
+    ImVec4 glowColor = ImVec4(0.8f, 0.92f, 0.3f, alphaPulse); // Neon green glow
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 5));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.9f));
+    ImGui::PushStyleColor(ImGuiCol_Text, glowColor);
+    ImGui::PushStyleColor(ImGuiCol_Border, glowColor);
+
+    ImGui::Begin("PickUpPrompt", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
+    ImGui::Text("Press E to pick up");
+    ImGui::End();
+
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar(2);
 }

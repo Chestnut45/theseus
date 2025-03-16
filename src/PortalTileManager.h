@@ -12,6 +12,8 @@
 
 class PortalTileManager
 {
+friend class PortalTile;
+
 public:
     static void CreateInstance(LabyrinthManager* p_lbmg);
     static void DestroyInstance();
@@ -19,20 +21,20 @@ public:
 
     void Update(float p_dt);
 
-    void CreatePortalTilePair(glm::ivec2 p_tile_pos_1, glm::ivec2 p_tile_pos_2);
+    bool CreatePortalTile(glm::ivec2 p_tile_pos);
 
 private:
     PortalTileManager(LabyrinthManager* p_lbmg);
     virtual ~PortalTileManager();
-    bool IsValidTile(glm::ivec2 p_tile_pos) const;
+    static bool IsValidTile(glm::ivec2 p_tile_pos);
     
 
     struct PortalTile
     {
     public:
-        static std::pair<PortalTile*, PortalTile*> CreatePair(glm::ivec2 p_tile_pos_1, glm::ivec2 p_tile_pos_2, LabyrinthManager* p_lbmg);
+        static PortalTile* CreatePortalTile(glm::ivec2 p_tile_pos, LabyrinthManager* p_lbmg, PortalTile* p_sibling = nullptr);
         static void DeletePair(PortalTile* p_protal_tile_1, PortalTile* p_protal_tile_2);
-        void Update(float p_dt);
+        static void DeleteAvailablePortalTile(PortalTile* p_protal_tile);
         
         // Getters
         glm::ivec2 GetTilePos() const;
@@ -47,8 +49,11 @@ private:
         void SetOccupantID(wolf::GameObjectID p_occupant_id);
         
         // Helpers
+        void Update(float p_dt);
         void CheckTeleport(wolf::GameObject* p_obj);
         void Teleport(wolf::GameObject* p_obj);
+        void CheckPlayerCollection();
+        static void RenderCollectPrompt();
 
     private:
         glm::ivec2 m_vTilePos = glm::ivec2(0.0f, 0.0f);
@@ -61,12 +66,14 @@ private:
         LabyrinthManager* m_pLabyrinthManager = nullptr;
         wolf::GameObject* m_pPlayer = nullptr;
         const glm::vec2 SPAWN_OFFSET = glm::vec2(LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE * 0.5f);
+        int m_iPairIndex = -1;  // The index of a portal pair in m_vPortalTilePairs
 
         PortalTile(glm::ivec2 p_tile_pos, LabyrinthManager* p_lbmg);
         virtual ~PortalTile();
     }; 
     
     LabyrinthManager* m_pLBMG = nullptr;
+    PortalTile* m_pAvailablePortalTile = nullptr;
     std::vector<std::pair<PortalTile*, PortalTile*>> m_vPortalTilePairs;
 
     static PortalTileManager* s_pPTMG;
