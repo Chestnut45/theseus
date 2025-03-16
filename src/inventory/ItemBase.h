@@ -17,6 +17,7 @@ enum ItemID {
     NONE = 1,
     CONSUMABLE,
     EQUIPMENT,
+    PLACEABLE,
     GOLD,
     SCHEMATIC,
 };

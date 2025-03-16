@@ -7,6 +7,7 @@
 #include "StatusEffectItem.h"
 #include "WeaponItem.h"
 #include "ArmourItem.h"
+#include "PlaceableItem.h"
 
 //-----------------------------------------------------------------------------
 // File:            ItemCreator.h
@@ -344,9 +345,22 @@ namespace ItemCreator {
 
                     // Then we can create the armour item!
                     pCreatedItem = new ArmourItem(EQUIPMENT, p_strItemName, strDesc, iValue, iTextureFrameIndex, enRarity, enSlot, fDamageReduction, vStatusEffects, aStatusEffectResistances);
-
                 }
             }
+            else if (strItemId == "PLACEABLE") { // If it is a placeable item
+                std::string placeableTypeStr = itemEntry["placeable_type"] ? itemEntry["placeable_type"].as<std::string>() : "";
+                PlaceableType plcType = END_OF_PLACEABLE_TYPES;
+                if(placeableTypeStr == "PORTAL") {                    
+                    plcType = PlaceableType::PORTAL;
+                }
+                else
+                {
+                    printf("Error: Unknown Placeable Type - Set Type To Default\n");
+                }
+                bool bStackable = itemEntry["is_stackable"] ? itemEntry["is_stackable"].as<bool>() : bStackable;
+                pCreatedItem = new PlaceableItem(PLACEABLE, plcType, p_strItemName, strDesc, iValue, bStackable, iTextureFrameIndex, enRarity);
+            }
+
             else {
                 // If the ID doesn't match one of the enums that we use then we can't create the item
                 wolf::Error("ItemCreator Error: Invalid item type id ", strItemId.c_str(), " for ", p_strItemName.c_str());
