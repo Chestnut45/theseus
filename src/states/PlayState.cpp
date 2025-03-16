@@ -87,6 +87,7 @@ void PlayState::Enter()
 
     PortalTileManager::CreateInstance(m_pLabyrinthManager);
     TileFireManager::CreateInstance(m_pLabyrinthManager);
+    TileFireManager::GetInstance()->SetPropagationActiveness(false);
 
     Postprocessor::CreateInstance(&scene);
 
@@ -1129,6 +1130,8 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
         case TriggerPurpose::BOSS: {
             
+            TileFireManager::GetInstance()->SetPropagationActiveness(false);
+
             // Stop the background music
             wolf::Audio::Stop("data/sounds/bgm_maze.wav");
             

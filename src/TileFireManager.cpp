@@ -125,6 +125,11 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
     return;
 }
 
+void TileFireManager::SetPropagationActiveness(bool p_propagation)
+{
+    m_bIsPropagationEnabled = p_propagation;
+}
+
 TileFireManager::TileFireManager(LabyrinthManager* p_lbmg)
 {
     m_pLBMG = p_lbmg;
@@ -365,17 +370,21 @@ void TileFireManager::FireTile::HandleBurningState(float p_delta)
         // Update lifespan timer
         m_fLifespan -= p_delta;
 
-        // Update spread delay timer
-        m_fSpreadDelayTimer -= p_delta;
-
-        // If spread delay expired
-        if(m_fSpreadDelayTimer <= 0.0f)
+        // If propagation flag set to true
+        if(s_pTFMG->m_bIsPropagationEnabled == true)
         {
-            // Reset timer
-            m_fSpreadDelayTimer = m_fSpreadDelay;
-            
-            // Attempt to propagate fire
-            AttemptPropagation();
+            // Update spread delay timer
+            m_fSpreadDelayTimer -= p_delta;
+
+            // If spread delay expired
+            if(m_fSpreadDelayTimer <= 0.0f)
+            {
+                // Reset timer
+                m_fSpreadDelayTimer = m_fSpreadDelay;
+                
+                // Attempt to propagate fire
+                AttemptPropagation();
+            }
         }
     }
 }

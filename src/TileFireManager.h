@@ -21,6 +21,7 @@ public:
     void Render();
 
     void AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan = -1.0f, float p_cooldown = -1.0f, bool p_reset_burning_lifespan = true);
+    void SetPropagationActiveness(bool p_propagation);
 private:
 
     // FireTile Struct
@@ -66,6 +67,7 @@ private:
         
     };
 
+    bool m_bIsPropagationEnabled = true;
     float m_fStockLifespan = 10.0f;
     float m_fStockBurntCooldown = 10.0f;
     
