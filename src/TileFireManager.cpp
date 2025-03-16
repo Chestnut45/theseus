@@ -40,11 +40,6 @@ void TileFireManager::Update(float p_delta)
     glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(m_pPlayerObj->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     int playerTileColumn = playerTilePos.x;
     // std::cout << "playerpos - x: " << playerTilePos.x << ", y: " << playerTilePos.y << std::endl;
-
-    if(wolf::Input::IsKeyJustDown(GLFW_KEY_F))
-    {
-        AddFireTile(playerTilePos);   
-    }
     
     // Go through each fire column
     for(auto const& [column, columnTiles] : m_mFireColumns)
