@@ -303,7 +303,7 @@ void TileFireManager::FireTile::Reset(float p_lifespan, float p_cooldown)
 void TileFireManager::FireTile::AttemptPropagation()
 {
     // Cardinal propagation
-    for (int i = 0; i < 4; ++i) 
+    for (int i = 0; i < 4; i++) 
     {
         // If the cardinal tile is within bounds
         if (m_aBounds[i]) 
@@ -323,7 +323,7 @@ void TileFireManager::FireTile::AttemptPropagation()
     }
 
     // Ordinal propagation
-    for (int i = 4; i < 8; ++i) 
+    for (int i = 4; i < 8; i++) 
     {
         // If the ordinal tile is within bounds
         if (m_aBounds[i]) 

@@ -46,8 +46,8 @@ private:
         
         float m_fSpreadDelay = 0.2f;    // Delay between propagation attempts
         float m_fSpreadDelayTimer = 0.0f;    // Delay between propagation attempts
-        float m_fCardinalSpreadChance = 0.014f;  // Chance of spreading fire to a cardinal neighbour tile (by percentage)
-        float m_fOrdinalSpreadChance =  0.01f;  // Chance of spreading fire to a cardinal neighbour tile (by percentage)
+        float m_fCardinalSpreadChance = 0.014f;  // Chance of spreading fire to a cardinal neighbour tile
+        float m_fOrdinalSpreadChance =  0.01f;  // Chance of spreading fire to an ordinal neighbour tile
         float m_fAttractChance = 0.0f; // Chance of making fire from a neighbour tile spread to it
 
         static wolf::RNG s_rng;
