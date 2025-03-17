@@ -98,6 +98,7 @@ private:
     std::vector<FluidParticle> m_particles;
     glm::vec4 m_fluidColor{0.0f, 0.2f, 0.45f, 1.0f};
     glm::vec4 m_waveColor{1.0f};
+    float m_simTime = 0.0f;
 
     // Spatial hashing optimization structure
     // NOTE: Maps each grid cell to a list of particle indices contained in the cell
@@ -115,7 +116,7 @@ private:
     float m_kernelRadiusSqr = m_kernelRadius * m_kernelRadius;
     float m_particleMass = 4.5f;
     float m_viscosity = 245.0f; // Original 200
-    float m_fixedDelta = 0.0007f;
+    float m_fixedDelta = 0.0005f;
 
     // Smoothing kernels defined in Müller and their gradients
     // Adapted to 2D per "SPH Based Shallow Water Simulation" by Solenthaler et al.
@@ -134,10 +135,14 @@ private:
     static inline size_t s_refCount = 0;
 
     // Rendering data / buffer handles
+    static inline GLuint s_dummyVAO = 0;
     static inline GLuint s_quadVAO = 0;
     static inline GLuint s_quadVBO = 0;
     static inline GLuint s_particleSSBO = 0;
-    static inline wolf::Program* s_pShader = nullptr;
+    static inline GLuint s_framebuffer = 0;
+    static inline GLuint s_fbColorTex = 0;
+    static inline wolf::Program* s_pParticleShader = nullptr;
+    static inline wolf::Program* s_pBlendPassShader = nullptr;
 
     // DEBUG: Sets up an initial dam break configuration based on m_numParticlesToSpawn
     void SetupDamBreak();

@@ -50,7 +50,7 @@ void Theseus::Update(float delta)
 void Theseus::Render(float delta)
 {
     // Clear the framebuffer
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Render the current game state

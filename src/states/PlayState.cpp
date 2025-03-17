@@ -200,8 +200,9 @@ void PlayState::Enter()
 
     // DEBUG: Fluid system testing
     auto& fluidObj = scene.CreateObject2D();
-    fluidObj.AddComponent<BoundedFluidSystem2D>(wolf::Rectangle(0.0f, 1200.0, 1200.0f, 0.0f));
-    m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f));
+    wolf::Rectangle bounds = wolf::Rectangle(0.0f, 1200.0, 1200.0f, 0.0f);
+    bounds.Translate(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+    fluidObj.AddComponent<BoundedFluidSystem2D>(bounds);
    
     // Schedule her movement
     auto* transform = ariadne.GetComponent<wolf::Transform2D>();

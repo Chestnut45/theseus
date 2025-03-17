@@ -2,6 +2,8 @@
 
 #include <glm/gtx/norm.hpp>
 #include <imgui/imgui.h>
+#include <W_Logging.h>
+#include <W_Transform2D.h>
 
 BoundedFluidSystem2D::BoundedFluidSystem2D(const wolf::Rectangle& bounds)
     :
@@ -11,6 +13,9 @@ BoundedFluidSystem2D::BoundedFluidSystem2D(const wolf::Rectangle& bounds)
     if (s_refCount == 0)
     {
         // Initialize static resources
+
+        // Dummy VAO for post processing pass
+        glGenVertexArrays(1, &s_dummyVAO);
 
         // Upload quad vertex data
         float quadVerts[] = {
@@ -40,8 +45,28 @@ BoundedFluidSystem2D::BoundedFluidSystem2D(const wolf::Rectangle& bounds)
         glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FluidParticle) * m_numParticlesToSpawn, nullptr, GL_STREAM_DRAW);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-        // Create shader
-        s_pShader = wolf::ProgramManager::CreateProgram("data/shaders/fluid_particle.vs", "data/shaders/fluid_particle.fs");
+        // Create shaders
+        s_pParticleShader = wolf::ProgramManager::CreateProgram("data/shaders/fluid_particle.vs", "data/shaders/fluid_particle.fs");
+        s_pBlendPassShader = wolf::ProgramManager::CreateProgram("data/shaders/fullscreen_pass.vs", "data/shaders/fluid_blend_pass.fs");
+
+        // Create framebuffer
+        glGenFramebuffers(1, &s_framebuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, s_framebuffer);
+        glGenTextures(1, &s_fbColorTex);
+        glBindTexture(GL_TEXTURE_2D, s_fbColorTex);
+        // TODO: React to window resizing...
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s_fbColorTex, 0);
+
+        // Ensure completeness
+        if( glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        {
+            wolf::Error("Fluid sim framebuffer not complete!");
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
     s_refCount++;
 
@@ -54,16 +79,22 @@ BoundedFluidSystem2D::~BoundedFluidSystem2D()
     if (s_refCount == 0)
     {
         // Cleanup static resources
+        glDeleteFramebuffers(1, &s_framebuffer);
+        glDeleteTextures(1, &s_fbColorTex);
         glDeleteBuffers(1, &s_quadVBO);
         glDeleteBuffers(1, &s_particleSSBO);
         glDeleteVertexArrays(1, &s_quadVAO);
-        wolf::ProgramManager::DestroyProgram(s_pShader);
-        s_pShader = nullptr;
+        wolf::ProgramManager::DestroyProgram(s_pParticleShader);
+        wolf::ProgramManager::DestroyProgram(s_pBlendPassShader);
+        s_pParticleShader = nullptr;
+        glDeleteVertexArrays(1, &s_dummyVAO);
     }
 }
 
 void BoundedFluidSystem2D::Update(float delta)
 {
+    m_simTime += delta;
+
     static const glm::ivec2 adjacentCellOffsets[] = {
         glm::ivec2(-1, 0),
         glm::ivec2(-1, -1),
@@ -237,18 +268,39 @@ void BoundedFluidSystem2D::Render(float delta)
 
     // TODO: Setup blend state
 
-    // TODO: Transform uniform data
+    // Grab transform data and upload uniforms
+    auto* pTransform = GetGameObject()->GetComponent<wolf::Transform2D>();
+    s_pParticleShader->SetUniform("model", pTransform ? pTransform->GetGlobalMatrix() : glm::mat4(1.0f));
+    s_pParticleShader->SetUniform("kernelRadius", m_kernelRadius);
+    s_pParticleShader->SetUniform("gasConstant", m_gasConstant);
+    s_pParticleShader->SetUniform("restDensity", m_restDensity);
+    s_pParticleShader->SetUniform("fluidColor", m_fluidColor);
+    s_pParticleShader->SetUniform("waveColor", m_waveColor);
+    s_pParticleShader->Bind();
 
-    // Bind and draw
-    s_pShader->SetUniform("kernelRadius", m_kernelRadius);
-    s_pShader->SetUniform("gasConstant", m_gasConstant);
-    s_pShader->SetUniform("restDensity", m_restDensity);
-    s_pShader->SetUniform("fluidColor", m_fluidColor);
-    s_pShader->SetUniform("waveColor", m_waveColor);
-    s_pShader->Bind();
+    // Bind and draw particles to our framebuffer
+    GLint currentDrawFBO;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentDrawFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, s_framebuffer);
+    glClear(GL_COLOR_BUFFER_BIT);
     glBindVertexArray(s_quadVAO);
     glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_particles.size());
+
+    // Upload other uniforms
+    auto* pCamera = GetGameObject()->GetScene().GetActiveCamera();
+    s_pBlendPassShader->SetUniform("cameraPos", pCamera ? glm::vec3(pCamera->GetPosition(), 1.0f) : glm::vec3(0.0f));
+    s_pBlendPassShader->SetUniform("time", m_simTime);
+    s_pBlendPassShader->Bind();
+
+    // Then blend into the original framebuffer
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBindTextureUnit(9, s_fbColorTex);
+    glBindFramebuffer(GL_FRAMEBUFFER, currentDrawFBO);
+    glBindVertexArray(s_dummyVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
     glBindVertexArray(0);
+    glDisable(GL_BLEND);
 }
 
 void BoundedFluidSystem2D::ApplyRadialForce(const glm::vec2& position, float radius, float strength)

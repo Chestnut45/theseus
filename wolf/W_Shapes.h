@@ -45,6 +45,9 @@ struct Rectangle
 
     ~Rectangle();
 
+    // Translates the rectangle by the given 2D vector
+    void Translate(const glm::vec2& vector);
+
     // Intersection tests
     bool Intersects(const glm::vec2& position) const;
     bool Intersects(const Rectangle& rectangle) const;

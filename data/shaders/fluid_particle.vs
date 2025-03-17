@@ -19,9 +19,8 @@ layout(std430, binding = 3) buffer ParticleSSBO
 // Quad attributes
 layout(location = 0) in vec2 quadPos;
 
-// Model matrix for the Transform component
-// uniform mat4 model;
-
+// Model matrix for the object transform
+uniform mat4 model;
 uniform float kernelRadius;
 
 // Outputs to fragment shader
@@ -34,5 +33,5 @@ void main()
     ParticleData p = particles[gl_InstanceID];
     pos = scaledQuadPos;
     forceDensityPressure = p.forceDensityPressure;
-    gl_Position = viewProj * vec4((scaledQuadPos + p.posVel.xy), 0.0, 1.0);
+    gl_Position = viewProj * model * vec4((scaledQuadPos + p.posVel.xy), 0.0, 1.0);
 }

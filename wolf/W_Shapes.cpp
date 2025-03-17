@@ -48,6 +48,14 @@ Rectangle::~Rectangle()
 {
 }
 
+void Rectangle::Translate(const glm::vec2& vector)
+{
+    m_left += vector.x;
+    m_right += vector.x;
+    m_top += vector.y;
+    m_bottom += vector.y;
+}
+
 bool Rectangle::Intersects(const glm::vec2& position) const
 {
     return  position.x >= m_left &&
