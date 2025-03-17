@@ -792,12 +792,12 @@ void LightComponent::BlendFBOAndScreen() {
 
     // Bind the VAO and draw a screen-size quad
     s_pVAO->Bind();
-    
-    glClear(GL_COLOR_BUFFER_BIT);
+
     glDisable(GL_DEPTH_TEST);
 
     glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, s_pFBO->GetTextureID());
+    
     glDrawArrays(GL_TRIANGLES, 0, s_vtvQuadVertices.size());
 
     // Clean-up
