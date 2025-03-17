@@ -202,7 +202,10 @@ void PlayState::Enter()
     auto& fluidObj = scene.CreateObject2D();
     wolf::Rectangle bounds = wolf::Rectangle(0.0f, 1200.0, 1200.0f, 0.0f);
     bounds.Translate(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
-    fluidObj.AddComponent<BoundedFluidSystem2D>(bounds);
+    auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(bounds);
+    auto rect = wolf::Rectangle(64.0f, 128.0f, 128.0f, 64.0f);
+    rect.Translate(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+    fluidSystem.AddStaticCollisionRect(rect);
    
     // Schedule her movement
     auto* transform = ariadne.GetComponent<wolf::Transform2D>();

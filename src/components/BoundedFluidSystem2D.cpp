@@ -225,11 +225,38 @@ void BoundedFluidSystem2D::Update(float delta)
         // Static collision rectangle boundary enforcement
         for (const auto& rect : m_collisionRects)
         {
-            bool intersects = Intersects(p.m_pos, m_kernelRadius / 2, rect);
-            if (intersects)
+            // Find the closest point on the rectangle to the circle
+            float closestX = std::max(rect.m_left, std::min(p.m_pos.x, rect.m_right));
+            float closestY = std::max(rect.m_bottom, std::min(p.m_pos.y, rect.m_top));
+
+            // Compute delta
+            float deltaX = p.m_pos.x - closestX;
+            float deltaY = p.m_pos.y - closestY;
+            float distanceSquared = deltaX * deltaX + deltaY * deltaY;
+
+            // Check if there is a collision
+            if (distanceSquared < pow(m_boundEpsilon, 2))
             {
-                // Push out...
-                
+                float distance = std::sqrt(distanceSquared);
+                if (distance == 0.0f)
+                {
+                    // TODO: handle...
+                }
+                else
+                {
+                    float normalX = deltaX / distance;
+                    float normalY = deltaY / distance;
+                    if (std::abs(deltaX) > std::abs(deltaY))
+                    {
+                        p.m_pos.x += normalX * (m_boundEpsilon - std::abs(deltaX));
+                        p.m_vel.x *= m_boundDamping;
+                    }
+                    else
+                    {
+                        p.m_pos.y += normalY * (m_boundEpsilon - std::abs(deltaY));
+                        p.m_vel.y *= m_boundDamping;
+                    }
+                }
             }
         }
 
