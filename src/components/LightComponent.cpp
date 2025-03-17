@@ -68,6 +68,8 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
         }
         // !----------------------------- End of D'Anyil's code segment ---------------------------------!
 
+        wolf::FrameBuffer::BindDefault();
+
         // Create the VBO
         s_pVBO = wolf::BufferManager::CreateVertexBuffer(s_arfBaseVertexData, sizeof(ColouredVertex2D));
         s_pVAO = new wolf::VertexDeclaration();
@@ -85,6 +87,7 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
         s_pQuadVAO->Begin();
         s_pQuadVAO->AppendAttribute(wolf::Attribute::AT_Position, 2, wolf::ComponentType::CT_Float, 0);
         s_pQuadVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
+        s_pQuadVAO->SetVertexBuffer(s_pQuadVBO);
         s_pQuadVAO->End();
     }
 
@@ -836,7 +839,7 @@ void LightComponent::ClearFBO() {
 
     // Bind the lighting FB and clear it to black
     glBindFramebuffer(GL_FRAMEBUFFER, s_uiFBO);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.25f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Then rebind the original FBO
