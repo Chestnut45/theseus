@@ -85,6 +85,10 @@ public:
     void SetWaveColor(const glm::vec4& color) { m_waveColor = color; }
     const glm::vec4& GetWaveColor() const { return m_waveColor; }
 
+    // Set / Get the color of the wave caustics
+    void SetCausticColor(const glm::vec4& color) { m_causticColor = color; }
+    const glm::vec4& GetCausticColor() const { return m_causticColor; }
+
     // Renders a debug GUI for controlling the simulation
     void ShowEditor();
 
@@ -95,10 +99,10 @@ private:
     wolf::Rectangle m_bounds;
     std::vector<wolf::Rectangle> m_collisionRects;
     std::vector<FluidParticle> m_particles;
-    glm::vec4 m_fluidColor{0.0f, 0.2f, 0.45f, 1.0f};
-    glm::vec4 m_waveColor{1.0f};
-    glm::vec4 m_causticColor{1.0f};
-    float m_causticFrequency = 10.0f;
+    glm::vec4 m_fluidColor{0.039f, 0.295f, 0.402f, 0.812f};
+    glm::vec4 m_waveColor{0.8f, 0.886f, 0.941f, 0.745f};
+    glm::vec4 m_causticColor{0.936f, 0.836f, 0.757f, 0.827f};
+    float m_causticFrequency = 20.0f;
     float m_simTime = 0.0f;
 
     // Spatial hashing optimization structure
@@ -127,9 +131,9 @@ private:
 
     // Simulation parameters
     int m_numParticlesToSpawn = 1000;
-    bool m_simulateGravity = true;
+    bool m_simulateGravity = false;
     glm::vec2 m_gravity{0.0f, -9.81f};
-    float m_boundEpsilon = m_kernelRadius;
+    float m_boundEpsilon = m_kernelRadius / 2;
     float m_boundDamping = -0.5f;
 
     // Reference counter for static resources

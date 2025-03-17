@@ -44,6 +44,15 @@ Rectangle::Rectangle(const glm::vec2& topLeft, const glm::vec2& size)
 {
 }
 
+Rectangle::Rectangle(const IRectangle& rect)
+    :
+    m_left(rect.m_origin.x),
+    m_top(rect.m_origin.y + rect.m_size.y),
+    m_right(rect.m_origin.x + rect.m_size.x),
+    m_bottom(rect.m_origin.y)
+{
+}
+
 Rectangle::~Rectangle()
 {
 }

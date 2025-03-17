@@ -14,6 +14,9 @@ namespace wolf
 {
 
 // 2D Shapes
+struct Circle;
+struct Rectangle;
+struct IRectangle;
 
 // Represents a circle with floating point coordinates
 struct Circle
@@ -42,6 +45,9 @@ struct Rectangle
 
     // Construct a rectangle from an origin (top-left) and size (width/height)
     Rectangle(const glm::vec2& topLeft, const glm::vec2& size);
+
+    // Constructs a rectangle from an IRectangle
+    Rectangle(const IRectangle& rect);
 
     ~Rectangle();
 

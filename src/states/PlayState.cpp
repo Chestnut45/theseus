@@ -133,7 +133,6 @@ void PlayState::Enter()
         m_pBossWalls = &scene.CreateObject2D();
         m_bossRoomOrigin= room.m_bounds.m_origin;
         m_bossRoomSize = room.m_bounds.m_size;
-
         break;
     }
 
@@ -197,15 +196,6 @@ void PlayState::Enter()
     // Register the closest Minotaur in the shared context
     m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
     m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
-
-    // DEBUG: Fluid system testing
-    auto& fluidObj = scene.CreateObject2D();
-    wolf::Rectangle bounds = wolf::Rectangle(0.0f, 1200.0, 1200.0f, 0.0f);
-    bounds.Translate(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
-    auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(bounds);
-    auto rect = wolf::Rectangle(64.0f, 128.0f, 128.0f, 64.0f);
-    rect.Translate(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
-    fluidSystem.AddStaticCollisionRect(rect);
    
     // Schedule her movement
     auto* transform = ariadne.GetComponent<wolf::Transform2D>();
@@ -354,8 +344,7 @@ void PlayState::Update(float delta)
 
         // DEBUG: Apply force where player is
         bool playerRolling = m_pPlayerObject->GetComponent<PlayerController>()->GetPlayerAction() == PlayerController::PlayerAction::ROLLING;
-        float strength = playerRolling ? 50.0f : 5.0f;
-        system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 100.0f, strength);
+        if (playerRolling) system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 50.0f, 10.0f);
 
         // DEBUG: Show editor and break after updating one system
         system.ShowEditor();
@@ -1184,6 +1173,8 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             {
                 tilemap.SetFilterMode(GL_LINEAR_MIPMAP_LINEAR);
             }
+
+            // TODO: Remove spike traps!
 
             // Set door areas to wall tiles
             for (const auto& door : m_bossRoomDoorTiles)

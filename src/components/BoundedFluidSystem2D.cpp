@@ -200,28 +200,6 @@ void BoundedFluidSystem2D::Update(float delta)
         p.m_vel += m_fixedDelta * p.m_force / p.m_density;
         p.m_pos += m_fixedDelta * p.m_vel;
 
-        // p.m_vel *= 0.95f; // DEBUG: Extra damping to help with stability
-
-        auto Intersects = [](const glm::vec2& pos, float radius, const wolf::Rectangle& rect) {
-            glm::vec2 circleDistance;
-            float width = rect.m_right - rect.m_left;
-            float height = rect.m_top - rect.m_bottom;
-            circleDistance.x = abs(pos.x - rect.m_left);
-            circleDistance.y = abs(pos.y - rect.m_bottom);
-
-            if (circleDistance.x > (width/2 + radius)) { return false; }
-            if (circleDistance.y > (height/2 + radius)) { return false; }
-
-            if (circleDistance.x <= (width/2)) { return true; } 
-            if (circleDistance.y <= (height/2)) { return true; }
-
-            double cornerDistance_sq =
-                pow((circleDistance.x - width/2), 2) +
-                pow((circleDistance.y - height/2), 2);
-
-            return (cornerDistance_sq <= pow(radius, 2));
-        };
-
         // Static collision rectangle boundary enforcement
         for (const auto& rect : m_collisionRects)
         {
@@ -291,8 +269,6 @@ void BoundedFluidSystem2D::Render(float delta)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, s_particleSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(FluidParticle) * m_particles.size(), m_particles.data(), GL_STREAM_DRAW);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-    // TODO: Setup blend state
 
     // Grab transform data and upload uniforms
     auto* pTransform = GetGameObject()->GetComponent<wolf::Transform2D>();
@@ -365,7 +341,7 @@ void BoundedFluidSystem2D::ShowEditor()
         m_poly6 = 4.0f / (M_PI * pow(m_kernelRadius, 8.0f));
         m_spikyGradient = -10.0f / (M_PI * pow(m_kernelRadius, 5.0f));
         m_viscLaplacian = 40.0f / (M_PI * pow(m_kernelRadius, 5.0f));
-        m_boundEpsilon = m_kernelRadius;
+        m_boundEpsilon = m_kernelRadius / 2;
     };
     ImGui::SliderFloat("Particle Mass", &m_particleMass, 0.0f, 50.0f, "%.1f");
     ImGui::SliderFloat("Viscosity", &m_viscosity, 0.0f, 300.0f, "%.0f");

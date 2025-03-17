@@ -38,6 +38,7 @@
 #include "../LabyrinthTiles.h"
 
 #include <events/GameWinEvent.h>
+#include <BoundedFluidSystem2D.h>
 
 BossController::BossController()
 {
@@ -231,6 +232,26 @@ void BossController::Init()
     // Add the sprite
     wolf::Sprite2D& sprite = m_pShadowObject->AddComponent<wolf::Sprite2D>("data/textures/boss_shadow.png");
     sprite.SetOriginToCenterOfTexture();
+
+    // Calculate simulation bounds
+    auto simBounds = wolf::Rectangle(r);
+    simBounds.m_top *= 96;
+    simBounds.m_left *= 96;
+    simBounds.m_right *= 96;
+    simBounds.m_bottom *= 96;
+
+    // Create the fluid system
+    auto& fluidObj = pObject->GetScene().CreateObject2D();
+    auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
+
+    // TODO: Add pillars... (breaking?)
+    auto rect = wolf::Rectangle(0.0f, 96.0f, 96.0f, 0.0f);
+    for (const auto& tile : locations)
+    {
+        auto bounds = rect;
+        bounds.Translate(m_pLabyrinthManager->GetWorldPosition(tile));
+        fluidSystem.AddStaticCollisionRect(bounds);
+    }
 
     EnterPhase1();
 }
@@ -497,13 +518,6 @@ void BossController::UpdatePhase1(float delta)
     CheckWaveProgress(delta);
     CheckEnemyWaveHealth();
     RenderImGui();
-
-    // **Trigger Wave 1 if the player attacks near the boss**
-    if (!m_waveActive && m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING)
-    {
-        // wolf::Log("BossController: Player attacked, starting Wave 1...");
-        StartWave();
-    }
 }
 
 void BossController::CleanupPhase1()
