@@ -47,6 +47,7 @@ class LightComponent : public wolf::BaseComponent {
         void RenderToFBO();
         static void BlendFBOAndScreen();
         static void ClearFBO();
+        static void ResizeFBO(int p_iWidth, int p_iHeight);
 
     private:
 
@@ -115,7 +116,9 @@ class LightComponent : public wolf::BaseComponent {
         static inline wolf::Program* s_pProgram = nullptr;
         static inline wolf::VertexBuffer* s_pVBO = nullptr;
         static inline wolf::VertexDeclaration* s_pVAO = nullptr;
-        static inline wolf::FrameBuffer* s_pFBO = nullptr;
+        
+        static inline GLuint s_uiFBO = 0;
+        static inline GLuint s_uiTexture = 0;
 
         static int s_iRefCount;
 

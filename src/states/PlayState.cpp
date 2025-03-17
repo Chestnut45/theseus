@@ -815,6 +815,9 @@ void PlayState::Render(float delta)
     for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
         lightComp.RenderToFBO();
     }
+
+    // Blend the light FBO with the screen
+    LightComponent::BlendFBOAndScreen();
     
     // Bind to default framebuffer(screen)
     wolf::FrameBuffer::BindDefault();
@@ -850,9 +853,6 @@ void PlayState::Render(float delta)
     {
         m_pFBO->Blit();
     }
-
-    // Blend the light FBO with the screen
-    LightComponent::BlendFBOAndScreen();
 
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
