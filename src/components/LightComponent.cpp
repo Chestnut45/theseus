@@ -817,8 +817,7 @@ void LightComponent::BlendFBOAndScreen() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Bind the FBO texture
-    glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, s_uiTexture);
+    glBindTextureUnit(11, s_uiTexture);
 
     // Bind the shader program
     s_pQuadProgram->Bind();
@@ -834,16 +833,16 @@ void LightComponent::BlendFBOAndScreen() {
 
 void LightComponent::ClearFBO() {
     // Get the current FBO
-    GLint uiCurrentFBO;
-    glGetIntegerv(GL_FRAMEBUFFER, &uiCurrentFBO);
+    GLint iCurrentFBO;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &iCurrentFBO);
 
-    // Bind the lighting FB and clear it to black
+    // Bind the lighting FBO and clear it to black
     glBindFramebuffer(GL_FRAMEBUFFER, s_uiFBO);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Then rebind the original FBO
-    glBindFramebuffer(GL_FRAMEBUFFER, uiCurrentFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, iCurrentFBO);
 }
 
 // !---------------------------- This code segment is courtesy of D'Anyil ---------------------------------!
