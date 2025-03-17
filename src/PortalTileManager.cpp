@@ -47,11 +47,48 @@ void PortalTileManager::Update(float p_dt)
         PortalTile* pt2 = portalTilePair.second;
 
         // Update each portal tile
+        
         pt1->Update(p_dt);
         pt2->Update(p_dt);
     }
+
+    // for(auto portalTilePair: m_vPortalTilePairs)
+    // {
+    //     PortalTile* ptPair[2] = { portalTilePair.first,  portalTilePair.second };
+    //     for(int i = 0; i < 2; i++)
+    //     {
+    //         PortalTile* pt = ptPair[i];
+
+    //         glm::vec2 playerPos = m_pPlayer->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    //         glm::ivec2 playerTilePos  = m_pLBMG->GetTilePosition(playerPos);
+    //         if
+    //         (
+    //             abs(playerTilePos.x - pt->GetTilePos().x) <= 1 &&
+    //             abs(playerTilePos.y - pt->GetTilePos().y) <= 1
+    //         )
+    //         {
+    //             RenderCollectPrompt();
+    //             if(wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+    //             {
+    //                 wolf::EventManager::TriggerEvent(RetrievePlaceableEvent(PlaceableType::PORTAL, GetTilePos()));
+    //                 if(GetSibling() != nullptr)
+    //                 {
+    //                     wolf::EventManager::TriggerEvent(RetrievePlaceableEvent(PlaceableType::PORTAL, GetTilePos()));
+    //                     //DeletePair(this, GetSibling());
+    //                 }
+    //                 else
+    //                 {
+    //                     //DeleteAvailablePortalTile(this);
+    //                 }
+    //             }
+    //         }
+    //     }    
+    // }
+
+    
     if(m_pAvailablePortalTile != nullptr)
     {
+        m_pAvailablePortalTile->CheckPlayerCollection();
         m_pAvailablePortalTile->Update(p_dt);
     }
 }
@@ -76,11 +113,18 @@ bool PortalTileManager::CreatePortalTile(glm::ivec2 p_tile_pos)
 
 PortalTileManager::PortalTileManager(LabyrinthManager* p_lbmg)
 {
+    wolf::EventManager::AddListener<DestroyPlaceableEvent, PortalTileManager, &PortalTileManager::HandleDestroyPlaceableEvent>(*this);
     m_pLBMG = p_lbmg;
+    for (auto&& [_, playerController] : p_lbmg->GetGameObject()->GetScene().Each<PlayerController>())
+    {
+        m_pPlayer = playerController.GetGameObject();
+        break;
+    }
 }
 
 PortalTileManager::~PortalTileManager()
 {
+    wolf::EventManager::RemoveListener<DestroyPlaceableEvent, PortalTileManager, &PortalTileManager::HandleDestroyPlaceableEvent>(*this);
     while(m_vPortalTilePairs.size() > 0)
     {
         std::pair<PortalTile*, PortalTile*> pair = m_vPortalTilePairs.back();
@@ -96,12 +140,72 @@ PortalTileManager::~PortalTileManager()
 
     m_vPortalTilePairs.clear();    
     m_pLBMG = nullptr;
+    m_pPlayer = nullptr;
+}
+
+void PortalTileManager::HandleDestroyPlaceableEvent(const DestroyPlaceableEvent& p_event)
+{
+    if(p_event.pcTpye != PlaceableType::PORTAL) return;
+
+    if(m_pAvailablePortalTile != nullptr && m_pAvailablePortalTile->GetTilePos() == p_event.tilePos)
+    {
+        printf("PT1\n");
+        PortalTile::DeleteAvailablePortalTile(m_pAvailablePortalTile);
+        m_pAvailablePortalTile = nullptr;
+        
+        return;
+    }
+    
+    for(int i = 0; i < m_vPortalTilePairs.size(); i++)
+    {
+        PortalTile* pt1 = m_vPortalTilePairs.at(i).first;
+        PortalTile* pt2 = m_vPortalTilePairs.at(i).second;    
+        
+        if(pt1->GetTilePos() == p_event.tilePos || pt2->GetTilePos() == p_event.tilePos)
+        {
+            
+            printf("PT2\n");
+            m_vPortalTilePairs.at(i).first = nullptr;
+            m_vPortalTilePairs.at(i).second = nullptr;
+            m_vPortalTilePairs.erase(m_vPortalTilePairs.begin() + i);
+            PortalTile::DeletePair(pt1, pt2);
+            return;
+        }
+    }
 }
 
 bool PortalTileManager::IsValidTile(glm::ivec2 p_tile_pos)
 {
     // Check if tile is out of bounds
     return (p_tile_pos.x >= 0 && p_tile_pos.y >= 0);
+}
+
+
+void PortalTileManager::RenderCollectPrompt()
+{
+    // Set screen-space position for the pickup prompt
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    ImVec2 promptPosition = ImVec2(displaySize.x * 0.5f, displaySize.y * 0.8f);  // Centered horizontally, lower portion vertically
+
+    ImGui::SetNextWindowPos(promptPosition, ImGuiCond_Always, ImVec2(0.5f, 0.5f));  // Centered alignment
+    ImGui::SetNextWindowBgAlpha(0.85f);
+
+    // Pulse color and size animation for visual feedback
+    float alphaPulse = 0.6f + 0.4f * sin(ImGui::GetTime() * 3.0f);
+    ImVec4 glowColor = ImVec4(0.8f, 0.92f, 0.3f, alphaPulse); // Neon green glow
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 5));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.9f));
+    ImGui::PushStyleColor(ImGuiCol_Text, glowColor);
+    ImGui::PushStyleColor(ImGuiCol_Border, glowColor);
+
+    ImGui::Begin("PickUpPrompt", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
+    ImGui::Text("Press E to pick up");
+    ImGui::End();
+
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar(2);
 }
 
 //------------------//
@@ -401,41 +505,16 @@ void PortalTileManager::PortalTile::CheckPlayerCollection()
         RenderCollectPrompt();
         if(wolf::Input::IsKeyJustDown(GLFW_KEY_E))
         {
-            // if(GetSibling() != nullptr)
-            // {
-            //     DeletePair(this, GetSibling());
-            // }
-            // else
-            // {
-            //     DeleteAvailablePortalTile(this);
-            // }
+            wolf::EventManager::TriggerEvent(RetrievePlaceableEvent(PlaceableType::PORTAL, GetTilePos()));
+            if(GetSibling() != nullptr)
+            {
+                wolf::EventManager::TriggerEvent(RetrievePlaceableEvent(PlaceableType::PORTAL, GetTilePos()));
+                //DeletePair(this, GetSibling());
+            }
+            else
+            {
+                //DeleteAvailablePortalTile(this);
+            }
         }
     }
-}
-
-void PortalTileManager::PortalTile::RenderCollectPrompt()
-{
-    // Set screen-space position for the pickup prompt
-    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-    ImVec2 promptPosition = ImVec2(displaySize.x * 0.5f, displaySize.y * 0.8f);  // Centered horizontally, lower portion vertically
-
-    ImGui::SetNextWindowPos(promptPosition, ImGuiCond_Always, ImVec2(0.5f, 0.5f));  // Centered alignment
-    ImGui::SetNextWindowBgAlpha(0.85f);
-
-    // Pulse color and size animation for visual feedback
-    float alphaPulse = 0.6f + 0.4f * sin(ImGui::GetTime() * 3.0f);
-    ImVec4 glowColor = ImVec4(0.8f, 0.92f, 0.3f, alphaPulse); // Neon green glow
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 5));
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.9f));
-    ImGui::PushStyleColor(ImGuiCol_Text, glowColor);
-    ImGui::PushStyleColor(ImGuiCol_Border, glowColor);
-
-    ImGui::Begin("PickUpPrompt", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
-    ImGui::Text("Press E to pick up");
-    ImGui::End();
-
-    ImGui::PopStyleColor(3);
-    ImGui::PopStyleVar(2);
 }

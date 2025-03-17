@@ -8,7 +8,7 @@
 
 #include <wolf.h>
 #include <LabyrinthManager.h>
-
+#include "inventory/PlaceableItem.h"
 
 class PortalTileManager
 {
@@ -26,8 +26,9 @@ public:
 private:
     PortalTileManager(LabyrinthManager* p_lbmg);
     virtual ~PortalTileManager();
+    void HandleDestroyPlaceableEvent(const DestroyPlaceableEvent& p_event);
     static bool IsValidTile(glm::ivec2 p_tile_pos);
-    
+    static void RenderCollectPrompt();
 
     struct PortalTile
     {
@@ -53,7 +54,6 @@ private:
         void CheckTeleport(wolf::GameObject* p_obj);
         void Teleport(wolf::GameObject* p_obj);
         void CheckPlayerCollection();
-        static void RenderCollectPrompt();
 
     private:
         glm::ivec2 m_vTilePos = glm::ivec2(0.0f, 0.0f);
@@ -75,6 +75,6 @@ private:
     LabyrinthManager* m_pLBMG = nullptr;
     PortalTile* m_pAvailablePortalTile = nullptr;
     std::vector<std::pair<PortalTile*, PortalTile*>> m_vPortalTilePairs;
-
+    wolf::GameObject* m_pPlayer = nullptr;
     static PortalTileManager* s_pPTMG;
 };
