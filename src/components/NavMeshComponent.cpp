@@ -1,14 +1,17 @@
-// NavMeshComponent.cpp
 #include "NavMeshComponent.h"
 #include <algorithm>
 #include <queue>
 #include <limits>
+#include <unordered_set>
 #include <glm/gtx/norm.hpp>
 #include <GLShapesRenderer.h>
 #include <W_Transform2D.h>
 
-NavMeshComponent::NavMeshComponent()
+NavMeshComponent::NavMeshComponent() : m_debugDrawEnabled(false), m_pPathfindingManager(nullptr)
 {
+    // Pre-allocate memory for data structures to avoid reallocations
+    m_polygons.reserve(1000);
+    m_edges.reserve(2000);
 }
 
 NavMeshComponent::~NavMeshComponent()
@@ -22,7 +25,6 @@ void NavMeshComponent::Update(float delta)
         m_debugDrawEnabled = !m_debugDrawEnabled;
         printf("NavMesh Debug Drawing: %s\n", m_debugDrawEnabled ? "Enabled" : "Disabled");
     }
-    
 }
 
 void NavMeshComponent::Init(PathfindingManager* pathfindingManager)
@@ -35,11 +37,21 @@ void NavMeshComponent::GenerateFromLabyrinth(LabyrinthManager* labyrinthManager)
     // Clear existing data
     m_polygons.clear();
     m_edges.clear();
+    m_spatialHash.clear();
     
     const int width = labyrinthManager->GetWidth();
     const int height = labyrinthManager->GetHeight();
+    const float tileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
     
-    // This is a very basic implementation that creates square polygons for each walkable tile
+    // Reserve space for expected number of elements to avoid reallocations
+    m_polygons.reserve(width * height / 2);  // Assuming roughly half the tiles are walkable
+    m_edges.reserve(width * height);
+    
+    // Positions are stored temporarily for quick lookups to avoid O(n) searches
+    std::unordered_map<int, int> posToPolyIndex;
+    posToPolyIndex.reserve(width * height / 2);
+    
+    // First pass: Create polygons for walkable tiles
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)
@@ -48,10 +60,11 @@ void NavMeshComponent::GenerateFromLabyrinth(LabyrinthManager* labyrinthManager)
             {
                 NavPolygon poly;
                 poly.id = m_polygons.size();
+                poly.walkable = true;
+                poly.visible = true;
                 
                 // Calculate world coordinates for the polygon vertices
                 glm::vec2 topLeft = labyrinthManager->GetWorldPosition(glm::ivec2(x, y));
-                float tileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
                 
                 // Define polygon vertices (clockwise)
                 poly.vertices = {
@@ -64,46 +77,83 @@ void NavMeshComponent::GenerateFromLabyrinth(LabyrinthManager* labyrinthManager)
                 // Calculate center
                 poly.center = topLeft + glm::vec2(tileSize / 2.0f, tileSize / 2.0f);
                 
-                // Find neighbors
-                if (x > 0 && m_pPathfindingManager->IsTileWalkable(x - 1, y))
-                {
-                    // Find polygon index for the neighbor to the left
-                    int neighborId = y * width + (x - 1);
-                    if (neighborId < static_cast<int>(m_polygons.size()))
-                    {
-                        poly.neighbors.push_back(neighborId);
-                        m_polygons[neighborId].neighbors.push_back(poly.id);
-                        
-                        // Create an edge
-                        NavEdge edge;
-                        edge.start = topLeft + glm::vec2(0, 0);
-                        edge.end = topLeft + glm::vec2(0, tileSize);
-                        edge.poly1 = poly.id;
-                        edge.poly2 = neighborId;
-                        m_edges.push_back(edge);
-                    }
-                }
+                // Add to spatial hash for quick polygon finding
+                int cellX = static_cast<int>(poly.center.x / SPATIAL_CELL_SIZE);
+                int cellY = static_cast<int>(poly.center.y / SPATIAL_CELL_SIZE);
+                m_spatialHash[{cellX, cellY}].push_back(poly.id);
                 
-                if (y > 0 && m_pPathfindingManager->IsTileWalkable(x, y - 1))
-                {
-                    // Find polygon index for the neighbor above
-                    int neighborId = (y - 1) * width + x;
-                    if (neighborId < static_cast<int>(m_polygons.size()))
-                    {
-                        poly.neighbors.push_back(neighborId);
-                        m_polygons[neighborId].neighbors.push_back(poly.id);
-                        
-                        // Create an edge
-                        NavEdge edge;
-                        edge.start = topLeft + glm::vec2(0, 0);
-                        edge.end = topLeft + glm::vec2(tileSize, 0);
-                        edge.poly1 = poly.id;
-                        edge.poly2 = neighborId;
-                        m_edges.push_back(edge);
-                    }
-                }
+                // Store mapping from position to polygon index for quick neighbor lookup
+                int posKey = y * width + x;
+                posToPolyIndex[posKey] = poly.id;
                 
                 m_polygons.push_back(poly);
+            }
+        }
+    }
+    
+    // Second pass: Connect neighbors and create edges
+    static const std::pair<int, int> directions[] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            int currentPosKey = y * width + x;
+            auto currentIt = posToPolyIndex.find(currentPosKey);
+            
+            // Skip if this tile doesn't have a polygon
+            if (currentIt == posToPolyIndex.end())
+                continue;
+                
+            int currentPolyId = currentIt->second;
+            NavPolygon& currentPoly = m_polygons[currentPolyId];
+            
+            for (const auto& [dx, dy] : directions)
+            {
+                int nx = x + dx;
+                int ny = y + dy;
+                
+                // Skip if out of bounds
+                if (nx < 0 || nx >= width || ny < 0 || ny >= height)
+                    continue;
+                    
+                // Find neighbor polygon
+                int neighborPosKey = ny * width + nx;
+                auto neighborIt = posToPolyIndex.find(neighborPosKey);
+                
+                // Skip if neighbor tile doesn't have a polygon
+                if (neighborIt == posToPolyIndex.end())
+                    continue;
+                    
+                int neighborPolyId = neighborIt->second;
+                
+                // Add neighbor relationship (only if not already added)
+                if (std::find(currentPoly.neighbors.begin(), currentPoly.neighbors.end(), neighborPolyId) == currentPoly.neighbors.end())
+                {
+                    currentPoly.neighbors.push_back(neighborPolyId);
+                    
+                    // Create edge
+                    NavEdge edge;
+                    glm::vec2 topLeft = labyrinthManager->GetWorldPosition(glm::ivec2(x, y));
+                    
+                    if (dx == -1) { // Left neighbor
+                        edge.start = topLeft;
+                        edge.end = topLeft + glm::vec2(0, tileSize);
+                    } else if (dx == 1) { // Right neighbor
+                        edge.start = topLeft + glm::vec2(tileSize, 0);
+                        edge.end = topLeft + glm::vec2(tileSize, tileSize);
+                    } else if (dy == -1) { // Bottom neighbor
+                        edge.start = topLeft;
+                        edge.end = topLeft + glm::vec2(tileSize, 0);
+                    } else { // Top neighbor
+                        edge.start = topLeft + glm::vec2(0, tileSize);
+                        edge.end = topLeft + glm::vec2(tileSize, tileSize);
+                    }
+                    
+                    edge.poly1 = currentPolyId;
+                    edge.poly2 = neighborPolyId;
+                    m_edges.push_back(edge);
+                }
             }
         }
     }
@@ -146,6 +196,15 @@ void NavMeshComponent::GenerateFromPolygons(const std::vector<NavPolygon>& polyg
 {
     m_polygons = polygons;
     m_edges.clear();
+    m_spatialHash.clear();
+    
+    // Rebuild spatial hash
+    for (const auto& poly : m_polygons)
+    {
+        int cellX = static_cast<int>(poly.center.x / SPATIAL_CELL_SIZE);
+        int cellY = static_cast<int>(poly.center.y / SPATIAL_CELL_SIZE);
+        m_spatialHash[{cellX, cellY}].push_back(poly.id);
+    }
     
     // Generate edges from polygon neighbors
     for (const auto& poly : m_polygons)
@@ -186,7 +245,7 @@ void NavMeshComponent::GenerateFromPolygons(const std::vector<NavPolygon>& polyg
 
 std::vector<glm::vec2> NavMeshComponent::FindPath(const glm::vec2& start, const glm::vec2& goal)
 {
-    // Find the polygons containing start and goal
+    // Find the polygons containing start and goal using spatial hash for faster lookup
     int startPoly = FindPolygon(start);
     int goalPoly = FindPolygon(goal);
     
@@ -227,7 +286,7 @@ std::vector<glm::vec2> NavMeshComponent::FindPath(const glm::vec2& start, const 
     }
     
     // Use the funnel algorithm to find the actual path
-    std::vector<glm::vec2> path = FunnelAlgorithm(polygonPath, start, goal);
+    std::vector<glm::vec2> path = ImprovedFunnelAlgorithm(polygonPath, start, goal);
     
     // Smooth the path
     return SmoothPath(path);
@@ -235,31 +294,93 @@ std::vector<glm::vec2> NavMeshComponent::FindPath(const glm::vec2& start, const 
 
 int NavMeshComponent::FindPolygon(const glm::vec2& point) const
 {
-    for (size_t i = 0; i < m_polygons.size(); i++)
+    // Use spatial hash for faster lookup
+    int cellX = static_cast<int>(point.x / SPATIAL_CELL_SIZE);
+    int cellY = static_cast<int>(point.y / SPATIAL_CELL_SIZE);
+    
+    // Check primary cell
+    auto cellIt = m_spatialHash.find({cellX, cellY});
+    if (cellIt != m_spatialHash.end())
     {
-        if (IsPointInPolygon(point, m_polygons[i]))
+        for (int polyId : cellIt->second)
         {
-            return static_cast<int>(i);
+            if (IsPointInPolygon(point, m_polygons[polyId]))
+            {
+                return polyId;
+            }
         }
     }
+    
+    // Check neighboring cells (point might be near cell boundary)
+    static const std::pair<int, int> neighbors[] = {
+        {-1, -1}, {0, -1}, {1, -1},
+        {-1, 0},           {1, 0},
+        {-1, 1},  {0, 1},  {1, 1}
+    };
+    
+    for (const auto& [dx, dy] : neighbors)
+    {
+        auto it = m_spatialHash.find({cellX + dx, cellY + dy});
+        if (it != m_spatialHash.end())
+        {
+            for (int polyId : it->second)
+            {
+                if (IsPointInPolygon(point, m_polygons[polyId]))
+                {
+                    return polyId;
+                }
+            }
+        }
+    }
+    
     return -1;
 }
 
 glm::vec2 NavMeshComponent::GetNearestPointOnNavMesh(const glm::vec2& point) const
 {
+    // Use spatial hash to find nearby polygons
+    int cellX = static_cast<int>(point.x / SPATIAL_CELL_SIZE);
+    int cellY = static_cast<int>(point.y / SPATIAL_CELL_SIZE);
+    
     float closestDist = std::numeric_limits<float>::max();
     glm::vec2 closestPoint = point;
     
-    // Check all edges for the closest point
-    for (const auto& edge : m_edges)
+    // Search in current and neighboring cells
+    const int searchRadius = 2;  // Increase if necessary
+    
+    for (int dy = -searchRadius; dy <= searchRadius; dy++)
     {
-        glm::vec2 projection = ProjectPointOnSegment(point, edge.start, edge.end);
-        float dist = glm::distance2(point, projection);
-        
-        if (dist < closestDist)
+        for (int dx = -searchRadius; dx <= searchRadius; dx++)
         {
-            closestDist = dist;
-            closestPoint = projection;
+            auto it = m_spatialHash.find({cellX + dx, cellY + dy});
+            if (it != m_spatialHash.end())
+            {
+                for (int polyId : it->second)
+                {
+                    const auto& poly = m_polygons[polyId];
+                    
+                    // Check if point is in polygon
+                    if (IsPointInPolygon(point, poly))
+                    {
+                        return point;
+                    }
+                    
+                    // Check edges
+                    for (size_t i = 0; i < poly.vertices.size(); i++)
+                    {
+                        size_t j = (i + 1) % poly.vertices.size();
+                        
+                        glm::vec2 projection = ProjectPointOnSegment(point, poly.vertices[i], poly.vertices[j]);
+                        float dist = glm::distance2(point, projection);
+                        
+                        if (dist < closestDist)
+                        {
+                            closestDist = dist;
+                            closestPoint = projection;
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -268,9 +389,27 @@ glm::vec2 NavMeshComponent::GetNearestPointOnNavMesh(const glm::vec2& point) con
 
 bool NavMeshComponent::IsPointInPolygon(const glm::vec2& point, const NavPolygon& polygon) const
 {
-    bool inside = false;
+    // Quick AABB check first (major optimization)
+    float minX = std::numeric_limits<float>::max();
+    float minY = std::numeric_limits<float>::max();
+    float maxX = std::numeric_limits<float>::lowest();
+    float maxY = std::numeric_limits<float>::lowest();
+    
+    for (const auto& vertex : polygon.vertices)
+    {
+        minX = std::min(minX, vertex.x);
+        minY = std::min(minY, vertex.y);
+        maxX = std::max(maxX, vertex.x);
+        maxY = std::max(maxY, vertex.y);
+    }
+    
+    if (point.x < minX || point.x > maxX || point.y < minY || point.y > maxY)
+    {
+        return false;
+    }
     
     // Ray casting algorithm
+    bool inside = false;
     for (size_t i = 0, j = polygon.vertices.size() - 1; i < polygon.vertices.size(); j = i++)
     {
         const glm::vec2& vi = polygon.vertices[i];
@@ -288,12 +427,11 @@ bool NavMeshComponent::IsPointInPolygon(const glm::vec2& point, const NavPolygon
 
 std::vector<int> NavMeshComponent::FindPolygonPath(int startPoly, int endPoly) const
 {
-
-
-    // A* search for polygon path
-    if (startPoly == -1 || endPoly == -1)
+    // Early exit for invalid input
+    if (startPoly == -1 || endPoly == -1 || startPoly >= m_polygons.size() || endPoly >= m_polygons.size())
         return {};
-        
+    
+    // A* search for polygon path
     std::vector<int> cameFrom(m_polygons.size(), -1);
     std::vector<float> gScore(m_polygons.size(), std::numeric_limits<float>::max());
     std::vector<float> fScore(m_polygons.size(), std::numeric_limits<float>::max());
@@ -309,11 +447,17 @@ std::vector<int> NavMeshComponent::FindPolygonPath(int startPoly, int endPoly) c
     std::vector<bool> inOpenSet(m_polygons.size(), false);
     inOpenSet[startPoly] = true;
     
+    // Use a closed set to avoid revisiting nodes
+    std::vector<bool> closedSet(m_polygons.size(), false);
+    
     while (!openSet.empty())
     {
         int current = openSet.top();
         openSet.pop();
         inOpenSet[current] = false;
+        
+        // Add to closed set
+        closedSet[current] = true;
         
         if (current == endPoly)
         {
@@ -330,11 +474,9 @@ std::vector<int> NavMeshComponent::FindPolygonPath(int startPoly, int endPoly) c
         
         for (int neighbor : m_polygons[current].neighbors)
         {
-            // Skip non-walkable polygons
-            if (!m_polygons[neighbor].walkable)
-                continue;
-
-            if (neighbor < 0 || neighbor >= static_cast<int>(m_polygons.size()))
+            // Skip invalid or non-walkable polygons
+            if (neighbor < 0 || neighbor >= static_cast<int>(m_polygons.size()) || 
+                !m_polygons[neighbor].walkable || closedSet[neighbor])
                 continue;
                 
             float tentativeGScore = gScore[current] + 
@@ -365,6 +507,7 @@ std::vector<glm::vec2> NavMeshComponent::SmoothPath(const std::vector<glm::vec2>
         return path;
         
     std::vector<glm::vec2> smoothPath;
+    smoothPath.reserve(path.size());  // Pre-allocate memory
     smoothPath.push_back(path[0]);
     
     size_t current = 0;
@@ -374,11 +517,12 @@ std::vector<glm::vec2> NavMeshComponent::SmoothPath(const std::vector<glm::vec2>
         size_t next = current + 1;
         
         // Try to find furthest point with line of sight
-        for (size_t i = current + 2; i < path.size(); i++)
+        for (size_t i = path.size() - 1; i > current + 1; i--)
         {
             if (LineOfSight(path[current], path[i]))
             {
                 next = i;
+                break;
             }
         }
         
@@ -427,29 +571,31 @@ glm::vec2 NavMeshComponent::ProjectPointOnSegment(const glm::vec2& p, const glm:
 
 bool NavMeshComponent::LineOfSight(const glm::vec2& start, const glm::vec2& end) const
 {
+    // Implementation of fast ray-segment intersection
     // Check if line segment intersects with any boundary edge
+    glm::vec2 rayVector = end - start;
+    
     for (const auto& edge : m_edges)
     {
         if (edge.poly2 == -1) // Boundary edge
         {
-            // Check if line segments intersect
-            glm::vec2 p1 = start;
-            glm::vec2 p2 = end;
-            glm::vec2 p3 = edge.start;
-            glm::vec2 p4 = edge.end;
+            glm::vec2 v1 = edge.start;
+            glm::vec2 v2 = edge.end;
             
-            glm::vec2 s1 = p2 - p1;
-            glm::vec2 s2 = p4 - p3;
+            // Line-line intersection test using parametric equation
+            glm::vec2 edgeVector = v2 - v1;
+            float crossProduct = rayVector.x * edgeVector.y - rayVector.y * edgeVector.x;
             
-            float s = (-s1.y * (p1.x - p3.x) + s1.x * (p1.y - p3.y)) / 
-                     (-s2.x * s1.y + s1.x * s2.y);
-            float t = (s2.x * (p1.y - p3.y) - s2.y * (p1.x - p3.x)) / 
-                     (-s2.x * s1.y + s1.x * s2.y);
+            // Skip parallel lines
+            if (std::abs(crossProduct) < 0.001f)
+                continue;
+                
+            glm::vec2 startToV1 = v1 - start;
+            float t = (startToV1.x * edgeVector.y - startToV1.y * edgeVector.x) / crossProduct;
+            float u = (startToV1.x * rayVector.y - startToV1.y * rayVector.x) / crossProduct;
             
-            if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
-            {
-                return false; // Line of sight is blocked
-            }
+            if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f)
+                return false; // Intersection found, line of sight is blocked
         }
     }
     
@@ -458,149 +604,135 @@ bool NavMeshComponent::LineOfSight(const glm::vec2& start, const glm::vec2& end)
 
 void NavMeshComponent::DebugDraw() const
 {
+    // Early exit conditions
+    if (!m_debugDrawEnabled)
+        return;
+        
     GLShapesRenderer* renderer = GLShapesRenderer::GetInstance();
     if (!renderer)
         return;
     
-    // Define colors for different elements
-    glm::vec4 polyEdgeColor(0.0f, 1.0f, 0.0f, 0.6f);         // Softer green for polygon edges
-    glm::vec4 polyFillColor(0.0f, 0.3f, 0.0f, 0.2f);         // Subtle green fill for walkable areas
-    glm::vec4 nonWalkableEdgeColor(1.0f, 0.3f, 0.3f, 0.8f);  // Red edges for non-walkable areas
-    glm::vec4 centerPointColor(0.8f, 0.1f, 0.1f, 0.6f);      // Softer red for center points
-    glm::vec4 boundaryEdgeColor(0.9f, 0.2f, 0.2f, 0.7f);     // Softer red for boundary edges
-    glm::vec4 connectionEdgeColor(0.2f, 0.5f, 0.9f, 0.5f);   // Softer blue for connection edges
-    glm::vec4 entityOutlineColor(1.0f, 0.5f, 0.0f, 0.8f);    // Orange outline for entity projections
+    // Define colors for different elements (only once)
+    static const glm::vec4 polyFillColor(0.0f, 0.3f, 0.0f, 0.2f);     // Subtle green fill for walkable areas
+    static const glm::vec4 polyEdgeColor(0.0f, 1.0f, 0.0f, 0.6f);     // Softer green for polygon edges
+    static const glm::vec4 nonWalkableEdgeColor(1.0f, 0.3f, 0.3f, 0.8f); // Red edges for non-walkable areas
+    static const glm::vec4 boundaryEdgeColor(0.9f, 0.2f, 0.2f, 0.7f); // Red for boundary edges
+    static const glm::vec4 connectionEdgeColor(0.2f, 0.5f, 0.9f, 0.5f); // Blue for connection edges
+    static const glm::vec4 entityOutlineColor(1.0f, 0.5f, 0.0f, 0.8f); // Orange for entity outlines
+    static const glm::vec4 playerOutlineColor(0.0f, 0.8f, 1.0f, 0.8f); // Blue for player outline
     
-    // First draw only the walkable polygon fills
+    // Pre-allocate vertex collections to avoid repeated memory allocations
+    const size_t estimatedTriangles = m_polygons.size() * 2; // Estimate 2 triangles per polygon
+    const size_t estimatedLines = m_edges.size() + m_polygons.size() * 4 + m_obstacles.size() * 4;
+    
+    // Precalculate properties for rendering
+    const bool hasObstacles = !m_obstacles.empty();
+    const bool hasPlayer = hasObstacles && m_pPathfindingManager && m_pPathfindingManager->GetLabyrinthManager() && 
+                           m_pPathfindingManager->GetLabyrinthManager()->GetPlayer();
+    wolf::GameObject* player = hasPlayer ? m_pPathfindingManager->GetLabyrinthManager()->GetPlayer() : nullptr;
+    
+    // ======= PHASE 1: FILL POLYGONS ========
+    // Only draw polygons that are visible and walkable
     for (const auto& poly : m_polygons)
     {
-        // Only draw fill for walkable areas
-        if (poly.walkable) {
-            // Draw polygon fill (triangulate the polygon)
-            for (size_t i = 1; i < poly.vertices.size() - 1; i++)
-            {
-                ColouredVertex2D v0 = {poly.vertices[0].x, poly.vertices[0].y,
-                                      polyFillColor.r, polyFillColor.g, polyFillColor.b, polyFillColor.a};
-                ColouredVertex2D v1 = {poly.vertices[i].x, poly.vertices[i].y,
-                                      polyFillColor.r, polyFillColor.g, polyFillColor.b, polyFillColor.a};
-                ColouredVertex2D v2 = {poly.vertices[i+1].x, poly.vertices[i+1].y,
-                                      polyFillColor.r, polyFillColor.g, polyFillColor.b, polyFillColor.a};
-                
-                renderer->AddTriangle(v0, v1, v2);
-            }
-        }
-    }
-    
-    // Draw NavMesh edges with different colors based on walkability
-    for (const auto& poly : m_polygons)
-    {
-        // Choose edge color based on walkability
-        glm::vec4 edgeColor = poly.walkable ? polyEdgeColor : nonWalkableEdgeColor;
+        if (!poly.visible || !poly.walkable) 
+            continue;
+            
+        const size_t vertCount = poly.vertices.size();
+        if (vertCount < 3) 
+            continue;
+            
+        // Triangle fan optimization - all triangles share the first vertex
+        const glm::vec2& v0 = poly.vertices[0];
+        ColouredVertex2D firstVertex = {v0.x, v0.y, polyFillColor.r, polyFillColor.g, polyFillColor.b, polyFillColor.a};
         
-        // Draw polygon edges
-        for (size_t i = 0; i < poly.vertices.size(); i++)
+        for (size_t i = 1; i < vertCount - 1; i++)
         {
-            size_t j = (i + 1) % poly.vertices.size();
+            const glm::vec2& v1 = poly.vertices[i];
+            const glm::vec2& v2 = poly.vertices[i+1];
             
-            ColouredVertex2D v1 = {poly.vertices[i].x, poly.vertices[i].y,
-                                  edgeColor.r, edgeColor.g, edgeColor.b, edgeColor.a};
-            ColouredVertex2D v2 = {poly.vertices[j].x, poly.vertices[j].y,
-                                  edgeColor.r, edgeColor.g, edgeColor.b, edgeColor.a};
-            
-            renderer->AddLine(v1, v2);
-        }
-        
-        // Draw center point as small regular polygon (octagon) only for walkable areas
-        if (poly.walkable) {
-            ColouredVertex2D center = {poly.center.x, poly.center.y,
-                                      centerPointColor.r, centerPointColor.g, centerPointColor.b, centerPointColor.a};
-            renderer->AddRegularPolygon(center, 3.0f, 8, 0.0f);
+            renderer->AddTriangle(
+                firstVertex,
+                {v1.x, v1.y, polyFillColor.r, polyFillColor.g, polyFillColor.b, polyFillColor.a},
+                {v2.x, v2.y, polyFillColor.r, polyFillColor.g, polyFillColor.b, polyFillColor.a}
+            );
         }
     }
     
-    // Draw connection/boundary edges
+    // Batch render all triangles at once
+    renderer->RenderAndDeleteTriangles();
+    
+    // ======= PHASE 2: DRAW EDGES ========
+    // Draw visible polygon edges
+    for (const auto& poly : m_polygons)
+    {
+        if (!poly.visible) 
+            continue;
+            
+        // Choose edge color based on walkability (reuse color)
+        const glm::vec4& edgeColor = poly.walkable ? polyEdgeColor : nonWalkableEdgeColor;
+        
+        const size_t vertCount = poly.vertices.size();
+        for (size_t i = 0; i < vertCount; i++)
+        {
+            const glm::vec2& v1 = poly.vertices[i];
+            const glm::vec2& v2 = poly.vertices[(i + 1) % vertCount];
+            
+            renderer->AddLine(
+                {v1.x, v1.y, edgeColor.r, edgeColor.g, edgeColor.b, edgeColor.a},
+                {v2.x, v2.y, edgeColor.r, edgeColor.g, edgeColor.b, edgeColor.a}
+            );
+        }
+    }
+    
+    // Draw connection/boundary edges (only those with visible polygons)
     for (const auto& edge : m_edges)
     {
-        glm::vec4 edgeColor = (edge.poly2 == -1) ? boundaryEdgeColor : connectionEdgeColor;
+        // Skip edges if either polygon is invisible (culling optimization)
+        if ((edge.poly1 >= 0 && edge.poly1 < m_polygons.size() && !m_polygons[edge.poly1].visible) ||
+            (edge.poly2 >= 0 && edge.poly2 < m_polygons.size() && !m_polygons[edge.poly2].visible))
+            continue;
         
-        ColouredVertex2D v1 = {edge.start.x, edge.start.y,
-                              edgeColor.r, edgeColor.g, edgeColor.b, edgeColor.a};
-        ColouredVertex2D v2 = {edge.end.x, edge.end.y,
-                              edgeColor.r, edgeColor.g, edgeColor.b, edgeColor.a};
+        // Reuse colors
+        const glm::vec4& edgeColor = (edge.poly2 == -1) ? boundaryEdgeColor : connectionEdgeColor;
         
-        renderer->AddLine(v1, v2);
+        renderer->AddLine(
+            {edge.start.x, edge.start.y, edgeColor.r, edgeColor.g, edgeColor.b, edgeColor.a},
+            {edge.end.x, edge.end.y, edgeColor.r, edgeColor.g, edgeColor.b, edgeColor.a}
+        );
     }
     
-    // Draw entity outline projections
-    for (const auto& obstacle : m_obstacles)
+    // ======= PHASE 3: DRAW OBSTACLES ========
+    // Only process if we have obstacles
+    if (hasObstacles)
     {
-        if (!obstacle) continue;
+        static const float obstacleRadius = 16.0f; // Default radius for visualization
         
-        wolf::Transform2D* transform = obstacle->GetComponent<wolf::Transform2D>();
-        if (!transform) continue;
-        
-        glm::vec2 position = transform->GetGlobalPosition();
-        
-        // Check if entity has a collider we can use for more accurate visualization
-        ColliderComponent* collider = obstacle->GetComponent<ColliderComponent>();
-        if (collider)
+        for (const auto& obstacle : m_obstacles)
         {
-            // For each collider box, draw its outline
-            for (const auto& box : collider->GetColliderBoxes())
-            {
-                // Draw outline using the rectangle coordinates
-                ColouredVertex2D tl_outline = {box.m_left, box.m_top, 
-                                             entityOutlineColor.r, entityOutlineColor.g, entityOutlineColor.b, entityOutlineColor.a};
-                ColouredVertex2D tr_outline = {box.m_right, box.m_top, 
-                                             entityOutlineColor.r, entityOutlineColor.g, entityOutlineColor.b, entityOutlineColor.a};
-                ColouredVertex2D bl_outline = {box.m_left, box.m_bottom, 
-                                             entityOutlineColor.r, entityOutlineColor.g, entityOutlineColor.b, entityOutlineColor.a};
-                ColouredVertex2D br_outline = {box.m_right, box.m_bottom, 
-                                             entityOutlineColor.r, entityOutlineColor.g, entityOutlineColor.b, entityOutlineColor.a};
-                
-                renderer->AddLine(tl_outline, tr_outline);
-                renderer->AddLine(tr_outline, br_outline);
-                renderer->AddLine(br_outline, bl_outline);
-                renderer->AddLine(bl_outline, tl_outline);
-            }
-        }
-        else
-        {
-            // Fallback to a simple circle outline if no collider is found
-            float radius = 16.0f;
+            if (!obstacle) 
+                continue;
             
-            // Draw just the outline
-            ColouredVertex2D entityOutline = {position.x, position.y,
-                                             entityOutlineColor.r, entityOutlineColor.g, entityOutlineColor.b, entityOutlineColor.a};
-            renderer->AddRegularPolygon(entityOutline, radius, 16, 0.0f);
+            wolf::Transform2D* transform = obstacle->GetComponent<wolf::Transform2D>();
+            if (!transform) 
+                continue;
+            
+            glm::vec2 position = transform->GetGlobalPosition();
+            
+            // Determine if this is the player (only check once)
+            bool isPlayer = (obstacle == player);
+            const glm::vec4& outlineColor = isPlayer ? playerOutlineColor : entityOutlineColor;
+            
+            // Draw a simple circle outline (with fewer segments for better performance)
+            renderer->AddRegularPolygon(
+                {position.x, position.y, outlineColor.r, outlineColor.g, outlineColor.b, outlineColor.a},
+                obstacleRadius, 8, 0.0f  // Reduced from 16 segments to 8
+            );
         }
     }
     
-    // Render all the shapes
-    renderer->RenderAndDeleteTriangles();
+    // Batch render all lines at once
     renderer->RenderAndDeleteLines();
-}
-
-
-std::vector<glm::vec2> NavMeshComponent::FunnelAlgorithm(
-    const std::vector<int>& corridorPolygons,
-    const glm::vec2& start,
-    const glm::vec2& end) const
-{
-    // TO DO:
-    //create a proper funnel through the corridor
-    
-    std::vector<glm::vec2> path;
-    path.push_back(start);
-    
-    // Add centers of corridor polygons as waypoints
-    for (size_t i = 1; i < corridorPolygons.size() - 1; i++)
-    {
-        path.push_back(m_polygons[corridorPolygons[i]].center);
-    }
-    
-    path.push_back(end);
-    return path;
 }
 
 void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject*>& obstacles)
@@ -608,78 +740,387 @@ void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject
     // Store obstacles for visualization
     m_obstacles = obstacles;
     
-    // Clear any previous obstacle markings
-    for (auto& poly : m_polygons)
+    // Quick exit for empty obstacle list
+    if (obstacles.empty())
     {
-        poly.walkable = true;
+        // Only process if there were previously affected polygons
+        if (!m_obstacleAffectedPolygons.empty())
+        {
+            // Use direct array indexing for better performance
+            const size_t affectedCount = m_obstacleAffectedPolygons.size();
+            for (size_t i = 0; i < affectedCount; i++)
+            {
+                int polyId = m_obstacleAffectedPolygons[i];
+                if (polyId >= 0 && polyId < static_cast<int>(m_polygons.size()))
+                {
+                    m_polygons[polyId].walkable = true;
+                    
+                    // Restore visibility if it was changed
+                    auto it = m_originalVisibility.find(polyId);
+                    if (it != m_originalVisibility.end())
+                    {
+                        m_polygons[polyId].visible = it->second;
+                    }
+                }
+            }
+            
+            m_obstacleAffectedPolygons.clear();
+            m_originalVisibility.clear();
+        }
+        return;
     }
     
-    // For each obstacle, mark affected polygons as non-walkable
-    for (wolf::GameObject* obstacle : obstacles)
+    // Clear previous obstacle markings but only for affected polygons
+    const size_t affectedCount = m_obstacleAffectedPolygons.size();
+    for (size_t i = 0; i < affectedCount; i++)
     {
+        int polyId = m_obstacleAffectedPolygons[i];
+        if (polyId >= 0 && polyId < static_cast<int>(m_polygons.size()))
+        {
+            m_polygons[polyId].walkable = true;
+            
+            // Restore visibility if it was changed
+            auto it = m_originalVisibility.find(polyId);
+            if (it != m_originalVisibility.end())
+            {
+                m_polygons[polyId].visible = it->second;
+            }
+        }
+    }
+    
+    m_obstacleAffectedPolygons.clear();
+    m_originalVisibility.clear();
+    
+    // Reserve space to avoid reallocations
+    std::unordered_set<int> newlyAffectedPolygons;
+    newlyAffectedPolygons.reserve(obstacles.size() * 4); // Estimate 4 polygons per obstacle
+    
+    // Cache player for faster comparisons
+    wolf::GameObject* player = nullptr;
+    if (m_pPathfindingManager && m_pPathfindingManager->GetLabyrinthManager())
+    {
+        player = m_pPathfindingManager->GetLabyrinthManager()->GetPlayer();
+    }
+    
+    // Optimization: Pre-check if spatial hash exists and SPATIAL_CELL_SIZE is valid
+    const bool useSpatialHash = !m_spatialHash.empty() && SPATIAL_CELL_SIZE > 0;
+    
+    // Process each obstacle using only Transform position (no colliders)
+    const size_t obstacleCount = obstacles.size();
+    for (size_t i = 0; i < obstacleCount; i++)
+    {
+        wolf::GameObject* obstacle = obstacles[i];
         if (!obstacle) continue;
         
         wolf::Transform2D* transform = obstacle->GetComponent<wolf::Transform2D>();
         if (!transform) continue;
         
-        glm::vec2 position = transform->GetGlobalPosition();
+        const glm::vec2 position = transform->GetGlobalPosition();
+        const bool isPlayer = (obstacle == player);
         
-        // Get the entity's collision bounds if available
-        ColliderComponent* collider = obstacle->GetComponent<ColliderComponent>();
-        if (collider)
+        // Use a smaller radius for optimization - just enough to cover typical entity size
+        const float obstacleRadius = 24.0f;
+        const float radiusSq = obstacleRadius * obstacleRadius; // Pre-square for distance2 comparisons
+        
+        // Process using spatial hash if available (much faster for large worlds)
+        if (useSpatialHash)
         {
-            // For each collider box
-            for (const auto& box : collider->GetColliderBoxes())
+            // Calculate bounding box in cell coordinates
+            const int minCellX = static_cast<int>((position.x - obstacleRadius) / SPATIAL_CELL_SIZE);
+            const int minCellY = static_cast<int>((position.y - obstacleRadius) / SPATIAL_CELL_SIZE);
+            const int maxCellX = static_cast<int>((position.x + obstacleRadius) / SPATIAL_CELL_SIZE);
+            const int maxCellY = static_cast<int>((position.y + obstacleRadius) / SPATIAL_CELL_SIZE);
+            
+            // Process cells in bounding box
+            for (int cellY = minCellY; cellY <= maxCellY; cellY++)
             {
-                // Mark all polygons that overlap with this box as non-walkable
-                for (size_t i = 0; i < m_polygons.size(); i++)
+                for (int cellX = minCellX; cellX <= maxCellX; cellX++)
                 {
-                    // Quick AABB test first
-                    bool mayOverlap = false;
-                    for (const auto& vertex : m_polygons[i].vertices)
+                    auto cellIt = m_spatialHash.find({cellX, cellY});
+                    if (cellIt != m_spatialHash.end())
                     {
-                        if (vertex.x >= box.m_left && vertex.x <= box.m_right &&
-                            vertex.y >= box.m_bottom && vertex.y <= box.m_top)
+                        const std::vector<int>& cellPolygons = cellIt->second;
+                        const size_t polyCount = cellPolygons.size();
+                        
+                        for (size_t j = 0; j < polyCount; j++)
                         {
-                            mayOverlap = true;
-                            break;
+                            const int polyId = cellPolygons[j];
+                            if (polyId < 0 || polyId >= static_cast<int>(m_polygons.size()))
+                                continue;
+                                
+                            // Skip if already processed
+                            if (newlyAffectedPolygons.count(polyId) > 0)
+                                continue;
+                                
+                            // Get reference to the polygon for more efficient access
+                            const NavPolygon& poly = m_polygons[polyId];
+                            
+                            // First check: containment test (position inside polygon)
+                            if (IsPointInPolygon(position, poly))
+                            {
+                                ProcessAffectedPolygon(polyId, isPlayer, newlyAffectedPolygons);
+                                continue;
+                            }
+                            
+                            // Second check: center point distance (fastest check)
+                            if (glm::distance2(poly.center, position) <= radiusSq)
+                            {
+                                ProcessAffectedPolygon(polyId, isPlayer, newlyAffectedPolygons);
+                                continue;
+                            }
+                            
+                            // Last check: vertices distance (more expensive, do last)
+                            bool affected = false;
+                            const size_t vertCount = poly.vertices.size();
+                            for (size_t k = 0; k < vertCount; k++)
+                            {
+                                if (glm::distance2(poly.vertices[k], position) <= radiusSq)
+                                {
+                                    affected = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (affected)
+                            {
+                                ProcessAffectedPolygon(polyId, isPlayer, newlyAffectedPolygons);
+                            }
                         }
-                    }
-                    
-                    if (mayOverlap || IsPointInPolygon(position, m_polygons[i]))
-                    {
-                        m_polygons[i].walkable = false;
                     }
                 }
             }
         }
         else
         {
-            // Fallback to simple position check if no collider is found
-            int polyIndex = FindPolygon(position);
-            if (polyIndex >= 0 && polyIndex < m_polygons.size())
+            // Fallback to linear scan (slower but works without spatial hash)
+            const size_t polyCount = m_polygons.size();
+            for (size_t j = 0; j < polyCount; j++)
             {
-                m_polygons[polyIndex].walkable = false;
+                const int polyId = static_cast<int>(j);
+                
+                // Skip if already processed
+                if (newlyAffectedPolygons.count(polyId) > 0)
+                    continue;
+                    
+                // Get reference to the polygon for more efficient access
+                const NavPolygon& poly = m_polygons[polyId];
+                
+                // First check: containment test (position inside polygon)
+                if (IsPointInPolygon(position, poly))
+                {
+                    ProcessAffectedPolygon(polyId, isPlayer, newlyAffectedPolygons);
+                    continue;
+                }
+                
+                // Second check: center point distance (fastest check)
+                if (glm::distance2(poly.center, position) <= radiusSq)
+                {
+                    ProcessAffectedPolygon(polyId, isPlayer, newlyAffectedPolygons);
+                    continue;
+                }
+                
+                // Last check: vertices distance (more expensive, do last)
+                bool affected = false;
+                const size_t vertCount = poly.vertices.size();
+                for (size_t k = 0; k < vertCount; k++)
+                {
+                    if (glm::distance2(poly.vertices[k], position) <= radiusSq)
+                    {
+                        affected = true;
+                        break;
+                    }
+                }
+                
+                if (affected)
+                {
+                    ProcessAffectedPolygon(polyId, isPlayer, newlyAffectedPolygons);
+                }
             }
         }
     }
     
-    // Update the pathfinding graph connections
-    // Remove connections to non-walkable polygons
-    for (auto& poly : m_polygons)
+    // Store affected polygons for next update
+    m_obstacleAffectedPolygons.assign(newlyAffectedPolygons.begin(), newlyAffectedPolygons.end());
+}
+
+inline void NavMeshComponent::ProcessAffectedPolygon(int polyId, bool isPlayer, std::unordered_set<int>& affectedPolygons)
+{
+    if (isPlayer)
     {
-        if (!poly.walkable) continue;
-        
-        // Filter out connections to non-walkable polygons
-        std::vector<int> walkableNeighbors;
-        for (int neighborId : poly.neighbors)
+        // Save original visibility for later restoration
+        if (m_originalVisibility.find(polyId) == m_originalVisibility.end())
         {
-            if (neighborId >= 0 && neighborId < m_polygons.size() && m_polygons[neighborId].walkable)
+            m_originalVisibility[polyId] = m_polygons[polyId].visible;
+        }
+        
+        // Make polygon invisible for player but still walkable
+        m_polygons[polyId].visible = false;
+        m_polygons[polyId].walkable = true;
+    }
+    else
+    {
+        // Make polygon non-walkable for other entities
+        m_polygons[polyId].walkable = false;
+    }
+    
+    affectedPolygons.insert(polyId);
+}
+
+std::vector<glm::vec2> NavMeshComponent::ImprovedFunnelAlgorithm(
+    const std::vector<int>& corridorPolygons,
+    const glm::vec2& start,
+    const glm::vec2& end) const
+{
+    if (corridorPolygons.empty())
+        return {start, end};
+    
+    if (corridorPolygons.size() == 1)
+        return {start, end};
+    
+    // Identify portals (edges) between consecutive polygons
+    std::vector<std::pair<glm::vec2, glm::vec2>> portals;
+    portals.reserve(corridorPolygons.size());
+    
+    // Add start point as first portal
+    portals.push_back({start, start});
+    
+    // Find shared edges between consecutive polygons
+    for (size_t i = 0; i < corridorPolygons.size() - 1; i++)
+    {
+        int current = corridorPolygons[i];
+        int next = corridorPolygons[i + 1];
+        
+        // Find the shared edge
+        for (const auto& edge : m_edges)
+        {
+            if ((edge.poly1 == current && edge.poly2 == next) ||
+                (edge.poly1 == next && edge.poly2 == current))
             {
-                walkableNeighbors.push_back(neighborId);
+                portals.push_back({edge.start, edge.end});
+                break;
+            }
+        }
+    }
+    
+    // Add end point as last portal
+    portals.push_back({end, end});
+    
+    // Simple funnel algorithm implementation
+    std::vector<glm::vec2> path;
+    path.push_back(start);
+    
+    glm::vec2 apex = start;
+    glm::vec2 leftLeg = start;
+    glm::vec2 rightLeg = start;
+    
+    int apexIndex = 0;
+    int leftIndex = 0;
+    int rightIndex = 0;
+    
+    // Process each portal
+    for (size_t i = 1; i < portals.size(); i++)
+    {
+        const auto& portal = portals[i];
+        glm::vec2 left = portal.first;
+        glm::vec2 right = portal.second;
+        
+        // Update right leg
+        bool rightUpdated = false;
+        {
+            // Compute cross product of current right leg
+            glm::vec2 newRightLeg = right - apex;
+            glm::vec2 oldRightLeg = rightLeg - apex;
+            
+            float cross = oldRightLeg.x * newRightLeg.y - oldRightLeg.y * newRightLeg.x;
+            
+            if (cross < 0.0f)  // New leg is further right
+            {
+                rightLeg = right;
+                rightIndex = i;
+                rightUpdated = true;
             }
         }
         
-        poly.neighbors = walkableNeighbors;
+        // Update left leg
+        bool leftUpdated = false;
+        {
+            // Compute cross product of current left leg
+            glm::vec2 newLeftLeg = left - apex;
+            glm::vec2 oldLeftLeg = leftLeg - apex;
+            
+            float cross = oldLeftLeg.x * newLeftLeg.y - oldLeftLeg.y * newLeftLeg.x;
+            
+            if (cross > 0.0f)  // New leg is further left
+            {
+                leftLeg = left;
+                leftIndex = i;
+                leftUpdated = true;
+            }
+        }
+        
+        // Check if we need to narrow the funnel by moving the apex
+        if (rightUpdated)
+        {
+            // Check if right leg crosses over left leg
+            glm::vec2 rightToLeft = leftLeg - rightLeg;
+            glm::vec2 rightToApex = apex - rightLeg;
+            
+            float cross = rightToApex.x * rightToLeft.y - rightToApex.y * rightToLeft.x;
+            
+            if (cross < 0.0f)  // Right leg crosses left leg, move apex to left leg
+            {
+                apex = leftLeg;
+                apexIndex = leftIndex;
+                
+                // Add new apex to path
+                path.push_back(apex);
+                
+                // Reset funnel to new apex
+                leftLeg = apex;
+                rightLeg = apex;
+                leftIndex = apexIndex;
+                rightIndex = apexIndex;
+                
+                // Restart funnel algorithm from new apex
+                i = apexIndex;
+                continue;
+            }
+        }
+        
+        if (leftUpdated)
+        {
+            // Check if left leg crosses over right leg
+            glm::vec2 leftToRight = rightLeg - leftLeg;
+            glm::vec2 leftToApex = apex - leftLeg;
+            
+            float cross = leftToApex.x * leftToRight.y - leftToApex.y * leftToRight.x;
+            
+            if (cross < 0.0f)  // Left leg crosses right leg, move apex to right leg
+            {
+                apex = rightLeg;
+                apexIndex = rightIndex;
+                
+                // Add new apex to path
+                path.push_back(apex);
+                
+                // Reset funnel to new apex
+                leftLeg = apex;
+                rightLeg = apex;
+                leftIndex = apexIndex;
+                rightIndex = apexIndex;
+                
+                // Restart funnel algorithm from new apex
+                i = apexIndex;
+                continue;
+            }
+        }
     }
+    
+    // Add end point
+    if (path.back() != end)
+    {
+        path.push_back(end);
+    }
+    
+    return path;
 }
