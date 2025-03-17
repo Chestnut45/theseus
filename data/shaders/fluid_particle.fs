@@ -31,5 +31,6 @@ void main()
     vec4 waveColorContribution = max(waveColor * (1.0 - pressureFactor * 8.0), vec4(0.0));
 
     // Calculate final color
-    finalColor = fluidColor + waveColorContribution;
+    vec4 col = fluidColor + waveColorContribution;
+    finalColor = col;
 }

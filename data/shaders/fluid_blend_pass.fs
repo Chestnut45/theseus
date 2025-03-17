@@ -9,7 +9,9 @@ in vec2 texCoords;
 out vec4 finalColor;
 
 uniform float time;
+uniform float causticFrequency;
 uniform vec3 cameraPos;
+uniform vec4 causticColor;
 
 vec4 os2NoiseWithDerivatives_ImproveXY(vec3 X);
 
@@ -22,7 +24,7 @@ void main()
     // Initial input point
     // TODO: Fix camera pos discrepency! (scale by screen resolution)
     vec2 scaledCameraPos = (cameraPos.xy / 48);
-    vec3 x = vec3(texCoords * 30 + scaledCameraPos, time);
+    vec3 x = vec3(texCoords * causticFrequency + scaledCameraPos, time);
     
     // Evaluate noise once
     vec4 noise = os2NoiseWithDerivatives_ImproveXY(x);
@@ -30,10 +32,8 @@ void main()
     float value = noise.w;
 
     // Calculate the final color
-    // TODO: Use adjustable colors
-    vec3 col = vec3(0.431, 0.8, 1.0) * (0.5 + 0.5 * value);
-    vec4 causticColor = vec4(col, 0.0);
-    finalColor = fluidColor + causticColor;
+    vec3 causticContribution = causticColor.rgb * (0.5 + 0.5 * value) * causticColor.a;
+    finalColor = fluidColor + vec4(causticContribution, 0.0);
 }
 
 

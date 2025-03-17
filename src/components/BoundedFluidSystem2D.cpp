@@ -54,7 +54,6 @@ BoundedFluidSystem2D::BoundedFluidSystem2D(const wolf::Rectangle& bounds)
         glBindFramebuffer(GL_FRAMEBUFFER, s_framebuffer);
         glGenTextures(1, &s_fbColorTex);
         glBindTexture(GL_TEXTURE_2D, s_fbColorTex);
-        // TODO: React to window resizing...
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -290,6 +289,8 @@ void BoundedFluidSystem2D::Render(float delta)
     auto* pCamera = GetGameObject()->GetScene().GetActiveCamera();
     s_pBlendPassShader->SetUniform("cameraPos", pCamera ? glm::vec3(pCamera->GetPosition(), 1.0f) : glm::vec3(0.0f));
     s_pBlendPassShader->SetUniform("time", m_simTime);
+    s_pBlendPassShader->SetUniform("causticColor", m_causticColor);
+    s_pBlendPassShader->SetUniform("causticFrequency", m_causticFrequency);
     s_pBlendPassShader->Bind();
 
     // Then blend into the original framebuffer
@@ -349,6 +350,8 @@ void BoundedFluidSystem2D::ShowEditor()
     ImGui::Checkbox("Gravity", &m_simulateGravity);
     ImGui::ColorEdit4("Fluid Color", &m_fluidColor.r);
     ImGui::ColorEdit4("Wave Color", &m_waveColor.r);
+    ImGui::ColorEdit4("Caustic Color", &m_causticColor.r);
+    ImGui::SliderFloat("Caustic Freq", &m_causticFrequency, 1.0f, 50.0f);
     ImGui::SliderInt("# Particles", &m_numParticlesToSpawn, 1, 5000);
     if (ImGui::Button("Respawn")) SetupDamBreak();
 
@@ -374,4 +377,39 @@ void BoundedFluidSystem2D::SetupDamBreak()
             }
         }
     }
+}
+
+void BoundedFluidSystem2D::ResizeFramebuffer(int width, int height)
+{
+    // Ensure valid input
+    assert(width > 0 && height > 0);
+
+    // Don't bother if no fluid system components exist
+    if (s_refCount < 1) return;
+
+    // Create new texture
+    glBindFramebuffer(GL_FRAMEBUFFER, s_framebuffer);
+    GLuint newTexture;
+    glGenTextures(1, &newTexture);
+    glBindTexture(GL_TEXTURE_2D, newTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Attach to framebuffer
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, newTexture, 0);
+
+    // Ensure completeness
+    if( glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        wolf::Error("Fluid sim framebuffer not complete!");
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    // Delete old texture
+    glDeleteTextures(1, &s_fbColorTex);
+
+    // Update our handle
+    s_fbColorTex = newTexture;
 }

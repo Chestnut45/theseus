@@ -63,11 +63,10 @@ public:
     BoundedFluidSystem2D& operator=(BoundedFluidSystem2D&& other) = delete;
 
     // Integrate the particles forward in time by delta seconds
-    // NOTE: If delta > FIXED_DELTA * MAX_INTEGRATION_STEPS_PER_UPDATE,
-    // the simulation will slow down!
+    // TODO: Untie from framerate
     void Update(float delta);
 
-    // Draw the fluid particles to the current framebuffer
+    // Draw the fluid particles to the currently bound framebuffer
     void Render(float delta);
 
     // Apply a radial force at the given position, interpolated linearly by distance
@@ -98,6 +97,8 @@ private:
     std::vector<FluidParticle> m_particles;
     glm::vec4 m_fluidColor{0.0f, 0.2f, 0.45f, 1.0f};
     glm::vec4 m_waveColor{1.0f};
+    glm::vec4 m_causticColor{1.0f};
+    float m_causticFrequency = 10.0f;
     float m_simTime = 0.0f;
 
     // Spatial hashing optimization structure
@@ -146,4 +147,9 @@ private:
 
     // DEBUG: Sets up an initial dam break configuration based on m_numParticlesToSpawn
     void SetupDamBreak();
+
+    // Resizes the internal framebuffer for fluid rendering
+    // NOTE: This is automatically called by Theseus when the window resizes
+    static void ResizeFramebuffer(int width, int height);
+    friend class Theseus;
 };
