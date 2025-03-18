@@ -838,7 +838,7 @@ void LightComponent::ClearFBO() {
 
     // Bind the lighting FBO and clear it to black
     glBindFramebuffer(GL_FRAMEBUFFER, s_uiFBO);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Then rebind the original FBO

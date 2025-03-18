@@ -1,5 +1,5 @@
-in vec2 a_position;
-in vec2 a_UV;
+layout(location = 0) in vec2 a_position;
+layout(location = 2) in vec2 a_UV;
 
 out vec2 texCoords;
 
