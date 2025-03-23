@@ -386,11 +386,6 @@ void PlayState::Update(float delta)
             TimedDestroyerComponent.Update(delta);
         }
 
-    // Update the lights in the scene
-    for (auto&& [_, LightComponent] : m_pGameInstance->GetScene().Each<LightComponent>()) {
-        LightComponent.Update(delta);
-    }
-
         // INVENTORY TESTING
         auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
         if (playerInventory) {
@@ -539,8 +534,6 @@ void PlayState::Update(float delta)
         {
             status.Update(delta);
         }
-
-        
 
         // Display all open chest GUIs
         const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -765,6 +758,11 @@ void PlayState::Update(float delta)
         
         // Base update for all game objects and components in the scene
         m_pGameInstance->GetScene().Update(delta);
+
+        // Update the lights in the scene
+        for (auto&& [_, LightComponent] : m_pGameInstance->GetScene().Each<LightComponent>()) {
+            LightComponent.Update(delta);
+        }
 
         // Update damage indicators
         for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>()) {
