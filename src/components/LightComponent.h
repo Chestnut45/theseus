@@ -44,13 +44,15 @@ class LightComponent : public wolf::BaseComponent {
         inline bool CanMove() const {return m_bCanMove;};
         inline void SetCanMove(bool p_bCanMove) {m_bCanMove = p_bCanMove;};
 
-        void RenderToFBO();
+        void RenderLightToFBO();
+        static void RenderShadowsToFBO();
         static void BlendFBOAndScreen();
         static void ClearFBO();
         static void ResizeFBO(int p_iWidth, int p_iHeight);
+        static void BindFBO();
+        static void UnbindFBO();
 
     private:
-
         enum RoughPosition {
             TOP_LEFT,
             TOP_CENTER,
@@ -64,7 +66,8 @@ class LightComponent : public wolf::BaseComponent {
         };
 
         static float s_arfBaseVertexData[6];
-        static std::vector<TexturedVertex2D> s_vtvQuadVertices;
+        static std::vector<ColouredVertex2D> s_vcvShadowQuadVertices;
+        static std::vector<TexturedVertex2D> s_vtvTexQuadVertices;
 
         static bool CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, std::pair<glm::vec2, float> p_v2fB);
 
@@ -83,6 +86,9 @@ class LightComponent : public wolf::BaseComponent {
         bool CheckForWallAtPos(const glm::vec2& p_v2Pos);
 
         bool IsAOERect(const wolf::Rectangle& p_pRect);
+
+        // Number of lights in the scene
+        static int s_iRefCount;
 
         // ID number to discern between lights
         static int s_iNextIDNum;
@@ -120,13 +126,17 @@ class LightComponent : public wolf::BaseComponent {
         static inline GLuint s_uiFBO = 0;
         static inline GLuint s_uiTexture = 0;
 
-        static int s_iRefCount;
+        // Shadow shader resources
+        static inline wolf::Program* s_pShadowProgram = nullptr;
+        static inline wolf::VertexBuffer* s_pShadowVBO = nullptr;
+        static inline wolf::VertexDeclaration* s_pShadowVAO = nullptr;
 
-        static bool s_bFBOIsClear;
-        static int s_iLightsRendered;
+        static const glm::vec4 SHADOW_COLOR;
 
         // Textured quad shader resources
         static inline wolf::Program* s_pQuadProgram = nullptr;
         static inline wolf::VertexBuffer* s_pQuadVBO = nullptr;
         static inline wolf::VertexDeclaration* s_pQuadVAO = nullptr;
+
+        static inline GLint s_iPrevBoundBuffer = 0;
 };

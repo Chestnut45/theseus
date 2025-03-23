@@ -811,10 +811,19 @@ void PlayState::Render(float delta)
     // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
 
-    // Render light geometry to the shared FBO
+    // Bind the lighting FBO
+    LightComponent::BindFBO();
+
+    // Render light geometry to the lights' shared FBO
     for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
-        lightComp.RenderToFBO();
+        lightComp.RenderLightToFBO();
     }
+
+    // Render the shadow geometry to the lights' shared FBO
+    LightComponent::RenderShadowsToFBO();
+
+    // Unbind the lighting FBO
+    LightComponent::UnbindFBO();
 
     // Blend the light FBO with the screen
     LightComponent::BlendFBOAndScreen();
