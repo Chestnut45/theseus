@@ -9,6 +9,7 @@
 #include "MinitaurController.h"
 #include "StatusComponent.h"
 #include <cassert>
+#include <LightComponent.h>
 
 wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, const glm::vec2& position)
 {
@@ -34,6 +35,11 @@ wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, const gl
     auto& controller = minitaurObject->AddComponent<MinitaurController>();
     controller.Init(data);
     controller.SetPlayerID(m_scene.GetPlayerID());
+
+    // Add a light to the minitaur
+    wolf::GameObject* pLightGO = &m_scene.CreateObject2D();
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.0f, 0.0f, 0.5f), glm::vec2(50.0f, 50.0f), true);
+    minitaurObject->AddChild(*pLightGO);
 
     return *minitaurObject;
 }

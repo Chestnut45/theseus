@@ -20,7 +20,7 @@
 class LightComponent : public wolf::BaseComponent {
     public:
         // IMPORTANT: LightComponent::Init() MUST be called immediately after component creation
-        LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2Radius, bool m_bCanMove);
+        LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2Radius, bool p_bIsOn);
         ~LightComponent();
 
         // Delete copy constructor/assignment
@@ -41,16 +41,15 @@ class LightComponent : public wolf::BaseComponent {
 
         inline glm::vec2 GetRadius() const {return m_v2CurRadius;};
 
-        inline bool CanMove() const {return m_bCanMove;};
-        inline void SetCanMove(bool p_bCanMove) {m_bCanMove = p_bCanMove;};
+        inline bool IsOn() const {return m_bIsOn;};
+        inline void SetOn(bool p_bIsOn) {m_bIsOn = p_bIsOn;};
 
         void RenderLightToFBO();
-        static void RenderShadowsToFBO();
         static void BlendFBOAndScreen();
         static void ClearFBO();
         static void ResizeFBO(int p_iWidth, int p_iHeight);
-        static void BindFBO();
-        static void UnbindFBO();
+        static void BindFBOAndBlendFunc();
+        static void UnbindFBOAndBlendFunc();
 
     private:
         enum RoughPosition {
@@ -85,6 +84,7 @@ class LightComponent : public wolf::BaseComponent {
         // Helper function to determine if a point falls on a wall tile
         bool CheckForWallAtPos(const glm::vec2& p_v2Pos);
 
+        // Helper function to determine if a rectangle is the collider's AOE
         bool IsAOERect(const wolf::Rectangle& p_pRect);
 
         // Number of lights in the scene
@@ -93,15 +93,15 @@ class LightComponent : public wolf::BaseComponent {
         // ID number to discern between lights
         static int s_iNextIDNum;
         const int m_iIDNum;
-        
-        // Bool to determine whether or not this light can move
-        bool m_bCanMove;
 
         // Color, radius, and origin point of the light
         glm::vec4 m_v4Color;
         glm::vec2 m_v2CurRadius;
         glm::vec2 m_v2InitRadius;
         glm::vec2 m_v2Origin;
+
+        // Toggle variable for turning the light on/off
+        bool m_bIsOn;
 
         // Pointer to the scene this light is in
         wolf::Scene* m_pScene = nullptr;
@@ -125,13 +125,6 @@ class LightComponent : public wolf::BaseComponent {
         
         static inline GLuint s_uiFBO = 0;
         static inline GLuint s_uiTexture = 0;
-
-        // Shadow shader resources
-        static inline wolf::Program* s_pShadowProgram = nullptr;
-        static inline wolf::VertexBuffer* s_pShadowVBO = nullptr;
-        static inline wolf::VertexDeclaration* s_pShadowVAO = nullptr;
-
-        static const glm::vec4 SHADOW_COLOR;
 
         // Textured quad shader resources
         static inline wolf::Program* s_pQuadProgram = nullptr;

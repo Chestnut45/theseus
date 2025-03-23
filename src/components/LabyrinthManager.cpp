@@ -51,6 +51,7 @@
 #include <GorgonController.h>
 #include <NPCComponent.h>
 #include <MonsterSpawnerComponent.h>
+#include <LightComponent.h>
 
 std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
 std::string LabyrinthManager::s_entityNames[(int)LabyrinthManager::Room::EntityType::ENTITY_COUNT];
@@ -2069,6 +2070,11 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& chestInv = chest.AddComponent<ChestInventoryComponent>(16, 4, ImVec2(800, 450));
                         chestInv.FillFromLootTable(lootTablePath, m_rng);
 
+                        // Add a light to the chest (added by Aurora)
+                        auto& light = pObject->GetScene().CreateObject2D();
+                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+                        chest.AddChild(light);
+
                         // Add chest as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(chest);
                         break;
@@ -2097,6 +2103,11 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Add trap
                         auto& tcComp = chest.AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::EXPLODE);
                         tcComp.Init();
+
+                        // Add a light to the chest (added by Aurora)
+                        auto& light = pObject->GetScene().CreateObject2D();
+                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+                        chest.AddChild(light);
 
                         // Add chest as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(chest);
@@ -2127,6 +2138,11 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& tcComp = chest.AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::TRANSFORM_GORGON);
                         tcComp.Init();
 
+                        // Add a light to the chest (added by Aurora)
+                        auto& light = pObject->GetScene().CreateObject2D();
+                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+                        chest.AddChild(light);
+
                         // Add chest as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(chest);
                         break;
@@ -2156,6 +2172,11 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& tcComp = chest.AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::TRANSFORM_HARPY);
                         tcComp.Init();
 
+                        // Add a light to the chest (added by Aurora)
+                        auto& light = pObject->GetScene().CreateObject2D();
+                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+                        chest.AddChild(light);
+
                         // Add chest as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(chest);
                         break;
@@ -2184,6 +2205,11 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Add trap
                         auto& tcComp = chest.AddComponent<TrappedChestComponent>(TrappedChestComponent::TrapType::TRANSFORM_MINITAUR);
                         tcComp.Init();
+
+                        // Add a light to the chest (added by Aurora)
+                        auto& light = pObject->GetScene().CreateObject2D();
+                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+                        chest.AddChild(light);
 
                         // Add chest as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(chest);
@@ -2230,6 +2256,11 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& iconTransform = *icon.GetComponent<wolf::Transform2D>();
                         iconTransform.SetPosition(glm::vec2(0.0f, 25.0f));
                         iconTransform.SetScale(glm::vec2(0.5f, 0.5f));
+
+                        // Add a light to the dispensary (added by Aurora)
+                        auto& light = pObject->GetScene().CreateObject2D();
+                        light.AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+                        dispensary.AddChild(light);
 
                         // Add dispensary as a child object of the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(dispensary);

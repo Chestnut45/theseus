@@ -198,8 +198,6 @@ void PlayState::Enter()
     m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
     m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
 
-
-   
     // Schedule her movement
     auto* transform = ariadne.GetComponent<wolf::Transform2D>();
     if (transform) {
@@ -215,13 +213,16 @@ void PlayState::Enter()
     // Now it's safe to register entities
     for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())
     {
-        m_pPathfindingManager->RegisterEntity(minitaur.GetGameObject());
+        m_pPathfindingManager->RegisterEntity(minitaur.GetGameObject()); 
     }
 
     // Add a test light to the player
     wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
     auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.9f, 0.0f, 0.5f), glm::vec2(116.0f, 116.0f), true);
     m_pPlayerObject->AddChild(*pLightGO);
+
+    // Make Ariadne's light pink because I can (Aurora)
+    ariadne.GetChildren().front()->GetComponent<LightComponent>()->SetColor(glm::vec4(1.0f, 0.41f, 0.70f, 0.5f));
 
     // Initialize all of the lights in the scene now that we are sure they have been set up
     for (auto&& [_, light] : m_pGameInstance->GetScene().Each<LightComponent>()) {
@@ -812,18 +813,15 @@ void PlayState::Render(float delta)
     m_pGameInstance->GetScene().Render(delta);
 
     // Bind the lighting FBO
-    LightComponent::BindFBO();
+    LightComponent::BindFBOAndBlendFunc();
 
     // Render light geometry to the lights' shared FBO
     for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
         lightComp.RenderLightToFBO();
     }
 
-    // Render the shadow geometry to the lights' shared FBO
-    LightComponent::RenderShadowsToFBO();
-
     // Unbind the lighting FBO
-    LightComponent::UnbindFBO();
+    LightComponent::UnbindFBOAndBlendFunc();
 
     // Blend the light FBO with the screen
     LightComponent::BlendFBOAndScreen();

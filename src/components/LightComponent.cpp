@@ -21,19 +21,6 @@ float LightComponent::s_arfBaseVertexData[6] {
     0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
 };
 
-const glm::vec4 LightComponent::SHADOW_COLOR = {0.0f, 0.0f, 0.0f, 0.5f};
-
-// To draw the shadows to the FBO
-std::vector<ColouredVertex2D> LightComponent::s_vcvShadowQuadVertices {
-    {-1.0f,  1.0f,  SHADOW_COLOR.r, SHADOW_COLOR.g, SHADOW_COLOR.b, SHADOW_COLOR.a}, // Top Left
-    {-1.0f, -1.0f,  SHADOW_COLOR.r, SHADOW_COLOR.g, SHADOW_COLOR.b, SHADOW_COLOR.a}, // Bot Left
-    {1.0f, -1.0f,  SHADOW_COLOR.r, SHADOW_COLOR.g, SHADOW_COLOR.b, SHADOW_COLOR.a}, // Bot Right
-
-    {-1.0f,  1.0f,  SHADOW_COLOR.r, SHADOW_COLOR.g, SHADOW_COLOR.b, SHADOW_COLOR.a}, // Top Left
-    {1.0f, -1.0f,  SHADOW_COLOR.r, SHADOW_COLOR.g, SHADOW_COLOR.b, SHADOW_COLOR.a}, // Bot Right
-    {1.0f,  1.0f,  SHADOW_COLOR.r, SHADOW_COLOR.g, SHADOW_COLOR.b, SHADOW_COLOR.a} // Top Right
-};
-
 // To draw the light/shadow texture to the screen
 std::vector<TexturedVertex2D> LightComponent::s_vtvTexQuadVertices {
     {-1.0f,  1.0f,  0.0f, 1.0f}, // Top Left
@@ -49,8 +36,8 @@ std::vector<TexturedVertex2D> LightComponent::s_vtvTexQuadVertices {
 //                                  Resource Management & Init Methods
 // ------------------------------------------------------------------------------------------------------------
 
-LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2Radius, bool p_bCanMove) 
-    : m_v4Color(p_v4Color), m_v2InitRadius(p_v2Radius), m_iIDNum(s_iNextIDNum), m_bCanMove(p_bCanMove)
+LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2Radius, bool p_bIsOn) 
+    : m_v4Color(p_v4Color), m_v2InitRadius(p_v2Radius), m_iIDNum(s_iNextIDNum), m_bIsOn(p_bIsOn)
 {
     // If this is the first LightComponent instance in the scene...
     if (s_iRefCount == 0) {
@@ -90,17 +77,6 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
         s_pVAO->AppendAttribute(wolf::AT_Color, 4, wolf::CT_Float);
         s_pVAO->SetVertexBuffer(s_pVBO);
         s_pVAO->End();
-
-        // Create the shader resources for shadows
-        s_pShadowProgram = wolf::ProgramManager::CreateProgram("data/shaders/shadowQuad2D.vs", "data/shaders/shadowQuad2D.fs");
-
-        s_pShadowVBO = wolf::BufferManager::CreateVertexBuffer(s_vcvShadowQuadVertices.data(), sizeof(ColouredVertex2D) * s_vcvShadowQuadVertices.size());
-        s_pShadowVAO = new wolf::VertexDeclaration();
-        s_pShadowVAO->Begin();
-        s_pShadowVAO->AppendAttribute(wolf::AT_Position, 2, wolf::CT_Float);
-        s_pShadowVAO->AppendAttribute(wolf::AT_Color, 4, wolf::CT_Float);
-        s_pShadowVAO->SetVertexBuffer(s_pShadowVBO);
-        s_pShadowVAO->End();
 
         // Create the shader resources for blending the light/shadow texture to the screen
         s_pQuadProgram = wolf::ProgramManager::CreateProgram("data/shaders/lightQuad2D.vs", "data/shaders/lightQuad2D.fs");
@@ -180,8 +156,8 @@ void LightComponent::Init() {
 // ------------------------------------------------------------------------------------------------------------
 
 void LightComponent::Update(float p_fDelta) {
-    // If the light's AOE collider isn't active
-    if (!m_pCollider->IsActive()) {
+    // If the light's AOE collider isn't active or the light isn't on
+    if (!m_pCollider->IsActive() || !m_bIsOn) {
         // Then we don't want to do anything at all!
         return;
     }
@@ -795,34 +771,37 @@ bool LightComponent::CompareVec2FloatPair(std::pair<glm::vec2, float> p_v2fA, st
 //                                              Rendering
 // ------------------------------------------------------------------------------------------------------------
 
-void LightComponent::BindFBO() {
+// CALL THIS METHOD BEFORE MAKING ANY LightComponent::RenderLightToFBO CALLS
+void LightComponent::BindFBOAndBlendFunc() {
     // Get the current FBO and save it so we can bind it again later
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &s_iPrevBoundBuffer);
 
-    // Bind the lighting FBO
-    glBindFramebuffer(GL_FRAMEBUFFER, s_uiFBO);
-}
-
-void LightComponent::UnbindFBO() {
-    // Bind whatever buffer was bound before the lighting FBO
-    glBindFramebuffer(GL_FRAMEBUFFER, s_iPrevBoundBuffer);
-}
-
-void LightComponent::RenderLightToFBO() {
-    // If there is nothing colliding with the light
-    if (m_vcvVertexData.empty()) {
-        // We don't need to render anything
-        return;
-    }
-    
     // Bind the lighting FBO
     glBindFramebuffer(GL_FRAMEBUFFER, s_uiFBO);
 
     // Enable blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
 
-    // Then render this light's geometry to the FBO
+// CALL THIS METHOD AFTER ALL LightComponent::RenderLightTOFBO CALLS HAVE COMPLETED
+void LightComponent::UnbindFBOAndBlendFunc() {
+    // Bind whatever buffer was bound before the lighting FBO
+    glBindFramebuffer(GL_FRAMEBUFFER, s_iPrevBoundBuffer);
+
+    // Disable blending
+    glDisable(GL_BLEND);
+}
+
+// CALL THIS AFTER CALLING LightComponent::BindFBOAndBlendFunc
+void LightComponent::RenderLightToFBO() {
+    // If there is nothing colliding with the light or the light is not active
+    if (m_vcvVertexData.empty() || !m_pCollider->IsActive()) {
+        // We don't need to render anything
+        return;
+    }
+
+    // Otherwise, render this light's geometry to the FBO
     glm::mat4 model = glm::mat4(1.0f);
     s_pProgram->SetUniform("model", model);
     s_pProgram->SetUniform("colour", m_v4Color);
@@ -835,35 +814,10 @@ void LightComponent::RenderLightToFBO() {
 
     // Unbind the VAO
     glBindVertexArray(0);
-
-    // Disable blending
-    glDisable(GL_BLEND);
 }
 
-void LightComponent::RenderShadowsToFBO() {
-    // Bind the light/shadow FBO
-    glBindFramebuffer(GL_FRAMEBUFFER, s_uiFBO);
-
-    // Enable blending
-    glEnable(GL_BLEND);
-
-    // Replace shadows with light color wherever there is light geometry
-    glBlendFunc(GL_ZERO, GL_ONE);
-
-    // Render the shadow quad to the FBO
-    s_pShadowProgram->SetUniform("colour", SHADOW_COLOR);
-    s_pShadowProgram->Bind();
-
-    s_pShadowVAO->Bind();
-    glDrawArrays(GL_TRIANGLES, 0, s_vcvShadowQuadVertices.size());
-
-    // Unbind the VAO
-    glBindVertexArray(0);
-
-    // Disable blending
-    glDisable(GL_BLEND);
-}
-
+// ONLY CALL THIS ONCE ALL LIGHTS HAVE FINISHED RENDERING TO THE FBO
+// (LightComponent::RenderLightToFBO() for all lights, then LightComponent::UnbindFBOAndBlendFunc() once)
 void LightComponent::BlendFBOAndScreen() {
     // Enable blending
     glEnable(GL_BLEND);
