@@ -94,6 +94,20 @@ void GorgonController::Init(const EnemyData& data)
 
     // Initialise emotes-related variables
     m_fEmoteTimer = EMOTE_TIME;
+
+    // Find the PathfindingManager in the scene
+    bool pathfindingManagerFound = false;
+    for (auto&& [entity, pathfindingManager] : GetGameObject()->GetScene().Each<PathfindingManager>())
+    {
+        m_pPathfindingManager = &pathfindingManager;
+        pathfindingManagerFound = true;
+        break; // there's only one PathfindingManager in the scene
+    }
+
+    if (!pathfindingManagerFound)
+    {
+        wolf::Warning("MinitaurController: No PathfindingManager found in the scene!");
+    }
 }
 
 
@@ -297,6 +311,37 @@ void GorgonController::SetUpAnimations(const std::string& animationInitPath)
 
 void GorgonController::MoveTowardsTarget(float delta)
 {
+    if (!m_pTarget || !m_pVelocity || !m_pTransform || !m_pPathfindingManager)
+        return;
+
+    auto& pathData = m_pPathfindingManager->GetPathData(GetGameObject());
+
+    if (pathData.path.empty())
+    {
+        FallbackToDirectMovement(delta);
+        return;
+    }
+
+    glm::ivec2 nextTile = pathData.path.front();
+    glm::vec2 nextTileWorldPos = m_pPathfindingManager->GetLabyrinthManager()->GetWorldPosition(nextTile) + glm::vec2(48.0f, 48.0f);
+    glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+    glm::vec2 direction = nextTileWorldPos - currentPosition;
+
+    if (glm::length(direction) > 0.5f)
+    {
+        direction = glm::normalize(direction);
+        m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+    }
+    else
+    {
+        // Advance to the next tile
+        pathData.path.erase(pathData.path.begin());
+    }
+}
+
+// Fallback to direct movement if pathfinding fails
+void GorgonController::FallbackToDirectMovement(float delta)
+{
     if (!m_pTarget || !m_pVelocity || !m_pTransform) return;
 
     // Calculate the direction towards the player and move the Gorgon
@@ -306,19 +351,11 @@ void GorgonController::MoveTowardsTarget(float delta)
     // Calculate direction vector
     glm::vec2 direction = targetPosition - currentPosition;
 
-    // Log for debugging current position, target position, and distance
-    // printf("Gorgon MoveTowardsTarget: Current Pos: (%f, %f), Target Pos: (%f, %f)\n", 
-    //        currentPosition.x, currentPosition.y, targetPosition.x, targetPosition.y);
-
     if (glm::length(direction) > 0.01f) {
         direction = glm::normalize(direction);
         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
-
-        // Log the velocity being set
-        // printf("Velocity Set: (%f, %f)\n", direction.x * m_chaseSpeed, direction.y * m_chaseSpeed);
     } else {
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
-        // printf("Velocity Stopped\n");
     }
 }
 

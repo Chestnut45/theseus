@@ -108,10 +108,12 @@ PlayerInventoryComponent::PlayerInventoryComponent(int p_iSize, int p_iSlotsPerR
     wolf::EventManager::AddListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
     wolf::EventManager::AddListener<SellItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleSellItemToPlayerEvent>(*this);
     wolf::EventManager::AddListener<PickupDroppedItemEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandlePickupDroppedItemEvent>(*this);
+    wolf::EventManager::AddListener<EndPlacingPlaceableEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleEndPlacingPlaceableEvent>(*this);
     wolf::EventManager::AddListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
     wolf::EventManager::AddListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
     wolf::EventManager::AddListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
     wolf::EventManager::AddListener<RemoveFromPlayerEquipmentEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerEquipmentEvent>(*this);
+    
 }
 
 PlayerInventoryComponent::~PlayerInventoryComponent() {
@@ -126,6 +128,7 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
     wolf::EventManager::RemoveListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<SellItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleSellItemToPlayerEvent>(*this);
     wolf::EventManager::RemoveListener<PickupDroppedItemEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandlePickupDroppedItemEvent>(*this);
+    wolf::EventManager::RemoveListener<EndPlacingPlaceableEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleEndPlacingPlaceableEvent>(*this);
     wolf::EventManager::RemoveListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
     wolf::EventManager::RemoveListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<RemoveFromPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerInventoryEvent>(*this);
@@ -133,6 +136,8 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
 }
 
 void PlayerInventoryComponent::ShowToggleButtonGUI() {
+    //  Prevents the player clicking on a tile position that overlaps the inventory button
+    if(m_bIsPlacing) return;
     ImGuiStyle* pStyle = &ImGui::GetStyle();
     pStyle->WindowTitleAlign = ImVec2(0.5f, 0.5f);
 
@@ -356,6 +361,13 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                         // We need to be able to equip it
                         if (ImGui::Button("Equip")) {
                             this->EquipItem(pItem, k);
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                    else if (pItem->GetID() == PLACEABLE) {
+                        if (ImGui::Button("Place")) {
+                            m_iCurrentPlaceableIndex = k;
+                            this->BeginPlacingPlaceable(pItem);
                             ImGui::CloseCurrentPopup();
                         }
                     }
@@ -861,6 +873,16 @@ void PlayerInventoryComponent::DiscardEquipment(EquipmentSlot p_enSlot) {
     delete pEquipment;
 }
 
+void PlayerInventoryComponent::BeginPlacingPlaceable(ItemBase* p_pItem)
+{
+    PlaceableItem* pPlaceable = dynamic_cast<PlaceableItem*>(p_pItem);
+    if (pPlaceable){
+        m_bIsPlacing = true;
+        wolf::EventManager::TriggerEvent(BeginPlacingPlaceableEvent(pPlaceable));
+        Close();
+    }
+}
+
 void PlayerInventoryComponent::AddGold(int p_iAmt) {
     // Add some more gold to our "wallet"
     m_iGold += p_iAmt;
@@ -1075,4 +1097,15 @@ void PlayerInventoryComponent::HandlePickupDroppedItemEvent(const PickupDroppedI
             wolf::EventManager::TriggerEvent(DestroyDroppedItemEvent(p_event.iDroppedItemId));
         }
     }
+}
+
+void PlayerInventoryComponent::HandleEndPlacingPlaceableEvent(const EndPlacingPlaceableEvent& p_event)
+{
+    if(p_event.pItem != nullptr)
+    {
+        RemoveItem(m_iCurrentPlaceableIndex);
+    }
+    m_iCurrentPlaceableIndex = -1;
+    m_bIsPlacing = false;
+    Open();
 }
