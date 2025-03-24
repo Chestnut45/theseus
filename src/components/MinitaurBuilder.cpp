@@ -40,6 +40,7 @@ wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, const gl
     wolf::GameObject* pLightGO = &m_scene.CreateObject2D();
     auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.0f, 0.0f, 0.5f), glm::vec2(50.0f, 50.0f), true);
     minitaurObject->AddChild(*pLightGO);
+    pLightComponent.Init();
 
     return *minitaurObject;
 }

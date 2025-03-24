@@ -40,6 +40,7 @@ wolf::GameObject& GorgonBuilder::BuildGorgon(const EnemyData& data, const glm::v
     wolf::GameObject* pLightGO = &m_scene.CreateObject2D();
     auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.0f, 1.0f, 0.0f, 0.5f), glm::vec2(50.0f, 50.0f), true);
     gorgonObject->AddChild(*pLightGO);
+    pLightComponent.Init();
 
     return *gorgonObject;
 }

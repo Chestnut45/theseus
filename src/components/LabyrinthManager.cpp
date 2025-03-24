@@ -2072,7 +2072,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a light to the chest (added by Aurora)
                         auto& light = pObject->GetScene().CreateObject2D();
-                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true).Init();
                         chest.AddChild(light);
 
                         // Add chest as a child object of the correct chunk
@@ -2106,7 +2106,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a light to the chest (added by Aurora)
                         auto& light = pObject->GetScene().CreateObject2D();
-                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true).Init();
                         chest.AddChild(light);
 
                         // Add chest as a child object of the correct chunk
@@ -2140,7 +2140,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a light to the chest (added by Aurora)
                         auto& light = pObject->GetScene().CreateObject2D();
-                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true).Init();
                         chest.AddChild(light);
 
                         // Add chest as a child object of the correct chunk
@@ -2174,7 +2174,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a light to the chest (added by Aurora)
                         auto& light = pObject->GetScene().CreateObject2D();
-                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true).Init();
                         chest.AddChild(light);
 
                         // Add chest as a child object of the correct chunk
@@ -2208,7 +2208,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a light to the chest (added by Aurora)
                         auto& light = pObject->GetScene().CreateObject2D();
-                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+                        light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true).Init();
                         chest.AddChild(light);
 
                         // Add chest as a child object of the correct chunk
@@ -2259,7 +2259,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a light to the dispensary (added by Aurora)
                         auto& light = pObject->GetScene().CreateObject2D();
-                        light.AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true);
+                        light.AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.5f), glm::vec2(100.0f, 100.0f), true).Init();
                         dispensary.AddChild(light);
 
                         // Add dispensary as a child object of the correct chunk

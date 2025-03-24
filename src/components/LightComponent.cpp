@@ -132,6 +132,10 @@ LightComponent::~LightComponent() {
 
 // !-- Init MUST be called before LightComponent::Update is called or a SegFault WILL MOST DEFINITELY occur --!
 void LightComponent::Init() {
+    if (m_pTransform) {
+        return;
+    }
+
     // Retrieve the transform
     m_pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
     m_v2Origin = m_pTransform->GetGlobalPosition();

@@ -220,14 +220,11 @@ void PlayState::Enter()
     wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
     auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.9f, 0.0f, 0.5f), glm::vec2(116.0f, 116.0f), true);
     m_pPlayerObject->AddChild(*pLightGO);
+    pLightComponent.Init();
 
     // Make Ariadne's light pink because I can (Aurora)
     ariadne.GetChildren().front()->GetComponent<LightComponent>()->SetColor(glm::vec4(1.0f, 0.41f, 0.70f, 0.5f));
-
-    // Initialize all of the lights in the scene now that we are sure they have been set up
-    for (auto&& [_, light] : m_pGameInstance->GetScene().Each<LightComponent>()) {
-        light.Init();
-    }
+    
     // Now it's safe to register entities
     for (auto&& [_, gorgon] : m_pGameInstance->GetScene().Each<GorgonController>())
     {
