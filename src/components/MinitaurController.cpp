@@ -130,17 +130,64 @@ void MinitaurController::Update(float delta)
     // Update the base class
     EnemyController::Update(delta);
 
-    // Evaluate and update AI strategy
-    EvaluateStrategy();
-    
-    // Update blackboard with current game state
-    UpdateBlackboard();
-    
-    // If in combat states, use behavior tree for decisions
-    if (m_state == EnemyState::CHASING || m_state == EnemyState::ATTACKING) {
-        m_combatBehaviorTree->Update(delta, &g_blackboard);
+    // Optimize blackboard update - Only update global attack lock once per frame
+    // We can make this static to ensure it only happens once per frame
+    static float s_lastFrameTime = 0.0f;
+    static float s_currentTime = 0.0f;
+    s_currentTime += delta;
+    if (s_currentTime - s_lastFrameTime > 0.1f) // Only update every 100ms
+    {
+        int attackingID = g_blackboard.GetAttackingEnemyID();
+        if (attackingID != -1) {
+            float attackLockTime = g_blackboard.GetFloat("attackLockTime");
+            attackLockTime += (s_currentTime - s_lastFrameTime);
+            g_blackboard.SetFloat("attackLockTime", attackLockTime);
+            
+            if (attackLockTime > 2.0f) {
+                g_blackboard.SetAttackingEnemyID(-1);
+                g_blackboard.SetFloat("attackLockTime", 0.0f);
+            }
+        }
+        s_lastFrameTime = s_currentTime;
     }
 
+    // Optimize AI updates - only run on a timer instead of every frame
+    static std::map<int, float> s_aiUpdateTimers;
+    int myID = GetGameObject()->GetID();
+    
+    if (s_aiUpdateTimers.find(myID) == s_aiUpdateTimers.end()) {
+        s_aiUpdateTimers[myID] = 0.0f;
+    }
+    
+    s_aiUpdateTimers[myID] += delta;
+    
+    // Throttle expensive AI operations to run at most every 200ms
+    bool shouldUpdateAI = (s_aiUpdateTimers[myID] > 0.2f);
+    if (shouldUpdateAI) {
+        // Only evaluate strategy occasionally
+        EvaluateStrategy();
+        
+        // Update blackboard with current game state
+        UpdateBlackboard();
+        
+        // Reset the timer
+        s_aiUpdateTimers[myID] = 0.0f;
+    }
+    
+    // Combat behavior tree should run more frequently, but not every frame
+    static std::map<int, float> s_behaviorUpdateTimers;
+    if (s_behaviorUpdateTimers.find(myID) == s_behaviorUpdateTimers.end()) {
+        s_behaviorUpdateTimers[myID] = 0.0f;
+    }
+    
+    s_behaviorUpdateTimers[myID] += delta;
+    
+    // Run behavior tree at 10 fps instead of every frame
+    if (s_behaviorUpdateTimers[myID] > 0.1f && (m_state == EnemyState::CHASING || m_state == EnemyState::ATTACKING)) {
+        m_combatBehaviorTree->Update(delta, &g_blackboard);
+        s_behaviorUpdateTimers[myID] = 0.0f;
+    }
+    
 
     // Check if minitaur is petrified
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
@@ -345,9 +392,43 @@ void MinitaurController::MoveTowardsTarget(float delta)
     glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     glm::vec2 direction = nextTileWorldPos - currentPosition;
 
+    // Check for other Minitaurs in the way
+    glm::vec2 avoidance(0.0f);
+    bool needsAvoidance = false;
+    int myID = GetGameObject()->GetID();
+    
+    for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<MinitaurController>()) {
+        if (controller.GetGameObject()->GetID() != myID) {
+            glm::vec2 otherPos = controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            float distToOther = glm::length(otherPos - currentPosition);
+            
+            // Only avoid if close enough
+            if (distToOther < 70.0f) {
+                // Calculate avoidance vector (away from other Minitaur)
+                glm::vec2 awayDir = glm::normalize(currentPosition - otherPos);
+                
+                // Stronger avoidance for closer Minitaurs
+                float avoidStrength = 1.0f - (distToOther / 70.0f);
+                avoidance += awayDir * avoidStrength;
+                needsAvoidance = true;
+            }
+        }
+    }
+    
     if (glm::length(direction) > 0.5f)
     {
         direction = glm::normalize(direction);
+        
+        // Apply avoidance if needed
+        if (needsAvoidance) {
+            // Normalize avoidance vector
+            avoidance = glm::normalize(avoidance);
+            
+            // Blend between path direction and avoidance
+            // More weight to path direction to maintain overall movement
+            direction = glm::normalize(direction * 0.7f + avoidance * 0.3f);
+        }
+        
         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
     }
     else
@@ -357,29 +438,82 @@ void MinitaurController::MoveTowardsTarget(float delta)
     }
 }
 
-
-
-
-
 // Fallback to direct distance checking if pathfinding fails
 void MinitaurController::FallbackToDistanceChecking()
 {
     glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    
+    // Check if there are other Minitaurs nearby
+    glm::vec2 avoidanceVector(0.0f);
+    bool needsAvoidance = false;
+    int myID = GetGameObject()->GetID();
+    
+    // Find all nearby Minitaurs and calculate avoidance
+    for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<MinitaurController>()) {
+        if (controller.GetGameObject()->GetID() != myID) {
+            glm::vec2 otherPos = controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            float distance = glm::length(otherPos - currentPosition);
+            
+            // If another Minitaur is very close, avoid it
+            if (distance < 80.0f) {
+                // Calculate avoid direction (away from other Minitaur)
+                glm::vec2 awayDir = glm::normalize(currentPosition - otherPos);
+                
+                // Stronger avoidance for closer Minitaurs
+                float avoidStrength = 1.0f - (distance / 80.0f);
+                avoidanceVector += awayDir * avoidStrength * 1.5f; // Amplify the avoidance
+                
+                needsAvoidance = true;
+            }
+        }
+    }
+    
+    // Calculate basic direction to target
     glm::vec2 direction = targetPosition - currentPosition;
-
+    
     if (glm::length(direction) > 0.01f)
     {
         direction = glm::normalize(direction);
+        
+        // Apply avoidance if needed
+        if (needsAvoidance) {
+            // Add randomness to break symmetrical situations
+            glm::vec2 randomOffset(m_RNG.NextFloat(-0.1f, 0.1f), m_RNG.NextFloat(-0.1f, 0.1f));
+            avoidanceVector = glm::normalize(avoidanceVector + randomOffset);
+            
+            // Calculate priority based on ID to prevent deadlocks
+            // Lower ID Minitaurs get priority for direct path
+            int nearbyLowerIDs = 0;
+            for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<MinitaurController>()) {
+                int otherID = controller.GetGameObject()->GetID();
+                if (otherID < myID) {
+                    glm::vec2 otherPos = controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                    float dist = glm::length(otherPos - currentPosition);
+                    if (dist < 80.0f) {
+                        nearbyLowerIDs++;
+                    }
+                }
+            }
+            
+            // If many lower IDs nearby, give them priority by moving more to avoid them
+            float targetWeight = 0.7f - (nearbyLowerIDs * 0.1f);
+            targetWeight = glm::clamp(targetWeight, 0.3f, 0.7f);
+            
+            // Blend between target direction and avoidance vector
+            direction = glm::normalize(direction * targetWeight + avoidanceVector * (1.0f - targetWeight));
+        }
+        
         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
-
-        // Debug: Print fallback movement
-        // printf("Moving directly towards target: (%f, %f) with velocity (%f, %f)\n",
-        //        targetPosition.x, targetPosition.y, direction.x, direction.y);
     }
     else
     {
-        m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        // We're at the target, just apply avoidance if needed
+        if (needsAvoidance) {
+            m_pVelocity->SetVelocity(avoidanceVector * m_chaseSpeed * 0.5f);
+        } else {
+            m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        }
     }
 }
 
@@ -406,6 +540,7 @@ void MinitaurController::HandleIdleState(float delta)
         m_targetDetectionTimer -= delta;
     }
 }
+
 
 void MinitaurController::HandleProspectState(float delta)
 {
@@ -467,26 +602,66 @@ void MinitaurController::HandleProspectState(float delta)
 
 void MinitaurController::HandleChasingState(float delta)
 {
+    // Track how long we've been in chasing state to prevent getting stuck
+    static std::map<int, float> chasingTimes;
+    int id = GetGameObject()->GetID();
+    
+    if (chasingTimes.find(id) == chasingTimes.end()) {
+        chasingTimes[id] = 0.0f;
+    }
+    
+    chasingTimes[id] += delta;
+    
+    // Check if we're stuck and need to force a state transition
+    bool needsForceStateChange = chasingTimes[id] > 5.0f;
+    
+    // Normal movement behavior
     MoveTowardsTarget(delta);
-
+    
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
-
+    
     // If player is out of detection range, emote & switch to prospect
     if (distanceToPlayer > m_detectionRange)
     {
         SetEmote(EnemyEmote::QUESTION);
-        ChangeState(EnemyState::PROSPECT);      
+        ChangeState(EnemyState::PROSPECT);
+        chasingTimes[id] = 0.0f;
         return;
     }
+    
+    // Handling being in attack range
     if (distanceToPlayer <= m_meleeRange)
     {
-        if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_meleeTimer <= 0.0f)
+        // If we're allowed to attack (based on timer or forced state change)
+        if ((m_transitionTimer.Elapsed() >= m_transitionDelay && m_meleeTimer <= 0.0f) || needsForceStateChange)
         {
-            ChangeState(EnemyState::ATTACKING);
-            return;
+            // Check if we can actually attack based on blackboard
+            int attackingID = g_blackboard.GetAttackingEnemyID();
+            int myID = GetGameObject()->GetID();
+            
+            // If no one is attacking or we're the attacker or we need to force a change
+            if (attackingID == -1 || attackingID == myID || needsForceStateChange) 
+            {
+                ChangeState(EnemyState::ATTACKING);
+                chasingTimes[id] = 0.0f;
+                return;
+            }
+            // Otherwise, reposition to surround player
+            else 
+            {
+                // Get a good position around the player
+                glm::vec2 optimalPos = GetOptimalAttackPosition();
+                glm::vec2 moveDir = glm::normalize(optimalPos - currentPosition);
+                m_pVelocity->SetVelocity(moveDir * m_chaseSpeed * 0.7f); // Slower when positioning
+            }
         }
+    }
+    // If we need to force state change and got here, that means we couldn't attack
+    // Reset the timer to avoid continuous forced changes
+    if (needsForceStateChange) {
+        chasingTimes[id] = 0.0f;
     }
 }
 
@@ -498,6 +673,21 @@ void MinitaurController::HandleAttackingState(float delta)
         return;
     }
 
+    // Track how long we've been in the attack state
+    static std::map<int, float> attackTimes;
+    int id = GetGameObject()->GetID();
+    
+    if (attackTimes.find(id) == attackTimes.end()) {
+        attackTimes[id] = 0.0f;
+    }
+    
+    attackTimes[id] += delta;
+    
+    // Get current positions for distance checks
+    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+    
     // If winding up attack
     if(m_meleeWindupTimer > 0.0f)
     {
@@ -510,23 +700,50 @@ void MinitaurController::HandleAttackingState(float delta)
         }
 
         m_meleeWindupTimer -= delta;
+        
+        // If player moved too far during windup, we can adjust slightly to follow
+        // But only if we're not too far into the windup (first half)
+        float windupProgress = 1.0f - (m_meleeWindupTimer / m_meleeWindupTime);
+        
+        // If player is far outside of melee range, cancel attack
+        if (distanceToPlayer > m_meleeRange * 2.0f) {
+            m_pAnimComponent->SetTint(glm::vec3(1.0f)); // Reset windup tint
+            attackTimes[id] = 0.0f;
+            
+            // Release attack turn
+            int myID = GetGameObject()->GetID();
+            int attackingID = g_blackboard.GetAttackingEnemyID();
+            if (attackingID == myID) {
+                g_blackboard.SetAttackingEnemyID(-1);
+            }
+            
+            ChangeState(EnemyState::CHASING);
+            return;
+        }
+        
+        if (windupProgress < 0.5f) {
+            // If player is moving away but still potentially reachable
+            if (distanceToPlayer > m_meleeRange && distanceToPlayer < m_meleeRange * 1.5f) {
+                // Move slightly to adjust position (slower than chase speed)
+                glm::vec2 direction = glm::normalize(targetPosition - currentPosition);
+                m_pVelocity->SetVelocity(direction * m_chaseSpeed * 0.4f);
+            }
+        } else {
+            // In the second half of windup, commit fully to the attack
+            m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        }
     }
     // Else, strike
     else
     {
         m_pAnimComponent->SetTint(glm::vec3(1.0f)); // Reset windup tint
 
-        // Check distance to player
-        const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-
         // Determine if target's collider is active and a hurtbox
         auto* pCollider = m_pTarget->GetComponent<ColliderComponent>();
         const bool active = pCollider ? (pCollider->IsActive() && pCollider->IsHurtbox()) : false;
-        
-        const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-        const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
-        // Apply damage if player is within melee range and attack cooldown is over
+        // Apply damage ONLY if player is within melee range
+        // Removed the forceAttack option for landing hits
         if (active && distanceToPlayer <= m_meleeRange)
         {
             // Get damage multiplier from blackboard (default to 1.0 if not set)
@@ -552,12 +769,38 @@ void MinitaurController::HandleAttackingState(float delta)
                 playerVelocity->ApplyKnockback(knockbackDirection, knockbackStrength);
             }
 
-            // Chain another attack
-            ChangeState(EnemyState::ATTACKING);
+            // Reset attack timer
+            attackTimes[id] = 0.0f;
+            
+            // Create opportunity for other Minitaurs to attack next
+            // 50% chance to continue attacking, 50% chance to let others attack
+            if (m_RNG.NextInt(0, 1) == 0) {
+                // Release attack turn for others
+                int myID = GetGameObject()->GetID();
+                int attackingID = g_blackboard.GetAttackingEnemyID();
+                if (attackingID == myID) {
+                    g_blackboard.SetAttackingEnemyID(-1);
+                }
+                ChangeState(EnemyState::CHASING);
+            } else {
+                // Chain another attack
+                ChangeState(EnemyState::ATTACKING);
+            }
             return;
         }
         else
         {
+            // If we've been trying to attack for too long or player is too far, give up
+            if (attackTimes[id] > 3.0f || distanceToPlayer > m_meleeRange * 1.5f) {
+                // Release attack turn for others
+                int myID = GetGameObject()->GetID();
+                int attackingID = g_blackboard.GetAttackingEnemyID();
+                if (attackingID == myID) {
+                    g_blackboard.SetAttackingEnemyID(-1);
+                }
+                attackTimes[id] = 0.0f;
+            }
+            
             // Return to chasing if player moves out of range
             ChangeState(EnemyState::CHASING);
             return;
@@ -740,6 +983,13 @@ void MinitaurController::ExitAttackState()
         m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
     }
     
+    // Release the attack turn if we were the attacker
+    int attackingID = g_blackboard.GetAttackingEnemyID();
+    int myID = GetGameObject()->GetID();
+    if (attackingID == myID) {
+        g_blackboard.SetAttackingEnemyID(-1);
+    }
+    
     m_meleeTimer = m_meleeCooldown;
     m_meleeWindupTimer = m_meleeWindupTime;
 }
@@ -865,10 +1115,451 @@ void MinitaurController::RevertToPlayerTarget()
     m_pTarget = nullptr; // No valid target
 }
 
-void MinitaurController::SetupCombatBehaviorTree()
-{
+// Helper function to detect player attacks for defensive strategy
+bool MinitaurController::ShouldDodgePlayerAttack() {
+    if (!m_pTarget) return false;
+    
+    // Try to get the PlayerController component from the target
+    auto* playerController = m_pTarget->GetComponent<PlayerController>();
+    if (!playerController) return false;
+    
+    // Check if player is currently attacking
+    bool playerIsAttacking = playerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING;
+    
+    // If player is attacking, check if we're within range of their attack
+    if (playerIsAttacking) {
+        glm::vec2 playerPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+        float distance = glm::length(playerPos - selfPos);
+        
+        // If we're close enough to be hit, we should dodge
+        return distance < 150.0f;
+    }
+    
+    return false;
+}
+
+// Helper function to calculate the optimal flanking position
+glm::vec2 MinitaurController::CalculateFlankingPosition() {
+    if (!m_pTarget || !m_pTransform || !m_pPathfindingManager) {
+        return m_pTransform->GetGlobalPosition(); // Fallback to current position
+    }
+    
+    auto* labManager = m_pPathfindingManager->GetLabyrinthManager();
+    if (!labManager) {
+        return m_pTransform->GetGlobalPosition();
+    }
+    
+    // Get positions
+    glm::vec2 playerPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+    
+    // Try to determine player's facing direction
+    auto* playerController = m_pTarget->GetComponent<PlayerController>();
+    glm::vec2 playerFacingDir(0.0f);
+    
+    if (playerController) {
+        // Get player's facing direction
+        playerFacingDir = playerController->GetLastFacingDirectionVector();
+    } else {
+        // Fallback - assume player is facing us
+        playerFacingDir = glm::normalize(selfPos - playerPos);
+    }
+    
+    // Calculate potential flanking positions:
+    // 1. Behind player (opposite to their facing direction)
+    // 2. Left side of player (perpendicular to facing)
+    // 3. Right side of player (perpendicular to facing)
+    
+    glm::vec2 behindDir = -playerFacingDir;
+    glm::vec2 leftDir = glm::vec2(-playerFacingDir.y, playerFacingDir.x);
+    glm::vec2 rightDir = glm::vec2(playerFacingDir.y, -playerFacingDir.x);
+    
+    float flankDistance = m_meleeRange * 1.2f; // Position just outside melee range
+    
+    glm::vec2 behindPos = playerPos + behindDir * flankDistance;
+    glm::vec2 leftPos = playerPos + leftDir * flankDistance;
+    glm::vec2 rightPos = playerPos + rightDir * flankDistance;
+    
+    // Check which positions are valid (not in walls)
+    bool behindValid = true;
+    bool leftValid = true;
+    bool rightValid = true;
+    
+    // Use DDACalculator to check if these positions are reachable (not in walls)
+    DDACalculator* ddaCalc = DDACalculator::GetInstance();
+    if (ddaCalc) {
+        glm::vec2 behindEndpoint = ddaCalc->GetEndpoint(playerPos, behindPos);
+        glm::vec2 leftEndpoint = ddaCalc->GetEndpoint(playerPos, leftPos);
+        glm::vec2 rightEndpoint = ddaCalc->GetEndpoint(playerPos, rightPos);
+        
+        // If the endpoint doesn't match our target position, there's a wall in the way
+        behindValid = (glm::length(behindEndpoint - behindPos) < 0.1f);
+        leftValid = (glm::length(leftEndpoint - leftPos) < 0.1f);
+        rightValid = (glm::length(rightEndpoint - rightPos) < 0.1f);
+    } else {
+        // Fallback: use GetTile and check for wall tiles
+        glm::ivec2 behindTile = labManager->GetTilePosition(behindPos);
+        glm::ivec2 leftTile = labManager->GetTilePosition(leftPos);
+        glm::ivec2 rightTile = labManager->GetTilePosition(rightPos);
+        
+        int behindTileID = labManager->GetTile(behindTile.x, behindTile.y);
+        int leftTileID = labManager->GetTile(leftTile.x, leftTile.y);
+        int rightTileID = labManager->GetTile(rightTile.x, rightTile.y);
+        
+        // Check if tiles are walls using DDACalculator's static method
+        behindValid = !(behindTileID >= Tile::WallBottomLeft && behindTileID <= Tile::WallTop);
+        leftValid = !(leftTileID >= Tile::WallBottomLeft && leftTileID <= Tile::WallTop);
+        rightValid = !(rightTileID >= Tile::WallBottomLeft && rightTileID <= Tile::WallTop);
+    }
+    
+    // Find the closest valid position
+    std::vector<std::pair<glm::vec2, float>> validPositions;
+    
+    if (behindValid) {
+        float distToBehind = glm::length(behindPos - selfPos);
+        validPositions.push_back({behindPos, distToBehind});
+    }
+    
+    if (leftValid) {
+        float distToLeft = glm::length(leftPos - selfPos);
+        validPositions.push_back({leftPos, distToLeft});
+    }
+    
+    if (rightValid) {
+        float distToRight = glm::length(rightPos - selfPos);
+        validPositions.push_back({rightPos, distToRight});
+    }
+    
+    // If no valid positions, return current position
+    if (validPositions.empty()) {
+        return selfPos;
+    }
+    
+    // Find the closest valid position
+    std::sort(validPositions.begin(), validPositions.end(), 
+              [](const auto& a, const auto& b) { return a.second < b.second; });
+    
+    return validPositions[0].first;
+}
+
+// Helper function to check if we're in a good position for a flanking attack
+bool MinitaurController::IsInFlankingPosition() {
+    if (!m_pTarget || !m_pTransform) return false;
+    
+    glm::vec2 playerPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+    
+    // Check if we're in melee range
+    float distance = glm::length(playerPos - selfPos);
+    if (distance > m_meleeRange) return false;
+    
+    // Try to determine if we're behind or to the side of the player
+    auto* playerController = m_pTarget->GetComponent<PlayerController>();
+    if (playerController) {
+        glm::vec2 playerFacingDir = playerController->GetLastFacingDirectionVector();
+        glm::vec2 toSelf = glm::normalize(selfPos - playerPos);
+        
+        // Calculate dot product to determine if we're behind the player
+        // A negative dot product means we're more than 90 degrees from where they're facing
+        float dotProduct = glm::dot(playerFacingDir, toSelf);
+        
+        // If dot product is negative, we're behind or to the side
+        return dotProduct < 0.0f;
+    }
+    
+    // Default to yes if we can't determine player facing
+    return true;
+}
+
+// Helper method to set up the flanking behavior sequence
+void MinitaurController::SetupFlankingBehavior(std::unique_ptr<Selector>& root) {
+    // === FLANKING STRATEGY SEQUENCE ===
+    auto flankingSequence = std::make_unique<Sequence>();
+    
+    // Condition: Check if we're in flanking strategy
+    flankingSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
+        [this]() { return g_blackboard.GetStrategy() == Strategy::FLANKING; }
+    ));
+    
+    // Condition: Check if player is occupied with another enemy
+    flankingSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
+        [this]() {
+            int attackingID = g_blackboard.GetAttackingEnemyID();
+            int myID = GetGameObject()->GetID();
+            
+            // If nobody is attacking or we're the attacker, no need to flank
+            if (attackingID == -1 || attackingID == myID) {
+                return false;
+            }
+            
+            // Otherwise, someone else has the player's attention, good time to flank
+            return true;
+        }
+    ));
+    
+    // Action: Move to flanking position
+    flankingSequence->AddBehaviorNode(std::make_unique<ActionNode>(
+        [this](float delta) {
+            if (!m_pTarget || !m_pTransform || !m_pVelocity) {
+                return BehaviorNode::Status::FAILURE;
+            }
+            
+            // Calculate the best flanking position
+            glm::vec2 flankPos = GetOptimalAttackPosition();
+            g_blackboard.SetVector2("flankPosition", flankPos);
+            
+            // Move towards the flanking position
+            glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+            glm::vec2 moveDir = glm::normalize(flankPos - selfPos);
+            
+            // Check if another enemy is in the way
+            bool isBlocked = false;
+            for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<MinitaurController>()) {
+                if (controller.GetGameObject() != GetGameObject()) {
+                    glm::vec2 otherPos = controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                    
+                    // Check if other enemy is between us and our target position
+                    glm::vec2 toOther = otherPos - selfPos;
+                    glm::vec2 toFlank = flankPos - selfPos;
+                    float distToFlank = glm::length(toFlank);
+                    float distToOther = glm::length(toOther);
+                    
+                    // If other enemy is close and in our path
+                    if (distToOther < 50.0f && distToOther < distToFlank) {
+                        float dot = glm::dot(glm::normalize(toOther), glm::normalize(toFlank));
+                        if (dot > 0.7f) {
+                            isBlocked = true;
+                            // Add avoidance vector to move direction
+                            glm::vec2 avoidDir = glm::normalize(selfPos - otherPos);
+                            moveDir = glm::normalize(moveDir * 0.3f + avoidDir * 0.7f);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            m_pVelocity->SetVelocity(moveDir * m_chaseSpeed * (isBlocked ? 0.7f : 1.0f));
+            
+            // Check if we've reached the flanking position
+            float distanceToFlankPos = glm::length(flankPos - selfPos);
+            
+            if (distanceToFlankPos <= 10.0f || IsInFlankingPosition()) {
+                return BehaviorNode::Status::SUCCESS;
+            }
+            
+            return BehaviorNode::Status::RUNNING;
+        }
+    ));
+    
+    // Action: Attack from flank
+    flankingSequence->AddBehaviorNode(std::make_unique<ActionNode>(
+        [this](float delta) {
+            // Check if we can attack
+            if (!m_pTarget || !m_pTransform) {
+                return BehaviorNode::Status::FAILURE;
+            }
+            
+            // Check if player is in range for a flank attack
+            glm::vec2 targetPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+            float distance = glm::length(targetPos - selfPos);
+            
+            if (distance <= m_meleeRange) {
+                // We're in position, start flanking attack
+                ChangeState(EnemyState::ATTACKING);
+                
+                // Claim attack turn
+                g_blackboard.SetAttackingEnemyID(GetGameObject()->GetID());
+                
+                // Set emote (!) to indicate we're attacking
+                SetEmote(EnemyEmote::EXCLAMATION);
+                
+                // Flanking attacks are fast with a slight damage bonus
+                m_meleeWindupTimer = m_meleeWindupTime * 0.8f;
+                g_blackboard.SetFloat("attackDamageMultiplier", 1.5f);
+                
+                return BehaviorNode::Status::SUCCESS;
+            }
+            
+            // If not in range, keep trying to move to attack position
+            glm::vec2 moveDir = glm::normalize(targetPos - selfPos);
+            m_pVelocity->SetVelocity(moveDir * m_chaseSpeed);
+            
+            return BehaviorNode::Status::RUNNING;
+        }
+    ));
+    
+    // Add the flanking sequence to the root selector
+    root->AddBehaviorNode(std::move(flankingSequence));
+}
+
+// Setup the complete behavior tree for combat
+void MinitaurController::SetupCombatBehaviorTree() {
     // Create the root selector
     auto root = std::make_unique<Selector>();
+    
+    // === DEFENSIVE STRATEGY SEQUENCE (DODGING) ===
+    auto defensiveSequence = std::make_unique<Sequence>();
+    
+    // Condition: Check if we're in defensive strategy
+    defensiveSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
+        [this]() { return g_blackboard.GetStrategy() == Strategy::DEFENSIVE; }
+    ));
+    
+    // Condition: Check if player is attacking
+    defensiveSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
+        [this]() { return ShouldDodgePlayerAttack(); }
+    ));
+    
+    // Action: Perform dodge
+    defensiveSequence->AddBehaviorNode(std::make_unique<ActionNode>(
+        [this](float delta) {
+            // Calculate dodge direction (perpendicular to player direction)
+            if (!m_pTarget || !m_pVelocity || !m_pTransform) {
+                return BehaviorNode::Status::FAILURE;
+            }
+            
+            // Get player direction
+            glm::vec2 playerPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+            glm::vec2 toPlayer = glm::normalize(playerPos - selfPos);
+            
+            // Calculate perpendicular directions (left or right)
+            glm::vec2 perpendicularLeft(-toPlayer.y, toPlayer.x);
+            glm::vec2 perpendicularRight(toPlayer.y, -toPlayer.x);
+            
+            // Choose which direction to dodge (away from walls)
+            glm::vec2 dodgeDir;
+            
+            // Use DDACalculator to check for walls in both directions
+            DDACalculator* ddaCalc = DDACalculator::GetInstance();
+            if (ddaCalc) {
+                // Sample points ~2 tiles in both perpendicular directions
+                glm::vec2 leftPos = selfPos + perpendicularLeft * 96.0f;
+                glm::vec2 rightPos = selfPos + perpendicularRight * 96.0f;
+                
+                // Use GetEndpoint to check if there's a wall in the way
+                glm::vec2 leftEndpoint = ddaCalc->GetEndpoint(selfPos, leftPos);
+                glm::vec2 rightEndpoint = ddaCalc->GetEndpoint(selfPos, rightPos);
+                
+                // If the endpoint doesn't match our target position, there's a wall in the way
+                bool leftIsWall = (glm::length(leftEndpoint - leftPos) > 0.1f);
+                bool rightIsWall = (glm::length(rightEndpoint - rightPos) > 0.1f);
+                
+                // Choose the direction that isn't a wall, or random if both are clear
+                if (leftIsWall && !rightIsWall) {
+                    dodgeDir = perpendicularRight;
+                } else if (!leftIsWall && rightIsWall) {
+                    dodgeDir = perpendicularLeft;
+                } else {
+                    // If both are clear or both are walls, choose randomly
+                    dodgeDir = (m_RNG.NextInt(0, 1) == 0) ? perpendicularLeft : perpendicularRight;
+                }
+            } else if (m_pPathfindingManager) {
+                // Fallback to using tile checks directly
+                auto* labManager = m_pPathfindingManager->GetLabyrinthManager();
+                
+                // Sample points ~2 tiles in both perpendicular directions
+                glm::vec2 leftPos = selfPos + perpendicularLeft * 96.0f;
+                glm::vec2 rightPos = selfPos + perpendicularRight * 96.0f;
+                
+                // Convert to tile positions and check for walls
+                glm::ivec2 leftTile = labManager->GetTilePosition(leftPos);
+                glm::ivec2 rightTile = labManager->GetTilePosition(rightPos);
+                
+                int leftTileID = labManager->GetTile(leftTile.x, leftTile.y);
+                int rightTileID = labManager->GetTile(rightTile.x, rightTile.y);
+                
+                // Check if tiles are walls using the Tile enum range
+                bool leftIsWall = (leftTileID >= Tile::WallBottomLeft && leftTileID <= Tile::WallTop);
+                bool rightIsWall = (rightTileID >= Tile::WallBottomLeft && rightTileID <= Tile::WallTop);
+                
+                // Choose the direction that isn't a wall, or random if both are clear
+                if (leftIsWall && !rightIsWall) {
+                    dodgeDir = perpendicularRight;
+                } else if (!leftIsWall && rightIsWall) {
+                    dodgeDir = perpendicularLeft;
+                } else {
+                    // If both are clear or both are walls, choose randomly
+                    dodgeDir = (m_RNG.NextInt(0, 1) == 0) ? perpendicularLeft : perpendicularRight;
+                }
+            } else {
+                // Fallback to random direction if no pathfinding manager or DDACalculator
+                dodgeDir = (m_RNG.NextInt(0, 1) == 0) ? perpendicularLeft : perpendicularRight;
+            }
+            
+            // Apply dodge movement (stronger than normal movement)
+            m_pVelocity->ApplyKnockback(dodgeDir, 500.0f);
+            
+            // Visual effect for dodge (flash white)
+            if (m_pAnimComponent) {
+                m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+            }
+            
+            // Set dodge timer (to track when we should counter-attack)
+            g_blackboard.SetFloat("dodgeTimer", 0.0f);
+            g_blackboard.SetBool("isDodging", true);
+            
+            // Set emote (!!)
+            SetEmote(EnemyEmote::EXCLAMATION);
+            
+            return BehaviorNode::Status::RUNNING;
+        }
+    ));
+    
+    // Action: Wait for dodge to complete, then counter-attack
+    defensiveSequence->AddBehaviorNode(std::make_unique<ActionNode>(
+        [this](float delta) {
+            // Update dodge timer
+            float dodgeTimer = g_blackboard.GetFloat("dodgeTimer") + delta;
+            g_blackboard.SetFloat("dodgeTimer", dodgeTimer);
+            
+            // Dodge lasts for 0.5 seconds
+            if (dodgeTimer < 0.5f) {
+                return BehaviorNode::Status::RUNNING;
+            }
+            
+            // Reset dodge visual effect
+            if (m_pAnimComponent) {
+                m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+            }
+            
+            // End of dodge, start counter-attack
+            g_blackboard.SetBool("isDodging", false);
+            
+            // Only counter-attack if we have a clear turn and the player is in range
+            int attackingID = g_blackboard.GetAttackingEnemyID();
+            int myID = GetGameObject()->GetID();
+            bool myTurn = (attackingID == -1 || attackingID == myID);
+            
+            if (myTurn && m_pTarget) {
+                glm::vec2 targetPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+                float distance = glm::length(targetPos - selfPos);
+                
+                if (distance <= m_meleeRange * 1.5f) { // Slightly increased range for counter-attack
+                    // Start attacking state
+                    ChangeState(EnemyState::ATTACKING);
+                    
+                    // Claim attack turn
+                    g_blackboard.SetAttackingEnemyID(myID);
+                    
+                    // Quick counter-attack (faster windup, normal damage)
+                    m_meleeWindupTimer = m_meleeWindupTime * 0.7f;
+                    g_blackboard.SetFloat("attackDamageMultiplier", 1.0f);
+                }
+            }
+            
+            return BehaviorNode::Status::SUCCESS;
+        }
+    ));
+    
+    // Add defensive sequence to root
+    root->AddBehaviorNode(std::move(defensiveSequence));
+    
+    // Add flanking sequence
+    SetupFlankingBehavior(root);
     
     // === AGGRESSIVE STRATEGY SEQUENCE ===
     auto aggressiveSequence = std::make_unique<Sequence>();
@@ -911,6 +1602,9 @@ void MinitaurController::SetupCombatBehaviorTree()
                 // Set as attacking enemy
                 g_blackboard.SetAttackingEnemyID(GetGameObject()->GetID());
                 
+                // Set emote (!) to indicate an aggressive attack
+                SetEmote(EnemyEmote::EXCLAMATION);
+                
                 // Use a longer windup for heavy attack
                 m_meleeWindupTimer = m_meleeWindupTime * 1.5f;
                 
@@ -930,64 +1624,258 @@ void MinitaurController::SetupCombatBehaviorTree()
         }
     ));
     
-    // Add the aggressive sequence to the root
+    // Add aggressive sequence to root
     root->AddBehaviorNode(std::move(aggressiveSequence));
+    
+    // === REGULAR ATTACK FALLBACK (when no specific strategy conditions are met) ===
+    auto regularAttackSequence = std::make_unique<Sequence>();
+    
+    // Condition: Check if player is in melee range
+    regularAttackSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
+        [this]() {
+            if (!m_pTarget) return false;
+            
+            glm::vec2 targetPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+            float distance = glm::length(targetPos - selfPos);
+            
+            return distance <= m_meleeRange;
+        }
+    ));
+    
+    // Condition: Check if it's our turn to attack
+    regularAttackSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
+        [this]() {
+            int attackingID = g_blackboard.GetAttackingEnemyID();
+            int myID = GetGameObject()->GetID();
+            
+            return attackingID == -1 || attackingID == myID;
+        }
+    ));
+    
+    // Action: Perform regular attack
+    regularAttackSequence->AddBehaviorNode(std::make_unique<ActionNode>(
+        [this](float delta) {
+            // If not already attacking, enter attack state
+            if (m_state != EnemyState::ATTACKING) {
+                ChangeState(EnemyState::ATTACKING);
+                
+                // Set as attacking enemy
+                g_blackboard.SetAttackingEnemyID(GetGameObject()->GetID());
+                
+                // Normal windup time and damage for regular attack
+                m_meleeWindupTimer = m_meleeWindupTime;
+                g_blackboard.SetFloat("attackDamageMultiplier", 1.0f);
+                
+                return BehaviorNode::Status::RUNNING;
+            }
+            
+            // Check if attack is complete
+            if (m_state != EnemyState::ATTACKING) {
+                g_blackboard.SetAttackingEnemyID(-1); // Release attack turn
+                return BehaviorNode::Status::SUCCESS;
+            }
+            
+            return BehaviorNode::Status::RUNNING;
+        }
+    ));
+    
+    // Add regular attack sequence to root
+    root->AddBehaviorNode(std::move(regularAttackSequence));
     
     // Create behavior tree with root
     m_combatBehaviorTree = std::make_unique<BehaviorTree>(std::move(root));
 }
 
-void MinitaurController::EvaluateStrategy() 
-{
-    if (!m_pTarget || !m_pHealth) return;
+void MinitaurController::UpdateBlackboard() {
+    if (!m_pTarget || !m_pTransform) return;
+    
+    // Calculate these values only once
+    glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+    glm::vec2 targetPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    float distanceToPlayer = glm::length(targetPos - selfPos);
+    
+    g_blackboard.SetFloat("playerDistance", distanceToPlayer);
+    
+    // Update health data - Health doesn't change that frequently
+    static float lastHealth = -1.0f;
+    if (m_pHealth) {
+        float currentHealth = m_pHealth->GetHealth();
+        if (std::abs(currentHealth - lastHealth) > 0.1f) {
+            g_blackboard.SetFloat("selfHealth", currentHealth);
+            g_blackboard.SetFloat("selfHealthPercentage", 
+                (currentHealth / m_pHealth->GetMaxHealth()) * 100.0f);
+            lastHealth = currentHealth;
+        }
+    }
+    
+    // Only count nearby enemies every 0.5 seconds, using a static counter
+    static float s_enemyCountTimer = 0.0f;
+    static int s_cachedNearbyEnemies = 0;
+    
+    s_enemyCountTimer += 0.1f; // Approximate the delta time
+    if (s_enemyCountTimer > 0.5f) {
+        s_cachedNearbyEnemies = 0;
+        for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<MinitaurController>()) {
+            if (controller.GetGameObject() != GetGameObject() && controller.GetTarget() == m_pTarget) {
+                glm::vec2 enemyPos = controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                float distanceToEnemy = glm::length(enemyPos - selfPos);
+                
+                if (distanceToEnemy < m_detectionRange * 1.5f) {
+                    s_cachedNearbyEnemies++;
+                }
+            }
+        }
+        g_blackboard.SetInt("nearbyEnemies", s_cachedNearbyEnemies);
+        s_enemyCountTimer = 0.0f;
+    }
+}
 
-    // Get player health
+void MinitaurController::EvaluateStrategy() {
+    if (!m_pTarget || !m_pHealth) return;
+    
+    // Cache values we'll use multiple times
+    int myID = GetGameObject()->GetID();
+    float selfHealth = m_pHealth->GetHealth();
+    float healthPercentage = (selfHealth / m_pHealth->GetMaxHealth()) * 100.0f;
+    
+    // Check for critical conditions first
+    if (healthPercentage < 30.0f) {
+        g_blackboard.SetStrategy(Strategy::DEFENSIVE);
+        return;
+    }
+    
     float playerHealth = 100.0f;
     auto* playerHealthComp = m_pTarget->GetComponent<HealthComponent>();
     if (playerHealthComp) {
         playerHealth = playerHealthComp->GetHealth();
+        if (playerHealth < 20.0f) {
+            g_blackboard.SetStrategy(Strategy::AGGRESSIVE);
+            return;
+        }
     }
     
-    // Get our own health percentage
-    float selfHealth = m_pHealth->GetHealth();
-    float maxHealth = m_pHealth->GetMaxHealth();
-    float healthPercentage = (selfHealth / maxHealth) * 100.0f;
+    // Use cached enemy count from blackboard instead of recounting
+    int nearbyEnemies = g_blackboard.GetInt("nearbyEnemies");
     
-    // Choose strategy based on health
-    if (playerHealth < 20.0f) {
-        // Player is weak, be aggressive
-        g_blackboard.SetStrategy(Strategy::AGGRESSIVE);
-    } 
-    else if (healthPercentage < 30.0f) {
-        // We're weak, be defensive
-        g_blackboard.SetStrategy(Strategy::DEFENSIVE);
+    // Fast path decision based on group size
+    if (nearbyEnemies >= 1) {
+        int attackingID = g_blackboard.GetAttackingEnemyID();
+        
+        // If someone else is attacking, always flank unless we're designated defensive
+        if (attackingID != -1 && attackingID != myID) {
+            // Simple modulo rule instead of complex angle calculations
+            g_blackboard.SetStrategy((myID % 3 == 2) ? Strategy::DEFENSIVE : Strategy::FLANKING);
+            return;
+        }
+        
+        // Use modulo to distribute roles consistently
+        int roleSelector = myID % 3;
+        switch (roleSelector) {
+            case 0: 
+                g_blackboard.SetStrategy(Strategy::AGGRESSIVE); 
+                break;
+            case 1: 
+                g_blackboard.SetStrategy(Strategy::FLANKING); 
+                break;
+            case 2:
+                // Quick distance calculation for defensive vs flanking decision
+                float distanceToPlayer = g_blackboard.GetFloat("playerDistance");
+                g_blackboard.SetStrategy(distanceToPlayer < m_meleeRange * 1.5f ? 
+                    Strategy::DEFENSIVE : Strategy::FLANKING);
+                break;
+        }
     }
     else {
-        // Default to flanking
-        g_blackboard.SetStrategy(Strategy::FLANKING);
+        // When solo, just alternate between aggressive and defensive based on ID
+        g_blackboard.SetStrategy((myID % 2 == 0) ? Strategy::AGGRESSIVE : Strategy::DEFENSIVE);
     }
 }
 
-void MinitaurController::UpdateBlackboard()
+glm::vec2 MinitaurController::GetOptimalAttackPosition() 
 {
-    if (!m_pTarget || !m_pTransform) return;
+    if (!m_pTarget || !m_pTransform) return m_pTransform->GetGlobalPosition();
     
-    // Update position data
-    glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
-    glm::vec2 targetPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 playerPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     
-    g_blackboard.SetFloat("playerDistance", glm::length(targetPos - selfPos));
+    // Create 8 potential positions around the player
+    std::vector<glm::vec2> potentialPositions;
+    float attackDistance = m_meleeRange * 0.9f; // Slightly inside melee range
     
-    // Update health data
-    if (m_pHealth) {
-        g_blackboard.SetFloat("selfHealth", m_pHealth->GetHealth());
-        g_blackboard.SetFloat("selfHealthPercentage", 
-            (m_pHealth->GetHealth() / m_pHealth->GetMaxHealth()) * 100.0f);
+    // Generate positions in 8 directions
+    for (int i = 0; i < 8; i++) {
+        float angle = i * glm::pi<float>() / 4.0f;
+        glm::vec2 offset(cos(angle) * attackDistance, sin(angle) * attackDistance);
+        potentialPositions.push_back(playerPos + offset);
     }
     
-    auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
-    if (playerHealth) {
-        g_blackboard.SetFloat("playerHealth", playerHealth->GetHealth());
+    // Filter out positions that are in walls
+    std::vector<glm::vec2> validPositions;
+    DDACalculator* ddaCalc = DDACalculator::GetInstance();
+    
+    for (const auto& pos : potentialPositions) {
+        glm::vec2 endpoint = ddaCalc->GetEndpoint(playerPos, pos);
+        if (glm::length(endpoint - pos) < 0.1f) {
+            validPositions.push_back(pos);
+        }
     }
+    
+    if (validPositions.empty()) return playerPos; // Fallback
+    
+    // Score each position based on:
+    // 1. Distance from current position (closer is better)
+    // 2. Whether it's already occupied by another enemy (avoid)
+    // 3. Whether it's behind the player (preferred)
+    
+    glm::vec2 bestPosition = validPositions[0];
+    float bestScore = -1000.0f;
+    
+    for (const auto& pos : validPositions) {
+        float score = 0.0f;
+        
+        // Distance factor - prefer closer positions
+        float distance = glm::length(pos - m_pTransform->GetGlobalPosition());
+        score -= distance * 0.1f;
+        
+        // Occupation factor - avoid positions with other enemies
+        if (IsPositionOccupiedByEnemy(pos)) {
+            score -= 50.0f;
+        }
+        
+        // Behind player factor - prefer positions behind player
+        auto* playerController = m_pTarget->GetComponent<PlayerController>();
+        if (playerController) {
+            glm::vec2 playerFacing = playerController->GetLastFacingDirectionVector();
+            glm::vec2 toPosition = glm::normalize(pos - playerPos);
+            float dotProduct = glm::dot(playerFacing, toPosition);
+            
+            // Negative dot product means we're behind
+            if (dotProduct < 0) {
+                score += 20.0f;
+            }
+        }
+        
+        if (score > bestScore) {
+            bestScore = score;
+            bestPosition = pos;
+        }
+    }
+    
+    return bestPosition;
+}
+
+bool MinitaurController::IsPositionOccupiedByEnemy(const glm::vec2& position) 
+{
+    for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<MinitaurController>()) {
+        if (controller.GetGameObject() != GetGameObject()) {
+            glm::vec2 enemyPos = controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            float distance = glm::length(enemyPos - position);
+            
+            if (distance < 40.0f) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 

@@ -30,7 +30,6 @@ public:
     EnemyState GetState() const { return m_state; }
     wolf::GameObject* GetTarget() const { return m_pTarget; }
 
-
 private:
     // Minitaur-specific methods
     void SetUpAnimations(const std::string& animationInitPath);          
@@ -140,4 +139,20 @@ private:
     
     // Utility function to get melee windup time for behavior tree
     float GetMeleeWindupTime() const { return m_meleeWindupTime; }
+
+    // Utility functiom to determine if the minitaur should dodge player attacks
+    bool ShouldDodgePlayerAttack();
+    
+    // Utility function to determine the flanking position for the minitaur
+    glm::vec2 CalculateFlankingPosition();
+
+    // Utility Function to determine if the minitaur is in a Flanking position
+    bool IsInFlankingPosition();
+
+    // Utility Function to setup the flanking behavior
+    void SetupFlankingBehavior(std::unique_ptr<Selector>& root);
+
+    glm::vec2 GetOptimalAttackPosition();
+    bool IsPositionOccupiedByEnemy(const glm::vec2& position);
+
 };
