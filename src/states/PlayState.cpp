@@ -87,7 +87,7 @@ void PlayState::Enter()
 
     PortalTileManager::CreateInstance(m_pLabyrinthManager);
     TileFireManager::CreateInstance(m_pLabyrinthManager);
-    TileFireManager::GetInstance()->SetPropagationActiveness(false);
+    TileFireManager::GetInstance()->SetPropagationActiveness(true);
 
     Postprocessor::CreateInstance(&scene);
 

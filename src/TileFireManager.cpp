@@ -213,33 +213,43 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
     );
 
     // Store neighbour bounds check
-    m_aBounds = {
-        tilePosLRTB.x > boundsCheck,                                // Left Centre
-        tilePosLRTB.y > boundsCheck,                                // Right Centre
-        tilePosLRTB.z > boundsCheck,                                // Top Centre
-        tilePosLRTB.w > boundsCheck,                                // Bottom Centre
-        tilePosLRTB.x > boundsCheck && tilePosLRTB.z > boundsCheck, // Left Top
-        tilePosLRTB.x > boundsCheck && tilePosLRTB.w > boundsCheck, // Left Bottom
-        tilePosLRTB.y > boundsCheck && tilePosLRTB.z > boundsCheck, // Right Top
-        tilePosLRTB.y > boundsCheck && tilePosLRTB.w > boundsCheck, // Right Bottom
+    m_aInBounds = {
+        tilePosLRTB.x > boundsCheck,                                // West
+        tilePosLRTB.y > boundsCheck,                                // East
+        tilePosLRTB.z > boundsCheck,                                // North
+        tilePosLRTB.w > boundsCheck,                                // South
+        tilePosLRTB.x > boundsCheck && tilePosLRTB.z > boundsCheck, // NorthWest
+        tilePosLRTB.x > boundsCheck && tilePosLRTB.w > boundsCheck, // SouthWest
+        tilePosLRTB.y > boundsCheck && tilePosLRTB.z > boundsCheck, // NorthEast
+        tilePosLRTB.y > boundsCheck && tilePosLRTB.w > boundsCheck, // SouthWest
+    };
+
+    m_aNotWalls = {
+        !IsWallTile(p_lbmg->GetTile(m_aNeighbourPos[Direction::WEST].x, m_aNeighbourPos[Direction::WEST].y)),
+        !IsWallTile(p_lbmg->GetTile(m_aNeighbourPos[Direction::EAST].x, m_aNeighbourPos[Direction::EAST].y)),
+        !IsWallTile(p_lbmg->GetTile(m_aNeighbourPos[Direction::NORTH].x, m_aNeighbourPos[Direction::NORTH].y)),
+        !IsWallTile(p_lbmg->GetTile(m_aNeighbourPos[Direction::SOUTH].x, m_aNeighbourPos[Direction::SOUTH].y)),   
+        !IsWallTile(p_lbmg->GetTile(m_aNeighbourPos[Direction::NORTHWEST].x, m_aNeighbourPos[Direction::NORTHWEST].y)),
+        !IsWallTile(p_lbmg->GetTile(m_aNeighbourPos[Direction::SOUTHWEST].x, m_aNeighbourPos[Direction::SOUTHWEST].y)),
+        !IsWallTile(p_lbmg->GetTile(m_aNeighbourPos[Direction::NORTHEAST].x, m_aNeighbourPos[Direction::NORTHEAST].y)),
+        !IsWallTile(p_lbmg->GetTile(m_aNeighbourPos[Direction::SOUTHEAST].x, m_aNeighbourPos[Direction::SOUTHEAST].y))
     };
 
     m_aCardinalNeighbourPairIndices = {
-        glm::ivec2(0, 2),
-        glm::ivec2(0, 3),
-        glm::ivec2(1, 2),
-        glm::ivec2(1, 3),
+        glm::ivec2(Direction::WEST, Direction::NORTH),
+        glm::ivec2(Direction::WEST, Direction::SOUTH),
+        glm::ivec2(Direction::EAST, Direction::NORTH),
+        glm::ivec2(Direction::EAST, Direction::SOUTH),
     };
 
-    std::fill(m_aNeighbourWeights.begin(), m_aNeighbourWeights.end(), 0.2f);
-
+    float weight = 0.25f; 
+    std::fill(m_aNeighbourWeights.begin(), m_aNeighbourWeights.end(), 0.0f);
     // Cardinal tiles
     for(int i = Direction::WEST; i <= Direction::SOUTH; i++)
     {
         // If out of bounds or is wall tile
-        if(m_aBounds[i] == false || IsWallTile(p_lbmg->GetTile(m_aNeighbourPos[i].x, m_aNeighbourPos[i].y)))
-        {
-            float weight = m_aNeighbourWeights[i];            
+        if(m_aInBounds[i] == false || !m_aNotWalls[i])
+        {         
             Direction dir = (Direction)i;
             
             // Switch Directions
@@ -247,63 +257,62 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
             {
                 case Direction::WEST:
                 {
-                    glm::ivec2 nw = m_aNeighbourPos[Direction::NORTHWEST];
-                    if(m_aBounds[Direction::NORTHWEST] && !IsWallTile(p_lbmg->GetTile(nw.x, nw.y)))
+                    glm::ivec2 n = m_aNeighbourPos[Direction::NORTH];
+                    if(m_aInBounds[Direction::NORTH] && m_aNotWalls[Direction::NORTH])
                     {
-                        m_aNeighbourWeights[Direction::NORTHWEST] += weight;
+                        m_aNeighbourWeights[Direction::NORTH] += weight;
                     }
 
-                    glm::ivec2 sw = m_aNeighbourPos[Direction::SOUTHWEST];
-                    if(m_aBounds[Direction::SOUTHWEST] && !IsWallTile(p_lbmg->GetTile(sw.x, sw.y)))
+                    glm::ivec2 s = m_aNeighbourPos[Direction::SOUTH];
+                    if(m_aInBounds[Direction::SOUTH] && m_aNotWalls[Direction::SOUTH])
                     {
-                        m_aNeighbourWeights[Direction::SOUTHWEST] += weight;
+                        m_aNeighbourWeights[Direction::SOUTH] += weight;
                     }
 
                     break;
                 }
                 case Direction::EAST:
                 {         
-                    glm::ivec2 ne = m_aNeighbourPos[Direction::NORTHEAST];
-                    if(m_aBounds[Direction::NORTHEAST] && !IsWallTile(p_lbmg->GetTile(ne.x, ne.y)))
+                    glm::ivec2 n = m_aNeighbourPos[Direction::NORTH];
+                    if(m_aInBounds[Direction::NORTH] && m_aNotWalls[Direction::NORTH])
                     {
-                        m_aNeighbourWeights[Direction::NORTHEAST] += weight;
+                        m_aNeighbourWeights[Direction::NORTH] += weight;
                     }
 
-                    glm::ivec2 se = m_aNeighbourPos[Direction::SOUTHEAST];
-                    if(m_aBounds[Direction::SOUTHEAST] && !IsWallTile(p_lbmg->GetTile(se.x, se.y)))
+                    glm::ivec2 s = m_aNeighbourPos[Direction::SOUTH];
+                    if(m_aInBounds[Direction::SOUTH] && m_aNotWalls[Direction::SOUTH])
                     {
-                        m_aNeighbourWeights[Direction::SOUTHEAST] += weight;
+                        m_aNeighbourWeights[Direction::SOUTH] += weight;
                     }
                     break;
                 }
                 case Direction::NORTH:
                 {
-                    glm::ivec2 nw = m_aNeighbourPos[Direction::NORTHWEST];
-                    if(m_aBounds[Direction::NORTHWEST] && !IsWallTile(p_lbmg->GetTile(nw.x, nw.y)))
+                    glm::ivec2 w = m_aNeighbourPos[Direction::WEST];
+                    if(m_aInBounds[Direction::WEST] && m_aNotWalls[Direction::WEST])
                     {
-                        m_aNeighbourWeights[Direction::NORTHWEST] += weight;
+                        m_aNeighbourWeights[Direction::WEST] += weight;
                     }
 
-                    glm::ivec2 ne = m_aNeighbourPos[Direction::NORTHEAST];
-                    if(m_aBounds[Direction::NORTHEAST] && !IsWallTile(p_lbmg->GetTile(ne.x, ne.y)))
+                    glm::ivec2 e = m_aNeighbourPos[Direction::EAST];
+                    if(m_aInBounds[Direction::EAST] && m_aNotWalls[Direction::EAST])
                     {
-                        m_aNeighbourWeights[Direction::NORTHEAST] += weight;
+                        m_aNeighbourWeights[Direction::EAST] += weight;
                     }
-                    
                     break;
                 }
                 case Direction::SOUTH:
                 {
-                    glm::ivec2 sw = m_aNeighbourPos[Direction::SOUTHWEST];
-                    if(m_aBounds[Direction::SOUTHWEST] && !IsWallTile(p_lbmg->GetTile(sw.x, sw.y)))
+                    glm::ivec2 w = m_aNeighbourPos[Direction::WEST];
+                    if(m_aInBounds[Direction::WEST] && m_aNotWalls[Direction::WEST])
                     {
-                        m_aNeighbourWeights[Direction::SOUTHWEST] += weight;
+                        m_aNeighbourWeights[Direction::WEST] += weight;
                     }
-                    
-                    glm::ivec2 se = m_aNeighbourPos[Direction::SOUTHEAST];
-                    if(m_aBounds[Direction::SOUTHEAST] && !IsWallTile(p_lbmg->GetTile(se.x, se.y)))
+
+                    glm::ivec2 e = m_aNeighbourPos[Direction::EAST];
+                    if(m_aInBounds[Direction::EAST] && m_aNotWalls[Direction::EAST])
                     {
-                        m_aNeighbourWeights[Direction::SOUTHEAST] += weight;
+                        m_aNeighbourWeights[Direction::EAST] += weight;
                     }
                     break;
                 }
@@ -312,32 +321,29 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
                     break;
                 }
             }
-            m_aNeighbourWeights[i] = 0.0f;
         }
     }
 
     // Ordinal tiles
     for(int i = Direction::NORTHWEST; i <= Direction::SOUTHEAST; i++)
     {
-        // Set to 0 if out of bounds or is wall tile
-        if(m_aBounds[i] == false || IsWallTile(p_lbmg->GetTile(m_aNeighbourPos[i].x, m_aNeighbourPos[i].y)))
-        {
-            float weight = m_aNeighbourWeights[i];            
+        // If out of bounds or is wall tile
+        if(m_aInBounds[i] == false || !m_aNotWalls[i])
+        {           
             Direction dir = (Direction)i;
             
-            // Switch Directions
             switch(dir)
             {
                 case Direction::NORTHWEST: 
                 {
                     glm::ivec2 n = m_aNeighbourPos[Direction::NORTH];
-                    if(m_aBounds[Direction::NORTH] && !IsWallTile(p_lbmg->GetTile(n.x, n.y)))
+                    if(m_aInBounds[Direction::NORTH] && m_aNotWalls[Direction::NORTH])
                     {
                         m_aNeighbourWeights[Direction::NORTH] += weight;
                     }
                     
                     glm::ivec2 w = m_aNeighbourPos[Direction::WEST];
-                    if(m_aBounds[Direction::WEST] && !IsWallTile(p_lbmg->GetTile(w.x, w.y)))
+                    if(m_aInBounds[Direction::WEST] && m_aNotWalls[Direction::WEST])
                     {
                         m_aNeighbourWeights[Direction::WEST] += weight;
                     }
@@ -347,13 +353,13 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
                 case Direction::SOUTHWEST: 
                 {
                     glm::ivec2 s = m_aNeighbourPos[Direction::SOUTH];
-                    if(m_aBounds[Direction::SOUTH] && !IsWallTile(p_lbmg->GetTile(s.x, s.y)))
+                    if(m_aInBounds[Direction::SOUTH] && m_aNotWalls[Direction::SOUTH])
                     {
                         m_aNeighbourWeights[Direction::SOUTH] += weight;
                     }
                     
                     glm::ivec2 w = m_aNeighbourPos[Direction::WEST];
-                    if(m_aBounds[Direction::WEST] && !IsWallTile(p_lbmg->GetTile(w.x, w.y)))
+                    if(m_aInBounds[Direction::WEST] && m_aNotWalls[Direction::WEST])
                     {
                         m_aNeighbourWeights[Direction::WEST] += weight;
                     }
@@ -363,13 +369,13 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
                 case Direction::NORTHEAST:
                 {
                     glm::ivec2 n = m_aNeighbourPos[Direction::NORTH];
-                    if(m_aBounds[Direction::NORTH] && !IsWallTile(p_lbmg->GetTile(n.x, n.y)))
+                    if(m_aInBounds[Direction::NORTH] && m_aNotWalls[Direction::NORTH])
                     {
                         m_aNeighbourWeights[Direction::NORTH] += weight;
                     }
                     
                     glm::ivec2 e = m_aNeighbourPos[Direction::EAST];
-                    if(m_aBounds[Direction::EAST] && !IsWallTile(p_lbmg->GetTile(e.x, e.y)))
+                    if(m_aInBounds[Direction::EAST] && m_aNotWalls[Direction::EAST])
                     {
                         m_aNeighbourWeights[Direction::EAST] += weight;
                     }
@@ -379,13 +385,13 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
                 case Direction::SOUTHEAST:
                 {
                     glm::ivec2 s = m_aNeighbourPos[Direction::SOUTH];
-                    if(m_aBounds[Direction::SOUTH] && !IsWallTile(p_lbmg->GetTile(s.x, s.y)))
+                    if(m_aInBounds[Direction::SOUTH] && m_aNotWalls[Direction::SOUTH])
                     {
                         m_aNeighbourWeights[Direction::SOUTH] += weight;
                     }
                     
                     glm::ivec2 e = m_aNeighbourPos[Direction::EAST];
-                    if(m_aBounds[Direction::EAST] && !IsWallTile(p_lbmg->GetTile(e.x, e.y)))
+                    if(m_aInBounds[Direction::EAST] && m_aNotWalls[Direction::EAST])
                     {
                         m_aNeighbourWeights[Direction::EAST] += weight;
                     }
@@ -397,16 +403,14 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
                     break;
                 }
             }
-
-            m_aNeighbourWeights[i] = 0.0f;    
         }
     }
 
-    for(int i = 0; i < 8; i++)
-    {
-        std::cout << i << ": " << m_aNeighbourWeights[i] << std::endl;
-    }
-    printf("-------\n");
+    // for(int i = 0; i < 8; i++)
+    // {
+    //     std::cout << i << ": " << m_aNeighbourWeights[i] << std::endl;
+    // }
+    // printf("-------\n");
 
     wolf::Scene* scene = &p_lbmg->GetGameObject()->GetScene();
 
@@ -486,13 +490,13 @@ void TileFireManager::FireTile::AttemptPropagation()
     for (int i = 0; i < 4; i++) 
     {
         // If the cardinal tile is within bounds
-        if (m_aBounds[i]) 
+        if (m_aInBounds[i]) 
         {
             // If rng check passes       
-            if (s_rng.NextFloat(0.0f, 1.0f) <= m_fCardinalSpreadChance) 
+            if (s_rng.NextFloat(0.0f, 1.0f) <= m_fCardinalSpreadChance * (1 + m_aNeighbourWeights[i])) 
             {
                 // If the cardinal tile is not a wall
-                if (!s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[i].x, m_aNeighbourPos[i].y))) 
+                if (m_aNotWalls[i]) 
                 {
                     // Propagate
                     s_pTFMG->AddFireTile(m_aNeighbourPos[i], -1, -1, false);
@@ -506,19 +510,19 @@ void TileFireManager::FireTile::AttemptPropagation()
     for (int i = 4; i < 8; i++) 
     {
         // If the ordinal tile is within bounds
-        if (m_aBounds[i]) 
+        if (m_aInBounds[i]) 
         {
 
             // If rng check passes
-            if (s_rng.NextFloat(0.0f, 1.0f) <= m_fOrdinalSpreadChance) 
+            if (s_rng.NextFloat(0.0f, 1.0f) <= m_fOrdinalSpreadChance  * (1 + m_aNeighbourWeights[i])) 
             {
                 glm::ivec2 cnpIndices = m_aCardinalNeighbourPairIndices[i-4];
 
                 // If the ordinal tile is not a wall && neither of the cardinal neighbour tiles is a wall 
                 if (
-                    !s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[i].x, m_aNeighbourPos[i].y))                         &&
-                    !s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[cnpIndices.x].x, m_aNeighbourPos[cnpIndices.x].y))   &&
-                    !s_pTFMG->IsWallTile(s_pTFMG->m_pLBMG->GetTile(m_aNeighbourPos[cnpIndices.y].x, m_aNeighbourPos[cnpIndices.y].y))
+                    !m_aNotWalls[i]             &&
+                    !m_aNotWalls[cnpIndices.x]  &&
+                    !m_aNotWalls[cnpIndices.y]
                 ) 
                 {
                     // Propagate

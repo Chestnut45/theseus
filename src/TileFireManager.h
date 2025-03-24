@@ -36,7 +36,7 @@ private:
 
         enum Direction
         {
-            WEST,
+            WEST = 0,
             EAST,
             NORTH,
             SOUTH,
@@ -48,7 +48,8 @@ private:
 
         glm::ivec2 m_vTilePos = glm::ivec2(0, 0);
         std::array<glm::ivec2, 8> m_aNeighbourPos;
-        std::array<bool, 8> m_aBounds;
+        std::array<bool, 8> m_aInBounds;                              // Checks if neighbours are within bounds
+        std::array<bool, 8> m_aNotWalls;                              // Checks if neighbours are not walls
         std::array<float, 8> m_aNeighbourWeights;
         std::array<glm::ivec2, 4> m_aCardinalNeighbourPairIndices;  // For ordinal propagation optimisation
 
