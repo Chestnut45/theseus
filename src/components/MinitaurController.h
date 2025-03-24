@@ -15,6 +15,8 @@
 #include <EnemyDataLoader.h>
 #include "PathfindingManager.h"
 #include "InfightingEvent.h"
+#include "BehaviorTree.h"
+#include "Blackboard.h"
 
 class MinitaurController : public EnemyController
 {
@@ -117,4 +119,25 @@ private:
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;
     wolf::GameObject* m_pEmoteObj = nullptr;
+
+    // Behavior tree for combat decisions
+    std::unique_ptr<BehaviorTree> m_combatBehaviorTree;
+    
+    // Create the combat behavior tree
+    void SetupCombatBehaviorTree();
+    
+    // Strategy evaluation 
+    void EvaluateStrategy();
+    
+    // Update blackboard with current game state
+    void UpdateBlackboard();
+    
+    // Utility function to get melee range for behavior tree
+    float GetMeleeRange() const { return m_meleeRange; }
+    
+    // Utility function to get base damage for behavior tree
+    float GetBaseDamage() const { return m_baseDamage; }
+    
+    // Utility function to get melee windup time for behavior tree
+    float GetMeleeWindupTime() const { return m_meleeWindupTime; }
 };

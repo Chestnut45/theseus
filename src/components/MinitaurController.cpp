@@ -23,6 +23,7 @@ MinitaurController::MinitaurController()
 MinitaurController::~MinitaurController()
 {
     wolf::EventManager::AddListener<InfightingEvent, MinitaurController, &MinitaurController::HandleInfighting>(*this);
+    g_blackboard.UnregisterEnemy(GetGameObject()->GetID());
 }
 
 void MinitaurController::Init(const EnemyData& data)
@@ -102,6 +103,11 @@ void MinitaurController::Init(const EnemyData& data)
     {
         wolf::Warning("MinitaurController: No PathfindingManager found in the scene!");
     }
+
+    g_blackboard.RegisterEnemy(GetGameObject()->GetID());
+    
+    // Setup combat behavior tree
+    SetupCombatBehaviorTree();
 }
 
 
@@ -123,6 +129,18 @@ void MinitaurController::Update(float delta)
 
     // Update the base class
     EnemyController::Update(delta);
+
+    // Evaluate and update AI strategy
+    EvaluateStrategy();
+    
+    // Update blackboard with current game state
+    UpdateBlackboard();
+    
+    // If in combat states, use behavior tree for decisions
+    if (m_state == EnemyState::CHASING || m_state == EnemyState::ATTACKING) {
+        m_combatBehaviorTree->Update(delta, &g_blackboard);
+    }
+
 
     // Check if minitaur is petrified
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
@@ -493,7 +511,6 @@ void MinitaurController::HandleAttackingState(float delta)
 
         m_meleeWindupTimer -= delta;
     }
-
     // Else, strike
     else
     {
@@ -512,21 +529,26 @@ void MinitaurController::HandleAttackingState(float delta)
         // Apply damage if player is within melee range and attack cooldown is over
         if (active && distanceToPlayer <= m_meleeRange)
         {
+            // Get damage multiplier from blackboard (default to 1.0 if not set)
+            float damageMultiplier = g_blackboard.GetFloat("attackDamageMultiplier");
+            if (damageMultiplier <= 0.0f) damageMultiplier = 1.0f;
 
             // Apply damage to the player
             auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
             if (playerHealth)
             {
-                playerHealth->Damage(m_baseDamage);
+                playerHealth->Damage(m_baseDamage * damageMultiplier);
             }
 
-            // Apply strong knockback to the player
+            // Apply knockback to the player
             auto* playerVelocity = m_pTarget->GetComponent<VelocityComponent>();
             if (playerVelocity)
             {
                 // Calculate knockback direction and amplify the push
                 glm::vec2 knockbackDirection = glm::normalize(targetPosition - currentPosition);
-                float knockbackStrength = 800.0f; // Amplified knockback strength
+                
+                // Stronger knockback for heavy attacks
+                float knockbackStrength = 800.0f * damageMultiplier;
                 playerVelocity->ApplyKnockback(knockbackDirection, knockbackStrength);
             }
 
@@ -842,3 +864,130 @@ void MinitaurController::RevertToPlayerTarget()
     // wolf::Warning("BLUD CAN'T FIND A TARGET");
     m_pTarget = nullptr; // No valid target
 }
+
+void MinitaurController::SetupCombatBehaviorTree()
+{
+    // Create the root selector
+    auto root = std::make_unique<Selector>();
+    
+    // === AGGRESSIVE STRATEGY SEQUENCE ===
+    auto aggressiveSequence = std::make_unique<Sequence>();
+    
+    // Condition: Check if we're in aggressive strategy
+    aggressiveSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
+        [this]() { return g_blackboard.GetStrategy() == Strategy::AGGRESSIVE; }
+    ));
+    
+    // Condition: Check if player is in melee range
+    aggressiveSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
+        [this]() {
+            if (!m_pTarget) return false;
+            
+            glm::vec2 targetPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+            float distance = glm::length(targetPos - selfPos);
+            
+            return distance <= m_meleeRange;
+        }
+    ));
+    
+    // Condition: Check if it's our turn to attack
+    aggressiveSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
+        [this]() {
+            int attackingID = g_blackboard.GetAttackingEnemyID();
+            int myID = GetGameObject()->GetID();
+            
+            return attackingID == -1 || attackingID == myID;
+        }
+    ));
+    
+    // Action: Perform heavy attack
+    aggressiveSequence->AddBehaviorNode(std::make_unique<ActionNode>(
+        [this](float delta) {
+            // If not already attacking, enter attack state
+            if (m_state != EnemyState::ATTACKING) {
+                ChangeState(EnemyState::ATTACKING);
+                
+                // Set as attacking enemy
+                g_blackboard.SetAttackingEnemyID(GetGameObject()->GetID());
+                
+                // Use a longer windup for heavy attack
+                m_meleeWindupTimer = m_meleeWindupTime * 1.5f;
+                
+                // Store damage multiplier in blackboard
+                g_blackboard.SetFloat("attackDamageMultiplier", 2.0f);
+                
+                return BehaviorNode::Status::RUNNING;
+            }
+            
+            // Check if attack is complete
+            if (m_state != EnemyState::ATTACKING) {
+                g_blackboard.SetAttackingEnemyID(-1); // Release attack turn
+                return BehaviorNode::Status::SUCCESS;
+            }
+            
+            return BehaviorNode::Status::RUNNING;
+        }
+    ));
+    
+    // Add the aggressive sequence to the root
+    root->AddBehaviorNode(std::move(aggressiveSequence));
+    
+    // Create behavior tree with root
+    m_combatBehaviorTree = std::make_unique<BehaviorTree>(std::move(root));
+}
+
+void MinitaurController::EvaluateStrategy() 
+{
+    if (!m_pTarget || !m_pHealth) return;
+
+    // Get player health
+    float playerHealth = 100.0f;
+    auto* playerHealthComp = m_pTarget->GetComponent<HealthComponent>();
+    if (playerHealthComp) {
+        playerHealth = playerHealthComp->GetHealth();
+    }
+    
+    // Get our own health percentage
+    float selfHealth = m_pHealth->GetHealth();
+    float maxHealth = m_pHealth->GetMaxHealth();
+    float healthPercentage = (selfHealth / maxHealth) * 100.0f;
+    
+    // Choose strategy based on health
+    if (playerHealth < 20.0f) {
+        // Player is weak, be aggressive
+        g_blackboard.SetStrategy(Strategy::AGGRESSIVE);
+    } 
+    else if (healthPercentage < 30.0f) {
+        // We're weak, be defensive
+        g_blackboard.SetStrategy(Strategy::DEFENSIVE);
+    }
+    else {
+        // Default to flanking
+        g_blackboard.SetStrategy(Strategy::FLANKING);
+    }
+}
+
+void MinitaurController::UpdateBlackboard()
+{
+    if (!m_pTarget || !m_pTransform) return;
+    
+    // Update position data
+    glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+    glm::vec2 targetPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    
+    g_blackboard.SetFloat("playerDistance", glm::length(targetPos - selfPos));
+    
+    // Update health data
+    if (m_pHealth) {
+        g_blackboard.SetFloat("selfHealth", m_pHealth->GetHealth());
+        g_blackboard.SetFloat("selfHealthPercentage", 
+            (m_pHealth->GetHealth() / m_pHealth->GetMaxHealth()) * 100.0f);
+    }
+    
+    auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
+    if (playerHealth) {
+        g_blackboard.SetFloat("playerHealth", playerHealth->GetHealth());
+    }
+}
+
