@@ -21,12 +21,13 @@ void main()
     vec4 fluidColor = texture(fluidTex, texCoords);
     if (fluidColor.a == 0.0) discard;
 
-    // Fix aspect ratio of texture coordinates
-    vec2 correctedTexCoords = vec2(texCoords.x * (camPosRes.z / camPosRes.w), texCoords.y);
+    // Convert texture coordinates into world space coordinates
+    vec4 clipSpacePos = vec4(texCoords * 2.0 - 1.0, 0.0, 1.0);
+    vec4 worldPos = inverse(viewProj) * clipSpacePos;  
+    worldPos /= worldPos.w;
     
     // Evaluate noise twice, using domain warping
-    // TODO: Move with camera position
-    vec3 x = vec3(correctedTexCoords * causticFrequency, time);
+    vec3 x = vec3(worldPos.xy * causticFrequency / 32, time);
     vec4 noise = os2NoiseWithDerivatives_ImproveXY(x);
     noise = os2NoiseWithDerivatives_ImproveXY(x - noise.xyz / 16.0);
     float value = noise.w;

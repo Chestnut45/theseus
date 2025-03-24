@@ -354,7 +354,7 @@ void BoundedFluidSystem2D::ShowEditor()
     ImGui::ColorEdit4("Fluid Color", &m_fluidColor.r);
     ImGui::ColorEdit4("Wave Color", &m_waveColor.r);
     ImGui::ColorEdit4("Caustic Color", &m_causticColor.r);
-    ImGui::SliderFloat("Caustic Freq", &m_causticFrequency, 1.0f, 50.0f);
+    ImGui::SliderFloat("Caustic Freq", &m_causticFrequency, 0.0f, 1.0f);
     ImGui::SliderInt("# Particles", &m_numParticlesToSpawn, 1, 5000);
     if (ImGui::Button("Respawn")) SetupDamBreak();
 

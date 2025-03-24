@@ -102,7 +102,7 @@ private:
     glm::vec4 m_fluidColor{0.039f, 0.295f, 0.402f, 0.812f};
     glm::vec4 m_waveColor{0.8f, 0.886f, 0.941f, 0.745f};
     glm::vec4 m_causticColor{0.936f, 0.836f, 0.757f, 0.827f};
-    float m_causticFrequency = 20.0f;
+    float m_causticFrequency = 0.5f;
     float m_simTime = 0.0f;
 
     // Spatial hashing optimization structure
