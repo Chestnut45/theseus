@@ -242,17 +242,22 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
         glm::ivec2(Direction::EAST, Direction::SOUTH),
     };
 
+    // Each weight is added by 1 and multiplied by the spread chance
     float weight = 0.25f; 
+
+    // Initialise every weights as 0.0f
     std::fill(m_aNeighbourWeights.begin(), m_aNeighbourWeights.end(), 0.0f);
+    
     // Cardinal tiles
     for(int i = Direction::WEST; i <= Direction::SOUTH; i++)
     {
-        // If out of bounds or is wall tile
+        // If the cardinal tile is out of bounds or is wall tile
         if(m_aInBounds[i] == false || !m_aNotWalls[i])
         {         
             Direction dir = (Direction)i;
             
-            // Switch Directions
+            // Switch directions
+            // For each ordinal neighbour, that is within bounds and not a wall, of that cardinal tile, add weights to that tile
             switch(dir)
             {
                 case Direction::WEST:
@@ -327,11 +332,13 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
     // Ordinal tiles
     for(int i = Direction::NORTHWEST; i <= Direction::SOUTHEAST; i++)
     {
-        // If out of bounds or is wall tile
+        // If the ordinal tile is out of bounds or is wall tile
         if(m_aInBounds[i] == false || !m_aNotWalls[i])
         {           
             Direction dir = (Direction)i;
             
+            // Switch directions
+            // For each cardinal neighbour, that is within bounds and not a wall, of that ordinal tile, add weights to that tile
             switch(dir)
             {
                 case Direction::NORTHWEST: 
