@@ -3,6 +3,7 @@ const float MAX_PRESSURE_DELTA = 128.0;
 
 // Interpolated particle-relative position
 in vec2 pos;
+in vec2 vel;
 in vec4 forceDensityPressure;
 
 // Final output
@@ -24,13 +25,13 @@ void main()
 
     // Calculate fluid properties that should affect color
     // TODO: Ensure these values are properly normalized!
-    float densityFactor = forceDensityPressure.z * 16.0;
-    float pressureFactor = 1.0 - (-forceDensityPressure.w - (gasConstant * restDensity - MAX_PRESSURE_DELTA)) / MAX_PRESSURE_DELTA;
+    // float densityFactor = forceDensityPressure.z * 16.0;
+    // float pressureFactor = (-forceDensityPressure.w - (gasConstant * restDensity - MAX_PRESSURE_DELTA)) / MAX_PRESSURE_DELTA;
 
     // Compute color contributions
-    vec4 waveColorContribution = max(waveColor * (1.0 - pressureFactor * 8.0), vec4(0.0));
-
-    // Calculate final color
-    vec4 col = fluidColor + waveColorContribution;
-    finalColor = col;
+    // vec4 waveColorContribution = max(waveColor * (1.0 - pressureFactor * 8.0), vec4(0.0));
+    
+    vec4 baseColor = fluidColor;
+    vec4 waveColorContribution = vec4(waveColor.rgb * length(vel) / 20000 * waveColor.a, 0.0);
+    finalColor = baseColor + waveColorContribution;
 }

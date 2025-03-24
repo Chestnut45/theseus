@@ -25,6 +25,7 @@ uniform float kernelRadius;
 
 // Outputs to fragment shader
 out vec2 pos;
+out flat vec2 vel;
 out flat vec4 forceDensityPressure;
 
 void main()
@@ -32,6 +33,7 @@ void main()
     vec2 scaledQuadPos = (quadPos - vec2(0.5)) * kernelRadius;
     ParticleData p = particles[gl_InstanceID];
     pos = scaledQuadPos;
+    vel = p.posVel.zw;
     forceDensityPressure = p.forceDensityPressure;
     gl_Position = viewProj * model * vec4((scaledQuadPos + p.posVel.xy), 0.0, 1.0);
 }

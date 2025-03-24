@@ -290,7 +290,7 @@ void BoundedFluidSystem2D::Render(float delta)
 
     // Upload other uniforms
     auto* pCamera = GetGameObject()->GetScene().GetActiveCamera();
-    s_pBlendPassShader->SetUniform("cameraPos", pCamera ? glm::vec3(pCamera->GetPosition(), 1.0f) : glm::vec3(0.0f));
+    s_pBlendPassShader->SetUniform("camPosRes", pCamera ? glm::vec4(pCamera->GetPosition(), pCamera->GetViewSize()) : glm::vec4(0.0f));
     s_pBlendPassShader->SetUniform("time", m_simTime);
     s_pBlendPassShader->SetUniform("causticColor", m_causticColor);
     s_pBlendPassShader->SetUniform("causticFrequency", m_causticFrequency);

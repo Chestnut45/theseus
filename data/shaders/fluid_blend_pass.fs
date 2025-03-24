@@ -10,7 +10,7 @@ out vec4 finalColor;
 
 uniform float time;
 uniform float causticFrequency;
-uniform vec3 cameraPos;
+uniform vec4 camPosRes;
 uniform vec4 causticColor;
 
 vec4 os2NoiseWithDerivatives_ImproveXY(vec3 X);
@@ -21,12 +21,12 @@ void main()
     vec4 fluidColor = texture(fluidTex, texCoords);
     if (fluidColor.a == 0.0) discard;
 
-    // Initial input point
-    // TODO: Fix camera pos discrepency! (scale by screen resolution)
-    vec2 scaledCameraPos = (cameraPos.xy / 48);
-    vec3 x = vec3(texCoords * causticFrequency + scaledCameraPos, time);
+    // Fix aspect ratio of texture coordinates
+    vec2 correctedTexCoords = vec2(texCoords.x * (camPosRes.z / camPosRes.w), texCoords.y);
     
-    // Evaluate noise once
+    // Evaluate noise twice, using domain warping
+    // TODO: Move with camera position
+    vec3 x = vec3(correctedTexCoords * causticFrequency, time);
     vec4 noise = os2NoiseWithDerivatives_ImproveXY(x);
     noise = os2NoiseWithDerivatives_ImproveXY(x - noise.xyz / 16.0);
     float value = noise.w;
