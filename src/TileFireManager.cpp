@@ -231,6 +231,183 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
         glm::ivec2(1, 3),
     };
 
+    std::fill(m_aNeighbourWeights.begin(), m_aNeighbourWeights.end(), 0.2f);
+
+    // Cardinal tiles
+    for(int i = Direction::WEST; i <= Direction::SOUTH; i++)
+    {
+        // If out of bounds or is wall tile
+        if(m_aBounds[i] == false || IsWallTile(p_lbmg->GetTile(m_aNeighbourPos[i].x, m_aNeighbourPos[i].y)))
+        {
+            float weight = m_aNeighbourWeights[i];            
+            Direction dir = (Direction)i;
+            
+            // Switch Directions
+            switch(dir)
+            {
+                case Direction::WEST:
+                {
+                    glm::ivec2 nw = m_aNeighbourPos[Direction::NORTHWEST];
+                    if(m_aBounds[Direction::NORTHWEST] && !IsWallTile(p_lbmg->GetTile(nw.x, nw.y)))
+                    {
+                        m_aNeighbourWeights[Direction::NORTHWEST] += weight;
+                    }
+
+                    glm::ivec2 sw = m_aNeighbourPos[Direction::SOUTHWEST];
+                    if(m_aBounds[Direction::SOUTHWEST] && !IsWallTile(p_lbmg->GetTile(sw.x, sw.y)))
+                    {
+                        m_aNeighbourWeights[Direction::SOUTHWEST] += weight;
+                    }
+
+                    break;
+                }
+                case Direction::EAST:
+                {         
+                    glm::ivec2 ne = m_aNeighbourPos[Direction::NORTHEAST];
+                    if(m_aBounds[Direction::NORTHEAST] && !IsWallTile(p_lbmg->GetTile(ne.x, ne.y)))
+                    {
+                        m_aNeighbourWeights[Direction::NORTHEAST] += weight;
+                    }
+
+                    glm::ivec2 se = m_aNeighbourPos[Direction::SOUTHEAST];
+                    if(m_aBounds[Direction::SOUTHEAST] && !IsWallTile(p_lbmg->GetTile(se.x, se.y)))
+                    {
+                        m_aNeighbourWeights[Direction::SOUTHEAST] += weight;
+                    }
+                    break;
+                }
+                case Direction::NORTH:
+                {
+                    glm::ivec2 nw = m_aNeighbourPos[Direction::NORTHWEST];
+                    if(m_aBounds[Direction::NORTHWEST] && !IsWallTile(p_lbmg->GetTile(nw.x, nw.y)))
+                    {
+                        m_aNeighbourWeights[Direction::NORTHWEST] += weight;
+                    }
+
+                    glm::ivec2 ne = m_aNeighbourPos[Direction::NORTHEAST];
+                    if(m_aBounds[Direction::NORTHEAST] && !IsWallTile(p_lbmg->GetTile(ne.x, ne.y)))
+                    {
+                        m_aNeighbourWeights[Direction::NORTHEAST] += weight;
+                    }
+                    
+                    break;
+                }
+                case Direction::SOUTH:
+                {
+                    glm::ivec2 sw = m_aNeighbourPos[Direction::SOUTHWEST];
+                    if(m_aBounds[Direction::SOUTHWEST] && !IsWallTile(p_lbmg->GetTile(sw.x, sw.y)))
+                    {
+                        m_aNeighbourWeights[Direction::SOUTHWEST] += weight;
+                    }
+                    
+                    glm::ivec2 se = m_aNeighbourPos[Direction::SOUTHEAST];
+                    if(m_aBounds[Direction::SOUTHEAST] && !IsWallTile(p_lbmg->GetTile(se.x, se.y)))
+                    {
+                        m_aNeighbourWeights[Direction::SOUTHEAST] += weight;
+                    }
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+            m_aNeighbourWeights[i] = 0.0f;
+        }
+    }
+
+    // Ordinal tiles
+    for(int i = Direction::NORTHWEST; i <= Direction::SOUTHEAST; i++)
+    {
+        // Set to 0 if out of bounds or is wall tile
+        if(m_aBounds[i] == false || IsWallTile(p_lbmg->GetTile(m_aNeighbourPos[i].x, m_aNeighbourPos[i].y)))
+        {
+            float weight = m_aNeighbourWeights[i];            
+            Direction dir = (Direction)i;
+            
+            // Switch Directions
+            switch(dir)
+            {
+                case Direction::NORTHWEST: 
+                {
+                    glm::ivec2 n = m_aNeighbourPos[Direction::NORTH];
+                    if(m_aBounds[Direction::NORTH] && !IsWallTile(p_lbmg->GetTile(n.x, n.y)))
+                    {
+                        m_aNeighbourWeights[Direction::NORTH] += weight;
+                    }
+                    
+                    glm::ivec2 w = m_aNeighbourPos[Direction::WEST];
+                    if(m_aBounds[Direction::WEST] && !IsWallTile(p_lbmg->GetTile(w.x, w.y)))
+                    {
+                        m_aNeighbourWeights[Direction::WEST] += weight;
+                    }
+                    break;
+                }
+                
+                case Direction::SOUTHWEST: 
+                {
+                    glm::ivec2 s = m_aNeighbourPos[Direction::SOUTH];
+                    if(m_aBounds[Direction::SOUTH] && !IsWallTile(p_lbmg->GetTile(s.x, s.y)))
+                    {
+                        m_aNeighbourWeights[Direction::SOUTH] += weight;
+                    }
+                    
+                    glm::ivec2 w = m_aNeighbourPos[Direction::WEST];
+                    if(m_aBounds[Direction::WEST] && !IsWallTile(p_lbmg->GetTile(w.x, w.y)))
+                    {
+                        m_aNeighbourWeights[Direction::WEST] += weight;
+                    }
+                    break;
+                }
+
+                case Direction::NORTHEAST:
+                {
+                    glm::ivec2 n = m_aNeighbourPos[Direction::NORTH];
+                    if(m_aBounds[Direction::NORTH] && !IsWallTile(p_lbmg->GetTile(n.x, n.y)))
+                    {
+                        m_aNeighbourWeights[Direction::NORTH] += weight;
+                    }
+                    
+                    glm::ivec2 e = m_aNeighbourPos[Direction::EAST];
+                    if(m_aBounds[Direction::EAST] && !IsWallTile(p_lbmg->GetTile(e.x, e.y)))
+                    {
+                        m_aNeighbourWeights[Direction::EAST] += weight;
+                    }
+                    break;
+                }
+
+                case Direction::SOUTHEAST:
+                {
+                    glm::ivec2 s = m_aNeighbourPos[Direction::SOUTH];
+                    if(m_aBounds[Direction::SOUTH] && !IsWallTile(p_lbmg->GetTile(s.x, s.y)))
+                    {
+                        m_aNeighbourWeights[Direction::SOUTH] += weight;
+                    }
+                    
+                    glm::ivec2 e = m_aNeighbourPos[Direction::EAST];
+                    if(m_aBounds[Direction::EAST] && !IsWallTile(p_lbmg->GetTile(e.x, e.y)))
+                    {
+                        m_aNeighbourWeights[Direction::EAST] += weight;
+                    }
+                    break;
+                }
+
+                default:
+                {
+                    break;
+                }
+            }
+
+            m_aNeighbourWeights[i] = 0.0f;    
+        }
+    }
+
+    for(int i = 0; i < 8; i++)
+    {
+        std::cout << i << ": " << m_aNeighbourWeights[i] << std::endl;
+    }
+    printf("-------\n");
+
     wolf::Scene* scene = &p_lbmg->GetGameObject()->GetScene();
 
     // Create fireObj

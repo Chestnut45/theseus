@@ -34,9 +34,22 @@ private:
             DEFAULT_BURNSTATE   // NOT to be used
         };
 
+        enum Direction
+        {
+            WEST,
+            EAST,
+            NORTH,
+            SOUTH,
+            NORTHWEST,
+            SOUTHWEST,
+            NORTHEAST,
+            SOUTHEAST,
+        };
+
         glm::ivec2 m_vTilePos = glm::ivec2(0, 0);
         std::array<glm::ivec2, 8> m_aNeighbourPos;
         std::array<bool, 8> m_aBounds;
+        std::array<float, 8> m_aNeighbourWeights;
         std::array<glm::ivec2, 4> m_aCardinalNeighbourPairIndices;  // For ordinal propagation optimisation
 
         wolf::GameObject* m_pFireObj = nullptr;
@@ -80,5 +93,5 @@ private:
 
     TileFireManager(LabyrinthManager* p_lbmg);
     ~TileFireManager();
-    bool IsWallTile(int p_tile_id);
+    static bool IsWallTile(int p_tile_id);
 };
