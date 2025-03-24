@@ -1108,13 +1108,13 @@ void PlayerInventoryComponent::HandleRetrievePlaceableEvent(const RetrievePlacea
         ItemBase* pPortal = ItemCreator::CreateItem("Portal");
         if (this->AddItem(pPortal)) 
         {
+            wolf::EventManager::TriggerEvent(DestroyPlaceableEvent(p_event.pcTpye, p_event.tilePos));
         }
     }
     else
     {
     }
     
-    wolf::EventManager::TriggerEvent(DestroyPlaceableEvent(p_event.pcTpye, p_event.tilePos));
     return;
 }
 

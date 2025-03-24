@@ -41,55 +41,74 @@ PortalTileManager* PortalTileManager::GetInstance()
 void PortalTileManager::Update(float p_dt)
 {
     // Get pair
-    for(auto portalTilePair: m_vPortalTilePairs)
+    for(auto portalTile: m_vPortalTiles)
     {
-        PortalTile* pt1 = portalTilePair.first;
-        PortalTile* pt2 = portalTilePair.second;
-
         // Update each portal tile
         
-        pt1->Update(p_dt);
-        pt2->Update(p_dt);
+        portalTile->Update(p_dt);
+        portalTile->GetSibling()->Update(p_dt);
     }
-
-    // for(auto portalTilePair: m_vPortalTilePairs)
-    // {
-    //     PortalTile* ptPair[2] = { portalTilePair.first,  portalTilePair.second };
-    //     for(int i = 0; i < 2; i++)
-    //     {
-    //         PortalTile* pt = ptPair[i];
-
-    //         glm::vec2 playerPos = m_pPlayer->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    //         glm::ivec2 playerTilePos  = m_pLBMG->GetTilePosition(playerPos);
-    //         if
-    //         (
-    //             abs(playerTilePos.x - pt->GetTilePos().x) <= 1 &&
-    //             abs(playerTilePos.y - pt->GetTilePos().y) <= 1
-    //         )
-    //         {
-    //             RenderCollectPrompt();
-    //             if(wolf::Input::IsKeyJustDown(GLFW_KEY_E))
-    //             {
-    //                 wolf::EventManager::TriggerEvent(RetrievePlaceableEvent(PlaceableType::PORTAL, GetTilePos()));
-    //                 if(GetSibling() != nullptr)
-    //                 {
-    //                     wolf::EventManager::TriggerEvent(RetrievePlaceableEvent(PlaceableType::PORTAL, GetTilePos()));
-    //                     //DeletePair(this, GetSibling());
-    //                 }
-    //                 else
-    //                 {
-    //                     //DeleteAvailablePortalTile(this);
-    //                 }
-    //             }
-    //         }
-    //     }    
-    // }
-
     
+    
+    glm::vec2 playerPos = m_pPlayer->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerPos);
+
     if(m_pAvailablePortalTile != nullptr)
     {
-        m_pAvailablePortalTile->CheckPlayerCollection();
         m_pAvailablePortalTile->Update(p_dt);
+        if (abs(playerTilePos.x - m_pAvailablePortalTile->GetTilePos().x) <= 1 && abs(playerTilePos.y - m_pAvailablePortalTile->GetTilePos().y) <= 1)
+        {
+            RenderCollectPrompt();
+            if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+                // Remove the current pair from the vector
+                m_iRemovalIndex = -1;
+            }
+        }
+    }
+
+    if(m_iRemovalIndex == -2)
+    {
+        for (int i = 0; i < m_vPortalTiles.size(); i++) {
+            // Dereference the pointer to access the pair
+            PortalTile* pt = m_vPortalTiles.at(i);
+            PortalTile* ptSibling = pt->GetSibling();
+            
+            if (
+                (abs(playerTilePos.x - pt->GetTilePos().x) <= 1 && abs(playerTilePos.y - pt->GetTilePos().y) <= 1)                  ||
+                (abs(playerTilePos.x - ptSibling->GetTilePos().x) <= 1 && abs(playerTilePos.y - ptSibling->GetTilePos().y) <= 1)
+            ) {
+                RenderCollectPrompt();
+                if ( wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+                    // Remove the current pair from the vector
+                    m_iRemovalIndex = i;
+                    break;
+                }
+            }
+        }
+    }
+
+
+    if(m_iRemovalIndex != -2)
+    {
+        
+        if(m_iRemovalIndex == -1)
+        {
+            wolf::EventManager::TriggerEvent(RetrievePlaceableEvent(PlaceableType::PORTAL, m_pAvailablePortalTile->GetTilePos()));
+            
+            return;
+        }
+        else
+        {
+            PortalTile* pt = m_vPortalTiles.at(m_iRemovalIndex);
+            PortalTile* sibling = pt->GetSibling();
+            
+            if(sibling != nullptr)
+            {
+                wolf::EventManager::TriggerEvent(RetrievePlaceableEvent(PlaceableType::PORTAL, sibling->GetTilePos()));
+            }
+            wolf::EventManager::TriggerEvent(RetrievePlaceableEvent(PlaceableType::PORTAL, pt->GetTilePos()));
+        }
+
     }
 }
 
@@ -97,14 +116,17 @@ bool PortalTileManager::CreatePortalTile(glm::ivec2 p_tile_pos)
 {
     if(!IsValidTile(p_tile_pos)) return false;
 
-    PortalTile* portalTile = PortalTile::CreatePortalTile(p_tile_pos, m_pLBMG, m_pAvailablePortalTile);
+    
     if(m_pAvailablePortalTile == nullptr)
     {
+        PortalTile* portalTile = PortalTile::CreatePortalTile(p_tile_pos, m_pLBMG, nullptr);
         m_pAvailablePortalTile = portalTile;
+        
     }
     else
     {
-        m_vPortalTilePairs.push_back(std::pair(portalTile, portalTile->GetSibling()));
+        PortalTile* portalTile = PortalTile::CreatePortalTile(p_tile_pos, m_pLBMG, m_pAvailablePortalTile);
+        m_vPortalTiles.push_back(portalTile);
         m_pAvailablePortalTile = nullptr;
     }
     return true;
@@ -125,11 +147,11 @@ PortalTileManager::PortalTileManager(LabyrinthManager* p_lbmg)
 PortalTileManager::~PortalTileManager()
 {
     wolf::EventManager::RemoveListener<DestroyPlaceableEvent, PortalTileManager, &PortalTileManager::HandleDestroyPlaceableEvent>(*this);
-    while(m_vPortalTilePairs.size() > 0)
+    while(m_vPortalTiles.size() > 0)
     {
-        std::pair<PortalTile*, PortalTile*> pair = m_vPortalTilePairs.back();
-        m_vPortalTilePairs.pop_back();
-        PortalTile::DeletePair(pair.first, pair.second);
+        PortalTile* pt = m_vPortalTiles.back();
+        m_vPortalTiles.pop_back();
+        PortalTile::DeletePortalAndSibling(pt);
     }
    
     if(m_pAvailablePortalTile != nullptr)
@@ -138,7 +160,7 @@ PortalTileManager::~PortalTileManager()
         m_pAvailablePortalTile = nullptr;
     }
 
-    m_vPortalTilePairs.clear();    
+    m_vPortalTiles.clear();    
     m_pLBMG = nullptr;
     m_pPlayer = nullptr;
 }
@@ -149,30 +171,30 @@ void PortalTileManager::HandleDestroyPlaceableEvent(const DestroyPlaceableEvent&
 
     if(m_pAvailablePortalTile != nullptr && m_pAvailablePortalTile->GetTilePos() == p_event.tilePos)
     {
-        printf("PT1\n");
         PortalTile::DeleteAvailablePortalTile(m_pAvailablePortalTile);
         m_pAvailablePortalTile = nullptr;
-        
+
+        m_iRemovalIndex = -2;
         return;
     }
     
-    for(int i = 0; i < m_vPortalTilePairs.size(); i++)
+    for(int i = 0; i < m_vPortalTiles.size(); i++)
     {
-        PortalTile* pt1 = m_vPortalTilePairs.at(i).first;
-        PortalTile* pt2 = m_vPortalTilePairs.at(i).second;    
+        PortalTile* pt1 = m_vPortalTiles.at(i);
         
-        if(pt1->GetTilePos() == p_event.tilePos || pt2->GetTilePos() == p_event.tilePos)
+        if(pt1->GetTilePos() == p_event.tilePos)
         {
             
-            printf("PT2\n");
-            m_vPortalTilePairs.at(i).first = nullptr;
-            m_vPortalTilePairs.at(i).second = nullptr;
-            m_vPortalTilePairs.erase(m_vPortalTilePairs.begin() + i);
-            PortalTile::DeletePair(pt1, pt2);
-            return;
+            PortalTile::DeletePortalAndSibling(pt1);
+            m_vPortalTiles.erase(m_vPortalTiles.begin() + m_iRemovalIndex);
+            break;
         }
     }
+
+    m_iRemovalIndex = -2;
+    return;
 }
+
 
 bool PortalTileManager::IsValidTile(glm::ivec2 p_tile_pos)
 {
@@ -208,6 +230,7 @@ void PortalTileManager::RenderCollectPrompt()
     ImGui::PopStyleVar(2);
 }
 
+
 //------------------//
 //  STRUCT METHODS  //
 //------------------//
@@ -218,29 +241,27 @@ PortalTileManager::PortalTile* PortalTileManager::PortalTile::CreatePortalTile(g
     if(p_sibling != nullptr)
     {
         portalTile->m_pSiblingPortalTile = p_sibling;
-        portalTile->m_pSiblingPortalTile->m_pSiblingPortalTile = portalTile;
-        int index = PortalTileManager::GetInstance()->m_vPortalTilePairs.size() - 1;
-        portalTile->m_iPairIndex = index;
-        portalTile->m_pSiblingPortalTile->m_iPairIndex = index;
+        p_sibling->m_pSiblingPortalTile = portalTile;
+        int index = PortalTileManager::GetInstance()->m_vPortalTiles.size() - 1;
     }
     return portalTile;
 }
 
-void PortalTileManager::PortalTile::DeletePair(PortalTile* p_protal_tile_1, PortalTile* p_protal_tile_2)
+void PortalTileManager::PortalTile::DeletePortalAndSibling(PortalTile* p_protal_tile_1)
 {
     // Return if either pointer is nullptr, or siblings do not match
     if(
-    p_protal_tile_1 == nullptr                          ||
-    p_protal_tile_2 == nullptr                          ||
-    p_protal_tile_1->GetSibling() != p_protal_tile_2    || 
-    p_protal_tile_2->GetSibling() != p_protal_tile_1
-    ) 
+    p_protal_tile_1 == nullptr) 
     {
     return;
     }
 
+    PortalTile* sibling = p_protal_tile_1->GetSibling();
+    p_protal_tile_1->m_pSiblingPortalTile = nullptr;
+    sibling->m_pSiblingPortalTile = nullptr;
     delete p_protal_tile_1;
-    delete p_protal_tile_2;
+    delete sibling;
+    
 }
 
 void PortalTileManager::PortalTile::DeleteAvailablePortalTile(PortalTile* p_protal_tile)
@@ -491,30 +512,4 @@ void PortalTileManager::PortalTile::Teleport(wolf::GameObject* p_obj)
 
     // Set object as new occupant
     m_pSiblingPortalTile->SetOccupantID(p_obj->GetID());
-}
-void PortalTileManager::PortalTile::CheckPlayerCollection()
-{
-    glm::vec2 playerPos = m_pPlayer->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::ivec2 playerTilePos  = m_pLabyrinthManager->GetTilePosition(playerPos);
-    if
-    (
-        abs(playerTilePos.x - m_vTilePos.x) <= 1 &&
-        abs(playerTilePos.y - m_vTilePos.y) <= 1
-    )
-    {
-        RenderCollectPrompt();
-        if(wolf::Input::IsKeyJustDown(GLFW_KEY_E))
-        {
-            wolf::EventManager::TriggerEvent(RetrievePlaceableEvent(PlaceableType::PORTAL, GetTilePos()));
-            if(GetSibling() != nullptr)
-            {
-                wolf::EventManager::TriggerEvent(RetrievePlaceableEvent(PlaceableType::PORTAL, GetTilePos()));
-                //DeletePair(this, GetSibling());
-            }
-            else
-            {
-                //DeleteAvailablePortalTile(this);
-            }
-        }
-    }
 }
