@@ -46,8 +46,6 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
         // Create the shader program
         s_pProgram = wolf::ProgramManager::CreateProgram("data/shaders/light2D.vs", "data/shaders/light2D.fs");
 
-        // Create the FBO with the base dimensions (these will be changed later if necessary)
-
         // !---------------------- This code segment is courtesy of D'Anyil ------------------------------!
         // Create framebuffer
         glGenFramebuffers(1, &s_uiFBO);
@@ -98,6 +96,9 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
 
     // Increase the number of LightComponent references
     s_iRefCount++;
+
+    // Register for lighting events
+    wolf::EventManager::AddListener<LightToggleEvent, LightComponent, &LightComponent::HandleLightToggleEvent>(*this);
 }
 
 LightComponent::~LightComponent() {
@@ -128,11 +129,16 @@ LightComponent::~LightComponent() {
         s_pProgram = nullptr;
         s_pQuadProgram = nullptr;
     }
+
+    // Deregister for lighting events
+    wolf::EventManager::RemoveListener<LightToggleEvent, LightComponent, &LightComponent::HandleLightToggleEvent>(*this);
 }
 
 // !-- Init MUST be called before LightComponent::Update is called or a SegFault WILL MOST DEFINITELY occur --!
 void LightComponent::Init() {
+    // If this component has already been initialized
     if (m_pTransform) {
+        // Then don't do it again!
         return;
     }
 
@@ -153,6 +159,9 @@ void LightComponent::Init() {
         m_pLabyrinthManager = &lbmg;
         break;
     }
+
+    // Get a pointer to the LightComponent's GameObject's parent (if one exists)
+    m_pParentGO = this->GetGameObject()->GetParent();
 }
 
 // ------------------------------------------------------------------------------------------------------------
@@ -179,9 +188,6 @@ void LightComponent::Update(float p_fDelta) {
     // Create a vector to hold all of the colliders that are in the light's AOE
     std::vector<wolf::Rectangle> vpRectanglesInAOE;
 
-    // Get a pointer to the LightComponent's GameObject's parent (if one exists)
-    wolf::GameObject* pParentGO = this->GetGameObject()->GetParent();
-
     // ---------------------------------- Phase 1: Finding colliders in AOE ----------------------------------------------
 
     // Find the colliders that are inside the area of effect by iterating through the colliders in the scene
@@ -190,7 +196,7 @@ void LightComponent::Update(float p_fDelta) {
         if (collider.IsActive() && ColliderManager::StaticMethodIsColliding(*m_pCollider, collider, p_fDelta)) {
 
             // If this light's GameObject has a parent and the collider we're looking at belongs to them
-            if (pParentGO && pParentGO->GetID() == collider.GetGameObject()->GetID()) {
+            if (m_pParentGO && m_pParentGO->GetID() == collider.GetGameObject()->GetID()) {
                 // Then we want to ignore it
                 continue;
             }
@@ -201,7 +207,17 @@ void LightComponent::Update(float p_fDelta) {
                 continue;
             }
 
-            // !-- Need a way to ignore traps and projectiles --!
+            // If this collider is part of a projectile
+            if (collider.IsHurtboxDamageDealer()) {
+                // Then we want to ignore it
+                continue;
+            }
+
+            // If this collider doesn't have a type AND it doesn't have a LightComponent then it's a trap
+            if (collider.GetColliderType() == ColliderComponent::ColliderType::NONE && collider.GetGameObject()->GetComponent<LightComponent>() == nullptr) {
+                // So we want to ignore it
+                continue;
+            }
 
             // Go through the corner points of each rectangle in the collider
             std::vector<glm::vec2> vv2ColliderCorners = collider.GetWorldSpaceCorners();
@@ -333,10 +349,6 @@ void LightComponent::Update(float p_fDelta) {
                 // --------------------------------------------------------------------------------------- */
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2TopRight, v2BotRight});
                 this->CheckForCollisionAndAdd(v2TopRight, {v2BotLeft, v2BotRight});
-
-                //GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 1.0f, 0.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
         
             break;
             
@@ -344,9 +356,6 @@ void LightComponent::Update(float p_fDelta) {
                 // Shoot a line to the bottom-left and bottom-right corners
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
                 this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
-
-                //GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 0.65f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.65f, 0.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -358,10 +367,6 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2BotLeft});
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2BotLeft, v2BotRight});
 
-                //GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 1.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 1.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-
             break;
             
             case MID_LEFT:
@@ -369,18 +374,12 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
 
-                //GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.0f, 1.0f, 0.0f, 1.0f}, 7.0f, 7.0f);
-
             break;
             
             case MID_RIGHT:
                 // Shoot a line to the top-left and bottom-left corners
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
-
-                //GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 1.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 0.0f, 1.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -392,19 +391,12 @@ void LightComponent::Update(float p_fDelta) {
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopRight, v2BotRight});
                 this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2TopRight});
 
-                //GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2BotRight.x, v2BotRight.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.0f, 0.0f, 1.0f, 1.0f}, 7.0f, 7.0f);
-
             break;
             
             case BOT_CENTER:
                 // Shoot a line to the top-left and top-right corners
                 this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
-
-                //GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 0.5f, 0.0f, 0.5f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 0.5f, 0.0f, 0.5f, 1.0f}, 7.0f, 7.0f);
 
             break;
             
@@ -415,10 +407,6 @@ void LightComponent::Update(float p_fDelta) {
                 // Make sure that the ray doesn't go through the rectangle
                 this->CheckForCollisionAndAdd(v2BotLeft, {v2TopLeft, v2TopRight});
                 this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2BotLeft});
-
-                //GLShapesRenderer::GetInstance()->AddQuad({v2TopLeft.x, v2TopLeft.y, 1.0f, 0.75f, 0.8f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2BotLeft.x, v2BotLeft.y, 1.0f, 0.75f, 0.8f, 1.0f}, 7.0f, 7.0f);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2TopRight.x, v2TopRight.y, 1.0f, 0.75f, 0.8f, 1.0f}, 7.0f, 7.0f);
 
             break;
 
@@ -477,22 +465,6 @@ void LightComponent::Update(float p_fDelta) {
         bool bRectIsWall = CheckForWallAtPos({(v2TopStart.x + v2BotEnd.x) * 0.5f, (v2TopStart.y + v2BotEnd.y) * 0.5f});
         bool bIsAOE = this->IsAOERect(rect);
 
-        // DEBUG: Draw the AOE
-        // if (bIsAOE) {
-        //     GLShapesRenderer::GetInstance()->AddLine({v2TopStart.x, v2TopStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2TopEnd.x, v2TopEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
-        //     GLShapesRenderer::GetInstance()->AddLine({v2BotStart.x, v2BotStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2BotEnd.x, v2BotEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
-        //     GLShapesRenderer::GetInstance()->AddLine({v2LeftStart.x, v2LeftStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2LeftEnd.x, v2LeftEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
-        //     GLShapesRenderer::GetInstance()->AddLine({v2RightStart.x, v2RightStart.y, 1.0f, 1.0f, 0.0f, 1.0f}, {v2RightEnd.x, v2RightEnd.y, 1.0f, 1.0f, 0.0f, 1.0f});
-        // }
-
-        // DEBUG: Highlight the walls
-        // if (bRectIsWall) {
-        //     GLShapesRenderer::GetInstance()->AddLine({v2TopStart.x, v2TopStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2TopEnd.x, v2TopEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
-        //     GLShapesRenderer::GetInstance()->AddLine({v2BotStart.x, v2BotStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2BotEnd.x, v2BotEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
-        //     GLShapesRenderer::GetInstance()->AddLine({v2LeftStart.x, v2LeftStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2LeftEnd.x, v2LeftEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
-        //     GLShapesRenderer::GetInstance()->AddLine({v2RightStart.x, v2RightStart.y, 0.0f, 0.0f, 1.0f, 1.0f}, {v2RightEnd.x, v2RightEnd.y, 0.0f, 0.0f, 1.0f, 1.0f});
-        // }
-
         // Then go through all of the corner points that we THINK we'll be casting a light ray to
         for (std::pair<glm::vec2, float> v2fCorner : m_vv2fCollidingPoints) {
             // Skip corner points that belong to the rectangle we're currently looking at (provided it is not part of a wall)
@@ -523,27 +495,22 @@ void LightComponent::Update(float p_fDelta) {
                 if (fMinDist == fLeftDist) {
                     // Left intersection point
                     vv2fPointsToAdd.push_back({v2fLeftResullt.second, CalculateAngleOfIntersection(v2fLeftResullt.second)});
-                    //GLShapesRenderer::GetInstance()->AddQuad({v2fLeftResullt.second.x, v2fLeftResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                 }
                 else if (fMinDist == fRightDist) {
                     // Right intersection point
                     vv2fPointsToAdd.push_back({v2fRightResullt.second, CalculateAngleOfIntersection(v2fRightResullt.second)});
-                    //GLShapesRenderer::GetInstance()->AddQuad({v2fRightResullt.second.x, v2fRightResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                 }
                 else if (fMinDist == fTopDist) {
                     // Top intersection point
                     vv2fPointsToAdd.push_back({v2fTopResullt.second, CalculateAngleOfIntersection(v2fTopResullt.second)});
-                    //GLShapesRenderer::GetInstance()->AddQuad({v2fTopResullt.second.x, v2fTopResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                 }
                 else if (fMinDist == fBotDist) {
                     // Bottom intersection point
                     vv2fPointsToAdd.push_back({v2fBotResullt.second, CalculateAngleOfIntersection(v2fBotResullt.second)});
-                    //GLShapesRenderer::GetInstance()->AddQuad({v2fBotResullt.second.x, v2fBotResullt.second.y, 0.0f, 1.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
                 }
                 
                 // Then mark the original point for removal
                 vv2fPointsToRemove.push_back(v2fCorner);
-                //GLShapesRenderer::GetInstance()->AddQuad({v2fCorner.first.x, v2fCorner.first.y, 1.0f, 0.0f, 0.0f, 1.0f}, 5.0f, 5.0f);
             }
         }
 
@@ -578,15 +545,14 @@ void LightComponent::Update(float p_fDelta) {
 
     // Form triangles using the two points that form each side and the origin
     while (m_vv2fCollidingPoints.size() != 1) {
+        // Take the first point out of the vector
         glm::vec2 v2Point1 = m_vv2fCollidingPoints.back().first;
         m_vv2fCollidingPoints.pop_back();
 
         glm::vec2 v2Point2 = m_vv2fCollidingPoints.back().first;
         // We don't pop the second point because we want the triangles to connect to each other
 
-        //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y});
-        //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2Point1.x, v2Point1.y}, {v2Point2.x, v2Point2.y});
-
+        // Add the triangle to the vertex data
         m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
         m_vcvVertexData.push_back({v2Point1.x, v2Point1.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
         m_vcvVertexData.push_back({v2Point2.x, v2Point2.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
@@ -597,9 +563,6 @@ void LightComponent::Update(float p_fDelta) {
     m_vv2fCollidingPoints.pop_back();
 
     // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
-    //GLShapesRenderer::GetInstance()->AddLine({m_v2Origin.x, m_v2Origin.y}, {v2LastPoint.x, v2LastPoint.y});
-    //GLShapesRenderer::GetInstance()->AddTriangle({m_v2Origin.x, m_v2Origin.y}, {v2FirstPoint.x, v2FirstPoint.y}, {v2LastPoint.x, v2LastPoint.y});
-    
     m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
     m_vcvVertexData.push_back({v2FirstPoint.x, v2FirstPoint.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
     m_vcvVertexData.push_back({v2LastPoint.x, v2LastPoint.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
@@ -809,6 +772,8 @@ void LightComponent::RenderLightToFBO() {
     glm::mat4 model = glm::mat4(1.0f);
     s_pProgram->SetUniform("model", model);
     s_pProgram->SetUniform("colour", m_v4Color);
+    s_pProgram->SetUniform("radius", m_v2CurRadius.x / 2.0f);
+    s_pProgram->SetUniform("lightPos", glm::vec3(m_v2Origin, 0.0f));
     s_pProgram->Bind();
 
     s_pVAO->Bind();
@@ -842,6 +807,7 @@ void LightComponent::BlendFBOAndScreen() {
     glDisable(GL_BLEND);
 }
 
+// Clear the FBO DO THIS AT THE START OR END OF EACH UPDATE
 void LightComponent::ClearFBO() {
     // Get the current FBO
     GLint iCurrentFBO;
@@ -891,3 +857,18 @@ void LightComponent::ResizeFBO(int p_iWidth, int p_iHeight) {
     s_uiTexture = newTexture;
 }
 // !----------------------------------- End of D'Anyil's code segment ---------------------------------!
+
+// ------------------------------------------------------------------------------------------------------------
+//                                                Events
+// ------------------------------------------------------------------------------------------------------------
+
+void LightComponent::HandleLightToggleEvent(const LightToggleEvent& p_event) {
+    // If this light has a parent GameObject
+    if (m_pParentGO) {
+        // And the parent is telling us to toggle
+        if (m_pParentGO->GetID() == p_event.m_CallerID) {
+            // Then do so!
+            this->SetOn(p_event.m_bOn);
+        }
+    }
+}

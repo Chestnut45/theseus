@@ -16,6 +16,8 @@
 #include <VertexDeclarations.h>
 #include "ColliderComponent.h"
 #include <LabyrinthManager.h>
+#include <W_EventManager.h>
+#include <LightEvents.h>
 
 class LightComponent : public wolf::BaseComponent {
     public:
@@ -87,6 +89,9 @@ class LightComponent : public wolf::BaseComponent {
         // Helper function to determine if a rectangle is the collider's AOE
         bool IsAOERect(const wolf::Rectangle& p_pRect);
 
+        // Handler for turning the light on/off via event
+        void HandleLightToggleEvent(const LightToggleEvent& p_event);
+
         // Number of lights in the scene
         static int s_iRefCount;
 
@@ -106,6 +111,9 @@ class LightComponent : public wolf::BaseComponent {
         // Pointer to the scene this light is in
         wolf::Scene* m_pScene = nullptr;
         LabyrinthManager* m_pLabyrinthManager = nullptr;
+
+        // Pointer to this light's parent GameObject
+        wolf::GameObject* m_pParentGO = nullptr;
         
         // This light's transform and the four corners at the edges of its radius
         wolf::Transform2D* m_pTransform = nullptr;

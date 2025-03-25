@@ -195,8 +195,9 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
 
     // Finally, attach a LightComponent
     wolf::GameObject* pLightGO = &m_pScene->CreateObject2D();
-    pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.5f), glm::vec2(75.0f, 75.0f), true).Init();
+    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.75f), glm::vec2(75.0f, 75.0f), true);
     pConstructedNPC->AddChild(*pLightGO);
+    pLightComp->Init();
 
     // If nothing went wrong, we're good to return the GameObject
     return pConstructedNPC;
@@ -254,8 +255,9 @@ wolf::GameObject* NPCBuilder::BuildRandomNPC() {
 
     // Finally, attach a LightComponent
     wolf::GameObject* pLightGO = &m_pScene->CreateObject2D();
-    pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.5f), glm::vec2(75.0f, 75.0f), true).Init();
+    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.75f), glm::vec2(75.0f, 75.0f), true);
     pRandomNPC->AddChild(*pLightGO);
+    pLightComp->Init();
 
     // And return what we created (note that if the BuildNPC method ran into an error, this will return nullptr)
     return pRandomNPC;
