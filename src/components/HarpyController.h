@@ -14,6 +14,8 @@
 #include <components/AnimatedSprite2D.h>
 #include <EnemyDataLoader.h>
 #include "events/InfightingEvent.h"
+#include "BehaviorTree.h"
+#include "Blackboard.h"
 
 class HarpyController : public EnemyController
 {
@@ -23,9 +25,10 @@ public:
     void Init(const EnemyData& data); // Pass the data to initialize the controller
     void Update(float delta) override;
     void ChangeState(EnemyState newState);
+    wolf::GameObject* GetTarget() const { return m_pTarget; }
 
 private:
-    // Minitaur-specific methods
+    // Harpy-specific methods
     void SetUpAnimations(const std::string& animationInitPath);          
     void UpdateAnimationBasedOnDirection();
     void MoveTowardsTarget(float delta);
@@ -52,10 +55,27 @@ private:
     void RevertBackToPlayer();
     void HandleInfighting(const InfightingEvent& event); //added this
 
-    
     void SetEmote(EnemyEmote p_emote);
+    bool IsTargetInSight();
+    float GetDistanceToTarget() const;
+    
+    // New behavior tree methods
+    void SetupCombatBehaviorTree();
+    void EvaluateStrategy();
+    void UpdateBlackboard();
+    
+    // Attack pattern methods
+    void PerformSingleShot();
+    void PerformSpreadShot();
+    void PerformBurstAttack();
+    
+    // Positioning methods
+    bool ShouldReposition();
+    glm::vec2 GetOptimalAttackPosition();
+    void MoveToOptimalPosition(float delta);
+    bool IsPositionSafe(const glm::vec2& position);
 
-    // Minitaur-specific properties
+    // Harpy-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
     wolf::GameObject* m_pTarget = nullptr;
     VelocityComponent* m_pVelocity = nullptr;
@@ -94,4 +114,19 @@ private:
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;
     wolf::GameObject* m_pEmoteObj = nullptr;
+    
+    // Behavior tree for combat decisions
+    std::unique_ptr<BehaviorTree> m_combatBehaviorTree;
+    
+    // Behavior states and coordination
+    enum class AttackPattern { SINGLE, SPREAD, BURST };
+    AttackPattern m_currentAttackPattern = AttackPattern::SINGLE;
+    float m_repositionTimer = 0.0f;
+    float m_repositionDelay = 4.0f; // Time between position evaluations
+    bool m_isRepositioning = false;
+    glm::vec2 m_targetPosition; // Position to move to when repositioning
+
+    glm::vec2 m_smoothedVelocity = glm::vec2(0.0f);
+    const float ANIMATION_SMOOTHING_FACTOR = 0.2f;
+
 };
