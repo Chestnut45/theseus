@@ -5,9 +5,10 @@
 #include <W_Logging.h>
 #include <W_Transform2D.h>
 
-BoundedFluidSystem2D::BoundedFluidSystem2D(const wolf::Rectangle& bounds)
+BoundedFluidSystem2D::BoundedFluidSystem2D(const wolf::Rectangle& bounds, int numParticles)
     :
-    m_bounds(bounds)
+    m_bounds(bounds),
+    m_numParticlesToSpawn(numParticles)
 {
     // Reference counting
     if (s_refCount == 0)
@@ -68,8 +69,6 @@ BoundedFluidSystem2D::BoundedFluidSystem2D(const wolf::Rectangle& bounds)
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
     s_refCount++;
-
-    SetupDamBreak();
 }
 
 BoundedFluidSystem2D::~BoundedFluidSystem2D()
@@ -92,19 +91,15 @@ BoundedFluidSystem2D::~BoundedFluidSystem2D()
 
 void BoundedFluidSystem2D::Update(float delta)
 {
-    // Ensure consistent simulation speed
-    static float elapsedTime = 0.0f;
-    static float targetFrametime = 1.0f / 60;
-
     // Update total simulation time and elapsed counter
     m_simTime += delta;
-    elapsedTime += delta;
+    m_elapsedTime += delta;
     
     // Don't step simulation until target frame time is hit
-    if (elapsedTime < targetFrametime) return;
+    if (m_elapsedTime < m_targetFrametime) return;
 
     // Reset counter if we step this frame
-    elapsedTime = 0.0f;
+    m_elapsedTime = 0.0f;
 
     static const glm::ivec2 adjacentCellOffsets[] = {
         glm::ivec2(-1, 0),
@@ -123,7 +118,8 @@ void BoundedFluidSystem2D::Update(float delta)
     int particleIndex = 0;
     for (auto& p : m_particles)
     {
-        m_spatialMap[p.m_pos / (m_kernelRadius * 2.0f)].push_back(particleIndex);
+        auto gridCell = GetGridCell(p.m_pos);
+        m_spatialMap[gridCell].push_back(particleIndex);
         particleIndex++;
     }
 
@@ -133,7 +129,7 @@ void BoundedFluidSystem2D::Update(float delta)
         particle.m_density = 0.0f;
 
         // Get the current grid cell
-        glm::ivec2 gridCell = particle.m_pos / (m_kernelRadius * 2.0f);
+        glm::ivec2 gridCell = GetGridCell(particle.m_pos);
 
         // Iterate all adjacent cells
         for (int neighbourCell = 0; neighbourCell < 9; ++neighbourCell)
@@ -168,7 +164,7 @@ void BoundedFluidSystem2D::Update(float delta)
         glm::vec2 viscosityForce(0.0f);
 
         // Get the current grid cell
-        glm::ivec2 gridCell = particle.m_pos / (m_kernelRadius * 2.0f);
+        glm::ivec2 gridCell = GetGridCell(particle.m_pos);
 
         // Iterate all adjacent cells
         for (int neighbourCell = 0; neighbourCell < 9; ++neighbourCell)
@@ -190,8 +186,8 @@ void BoundedFluidSystem2D::Update(float delta)
 
                 // TODO: A normalization issue can cause -nan positions which pollutes a single
                 // spatial grid cell with "dead" particles, killing performance. Fix!
-                // NOTE: The second condition here fixes the above issue, but causes sticky particles! Investigate...
-                if (dist < m_kernelRadius && dist != 0.0f)
+                // NOTE: Potentially ignore any dist < 1e-6?
+                if (dist < m_kernelRadius)
                 {
                     pressureForce += -glm::normalize(between) * m_particleMass * (particle.m_pressure + other.m_pressure) / (2.0f * other.m_density) * m_spikyGradient * (float)pow(m_kernelRadius - dist, 3.0f);
                     viscosityForce += m_viscosity * m_particleMass * (other.m_vel - particle.m_vel) / other.m_density * m_viscLaplacian * (m_kernelRadius - dist);
@@ -329,9 +325,33 @@ void BoundedFluidSystem2D::ApplyRadialForce(const glm::vec2& position, float rad
     }
 }
 
+void BoundedFluidSystem2D::Clear()
+{
+    m_particles.clear();
+}
+
+void BoundedFluidSystem2D::SpawnParticle(const glm::vec2& pos, const glm::vec2& vel)
+{
+    FluidParticle p(pos);
+    p.m_vel = vel;
+    m_particles.push_back(p);
+}
+
 void BoundedFluidSystem2D::AddStaticCollisionRect(const wolf::Rectangle& rect)
 {
     m_collisionRects.push_back(rect);
+}
+
+void BoundedFluidSystem2D::SetParticleRadius(float radius)
+{
+    m_kernelRadius = radius;
+
+    // Update dependencies
+    m_kernelRadiusSqr = m_kernelRadius * m_kernelRadius;
+    m_poly6 = 4.0f / (M_PI * pow(m_kernelRadius, 8.0f));
+    m_spikyGradient = -10.0f / (M_PI * pow(m_kernelRadius, 5.0f));
+    m_viscLaplacian = 40.0f / (M_PI * pow(m_kernelRadius, 5.0f));
+    m_boundEpsilon = m_kernelRadius / 2;
 }
 
 void BoundedFluidSystem2D::ShowEditor()
@@ -371,9 +391,9 @@ void BoundedFluidSystem2D::ShowEditor()
 void BoundedFluidSystem2D::SetupDamBreak()
 {
     m_particles.clear();
-    for (float y = m_bounds.m_top; y > m_bounds.m_bottom; y -= m_kernelRadius + 1)
+    for (float y = m_bounds.m_top - m_kernelRadius; y > m_bounds.m_bottom + m_kernelRadius; y -= m_kernelRadius + 1)
     {
-        for (float x = m_bounds.m_left; x < m_bounds.m_right; x += m_kernelRadius + 1)
+        for (float x = m_bounds.m_left + m_kernelRadius; x < m_bounds.m_right - m_kernelRadius; x += m_kernelRadius + 1)
         {
             if (m_particles.size() < m_numParticlesToSpawn)
             {
@@ -387,6 +407,15 @@ void BoundedFluidSystem2D::SetupDamBreak()
             }
         }
     }
+}
+
+glm::ivec2 BoundedFluidSystem2D::GetGridCell(const glm::vec2& pos)
+{
+    return glm::clamp(
+        glm::ivec2(pos / (m_kernelRadius * 2.0f)),
+        glm::ivec2(glm::vec2(m_bounds.m_left, m_bounds.m_bottom) / (m_kernelRadius * 2.0f)),
+        glm::ivec2(glm::vec2(m_bounds.m_right - 1, m_bounds.m_top - 1) / (m_kernelRadius * 2.0f))
+    );
 }
 
 void BoundedFluidSystem2D::ResizeFramebuffer(int width, int height)

@@ -79,6 +79,8 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["gorgon_spawner"] = Room::EntityType::GorgonSpawner;
     s_entityIDs["harpy_spawner"] = Room::EntityType::HarpySpawner;
     s_entityIDs["minitaur_spawner"] = Room::EntityType::MinitaurSpawner;
+    s_entityIDs["poison_trap"] = Room::EntityType::PoisonTrap;
+    s_entityIDs["lava_trap"] = Room::EntityType::LavaTrap;
 
     // Auto generate ordered array of names
     for (auto entry : s_entityIDs)
@@ -2513,6 +2515,32 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         monsterSpawnerComp->Init();
 
                         GetChunk(GetChunkID(GetWorldPosition(roomOrigin)))->AddChild(monsterSpawnerObj);
+                        break;
+                    }
+
+                    case Room::EntityType::PoisonTrap:
+                    case Room::EntityType::LavaTrap:
+                    {
+                        // Create the trap object
+                        auto& trap = pObject->GetScene().CreateObject2D();
+
+                        // Add a collider that covers the room
+                        auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, false, false);
+                        auto size = glm::vec2(room.m_bounds.m_size.x, room.m_bounds.m_size.y) * (float)(LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+                        auto position = glm::vec2(-room.m_bounds.m_size.x / 2, room.m_bounds.m_size.y / 2);
+                        position += glm::vec2(-0.5f, 0.5f);
+                        position *= LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE;
+                        collider.AddColliderBox(size, position);
+
+                        // Update the position
+                        trap.GetComponent<wolf::Transform2D>()->SetPosition(pos);
+
+                        // Add the TriggerComponent
+                        auto purpose = entity.m_type == Room::EntityType::PoisonTrap ? TriggerPurpose::POISON_TRAP : TriggerPurpose::LAVA_TRAP;
+                        trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::SINGLE_USE, purpose, EntityListenType::PLAYER);
+
+                        // Add the object to the correct chunk
+                        GetChunk(GetChunkID(pos))->AddChild(trap);
                         break;
                     }
                 }

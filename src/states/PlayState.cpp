@@ -115,7 +115,7 @@ void PlayState::Enter()
 
         // Spawn the Minotaur Boss
         auto& bossObject = scene.CreateObject2D();
-        auto& controller = bossObject.AddComponent<BossController>();  
+        auto& controller = bossObject.AddComponent<BossController>();
 
         // Move boss to initial location
         auto* pBossTransform = bossObject.GetComponent<wolf::Transform2D>();
@@ -347,8 +347,8 @@ void PlayState::Update(float delta)
         if (playerRolling) system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 50.0f, 1000.0f * delta);
 
         // DEBUG: Show editor and break after updating one system
-        system.ShowEditor();
-        break;
+        // system.ShowEditor();
+        // break;
     }
     
     // Update the labyrinth manager
@@ -1202,6 +1202,81 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             
             break;
         }
+
+        case TriggerPurpose::POISON_TRAP:
+        {
+            // Retrieve the room data for the trigger's position
+            auto tilePosition = m_pLabyrinthManager->GetTilePosition(triggerPosition);
+            auto roomDataOpt = m_pLabyrinthManager->GetRoom(tilePosition);
+            if (!roomDataOpt.has_value()) {
+                wolf::Log("No valid room found for poison trap!");
+                break;
+            }
+
+            // Grab room data
+            const auto& room = roomDataOpt.value();
+            const auto& bounds = room.m_bounds;
+
+            // Calculate simulation bounds
+            auto simBounds = wolf::Rectangle(bounds);
+            simBounds.m_top *= 96;
+            simBounds.m_left *= 96;
+            simBounds.m_right *= 96;
+            simBounds.m_bottom *= 96;
+
+            // Create the fluid system
+            auto& fluidObj = m_pGameInstance->GetScene().CreateObject2D();
+            auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds, 500);
+
+            // Setup in dam break
+            // TODO: Spawn over time!
+            fluidSystem.SetupDamBreak();
+
+            // TODO: Remove after a short time (or settle)
+
+            break;
+        }
+
+        case TriggerPurpose::LAVA_TRAP:
+        {
+            // Retrieve the room data for the trigger's position
+            auto tilePosition = m_pLabyrinthManager->GetTilePosition(triggerPosition);
+            auto roomDataOpt = m_pLabyrinthManager->GetRoom(tilePosition);
+            if (!roomDataOpt.has_value()) {
+                wolf::Log("No valid room found for poison trap!");
+                break;
+            }
+
+            // Grab room data
+            const auto& room = roomDataOpt.value();
+            const auto& bounds = room.m_bounds;
+
+            // Calculate simulation bounds
+            auto simBounds = wolf::Rectangle(bounds);
+            simBounds.m_top *= 96;
+            simBounds.m_left *= 96;
+            simBounds.m_right *= 96;
+            simBounds.m_bottom *= 96;
+
+            // Create the fluid system
+            auto& fluidObj = m_pGameInstance->GetScene().CreateObject2D();
+            auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds, 500);
+
+            // Edit lava colors
+            fluidSystem.SetFluidColor(glm::vec4(1.0f, 0.353, 0.0f, 0.918f));
+            fluidSystem.SetWaveColor(glm::vec4(1.0f, 0.353, 0.0f, 0.918f));
+            fluidSystem.SetCausticColor(glm::vec4(1.0f, 0.353, 0.0f, 0.918f));
+            fluidSystem.SetCausticFrequency(0.234f);
+
+            // Setup in dam break
+            // TODO: Spawn over time!
+            fluidSystem.SetupDamBreak();
+
+            // TODO: Remove after a short time (or settle)
+
+            break;
+        }
+
         default:
             wolf::Log("Unsupported trigger purpose.");
             break;

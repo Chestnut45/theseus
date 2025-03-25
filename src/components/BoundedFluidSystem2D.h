@@ -49,7 +49,7 @@ class BoundedFluidSystem2D : public wolf::BaseComponent
 public:
 
     // Creates a fluid system component with the given bounds
-    BoundedFluidSystem2D(const wolf::Rectangle& bounds);
+    BoundedFluidSystem2D(const wolf::Rectangle& bounds, int numParticles = 0);
     ~BoundedFluidSystem2D();
 
     // Delete copy constructor/assignment
@@ -66,6 +66,16 @@ public:
     // Draw the fluid particles to the currently bound framebuffer
     void Render(float delta);
 
+    // Deletes all particles
+    void Clear();
+
+    // Spawns an individual particle at the given world position with an initial velocity
+    void SpawnParticle(const glm::vec2& pos, const glm::vec2& vel = glm::vec2(0.0f));
+
+    // Spawns particles in a dam break configuration based on m_numParticlesToSpawn
+    // TODO: Parameterize
+    void SetupDamBreak();
+
     // Apply a radial force at the given position, interpolated linearly by distance
     // NOTE: A negative strength will pull towards the given position
     void ApplyRadialForce(const glm::vec2& position, float radius, float strength);
@@ -73,6 +83,18 @@ public:
     // Add static collision zones to the simulation
     // TODO: Support more than AABBs
     void AddStaticCollisionRect(const wolf::Rectangle& rect);
+
+    // Set / Get the number of particles to spawn
+    void SetNumParticles(int value) { m_numParticlesToSpawn = value; }
+    int GetNumParticles() const { return m_numParticlesToSpawn; }
+
+    // Set / Get the gravity state
+    void SetGravity(bool value) { m_simulateGravity = value; }
+    bool IsGravityEnabled() const { return m_simulateGravity; }
+
+    // Set / Get the particle radius
+    void SetParticleRadius(float radius);
+    float GetParticleRadius() const { return m_kernelRadius; }
 
     // Set / Get the base color of the fluid
     void SetFluidColor(const glm::vec4& color) { m_fluidColor = color; }
@@ -86,6 +108,10 @@ public:
     void SetCausticColor(const glm::vec4& color) { m_causticColor = color; }
     const glm::vec4& GetCausticColor() const { return m_causticColor; }
 
+    // Set / Get the frequency of the wave caustics [0, 1]
+    void SetCausticFrequency(float frequency) { m_causticFrequency = frequency; }
+    float GetCausticFrequency() const { return m_causticFrequency; }
+
     // Renders a debug GUI for controlling the simulation
     void ShowEditor();
 
@@ -97,6 +123,8 @@ private:
     std::vector<wolf::Rectangle> m_collisionRects;
     std::vector<FluidParticle> m_particles;
     float m_simTime = 0.0f;
+    float m_elapsedTime = 0.0f;
+    float m_targetFrametime = 1.0f / 60;
 
     // Visual parameters
     glm::vec4 m_fluidColor{0.039f, 0.295f, 0.402f, 0.812f};
@@ -131,7 +159,7 @@ private:
     // Simulation parameters
     float m_boundEpsilon = m_kernelRadius / 2;
     float m_boundDamping = -0.5f;
-    int m_numParticlesToSpawn = 1000;
+    int m_numParticlesToSpawn;
     bool m_simulateGravity = false;
     glm::vec2 m_gravity{0.0f, -9.81f};
 
@@ -148,8 +176,8 @@ private:
     static inline wolf::Program* s_pParticleShader = nullptr;
     static inline wolf::Program* s_pBlendPassShader = nullptr;
 
-    // DEBUG: Sets up an initial dam break configuration based on m_numParticlesToSpawn
-    void SetupDamBreak();
+    // Returns the closest grid cell for the given position, clamped to valid grid cells
+    glm::ivec2 GetGridCell(const glm::vec2& pos);
 
     // Resizes the internal framebuffer for fluid rendering
     // NOTE: This is automatically called by Theseus when the window resizes
