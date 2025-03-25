@@ -42,6 +42,7 @@ private:
     void HandlePetrifiedState(float delta);
     void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
+    void HandleDodgeState(float delta);
 
     void EnterAttackState();
     void EnterChasingState();
@@ -50,6 +51,8 @@ private:
     void EnterProspectState();
     void EnterStunnedState();
     void EnterDeathState();
+    void EnterDodgeState();
+
 
     void ExitAttackState();
     void ExitChasingState();
@@ -57,6 +60,8 @@ private:
     void ExitPetrifiedState();
     void ExitProspectState();
     void ExitStunnedState();
+    void ExitDodgeState();
+
 
     void HandleInfighting(const InfightingEvent& event); //added this
     void RevertToPlayerTarget();
@@ -66,6 +71,7 @@ private:
     bool IsTargetInLOS(); // Check if target is in line of sight
     glm::vec2 GetTileWorldPos(glm::ivec2 p_tile_pos);
     void FallbackToDistanceChecking();
+
 
     
     // Minitaur-specific properties
@@ -154,5 +160,10 @@ private:
 
     glm::vec2 GetOptimalAttackPosition();
     bool IsPositionOccupiedByEnemy(const glm::vec2& position);
+
+    void DodgeFromPlayer(float delta);
+    wolf::Timer m_dodgeTimer;
+    glm::vec2 m_dodgeDir;
+    bool m_isDodging = false;
 
 };

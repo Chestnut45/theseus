@@ -183,9 +183,15 @@ void MinitaurController::Update(float delta)
     s_behaviorUpdateTimers[myID] += delta;
     
     // Run behavior tree at 10 fps instead of every frame
-    if (s_behaviorUpdateTimers[myID] > 0.1f && (m_state == EnemyState::CHASING || m_state == EnemyState::ATTACKING)) {
-        m_combatBehaviorTree->Update(delta, &g_blackboard);
-        s_behaviorUpdateTimers[myID] = 0.0f;
+    if (s_behaviorUpdateTimers[myID] > 0.05f && (m_state == EnemyState::CHASING || m_state == EnemyState::ATTACKING)) {
+        // More frequent updates for solo Minitaurs
+        bool isSolo = (g_blackboard.GetInt("nearbyEnemies") == 0);
+        float updateFrequency = isSolo ? 0.05f : 0.1f;
+        
+        if (s_behaviorUpdateTimers[myID] > updateFrequency) {
+            m_combatBehaviorTree->Update(delta, &g_blackboard);
+            s_behaviorUpdateTimers[myID] = 0.0f;
+        }
     }
     
 
@@ -242,6 +248,9 @@ void MinitaurController::Update(float delta)
         case EnemyState::STUNNED:
             HandleStunnedState(delta);
             break;
+        case EnemyState::DODGE:
+            HandleDodgeState(delta);
+            break;
         case EnemyState::DEATH:
             HandleDeathState(delta);
             return;  // After calling HandleDeathState(), return immediately since the object is now deleted
@@ -263,7 +272,28 @@ void MinitaurController::Update(float delta)
             SetEmote(EnemyEmote::NONE);
         }
     }
+
+    if (m_state != EnemyState::DODGE && m_state != EnemyState::STUNNED && 
+        m_state != EnemyState::DEATH && m_state != EnemyState::PETRIFIED) {
+        
+        if (!m_isDodging && ShouldDodgePlayerAttack()) {
+            ChangeState(EnemyState::DODGE);
+        }
+    }
+
 }
+void MinitaurController::EnterDodgeState()
+{
+    // Initialize dodge state
+    m_isDodging = false; // Will be set to true in HandleDodgeState
+}
+
+void MinitaurController::ExitDodgeState()
+{
+    m_isDodging = false;
+
+}
+
 
 void MinitaurController::ChangeState(EnemyState newState)
 {
@@ -1119,25 +1149,116 @@ void MinitaurController::RevertToPlayerTarget()
 bool MinitaurController::ShouldDodgePlayerAttack() {
     if (!m_pTarget) return false;
     
-    // Try to get the PlayerController component from the target
+    // Get the PlayerController
     auto* playerController = m_pTarget->GetComponent<PlayerController>();
     if (!playerController) return false;
     
-    // Check if player is currently attacking
+    // Check if player is attacking
     bool playerIsAttacking = playerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING;
     
-    // If player is attacking, check if we're within range of their attack
     if (playerIsAttacking) {
         glm::vec2 playerPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
-        float distance = glm::length(playerPos - selfPos);
         
-        // If we're close enough to be hit, we should dodge
-        return distance < 150.0f;
+        // Check distance - very close threshold
+        float distance = glm::length(playerPos - selfPos);
+        if (distance > 80.0f) return false; // Only dodge when very close to player
+        
+        // Check if player is facing us specifically
+        glm::vec2 playerFacing = playerController->GetLastFacingDirectionVector();
+        glm::vec2 toMinitaur = glm::normalize(selfPos - playerPos);
+        float facingDot = glm::dot(playerFacing, toMinitaur);
+        
+        // Only dodge if the player is facing directly toward THIS minitaur
+        if (facingDot > 0.8f) {
+            // Check if this minitaur is the closest one in the player's attack direction
+            bool isClosestInDirection = true;
+            
+            // Check other minitaurs
+            for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<MinitaurController>()) {
+                // Skip self comparison
+                if (controller.GetGameObject()->GetID() == GetGameObject()->GetID()) 
+                    continue;
+                
+                glm::vec2 otherPos = controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                float otherDistance = glm::length(otherPos - playerPos);
+                
+                // If other minitaur is closer than us
+                if (otherDistance < distance) {
+                    // Check if it's also in the player's attack direction
+                    glm::vec2 toOther = glm::normalize(otherPos - playerPos);
+                    float otherDot = glm::dot(playerFacing, toOther);
+                    
+                    // If other minitaur is also in attack direction and closer, we shouldn't dodge
+                    if (otherDot > 0.7f) {
+                        isClosestInDirection = false;
+                        break;
+                    }
+                }
+            }
+            
+            return isClosestInDirection;
+        }
     }
     
     return false;
 }
+
+void MinitaurController::HandleDodgeState(float delta)
+{
+    DodgeFromPlayer(delta);
+}
+
+void MinitaurController::DodgeFromPlayer(float delta)
+{
+    // Set up dodge direction if not already dodging
+    if (!m_isDodging) {
+        m_isDodging = true;
+        m_dodgeTimer.Restart();
+        
+        // Get player direction
+        glm::vec2 playerPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+        glm::vec2 dirToPlayer = glm::normalize(playerPos - selfPos);
+        
+        // Check player weapon type for dodge direction
+        auto* playerController = m_pTarget->GetComponent<PlayerController>();
+        WeaponItem* pWeapon = nullptr;
+        if (playerController) {
+            pWeapon = playerController->GetHeldWeapon();
+        }
+        bool isRanged = pWeapon && pWeapon->GetWeaponType() == WeaponType::BOW;
+        
+        if (isRanged) {
+            // For ranged attacks, dodge perpendicular (sideways)
+            float rotAngle = m_RNG.FlipCoin() ? 90.0f : -90.0f;
+            glm::mat4 rotation = glm::rotate(glm::radians(rotAngle), glm::vec3(0, 0, 1));
+            m_dodgeDir = glm::vec2(rotation * glm::vec4(dirToPlayer.x, dirToPlayer.y, 0, 1));
+        } else {
+            // For melee attacks, dodge away from player
+            m_dodgeDir = -dirToPlayer;
+        }
+        
+        // Apply a milder dodge force (reduced from 700.0f)
+        m_pVelocity->ApplyKnockback(m_dodgeDir, 400.0f);
+        
+        // Still keep the emote for visual feedback
+        SetEmote(EnemyEmote::EXCLAMATION);
+    }
+    
+    if (m_dodgeTimer.Elapsed() < 0.4f) {
+        // Reduced speed multiplier from 1.4f to 1.1f
+        m_pVelocity->SetVelocity(m_dodgeDir * m_chaseSpeed * 1.1f);
+    } else {
+        // End dodge after timer expires
+        m_isDodging = false;
+
+        
+        // Reset to chasing after dodge
+        ChangeState(EnemyState::CHASING);
+    }
+}
+
 
 // Helper function to calculate the optimal flanking position
 glm::vec2 MinitaurController::CalculateFlankingPosition() {
@@ -1489,16 +1610,13 @@ void MinitaurController::SetupCombatBehaviorTree() {
                 dodgeDir = (m_RNG.NextInt(0, 1) == 0) ? perpendicularLeft : perpendicularRight;
             }
             
-            // Apply dodge movement (stronger than normal movement)
-            m_pVelocity->ApplyKnockback(dodgeDir, 500.0f);
+            // Apply dodge movement (reduced strength from 500.0f to 300.0f)
+            m_pVelocity->ApplyKnockback(dodgeDir, 300.0f);
             
-            // Visual effect for dodge (flash white)
-            if (m_pAnimComponent) {
-                m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
-            }
+
             
-            // Set dodge timer (to track when we should counter-attack)
-            g_blackboard.SetFloat("dodgeTimer", 0.0f);
+            // Set dodge timer (to track when we should counter-attack) - shorter time
+            g_blackboard.SetFloat("dodgeTimer", 0.0f); 
             g_blackboard.SetBool("isDodging", true);
             
             // Set emote (!!)
@@ -1515,14 +1633,9 @@ void MinitaurController::SetupCombatBehaviorTree() {
             float dodgeTimer = g_blackboard.GetFloat("dodgeTimer") + delta;
             g_blackboard.SetFloat("dodgeTimer", dodgeTimer);
             
-            // Dodge lasts for 0.5 seconds
-            if (dodgeTimer < 0.5f) {
+            // Dodge lasts for 0.3 seconds (reduced from 0.5f)
+            if (dodgeTimer < 0.3f) {
                 return BehaviorNode::Status::RUNNING;
-            }
-            
-            // Reset dodge visual effect
-            if (m_pAnimComponent) {
-                m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
             }
             
             // End of dodge, start counter-attack
@@ -1787,8 +1900,36 @@ void MinitaurController::EvaluateStrategy() {
         }
     }
     else {
-        // When solo, just alternate between aggressive and defensive based on ID
-        g_blackboard.SetStrategy((myID % 2 == 0) ? Strategy::AGGRESSIVE : Strategy::DEFENSIVE);
+        // When solo, use more dynamic strategy switching based on health and player position
+        auto* playerController = m_pTarget->GetComponent<PlayerController>();
+        bool playerIsAttacking = false;
+        
+        if (playerController) {
+            playerIsAttacking = playerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING;
+        }
+        
+        // Higher chance of defensive when health is lower or player is attacking
+        float defensiveChance = 0.5f;
+        
+        // Adjust chance based on health (more defensive at lower health)
+        defensiveChance += (100.0f - healthPercentage) / 100.0f;
+        
+        // Much higher chance of defensive when player is attacking
+        if (playerIsAttacking) {
+            defensiveChance += 0.75f;
+        }
+        
+        // Check distance to player - be more defensive when close
+        float distanceToPlayer = g_blackboard.GetFloat("playerDistance");
+        if (distanceToPlayer < m_meleeRange * 2.0f) {
+            defensiveChance += 0.25f;
+        }
+        
+        // Add some randomization to make behavior less predictable
+        float randomValue = m_RNG.NextFloat(0.0f, 1.0f);
+        
+        // Apply defensive strategy if the random value is below our calculated chance
+        g_blackboard.SetStrategy(randomValue < defensiveChance ? Strategy::DEFENSIVE : Strategy::AGGRESSIVE);
     }
 }
 

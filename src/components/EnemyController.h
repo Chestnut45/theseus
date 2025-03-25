@@ -24,6 +24,7 @@ public:
         ATTACKING,
         PETRIFIED,
         STUNNED,
+        DODGE,
         DEATH
     };
     EnemyController() = default;    
