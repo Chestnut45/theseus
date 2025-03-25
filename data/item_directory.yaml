@@ -234,3 +234,14 @@ Lapis Lazuli Ring: {
     }
   ]
 }
+
+Portal: {
+  id: PLACEABLE,
+  placeable_type: PORTAL,
+  description: Think With Portals!(TM),
+  value: 30,
+  texture_frame: 26,
+  is_stackable: true,
+  rarity: LEGENDARY,
+  has_status_effects: false,
+}

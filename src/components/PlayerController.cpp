@@ -20,6 +20,7 @@
 #include "BossController.h"
 
 #include "../DDACalculator.h"
+#include "../PortalTileManager.h"
 
 #include "../GLShapesRenderer.h"
 #include "../inventory/ItemCreator.h"
@@ -36,11 +37,15 @@ PlayerController::~PlayerController() {
     wolf::EventManager::RemoveListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::RemoveListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::RemoveListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
+    wolf::EventManager::RemoveListener<BeginPlacingPlaceableEvent, PlayerController, &PlayerController::HandleBeginPlacingItemEvent>(*this);
     wolf::EventManager::RemoveListener<DamageEvent, PlayerController, &PlayerController::OnDamageEvent>(*this);
     if (m_deathScreenTexture) {
         wolf::TextureManager::DestroyTexture(m_deathScreenTexture);
         m_deathScreenTexture = nullptr;
     }
+
+    this->m_pCurrentWeapon = nullptr;
+    this->m_pCurrentPlaceable = nullptr;
 }
 
 void PlayerController::SetAnimationComponent(AnimatedSprite2D* animComponent)
@@ -84,6 +89,11 @@ void PlayerController::SetAction(PlayerAction action)
             EndPetrified();
             break;
         }
+        case PlayerAction::PLACING:
+        {
+            EndPlacing();
+            break;
+        }
         case PlayerAction::ROLLING:
         {
             EndRoll();
@@ -106,6 +116,10 @@ void PlayerController::SetAction(PlayerAction action)
         case PlayerAction::PETRIFIED:
         {
             StartPetrified();
+            break;
+        }
+        case PlayerAction::PLACING:
+        {
             break;
         }
         case PlayerAction::ROLLING:
@@ -154,6 +168,9 @@ void PlayerController::LateInitialize()
     wolf::EventManager::AddListener<WeaponUnequippedEvent, PlayerController, &PlayerController::HandleWeaponUnequippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourEquippedEvent, PlayerController, &PlayerController::HandleArmourEquippedEvent>(*this);
     wolf::EventManager::AddListener<ArmourUnequippedEvent, PlayerController, &PlayerController::HandleArmourUnequippedEvent>(*this);
+    
+    //-------Added By Nhat-------//
+    wolf::EventManager::AddListener<BeginPlacingPlaceableEvent, PlayerController, &PlayerController::HandleBeginPlacingItemEvent>(*this);    
 
     // Listen for damage events
     wolf::EventManager::AddListener<DamageEvent, PlayerController, &PlayerController::OnDamageEvent>(*this);
@@ -295,6 +312,10 @@ void PlayerController::Update(float delta)
         case PlayerAction::PETRIFIED:
             HandlePetrified(delta);
             break;
+        case PlayerAction::PLACING:
+            HandlePlacing(delta);
+            HandleMovement(delta);
+            break;
         case PlayerAction::DEAD:
             HandleDeath(delta);
             break;
@@ -407,6 +428,7 @@ void PlayerController::HandlePlayerInput(float delta)
         wolf::Input::IsLMBJustDown()                            && 
         m_pCurrentWeapon                                        && 
         m_action != PlayerAction::ATTACKING                     &&
+        m_action != PlayerAction::PLACING                       &&
         m_action != PlayerAction::PETRIFIED                     &&
         m_attackTimer.Elapsed() >= m_pCurrentWeapon->GetDelay() && 
         !m_inventoryOpen                                        && 
@@ -480,6 +502,42 @@ void PlayerController::HandleThrowing(float delta) {
 void PlayerController::HandlePetrified(float delta)
 {
         
+}
+
+
+void PlayerController::HandlePlacing(float delta)
+{
+    if(wolf::Input::IsLMBJustDown())
+    {
+        glm::vec2 cursorWorldPos = CalculateCursorWorldPosition();
+        
+        // Return if attempting to place item out of bounds
+        if(cursorWorldPos.x < 0 || cursorWorldPos.y < 0) return;
+
+        // Get the position of the tile that the cursor is on
+        glm::ivec2 cursorTilePos;
+        for (const auto&&[_, lbmg] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+        {
+            cursorTilePos = lbmg.GetTilePosition(cursorWorldPos);
+
+            // Return if tile is a wall
+            int tileId = lbmg.GetTile(cursorTilePos.x, cursorTilePos.y);
+            if((tileId >= Tile::WallBottomLeft) && (tileId <= Tile::WallTop)) return; 
+            break;
+        }
+
+        // Mark placement as valid
+        m_bIsPlaced = true;
+
+        // If placeable is a portal
+        if(this->m_pCurrentPlaceable->GetType() == PlaceableType::PORTAL)
+        {   
+        }
+
+        SetAction(PlayerAction::NONE);
+    }
+
+    HandlePlacingAnimation();
 }
 
 void PlayerController::HandleDeath(float delta)
@@ -890,19 +948,8 @@ void PlayerController::HandleBowRangeIndicator(float delta)
 
 void PlayerController::CalculateAttackDirection()
 {
-    wolf::Scene* scene = &this->GetGameObject()->GetScene();
-    wolf::Camera2D* camera = scene->GetActiveCamera();
-    glm::vec2 cameraPos = camera->GetPosition();
-    glm::vec2 viewSize = camera->GetViewSize();
     glm::vec2 worldPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    
-    glm::vec2 cursorScreenPos = wolf::Input::GetMousePos();
-    glm::vec2 cursorWorldPos = glm::vec2
-    (
-        cameraPos.x + (cursorScreenPos.x - viewSize.x * 0.5f),
-        cameraPos.y + (viewSize.y * 0.5f - cursorScreenPos.y)
-    );
-
+    glm::vec2 cursorWorldPos = CalculateCursorWorldPosition();
     m_attackDir = glm::normalize(cursorWorldPos - worldPos);
 }
 
@@ -960,6 +1007,52 @@ void PlayerController::RenderBowPowerBar()
     ImGui::PopStyleColor(2);
 }
 
+
+void PlayerController::HandlePlacingAnimation()
+{
+    std::string animationName;
+
+    if(glm::length(m_pVelocity->GetVelocity()) <= 0.001f)
+    {
+        animationName = GetIdleAnimationForDirection(m_lastMoveDirectionEnum);
+    }
+    else
+    {
+        animationName = GetWalkAnimationForDirection(m_lastMoveDirectionEnum);
+    }
+    
+
+    // Set facing direction
+    m_lastFaceDirectionEnum = m_lastMoveDirectionEnum;
+
+    // Check if the desired animation is different from the currently playing one.
+    if (!animationName.empty() && animationName != m_currentAnimation)
+    {
+        // Set the new animation.
+        m_pAnimComponent->SetAnimation(animationName);
+
+        // Update the current animation name.
+        m_currentAnimation = animationName;
+    }
+}
+
+glm::vec2 PlayerController::CalculateCursorWorldPosition() const
+{
+    wolf::Scene* scene = &this->GetGameObject()->GetScene();
+    wolf::Camera2D* camera = scene->GetActiveCamera();
+    glm::vec2 cameraPos = camera->GetPosition();
+    glm::vec2 viewSize = camera->GetViewSize();
+    glm::vec2 worldPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    
+    glm::vec2 cursorScreenPos = wolf::Input::GetMousePos();
+    glm::vec2 cursorWorldPos = glm::vec2
+    (
+        cameraPos.x + (cursorScreenPos.x - viewSize.x * 0.5f),
+        cameraPos.y + (viewSize.y * 0.5f - cursorScreenPos.y)
+    );
+    return cursorWorldPos;
+}
+
 glm::vec2 PlayerController::ClampDirection(const glm::vec2& direction) const
 {
     glm::vec2 finalDir = glm::vec2(0.0f, 0.0f);
@@ -1000,6 +1093,20 @@ void PlayerController::EndPetrified()
 {
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
     m_pAnimComponent->SetAnimPaused(false);
+}
+
+void PlayerController::EndPlacing()
+{
+    if(m_bIsPlaced == true)
+    {
+        wolf::EventManager::TriggerEvent(EndPlacingPlaceableEvent(this->m_pCurrentPlaceable));
+    }
+    else
+    {
+        wolf::EventManager::TriggerEvent(EndPlacingPlaceableEvent(nullptr));
+    }
+    this->m_pCurrentPlaceable = nullptr;
+    m_bIsPlaced = false;
 }
 
 void PlayerController::ThrowHeldObject() {
@@ -1060,9 +1167,9 @@ void PlayerController::HandleMovement(float delta)
     direction.x -= wolf::Input::IsKeyDown(GLFW_KEY_A) ? 1.0f : 0.0f;
     direction.x += wolf::Input::IsKeyDown(GLFW_KEY_D) ? 1.0f : 0.0f;
     
-    // If player is not moving, attacking or rolling, then idle
+    // If player is not moving, attacking, placing or rolling, then idle
     if (glm::length(direction) == 0.0f) {
-        if (m_action != PlayerAction::ATTACKING && m_action != PlayerAction::ROLLING) SetAction(PlayerAction::NONE);
+        if (m_action != PlayerAction::ATTACKING && m_action != PlayerAction::PLACING && m_action != PlayerAction::ROLLING) SetAction(PlayerAction::NONE);
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
         m_walkSoundTimer.Reset();
         return;
@@ -1086,7 +1193,7 @@ void PlayerController::HandleMovement(float delta)
     }
     m_pVelocity->SetVelocity(direction * m_currentMoveSpeed);
 
-    if (m_action != PlayerAction::ATTACKING && m_action != PlayerAction::ROLLING && !m_isJumping) SetAction(PlayerAction::WALKING);
+    if (m_action != PlayerAction::ATTACKING && m_action != PlayerAction::PLACING && m_action != PlayerAction::ROLLING && !m_isJumping) SetAction(PlayerAction::WALKING);
 }
 
 // Manage attack state and animation transitions
@@ -1630,6 +1737,11 @@ void PlayerController::HandleArmourUnequippedEvent(const ArmourUnequippedEvent& 
             statusComponent->SetStatusEffectResistance(seType, 0);
         }
     }
+}
+void PlayerController::HandleBeginPlacingItemEvent(const BeginPlacingPlaceableEvent& p_event)
+{
+    this->m_pCurrentPlaceable = p_event.pItem;
+    SetAction(PlayerAction::PLACING);
 }
 
 void PlayerController::OnDamageEvent(const DamageEvent& event)
