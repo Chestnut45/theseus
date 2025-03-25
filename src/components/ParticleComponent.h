@@ -9,43 +9,14 @@
 #include "W_Program.h"
 #include <W_Texture.h>
 #include <W_TextureManager.h>
+#include <memory>
+#include <unordered_map>
 
-struct Particle
-{
-    glm::vec2 m_pos;
-    glm::vec2 m_vel;
-    glm::vec4 m_color;
-    float m_size;
-    float m_lifetime;
-    float m_initialLifetime;
-    bool m_active = false;
-    
-    wolf::Texture* m_texture = nullptr; // Texture support for quads
+// Include the Particle struct from its own file
+#include "Particle.h"
 
-    void Reset(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime, wolf::Texture* texture = nullptr)
-    {
-        // Don't destroy textures here
-        // Set pointer to null without attempting to destroy
-        m_texture = texture;
-        
-        m_pos = position;
-        m_vel = velocity;
-        m_color = color;
-        m_size = size;
-        m_lifetime = lifetime;
-        m_initialLifetime = lifetime;
-        m_active = true;
-    }
-
-    void Update(float delta)
-    {
-        if (!m_active) return;
-        m_pos += m_vel * delta;
-        m_lifetime -= delta;
-        if (m_lifetime <= 0.0f)
-            m_active = false;
-    }
-};
+// Forward declaration for modifier classes
+class ParticleModifier;
 
 class ParticleComponent : public wolf::BaseComponent
 {
@@ -55,17 +26,34 @@ public:
 
     void Update(float delta);
     void Render();
-    void Emit(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime, wolf::Texture* texture = nullptr);
+    
+    // Enhanced emit method with more options
+    void Emit(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, 
+              float size, float lifetime, wolf::Texture* texture = nullptr,
+              float rotation = 0.0f, float angularVelocity = 0.0f);
+    
+    // Burst emission helper
+    void EmitBurst(const glm::vec2& position, const glm::vec2& baseVelocity, const glm::vec4& color,
+                  float size, float lifetime, int count, float spread = 360.0f, 
+                  wolf::Texture* texture = nullptr);
 
+    // Original accessors
     std::vector<Particle>& GetParticles() { return m_particles; }
     void SetMaxParticles(size_t maxParticles);
     size_t GetMaxParticles() const { return m_particles.size(); }
+    
+    // Enhanced modifiers system
+    void AddModifier(std::shared_ptr<ParticleModifier> modifier);
+    void RemoveModifier(const std::string& modifierName);
+    std::shared_ptr<ParticleModifier> GetModifier(const std::string& modifierName);
 
 private:
     std::vector<Particle> m_particles;
+    std::vector<std::shared_ptr<ParticleModifier>> m_modifiers;
 
     GLuint m_vao, m_posVBO, m_colorVBO, m_sizeVBO;
     GLuint m_quadVAO, m_quadVBO, m_quadEBO;
+    GLuint m_rotationVBO; // New VBO for rotation
 
     static inline wolf::Program* s_pShader = nullptr;
     static inline size_t s_refCount = 0;
@@ -77,4 +65,7 @@ private:
     // Helper methods for rendering
     void RenderPointParticles();
     void RenderTexturedParticles();
+    
+    // Apply all modifiers to a particle
+    void ApplyModifiers(Particle& particle, float delta, bool isNewParticle = false);
 };

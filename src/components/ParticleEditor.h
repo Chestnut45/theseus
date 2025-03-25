@@ -2,6 +2,7 @@
 
 #include <W_BaseComponent.h>
 #include "ParticleComponent.h"
+#include "ParticleModifier.h"
 #include <imgui/imgui.h>
 #include <string>
 #include <vector>
@@ -27,6 +28,8 @@ private:
         float size = 5.0f;
         float lifetime = 2.0f;
         glm::vec2 velocity{0.0f, 10.0f};
+        float rotation = 0.0f;
+        float angularVelocity = 0.0f;
         
         // System properties
         size_t maxParticles = 100;
@@ -34,6 +37,7 @@ private:
         float emissionTimer = 0.0f;
         bool continuousEmission = false;
         int burstCount = 10;
+        float burstSpread = 360.0f;
         
         // Configuration
         std::string configFilePath = "data/particles/default.yaml";
@@ -45,6 +49,16 @@ private:
         // Cache for texture preview and emission
         wolf::Texture* previewTexture = nullptr;
         bool textureLoaded = false;
+        
+        // Modifiers enabled states
+        bool showEmissionShapeEditor = false;
+        bool showGravityEditor = false;
+        bool showDragEditor = false;
+        bool showVortexEditor = false;
+        bool showAttractorEditor = false;
+        bool showSizeOverLifetimeEditor = false;
+        bool showColorOverLifetimeEditor = false;
+        bool showRotationEditor = false;
     };
 
     bool m_editorVisible = false;
@@ -55,4 +69,25 @@ private:
     void EmitParticle(ParticleComponent& particleComponent, EditorState& state, const glm::vec2& position);
     void EmitParticleBurst(ParticleComponent& particleComponent, EditorState& state, const glm::vec2& position, int count);
     int CountActiveParticles(ParticleComponent& particleComponent);
+    
+    // New modifier editor UI methods
+    void ShowModifiersPanel(ParticleComponent& particleComponent, EditorState& state);
+    void ShowEmissionShapeEditor(ParticleComponent& particleComponent, EditorState& state);
+    void ShowGravityEditor(ParticleComponent& particleComponent, EditorState& state);
+    void ShowDragEditor(ParticleComponent& particleComponent, EditorState& state);
+    void ShowVortexEditor(ParticleComponent& particleComponent, EditorState& state);
+    void ShowAttractorEditor(ParticleComponent& particleComponent, EditorState& state);
+    void ShowSizeOverLifetimeEditor(ParticleComponent& particleComponent, EditorState& state);
+    void ShowColorOverLifetimeEditor(ParticleComponent& particleComponent, EditorState& state);
+    void ShowRotationEditor(ParticleComponent& particleComponent, EditorState& state);
+    
+    // Helper methods to get modifiers
+    std::shared_ptr<EmissionShapeModifier> GetEmissionShapeModifier(ParticleComponent& particleComponent, bool createIfMissing = false);
+    std::shared_ptr<GravityModifier> GetGravityModifier(ParticleComponent& particleComponent, bool createIfMissing = false);
+    std::shared_ptr<DragModifier> GetDragModifier(ParticleComponent& particleComponent, bool createIfMissing = false);
+    std::shared_ptr<VortexModifier> GetVortexModifier(ParticleComponent& particleComponent, bool createIfMissing = false);
+    std::shared_ptr<AttractorModifier> GetAttractorModifier(ParticleComponent& particleComponent, bool createIfMissing = false);
+    std::shared_ptr<SizeOverLifetimeModifier> GetSizeOverLifetimeModifier(ParticleComponent& particleComponent, bool createIfMissing = false);
+    std::shared_ptr<ColorOverLifetimeModifier> GetColorOverLifetimeModifier(ParticleComponent& particleComponent, bool createIfMissing = false);
+    std::shared_ptr<RotationModifier> GetRotationModifier(ParticleComponent& particleComponent, bool createIfMissing = false);
 };
