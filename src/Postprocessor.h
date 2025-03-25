@@ -16,6 +16,7 @@ public:
     {
         BURNING,
         GRAYSCALE,
+        HEAT_DISTORTION,
         POISONED,
         NONE
     };
@@ -34,6 +35,7 @@ private:
     void SwitchFramebuffers();
     void HandleBurningEffect(GLuint p_tex);
     void HandleGrayscaleEffect(GLuint p_tex);
+    void HandleHeatDistortionEffect(GLuint p_tex);
     void HandlePoisonedEffect(GLuint p_tex);
     void HandleNoneEffect(GLuint p_tex);
 
@@ -49,6 +51,8 @@ private:
     wolf::VertexDeclaration *m_pVAO = nullptr;
     wolf::VertexBuffer *m_pVBO = nullptr;
     
+    GLuint m_uiHeatDistortionSSBO;
+
     wolf::Scene* m_pScene = nullptr;
 
     wolf::Timer m_timer;

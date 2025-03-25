@@ -31,6 +31,7 @@ void Postprocessor::CreateInstance(wolf::Scene* p_scene)
         s_pPostprocessor = new Postprocessor(p_scene);
         s_pPostprocessor->AddShaders("data/shaders/postprocessors/none.vsh","data/shaders/postprocessors/burning.fsh");
         s_pPostprocessor->AddShaders("data/shaders/postprocessors/none.vsh","data/shaders/postprocessors/grayscale.fsh");
+        s_pPostprocessor->AddShaders("data/shaders/postprocessors/none.vsh","data/shaders/postprocessors/heat_distortion.fsh");
         s_pPostprocessor->AddShaders("data/shaders/postprocessors/none.vsh","data/shaders/postprocessors/poisoned.fsh");
         s_pPostprocessor->AddShaders("data/shaders/postprocessors/none.vsh","data/shaders/postprocessors/none.fsh");
 
@@ -90,6 +91,12 @@ void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
                 break;
             }
 
+            case Effect::HEAT_DISTORTION:
+            {
+                HandleHeatDistortionEffect(currentTex);
+                break;
+            }
+
             case Effect::POISONED:
             {
                 HandlePoisonedEffect(currentTex);
@@ -138,6 +145,8 @@ Postprocessor::Postprocessor(wolf::Scene* p_scene)
     m_pVAO->AppendAttribute(wolf::Attribute::AT_Position, 2, wolf::ComponentType::CT_Float, 0);
     m_pVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
     m_pVAO->End();
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_uiHeatDistortionSSBO);
 }
 
 Postprocessor::~Postprocessor()
@@ -230,6 +239,75 @@ void Postprocessor::HandleGrayscaleEffect(GLuint p_tex)
 
     // Bind default framebuffer (screen)
     wolf::FrameBuffer::BindDefault();
+}
+
+void Postprocessor::HandleHeatDistortionEffect(GLuint p_tex)
+{
+    wolf::Camera2D* camera = m_pScene->GetActiveCamera();
+    if(camera == nullptr)
+    {
+        return;
+    }
+
+    glm::vec2 viewportSize = camera->GetViewSize();
+
+    // Bind the framebuffer whose texture will be rendered to
+    m_pWriteFBO->Bind();
+
+    // Buffer the SSBO with fire tile data & bind for rendering
+    std::vector<glm::vec2> positions = {glm::vec2(4800.0f, 192.0f), glm::vec2(4896.0f, 192.0f)};
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_uiHeatDistortionSSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, positions.size() * sizeof(glm::vec2), positions.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_uiHeatDistortionSSBO);
+
+    // Set up the program for the heat distortion effect
+    wolf::Program* program = m_vShaderPrograms.at(Effect::HEAT_DISTORTION);
+
+    float radius = 0.1f;
+    float screenspaceRadius = radius * camera->GetZoom() * viewportSize.y / 2.0;
+
+    glm::vec2 point1World = glm::vec2(0.0f, 0.0f); // First point in world space
+    glm::vec2 point2World = glm::vec2(96.0f, 0.0f);; // Second point in world space
+    glm::mat4 viewProjectionMatrix = camera->GetMatrix();
+    
+    // Transform points to clip space
+    glm::vec4 point1Clip = viewProjectionMatrix * glm::vec4(point1World.x, point1World.y, 0, 1);
+    glm::vec4 point2Clip = viewProjectionMatrix * glm::vec4(point2World.x, point2World.y, 0, 1);
+
+    // Convert to NDC
+    glm::vec3 point1NDC = glm::vec3(point1Clip.x / point1Clip.w, point1Clip.y / point1Clip.w, point1Clip.z / point1Clip.w);
+    glm::vec3 point2NDC = glm::vec3(point2Clip.x / point2Clip.w, point2Clip.y / point2Clip.w, point2Clip.z / point2Clip.w);
+
+    // Map NDC to screen space
+    glm::vec2 point1Screen = glm::vec2((point1NDC.x + 1) * 0.5f * viewportSize.x, (1 - (point1NDC.y + 1) * 0.5f) * viewportSize.y);
+    glm::vec2 point2Screen = glm::vec2((point2NDC.x + 1) * 0.5f * viewportSize.x, (1 - (point2NDC.y + 1) * 0.5f) * viewportSize.y);
+
+    // Calculate distance in screen space
+    float distanceScreen = glm::distance(point1Screen, point2Screen);
+
+    // Apply zoom if necessary
+    distanceScreen *= camera->GetZoom();
+    
+    program->SetUniform("amplitude", 0.01f);
+    program->SetUniform("frequency", (float)M_PI * 3.0f);
+    program->SetUniform("screenspaceRadius", screenspaceRadius);
+    program->SetUniform("time", (float)(m_timer.Elapsed()) * 6.0f);
+    program->SetUniform("viewportSize", glm::vec4(viewportSize.x, viewportSize.y, 0, 0));
+    program->SetUniform("zoom", camera->GetZoom());
+    program->Bind();
+
+    // Bind the texture to apply postprocessing effects to
+    glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, p_tex);
+
+    // Bind the VAO
+    m_pVAO->Bind();
+
+    // Render
+    glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+
+    // Unbind the VAO
+    glBindVertexArray(0);
 }
 
 void Postprocessor::HandlePoisonedEffect(GLuint p_tex)
