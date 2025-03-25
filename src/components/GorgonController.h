@@ -17,6 +17,9 @@
 #include <EnemyDataLoader.h>
 #include "InfightingEvent.h"
 #include "PathfindingManager.h"
+#include "BehaviorTree.h"
+#include "Blackboard.h"
+
 class GorgonController : public EnemyController
 {
 public:
@@ -66,6 +69,18 @@ private:
     void HandleInfighting(const InfightingEvent& event); // added this
     void RevertToPlayerTarget();
 
+    // Behavior Tree & Blackboard related methods
+    void SetupCombatBehaviorTree();
+    void EvaluateStrategy();
+    void UpdateBlackboard();
+    
+    // Gaze attack utility methods
+    bool CanPerformGazeAttack();
+    void PrepareGazeAttack();
+    float GetDistanceToTarget() const;
+    bool IsPositionSafe(const glm::vec2& position);
+    glm::vec2 GetOptimalAttackPosition();
+    void MoveToOptimalPosition(float delta);
     
     // Gorgon-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
@@ -95,8 +110,6 @@ private:
     wolf::RNG m_RNG; 
 
     float m_targetDetectionTimer = 0.0f; // Taget detecction reaction delay
-
-    
 
     // Prospect state members
     float m_prospectCounter = 0.0f;
@@ -128,4 +141,20 @@ private:
     const glm::vec4 CROSSHAIR_COLOUR = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
     glm::vec4 m_curentCrosshairColour = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
     glm::vec2 m_crosshairOffset = glm::vec2(0.0f, 0.0f);
+    
+    // Behavior tree related members
+    std::unique_ptr<BehaviorTree> m_combatBehaviorTree;
+    bool m_isRepositioning = false;
+    glm::vec2 m_targetPosition; // Position to move to when repositioning
+    float m_repositionTimer = 0.0f;
+    float m_repositionDelay = 5.0f; // Time between position evaluations 
+    
+    // Attack pattern tracking
+    enum class GazeAttackType { QUICK, SUSTAINED, AREA };
+    GazeAttackType m_currentGazeAttackType = GazeAttackType::QUICK;
+    float m_attackSuccessTimer = 0.0f; // Track successful petrification for strategy evaluation
+    
+    // Smoothing for animation transitions
+    glm::vec2 m_smoothedVelocity = glm::vec2(0.0f);
+    const float ANIMATION_SMOOTHING_FACTOR = 0.2f;
 };
