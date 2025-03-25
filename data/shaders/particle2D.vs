@@ -13,16 +13,21 @@ out vec2 TexCoord;
 
 uniform mat4 model;
 uniform int useTexture;
+uniform vec4 particleColor;
 
 void main()
 {
-    ParticleColor = aColor;
-    
     if (useTexture == 1) {
+        // For textured quads, use the uniform color instead of vertex attribute
+        ParticleColor = particleColor;
+        
         // For textured quads, use the model matrix for positioning and scaling
         gl_Position = viewProj * model * vec4(aPos, 0.0, 1.0);
         TexCoord = aTexCoord;
     } else {
+        // For point particles, use the vertex attribute color
+        ParticleColor = aColor;
+        
         // For point particles
         gl_Position = viewProj * vec4(aPos, 0.0, 1.0);
         gl_PointSize = aSize;
