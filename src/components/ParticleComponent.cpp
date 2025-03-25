@@ -207,7 +207,7 @@ void ParticleComponent::RenderTexturedParticles()
     
     glBindVertexArray(m_quadVAO);
     
-    // Set useTexture uniform using the Wolf API
+    // Set useTexture uniform
     s_pShader->SetUniform("useTexture", 1);
     s_pShader->SetUniform("particleTexture", 0); 
     
@@ -230,11 +230,11 @@ void ParticleComponent::RenderTexturedParticles()
             glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(particle->m_pos, 0.0f));
             model = glm::scale(model, glm::vec3(scaleFactor, scaleFactor, 1.0f));
             
-            // Set particle-specific uniforms using the Wolf API
+            // Set particle-specific
             s_pShader->SetUniform("model", model);
             s_pShader->SetUniform("particleColor", particle->m_color);
             
-            // Important: Re-bind to upload the new uniform values
+            // Important: Re-bind to upload the new uniform values ----- fix for drawing multiple particles that i missed for so long
             s_pShader->Bind();
             
             // Draw the quad
