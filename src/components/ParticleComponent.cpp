@@ -16,22 +16,11 @@ ParticleComponent::ParticleComponent(size_t maxParticles)
         {
             wolf::Error("Failed to create particle shader program!");
         }
-        else
-        {
-            wolf::Log("Particle shader program created successfully");
-        }
     }
     s_refCount++;
 
     InitGLResources();
     InitQuadResources();
-    
-    // Debug quad setup, trying to figure out the current binding and tex cords
-    GLint vao, attrib;
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &vao);
-    glGetVertexAttribiv(3, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &attrib);
-    // wolf::Log("Quad VAO check: current binding=", vao, 
-    //          ", texture coord attribute enabled=", attrib ? "YES" : "NO");
 }
 
 ParticleComponent::~ParticleComponent()
@@ -43,7 +32,7 @@ ParticleComponent::~ParticleComponent()
         s_pShader = nullptr;
     }
 
-    // Don't destroy textures here either - TextureManager should handle their lifetime, just reminding myself
+    // Don't destroy textures here - TextureManager should handle their lifetime
     // Just clear the pointers
     for (auto& particle : m_particles)
     {
@@ -109,18 +98,7 @@ void ParticleComponent::InitQuadResources()
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(3);
 
-    // Check if texture coord attribute is enabled while VAO is still bound
-    GLint attrib;
-    glGetVertexAttribiv(3, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &attrib);
-    // wolf::Log("Texture coord attribute enabled check (during binding): ", attrib ? "YES" : "NO");
-
     // Now unbind the VAO
-    glBindVertexArray(0);
-    
-    // Test binding and verification
-    glBindVertexArray(m_quadVAO);
-    glGetVertexAttribiv(3, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &attrib);
-    // wolf::Log("Texture coord attribute enabled check (after rebind): ", attrib ? "YES" : "NO");
     glBindVertexArray(0);
 }
 
@@ -212,137 +190,73 @@ void ParticleComponent::RenderTexturedParticles()
     // Group particles by texture for efficient rendering
     std::unordered_map<wolf::Texture*, std::vector<const Particle*>> textureGroups;
     
-    int texturedParticleCount = 0; // Debug counter
-    
-    // Count and group active textured particles
+    // Group active textured particles
     for (const auto& particle : m_particles)
     {
         if (particle.m_active && particle.m_texture)
         {
             textureGroups[particle.m_texture].push_back(&particle);
-            texturedParticleCount++;
         }
     }
     
     if (textureGroups.empty())
-    {
-        // Debug output
-        static bool reported = false;
-        if (!reported && texturedParticleCount == 0)
-        {
-            wolf::Log("No textured particles to render");
-            reported = true;
-        }
         return;
-    }
     
-    // Debug output
-    static bool first_render = true;
-    if (first_render)
-    {
-        // wolf::Log("Rendering textured particles. Count: ", texturedParticleCount);
-        // wolf::Log("Number of unique textures: ", textureGroups.size());
-    }
+    // Make sure shader is bound
+    s_pShader->Bind();
     
     glBindVertexArray(m_quadVAO);
     
-    // Just try to set the uniforms - we can't check if they exist but we can see if rendering works
-    try {
-        s_pShader->SetUniform("useTexture", 1);
-        s_pShader->SetUniform("particleTexture", 0);
+    // Set useTexture uniform using the Wolf API
+    s_pShader->SetUniform("useTexture", 1);
+    s_pShader->SetUniform("particleTexture", 0); 
+    
+    // Render particles grouped by texture to minimize state changes
+    for (const auto& [texture, particles] : textureGroups)
+    {
+        // Skip invalid textures
+        if (!texture || texture->GetID() == 0)
+            continue;
         
-        // Render particles grouped by texture to minimize state changes
-        for (const auto& [texture, particles] : textureGroups)
+        // Bind texture once per group
+        glActiveTexture(GL_TEXTURE0);
+        texture->Bind(0);
+        
+        for (const Particle* particle : particles)
         {
-            // Debug: Ensure texture is valid
-            if (!texture || texture->GetID() == 0)
-            {
-                wolf::Error("Invalid texture detected!");
-                continue;
-            }
+            // Set up model matrix for this particle 
+            float scaleFactor = particle->m_size * 10.0f; // Adjust size scaling as needed
             
-            // Bind texture once per group
-            glActiveTexture(GL_TEXTURE0);
-            texture->Bind(0);
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(particle->m_pos, 0.0f));
+            model = glm::scale(model, glm::vec3(scaleFactor, scaleFactor, 1.0f));
             
-            // Debug: Confirm texture binding
-            GLint currentTexture;
-            glGetIntegerv(GL_TEXTURE_BINDING_2D, &currentTexture);
-            if (first_render)
-            {
-                // wolf::Log("Texture binding: texture ID=", texture->GetID(), ", GL texture=", currentTexture);
-                // wolf::Log("Number of particles in this texture group: ", particles.size());
-            }
+            // Set particle-specific uniforms using the Wolf API
+            s_pShader->SetUniform("model", model);
+            s_pShader->SetUniform("particleColor", particle->m_color);
             
-            for (const Particle* particle : particles)
-            {
-                // Set up model matrix for this particle with fixed multiplier for size
-                // Scale factor adjusted to make particles more visible
-                float scaleFactor = particle->m_size * 10.0f; // Increase size by a factor of 10
-                
-                glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(particle->m_pos, 0.0f));
-                model = glm::scale(model, glm::vec3(scaleFactor, scaleFactor, 1.0f));
-                
-                // Set particle-specific uniforms
-                s_pShader->SetUniform("model", model);
-                s_pShader->SetUniform("particleColor", particle->m_color);
-                
-                // Draw the quad
-                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-                
-                // Debug: Check for OpenGL errors after first draw
-                if (first_render)
-                {
-                    GLenum err = glGetError();
-                    if (err != GL_NO_ERROR)
-                    {
-                        wolf::Error("OpenGL error during particle rendering: ", err);
-                    }
-                }
-            }
+            // Important: Re-bind to upload the new uniform values
+            s_pShader->Bind();
+            
+            // Draw the quad
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         }
     }
-    catch (const std::exception& e) {
-        wolf::Error("Exception during textured particle rendering: ", e.what());
-    }
-    
-    first_render = false;
 }
 
 void ParticleComponent::Emit(const glm::vec2& position, const glm::vec2& velocity, const glm::vec4& color, float size, float lifetime, wolf::Texture* texture)
 {
-    // Let's find how many active particles we have to debug the emission
-    int activeCount = 0;
-    for (const auto& p : m_particles)
-    {
-        if (p.m_active) activeCount++;
-    }
-    
-    // Log the current state
-    // wolf::Log("Emitting particle. Current active particles: ", activeCount, "/", m_particles.size());
-    
     // Try to find an inactive particle
-    bool emitted = false;
     for (auto& particle : m_particles)
     {
         if (!particle.m_active)
         {
             particle.Reset(position, velocity, color, size, lifetime, texture);
-            emitted = true;
-            
-            if (texture)
-            {
-                // wolf::Log("Emitted textured particle with texture ID: ", texture->GetID());
-            }
-            break; // Important: Only use the first available particle, then exit
+            return; // Found and used an inactive particle, exit
         }
     }
     
-    // If we couldn't emit, log an error
-    if (!emitted)
-    {
-        wolf::Error("Failed to emit particle - all particles are active. Consider increasing max particles.");
-    }
+    // If we reached here, all particles are active
+    wolf::Error("Failed to emit particle - all particles are active. Consider increasing max particles.");
 }
 
 void ParticleComponent::SetMaxParticles(size_t maxParticles)
