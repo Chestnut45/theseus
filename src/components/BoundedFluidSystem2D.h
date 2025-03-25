@@ -5,8 +5,6 @@
 // Original Author:	D'Anyil Landry
 //
 // A game component representing a bounded 2D particle-based fluid simulation
-// 
-// TODO: Spatial hashing based on kernel radius for optimization if needed
 //-----------------------------------------------------------------------------
 
 #include <vector>
@@ -63,7 +61,6 @@ public:
     BoundedFluidSystem2D& operator=(BoundedFluidSystem2D&& other) = delete;
 
     // Integrate the particles forward in time by delta seconds
-    // TODO: Untie from framerate
     void Update(float delta);
 
     // Draw the fluid particles to the currently bound framebuffer
@@ -77,11 +74,11 @@ public:
     // TODO: Support more than AABBs
     void AddStaticCollisionRect(const wolf::Rectangle& rect);
 
-    // Set / Get the color of the fluid particles
+    // Set / Get the base color of the fluid
     void SetFluidColor(const glm::vec4& color) { m_fluidColor = color; }
     const glm::vec4& GetFluidColor() const { return m_fluidColor; }
 
-    // Set / Get the color of the wave particles
+    // Set / Get the color of waves / splashes
     void SetWaveColor(const glm::vec4& color) { m_waveColor = color; }
     const glm::vec4& GetWaveColor() const { return m_waveColor; }
 
@@ -94,16 +91,18 @@ public:
 
 private:
 
-    // Data members
+    // Simulation data
     wolf::RNG m_rng;
     wolf::Rectangle m_bounds;
     std::vector<wolf::Rectangle> m_collisionRects;
     std::vector<FluidParticle> m_particles;
+    float m_simTime = 0.0f;
+
+    // Visual parameters
     glm::vec4 m_fluidColor{0.039f, 0.295f, 0.402f, 0.812f};
     glm::vec4 m_waveColor{0.8f, 0.886f, 0.941f, 0.745f};
     glm::vec4 m_causticColor{0.936f, 0.836f, 0.757f, 0.827f};
     float m_causticFrequency = 0.5f;
-    float m_simTime = 0.0f;
 
     // Spatial hashing optimization structure
     // NOTE: Maps each grid cell to a list of particle indices contained in the cell
@@ -121,7 +120,7 @@ private:
     float m_kernelRadiusSqr = m_kernelRadius * m_kernelRadius;
     float m_particleMass = 4.5f;
     float m_viscosity = 245.0f; // Original 200
-    float m_fixedDelta = 0.0005f;
+    float m_fixedDelta = 0.0005f; // Original 0.0007
 
     // Smoothing kernels defined in Müller and their gradients
     // Adapted to 2D per "SPH Based Shallow Water Simulation" by Solenthaler et al.
@@ -130,11 +129,11 @@ private:
     float m_viscLaplacian = 40.0f / (M_PI * pow(m_kernelRadius, 5.0f));
 
     // Simulation parameters
+    float m_boundEpsilon = m_kernelRadius / 2;
+    float m_boundDamping = -0.5f;
     int m_numParticlesToSpawn = 1000;
     bool m_simulateGravity = false;
     glm::vec2 m_gravity{0.0f, -9.81f};
-    float m_boundEpsilon = m_kernelRadius / 2;
-    float m_boundDamping = -0.5f;
 
     // Reference counter for static resources
     static inline size_t s_refCount = 0;

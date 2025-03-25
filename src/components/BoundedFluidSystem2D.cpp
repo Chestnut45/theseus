@@ -92,7 +92,19 @@ BoundedFluidSystem2D::~BoundedFluidSystem2D()
 
 void BoundedFluidSystem2D::Update(float delta)
 {
+    // Ensure consistent simulation speed
+    static float elapsedTime = 0.0f;
+    static float targetFrametime = 1.0f / 60;
+
+    // Update total simulation time and elapsed counter
     m_simTime += delta;
+    elapsedTime += delta;
+    
+    // Don't step simulation until target frame time is hit
+    if (elapsedTime < targetFrametime) return;
+
+    // Reset counter if we step this frame
+    elapsedTime = 0.0f;
 
     static const glm::ivec2 adjacentCellOffsets[] = {
         glm::ivec2(-1, 0),
@@ -278,6 +290,9 @@ void BoundedFluidSystem2D::Render(float delta)
     s_pParticleShader->SetUniform("restDensity", m_restDensity);
     s_pParticleShader->SetUniform("fluidColor", m_fluidColor);
     s_pParticleShader->SetUniform("waveColor", m_waveColor);
+    s_pParticleShader->SetUniform("time", m_simTime);
+    s_pParticleShader->SetUniform("causticColor", m_causticColor);
+    s_pParticleShader->SetUniform("causticFrequency", m_causticFrequency);
     s_pParticleShader->Bind();
 
     // Bind and draw particles to our framebuffer
@@ -288,15 +303,8 @@ void BoundedFluidSystem2D::Render(float delta)
     glBindVertexArray(s_quadVAO);
     glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_particles.size());
 
-    // Upload other uniforms
-    auto* pCamera = GetGameObject()->GetScene().GetActiveCamera();
-    s_pBlendPassShader->SetUniform("camPosRes", pCamera ? glm::vec4(pCamera->GetPosition(), pCamera->GetViewSize()) : glm::vec4(0.0f));
-    s_pBlendPassShader->SetUniform("time", m_simTime);
-    s_pBlendPassShader->SetUniform("causticColor", m_causticColor);
-    s_pBlendPassShader->SetUniform("causticFrequency", m_causticFrequency);
+    // Then unbind and blend into the previous framebuffer
     s_pBlendPassShader->Bind();
-
-    // Then blend into the original framebuffer
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBindTextureUnit(9, s_fbColorTex);
@@ -309,7 +317,6 @@ void BoundedFluidSystem2D::Render(float delta)
 
 void BoundedFluidSystem2D::ApplyRadialForce(const glm::vec2& position, float radius, float strength)
 {
-    // TODO: Only check particles in the cells touched by the radius?
     float totalRadius = radius + m_kernelRadius;
     for (auto& p : m_particles)
     {
