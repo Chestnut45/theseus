@@ -36,8 +36,8 @@ std::vector<TexturedVertex2D> LightComponent::s_vtvTexQuadVertices {
 //                                  Resource Management & Init Methods
 // ------------------------------------------------------------------------------------------------------------
 
-LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2Radius, bool p_bIsOn) 
-    : m_v4Color(p_v4Color), m_v2InitRadius(p_v2Radius), m_iIDNum(s_iNextIDNum), m_bIsOn(p_bIsOn)
+LightComponent::LightComponent(const glm::vec4& p_v4Color, float p_fRadius, bool p_bIsOn) 
+    : m_v4Color(p_v4Color), m_v2InitRadius(glm::vec2(p_fRadius, p_fRadius)), m_iIDNum(s_iNextIDNum), m_bIsOn(p_bIsOn)
 {
     // If this is the first LightComponent instance in the scene...
     if (s_iRefCount == 0) {
@@ -52,7 +52,7 @@ LightComponent::LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2
         glBindFramebuffer(GL_FRAMEBUFFER, s_uiFBO);
         glGenTextures(1, &s_uiTexture);
         glBindTexture(GL_TEXTURE_2D, s_uiTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, s_v2DefaultFramebufferSize.x, s_v2DefaultFramebufferSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -815,7 +815,7 @@ void LightComponent::ClearFBO() {
 
     // Bind the lighting FBO and clear it to black
     glBindFramebuffer(GL_FRAMEBUFFER, s_uiFBO);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.75f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Then rebind the original FBO

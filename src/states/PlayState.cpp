@@ -40,6 +40,7 @@
 #include <W_Audio.h>
 #include <events/PauseEvent.h>
 #include <glm/gtc/random.hpp>
+#include <LightEvents.h>
 
 #include <W_BufferManager.h>
 
@@ -69,6 +70,9 @@ void PlayState::Enter()
     camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
+
+    // Set the light's default FBO size to be the camera viewport size
+    LightComponent::SetDefaultFBOSize(camera.GetViewSize());
 
     // Create framebuffer & scene texture
     glm::vec2 viewSize = camera.GetViewSize();
@@ -218,7 +222,7 @@ void PlayState::Enter()
 
     // Add a test light to the player
     wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.9f, 0.0f, 0.75f), glm::vec2(125.0f, 125.0f), true);
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 125.0f, true);
     m_pPlayerObject->AddChild(*pLightGO);
     pLightComponent.Init();
 
@@ -565,10 +569,12 @@ void PlayState::Update(float delta)
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
                 {
                     auto name = sprite.GetCurrentAnimation()->m_strName;
-                    if (chestInventory.IsOpen())
+                    if (chestInventory.IsOpen()) {
                         sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
-                    else
+                    }
+                    else {
                         sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
+                    }
                     
                     chestInventory.ToggleOpen();
                     
@@ -667,6 +673,7 @@ void PlayState::Update(float delta)
                     // If the dispensary has an AnimatedSprite, play the inactive animation
                     if (dispensarySprite) {
                         dispensarySprite->SetAnimation("Deactivate");
+                        wolf::EventManager::TriggerEvent(LightToggleEvent(dispensaryInventory.GetGameObject()->GetID(), false));
                     }
 
                     // Hide the child icon

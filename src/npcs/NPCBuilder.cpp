@@ -195,7 +195,7 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
 
     // Finally, attach a LightComponent
     wolf::GameObject* pLightGO = &m_pScene->CreateObject2D();
-    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.75f), glm::vec2(75.0f, 75.0f), true);
+    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.39f, 0.39f, 0.39f, 0.75f), 75.0f, true);
     pConstructedNPC->AddChild(*pLightGO);
     pLightComp->Init();
 
@@ -255,7 +255,7 @@ wolf::GameObject* NPCBuilder::BuildRandomNPC() {
 
     // Finally, attach a LightComponent
     wolf::GameObject* pLightGO = &m_pScene->CreateObject2D();
-    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.75f), glm::vec2(75.0f, 75.0f), true);
+    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.39f, 0.39f, 0.3f, 0.75f), 75.0f, true);
     pRandomNPC->AddChild(*pLightGO);
     pLightComp->Init();
 

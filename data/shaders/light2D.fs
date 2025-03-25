@@ -13,6 +13,8 @@ in vec4 vertexPos;
 out vec4 pixelColour;
 
 void main() {
+	// Thank you to D'Anyil for helping with this
+
 	// Put the vertex position out of clip space and into world space by inversing the View-Projection matrix
 	// (this inverse could be precomputed if this becomes a bottleneck)
 	vec4 worldPos = inverse(viewProj) * vertexPos;

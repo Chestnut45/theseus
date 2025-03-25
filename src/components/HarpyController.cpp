@@ -398,7 +398,7 @@ void HarpyController::HandleAttackingState(float delta)
 
             // Add a light to the projectile (Aurora added this)
             wolf::GameObject* pLightGO = &scene.CreateObject2D();
-            auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), glm::vec2(50.0f, 50.0f), true);
+            auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), 50.0f, true);
             projectile.AddChild(*pLightGO);
             pLightComponent.Init();
         }

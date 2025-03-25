@@ -22,7 +22,7 @@
 class LightComponent : public wolf::BaseComponent {
     public:
         // IMPORTANT: LightComponent::Init() MUST be called immediately after component creation
-        LightComponent(const glm::vec4& p_v4Color, const glm::vec2& p_v2Radius, bool p_bIsOn);
+        LightComponent(const glm::vec4& p_v4Color, float p_fRadius, bool p_bIsOn);
         ~LightComponent();
 
         // Delete copy constructor/assignment
@@ -52,6 +52,8 @@ class LightComponent : public wolf::BaseComponent {
         static void ResizeFBO(int p_iWidth, int p_iHeight);
         static void BindFBOAndBlendFunc();
         static void UnbindFBOAndBlendFunc();
+
+        static inline void SetDefaultFBOSize(const glm::vec2& p_v2Size) {s_v2DefaultFramebufferSize = p_v2Size;};
 
     private:
         enum RoughPosition {
@@ -140,4 +142,7 @@ class LightComponent : public wolf::BaseComponent {
         static inline wolf::VertexDeclaration* s_pQuadVAO = nullptr;
 
         static inline GLint s_iPrevBoundBuffer = 0;
+
+        // Default framebuffer size
+        static inline glm::vec2 s_v2DefaultFramebufferSize = glm::vec2(1280, 720);
 };
