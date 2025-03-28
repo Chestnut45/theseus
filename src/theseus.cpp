@@ -1,6 +1,8 @@
 
 #include "theseus.h"
 
+#include <LightComponent.h>
+
 // Application entrypoint
 int main(int, char**)
 {
@@ -38,6 +40,7 @@ void Theseus::Update(float delta)
         // Update camera's size to match the window
         wolf::Camera2D* camera = m_scene.GetActiveCamera();
         if (camera) camera->SetViewSize(m_width, m_height);
+        LightComponent::ResizeFBO(m_width, m_height);
         m_windowResized = false;
     }
 
