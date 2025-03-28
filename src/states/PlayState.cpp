@@ -198,6 +198,15 @@ void PlayState::Enter()
         return;
     }
 
+    // Add a test light to the player
+    wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 125.0f, true);
+    m_pPlayerObject->AddChild(*pLightGO);
+    pLightComponent.Init();
+
+    // Make Ariadne's light pink because I can (Aurora)
+    ariadne.GetChildren().front()->GetComponent<LightComponent>()->SetColor(glm::vec4(1.0f, 0.41f, 0.70f, 0.75f));
+
     // Register the closest Minotaur in the shared context
     m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
     m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
@@ -208,7 +217,7 @@ void PlayState::Enter()
         glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
         transform->SetPosition(newPosition);
     }
-    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+    wolf::EventManager::EnqueueEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
 
     // Stop all audio and begin the maze music
     wolf::Audio::Stop();
@@ -219,15 +228,6 @@ void PlayState::Enter()
     {
         m_pPathfindingManager->RegisterEntity(minitaur.GetGameObject()); 
     }
-
-    // Add a test light to the player
-    wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 125.0f, true);
-    m_pPlayerObject->AddChild(*pLightGO);
-    pLightComponent.Init();
-
-    // Make Ariadne's light pink because I can (Aurora)
-    ariadne.GetChildren().front()->GetComponent<LightComponent>()->SetColor(glm::vec4(1.0f, 0.41f, 0.70f, 0.75f));
     
     // Now it's safe to register entities
     for (auto&& [_, gorgon] : m_pGameInstance->GetScene().Each<GorgonController>())
@@ -911,11 +911,79 @@ void PlayState::BackgroundUpdate(float delta)
 {
     if (m_showLabyrinthManager) 
         m_pLabyrinthManager->ShowGUI();
+    
+    // Update the lights in the scene
+    for (auto&& [_, LightComponent] : m_pGameInstance->GetScene().Each<LightComponent>()) {
+        LightComponent.Update(delta);
+    }
 }
 
 void PlayState::BackgroundRender(float delta)
 {
+    LightComponent::ClearFBO();
+
+    wolf::Scene* scene = &m_pGameInstance->GetScene();
+    wolf::Camera2D* camera = scene->GetActiveCamera();
+    if(camera != nullptr)
+    {
+        glm::vec2 viewSize = camera->GetViewSize();
+        m_pFBO->SetTexSize(viewSize.x, viewSize.y);
+        m_pFBO->SetWindowSize(viewSize.x, viewSize.y);
+    }
+
+    // Bind framebuffer for rendering scene - leave out UI elements
+    m_pFBO->Bind();
+
     m_pGameInstance->GetScene().Render(delta);
+
+    // Bind the lighting FBO
+    LightComponent::BindFBOAndBlendFunc();
+
+    // Render light geometry to the lights' shared FBO
+    for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
+        lightComp.RenderLightToFBO();
+    }
+
+    // Unbind the lighting FBO
+    LightComponent::UnbindFBOAndBlendFunc();
+
+    // Blend the light FBO with the screen
+    LightComponent::BlendFBOAndScreen();
+    
+    // Bind to default framebuffer(screen)
+    wolf::FrameBuffer::BindDefault();
+
+    // Query postprocessing effects based on current active status effects of player
+    std::vector<Postprocessor::Effect> effects;
+    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
+    {
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
+        {
+            effects.push_back(Postprocessor::Effect::BURNING);
+        }
+        
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
+        {
+            effects.push_back(Postprocessor::Effect::POISONED);
+        }
+
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+        {
+            effects.push_back(Postprocessor::Effect::GRAYSCALE);
+        }
+        break;
+    }
+
+    // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
+    if(effects.size() > 0)
+    {
+        Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), effects);
+    }
+    // If not, copy texture to screen
+    else
+    {
+        m_pFBO->Blit();
+    }
 }
 
 void PlayState::CreatePlayer()
