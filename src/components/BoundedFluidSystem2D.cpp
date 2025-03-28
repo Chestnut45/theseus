@@ -295,6 +295,7 @@ void BoundedFluidSystem2D::Render(float delta)
     GLint currentDrawFBO;
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentDrawFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, s_framebuffer);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     glBindVertexArray(s_quadVAO);
     glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_particles.size());
