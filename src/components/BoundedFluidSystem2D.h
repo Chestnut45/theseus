@@ -159,7 +159,7 @@ private:
     // Simulation parameters
     float m_boundEpsilon = m_kernelRadius / 2;
     float m_boundDamping = -0.5f;
-    int m_numParticlesToSpawn;
+    int m_numParticlesToSpawn = 0;
     bool m_simulateGravity = false;
     glm::vec2 m_gravity{0.0f, -9.81f};
 

@@ -286,7 +286,7 @@ void PlayState::Resume()
 }
 
 void PlayState::Update(float delta)
-{
+{   
     auto* pCamera = m_pGameInstance->GetScene().GetActiveCamera();
     if (pCamera && m_bossZoomTimer.IsRunning())
     {

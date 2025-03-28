@@ -271,7 +271,7 @@ void BoundedFluidSystem2D::Update(float delta)
 }
 
 void BoundedFluidSystem2D::Render(float delta)
-{
+{   
     // Upload particle data to SSBO
     // TODO: Could switch to a persistently mapped buffer with double buffering for better perf
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, s_particleSSBO);
@@ -310,6 +310,23 @@ void BoundedFluidSystem2D::Render(float delta)
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glBindVertexArray(0);
     glDisable(GL_BLEND);
+
+    // GLenum errorCode;
+    // while ((errorCode = glGetError()) != GL_NO_ERROR)
+    // {
+    //     std::string error;
+    //     switch (errorCode)
+    //     {
+    //         case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
+    //         case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
+    //         case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
+    //         case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
+    //         case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
+    //         case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
+    //         case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+    //     }
+    //     wolf::Log("ERROR: ", error);
+    // }
 }
 
 void BoundedFluidSystem2D::ApplyRadialForce(const glm::vec2& position, float radius, float strength)
