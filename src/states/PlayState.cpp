@@ -200,7 +200,7 @@ void PlayState::Enter()
 
     // Add a test light to the player
     wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 125.0f, true);
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 200.0f, true);
     m_pPlayerObject->AddChild(*pLightGO);
     pLightComponent.Init();
 
@@ -360,8 +360,8 @@ void PlayState::Update(float delta)
         if (playerRolling) system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 50.0f, 1000.0f * delta);
 
         // DEBUG: Show editor and break after updating one system
-        // system.ShowEditor();
-        // break;
+        system.ShowEditor();
+        break;
     }
     
     // Update the labyrinth manager
