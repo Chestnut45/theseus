@@ -1,5 +1,7 @@
 #include "theseus.h"
 
+#include <LightComponent.h>
+
 #include <BoundedFluidSystem2D.h>
 
 // Application entrypoint
@@ -39,6 +41,7 @@ void Theseus::Update(float delta)
         // Update camera's size to match the window
         wolf::Camera2D* camera = m_scene.GetActiveCamera();
         if (camera) camera->SetViewSize(m_width, m_height);
+        LightComponent::ResizeFBO(m_width, m_height);
 
         // Update fluid system framebuffer
         BoundedFluidSystem2D::ResizeFramebuffer(m_width, m_height);

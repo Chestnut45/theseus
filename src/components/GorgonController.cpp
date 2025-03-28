@@ -13,6 +13,7 @@
 #include "../DDACalculator.h"
 
 #include <cassert>
+#include <LightEvents.h>
 
 GorgonController::GorgonController()
 {
@@ -499,6 +500,7 @@ void GorgonController::HandleChasingState(float delta)
             IsTargetInLOS()                                                                                     // If target in line of sight
         )
         {
+            wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), true));
             ChangeState(EnemyState::ATTACKING);
             return;
         }
@@ -542,6 +544,7 @@ void GorgonController::HandleAttackingState(float delta)
             m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
         }
         
+        wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), false));
         ChangeState(EnemyState::CHASING);
         return;
     }
