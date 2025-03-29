@@ -17,6 +17,7 @@
 #include "W_Transform2D.h"
 #include "AnimatedSprite2D.h"
 #include <BoundedFluidSystem2D.h>
+#include <LightComponent.h>
 #include <W_Input.h>
 
 #include "../src/components/ColliderComponent.h"
@@ -152,6 +153,9 @@ void Scene::Render(float delta)
     std::map<int, std::vector<std::pair<AnimatedSprite2D*, Transform2D*>>> sortedAnimatedSprites;
     for (auto&&[_, sprite, transform] : Each<AnimatedSprite2D, Transform2D>())
     {
+        // Ignore sprites with light objects in their hierarchy for the main scene pass
+        if (sprite.GetGameObject()->HasAnyRecursive<LightComponent>()) continue;
+
         int layer = sprite.GetLayer();
 
         // Add new spritebatch if it doesn't exist

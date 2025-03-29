@@ -311,22 +311,15 @@ void BoundedFluidSystem2D::Render(float delta)
     glBindVertexArray(0);
     glDisable(GL_BLEND);
 
-    // GLenum errorCode;
-    // while ((errorCode = glGetError()) != GL_NO_ERROR)
-    // {
-    //     std::string error;
-    //     switch (errorCode)
-    //     {
-    //         case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
-    //         case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
-    //         case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
-    //         case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
-    //         case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
-    //         case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
-    //         case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
-    //     }
-    //     wolf::Log("ERROR: ", error);
-    // }
+    // NOTE: This is a workaround for a potential driver bug(?) in Mesa 24.2.8-1ubuntu1~24.04.1
+    // Normally a texture barrier should be enough to do read-after-writes on framebuffer attachments,
+    // but I experience frequent freezing on iris XE graphics without doing a full manual sync here,
+    // and every other machine / OS combo I have tested does not have the same issue...
+    // TODO: Investigate more if we have time
+    GLsync fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    GLenum result;
+    do { result = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT, 1); }
+    while (result == GL_TIMEOUT_EXPIRED);
 }
 
 void BoundedFluidSystem2D::ApplyRadialForce(const glm::vec2& position, float radius, float strength)

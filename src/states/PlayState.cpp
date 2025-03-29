@@ -200,7 +200,7 @@ void PlayState::Enter()
 
     // Add a test light to the player
     wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 200.0f, true);
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 125.0f, true);
     m_pPlayerObject->AddChild(*pLightGO);
     pLightComponent.Init();
 
@@ -827,71 +827,8 @@ void PlayState::Update(float delta)
 
 void PlayState::Render(float delta)
 {
-    LightComponent::ClearFBO();
-
-    wolf::Scene* scene = &m_pGameInstance->GetScene();
-    wolf::Camera2D* camera = scene->GetActiveCamera();
-    if(camera != nullptr)
-    {
-        glm::vec2 viewSize = camera->GetViewSize();
-        m_pFBO->SetTexSize(viewSize.x, viewSize.y);
-        m_pFBO->SetWindowSize(viewSize.x, viewSize.y);
-    }
-
-    // Bind framebuffer for rendering scene - leave out UI elements
-    m_pFBO->Bind();
-
-    // Render the game's scene
-    m_pGameInstance->GetScene().Render(delta);
-
-    // Bind the lighting FBO
-    LightComponent::BindFBOAndBlendFunc();
-
-    // Render light geometry to the lights' shared FBO
-    for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
-        lightComp.RenderLightToFBO();
-    }
-
-    // Unbind the lighting FBO
-    LightComponent::UnbindFBOAndBlendFunc();
-
-    // Blend the light FBO with the screen
-    LightComponent::BlendFBOAndScreen();
-    
-    // Bind to default framebuffer(screen)
-    wolf::FrameBuffer::BindDefault();
-
-    // Query postprocessing effects based on current active status effects of player
-    std::vector<Postprocessor::Effect> effects;
-    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
-    {
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
-        {
-            effects.push_back(Postprocessor::Effect::BURNING);
-        }
-        
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
-        {
-            effects.push_back(Postprocessor::Effect::POISONED);
-        }
-
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
-        {
-            effects.push_back(Postprocessor::Effect::GRAYSCALE);
-        }
-        break;
-    }
-
-    // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
-    if(effects.size() > 0)
-    {
-        Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), effects);
-    }
-    // If not, copy texture to screen
-    else
-    {
-        m_pFBO->Blit();
-    }
+    // All of the background render code is done here anyway, might as well not duplicate it
+    BackgroundRender(delta);
 
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
@@ -948,6 +885,7 @@ void PlayState::BackgroundRender(float delta)
     // Bind framebuffer for rendering scene - leave out UI elements
     m_pFBO->Bind();
 
+    // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
 
     // Bind the lighting FBO
@@ -963,6 +901,33 @@ void PlayState::BackgroundRender(float delta)
 
     // Blend the light FBO with the screen
     LightComponent::BlendFBOAndScreen();
+
+    // Build map of animated sprites to render by layer
+    std::map<int, std::vector<std::pair<AnimatedSprite2D*, wolf::Transform2D*>>> sortedAnimatedSprites;
+    for (auto&&[_, sprite, transform] : m_pGameInstance->GetScene().Each<AnimatedSprite2D, wolf::Transform2D>())
+    {
+        // Ignore sprites that do not have light objects in their hierarchy -
+        // they've already been rendered in the main scene pass!
+        if (!sprite.GetGameObject()->HasAnyRecursive<LightComponent>()) continue;
+        
+        int layer = sprite.GetLayer();
+
+        // Add new spritebatch if it doesn't exist
+        if (!sortedAnimatedSprites.contains(layer)) sortedAnimatedSprites[layer] = {};
+
+        // Push back the next sprite
+        sortedAnimatedSprites[layer].push_back(std::make_pair<AnimatedSprite2D*, wolf::Transform2D*>(&sprite, &transform));
+    }
+
+    // Render all animated sprites in order
+    for (auto iter = sortedAnimatedSprites.begin(); iter != sortedAnimatedSprites.end(); ++iter)
+    {
+        auto& batch = iter->second;
+        for (auto& pair : batch)
+        {
+            pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
+        }
+    }
     
     // Bind to default framebuffer(screen)
     wolf::FrameBuffer::BindDefault();
