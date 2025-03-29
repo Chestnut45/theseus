@@ -10,6 +10,7 @@
 //-----------------------------------------------------------------------------
 
 #include <unordered_map>
+#include <LightComponent.h>
 
 NPCBuilder* NPCBuilder::m_pInstance = nullptr;
 wolf::Scene* NPCBuilder::m_pScene = nullptr;
@@ -192,6 +193,12 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
         return nullptr;
     }
 
+    // Finally, attach a LightComponent
+    wolf::GameObject* pLightGO = &m_pScene->CreateObject2D();
+    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.39f, 0.39f, 0.39f, 0.75f), 75.0f, true);
+    pConstructedNPC->AddChild(*pLightGO);
+    pLightComp->Init();
+
     // If nothing went wrong, we're good to return the GameObject
     return pConstructedNPC;
 }
@@ -245,6 +252,12 @@ wolf::GameObject* NPCBuilder::BuildRandomNPC() {
         wolf::Error("YAML: Issue with ", NPC_DIRECTORY_PATH, ": ", e.what());
         return nullptr;
     }
+
+    // Finally, attach a LightComponent
+    wolf::GameObject* pLightGO = &m_pScene->CreateObject2D();
+    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.39f, 0.39f, 0.3f, 0.75f), 75.0f, true);
+    pRandomNPC->AddChild(*pLightGO);
+    pLightComp->Init();
 
     // And return what we created (note that if the BuildNPC method ran into an error, this will return nullptr)
     return pRandomNPC;
