@@ -6,6 +6,7 @@
 
 
 #include "Postprocessor.h"
+#include "components/LabyrinthManager.h"
 #include <VertexDeclarations.h>
 
 const std::vector<TexturedVertex2D> vertices = 
@@ -255,38 +256,26 @@ void Postprocessor::HandleHeatDistortionEffect(GLuint p_tex)
     m_pWriteFBO->Bind();
 
     // Buffer the SSBO with fire tile data & bind for rendering
+    const float scaledTileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    const float offset = scaledTileSize * 0.5f;
     std::vector<glm::vec2> positions = {glm::vec2(4800.0f, 192.0f), glm::vec2(4896.0f, 192.0f)};
+
+    for(int i = 0; i < positions.size(); i++)
+    {
+        positions.at(i) = positions.at(i) + glm::vec2(offset, offset);
+    }
+
+
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_uiHeatDistortionSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, positions.size() * sizeof(glm::vec2), positions.data(), GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_uiHeatDistortionSSBO);
 
     // Set up the program for the heat distortion effect
     wolf::Program* program = m_vShaderPrograms.at(Effect::HEAT_DISTORTION);
-
-    float radius = 0.1f;
-    float screenspaceRadius = radius * camera->GetZoom() * viewportSize.y / 2.0;
-
-    glm::vec2 point1World = glm::vec2(0.0f, 0.0f); // First point in world space
-    glm::vec2 point2World = glm::vec2(96.0f, 0.0f);; // Second point in world space
-    glm::mat4 viewProjectionMatrix = camera->GetMatrix();
     
-    // Transform points to clip space
-    glm::vec4 point1Clip = viewProjectionMatrix * glm::vec4(point1World.x, point1World.y, 0, 1);
-    glm::vec4 point2Clip = viewProjectionMatrix * glm::vec4(point2World.x, point2World.y, 0, 1);
+    float screenspaceRadius = std::sqrt(std::pow(48.0f, 2) * 2.0f) * camera->GetZoom();
 
-    // Convert to NDC
-    glm::vec3 point1NDC = glm::vec3(point1Clip.x / point1Clip.w, point1Clip.y / point1Clip.w, point1Clip.z / point1Clip.w);
-    glm::vec3 point2NDC = glm::vec3(point2Clip.x / point2Clip.w, point2Clip.y / point2Clip.w, point2Clip.z / point2Clip.w);
-
-    // Map NDC to screen space
-    glm::vec2 point1Screen = glm::vec2((point1NDC.x + 1) * 0.5f * viewportSize.x, (1 - (point1NDC.y + 1) * 0.5f) * viewportSize.y);
-    glm::vec2 point2Screen = glm::vec2((point2NDC.x + 1) * 0.5f * viewportSize.x, (1 - (point2NDC.y + 1) * 0.5f) * viewportSize.y);
-
-    // Calculate distance in screen space
-    float distanceScreen = glm::distance(point1Screen, point2Screen);
-
-    // Apply zoom if necessary
-    distanceScreen *= camera->GetZoom();
+// Adjust the screenspaceRadius to be in pixels
     
     program->SetUniform("amplitude", 0.01f);
     program->SetUniform("frequency", (float)M_PI * 3.0f);
