@@ -378,9 +378,11 @@ void InventoryComponent::EmptyInventory() {
         while (!it->empty()) {
             ItemBase* pNextItem = it->top();
             delete pNextItem;
+            
             it->pop();
         }
     }
+    printf("-----\n");
 
     // Our inventory is empty now so we're not using any of the slots
     m_iSlotsInUse = 0;
