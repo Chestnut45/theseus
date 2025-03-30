@@ -161,6 +161,9 @@ void PlayerController::LateInitialize()
 
     m_attackTimer.Start();
 
+    // Create Placing Shadow Obj
+    m_pPlacingShadowObj = &pGameObject->GetScene().CreateObject2D();
+
     InitializeAnimations();
 
     // !-- Aurora added this --!

@@ -274,6 +274,7 @@ private:
     bool m_bIsPlaced = false;
     int m_iPlaceablePlacingRange = 2;    // How far the player can place a placeable (in terms of tiles)
     int m_iPlaceableCollectingRange = 2; // How far the player can collect a placeable (in terms of tiles)
+    wolf::GameObject* m_pPlacingShadowObj = nullptr;
 
     // Death screen related variables
     wolf::Timer m_runtimeTimer;
