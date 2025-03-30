@@ -165,21 +165,29 @@ PortalTileManager::~PortalTileManager()
     m_pPlayer = nullptr;
 }
 
+// Explanation:
+//  RetrievePlaceableEvent is triggered by collecting a portal and PlayerInventory successfully added a portal item, thus triggering DestroyPlaceableEvent and this method is called
+//  The method deletes the portal tile marked by the removal index (and its sibling, if any), then it sets the removal index to -2
+//  If a portal has a sibling, then RetrievePlaceableEvent is also triggered for the sibling
+//  When this method is called for a sibling tile, the removal index is already set to -2, and thus the method will do nothing, avoiding double deltion
+
 void PortalTileManager::HandleDestroyPlaceableEvent(const DestroyPlaceableEvent& p_event)
 {
     if(p_event.pcTpye != PlaceableType::PORTAL) return;
-    
+
+    // Deleate available portal tile
     if(m_iRemovalIndex == -1)
     {
         PortalTile::DeleteAvailablePortalTile(this->m_pAvailablePortalTile);
         this->m_pAvailablePortalTile = nullptr;
     }
+
+    // Delete portal tile & sibling
     else if(m_iRemovalIndex >= 0)
     {
         PortalTile::DeletePortalAndSibling(m_vPortalTiles.at(m_iRemovalIndex));
         m_vPortalTiles.erase(m_vPortalTiles.begin() + m_iRemovalIndex);
     }
-
 
     m_iRemovalIndex = -2;
     return;
