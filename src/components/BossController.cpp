@@ -39,6 +39,7 @@
 
 #include <events/GameWinEvent.h>
 #include <BoundedFluidSystem2D.h>
+#include <LightComponent.h>
 
 BossController::BossController()
 {
@@ -204,6 +205,13 @@ void BossController::Init()
         // Create collider
         auto& collider = pillar.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, false, false);
         collider.AddColliderBox(glm::vec2(96.0f), glm::vec2(0.0f, 96.0f));
+
+        // Add a light
+        LightComponent& light = GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.8f), 100.0f, true);
+        pillar.AddChild(*light.GetGameObject());
+        light.Init();
+        light.SetIgnoreWallTiles(true);
+        light.GetGameObject()->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(16, 16));
     }
     
     // Find player controller
@@ -233,26 +241,32 @@ void BossController::Init()
     wolf::Sprite2D& sprite = m_pShadowObject->AddComponent<wolf::Sprite2D>("data/textures/boss_shadow.png");
     sprite.SetOriginToCenterOfTexture();
 
+    // Add a light
+    LightComponent& light = GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.8f), 150.0f, true);
+    GetGameObject()->AddChild(*light.GetGameObject());
+    light.Init();
+    light.SetIgnoreWallTiles(true);
+
     // Calculate simulation bounds
-    auto simBounds = wolf::Rectangle(r);
-    simBounds.m_top *= 96;
-    simBounds.m_left *= 96;
-    simBounds.m_right *= 96;
-    simBounds.m_bottom *= 96;
+    // auto simBounds = wolf::Rectangle(r);
+    // simBounds.m_top *= 96;
+    // simBounds.m_left *= 96;
+    // simBounds.m_right *= 96;
+    // simBounds.m_bottom *= 96;
 
-    // Create the fluid system
-    auto& fluidObj = pObject->GetScene().CreateObject2D();
-    auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds, 1000);
-    fluidSystem.SetupDamBreak();
+    // // Create the fluid system
+    // auto& fluidObj = pObject->GetScene().CreateObject2D();
+    // auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds, 1000);
+    // fluidSystem.SetupDamBreak();
 
-    // TODO: Add pillars... (breaking?)
-    auto rect = wolf::Rectangle(0.0f, 96.0f, 96.0f, 0.0f);
-    for (const auto& tile : locations)
-    {
-        auto bounds = rect;
-        bounds.Translate(m_pLabyrinthManager->GetWorldPosition(tile));
-        fluidSystem.AddStaticCollisionRect(bounds);
-    }
+    // // TODO: Add pillars... (breaking?)
+    // auto rect = wolf::Rectangle(0.0f, 96.0f, 96.0f, 0.0f);
+    // for (const auto& tile : locations)
+    // {
+    //     auto bounds = rect;
+    //     bounds.Translate(m_pLabyrinthManager->GetWorldPosition(tile));
+    //     fluidSystem.AddStaticCollisionRect(bounds);
+    // }
 
     EnterPhase1();
 }

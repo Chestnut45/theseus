@@ -247,7 +247,7 @@ void LightComponent::Update(float p_fDelta) {
                 }
 
                 // Check if the rectangle is part of a wall
-                if (CheckForWallAtPos({(v2TopLeft.x + v2BotRight.x) * 0.5f, (v2TopLeft.y + v2BotRight.y) * 0.5f})) {
+                if (!m_ignoreWallTiles && CheckForWallAtPos({(v2TopLeft.x + v2BotRight.x) * 0.5f, (v2TopLeft.y + v2BotRight.y) * 0.5f})) {
 
                     // If it is, we want to make a rectangle for each individual tile within it.
                     // To do that, we get the width and height of the rectangle...

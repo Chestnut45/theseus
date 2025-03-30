@@ -46,6 +46,9 @@ class LightComponent : public wolf::BaseComponent {
         inline bool IsOn() const {return m_bIsOn;};
         inline void SetOn(bool p_bIsOn) {m_bIsOn = p_bIsOn;};
 
+        inline bool IsIgnoreWallTiles() const { return m_ignoreWallTiles; }
+        inline void SetIgnoreWallTiles(bool value) { m_ignoreWallTiles = value; }
+
         void RenderLightToFBO();
         static void BlendFBOAndScreen();
         static void ClearFBO();
@@ -109,6 +112,9 @@ class LightComponent : public wolf::BaseComponent {
 
         // Toggle variable for turning the light on/off
         bool m_bIsOn;
+
+        // Flag for whether the light should ignore wall tiles
+        bool m_ignoreWallTiles = false;
 
         // Pointer to the scene this light is in
         wolf::Scene* m_pScene = nullptr;
