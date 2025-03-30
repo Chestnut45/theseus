@@ -119,7 +119,6 @@ PlayerInventoryComponent::PlayerInventoryComponent(int p_iSize, int p_iSlotsPerR
 
 PlayerInventoryComponent::~PlayerInventoryComponent() {
     // Empty each of the stacks in the contents vector
-    printf("PI\n");
     this->EmptyInventory();
 
     // Then delete the contents vector itself

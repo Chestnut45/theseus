@@ -168,28 +168,18 @@ PortalTileManager::~PortalTileManager()
 void PortalTileManager::HandleDestroyPlaceableEvent(const DestroyPlaceableEvent& p_event)
 {
     if(p_event.pcTpye != PlaceableType::PORTAL) return;
-
-    if(m_pAvailablePortalTile != nullptr && m_pAvailablePortalTile->GetTilePos() == p_event.tilePos)
-    {
-        PortalTile::DeleteAvailablePortalTile(m_pAvailablePortalTile);
-        m_pAvailablePortalTile = nullptr;
-
-        m_iRemovalIndex = -2;
-        return;
-    }
     
-    for(int i = 0; i < m_vPortalTiles.size(); i++)
+    if(m_iRemovalIndex == -1)
     {
-        PortalTile* pt1 = m_vPortalTiles.at(i);
-        
-        if(pt1->GetTilePos() == p_event.tilePos)
-        {
-            
-            PortalTile::DeletePortalAndSibling(pt1);
-            m_vPortalTiles.erase(m_vPortalTiles.begin() + m_iRemovalIndex);
-            break;
-        }
+        PortalTile::DeleteAvailablePortalTile(this->m_pAvailablePortalTile);
+        this->m_pAvailablePortalTile = nullptr;
     }
+    else if(m_iRemovalIndex >= 0)
+    {
+        PortalTile::DeletePortalAndSibling(m_vPortalTiles.at(m_iRemovalIndex));
+        m_vPortalTiles.erase(m_vPortalTiles.begin() + m_iRemovalIndex);
+    }
+
 
     m_iRemovalIndex = -2;
     return;

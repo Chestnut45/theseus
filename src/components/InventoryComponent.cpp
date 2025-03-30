@@ -382,7 +382,6 @@ void InventoryComponent::EmptyInventory() {
             it->pop();
         }
     }
-    printf("-----\n");
 
     // Our inventory is empty now so we're not using any of the slots
     m_iSlotsInUse = 0;
