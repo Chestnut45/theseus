@@ -146,7 +146,7 @@ void Scene::Render(float delta)
     // Render fluid systems
     for (auto&&[_, system] : Each<BoundedFluidSystem2D>())
     {
-        system.Render(delta);
+        if (!system.IsIgnoreLighting()) system.Render(delta);
     }
 
     // Build map of animated sprites to render by layer

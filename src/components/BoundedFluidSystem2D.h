@@ -7,6 +7,10 @@
 // A game component representing a bounded 2D particle-based fluid simulation
 //-----------------------------------------------------------------------------
 
+// TODO: Look into multithreading - either parallel for through grid
+// cells, or give the fluid systems their own thread so they can at
+// least run at the same time as the other expensive game logic
+
 #include <vector>
 
 #include <unordered_map>
@@ -41,6 +45,15 @@ struct FluidParticle
         m_pressure(0.0f)
     {
     }
+};
+
+struct Spout
+{
+    glm::vec2 m_pos{0.0f};
+    float m_lifetime = 0.0f;
+    float m_lifespan = 5.0f;
+    float m_spawnRate = 1.0f;
+    float m_spawnTimer = 0.0f;
 };
 
 // Game component representing a bounded 2D particle-based fluid simulation
@@ -84,6 +97,10 @@ public:
     // TODO: Support more than AABBs
     void AddStaticCollisionRect(const wolf::Rectangle& rect);
 
+    // Adds a spout that will spawn particles for the given lifespan in seconds
+    // TODO: Add options for randomized or set velocities?
+    void AddTimedSpout(const glm::vec2& position, float lifespan, int particlesPerSecond);
+
     // Set / Get the number of particles to spawn
     void SetNumParticles(int value) { m_numParticlesToSpawn = value; }
     int GetNumParticles() const { return m_numParticlesToSpawn; }
@@ -111,6 +128,10 @@ public:
     // Set / Get the frequency of the wave caustics [0, 1]
     void SetCausticFrequency(float frequency) { m_causticFrequency = frequency; }
     float GetCausticFrequency() const { return m_causticFrequency; }
+    
+    // If true, the fluid will be rendered after the lighting
+    bool IsIgnoreLighting() const { return m_ignoreLighting; }
+    void SetIgnoreLighting(bool value) { m_ignoreLighting = value; }
 
     // Renders a debug GUI for controlling the simulation
     void ShowEditor();
@@ -120,7 +141,6 @@ private:
     // Simulation data
     wolf::RNG m_rng;
     wolf::Rectangle m_bounds;
-    std::vector<wolf::Rectangle> m_collisionRects;
     std::vector<FluidParticle> m_particles;
     float m_simTime = 0.0f;
     float m_elapsedTime = 0.0f;
@@ -131,6 +151,11 @@ private:
     glm::vec4 m_waveColor{0.8f, 0.886f, 0.941f, 0.745f};
     glm::vec4 m_causticColor{0.936f, 0.836f, 0.757f, 0.827f};
     float m_causticFrequency = 0.5f;
+    bool m_ignoreLighting = false;
+
+    // Special interaction data
+    std::vector<wolf::Rectangle> m_collisionRects;
+    std::vector<Spout> m_spouts;
 
     // Spatial hashing optimization structure
     // NOTE: Maps each grid cell to a list of particle indices contained in the cell
@@ -157,9 +182,9 @@ private:
     float m_viscLaplacian = 40.0f / (M_PI * pow(m_kernelRadius, 5.0f));
 
     // Simulation parameters
+    int m_numParticlesToSpawn = 0; // TODO: Remove
     float m_boundEpsilon = m_kernelRadius / 2;
     float m_boundDamping = -0.5f;
-    int m_numParticlesToSpawn = 0;
     bool m_simulateGravity = false;
     glm::vec2 m_gravity{0.0f, -9.81f};
 

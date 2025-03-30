@@ -101,6 +101,29 @@ void BoundedFluidSystem2D::Update(float delta)
     // Reset counter if we step this frame
     m_elapsedTime = 0.0f;
 
+    // Update spouts
+    for (int i = 0; i < m_spouts.size(); ++i)
+    {
+        auto& spout = m_spouts[i];
+        spout.m_lifetime += m_targetFrametime;
+        spout.m_spawnTimer += m_targetFrametime;
+        
+        // Spawn new particles
+        while (spout.m_spawnTimer > spout.m_spawnRate)
+        {
+            spout.m_spawnTimer -= spout.m_spawnRate;
+            glm::vec2 randomOffset = glm::vec2(m_rng.NextFloat(-0.01f, 0.01f), m_rng.NextFloat(-0.01f, 0.01f));
+            SpawnParticle(spout.m_pos + randomOffset, randomOffset);
+        }
+
+        // Delete spouts that are done
+        if (spout.m_lifetime >= spout.m_lifespan)
+        {
+            m_spouts.erase(m_spouts.begin() + i);
+            i--;
+        }
+    }
+
     static const glm::ivec2 adjacentCellOffsets[] = {
         glm::ivec2(-1, 0),
         glm::ivec2(-1, -1),
@@ -351,6 +374,15 @@ void BoundedFluidSystem2D::SpawnParticle(const glm::vec2& pos, const glm::vec2& 
 void BoundedFluidSystem2D::AddStaticCollisionRect(const wolf::Rectangle& rect)
 {
     m_collisionRects.push_back(rect);
+}
+
+void BoundedFluidSystem2D::AddTimedSpout(const glm::vec2& position, float lifespan, int particlesPerSecond)
+{
+    Spout spout;
+    spout.m_pos = position;
+    spout.m_lifespan = lifespan;
+    spout.m_spawnRate = 1.0f / particlesPerSecond;
+    m_spouts.push_back(spout);
 }
 
 void BoundedFluidSystem2D::SetParticleRadius(float radius)

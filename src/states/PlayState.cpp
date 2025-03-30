@@ -902,6 +902,12 @@ void PlayState::BackgroundRender(float delta)
     // Blend the light FBO with the screen
     LightComponent::BlendFBOAndScreen();
 
+    // Render fluid systems
+    for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
+    {
+        if (system.IsIgnoreLighting()) system.Render(delta);
+    }
+
     // Build map of animated sprites to render by layer
     std::map<int, std::vector<std::pair<AnimatedSprite2D*, wolf::Transform2D*>>> sortedAnimatedSprites;
     for (auto&&[_, sprite, transform] : m_pGameInstance->GetScene().Each<AnimatedSprite2D, wolf::Transform2D>())
@@ -1300,12 +1306,18 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             // Create the fluid system
             auto& fluidObj = m_pGameInstance->GetScene().CreateObject2D();
             auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds, 500);
+            fluidSystem.SetParticleRadius(45);
 
-            // Setup in dam break
-            // TODO: Spawn over time!
-            fluidSystem.SetupDamBreak();
+            // Edit poison colors
+            fluidSystem.SetFluidColor(glm::vec4(0.4f, 0.01, 0.45f, 0.75f));
+            fluidSystem.SetWaveColor(glm::vec4(0.7f, 0.05f, 0.6f, 0.75f));
+            fluidSystem.SetCausticColor(glm::vec4(0.7f, 0.05f, 0.6f, 0.75f));
+            fluidSystem.SetCausticFrequency(0.4f);
 
-            // TODO: Remove after a short time (or settle)
+            // Add a timed spout to spawn poison!
+            fluidSystem.AddTimedSpout(glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2), 2.0f, 60);
+
+            m_pLabyrinthManager->GetGameObject()->AddChild(fluidObj);
 
             break;
         }
@@ -1337,15 +1349,15 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
             // Edit lava colors
             fluidSystem.SetFluidColor(glm::vec4(1.0f, 0.353, 0.0f, 0.918f));
-            fluidSystem.SetWaveColor(glm::vec4(1.0f, 0.353, 0.0f, 0.918f));
-            fluidSystem.SetCausticColor(glm::vec4(1.0f, 0.353, 0.0f, 0.918f));
-            fluidSystem.SetCausticFrequency(0.234f);
+            fluidSystem.SetWaveColor(glm::vec4(1.0f, 0.453, 0.0f, 0.918f));
+            fluidSystem.SetCausticColor(glm::vec4(1.0f, 0.553, 0.0f, 0.918f));
+            fluidSystem.SetCausticFrequency(0.5f);
+            fluidSystem.SetIgnoreLighting(true);
 
-            // Setup in dam break
-            // TODO: Spawn over time!
-            fluidSystem.SetupDamBreak();
+            // Add a timed spout to spawn lava!
+            fluidSystem.AddTimedSpout(glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2), 2.0f, 240);
 
-            // TODO: Remove after a short time (or settle)
+            m_pLabyrinthManager->GetGameObject()->AddChild(fluidObj);
 
             break;
         }
