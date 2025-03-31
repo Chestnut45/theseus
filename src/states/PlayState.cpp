@@ -875,7 +875,11 @@ void PlayState::Render(float delta)
         break;
     }
 
-    bool test = true;
+    if(
+        TileFireManager::GetInstance()->GetBurningFireTilesCount() > 0)
+        {    
+            effects.push_back(Postprocessor::Effect::HEAT_DISTORTION);
+        }
 
     // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
     if(effects.size() > 0)
@@ -885,15 +889,8 @@ void PlayState::Render(float delta)
     // If not, copy texture to screen
     else
     {
-        if(test)
-        {
-            std::vector<Postprocessor::Effect> hd = {Postprocessor::Effect::HEAT_DISTORTION};
-            Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), hd);
-        }
-        else
-        {
-            m_pFBO->Blit();
-        }
+        m_pFBO->Blit();
+        
     }
 
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();

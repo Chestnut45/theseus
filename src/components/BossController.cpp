@@ -232,7 +232,7 @@ void BossController::Init()
     wolf::Sprite2D& sprite = m_pShadowObject->AddComponent<wolf::Sprite2D>("data/textures/boss_shadow.png");
     sprite.SetOriginToCenterOfTexture();
 
-    EnterPhase1();
+    EnterPhase3();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->

@@ -7,6 +7,7 @@
 
 #include "Postprocessor.h"
 #include "components/LabyrinthManager.h"
+#include "TileFireManager.h"
 #include <VertexDeclarations.h>
 
 const std::vector<TexturedVertex2D> vertices = 
@@ -242,46 +243,57 @@ void Postprocessor::HandleGrayscaleEffect(GLuint p_tex)
     wolf::FrameBuffer::BindDefault();
 }
 
+
+// Specifically for tile fires
 void Postprocessor::HandleHeatDistortionEffect(GLuint p_tex)
 {
+    std::cout << "BFTC: " << TileFireManager::GetInstance()->GetBurningFireTilesCount() << std::endl;
+    if(TileFireManager::GetInstance()->GetBurningFireTilesCount() <= 0) 
+    {
+        HandleNoneEffect(p_tex);
+        return;
+    }
+    std::vector<glm::ivec2> tilePositions = TileFireManager::GetInstance()->GetFireTilePositions(0);
+    if(tilePositions.size() <= 0) 
+    {
+        HandleNoneEffect(p_tex);
+        return;
+    }
+    const float scaledTileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    const float offset = scaledTileSize * 0.5f;
+    
+    std::vector<glm::vec2> positions;
+    for(int i = 0; i < tilePositions.size(); i++)
+    {
+        positions.push_back(glm::vec2(tilePositions.at(i).x * scaledTileSize, tilePositions.at(i).y * scaledTileSize));
+    }
+
     wolf::Camera2D* camera = m_pScene->GetActiveCamera();
     if(camera == nullptr)
     {
         return;
     }
-
+    const float zoom = camera->GetZoom();
     glm::vec2 viewportSize = camera->GetViewSize();
 
     // Bind the framebuffer whose texture will be rendered to
     m_pWriteFBO->Bind();
 
     // Buffer the SSBO with fire tile data & bind for rendering
-    const float scaledTileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
-    const float offset = scaledTileSize * 0.5f;
-    std::vector<glm::vec2> positions = {glm::vec2(4800.0f, 192.0f), glm::vec2(4896.0f, 192.0f)};
-
-    for(int i = 0; i < positions.size(); i++)
-    {
-        positions.at(i) = positions.at(i) + glm::vec2(offset, offset);
-    }
-
-
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_uiHeatDistortionSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, positions.size() * sizeof(glm::vec2), positions.data(), GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_uiHeatDistortionSSBO);
 
     // Set up the program for the heat distortion effect
     wolf::Program* program = m_vShaderPrograms.at(Effect::HEAT_DISTORTION);
-    
-    float screenspaceRadius = std::sqrt(std::pow(48.0f, 2) * 2.0f) * camera->GetZoom();
 
 // Adjust the screenspaceRadius to be in pixels
     
-    program->SetUniform("amplitude", 0.01f);
-    program->SetUniform("frequency", (float)M_PI * 3.0f);
-    program->SetUniform("screenspaceRadius", screenspaceRadius);
-    program->SetUniform("time", (float)(m_timer.Elapsed()) * 6.0f);
+    program->SetUniform("amplitude", 0.01f * zoom);
+    program->SetUniform("frequency", (float)M_PI * 3.0f / zoom);
+    program->SetUniform("time", (float)(m_timer.Elapsed()) * 8.0f);
     program->SetUniform("viewportSize", glm::vec4(viewportSize.x, viewportSize.y, 0, 0));
+    program->SetUniform("rectangleSize", glm::vec4(scaledTileSize * zoom, scaledTileSize * zoom, 0, 0));
     program->SetUniform("zoom", camera->GetZoom());
     program->Bind();
 
