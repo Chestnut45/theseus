@@ -39,6 +39,8 @@
 #include <W_RNG.h>
 #include <W_Shapes.h>
 
+// -------- POD Structs --------
+
 struct FluidParticle
 {
     glm::vec2 m_pos;
@@ -60,11 +62,38 @@ struct FluidParticle
 
 struct Spout
 {
-    glm::vec2 m_pos{0.0f};
-    float m_lifetime = 0.0f;
-    float m_lifespan = 5.0f;
-    float m_spawnRate = 1.0f;
-    float m_spawnTimer = 0.0f;
+    glm::vec2 m_pos;
+    float m_lifetime;
+    float m_lifespan;
+    float m_spawnRate;
+    float m_spawnTimer;
+
+    Spout(const glm::vec2& position, float lifespan, float spawnRate)
+        :
+        m_pos(position),
+        m_lifetime(0.0f),
+        m_lifespan(lifespan),
+        m_spawnRate(spawnRate),
+        m_spawnTimer(0.0f)
+    {
+    }
+};
+
+struct Drain
+{
+    wolf::Circle m_bounds;
+    float m_lifespan;
+    float m_pullRadius;
+    float m_pullStrength;
+
+    Drain(const wolf::Circle& bounds, float lifespan, float pullRadius, float pullStrength)
+        :
+        m_bounds(bounds),
+        m_lifespan(lifespan),
+        m_pullRadius(pullRadius),
+        m_pullStrength(pullStrength)
+    {
+    }
 };
 
 // Game component representing a bounded 2D particle-based fluid simulation
@@ -114,6 +143,9 @@ public:
     // Adds a spout that will spawn particles for the given lifespan in seconds
     // TODO: Add options for randomized or set velocities?
     void AddTimedSpout(const glm::vec2& position, float lifespan, int particlesPerSecond);
+
+    // Adds a drain with the given bounds, lifespan in seconds, and pull force details
+    void AddTimedDrain(const wolf::Circle& bounds, float lifespan, float pullRadius, float pullStrength);
 
     // Spawns particles in a dam break configuration
     void SetupDamBreak(int numParticles);

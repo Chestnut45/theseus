@@ -384,10 +384,7 @@ void BoundedFluidSystem2D::AddStaticCollisionRect(const wolf::Rectangle& rect)
 
 void BoundedFluidSystem2D::AddTimedSpout(const glm::vec2& position, float lifespan, int particlesPerSecond)
 {
-    Spout spout;
-    spout.m_pos = position;
-    spout.m_lifespan = lifespan;
-    spout.m_spawnRate = 1.0f / particlesPerSecond;
+    Spout spout(position, lifespan, 1.0f / particlesPerSecond);
     m_spouts.push_back(spout);
 }
 
@@ -492,7 +489,7 @@ void BoundedFluidSystem2D::ResizeFramebuffer(int width, int height)
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, newTexture, 0);
 
     // Ensure completeness
-    if( glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
         wolf::Error("Fluid sim framebuffer not complete!");
     }

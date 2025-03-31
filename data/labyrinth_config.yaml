@@ -43,7 +43,7 @@ rooms: [
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
-			{type: minitaur, amount: 1, placement: center},
+			{type: poison_trap, amount: 1, placement: center},
 			{type: minitaur, amount: 3, placement: random},
 		]
 	},

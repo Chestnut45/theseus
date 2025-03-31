@@ -1310,7 +1310,6 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             // Create the fluid system
             auto& fluidObj = m_pGameInstance->GetScene().CreateObject2D();
             auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
-            fluidSystem.SetParticleRadius(45);
 
             // Edit poison colors
             fluidSystem.SetFluidColor(glm::vec4(0.4f, 0.01, 0.45f, 0.75f));
@@ -1319,7 +1318,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             fluidSystem.SetCausticFrequency(0.4f);
 
             // Add a timed spout to spawn poison!
-            fluidSystem.AddTimedSpout(glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2), 2.0f, 60);
+            fluidSystem.AddTimedSpout(glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2), 2.0f, 240);
 
             m_pLabyrinthManager->GetGameObject()->AddChild(fluidObj);
 
