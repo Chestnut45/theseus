@@ -93,6 +93,7 @@ void PlayState::Enter()
 
     PortalTileManager::CreateInstance(m_pLabyrinthManager);
     TileFireManager::CreateInstance(m_pLabyrinthManager);
+    TileFireManager::GetInstance()->SetPropagationActiveness(true);
 
     Postprocessor::CreateInstance(&scene);
 
@@ -344,6 +345,12 @@ void PlayState::Update(float delta)
         // DEBUG: Teleport to bossfight
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT))
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
+            
+        if(wolf::Input::IsKeyJustDown(GLFW_KEY_F))
+        {
+            glm::ivec2 playerTilePos = m_pLabyrinthManager->GetTilePosition(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+            TileFireManager::GetInstance()->AddFireTile(playerTilePos);
+        }
 
         // Show the Labyrinth Manager debug GUI
         if (m_showLabyrinthManager) 
@@ -1236,6 +1243,8 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
         case TriggerPurpose::BOSS: {
             
+            TileFireManager::GetInstance()->SetPropagationActiveness(false);
+
             // Stop the background music
             wolf::Audio::Stop("data/sounds/bgm_maze.wav");
             
