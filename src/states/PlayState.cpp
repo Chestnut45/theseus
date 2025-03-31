@@ -1305,7 +1305,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
             // Create the fluid system
             auto& fluidObj = m_pGameInstance->GetScene().CreateObject2D();
-            auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds, 500);
+            auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
             fluidSystem.SetParticleRadius(45);
 
             // Edit poison colors
@@ -1345,7 +1345,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
             // Create the fluid system
             auto& fluidObj = m_pGameInstance->GetScene().CreateObject2D();
-            auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds, 500);
+            auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
 
             // Edit lava colors
             fluidSystem.SetFluidColor(glm::vec4(1.0f, 0.353, 0.0f, 0.918f));

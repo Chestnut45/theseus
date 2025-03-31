@@ -1,6 +1,3 @@
-
-
-// Camera UBO
 layout(std140, binding = 0) uniform cameraBuffer
 {
     mat4 viewProj;
@@ -12,20 +9,16 @@ struct ParticleData
     vec4 forceDensityPressure;
 };
 
-// Particle data SSBO
 layout(std430, binding = 3) buffer ParticleSSBO
 {
     ParticleData particles[];
 };
 
-// Quad attributes
 layout(location = 0) in vec2 quadPos;
 
-// Model matrix for the object transform
-uniform mat4 model;
 uniform float kernelRadius;
 
-// Outputs to fragment shader
+// NOTE: Be wary of interpolator limits!
 out vec2 pos;
 out vec2 worldPos;
 out flat vec2 vel;
@@ -46,5 +39,5 @@ void main()
     forceDensityPressure = p.forceDensityPressure;
 
     // Output position
-    gl_Position = viewProj * model * vec4((scaledQuadPos + p.posVel.xy), 0.0, 1.0);
+    gl_Position = viewProj * vec4((scaledQuadPos + p.posVel.xy), 0.0, 1.0);
 }

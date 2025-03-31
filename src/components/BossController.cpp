@@ -256,8 +256,8 @@ void BossController::Init()
 
     // // Create the fluid system
     // auto& fluidObj = pObject->GetScene().CreateObject2D();
-    // auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds, 1000);
-    // fluidSystem.SetupDamBreak();
+    // auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
+    // fluidSystem.SetupDamBreak(1000);
 
     // // TODO: Add pillars... (breaking?)
     // auto rect = wolf::Rectangle(0.0f, 96.0f, 96.0f, 0.0f);
