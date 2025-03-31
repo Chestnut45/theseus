@@ -322,6 +322,8 @@ void BoundedFluidSystem2D::Render(float delta)
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Draw particles to internal FBO
+    // NOTE: This will likely be a bottleneck, the fragment shader is quite heavy and overdraw is an issue
+    // TODO: Measure against alternate method (sampling noise in second blend pass, should help with overdraw)
     glBindVertexArray(s_quadVAO);
     glDrawArraysInstanced(GL_TRIANGLES, 0, 6, m_particles.size());
 

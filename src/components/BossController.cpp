@@ -247,26 +247,29 @@ void BossController::Init()
     light.Init();
     light.SetIgnoreWallTiles(true);
 
+    // DEBUG: Fluid sim stress testing
+
     // Calculate simulation bounds
-    // auto simBounds = wolf::Rectangle(r);
-    // simBounds.m_top *= 96;
-    // simBounds.m_left *= 96;
-    // simBounds.m_right *= 96;
-    // simBounds.m_bottom *= 96;
+    auto simBounds = wolf::Rectangle(r);
+    simBounds.m_top *= 96;
+    simBounds.m_left *= 96;
+    simBounds.m_right *= 96;
+    simBounds.m_bottom *= 96;
 
-    // // Create the fluid system
-    // auto& fluidObj = pObject->GetScene().CreateObject2D();
-    // auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
-    // fluidSystem.SetupDamBreak(1000);
+    // Create the fluid system
+    auto& fluidObj = pObject->GetScene().CreateObject2D();
+    auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
+    fluidSystem.SetupDamBreak(1000);
+    fluidSystem.SetGravity(true);
 
-    // // TODO: Add pillars... (breaking?)
-    // auto rect = wolf::Rectangle(0.0f, 96.0f, 96.0f, 0.0f);
-    // for (const auto& tile : locations)
-    // {
-    //     auto bounds = rect;
-    //     bounds.Translate(m_pLabyrinthManager->GetWorldPosition(tile));
-    //     fluidSystem.AddStaticCollisionRect(bounds);
-    // }
+    // TODO: Add pillars... (breaking?)
+    auto rect = wolf::Rectangle(0.0f, 96.0f, 96.0f, 0.0f);
+    for (const auto& tile : locations)
+    {
+        auto bounds = rect;
+        bounds.Translate(m_pLabyrinthManager->GetWorldPosition(tile));
+        fluidSystem.AddStaticCollisionRect(bounds);
+    }
 
     EnterPhase1();
 }
@@ -331,13 +334,6 @@ void BossController::UpdateAnimation()
         m_throneBreakTimer.Reset();
     }
 
-    // Query player spatial info
-    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 dirToPlayer = glm::normalize(playerPos - m_pTransform->GetGlobalPosition());
-    float angle = -glm::atan(dirToPlayer.x, dirToPlayer.y);
-    int dirIndex = (int)round(4 * angle / 6.28318530718f + 5) % 4;
-    const char* const dirText = s_dirNames[dirIndex];
-
     // Set animation based on state, regardless of fight phase
     std::string baseAnimName;
     switch (m_state)
@@ -381,9 +377,18 @@ void BossController::UpdateAnimation()
     // Add direction to base anim name
     if (m_state != State::SIT)
     {
+        // Query player spatial info
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 dirToPlayer = glm::normalize(playerPos - m_pTransform->GetGlobalPosition());
+        float angle = -glm::atan(dirToPlayer.x, dirToPlayer.y);
+        int dirIndex = (int)round(4 * angle / 6.28318530718f + 5) % 4;
+
+        // Grab the name of the direction to be added to the base animation
+        const char* const dirText = s_dirNames[dirIndex];
         baseAnimName += dirText;
     }
 
+    // Update animation if valid
     if (baseAnimName != "")
     {
         m_pAnimSprite->SetAnimation(baseAnimName);

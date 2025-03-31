@@ -287,7 +287,7 @@ void PlayState::Resume()
 }
 
 void PlayState::Update(float delta)
-{   
+{
     auto* pCamera = m_pGameInstance->GetScene().GetActiveCamera();
     if (pCamera && m_bossZoomTimer.IsRunning())
     {
@@ -305,7 +305,6 @@ void PlayState::Update(float delta)
             m_bossZoomTimer.Reset();
         }
     }
-
     
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
@@ -357,7 +356,7 @@ void PlayState::Update(float delta)
             m_pLabyrinthManager->ShowGUI();
     }
 
-    // Update fluid system components
+    // // Update fluid system components
     for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
     {
         system.Update(delta);
@@ -826,10 +825,6 @@ void PlayState::Update(float delta)
 
     // Dispatch events
     wolf::EventManager::Dispatch();
-
-    // ImGui::ShowDemoWindow();
-
-
 }
 
 void PlayState::Render(float delta)
