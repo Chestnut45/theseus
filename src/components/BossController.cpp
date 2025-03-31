@@ -1977,7 +1977,7 @@ void BossController::BreatheFire(float delta)
                 m_pPlayerObject->GetComponent<HealthComponent>()->Damage(10.0f);
             }
 
-            TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
+            TileFireManager::GetInstance()->AddFireTile(tile);
         }
     }
 
@@ -2056,7 +2056,7 @@ void BossController::BreatheFireSupercharged(float delta)
                     m_pPlayerObject->GetComponent<HealthComponent>()->Damage(10.0f);
                 }
 
-                TileFireManager::GetInstance()->AddFireTile(tile, 10.0f);
+                TileFireManager::GetInstance()->AddFireTile(tile);
             }
         }
 
