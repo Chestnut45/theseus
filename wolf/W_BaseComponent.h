@@ -6,6 +6,9 @@
 //
 // A class representing a component that has direct access to the game object
 // it is attached to.
+// 
+// NOTE: m_pGameObject is set immediately *following* the constructor of
+// a component when created using wolf::GameObject::AddComponent<T>(...)
 //-----------------------------------------------------------------------------
 
 namespace wolf
