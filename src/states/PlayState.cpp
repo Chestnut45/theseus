@@ -41,6 +41,7 @@
 #include <events/PauseEvent.h>
 #include <glm/gtc/random.hpp>
 #include <LightEvents.h>
+#include <BoundedFluidSystem2D.h>
 
 #include <W_BufferManager.h>
 
@@ -120,7 +121,7 @@ void PlayState::Enter()
 
         // Spawn the Minotaur Boss
         auto& bossObject = scene.CreateObject2D();
-        auto& controller = bossObject.AddComponent<BossController>();  
+        auto& controller = bossObject.AddComponent<BossController>();
 
         // Move boss to initial location
         auto* pBossTransform = bossObject.GetComponent<wolf::Transform2D>();
@@ -138,7 +139,6 @@ void PlayState::Enter()
         m_pBossWalls = &scene.CreateObject2D();
         m_bossRoomOrigin= room.m_bounds.m_origin;
         m_bossRoomSize = room.m_bounds.m_size;
-
         break;
     }
 
@@ -204,6 +204,7 @@ void PlayState::Enter()
     auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 125.0f, true);
     m_pPlayerObject->AddChild(*pLightGO);
     pLightComponent.Init();
+    pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
 
     // Make Ariadne's light pink because I can (Aurora)
     ariadne.GetChildren().front()->GetComponent<LightComponent>()->SetColor(glm::vec4(1.0f, 0.41f, 0.70f, 0.75f));
@@ -305,7 +306,6 @@ void PlayState::Update(float delta)
             m_bossZoomTimer.Reset();
         }
     }
-
     
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
@@ -355,6 +355,20 @@ void PlayState::Update(float delta)
         // Show the Labyrinth Manager debug GUI
         if (m_showLabyrinthManager) 
             m_pLabyrinthManager->ShowGUI();
+    }
+
+    // // Update fluid system components
+    for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
+    {
+        system.Update(delta);
+
+        // DEBUG: Apply force where player is
+        bool playerRolling = m_pPlayerObject->GetComponent<PlayerController>()->GetPlayerAction() == PlayerController::PlayerAction::ROLLING;
+        if (playerRolling) system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 50.0f, 1000.0f * delta);
+
+        // DEBUG: Show editor and break after updating one system
+        // system.ShowEditor();
+        break;
     }
     
     // Update the labyrinth manager
@@ -812,86 +826,12 @@ void PlayState::Update(float delta)
 
     // Dispatch events
     wolf::EventManager::Dispatch();
-
-    // ImGui::ShowDemoWindow();
-
-
 }
 
 void PlayState::Render(float delta)
 {
-    LightComponent::ClearFBO();
-
-    wolf::Scene* scene = &m_pGameInstance->GetScene();
-    wolf::Camera2D* camera = scene->GetActiveCamera();
-    if(camera != nullptr)
-    {
-        glm::vec2 viewSize = camera->GetViewSize();
-        m_pFBO->SetTexSize(viewSize.x, viewSize.y);
-        m_pFBO->SetWindowSize(viewSize.x, viewSize.y);
-    }
-
-    // Bind framebuffer for rendering scene - leave out UI elements
-    m_pFBO->Bind();
-
-    // Render the game's scene
-    m_pGameInstance->GetScene().Render(delta);
-
-    // Bind the lighting FBO
-    LightComponent::BindFBOAndBlendFunc();
-
-    // Render light geometry to the lights' shared FBO
-    for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
-        lightComp.RenderLightToFBO();
-    }
-
-    // Unbind the lighting FBO
-    LightComponent::UnbindFBOAndBlendFunc();
-
-    // Blend the light FBO with the screen
-    LightComponent::BlendFBOAndScreen();
-    
-    // Bind to default framebuffer(screen)
-    wolf::FrameBuffer::BindDefault();
-
-    // Query postprocessing effects based on current active status effects of player
-    std::vector<Postprocessor::Effect> effects;
-    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
-    {
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
-        {
-            effects.push_back(Postprocessor::Effect::BURNING);
-        }
-        
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
-        {
-            effects.push_back(Postprocessor::Effect::POISONED);
-        }
-
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
-        {
-            effects.push_back(Postprocessor::Effect::GRAYSCALE);
-        }
-        break;
-    }
-
-    // Apply heat distortion if there are active fire tiles
-    if(TileFireManager::GetInstance()->GetBurningFireTilesCount() > 0)
-    {    
-        effects.push_back(Postprocessor::Effect::HEAT_DISTORTION);
-    }
-
-    // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
-    if(effects.size() > 0)
-    {
-        Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), effects);
-    }
-    // If not, copy texture to screen
-    else
-    {
-        m_pFBO->Blit();
-        
-    }
+    // All of the background render code is done here anyway, might as well not duplicate it
+    BackgroundRender(delta);
 
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
@@ -948,6 +888,7 @@ void PlayState::BackgroundRender(float delta)
     // Bind framebuffer for rendering scene - leave out UI elements
     m_pFBO->Bind();
 
+    // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
 
     // Bind the lighting FBO
@@ -963,6 +904,39 @@ void PlayState::BackgroundRender(float delta)
 
     // Blend the light FBO with the screen
     LightComponent::BlendFBOAndScreen();
+
+    // Render fluid systems
+    for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
+    {
+        if (system.IsIgnoreLighting()) system.Render(delta);
+    }
+
+    // Build map of animated sprites to render by layer
+    std::map<int, std::vector<std::pair<AnimatedSprite2D*, wolf::Transform2D*>>> sortedAnimatedSprites;
+    for (auto&&[_, sprite, transform] : m_pGameInstance->GetScene().Each<AnimatedSprite2D, wolf::Transform2D>())
+    {
+        // Ignore sprites that do not have light objects in their hierarchy -
+        // they've already been rendered in the main scene pass!
+        if (!sprite.GetGameObject()->HasAnyRecursive<LightComponent>()) continue;
+        
+        int layer = sprite.GetLayer();
+
+        // Add new spritebatch if it doesn't exist
+        if (!sortedAnimatedSprites.contains(layer)) sortedAnimatedSprites[layer] = {};
+
+        // Push back the next sprite
+        sortedAnimatedSprites[layer].push_back(std::make_pair<AnimatedSprite2D*, wolf::Transform2D*>(&sprite, &transform));
+    }
+
+    // Render all animated sprites in order
+    for (auto iter = sortedAnimatedSprites.begin(); iter != sortedAnimatedSprites.end(); ++iter)
+    {
+        auto& batch = iter->second;
+        for (auto& pair : batch)
+        {
+            pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
+        }
+    }
     
     // Bind to default framebuffer(screen)
     wolf::FrameBuffer::BindDefault();
@@ -1273,7 +1247,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             // Begin the bossfight
             wolf::Log("BOSSFIGHT STARTED");
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
-            m_pBoss->GetComponent<BossController>()->SetActive(true);
+            m_pBoss->GetComponent<BossController>()->StartBossfight();
 
             // Zoom out camera
             m_bossZoomTimer.Restart();
@@ -1310,6 +1284,102 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             
             break;
         }
+
+        case TriggerPurpose::POISON_TRAP:
+        {
+            // Retrieve the room data for the trigger's position
+            auto tilePosition = m_pLabyrinthManager->GetTilePosition(triggerPosition);
+            auto roomDataOpt = m_pLabyrinthManager->GetRoom(tilePosition);
+            if (!roomDataOpt.has_value()) {
+                wolf::Log("No valid room found for poison trap!");
+                break;
+            }
+
+            // Grab room data
+            const auto& room = roomDataOpt.value();
+            const auto& bounds = room.m_bounds;
+
+            // Calculate simulation bounds
+            auto simBounds = wolf::Rectangle(bounds);
+            simBounds.m_top *= 96;
+            simBounds.m_left *= 96;
+            simBounds.m_right *= 96;
+            simBounds.m_bottom *= 96;
+
+            // Create the fluid system
+            auto& fluidObj = m_pGameInstance->GetScene().CreateObject2D();
+            auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
+
+            // Edit poison colors
+            fluidSystem.SetFluidColor(glm::vec4(0.4f, 0.01, 0.45f, 0.75f));
+            fluidSystem.SetWaveColor(glm::vec4(0.7f, 0.05f, 0.6f, 0.75f));
+            fluidSystem.SetCausticColor(glm::vec4(0.7f, 0.05f, 0.6f, 0.75f));
+            fluidSystem.SetCausticFrequency(0.4f);
+
+            glm::vec2 center = glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2);
+
+            // Add a timed spout to spawn poison!
+            fluidSystem.AddTimedSpout(center, 2.0f, 240);
+
+            // Add a delayed drain to remove all the fluid after
+            fluidSystem.AddTimedDrain(wolf::Circle(center, 8.0f), 20.0f, 512.0f, 250.0f, 8.0f);
+
+            // Make sure the trap gets completely destroyed after the draining is (hopefully) done
+            fluidObj.AddComponent<TimedDestroyerComponent>(20);
+
+            m_pLabyrinthManager->GetGameObject()->AddChild(fluidObj);
+
+            break;
+        }
+
+        case TriggerPurpose::LAVA_TRAP:
+        {
+            // Retrieve the room data for the trigger's position
+            auto tilePosition = m_pLabyrinthManager->GetTilePosition(triggerPosition);
+            auto roomDataOpt = m_pLabyrinthManager->GetRoom(tilePosition);
+            if (!roomDataOpt.has_value()) {
+                wolf::Log("No valid room found for poison trap!");
+                break;
+            }
+
+            // Grab room data
+            const auto& room = roomDataOpt.value();
+            const auto& bounds = room.m_bounds;
+
+            // Calculate simulation bounds
+            auto simBounds = wolf::Rectangle(bounds);
+            simBounds.m_top *= 96;
+            simBounds.m_left *= 96;
+            simBounds.m_right *= 96;
+            simBounds.m_bottom *= 96;
+
+            // Create the fluid system
+            auto& fluidObj = m_pGameInstance->GetScene().CreateObject2D();
+            auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
+
+            // Edit lava colors
+            fluidSystem.SetFluidColor(glm::vec4(1.0f, 0.353, 0.0f, 0.918f));
+            fluidSystem.SetWaveColor(glm::vec4(1.0f, 0.453, 0.0f, 0.918f));
+            fluidSystem.SetCausticColor(glm::vec4(1.0f, 0.553, 0.0f, 0.918f));
+            fluidSystem.SetCausticFrequency(0.5f);
+            fluidSystem.SetIgnoreLighting(true);
+
+            glm::vec2 center = glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2);
+
+            // Add a timed spout to spawn lava!
+            fluidSystem.AddTimedSpout(center, 2.0f, 240);
+
+            // Add a delayed drain to remove all the fluid after
+            fluidSystem.AddTimedDrain(wolf::Circle(center, 8.0f), 20.0f, 512.0f, 250.0f, 8.0f);
+
+            // Make sure the trap gets completely destroyed after the draining is (hopefully) done
+            fluidObj.AddComponent<TimedDestroyerComponent>(20);
+
+            m_pLabyrinthManager->GetGameObject()->AddChild(fluidObj);
+
+            break;
+        }
+
         default:
             wolf::Log("Unsupported trigger purpose.");
             break;
