@@ -5,13 +5,16 @@
 //-----------------------------------------------------------------------------
 #include "PortalTileManager.h"
 
-#include <AttackDamageComponent.h>
-#include <HealthComponent.h>
-#include <PlayerController.h>
-#include <VelocityComponent.h>
+#include "components/AttackDamageComponent.h"
+#include "components/HealthComponent.h"
+#include "components/LightComponent.h"
+#include "components/ParticleComponent.h"
+#include "components/PlayerController.h"
+#include "components/VelocityComponent.h"
 
 PortalTileManager* PortalTileManager::s_pPTMG = nullptr;
 
+wolf::RNG PortalTileManager::PortalTile::s_rng;
 //-------------------//
 //  MANAGER METHODS  //
 //-------------------//
@@ -142,6 +145,7 @@ PortalTileManager::PortalTileManager(LabyrinthManager* p_lbmg)
         m_pPlayer = playerController.GetGameObject();
         break;
     }
+    m_pParticleSystem2D = new ParticleSystem2D();
 }
 
 PortalTileManager::~PortalTileManager()
@@ -296,8 +300,19 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     m_pPortalTileSpriteObj = &p_lbmg->GetGameObject()->GetScene().CreateObject2D();
     m_pPortalTileSpriteObj->GetComponent<wolf::Transform2D>()->SetPosition(p_lbmg->GetWorldPosition(m_vTilePos));
     m_pPortalTileSpriteObj->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f, 3.0f));
+
+    // Add 2D sprite component
     wolf::Sprite2D* sprite = &m_pPortalTileSpriteObj->AddComponent<wolf::Sprite2D>("data/textures/tile_hermes_portal.png");
     sprite->SetTint(glm::vec3(0.5f));
+
+    // Add particle components
+    ParticleComponent* particleComponent = &m_pPortalTileSpriteObj->AddComponent<ParticleComponent>();
+    PortalTileManager::GetInstance()->m_pParticleSystem2D->RegisterComponent(particleComponent);
+
+    // wolf::GameObject* lightObj = &p_lbmg->GetGameObject()->GetScene().CreateObject2D();
+    // LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), 50.0f, true);
+    // m_pPortalTileSpriteObj->AddChild(*lightObj);
+    // lightComponent->Init();
 }
 
 PortalTileManager::PortalTile::~PortalTile()
@@ -365,9 +380,6 @@ void PortalTileManager::PortalTile::Update(float p_dt)
         if(m_pPlayer != nullptr)
         {
 
-            // std::cout << "PlayerTilePos - x: " << playerTilePos.x << ", y: " << playerTilePos.y << std::endl;
-            // std::cout << "PortalTilePos - x: " << m_vTilePos.x << ", y: " << m_vTilePos.y << std::endl;
-
             glm::vec2 playerPos = m_pPlayer->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
             glm::ivec2 playerTilePos  = m_pLabyrinthManager->GetTilePosition(playerPos);
             // If player is within vicinity, activate
@@ -385,6 +397,20 @@ void PortalTileManager::PortalTile::Update(float p_dt)
     // If portal tile is active
     else
     {        
+        if(s_rng.NextFloat(0.0f, 1.0f) <= EMISSION_CHANCE)
+        {
+            m_pPortalTileSpriteObj->GetComponent<ParticleComponent>()->Emit(
+                glm::vec2(
+                    m_vTilePos.x * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f,
+                    m_vTilePos.y * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f
+                ),
+                glm::vec2(s_rng.NextInt(-25, 25), s_rng.NextInt(-25, 25)),
+                glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                4.0f,
+                4.0f
+            );
+
+        }
         // Return if sibling is nullptr
         if(m_pSiblingPortalTile == nullptr) return;
 

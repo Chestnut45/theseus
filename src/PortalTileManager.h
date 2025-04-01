@@ -7,9 +7,10 @@
 #pragma once
 
 #include <wolf.h>
+
 #include <LabyrinthManager.h>
 #include "inventory/PlaceableItem.h"
-
+#include "components/ParticleSystem2D.h"
 class PortalTileManager
 {
 friend class PortalTile;
@@ -59,6 +60,9 @@ private:
         LabyrinthManager* m_pLabyrinthManager = nullptr;
         wolf::GameObject* m_pPlayer = nullptr;
         const glm::vec2 SPAWN_OFFSET = glm::vec2(LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE * 0.5f);
+        const float EMISSION_CHANCE = 0.005f;
+        const float SCALED_TILE_SIZE = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+        static wolf::RNG s_rng; 
 
         PortalTile(glm::ivec2 p_tile_pos, LabyrinthManager* p_lbmg);
         virtual ~PortalTile();
@@ -76,6 +80,8 @@ private:
     std::vector<PortalTile*> m_vPortalTiles;
     wolf::GameObject* m_pPlayer = nullptr;
     static PortalTileManager* s_pPTMG;
+
+    ParticleSystem2D* m_pParticleSystem2D = nullptr;
 
     int m_iRemovalIndex = -2; // -1 is for the available portal tile
 };
