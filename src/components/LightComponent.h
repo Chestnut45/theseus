@@ -88,9 +88,6 @@ class LightComponent : public wolf::BaseComponent {
         // Helper function to determine if a point falls on a wall tile
         bool CheckForWallAtPos(const glm::vec2& p_v2Pos);
 
-        // Helper function to determine if a rectangle is the collider's AOE
-        bool IsAOERect(const wolf::Rectangle& p_pRect);
-
         // Handler for turning the light on/off via event
         void HandleLightToggleEvent(const LightToggleEvent& p_event);
 
