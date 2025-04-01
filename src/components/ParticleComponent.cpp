@@ -7,6 +7,9 @@
 #include <algorithm>
 #include <W_Logging.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <W_GameObject.h>
+#include <yaml-cpp/yaml.h>
+#include <filesystem>
 
 ParticleComponent::ParticleComponent(size_t maxParticles)
 {
@@ -130,6 +133,8 @@ void ParticleComponent::CleanupGLResources()
 
 void ParticleComponent::Update(float delta)
 {
+    bool anyActive = false;
+    
     for (auto& particle : m_particles)
     {
         if (particle.m_active)
@@ -139,6 +144,30 @@ void ParticleComponent::Update(float delta)
             
             // Then do basic update
             particle.Update(delta);
+            
+            // Flag that at least one particle is active
+            anyActive = true;
+        }
+    }
+    
+    // Handle auto-cleanup if enabled
+    if (m_autoDestroy)
+    {
+        // If we currently have active particles, update the flag
+        if (anyActive)
+        {
+            m_hasActiveParticles = true;
+            m_cleanupTimer = 0.0f;
+        }
+        // If all particles are inactive but we previously had active ones
+        else if (m_hasActiveParticles)
+        {
+            m_cleanupTimer += delta;
+            if (m_cleanupTimer >= m_cleanupGracePeriod)
+            {
+                // Destroy the game object after grace period
+                GetGameObject()->GetScene().DeleteObject(GetGameObject()->GetID());
+            }
         }
     }
 }
@@ -403,5 +432,197 @@ void ParticleComponent::ApplyModifiers(Particle& particle, float delta, bool isN
                 modifier->Update(particle, delta);
             }
         }
+    }
+}
+
+bool ParticleComponent::LoadConfigFromYAML(const std::string& filename)
+{
+    try {
+        wolf::Log("Attempting to load YAML config from ", filename.c_str());
+        
+        if (!std::filesystem::exists(filename)) {
+            wolf::Error("Config file does not exist: ", filename.c_str());
+            return false;
+        }
+        
+        YAML::Node config;
+        try {
+            config = YAML::LoadFile(filename);
+        } catch (const YAML::Exception& e) {
+            wolf::Error("YAML parsing error: ", e.what());
+            return false;
+        }
+        
+        YAML::Node particleConfig = config["particle_config"];
+        
+        if (!particleConfig) {
+            wolf::Error("Invalid config format in file: ", filename.c_str());
+            return false;
+        }
+        
+        // Clear existing modifiers
+        m_modifiers.clear();
+        
+        // Load basic properties if available
+        if (particleConfig["max_particles"]) {
+            SetMaxParticles(particleConfig["max_particles"].as<size_t>());
+        }
+        
+        // Set default auto-destroy values
+        m_autoDestroy = true;
+        m_cleanupGracePeriod = 0.5f;
+        m_cleanupTimer = 0.0f;
+        m_hasActiveParticles = false;
+        
+        // Load modifiers from the YAML file
+        if (particleConfig["modifiers"]) {
+            YAML::Node modifiers = particleConfig["modifiers"];
+            
+            // Emission Shape
+            if (modifiers["emission_shape"] && modifiers["emission_shape"]["enabled"].as<bool>()) {
+                YAML::Node emissionShape = modifiers["emission_shape"];
+                auto modifier = std::make_shared<EmissionShapeModifier>();
+                
+                if (emissionShape["shape_type"])
+                    modifier->SetShapeType(static_cast<EmissionShapeModifier::ShapeType>(emissionShape["shape_type"].as<int>()));
+                
+                if (emissionShape["random_direction"])
+                    modifier->SetRandomDirection(emissionShape["random_direction"].as<bool>());
+                
+                if (emissionShape["direction_angle"])
+                    modifier->SetDirectionAngle(emissionShape["direction_angle"].as<float>());
+                
+                if (emissionShape["spread_angle"])
+                    modifier->SetSpreadAngle(emissionShape["spread_angle"].as<float>());
+                
+                if (emissionShape["emit_from_edge"])
+                    modifier->SetEmitFromEdge(emissionShape["emit_from_edge"].as<bool>());
+                
+                AddModifier(modifier);
+            }
+            
+            // Gravity
+            if (modifiers["gravity"] && modifiers["gravity"]["enabled"].as<bool>()) {
+                YAML::Node gravity = modifiers["gravity"];
+                auto modifier = std::make_shared<GravityModifier>();
+                
+                if (gravity["gravity_x"] && gravity["gravity_y"])
+                    modifier->SetGravity(glm::vec2(gravity["gravity_x"].as<float>(), gravity["gravity_y"].as<float>()));
+                
+                if (gravity["strength"])
+                    modifier->SetStrength(gravity["strength"].as<float>());
+                
+                AddModifier(modifier);
+            }
+            
+            // Drag
+            if (modifiers["drag"] && modifiers["drag"]["enabled"].as<bool>()) {
+                YAML::Node drag = modifiers["drag"];
+                auto modifier = std::make_shared<DragModifier>();
+                
+                if (drag["coefficient"])
+                    modifier->SetDragCoefficient(drag["coefficient"].as<float>());
+                
+                AddModifier(modifier);
+            }
+            
+            // Size Over Lifetime
+            if (modifiers["size_over_lifetime"] && modifiers["size_over_lifetime"]["enabled"].as<bool>()) {
+                YAML::Node sizeOverLifetime = modifiers["size_over_lifetime"];
+                auto modifier = std::make_shared<SizeOverLifetimeModifier>();
+                
+                if (sizeOverLifetime["start_scale"] && sizeOverLifetime["end_scale"])
+                    modifier->SetScales(sizeOverLifetime["start_scale"].as<float>(), sizeOverLifetime["end_scale"].as<float>());
+                
+                if (sizeOverLifetime["curve_type"])
+                    modifier->SetCurveType(static_cast<SizeOverLifetimeModifier::CurveType>(sizeOverLifetime["curve_type"].as<int>()));
+                
+                AddModifier(modifier);
+            }
+            
+            // Color Over Lifetime
+            if (modifiers["color_over_lifetime"] && modifiers["color_over_lifetime"]["enabled"].as<bool>()) {
+                YAML::Node colorOverLifetime = modifiers["color_over_lifetime"];
+                auto modifier = std::make_shared<ColorOverLifetimeModifier>();
+                
+                if (colorOverLifetime["start_color"] && colorOverLifetime["end_color"]) {
+                    auto startColor = colorOverLifetime["start_color"].as<std::vector<float>>();
+                    auto endColor = colorOverLifetime["end_color"].as<std::vector<float>>();
+                    
+                    if (startColor.size() == 4 && endColor.size() == 4) {
+                        modifier->SetColors(
+                            glm::vec4(startColor[0], startColor[1], startColor[2], startColor[3]),
+                            glm::vec4(endColor[0], endColor[1], endColor[2], endColor[3])
+                        );
+                    }
+                }
+                
+                AddModifier(modifier);
+            }
+            
+            // Rotation
+            if (modifiers["rotation"] && modifiers["rotation"]["enabled"].as<bool>()) {
+                YAML::Node rotation = modifiers["rotation"];
+                auto modifier = std::make_shared<RotationModifier>();
+                
+                if (rotation["rotation_speed"])
+                    modifier->SetRotationSpeed(rotation["rotation_speed"].as<float>());
+                
+                if (rotation["random_initial"])
+                    modifier->SetRandomizeInitialRotation(rotation["random_initial"].as<bool>());
+                
+                if (rotation["random_direction"])
+                    modifier->SetRandomizeRotationDirection(rotation["random_direction"].as<bool>());
+                
+                AddModifier(modifier);
+            }
+            
+            // Vortex
+            if (modifiers["vortex"] && modifiers["vortex"]["enabled"].as<bool>()) {
+                YAML::Node vortex = modifiers["vortex"];
+                auto modifier = std::make_shared<VortexModifier>();
+                
+                if (vortex["center_x"] && vortex["center_y"])
+                    modifier->SetCenterOffset(glm::vec2(vortex["center_x"].as<float>(), vortex["center_y"].as<float>()));
+                
+                if (vortex["rotation_speed"])
+                    modifier->SetRotationSpeed(vortex["rotation_speed"].as<float>());
+                
+                if (vortex["strength"])
+                    modifier->SetStrength(vortex["strength"].as<float>());
+                
+                if (vortex["attraction"])
+                    modifier->SetAttractionStrength(vortex["attraction"].as<float>());
+                
+                AddModifier(modifier);
+            }
+            
+            // Attractor
+            if (modifiers["attractor"] && modifiers["attractor"]["enabled"].as<bool>()) {
+                YAML::Node attractor = modifiers["attractor"];
+                auto modifier = std::make_shared<AttractorModifier>();
+                
+                if (attractor["position_x"] && attractor["position_y"])
+                    modifier->SetAttractorOffset(glm::vec2(attractor["position_x"].as<float>(), attractor["position_y"].as<float>()));
+                
+                if (attractor["strength"])
+                    modifier->SetStrength(attractor["strength"].as<float>());
+                
+                if (attractor["falloff_radius"])
+                    modifier->SetFalloffRadius(attractor["falloff_radius"].as<float>());
+                
+                if (attractor["is_repeller"])
+                    modifier->SetIsRepeller(attractor["is_repeller"].as<bool>());
+                
+                AddModifier(modifier);
+            }
+        }
+        
+        wolf::Log("Particle configuration loaded successfully with ", m_modifiers.size(), " modifiers");
+        return true;
+    }
+    catch (const std::exception& e) {
+        wolf::Error("Exception while loading particle config: ", e.what());
+        return false;
     }
 }

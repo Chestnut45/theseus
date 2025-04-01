@@ -47,6 +47,16 @@ public:
     void RemoveModifier(const std::string& modifierName);
     std::shared_ptr<ParticleModifier> GetModifier(const std::string& modifierName);
 
+    // load configurations from YAML files
+    bool LoadConfigFromYAML(const std::string& filename);
+
+    // Auto-cleanup settings
+    void SetAutoDestroy(bool autoDestroy) { m_autoDestroy = autoDestroy; }
+    bool GetAutoDestroy() const { return m_autoDestroy; }
+    void SetCleanupGracePeriod(float seconds) { m_cleanupGracePeriod = seconds; }
+    float GetCleanupGracePeriod() const { return m_cleanupGracePeriod; }
+
+
 private:
     std::vector<Particle> m_particles;
     std::vector<std::shared_ptr<ParticleModifier>> m_modifiers;
@@ -54,6 +64,12 @@ private:
     GLuint m_vao, m_posVBO, m_colorVBO, m_sizeVBO;
     GLuint m_quadVAO, m_quadVBO, m_quadEBO;
     GLuint m_rotationVBO; // New VBO for rotation
+
+    // Auto-cleanup functionality
+    bool m_autoDestroy = true;       // Whether to auto-destroy when all particles are inactive
+    float m_cleanupGracePeriod = 0.5f; // Grace period after all particles are inactive
+    float m_cleanupTimer = 0.0f;     // Timer for grace period
+    bool m_hasActiveParticles = false; // Track if we've had active particles
 
     static inline wolf::Program* s_pShader = nullptr;
     static inline size_t s_refCount = 0;

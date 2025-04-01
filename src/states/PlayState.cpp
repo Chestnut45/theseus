@@ -1019,8 +1019,6 @@ void PlayState::CreatePlayer()
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
 
-    // Add ParticleComponent to the player
-    auto& playerParticles = m_pPlayerObject->AddComponent<ParticleComponent>();
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));

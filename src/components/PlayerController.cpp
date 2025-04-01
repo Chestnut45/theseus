@@ -1752,19 +1752,27 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
         m_invulnTimer.Restart();
         m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
         wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f);
+        
+        // Add blood splatter particles for player damage
+        EmitBloodParticles(event);
     }
     else
     {
-        // TODO: Move out of here if we have time
         // Play hit sound effect when enemies are damaged
         if (event.m_pDamagedObject->HasAny<MinitaurController, GorgonController, HarpyController>())
         {
             wolf::Audio::Play("data/sounds/sfx_hit.wav", 0.15f);
+            
+            // Add blood splatter particles for enemy damage
+            EmitBloodParticles(event);
         }
 
         if (event.m_pDamagedObject->HasAny<BossController>())
         {
             wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f);
+            
+            // Add blood splatter particles for boss damage (more particles)
+            EmitBloodParticles(event, 1.5f); // Higher intensity for bosses
         }
     }
 }
@@ -2009,4 +2017,143 @@ void PlayerController::ResetDeathScreenState() {
 
     // Reset options (buttons) fade variables
     m_optionsOpacity = 0.0f;
+}
+
+
+
+void PlayerController::EmitBloodParticles(const DamageEvent& event, float intensity)
+{
+    auto damagedObject = event.m_pDamagedObject;
+    if (!damagedObject) return;
+    
+    // Get position from damaged object
+    auto transform = damagedObject->GetComponent<wolf::Transform2D>();
+    if (!transform) return;
+    
+    // Create the blood texture first to ensure it exists
+    // Note: TextureManager handles caching, so this is efficient even if called multiple times
+    wolf::Texture* bloodTexture = wolf::TextureManager::CreateTexture("data/textures/blood_particle.png");
+    if (!bloodTexture) {
+        wolf::Error("Failed to load blood particle texture");
+        return;
+    }
+    
+    // Create a new GameObject for particles
+    auto& scene = GetGameObject()->GetScene();
+    auto& particleObject = scene.CreateObject2D();
+    
+    // Set position to match damaged object
+    particleObject.GetComponent<wolf::Transform2D>()->SetPosition(transform->GetGlobalPosition());
+    
+    // Add particle component
+    auto& particleComponent = particleObject.AddComponent<ParticleComponent>(25);
+    
+    // Configure auto-cleanup before loading YAML to ensure it's set properly
+    particleComponent.SetAutoDestroy(true);
+    particleComponent.SetCleanupGracePeriod(0.5f);
+    
+    // Try to load the config
+    bool configLoaded = particleComponent.LoadConfigFromYAML("data/particles/blood_splash.yaml");
+    if (!configLoaded) {
+        wolf::Warning("Failed to load blood_splash.yaml - manually setting up blood effect");
+        SetupBloodParticleModifiers(particleComponent);
+    }
+    
+    // Calculate direction based on player's last facing direction or movement
+    glm::vec2 direction;
+    
+    // Use the player's last facing direction (if this is player damage)
+    if (damagedObject == GetGameObject())
+    {
+        direction = GetLastFacingDirectionVector();
+    }
+    // For enemies, use direction opposite to player's position
+    else 
+    {
+        glm::vec2 playerPos = GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 enemyPos = transform->GetGlobalPosition();
+        
+        // Direction from player to enemy
+        direction = enemyPos - playerPos;
+        
+        // Normalize the direction
+        float length = glm::length(direction);
+        if (length > 0.001f)
+        {
+            direction /= length;
+        }
+        else
+        {
+            // Default upward direction if positions are too close
+            direction = glm::vec2(0.0f, -1.0f);
+        }
+    }
+    
+    // Add some randomness to the direction for more natural effect
+    float randomAngle = (static_cast<float>(rand() % 40) - 20.0f) * 3.14159f / 180.0f; // ±20 degrees
+    float cosA = cos(randomAngle);
+    float sinA = sin(randomAngle);
+    direction = glm::vec2(
+        direction.x * cosA - direction.y * sinA,
+        direction.x * sinA + direction.y * cosA
+    );
+    
+    // Adjust velocity based on direction and intensity
+    glm::vec2 velocity = direction * 40.0f * intensity;
+    
+    // Emit the particle burst
+    particleComponent.EmitBurst(
+        transform->GetGlobalPosition(),   // Position
+        velocity,                         // Direction and speed
+        glm::vec4(0.7f, 0.1f, 0.1f, 0.9f), // Dark red color
+        4.0f * intensity,                  // Size, scaled by intensity
+        1.0f,                             // Lifetime
+        static_cast<int>(15 * intensity),  // Particle count, scaled by intensity
+        90.0f,                            // Spread angle
+        bloodTexture                      // Blood texture
+    );
+}
+
+// Helper method to manually set up modifiers if YAML loading fails
+void PlayerController::SetupBloodParticleModifiers(ParticleComponent& particleComponent)
+{
+    // Emission Shape Modifier
+    auto emissionShape = std::make_shared<EmissionShapeModifier>();
+    emissionShape->SetShapeType(EmissionShapeModifier::POINT);
+    emissionShape->SetRandomDirection(true);
+    emissionShape->SetDirectionAngle(0.0f);
+    emissionShape->SetSpreadAngle(90.0f);
+    particleComponent.AddModifier(emissionShape);
+    
+    // Gravity Modifier
+    auto gravity = std::make_shared<GravityModifier>();
+    gravity->SetGravity(glm::vec2(0.0f, 50.0f));
+    gravity->SetStrength(1.5f);
+    particleComponent.AddModifier(gravity);
+    
+    // Drag Modifier
+    auto drag = std::make_shared<DragModifier>();
+    drag->SetDragCoefficient(0.8f);
+    particleComponent.AddModifier(drag);
+    
+    // Size Over Lifetime Modifier
+    auto sizeOverLifetime = std::make_shared<SizeOverLifetimeModifier>();
+    sizeOverLifetime->SetScales(1.0f, 0.1f);
+    sizeOverLifetime->SetCurveType(SizeOverLifetimeModifier::EASE_OUT);
+    particleComponent.AddModifier(sizeOverLifetime);
+    
+    // Color Over Lifetime Modifier
+    auto colorOverLifetime = std::make_shared<ColorOverLifetimeModifier>();
+    colorOverLifetime->SetColors(
+        glm::vec4(0.7f, 0.1f, 0.1f, 0.9f),  // Start color
+        glm::vec4(0.5f, 0.0f, 0.0f, 0.0f)   // End color (fade out)
+    );
+    particleComponent.AddModifier(colorOverLifetime);
+    
+    // Rotation Modifier
+    auto rotation = std::make_shared<RotationModifier>();
+    rotation->SetRotationSpeed(180.0f);
+    rotation->SetRandomizeInitialRotation(true);
+    rotation->SetRandomizeRotationDirection(true);
+    particleComponent.AddModifier(rotation);
 }
