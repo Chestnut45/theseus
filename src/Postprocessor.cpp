@@ -247,7 +247,6 @@ void Postprocessor::HandleGrayscaleEffect(GLuint p_tex)
 // Specifically for tile fires
 void Postprocessor::HandleHeatDistortionEffect(GLuint p_tex)
 {
-    std::cout << "BFTC: " << TileFireManager::GetInstance()->GetBurningFireTilesCount() << std::endl;
     if(TileFireManager::GetInstance()->GetBurningFireTilesCount() <= 0) 
     {
         HandleNoneEffect(p_tex);
