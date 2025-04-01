@@ -24,6 +24,12 @@ public:
     ParticleComponent(size_t maxParticles = 100);
     ~ParticleComponent();
 
+    ParticleComponent(const ParticleComponent& other) = delete;
+    ParticleComponent& operator=(const ParticleComponent& other) = delete;
+
+    ParticleComponent(ParticleComponent&& other) = delete;
+    ParticleComponent& operator=(ParticleComponent&& other) = delete;
+
     void Update(float delta);
     void Render();
     

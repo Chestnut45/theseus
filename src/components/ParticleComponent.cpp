@@ -149,6 +149,11 @@ void ParticleComponent::Update(float delta)
             anyActive = true;
         }
     }
+
+    if (!m_hasActiveParticles)
+    {
+        m_hasActiveParticles = anyActive;
+    }
     
     // Handle auto-cleanup if enabled
     if (m_autoDestroy)
@@ -156,17 +161,15 @@ void ParticleComponent::Update(float delta)
         // If we currently have active particles, update the flag
         if (anyActive)
         {
-            m_hasActiveParticles = true;
             m_cleanupTimer = 0.0f;
         }
         // If all particles are inactive but we previously had active ones
-        else if (m_hasActiveParticles)
+        else
         {
             m_cleanupTimer += delta;
             if (m_cleanupTimer >= m_cleanupGracePeriod)
             {
-                // Destroy the game object after grace period
-                GetGameObject()->GetScene().DeleteObject(GetGameObject()->GetID());
+                GetGameObject()->DeleteComponent<ParticleComponent>();
             }
         }
     }
