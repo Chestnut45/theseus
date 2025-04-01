@@ -367,7 +367,7 @@ void PlayState::Update(float delta)
         if (playerRolling) system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 50.0f, 1000.0f * delta);
 
         // DEBUG: Show editor and break after updating one system
-        system.ShowEditor();
+        // system.ShowEditor();
         break;
     }
     
