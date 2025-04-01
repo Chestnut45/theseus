@@ -875,11 +875,11 @@ void PlayState::Render(float delta)
         break;
     }
 
-    if(
-        TileFireManager::GetInstance()->GetBurningFireTilesCount() > 0)
-        {    
-            effects.push_back(Postprocessor::Effect::HEAT_DISTORTION);
-        }
+    // Apply heat distortion if there are active fire tiles
+    if(TileFireManager::GetInstance()->GetBurningFireTilesCount() > 0)
+    {    
+        effects.push_back(Postprocessor::Effect::HEAT_DISTORTION);
+    }
 
     // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
     if(effects.size() > 0)
