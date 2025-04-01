@@ -1,5 +1,4 @@
-random_seed: false
-seed: 4567
+random_seed: true
 width: 95
 height: 95
 spike_trap_ratio: 0.020000
