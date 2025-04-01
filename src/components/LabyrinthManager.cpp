@@ -2568,6 +2568,14 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Create the trap object
                         auto& trap = pObject->GetScene().CreateObject2D();
 
+                        // Add sprite object
+                        auto& sprite = pObject->GetScene().CreateObject2D().AddComponent<wolf::Sprite2D>("data/textures/sGrate.png");
+                        sprite.SetOriginToCenterOfTexture();
+                        sprite.SetLayer(0);
+                        auto& transform = *sprite.GetGameObject()->GetComponent<wolf::Transform2D>();
+                        transform.SetPosition(pos);
+                        transform.SetScale(glm::vec2(SCALE));
+
                         // Add a collider that covers the room
                         auto& collider = trap.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, false, false);
                         auto size = glm::vec2(room.m_bounds.m_size.x, room.m_bounds.m_size.y) * (float)(LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);

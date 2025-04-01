@@ -21,6 +21,7 @@
 // TODO: Look into multithreading - either parallel for through grid
 // cells, or give the fluid systems their own thread so they can at
 // least run at the same time as the other expensive game logic
+// NOTE: Fragment shader is now the bottleneck, not the sim itself!
 
 // System includes
 #include <vector>
@@ -82,16 +83,20 @@ struct Spout
 struct Drain
 {
     wolf::Circle m_bounds;
+    float m_lifetime;
     float m_lifespan;
     float m_pullRadius;
     float m_pullStrength;
+    float m_delay;
 
-    Drain(const wolf::Circle& bounds, float lifespan, float pullRadius, float pullStrength)
+    Drain(const wolf::Circle& bounds, float lifespan, float pullRadius, float pullStrength, float delay = 0.0f)
         :
         m_bounds(bounds),
+        m_lifetime(0.0f),
         m_lifespan(lifespan),
         m_pullRadius(pullRadius),
-        m_pullStrength(pullStrength)
+        m_pullStrength(pullStrength),
+        m_delay(delay)
     {
     }
 };
@@ -145,7 +150,7 @@ public:
     void AddTimedSpout(const glm::vec2& position, float lifespan, int particlesPerSecond);
 
     // Adds a drain with the given bounds, lifespan in seconds, and pull force details
-    void AddTimedDrain(const wolf::Circle& bounds, float lifespan, float pullRadius, float pullStrength);
+    void AddTimedDrain(const wolf::Circle& bounds, float lifespan, float pullRadius, float pullStrength, float delay = 0.0f);
 
     // Spawns particles in a dam break configuration
     void SetupDamBreak(int numParticles);
@@ -191,6 +196,7 @@ private:
     std::vector<FluidParticle> m_particles;
     std::vector<wolf::Rectangle> m_collisionRects;
     std::vector<Spout> m_spouts;
+    std::vector<Drain> m_drains;
 
     // Spatial hashing optimization structure
     // NOTE: Maps each grid cell to a list of particle indices contained in the cell

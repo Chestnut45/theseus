@@ -1316,8 +1316,16 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             fluidSystem.SetCausticColor(glm::vec4(0.7f, 0.05f, 0.6f, 0.75f));
             fluidSystem.SetCausticFrequency(0.4f);
 
+            glm::vec2 center = glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2);
+
             // Add a timed spout to spawn poison!
-            fluidSystem.AddTimedSpout(glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2), 2.0f, 240);
+            fluidSystem.AddTimedSpout(center, 2.0f, 240);
+
+            // Add a delayed drain to remove all the fluid after
+            fluidSystem.AddTimedDrain(wolf::Circle(center, 8.0f), 20.0f, 512.0f, 250.0f, 8.0f);
+
+            // Make sure the trap gets completely destroyed after the draining is (hopefully) done
+            fluidObj.AddComponent<TimedDestroyerComponent>(20);
 
             m_pLabyrinthManager->GetGameObject()->AddChild(fluidObj);
 
@@ -1356,8 +1364,16 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             fluidSystem.SetCausticFrequency(0.5f);
             fluidSystem.SetIgnoreLighting(true);
 
+            glm::vec2 center = glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2);
+
             // Add a timed spout to spawn lava!
-            fluidSystem.AddTimedSpout(glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2), 2.0f, 240);
+            fluidSystem.AddTimedSpout(center, 2.0f, 240);
+
+            // Add a delayed drain to remove all the fluid after
+            fluidSystem.AddTimedDrain(wolf::Circle(center, 8.0f), 20.0f, 512.0f, 250.0f, 8.0f);
+
+            // Make sure the trap gets completely destroyed after the draining is (hopefully) done
+            fluidObj.AddComponent<TimedDestroyerComponent>(20);
 
             m_pLabyrinthManager->GetGameObject()->AddChild(fluidObj);
 

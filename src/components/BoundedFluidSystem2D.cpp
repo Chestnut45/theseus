@@ -125,6 +125,39 @@ void BoundedFluidSystem2D::Update(float delta)
         }
     }
 
+    // Update drains
+    for (int i = 0; i < m_drains.size(); ++i)
+    {
+        auto& drain = m_drains[i];
+        drain.m_lifetime += m_targetFrametime;
+
+        // Ensure delay has been met before running drain logic
+        if (drain.m_lifetime < drain.m_delay) continue;
+        
+        // Suck particles
+        ApplyRadialForce(drain.m_bounds.m_position, drain.m_pullRadius, -drain.m_pullStrength * m_targetFrametime);
+
+        // Delete particles!
+        float radSqr = drain.m_bounds.m_radius * drain.m_bounds.m_radius;
+        for (int j = 0; j < m_particles.size(); ++j)
+        {
+            auto& p = m_particles[j];
+            if (glm::distance2(p.m_pos, drain.m_bounds.m_position) < radSqr + m_kernelRadiusSqr)
+            {
+                // Erase the particle
+                m_particles.erase(m_particles.begin() + j);
+                j--;
+            }
+        }
+
+        // Delete drains that are done!
+        if (drain.m_lifetime >= drain.m_lifespan)
+        {
+            m_drains.erase(m_drains.begin() + i);
+            i--;
+        }
+    }
+
     static const glm::ivec2 adjacentCellOffsets[] = {
         glm::ivec2(-1, 0),
         glm::ivec2(-1, -1),
@@ -386,6 +419,12 @@ void BoundedFluidSystem2D::AddTimedSpout(const glm::vec2& position, float lifesp
 {
     Spout spout(position, lifespan, 1.0f / particlesPerSecond);
     m_spouts.push_back(spout);
+}
+
+void BoundedFluidSystem2D::AddTimedDrain(const wolf::Circle& bounds, float lifespan, float pullRadius, float pullStrength, float delay)
+{
+    Drain drain(bounds, lifespan, pullRadius, pullStrength, delay);
+    m_drains.push_back(drain);
 }
 
 void BoundedFluidSystem2D::SetParticleRadius(float radius)
