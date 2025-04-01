@@ -1,7 +1,8 @@
-
 #include "theseus.h"
 
 #include <LightComponent.h>
+
+#include <BoundedFluidSystem2D.h>
 
 // Application entrypoint
 int main(int, char**)
@@ -41,6 +42,11 @@ void Theseus::Update(float delta)
         wolf::Camera2D* camera = m_scene.GetActiveCamera();
         if (camera) camera->SetViewSize(m_width, m_height);
         LightComponent::ResizeFBO(m_width, m_height);
+
+        // Update fluid system framebuffer
+        BoundedFluidSystem2D::ResizeFramebuffer(m_width, m_height);
+
+        // Update resize flag
         m_windowResized = false;
     }
 
@@ -53,7 +59,7 @@ void Theseus::Update(float delta)
 void Theseus::Render(float delta)
 {
     // Clear the framebuffer
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Render the current game state

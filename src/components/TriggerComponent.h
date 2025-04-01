@@ -24,6 +24,8 @@ enum class TriggerPurpose {
     NONE,
     SPIKE_TRAP,
     BOULDER_TRAP,
+    POISON_TRAP,
+    LAVA_TRAP,
     CUTSCENE,
     BOSS
 };

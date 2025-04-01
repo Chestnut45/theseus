@@ -144,7 +144,6 @@ void LightComponent::Init() {
 
     // Retrieve the transform
     m_pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
-    m_pTransform->Translate(glm::vec2(0.0f, -3.0f));
     m_v2Origin = m_pTransform->GetGlobalPosition();
 
     // Retrieve the scene
@@ -232,7 +231,7 @@ void LightComponent::Update(float p_fDelta) {
                     // If it is, and the rectangle is NOT the light's AOE collider
                     if (this->GetGameObject()->GetID() != collider.GetGameObject()->GetID()) {
                         // Then the light is inside of a wall/solid object and we don't want to draw ANY rays
-                        continue;
+                        return;
                     }
                 }
 
@@ -248,7 +247,7 @@ void LightComponent::Update(float p_fDelta) {
                 }
 
                 // Check if the rectangle is part of a wall
-                if (CheckForWallAtPos({(v2TopLeft.x + v2BotRight.x) * 0.5f, (v2TopLeft.y + v2BotRight.y) * 0.5f})) {
+                if (!m_ignoreWallTiles && CheckForWallAtPos({(v2TopLeft.x + v2BotRight.x) * 0.5f, (v2TopLeft.y + v2BotRight.y) * 0.5f})) {
 
                     // If it is, we want to make a rectangle for each individual tile within it.
                     // To do that, we get the width and height of the rectangle...
@@ -463,7 +462,7 @@ void LightComponent::Update(float p_fDelta) {
         glm::vec2 v2RightEnd = arv2RectCorners[3];
 
         // Determine if this rectangle is part of a wall tile
-        bool bRectIsWall = CheckForWallAtPos({(v2TopStart.x + v2BotEnd.x) * 0.5f, (v2TopStart.y + v2BotEnd.y) * 0.5f});
+        bool bRectIsWall = !m_ignoreWallTiles && CheckForWallAtPos({(v2TopStart.x + v2BotEnd.x) * 0.5f, (v2TopStart.y + v2BotEnd.y) * 0.5f});
 
         // Then go through all of the corner points that we THINK we'll be casting a light ray to
         for (std::pair<glm::vec2, float> v2fCorner : m_vv2fCollidingPoints) {
