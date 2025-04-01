@@ -220,6 +220,12 @@ void PlayState::Enter()
     }
     wolf::EventManager::EnqueueEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
 
+    // Queue up all of Ariadne's dialogue
+    auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
+    ariadneNPCComp->QueueDialogue("hello");
+    ariadneNPCComp->QueueDialogue("traps");
+    ariadneNPCComp->QueueDialogue("survivors");
+
     // Stop all audio and begin the maze music
     wolf::Audio::Stop();
     wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, true, 13.714f);

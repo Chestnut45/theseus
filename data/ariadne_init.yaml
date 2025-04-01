@@ -11,13 +11,25 @@ dialogue_entries: [
   },
   {
     priority: 1,
-    entry_id: hello,
+    entry_id: the_center_is_dangerous,
     has_trigger: false,
     can_repeat: true
   },
   {
     priority: 2,
-    entry_id: test,
+    entry_id: hello,
+    has_trigger: true,
+    can_repeat: true
+  },
+  {
+    priority: 3,
+    entry_id: traps,
+    has_trigger: true,
+    can_repeat: true
+  },
+  {
+    priority: 4,
+    entry_id: survivors,
     has_trigger: true,
     can_repeat: true
   }
