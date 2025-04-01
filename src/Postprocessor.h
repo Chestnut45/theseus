@@ -42,6 +42,8 @@ private:
 
     static Postprocessor* s_pPostprocessor;
 
+    static const float SCALED_TILE_SIZE;
+
     std::vector<wolf::Program*> m_vShaderPrograms;
     wolf::FrameBuffer * m_pFBO_01 = nullptr;
     wolf::FrameBuffer * m_pFBO_02 = nullptr;
@@ -54,6 +56,7 @@ private:
     GLuint m_uiHeatDistortionSSBO;
 
     wolf::Scene* m_pScene = nullptr;
+    wolf::Camera2D* m_pSceneCamera = nullptr;
 
     wolf::Timer m_timer;
     wolf::RNG m_rng;

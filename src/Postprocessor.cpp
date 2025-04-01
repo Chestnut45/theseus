@@ -20,6 +20,8 @@ const std::vector<TexturedVertex2D> vertices =
     {-1.0f, -1.0f, 0.0f, 0.0f},
 };
 
+const float Postprocessor::SCALED_TILE_SIZE  = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+
 Postprocessor* Postprocessor::s_pPostprocessor = nullptr;
 
 //------------------//
@@ -60,14 +62,13 @@ Postprocessor* Postprocessor::GetInstance()
 void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
 {
     if(p_effects.size() <= 0) return;
-    wolf::Camera2D* camera = m_pScene->GetActiveCamera();
-    if(camera == nullptr)
+    if(m_pSceneCamera == nullptr)
     {
         return;
     }
     
     // Update framebuffers if window size has changed
-    glm::vec2 viewSize = camera->GetViewSize();
+    glm::vec2 viewSize = m_pSceneCamera->GetViewSize();
     m_pFBO_01->SetTexSize(viewSize.x, viewSize.y);
     m_pFBO_01->SetWindowSize(viewSize.x, viewSize.y);
     m_pFBO_02->SetTexSize(viewSize.x, viewSize.y);
@@ -128,6 +129,7 @@ void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
 Postprocessor::Postprocessor(wolf::Scene* p_scene)
 {
     m_pScene = p_scene;
+    m_pSceneCamera = m_pScene->GetActiveCamera();
     m_timer.Start();
     m_rng.NextInt(0, 1);
 
@@ -247,33 +249,32 @@ void Postprocessor::HandleGrayscaleEffect(GLuint p_tex)
 // Specifically for tile fires
 void Postprocessor::HandleHeatDistortionEffect(GLuint p_tex)
 {
+    // If no fire tiles are active, call HandleNoneEffect() and return
     if(TileFireManager::GetInstance()->GetBurningFireTilesCount() <= 0) 
     {
         HandleNoneEffect(p_tex);
         return;
     }
+
     std::vector<glm::ivec2> tilePositions = TileFireManager::GetInstance()->GetFireTilePositions(0);
+
+    // If tilePositions is empty, call HandleNoneEffect() and return
     if(tilePositions.size() <= 0) 
     {
         HandleNoneEffect(p_tex);
         return;
     }
-    const float scaledTileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
-    const float offset = scaledTileSize * 0.5f;
-    
+        
+    // Convert tile positions to world positions
     std::vector<glm::vec2> positions;
     for(int i = 0; i < tilePositions.size(); i++)
     {
-        positions.push_back(glm::vec2(tilePositions.at(i).x * scaledTileSize, tilePositions.at(i).y * scaledTileSize));
+        positions.push_back(glm::vec2(tilePositions.at(i).x * SCALED_TILE_SIZE, tilePositions.at(i).y * SCALED_TILE_SIZE));
     }
 
-    wolf::Camera2D* camera = m_pScene->GetActiveCamera();
-    if(camera == nullptr)
-    {
-        return;
-    }
-    const float zoom = camera->GetZoom();
-    glm::vec2 viewportSize = camera->GetViewSize();
+    // Get relevant camera data
+    const float zoom = m_pSceneCamera->GetZoom();
+    glm::vec2 viewportSize = m_pSceneCamera->GetViewSize();
 
     // Bind the framebuffer whose texture will be rendered to
     m_pWriteFBO->Bind();
@@ -286,14 +287,11 @@ void Postprocessor::HandleHeatDistortionEffect(GLuint p_tex)
     // Set up the program for the heat distortion effect
     wolf::Program* program = m_vShaderPrograms.at(Effect::HEAT_DISTORTION);
 
-// Adjust the screenspaceRadius to be in pixels
-    
+    // Set uniforms    
     program->SetUniform("amplitude", 0.01f * zoom);
     program->SetUniform("frequency", (float)M_PI * 3.0f / zoom);
     program->SetUniform("time", (float)(m_timer.Elapsed()) * 8.0f);
-    program->SetUniform("viewportSize", glm::vec4(viewportSize.x, viewportSize.y, 0, 0));
-    program->SetUniform("rectangleSize", glm::vec4(scaledTileSize * zoom, scaledTileSize * zoom, 0, 0));
-    program->SetUniform("zoom", camera->GetZoom());
+    program->SetUniform("viewport_and_rect", glm::vec4(viewportSize.x, viewportSize.y, SCALED_TILE_SIZE * zoom, SCALED_TILE_SIZE* zoom));
     program->Bind();
 
     // Bind the texture to apply postprocessing effects to

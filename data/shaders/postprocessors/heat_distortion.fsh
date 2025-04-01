@@ -7,8 +7,7 @@ out vec3 color;
 uniform float amplitude;
 uniform float frequency;
 uniform float time;
-uniform vec4 viewportSize; // Pass viewport size as uniform
-uniform vec4 rectangleSize; // Uniform for rectangle size (width, height)
+uniform vec4 viewport_and_rect; // Contains viewport size & rectangle size in which distortion effect is applied
 
 // SSBO for worldspace points (bottom-left corners of rectangles)
 layout(std430, binding = 1) buffer PointsBuffer
@@ -40,13 +39,13 @@ void main()
         screenPoint = screenPoint * 0.5 + 0.5;                      
 
         // Scale to screen space
-        screenPoint = screenPoint * viewportSize.xy;                
+        screenPoint = screenPoint * viewport_and_rect.xy;                
         
         // Calculate relative position within rectangle
         vec2 relativePos = screenCoord - screenPoint;
         
         // Check if pixel is within rectangle bounds
-        if (relativePos.x >= 0.0 && relativePos.x <= rectangleSize.x && relativePos.y >= 0.0 && relativePos.y <= rectangleSize.y) {
+        if (relativePos.x >= 0.0 && relativePos.x <= viewport_and_rect.z && relativePos.y >= 0.0 && relativePos.y <= viewport_and_rect.w) {
             // Accumulate warp effects
             warp = vec2(warp.x + amplitude * sin((warp.y + warp.x) * frequency + time), warp.y);
             
