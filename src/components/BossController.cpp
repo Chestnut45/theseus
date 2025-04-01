@@ -212,6 +212,7 @@ void BossController::Init()
         light.Init();
         light.SetIgnoreWallTiles(true);
         light.GetGameObject()->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(16, 16));
+        light.SetOn(false);
     }
     
     // Find player controller
@@ -246,6 +247,7 @@ void BossController::Init()
     GetGameObject()->AddChild(*light.GetGameObject());
     light.Init();
     light.SetIgnoreWallTiles(true);
+    light.SetOn(false);
 
     // DEBUG: Fluid sim stress testing
 
@@ -301,6 +303,34 @@ void BossController::Update(float delta)
 
     UpdateAnimation();
     if (m_renderHealthBar) RenderHealthBar(delta);
+}
+
+void BossController::StartBossfight()
+{
+    SetActive(true);
+    
+    // Turn on all the lights!
+
+    for (auto pChild : GetGameObject()->GetChildren())
+    {
+        auto pLight = pChild->GetComponent<LightComponent>();
+        if (pLight)
+        {
+            pLight->SetOn(true);
+        }
+    }
+
+    for (auto pPillar : m_pBossPillarGroup->GetChildren())
+    {
+        for (auto pChild : pPillar->GetChildren())
+        {
+            auto pLight = pChild->GetComponent<LightComponent>();
+            if (pLight)
+            {
+                pLight->SetOn(true);
+            }
+        }
+    }
 }
 
 void BossController::UpdateAnimation()

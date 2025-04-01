@@ -1246,7 +1246,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             // Begin the bossfight
             wolf::Log("BOSSFIGHT STARTED");
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
-            m_pBoss->GetComponent<BossController>()->SetActive(true);
+            m_pBoss->GetComponent<BossController>()->StartBossfight();
 
             // Zoom out camera
             m_bossZoomTimer.Restart();
@@ -1256,8 +1256,6 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             {
                 tilemap.SetFilterMode(GL_LINEAR_MIPMAP_LINEAR);
             }
-
-            // TODO: Remove spike traps!
 
             // Set door areas to wall tiles
             for (const auto& door : m_bossRoomDoorTiles)
