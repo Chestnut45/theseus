@@ -12,6 +12,7 @@
 
 // !-- Aurora added this --!
 #include "inventory/ItemDropCreator.h"
+#include <LightComponent.h>
 
 #include <math.h>
 #include <cassert>
@@ -394,6 +395,12 @@ void HarpyController::HandleAttackingState(float delta)
             glm::vec2 offset = perpendicularVector * (30.0f * i);
             projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset);
             projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+
+            // Add a light to the projectile (Aurora added this)
+            wolf::GameObject* pLightGO = &scene.CreateObject2D();
+            auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), 50.0f, true);
+            projectile.AddChild(*pLightGO);
+            pLightComponent.Init();
         }
 
         // Strike again

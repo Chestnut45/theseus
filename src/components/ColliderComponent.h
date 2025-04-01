@@ -73,6 +73,8 @@ public:
 
     void SetActive(bool active); //set m_active to true
     bool IsActive() const; //check if m_active, just a getter. 
+
+    std::vector<glm::vec2> GetWorldSpaceCorners();
     
 private:
     bool m_bIsDestroyedOnCollision = false; // Game object destroyed on collision

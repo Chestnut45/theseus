@@ -11,6 +11,7 @@
 #include "AnimatedSprite2D.h"
 
 #include <W_Audio.h>
+#include <LightEvents.h>
 
 DispensaryInventoryComponent::~DispensaryInventoryComponent() {
     // Deregister for events
@@ -391,6 +392,7 @@ void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryE
     if (p_event.enType == InventoryType::DISPENSARY_INVENTORY && p_event.iIdNum == m_iIdNum)
     {
         wolf::Audio::Play("data/sounds/sfx_dispensary_open.wav", 1.0f);
+        wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), true));
     }
 
     // If this dispensary is open
@@ -403,6 +405,7 @@ void DispensaryInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryE
             if (pAnim) {
                 pAnim->SetAnimation("Deactivate");
             }
+            wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), false));
         }
     }
 }
@@ -416,6 +419,7 @@ void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventor
     {
         wolf::Audio::Play("data/sounds/sfx_dispensary_close.wav", 1.0f);
         sfxPlayed = true;
+        wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), false));
     }
 
     // If this dispensary is open
@@ -439,6 +443,8 @@ void DispensaryInventoryComponent::HandleCloseInventoryEvent(const CloseInventor
                     anim->SetAnimation("Transparent");
                 }
             }
+
+            wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), false));
         }
     }
 }
