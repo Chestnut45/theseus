@@ -1,5 +1,13 @@
 #pragma once
 
+//-----------------------------------------------------------------------------
+// File:			ParticleEditor.h
+// Original Author:	Youssef Ashraf
+// ver 1.6
+// ImGUI editor for particles
+//-----------------------------------------------------------------------------
+
+
 #include <W_BaseComponent.h>
 #include "ParticleComponent.h"
 #include "ParticleModifier.h"
