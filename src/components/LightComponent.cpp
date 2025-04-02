@@ -247,7 +247,7 @@ void LightComponent::Update(float p_fDelta) {
                 }
 
                 // Check if the rectangle is part of a wall
-                if (CheckForWallAtPos({(v2TopLeft.x + v2BotRight.x) * 0.5f, (v2TopLeft.y + v2BotRight.y) * 0.5f})) {
+                if (!m_ignoreWallTiles && CheckForWallAtPos({(v2TopLeft.x + v2BotRight.x) * 0.5f, (v2TopLeft.y + v2BotRight.y) * 0.5f})) {
 
                     // If it is, we want to make a rectangle for each individual tile within it.
                     // To do that, we get the width and height of the rectangle...
@@ -333,7 +333,7 @@ void LightComponent::Update(float p_fDelta) {
         // Figure out the approximate location of the rectangle in relation to the light source
         glm::vec2 v2RectPos = glm::vec2((v2TopLeft.x + v2TopRight.x) * 0.5f, (v2TopLeft.y + v2BotLeft.y) * 0.5f);
         RoughPosition enRoughPos = this->CalculateRoughObjPosition(v2RectPos);
-
+        
         // Use said location to figure out which sides of the rectangle the light could
         // be hitting and which sides can be safely ignored.
         switch (enRoughPos) {
@@ -411,7 +411,7 @@ void LightComponent::Update(float p_fDelta) {
             break;
 
             case SELF:
-                // Shoot a line to the four corners of the light's radius rectangle and in a + shape centered at the light's origin
+                // Shoot a line to the four corners of the light's radius rectangle
                 // (If these lines intersect something they'll be removed in the next pass)
                 m_vv2fCollidingPoints.push_back({v2TopLeft, CalculateAngleOfIntersection(v2TopLeft)});
                 m_vv2fCollidingPoints.push_back({v2TopRight, CalculateAngleOfIntersection(v2TopRight)});
@@ -461,9 +461,8 @@ void LightComponent::Update(float p_fDelta) {
         glm::vec2 v2RightStart = arv2RectCorners[1]; // Right
         glm::vec2 v2RightEnd = arv2RectCorners[3];
 
-        // Determine if this rectangle is part of a wall tile or the light's AOE
-        bool bRectIsWall = CheckForWallAtPos({(v2TopStart.x + v2BotEnd.x) * 0.5f, (v2TopStart.y + v2BotEnd.y) * 0.5f});
-        bool bIsAOE = this->IsAOERect(rect);
+        // Determine if this rectangle is part of a wall tile
+        bool bRectIsWall = !m_ignoreWallTiles && CheckForWallAtPos({(v2TopStart.x + v2BotEnd.x) * 0.5f, (v2TopStart.y + v2BotEnd.y) * 0.5f});
 
         // Then go through all of the corner points that we THINK we'll be casting a light ray to
         for (std::pair<glm::vec2, float> v2fCorner : m_vv2fCollidingPoints) {
@@ -473,20 +472,20 @@ void LightComponent::Update(float p_fDelta) {
             }
 
             // Check for a collision between the ray shot to this corner point and the rectangle we're currently interested in
-            std::pair<bool, glm::vec2> v2fLeftResullt = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2LeftStart, v2LeftEnd);
-            std::pair<bool, glm::vec2> v2fRightResullt = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2RightStart, v2RightEnd);
-            std::pair<bool, glm::vec2> v2fTopResullt = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2TopStart, v2TopEnd);
-            std::pair<bool, glm::vec2> v2fBotResullt = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2BotStart, v2BotEnd);
+            std::pair<bool, glm::vec2> v2fLeftResult = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2LeftStart, v2LeftEnd);
+            std::pair<bool, glm::vec2> v2fRightResult = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2RightStart, v2RightEnd);
+            std::pair<bool, glm::vec2> v2fTopResult = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2TopStart, v2TopEnd);
+            std::pair<bool, glm::vec2> v2fBotResult = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2BotStart, v2BotEnd);
 
             // Check if the line between the origin and the corner point we're casting to intersects with another collider.
-            if (v2fLeftResullt.first || v2fRightResullt.first || v2fTopResullt.first || v2fBotResullt.first)
+            if (v2fLeftResult.first || v2fRightResult.first || v2fTopResult.first || v2fBotResult.first)
             {
                 // If it does, then we want to replace corner point we're looking at with the nearest point of intersection
                 // between the light and the rectangle instead, so we get the distance of each potential intersect
-                float fLeftDist = glm::distance(m_v2Origin, v2fLeftResullt.second);
-                float fRightDist = glm::distance(m_v2Origin, v2fRightResullt.second);
-                float fTopDist = glm::distance(m_v2Origin, v2fTopResullt.second);
-                float fBotDist = glm::distance(m_v2Origin, v2fBotResullt.second);
+                float fLeftDist = glm::distance(m_v2Origin, v2fLeftResult.second);
+                float fRightDist = glm::distance(m_v2Origin, v2fRightResult.second);
+                float fTopDist = glm::distance(m_v2Origin, v2fTopResult.second);
+                float fBotDist = glm::distance(m_v2Origin, v2fBotResult.second);
 
                 // Then we find the point with the shortest distance
                 float fMinDist = std::min(fLeftDist, std::min(fRightDist, std::min(fTopDist, fBotDist)));
@@ -494,19 +493,20 @@ void LightComponent::Update(float p_fDelta) {
                 // And add it to a vector of points that will be added to m_vv2fCollidingPoints in the next pass
                 if (fMinDist == fLeftDist) {
                     // Left intersection point
-                    vv2fPointsToAdd.push_back({v2fLeftResullt.second, CalculateAngleOfIntersection(v2fLeftResullt.second)});
+                    vv2fPointsToAdd.push_back({v2fLeftResult.second, CalculateAngleOfIntersection(v2fLeftResult.second)});
                 }
                 else if (fMinDist == fRightDist) {
                     // Right intersection point
-                    vv2fPointsToAdd.push_back({v2fRightResullt.second, CalculateAngleOfIntersection(v2fRightResullt.second)});
+                    vv2fPointsToAdd.push_back({v2fRightResult.second, CalculateAngleOfIntersection(v2fRightResult.second)});
+                    
                 }
                 else if (fMinDist == fTopDist) {
                     // Top intersection point
-                    vv2fPointsToAdd.push_back({v2fTopResullt.second, CalculateAngleOfIntersection(v2fTopResullt.second)});
+                    vv2fPointsToAdd.push_back({v2fTopResult.second, CalculateAngleOfIntersection(v2fTopResult.second)});
                 }
                 else if (fMinDist == fBotDist) {
                     // Bottom intersection point
-                    vv2fPointsToAdd.push_back({v2fBotResullt.second, CalculateAngleOfIntersection(v2fBotResullt.second)});
+                    vv2fPointsToAdd.push_back({v2fBotResult.second, CalculateAngleOfIntersection(v2fBotResult.second)});
                 }
                 
                 // Then mark the original point for removal
@@ -711,18 +711,6 @@ bool LightComponent::CheckForWallAtPos(const glm::vec2& p_v2Pos) {
 
     // And return true if it is a wall tile
     return (iTileID >= Tile::WallBottomLeft && iTileID <= Tile::WallTop);
-}
-
-// Helper function to check whether a given rectangle is the light's AOE rectangle
-bool LightComponent::IsAOERect(const wolf::Rectangle& p_pRect) {
-    // Get the corners of the rectangle
-    std::array<glm::vec2, 4> arv2Corners = p_pRect.GetCorners();
-
-    // Check if each of the points correspond to the AOE's corners
-    return (arv2Corners[0] == glm::vec2(m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f) && // Top left
-            arv2Corners[1] == glm::vec2(m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y + m_v2CurRadius.y * 0.5f) && // Top Right
-            arv2Corners[2] == glm::vec2(m_v2Origin.x - m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f) && // Bottom Left
-            arv2Corners[3] == glm::vec2(m_v2Origin.x + m_v2CurRadius.x * 0.5f, m_v2Origin.y - m_v2CurRadius.y * 0.5f));  // Bottom Right
 }
 
 // Compares two glm::vec2-float pairs and returns the one with the largest float value (break ties using the y coordinate)
