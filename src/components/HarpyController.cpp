@@ -25,6 +25,7 @@ HarpyController::HarpyController()
 HarpyController::~HarpyController()
 {
     wolf::EventManager::RemoveListener<InfightingEvent, HarpyController, &HarpyController::HandleInfighting>(*this);
+    m_activeFireballs.clear();
 }
 
 void HarpyController::Init(const EnemyData& data)
@@ -35,7 +36,6 @@ void HarpyController::Init(const EnemyData& data)
         wolf::Error("LateInitialize failed: HarpyController not attached to GameObject!");
         return;
     }
-
     // Call base initialization
     EnemyController::Init();
 
@@ -104,6 +104,30 @@ void HarpyController::Update(float delta)
         {
             // wolf::Warning("BLUD CAN'T FIND A TARGET");
             RevertBackToPlayer();
+        }
+    }
+
+    for (auto* fireball : m_activeFireballs)
+    {
+        if (!fireball) continue; // Skip null pointers
+        
+        auto* velocity = fireball->GetComponent<VelocityComponent>();
+        auto* particleComp = fireball->GetComponent<ParticleComponent>();
+        if (velocity && particleComp)
+        {
+            glm::vec2 vel = velocity->GetVelocity();
+            if (glm::length(vel) > 0.1f)
+            {
+                // Get the opposite direction of movement for the particles
+                glm::vec2 emitDirection = -glm::normalize(vel);
+                
+                // Update the emission direction in the particle component
+                particleComp->SetEmissionDirection(emitDirection);
+                
+                //sweet touch: Adjust emission velocity based on projectile speed
+                float speed = glm::length(vel) * 0.2f; // 20% of projectile speed
+                particleComp->SetBaseVelocity(emitDirection * speed);
+            }
         }
     }
     
@@ -367,6 +391,13 @@ void HarpyController::HandleAttackingState(float delta)
 
         auto& scene = this->GetGameObject()->GetScene();
 
+        // Clear out any nullptrs from the fireballs vector (from destroyed projectiles)
+        m_activeFireballs.erase(
+            std::remove_if(m_activeFireballs.begin(), m_activeFireballs.end(), 
+                [](wolf::GameObject* obj) { return obj == nullptr; }),
+            m_activeFireballs.end()
+        );
+
         // Spawn 3 projectiles
         for(int i = -1; i <= 1; i += 1)
         {
@@ -391,6 +422,18 @@ void HarpyController::HandleAttackingState(float delta)
 
             auto& projectileVelocityComponent = projectile.AddComponent<VelocityComponent>();
             projectileVelocityComponent.SetVelocity(projectileDefaultVelocity);
+
+            // Add the particle component for fire trail
+            auto& particleComponent = projectile.AddComponent<ParticleComponent>(75);
+            bool configLoaded = particleComponent.LoadConfigFromYAML("data/particles/fire_trail.yaml");
+            if (!configLoaded) {
+                wolf::Warning("Failed to load fire_trail.yaml for projectile");
+                // Manual fallback setup would go here
+            }
+            
+            // Set continuous emission to true and a reasonable rate
+            particleComponent.SetContinuousEmission(true);
+            particleComponent.SetEmissionRate(40.0f); // 40 particles per second
 
             glm::vec2 offset = perpendicularVector * (30.0f * i);
             projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset);

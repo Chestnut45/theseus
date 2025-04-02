@@ -10,6 +10,7 @@
 #include <W_GameObject.h>
 #include <yaml-cpp/yaml.h>
 #include <filesystem>
+#include <W_Transform2D.h>
 
 ParticleComponent::ParticleComponent(size_t maxParticles)
 {
@@ -153,6 +154,49 @@ void ParticleComponent::Update(float delta)
     if (!m_hasActiveParticles)
     {
         m_hasActiveParticles = anyActive;
+    }
+    
+    // Handle continuous emission if enabled
+    if (m_continuousEmission)
+    {
+        m_emissionTimer += delta;
+        float emissionInterval = 1.0f / m_emissionRate; // Time between emissions
+        
+        if (m_emissionTimer >= emissionInterval)
+        {
+            // Get the parent object's position
+            glm::vec2 position = glm::vec2(0.0f);
+            auto* transform = GetGameObject()->GetComponent<wolf::Transform2D>();
+            if (transform)
+            {
+                position = transform->GetGlobalPosition();
+            }
+            
+            // Calculate velocity based on emission direction and base velocity
+            glm::vec2 velocity = m_baseVelocity;
+            if (glm::length(velocity) < 0.001f)
+            {
+                velocity = m_emissionDirection * 50.0f; // Default speed if none specified
+            }
+            
+            // Emit a particle
+            glm::vec4 color = glm::vec4(1.0f, 0.8f, 0.2f, 0.9f); // Default fire color
+            float size = 4.0f;
+            float lifetime = 0.6f;
+            
+            // Get texture if one was loaded by config
+            wolf::Texture* texture = nullptr;
+            if (!m_particles.empty() && m_particles[0].m_texture)
+            {
+                texture = m_particles[0].m_texture;
+            }
+            
+            // Emit the particle
+            Emit(position, velocity, color, size, lifetime, texture);
+            
+            // Reset timer, accounting for remainder
+            m_emissionTimer = fmod(m_emissionTimer, emissionInterval);
+        }
     }
     
     // Handle auto-cleanup if enabled

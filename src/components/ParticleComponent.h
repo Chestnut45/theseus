@@ -62,6 +62,27 @@ public:
     void SetCleanupGracePeriod(float seconds) { m_cleanupGracePeriod = seconds; }
     float GetCleanupGracePeriod() const { return m_cleanupGracePeriod; }
 
+    void SetContinuousEmission(bool enable) { m_continuousEmission = enable; }
+    bool GetContinuousEmission() const { return m_continuousEmission; }
+    
+    // Emission rate (particles per second)
+    void SetEmissionRate(float rate) { m_emissionRate = rate; }
+    float GetEmissionRate() const { return m_emissionRate; }
+    
+    // Emission direction
+    void SetEmissionDirection(const glm::vec2& direction) { 
+        m_emissionDirection = glm::normalize(direction); 
+    }
+    glm::vec2 GetEmissionDirection() const { return m_emissionDirection; }
+    
+    // Base velocity for particles
+    void SetBaseVelocity(const glm::vec2& velocity) { m_baseVelocity = velocity; }
+    glm::vec2 GetBaseVelocity() const { return m_baseVelocity; }
+    
+    // User data (for storing timers or other custom data)
+    void SetUserData(void* data) { m_userData = data; }
+    void* GetUserData() const { return m_userData; }
+
 
 private:
     std::vector<Particle> m_particles;
@@ -90,4 +111,14 @@ private:
     
     // Apply all modifiers to a particle
     void ApplyModifiers(Particle& particle, float delta, bool isNewParticle = false);
+
+    // New properties for continuous emission
+    bool m_continuousEmission = false;
+    float m_emissionRate = 10.0f; // Particles per second
+    float m_emissionTimer = 0.0f;
+    glm::vec2 m_emissionDirection = glm::vec2(0.0f, 1.0f);
+    glm::vec2 m_baseVelocity = glm::vec2(0.0f, 0.0f);
+    void* m_userData = nullptr;
+
+
 };
