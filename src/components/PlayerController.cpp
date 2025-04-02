@@ -1496,7 +1496,7 @@ void PlayerController::StartRoll()
     // Only take stamina if not in godmode
     if (!m_godmode)
     {
-        m_stamina -= 25.0f;
+        m_stamina -= 10.0f;
         m_staminaRegenTimer.Restart();
     }
 

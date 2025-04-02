@@ -1325,7 +1325,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             glm::vec2 center = glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2);
 
             // Add a timed spout to spawn poison!
-            fluidSystem.AddTimedSpout(center, 2.0f, 240);
+            fluidSystem.AddTimedSpout(center, 2.0f, room.m_bounds.m_size.x * room.m_bounds.m_size.y * 8);
 
             // Add a delayed drain to remove all the fluid after
             fluidSystem.AddTimedDrain(wolf::Circle(center, 8.0f), 20.0f, 512.0f, 250.0f, 8.0f);
@@ -1373,7 +1373,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             glm::vec2 center = glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2);
 
             // Add a timed spout to spawn lava!
-            fluidSystem.AddTimedSpout(center, 2.0f, 240);
+            fluidSystem.AddTimedSpout(center, 2.0f, room.m_bounds.m_size.x * room.m_bounds.m_size.y);
 
             // Add a delayed drain to remove all the fluid after
             fluidSystem.AddTimedDrain(wolf::Circle(center, 8.0f), 20.0f, 512.0f, 250.0f, 8.0f);
