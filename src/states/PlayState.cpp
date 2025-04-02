@@ -360,6 +360,11 @@ void PlayState::Update(float delta)
         // Show the Labyrinth Manager debug GUI
         if (m_showLabyrinthManager) 
             m_pLabyrinthManager->ShowGUI();
+
+        if (m_pParticleEditor)
+        {
+            m_pParticleEditor->Update(delta);
+        }
     }
 
     // // Update fluid system components
@@ -826,10 +831,7 @@ void PlayState::Update(float delta)
 
     }
 
-    if (m_pParticleEditor)
-    {
-        m_pParticleEditor->Update(delta);
-    }
+
 
     // Dispatch events
     wolf::EventManager::Dispatch();
