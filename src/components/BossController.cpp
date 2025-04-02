@@ -38,6 +38,8 @@
 #include "../LabyrinthTiles.h"
 
 #include <events/GameWinEvent.h>
+#include <BoundedFluidSystem2D.h>
+#include <LightComponent.h>
 
 BossController::BossController()
 {
@@ -203,6 +205,14 @@ void BossController::Init()
         // Create collider
         auto& collider = pillar.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, false, false);
         collider.AddColliderBox(glm::vec2(96.0f), glm::vec2(0.0f, 96.0f));
+
+        // Add a light
+        LightComponent& light = GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.8f), 100.0f, true);
+        pillar.AddChild(*light.GetGameObject());
+        light.Init();
+        light.SetIgnoreWallTiles(true);
+        light.GetGameObject()->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(16, 16));
+        light.SetOn(false);
     }
     
     // Find player controller
@@ -231,6 +241,37 @@ void BossController::Init()
     // Add the sprite
     wolf::Sprite2D& sprite = m_pShadowObject->AddComponent<wolf::Sprite2D>("data/textures/boss_shadow.png");
     sprite.SetOriginToCenterOfTexture();
+
+    // Add a light
+    LightComponent& light = GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.8f), 150.0f, true);
+    GetGameObject()->AddChild(*light.GetGameObject());
+    light.Init();
+    light.SetIgnoreWallTiles(true);
+    light.SetOn(false);
+
+    // DEBUG: Fluid sim stress testing
+
+    // Calculate simulation bounds
+    // auto simBounds = wolf::Rectangle(r);
+    // simBounds.m_top *= 96;
+    // simBounds.m_left *= 96;
+    // simBounds.m_right *= 96;
+    // simBounds.m_bottom *= 96;
+
+    // // Create the fluid system
+    // auto& fluidObj = pObject->GetScene().CreateObject2D();
+    // auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
+    // fluidSystem.SetupDamBreak(1000);
+    // fluidSystem.SetGravity(true);
+
+    // // TODO: Add pillars... (breaking?)
+    // auto rect = wolf::Rectangle(0.0f, 96.0f, 96.0f, 0.0f);
+    // for (const auto& tile : locations)
+    // {
+    //     auto bounds = rect;
+    //     bounds.Translate(m_pLabyrinthManager->GetWorldPosition(tile));
+    //     fluidSystem.AddStaticCollisionRect(bounds);
+    // }
 
     EnterPhase1();
 }
@@ -264,6 +305,34 @@ void BossController::Update(float delta)
     if (m_renderHealthBar) RenderHealthBar(delta);
 }
 
+void BossController::StartBossfight()
+{
+    SetActive(true);
+    
+    // Turn on all the lights!
+
+    for (auto pChild : GetGameObject()->GetChildren())
+    {
+        auto pLight = pChild->GetComponent<LightComponent>();
+        if (pLight)
+        {
+            pLight->SetOn(true);
+        }
+    }
+
+    for (auto pPillar : m_pBossPillarGroup->GetChildren())
+    {
+        for (auto pChild : pPillar->GetChildren())
+        {
+            auto pLight = pChild->GetComponent<LightComponent>();
+            if (pLight)
+            {
+                pLight->SetOn(true);
+            }
+        }
+    }
+}
+
 void BossController::UpdateAnimation()
 {   
     // Compass direction animation names
@@ -294,13 +363,6 @@ void BossController::UpdateAnimation()
         m_state = State::APPROACH;
         m_throneBreakTimer.Reset();
     }
-
-    // Query player spatial info
-    glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 dirToPlayer = glm::normalize(playerPos - m_pTransform->GetGlobalPosition());
-    float angle = -glm::atan(dirToPlayer.x, dirToPlayer.y);
-    int dirIndex = (int)round(4 * angle / 6.28318530718f + 5) % 4;
-    const char* const dirText = s_dirNames[dirIndex];
 
     // Set animation based on state, regardless of fight phase
     std::string baseAnimName;
@@ -345,9 +407,18 @@ void BossController::UpdateAnimation()
     // Add direction to base anim name
     if (m_state != State::SIT)
     {
+        // Query player spatial info
+        glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 dirToPlayer = glm::normalize(playerPos - m_pTransform->GetGlobalPosition());
+        float angle = -glm::atan(dirToPlayer.x, dirToPlayer.y);
+        int dirIndex = (int)round(4 * angle / 6.28318530718f + 5) % 4;
+
+        // Grab the name of the direction to be added to the base animation
+        const char* const dirText = s_dirNames[dirIndex];
         baseAnimName += dirText;
     }
 
+    // Update animation if valid
     if (baseAnimName != "")
     {
         m_pAnimSprite->SetAnimation(baseAnimName);
@@ -497,13 +568,6 @@ void BossController::UpdatePhase1(float delta)
     CheckWaveProgress(delta);
     CheckEnemyWaveHealth();
     RenderImGui();
-
-    // **Trigger Wave 1 if the player attacks near the boss**
-    if (!m_waveActive && m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING)
-    {
-        // wolf::Log("BossController: Player attacked, starting Wave 1...");
-        StartWave();
-    }
 }
 
 void BossController::CleanupPhase1()

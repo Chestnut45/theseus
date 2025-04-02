@@ -90,6 +90,23 @@ public:
         return m_scene.m_registry.any_of<T...>(m_id);
     }
 
+    // Returns true if the object or any of its children has any of the given components
+    template <typename... T>
+    bool HasAnyRecursive()
+    {
+        std::function<bool(GameObject*)> HasAnyRecurse = [&, this](GameObject* pGO) -> bool {
+            bool has = m_scene.m_registry.any_of<T...>(pGO->GetID());
+            if (has) return true;
+            for (auto child : pGO->GetChildren())
+            {
+                bool childHas = HasAnyRecurse(child);
+                if (childHas) return true;
+            }
+            return false;
+        };
+        return HasAnyRecurse(this);
+    }
+
     // Hierarchy management
     
     // Adds a game object to our list of children

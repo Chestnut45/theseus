@@ -37,7 +37,6 @@
 #include <unordered_set>
 #include <ParticleEditor.h>
 
-
 class LabyrinthManager;
 
 class PlayState : public GameState
