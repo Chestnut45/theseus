@@ -2056,7 +2056,6 @@ void PlayerController::EmitBloodParticles(const DamageEvent& event, float intens
     bool configLoaded = particleComponent.LoadConfigFromYAML("data/particles/blood_splash.yaml");
     if (!configLoaded) {
         wolf::Warning("Failed to load blood_splash.yaml - manually setting up blood effect");
-        SetupBloodParticleModifiers(particleComponent);
     }
     
     // Calculate direction based on player's last facing direction or movement
@@ -2112,48 +2111,4 @@ void PlayerController::EmitBloodParticles(const DamageEvent& event, float intens
         90.0f,                            // Spread angle
         bloodTexture                      // Blood texture
     );
-}
-
-// Helper method to manually set up modifiers if YAML loading fails
-void PlayerController::SetupBloodParticleModifiers(ParticleComponent& particleComponent)
-{
-    // Emission Shape Modifier
-    auto emissionShape = std::make_shared<EmissionShapeModifier>();
-    emissionShape->SetShapeType(EmissionShapeModifier::POINT);
-    emissionShape->SetRandomDirection(true);
-    emissionShape->SetDirectionAngle(0.0f);
-    emissionShape->SetSpreadAngle(90.0f);
-    particleComponent.AddModifier(emissionShape);
-    
-    // Gravity Modifier
-    auto gravity = std::make_shared<GravityModifier>();
-    gravity->SetGravity(glm::vec2(0.0f, 50.0f));
-    gravity->SetStrength(1.5f);
-    particleComponent.AddModifier(gravity);
-    
-    // Drag Modifier
-    auto drag = std::make_shared<DragModifier>();
-    drag->SetDragCoefficient(0.8f);
-    particleComponent.AddModifier(drag);
-    
-    // Size Over Lifetime Modifier
-    auto sizeOverLifetime = std::make_shared<SizeOverLifetimeModifier>();
-    sizeOverLifetime->SetScales(1.0f, 0.1f);
-    sizeOverLifetime->SetCurveType(SizeOverLifetimeModifier::EASE_OUT);
-    particleComponent.AddModifier(sizeOverLifetime);
-    
-    // Color Over Lifetime Modifier
-    auto colorOverLifetime = std::make_shared<ColorOverLifetimeModifier>();
-    colorOverLifetime->SetColors(
-        glm::vec4(0.7f, 0.1f, 0.1f, 0.9f),  // Start color
-        glm::vec4(0.5f, 0.0f, 0.0f, 0.0f)   // End color (fade out)
-    );
-    particleComponent.AddModifier(colorOverLifetime);
-    
-    // Rotation Modifier
-    auto rotation = std::make_shared<RotationModifier>();
-    rotation->SetRotationSpeed(180.0f);
-    rotation->SetRandomizeInitialRotation(true);
-    rotation->SetRandomizeRotationDirection(true);
-    particleComponent.AddModifier(rotation);
 }

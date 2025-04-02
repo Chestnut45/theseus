@@ -175,8 +175,6 @@ private:
     // Helper method to create blood particles on damage
     void EmitBloodParticles(const DamageEvent& event, float intensity = 1.0f);
 
-    // Helper method to manually set up modifiers if YAML loading fails
-    void SetupBloodParticleModifiers(ParticleComponent& particleComponent);
     
 
 
