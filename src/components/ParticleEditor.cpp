@@ -17,10 +17,10 @@ void ParticleEditor::Update(float delta)
         m_editorVisible = !m_editorVisible;
     }
 
-    if (m_editorVisible)
-    {
-        ShowEditor();
-    }
+    // if (m_editorVisible)
+    // {
+    //     ShowEditor();
+    // }
 }
 
 void ParticleEditor::ShowEditor()

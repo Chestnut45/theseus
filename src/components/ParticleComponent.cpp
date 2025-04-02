@@ -485,7 +485,7 @@ void ParticleComponent::ApplyModifiers(Particle& particle, float delta, bool isN
 bool ParticleComponent::LoadConfigFromYAML(const std::string& filename)
 {
     try {
-        wolf::Log("Attempting to load YAML config from ", filename.c_str());
+        // wolf::Log("Attempting to load YAML config from ", filename.c_str());
         
         if (!std::filesystem::exists(filename)) {
             wolf::Error("Config file does not exist: ", filename.c_str());
@@ -665,7 +665,7 @@ bool ParticleComponent::LoadConfigFromYAML(const std::string& filename)
             }
         }
         
-        wolf::Log("Particle configuration loaded successfully with ", m_modifiers.size(), " modifiers");
+        // wolf::Log("Particle configuration loaded successfully with ", m_modifiers.size(), " modifiers");
         return true;
     }
     catch (const std::exception& e) {

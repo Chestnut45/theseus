@@ -1,4 +1,10 @@
 #pragma once
+//-----------------------------------------------------------------------------
+// File:			ParticleModifier.h
+// Original Author:	Youssef Ashraf
+// ver 1.3
+// Class responsible for adding modules to particles.
+//-----------------------------------------------------------------------------
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <vector>
@@ -10,7 +16,6 @@
 #include <random>
 #include <unordered_map>
 
-// Include Particle.h to get the Particle struct definition
 #include "Particle.h"
 
 // Forward declarations

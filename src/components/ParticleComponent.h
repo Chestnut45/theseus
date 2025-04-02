@@ -1,5 +1,13 @@
 #pragma once
 
+//-----------------------------------------------------------------------------
+// File:			ParticleComponent.h
+// Original Author:	Youssef Ashraf
+// ver 1.3
+// Class responsible for particles
+//-----------------------------------------------------------------------------
+
+
 #include <vector>
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
@@ -12,7 +20,6 @@
 #include <memory>
 #include <unordered_map>
 
-// Include the Particle struct from its own file
 #include "Particle.h"
 
 // Forward declaration for modifier classes
