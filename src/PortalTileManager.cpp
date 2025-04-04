@@ -305,14 +305,17 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     wolf::Sprite2D* sprite = &m_pPortalTileSpriteObj->AddComponent<wolf::Sprite2D>("data/textures/tile_hermes_portal.png");
     sprite->SetTint(glm::vec3(0.5f));
 
-    // Add particle components
+    // Add particle component
     ParticleComponent* particleComponent = &m_pPortalTileSpriteObj->AddComponent<ParticleComponent>();
     PortalTileManager::GetInstance()->m_pParticleSystem2D->RegisterComponent(particleComponent);
 
-    // wolf::GameObject* lightObj = &p_lbmg->GetGameObject()->GetScene().CreateObject2D();
-    // LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), 50.0f, true);
-    // m_pPortalTileSpriteObj->AddChild(*lightObj);
-    // lightComponent->Init();
+    // Add light component
+    wolf::GameObject* lightObj = &p_lbmg->GetGameObject()->GetScene().CreateObject2D();
+    LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), 50.0f, true);
+    m_pPortalTileSpriteObj->AddChild(*lightObj);
+    lightComponent->Init();
+
+    m_pChunk->AddChild(*m_pPortalTileSpriteObj);
 }
 
 PortalTileManager::PortalTile::~PortalTile()
@@ -324,6 +327,7 @@ PortalTileManager::PortalTile::~PortalTile()
     wolf::Scene* scene = &m_pPortalTileSpriteObj->GetScene();
     scene->DeleteObject(m_pPortalTileSpriteObj->GetID());
     m_pPortalTileSpriteObj = nullptr;
+    
 }
 
 glm::ivec2 PortalTileManager::PortalTile::GetTilePos() const
@@ -459,6 +463,8 @@ void PortalTileManager::PortalTile::Update(float p_dt)
 
 void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
 {
+    if(p_obj->GetID() == m_pPortalTileSpriteObj->GetID()) return;
+    
     // Return if object is occupant
     if(p_obj->GetID() == m_occupantID) return;
 
