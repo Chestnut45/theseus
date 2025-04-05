@@ -6,6 +6,7 @@
 #include "PortalTileManager.h"
 
 #include "components/AttackDamageComponent.h"
+#include "components/ColliderComponent.h"
 #include "components/HealthComponent.h"
 #include "components/LightComponent.h"
 #include "components/ParticleComponent.h"
@@ -296,6 +297,8 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
         break;
     }
 
+    float scaledTileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+
     // Create sprite object
     m_pPortalTileSpriteObj = &p_lbmg->GetGameObject()->GetScene().CreateObject2D();
     m_pPortalTileSpriteObj->GetComponent<wolf::Transform2D>()->SetPosition(p_lbmg->GetWorldPosition(m_vTilePos));
@@ -309,8 +312,14 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     ParticleComponent* particleComponent = &m_pPortalTileSpriteObj->AddComponent<ParticleComponent>();
     PortalTileManager::GetInstance()->m_pParticleSystem2D->RegisterComponent(particleComponent);
 
+    // Add collider component
+    ColliderComponent* colliderComponent = &m_pPortalTileSpriteObj->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, false, false);
+    colliderComponent->AddColliderBox(glm::vec2(scaledTileSize), glm::vec2(0.0f, scaledTileSize));
+
     // Add light component
     wolf::GameObject* lightObj = &p_lbmg->GetGameObject()->GetScene().CreateObject2D();
+        lightObj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(scaledTileSize, scaledTileSize));
+
     LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), 50.0f, true);
     m_pPortalTileSpriteObj->AddChild(*lightObj);
     lightComponent->Init();
