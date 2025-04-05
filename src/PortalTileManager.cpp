@@ -313,16 +313,17 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     PortalTileManager::GetInstance()->m_pParticleSystem2D->RegisterComponent(particleComponent);
 
     // Add collider component
-    ColliderComponent* colliderComponent = &m_pPortalTileSpriteObj->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITBOX, false, false);
+    ColliderComponent* colliderComponent = &m_pPortalTileSpriteObj->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, false, false);
     colliderComponent->AddColliderBox(glm::vec2(scaledTileSize), glm::vec2(0.0f, scaledTileSize));
 
     // Add light component
     wolf::GameObject* lightObj = &p_lbmg->GetGameObject()->GetScene().CreateObject2D();
     lightObj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(LabyrinthManager::TILE_SIZE * 0.5f, LabyrinthManager::TILE_SIZE * 0.5f));
     
-    LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), 50.0f, true);
+    LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), scaledTileSize * 0.5f, true);
     m_pPortalTileSpriteObj->AddChild(*lightObj);
     lightComponent->Init();
+    lightComponent->SetOn(false);
 
     m_pChunk->AddChild(*m_pPortalTileSpriteObj);
 }
@@ -404,6 +405,7 @@ void PortalTileManager::PortalTile::Update(float p_dt)
             {
                 SetActive(true);
                 m_pPortalTileSpriteObj->GetComponent<wolf::Sprite2D>()->SetTint(glm::vec3(1.0f));
+                m_pPortalTileSpriteObj->GetChildren().at(0)->GetComponent<LightComponent>()->SetOn(true);
             }
         }
     }
