@@ -45,7 +45,7 @@ void PauseState::Update(float delta)
     ImGui::SetNextWindowSize({(float)w, (float)h});
 
     // Make the pause menu darken the entire screen
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.75f));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f));
 
     // Make the window non-resizeable, remove toolbar, etc.
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;

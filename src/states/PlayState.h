@@ -38,7 +38,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-
 class LabyrinthManager;
 
 class PlayState : public GameState
