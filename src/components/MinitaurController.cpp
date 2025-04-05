@@ -89,19 +89,26 @@ void MinitaurController::Init(const EnemyData& data)
     // Initialise emotes-related variables
     m_fEmoteTimer = EMOTE_TIME;
 
-    // Find the PathfindingManager in the scene
-    bool pathfindingManagerFound = false;
-    for (auto&& [entity, pathfindingManager] : GetGameObject()->GetScene().Each<PathfindingManager>())
+    bool navMeshFound = false;
+    for (auto&& [entity, navMesh] : GetGameObject()->GetScene().Each<NavMeshComponent>())
     {
-        m_pPathfindingManager = &pathfindingManager;
-        pathfindingManagerFound = true;
-        break; // there's only one PathfindingManager in the scene
+        m_pNavMeshComponent = &navMesh;
+        navMeshFound = true;
+        break;
     }
 
-    if (!pathfindingManagerFound)
+    if (!navMeshFound)
     {
-        wolf::Warning("MinitaurController: No PathfindingManager found in the scene!");
+        wolf::Warning("MinitaurController: NavMeshComponent not found in the scene! Falling back to grid-based pathfinding.");
     }
+    
+    // Initialize path variables
+    m_currentPath.clear();
+    m_currentPathIndex = 0;
+    m_pathUpdateTimer = 0.0f;
+    m_lastPosition = m_pTransform->GetGlobalPosition();
+    m_lastTargetPosition = m_pTarget ? m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() : m_lastPosition;
+    m_stuckTimer = 0.0f;
 }
 
 
@@ -311,37 +318,118 @@ void MinitaurController::RenderDebugPath()
 
 void MinitaurController::MoveTowardsTarget(float delta)
 {
-    if (!m_pTarget || !m_pVelocity || !m_pTransform || !m_pPathfindingManager)
+    if (!m_pTarget || !m_pVelocity || !m_pTransform)
         return;
-
-    auto& pathData = m_pPathfindingManager->GetPathData(GetGameObject());
-
-    if (pathData.path.empty())
+ 
+    // Get current positions
+    glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+    glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    
+    // Only update path periodically or when needed
+    m_pathUpdateTimer += delta;
+    
+    // Check if we need to recalculate the path
+    bool needNewPath = m_currentPath.empty() || 
+                      m_pathUpdateTimer >= PATH_UPDATE_INTERVAL || 
+                      glm::distance(targetPosition, m_lastTargetPosition) > 50.0f;
+                      
+    if (needNewPath)
     {
-        FallbackToDistanceChecking();
+        // Store the target position for change detection
+        m_lastTargetPosition = targetPosition;
+        
+        // Get path from NavMesh
+        m_currentPath = m_pNavMeshComponent->FindPath(currentPosition, targetPosition);
+        m_currentPathIndex = 0;
+        m_pathUpdateTimer = 0.0f;
+        
+        // If path is empty or invalid, fall back to direct movement
+        if (m_currentPath.empty() || m_currentPath.size() < 2)
+        {
+            FallbackToDistanceChecking();
+            return;
+        }
+        
+        // Skip the first waypoint if it's too close to our current position
+        if (m_currentPath.size() > 1 && glm::distance(currentPosition, m_currentPath[0]) < 5.0f)
+        {
+            m_currentPathIndex = 1;
+        }
+    }
+    
+    // If we've reached the end of the path, either move directly to target or stop
+    if (m_currentPathIndex >= m_currentPath.size())
+    {
+        // If we're close to the target, stop moving
+        if (glm::distance(currentPosition, targetPosition) < m_meleeRange)
+        {
+            m_pVelocity->SetVelocity(glm::vec2(0.0f));
+        }
+        else
+        {
+            // Otherwise, move directly towards the target
+            glm::vec2 direction = glm::normalize(targetPosition - currentPosition);
+            m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+        }
         return;
     }
-
-    glm::ivec2 nextTile = pathData.path.front();
-    glm::vec2 nextTileWorldPos = m_pPathfindingManager->GetLabyrinthManager()->GetWorldPosition(nextTile) + glm::vec2(48.0f, 48.0f);
-    glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    glm::vec2 direction = nextTileWorldPos - currentPosition;
-
-    if (glm::length(direction) > 0.5f)
+    
+    // Get the next waypoint
+    glm::vec2 nextWaypoint = m_currentPath[m_currentPathIndex];
+    glm::vec2 direction = nextWaypoint - currentPosition;
+    float distance = glm::length(direction);
+    
+    // If close enough to the current waypoint, move to the next one
+    if (distance < 15.0f) // Increased threshold for smoother movement
+    {
+        m_currentPathIndex++;
+        
+        // If we've reached the end of the path, we'll handle it in the next frame
+        if (m_currentPathIndex >= m_currentPath.size())
+        {
+            return;
+        }
+        
+        // Get the new waypoint
+        nextWaypoint = m_currentPath[m_currentPathIndex];
+        direction = nextWaypoint - currentPosition;
+        distance = glm::length(direction);
+    }
+    
+    // If we're stuck (not making progress towards waypoint)
+    if (m_stuckTimer > 0.5f)
+    {
+        // Request a new path on the next frame
+        m_pathUpdateTimer = PATH_UPDATE_INTERVAL;
+        m_stuckTimer = 0.0f;
+        
+        // Add small random offset to break out of potential loops
+        direction += glm::vec2(m_RNG.NextFloat(-20.0f, 20.0f), m_RNG.NextFloat(-20.0f, 20.0f));
+    }
+    
+    // Update stuck timer
+    if (glm::distance(currentPosition, m_lastPosition) < 2.0f)
+    {
+        m_stuckTimer += delta;
+    }
+    else
+    {
+        m_stuckTimer = 0.0f;
+    }
+    m_lastPosition = currentPosition;
+    
+    // Only normalize if direction has length
+    if (distance > 0.01f)
     {
         direction = glm::normalize(direction);
         m_pVelocity->SetVelocity(direction * m_chaseSpeed);
     }
     else
     {
-        // Advance to the next tile
-        pathData.path.erase(pathData.path.begin());
+        // If direction is basically zero, move to next waypoint
+        m_currentPathIndex++;
     }
 }
-
-
-
-
 
 // Fallback to direct distance checking if pathfinding fails
 void MinitaurController::FallbackToDistanceChecking()

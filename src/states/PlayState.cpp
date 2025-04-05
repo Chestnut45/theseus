@@ -85,6 +85,9 @@ void PlayState::Enter()
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
     auto& pathfindingManagerObject = scene.CreateObject2D();
     m_pPathfindingManager = &pathfindingManagerObject.AddComponent<PathfindingManager>(m_pLabyrinthManager);    
+    auto& navMeshObj = scene.CreateObject2D();
+    m_pNavMeshComponent = &navMeshObj.AddComponent<NavMeshComponent>();
+    m_pNavMeshComponent->Init(m_pPathfindingManager);
     NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     m_pLabyrinthManager->GenerateLabyrinth();
 
@@ -243,9 +246,7 @@ void PlayState::Enter()
         m_pPathfindingManager->RegisterEntity(gorgon.GetGameObject());
     }
 
-    auto& navMeshObj = scene.CreateObject2D();
-    m_pNavMeshComponent = &navMeshObj.AddComponent<NavMeshComponent>();
-    m_pNavMeshComponent->Init(m_pPathfindingManager);
+
 
     // Generate the NavMesh from the Labyrinth
     m_pNavMeshComponent->GenerateFromLabyrinth(m_pLabyrinthManager);
@@ -370,6 +371,8 @@ void PlayState::Update(float delta)
         // Show the Labyrinth Manager debug GUI
         if (m_showLabyrinthManager) 
             m_pLabyrinthManager->ShowGUI();
+        
+        m_pNavMeshComponent->Update(delta);
     }
 
     // // Update fluid system components
@@ -869,7 +872,6 @@ void PlayState::Update(float delta)
             {
                 obstacles.push_back(component.GetGameObject());
             }
-            m_pNavMeshComponent->Update(delta);
 
             // Update the NavMesh with these obstacles
             m_pNavMeshComponent->UpdateDynamicObstacles(obstacles);
