@@ -318,8 +318,8 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
 
     // Add light component
     wolf::GameObject* lightObj = &p_lbmg->GetGameObject()->GetScene().CreateObject2D();
-        lightObj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(scaledTileSize, scaledTileSize));
-
+    lightObj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(LabyrinthManager::TILE_SIZE * 0.5f, LabyrinthManager::TILE_SIZE * 0.5f));
+    
     LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), 50.0f, true);
     m_pPortalTileSpriteObj->AddChild(*lightObj);
     lightComponent->Init();
