@@ -96,6 +96,7 @@ void PlayState::Enter()
     TileFireManager::GetInstance()->SetPropagationActiveness(true);
 
     Postprocessor::CreateInstance(&scene);
+    Postprocessor::GetInstance()->AddEffect(Postprocessor::PostprocessData({0.0f, 0.0f, 0.0f}), m_pFBO->GetTextureID());
 
     // Place the bossfight trigger
     const auto& rooms = m_pLabyrinthManager->GetRooms();
@@ -830,6 +831,8 @@ void PlayState::Update(float delta)
         m_particleSystem->ShowEditor();
     }
 
+    Postprocessor::GetInstance()->Update(delta);
+
     // Dispatch events
     wolf::EventManager::Dispatch();
 }
@@ -943,41 +946,10 @@ void PlayState::BackgroundRender(float delta)
             pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
         }
     }
-    
     // Bind to default framebuffer(screen)
     wolf::FrameBuffer::BindDefault();
 
-    // Query postprocessing effects based on current active status effects of player
-    std::vector<Postprocessor::Effect> effects;
-    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
-    {
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
-        {
-            effects.push_back(Postprocessor::Effect::BURNING);
-        }
-        
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
-        {
-            effects.push_back(Postprocessor::Effect::POISONED);
-        }
-
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
-        {
-            effects.push_back(Postprocessor::Effect::GRAYSCALE);
-        }
-        break;
-    }
-
-    // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
-    if(effects.size() > 0)
-    {
-        Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), effects);
-    }
-    // If not, copy texture to screen
-    else
-    {
-        m_pFBO->Blit();
-    }
+    Postprocessor::GetInstance()->Postprocess();
 }
 
 void PlayState::CreatePlayer()

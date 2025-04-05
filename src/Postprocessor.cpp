@@ -52,8 +52,170 @@ Postprocessor* Postprocessor::GetInstance()
     return s_pPostprocessor;
 }
 
-// Process the given texture using the effects specified, in order of appearance in the vector
-// Will process the same effect twice if so specified 
+
+void Postprocessor::Update(float p_dt)
+{
+    for(auto& [tex, posda] : m_mPostprocessData)
+    {
+        posda.Update(p_dt);
+    }
+}
+
+void Postprocessor::Postprocess()
+{
+    wolf::Camera2D* camera = m_pScene->GetActiveCamera();
+    if(camera == nullptr)
+    {
+        return;
+    }
+
+    // Update framebuffers if window size has changed
+    glm::vec2 viewSize = camera->GetViewSize();
+    m_pFBO_01->SetTexSize(viewSize.x, viewSize.y);
+    m_pFBO_01->SetWindowSize(viewSize.x, viewSize.y);
+    m_pFBO_02->SetTexSize(viewSize.x, viewSize.y);
+    m_pFBO_02->SetWindowSize(viewSize.x, viewSize.y);
+
+    for(auto const& [tex, posda] : m_mPostprocessData)
+    {
+        GLuint currentTex = tex;
+        
+        if(posda.m_fActiveEffectsCounter <= 0)
+        {
+            HandleNoneEffect(currentTex);
+            SwitchFramebuffers();
+        }
+        
+        else
+        {
+            for(int i = 0; i < Effect::NONE; i++)
+            {
+                float duration = posda.m_aEffectDurations[i];
+
+                // Skip if duration expired
+                if(duration < 0.0f) continue;
+
+                // Apply effects
+                Effect effect = (Effect)i;
+                switch (effect)
+                {
+                    case Effect::BURNING:
+                    {
+                        HandleBurningEffect(currentTex);
+                        break;
+                    }
+
+                    case Effect::GRAYSCALE:
+                    {
+                        HandleGrayscaleEffect(currentTex);
+                        break;
+                    }
+
+                    case Effect::POISONED:
+                    {
+                        HandlePoisonedEffect(currentTex);
+                        break;
+                    }
+                    
+                    default:
+                        HandleNoneEffect(currentTex);   // Only implemented to ensure SwitchFramebuffers() does not break when defaulted - Should NEVER be called
+                        break;
+                }
+
+                // Switch framebuffers after every effect
+                SwitchFramebuffers();
+                // Set current texture to be the texture that was just rendered to
+                currentTex = m_pReadFBO->GetTextureID();
+            }
+        }
+
+        // Render to screen
+        m_pReadFBO->Blit();
+    }
+}
+
+void Postprocessor::AddEffect(PostprocessData p_postprocess_data, GLuint p_tex)
+{
+    if(p_tex <= 0) return;
+
+    // Check if texture is registered
+    auto itr = m_mPostprocessData.find(p_tex);
+
+    // If texture is not registered
+    if(itr == m_mPostprocessData.end())
+    {
+        // Create new map object
+        m_mPostprocessData.insert({p_tex, p_postprocess_data});
+        return;
+    }
+
+    // If texture is already registered
+    else
+    {
+        PostprocessData posda = p_postprocess_data;
+        for(int i = 0; i < Effect::NONE; i++)
+        {
+            // If input duration is less than 0, keep the old duration
+            if(p_postprocess_data.m_aEffectDurations[i] < 0.0f)
+            {
+                posda.m_aEffectDurations[i] = m_mPostprocessData[p_tex].m_aEffectDurations[i];
+            }
+        }
+        m_mPostprocessData[p_tex] = posda;
+    }
+
+}
+
+//-------------------//
+//  PRIVATE METHODS  //
+//-------------------//
+
+Postprocessor::Postprocessor(wolf::Scene* p_scene)
+{
+    m_pScene = p_scene;
+    m_timer.Start();
+    m_rng.NextInt(0, 1);
+
+
+    // Create framebuffers
+    m_pFBO_01 = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
+    m_pFBO_02 = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
+    m_pReadFBO = m_pFBO_01;
+    m_pWriteFBO = m_pFBO_02;
+
+    // Create VBO
+    m_pVBO = wolf::BufferManager::CreateVertexBuffer(vertices.data(), sizeof(TexturedVertex2D) * vertices.size());
+
+    // Create VAO
+    m_pVAO = new wolf::VertexDeclaration();
+    m_pVAO->Begin();
+    m_pVAO->SetVertexBuffer(m_pVBO);
+    m_pVAO->AppendAttribute(wolf::Attribute::AT_Position, 2, wolf::ComponentType::CT_Float, 0);
+    m_pVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
+    m_pVAO->End();
+}
+
+Postprocessor::~Postprocessor()
+{
+    for(auto program : m_vShaderPrograms)
+    {
+        wolf::ProgramManager::DestroyProgram(program);
+        program = nullptr;
+    }
+
+    m_vShaderPrograms.clear();
+
+    wolf::BufferManager::DestroyBuffer(m_pFBO_01);
+    m_pFBO_01 = nullptr;
+    wolf::BufferManager::DestroyBuffer(m_pFBO_02);
+    m_pFBO_02 = nullptr;
+    
+    m_pReadFBO = nullptr;
+    m_pWriteFBO = nullptr;
+
+    m_pScene = nullptr;
+}
+
 void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
 {
     if(p_effects.size() <= 0) return;
@@ -112,54 +274,6 @@ void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
     m_pReadFBO->Blit();
 }
 
-//-------------------//
-//  PRIVATE METHODS  //
-//-------------------//
-
-Postprocessor::Postprocessor(wolf::Scene* p_scene)
-{
-    m_pScene = p_scene;
-    m_timer.Start();
-    m_rng.NextInt(0, 1);
-
-    // Create framebuffers
-    m_pFBO_01 = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
-    m_pFBO_02 = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
-    m_pReadFBO = m_pFBO_01;
-    m_pWriteFBO = m_pFBO_02;
-
-    // Create VBO
-    m_pVBO = wolf::BufferManager::CreateVertexBuffer(vertices.data(), sizeof(TexturedVertex2D) * vertices.size());
-
-    // Create VAO
-    m_pVAO = new wolf::VertexDeclaration();
-    m_pVAO->Begin();
-    m_pVAO->SetVertexBuffer(m_pVBO);
-    m_pVAO->AppendAttribute(wolf::Attribute::AT_Position, 2, wolf::ComponentType::CT_Float, 0);
-    m_pVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
-    m_pVAO->End();
-}
-
-Postprocessor::~Postprocessor()
-{
-    for(auto program : m_vShaderPrograms)
-    {
-        wolf::ProgramManager::DestroyProgram(program);
-        program = nullptr;
-    }
-
-    m_vShaderPrograms.clear();
-
-    wolf::BufferManager::DestroyBuffer(m_pFBO_01);
-    m_pFBO_01 = nullptr;
-    wolf::BufferManager::DestroyBuffer(m_pFBO_02);
-    m_pFBO_02 = nullptr;
-    
-    m_pReadFBO = nullptr;
-    m_pWriteFBO = nullptr;
-
-    m_pScene = nullptr;
-}
 
 void Postprocessor::AddShaders(std::string p_vsh, std::string p_fsh)
 {
