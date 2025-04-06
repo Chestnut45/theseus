@@ -15,7 +15,6 @@
 #include <EnemyDataLoader.h>
 #include "PathfindingManager.h"
 #include "InfightingEvent.h"
-#include "NavMeshComponent.h"
 
 class MinitaurController : public EnemyController
 {
@@ -81,6 +80,7 @@ private:
     wolf::Timer m_transitionTimer;
     float m_transitionDelay = 0.2f; // Example delay for transitioning states
     std::vector<glm::ivec2> m_path;               // Current path to the player
+    size_t m_currentPathIndex = 0;                // Index of the current tile in the path
     PathfindingManager* m_pPathfindingManager = nullptr;  // Pointer to the pathfinding manager
     glm::ivec2 m_lastTargetTile; // Tracks the last target tile
     glm::ivec2 m_lastStartTile;  // Tracks the last start tile
@@ -117,14 +117,4 @@ private:
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;
     wolf::GameObject* m_pEmoteObj = nullptr;
-
-    // NavMesh navigation
-    NavMeshComponent* m_pNavMeshComponent = nullptr;
-    std::vector<glm::vec2> m_currentPath;
-    int m_currentPathIndex = 0;
-    float m_pathUpdateTimer = 0.0f;
-    glm::vec2 m_lastTargetPosition = glm::vec2(0.0f);
-    glm::vec2 m_lastPosition = glm::vec2(0.0f);
-    float m_stuckTimer = 0.0f;
-    static constexpr float PATH_UPDATE_INTERVAL = 0.5f;
 };
