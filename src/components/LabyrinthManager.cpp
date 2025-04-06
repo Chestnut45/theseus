@@ -2476,7 +2476,8 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         int spawnBase = (int)std::ceil(roomArea * baseScale);
                         int spawnCap = (int)std::ceil(roomArea * capScale);
                         
-                        msd.gorgonCount = m_rng.NextInt(spawnBase, spawnCap);
+                        // Hard cap on enemy count
+                        msd.gorgonCount = glm::min(m_rng.NextInt(spawnBase, spawnCap), 5);
 
                         // Add the spawner component
                         MonsterSpawnerComponent* monsterSpawnerComp = &monsterSpawnerObj.AddComponent<MonsterSpawnerComponent>(msd);
@@ -2514,7 +2515,9 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         float capScale = 0.1f;
                         int spawnBase = (int)std::ceil(roomArea * baseScale);
                         int spawnCap = (int)std::ceil(roomArea * capScale);
-                        msd.harpyCount = m_rng.NextInt(spawnBase, spawnCap);          
+
+                        // Hard cap on enemy count
+                        msd.harpyCount = glm::min(m_rng.NextInt(spawnBase, spawnCap), 5);
 
                         // Add the spawner component
                         MonsterSpawnerComponent* monsterSpawnerComp = &monsterSpawnerObj.AddComponent<MonsterSpawnerComponent>(msd);
@@ -2552,7 +2555,9 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         float capScale = 0.2f;
                         int spawnBase = (int)std::ceil(roomArea * baseScale);
                         int spawnCap = (int)std::ceil(roomArea * capScale);
-                        msd.minitaurCount = m_rng.NextInt(spawnBase, spawnCap);         
+
+                        // Hard cap on enemy count
+                        msd.minitaurCount = glm::min(m_rng.NextInt(spawnBase, spawnCap), 5);
 
                         // Add the spawner component
                         MonsterSpawnerComponent* monsterSpawnerComp = &monsterSpawnerObj.AddComponent<MonsterSpawnerComponent>(msd);
