@@ -51,7 +51,6 @@ struct EndPlacingPlaceableEvent {
 struct RetrievePlaceableEvent {
     PlaceableType pcTpye;
     glm::ivec2 tilePos;
-    int additionalCount = 0;    // For collecting portal tiles that have a sibling
 };
 
 struct DestroyPlaceableEvent {

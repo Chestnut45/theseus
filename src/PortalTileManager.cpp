@@ -44,11 +44,10 @@ PortalTileManager* PortalTileManager::GetInstance()
 
 void PortalTileManager::Update(float p_dt)
 {
-    // Get pair
+    // Iterate through protal tiles vector
     for(auto portalTile: m_vPortalTiles)
     {
-        // Update each portal tile
-        
+        // Update each portal tile & its sibling
         portalTile->Update(p_dt);
         portalTile->GetSibling()->Update(p_dt);
     }
@@ -57,33 +56,43 @@ void PortalTileManager::Update(float p_dt)
     glm::vec2 playerPos = m_pPlayer->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerPos);
 
+    // If there is an available tile
     if(m_pAvailablePortalTile != nullptr)
     {
+        // Update
         m_pAvailablePortalTile->Update(p_dt);
-        if (abs(playerTilePos.x - m_pAvailablePortalTile->GetTilePos().x) <= 1 && abs(playerTilePos.y - m_pAvailablePortalTile->GetTilePos().y) <= 1)
+        
+        // If the available portal tile is within collecting range of the player
+        int range = m_pPlayer->GetComponent<PlayerController>()->GetPlaceableCollectingRange();
+        if (abs(playerTilePos.x - m_pAvailablePortalTile->GetTilePos().x) <= range && abs(playerTilePos.y - m_pAvailablePortalTile->GetTilePos().y) <= range)
         {
             RenderCollectPrompt();
+
+            // If the E key was just pressed, set the removal index to the available tile
             if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
-                // Remove the current pair from the vector
                 m_iRemovalIndex = -1;
             }
         }
     }
 
+    // If available tile was not removed, then check coupled tiles for collection (Avoids double collection)
     if(m_iRemovalIndex == -2)
     {
         for (int i = 0; i < m_vPortalTiles.size(); i++) {
-            // Dereference the pointer to access the pair
+            // Get the portal & its sibling
             PortalTile* pt = m_vPortalTiles.at(i);
             PortalTile* ptSibling = pt->GetSibling();
             
+            
+            // If either portal tile is within collecting range of the player
             if (
                 (abs(playerTilePos.x - pt->GetTilePos().x) <= 1 && abs(playerTilePos.y - pt->GetTilePos().y) <= 1)                  ||
                 (abs(playerTilePos.x - ptSibling->GetTilePos().x) <= 1 && abs(playerTilePos.y - ptSibling->GetTilePos().y) <= 1)
             ) {
                 RenderCollectPrompt();
+
+                // If the E key was just pressed, set the removal index to the current index & break
                 if ( wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
-                    // Remove the current pair from the vector
                     m_iRemovalIndex = i;
                     break;
                 }
@@ -91,16 +100,18 @@ void PortalTileManager::Update(float p_dt)
         }
     }
 
-
+    // If a tile was set for remove
     if(m_iRemovalIndex != -2)
-    {
-        
+    {    
+        // If it was the available tile, trigger the event to attempt to retrieve it
         if(m_iRemovalIndex == -1)
         {
             wolf::EventManager::TriggerEvent(RetrievePlaceableEvent(PlaceableType::PORTAL, m_pAvailablePortalTile->GetTilePos()));
             
             return;
         }
+        
+        // If it was a coupled tile,  trigger two events to attempt to retrieve it & its sibling 
         else
         {
             PortalTile* pt = m_vPortalTiles.at(m_iRemovalIndex);
@@ -118,19 +129,27 @@ void PortalTileManager::Update(float p_dt)
 
 bool PortalTileManager::CreatePortalTile(glm::ivec2 p_tile_pos)
 {
+    // Return if tile position is not valid
     if(!IsValidTile(p_tile_pos)) return false;
 
-    
+    // If there is currently not an available portal tile (this portal tile will be dangling without a sibling)
     if(m_pAvailablePortalTile == nullptr)
     {
+        // Create the portal tile & set it as available
         PortalTile* portalTile = PortalTile::CreatePortalTile(p_tile_pos, m_pLBMG, nullptr);
         m_pAvailablePortalTile = portalTile;
-        
     }
+    
+    // If there is an available tile
     else
     {
+        // Create the portal tile& couple it with the avaliable portal tile
         PortalTile* portalTile = PortalTile::CreatePortalTile(p_tile_pos, m_pLBMG, m_pAvailablePortalTile);
+        
+        // Push the portal tile into the vector
         m_vPortalTiles.push_back(portalTile);
+        
+        // Set available portal tile to nullptr
         m_pAvailablePortalTile = nullptr;
     }
     return true;
@@ -180,20 +199,21 @@ void PortalTileManager::HandleDestroyPlaceableEvent(const DestroyPlaceableEvent&
 {
     if(p_event.pcTpye != PlaceableType::PORTAL) return;
 
-    // Deleate available portal tile
+    // Deleate available portal tile & remove its reference
     if(m_iRemovalIndex == -1)
     {
         PortalTile::DeleteAvailablePortalTile(this->m_pAvailablePortalTile);
         this->m_pAvailablePortalTile = nullptr;
     }
 
-    // Delete portal tile & sibling
+    // Delete portal tile & sibling & remove its reference in the vector
     else if(m_iRemovalIndex >= 0)
     {
         PortalTile::DeletePortalAndSibling(m_vPortalTiles.at(m_iRemovalIndex));
         m_vPortalTiles.erase(m_vPortalTiles.begin() + m_iRemovalIndex);
     }
 
+    // Reset removal index to -2
     m_iRemovalIndex = -2;
     return;
 }
@@ -252,16 +272,17 @@ PortalTileManager::PortalTile* PortalTileManager::PortalTile::CreatePortalTile(g
 
 void PortalTileManager::PortalTile::DeletePortalAndSibling(PortalTile* p_protal_tile_1)
 {
-    // Return if either pointer is nullptr, or siblings do not match
-    if(
-    p_protal_tile_1 == nullptr) 
-    {
-    return;
-    }
-
+    // Return if portal tile is nullptr
+    if(p_protal_tile_1 == nullptr) return;
+    
+    // Get the sibling portal tile
     PortalTile* sibling = p_protal_tile_1->GetSibling();
+    
+    // Decouple the portal tiles
     p_protal_tile_1->m_pSiblingPortalTile = nullptr;
     sibling->m_pSiblingPortalTile = nullptr;
+    
+    // Delete the portal tiles
     delete p_protal_tile_1;
     delete sibling;
     
@@ -270,14 +291,9 @@ void PortalTileManager::PortalTile::DeletePortalAndSibling(PortalTile* p_protal_
 void PortalTileManager::PortalTile::DeleteAvailablePortalTile(PortalTile* p_protal_tile)
 {
     // Return if pointer is nullptr or has a sibling
-    if(
-        p_protal_tile == nullptr                || 
-        p_protal_tile->GetSibling() != nullptr
-    )
-    {
-        return;
-    }
+    if(p_protal_tile == nullptr || p_protal_tile->GetSibling() != nullptr) return;
 
+    // Delete the portal tile
     delete p_protal_tile;
 }
 
@@ -319,7 +335,6 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     // Add light component
     wolf::GameObject* lightObj = &p_lbmg->GetGameObject()->GetScene().CreateObject2D();
     lightObj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(LabyrinthManager::TILE_SIZE * 0.5f, LabyrinthManager::TILE_SIZE * 0.5f));
-    
     LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), scaledTileSize * 0.5f, true);
     m_pPortalTileSpriteObj->AddChild(*lightObj);
     lightComponent->Init();
@@ -396,13 +411,14 @@ void PortalTileManager::PortalTile::Update(float p_dt)
 
             glm::vec2 playerPos = m_pPlayer->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
             glm::ivec2 playerTilePos  = m_pLabyrinthManager->GetTilePosition(playerPos);
-            // If player is within vicinity, activate
+            // If player is within vicinity
             if
             (
                 abs(playerTilePos.x - m_vTilePos.x) <= 1 &&
                 abs(playerTilePos.y - m_vTilePos.y) <= 1
             )
             {
+                // Activate portal tile
                 SetActive(true);
                 m_pPortalTileSpriteObj->GetComponent<wolf::Sprite2D>()->SetTint(glm::vec3(1.0f));
                 m_pPortalTileSpriteObj->GetChildren().at(0)->GetComponent<LightComponent>()->SetOn(true);
@@ -412,6 +428,7 @@ void PortalTileManager::PortalTile::Update(float p_dt)
     // If portal tile is active
     else
     {        
+        // Emit particles
         if(s_rng.NextFloat(0.0f, 1.0f) <= EMISSION_CHANCE)
         {
             m_pPortalTileSpriteObj->GetComponent<ParticleComponent>()->Emit(
