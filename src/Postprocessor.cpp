@@ -138,6 +138,8 @@ void Postprocessor::Postprocess()
     }
 }
 
+// Adding multiple effects at a time
+// Durations with negative values will be ignored
 void Postprocessor::AddEffect(PostprocessData p_postprocess_data, GLuint p_tex)
 {
     if(p_tex <= 0) return;
@@ -156,16 +158,64 @@ void Postprocessor::AddEffect(PostprocessData p_postprocess_data, GLuint p_tex)
     // If texture is already registered
     else
     {
-        PostprocessData posda = p_postprocess_data;
         for(int i = 0; i < Effect::NONE; i++)
         {
-            // If input duration is less than 0, keep the old duration
-            if(p_postprocess_data.m_aEffectDurations[i] < 0.0f)
+            // If input duration is greater than or equal to 0, then set new duration
+            if(p_postprocess_data.m_aEffectDurations[i] >= 0.0f)
             {
-                posda.m_aEffectDurations[i] = m_mPostprocessData[p_tex].m_aEffectDurations[i];
+                // Increment counter if reactivating an effect
+                if(m_mPostprocessData[p_tex].m_aEffectDurations[i] <= 0.0f && p_postprocess_data.m_aEffectDurations[i] > 0.0f)
+                {
+                    m_mPostprocessData[p_tex].m_fActiveEffectsCounter++;
+                }
+
+                m_mPostprocessData[p_tex].m_aEffectDurations[i] = p_postprocess_data.m_aEffectDurations[i];
             }
         }
-        m_mPostprocessData[p_tex] = posda;
+    }
+
+}
+
+
+// Adding a single effect
+// Durations with negative values will be ignored
+void Postprocessor::AddEffect(Effect p_effect, float p_duration, GLuint p_tex)
+{
+    if(p_tex <= 0) return;
+
+
+    // Check if texture is registered
+    auto itr = m_mPostprocessData.find(p_tex);
+
+    // If texture is not registered
+    if(itr == m_mPostprocessData.end())
+    {
+        // Create new map object
+        std::array<float, Postprocessor::Effect::NONE> durations;
+        durations.fill(0.0f);
+        durations[p_effect] = p_duration;
+        PostprocessData posda = PostprocessData(durations);
+        
+        m_mPostprocessData.insert({p_tex, posda});
+        return;
+    }
+
+    // If texture is already registered
+    else
+    {
+        
+        // If input duration is ggreater than or equal to 0, then set new duration
+        if(p_duration >= 0.0f)
+        {
+            // Increment counter if reactivating an effect
+            if(m_mPostprocessData[p_tex].m_aEffectDurations[p_effect] <= 0.0f && p_duration > 0.0f)
+            {
+                m_mPostprocessData[p_tex].m_fActiveEffectsCounter++;
+            }
+
+            m_mPostprocessData[p_tex].m_aEffectDurations[p_effect] = p_duration;
+        }
+        
     }
 
 }

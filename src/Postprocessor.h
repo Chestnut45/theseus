@@ -31,10 +31,11 @@ public:
                 m_fActiveEffectsCounter = 0;
                 for(int i = 0; i < Effect::NONE; i++)
                 {
-                    if(p_effect_durations[i] <= 0.0f) continue;
-                    
                     m_aEffectDurations[i] = p_effect_durations[i];
-                    m_fActiveEffectsCounter++;
+                    if(p_effect_durations[i] > 0.0f)
+                    {
+                        m_fActiveEffectsCounter++;    
+                    }
                 }
             };
             PostprocessData(){};
@@ -61,7 +62,8 @@ public:
 
     void Postprocess();
     void Postprocess(GLuint p_tex, std::vector<Effect> p_effects);
-    void AddEffect(PostprocessData p_postprocess_data, GLuint p_tex);
+    void AddEffect(PostprocessData p_postprocess_data, GLuint p_tex);   // Batch additions
+    void AddEffect(Effect p_effect, float p_duration, GLuint p_tex);    // Single addition
 
 private:
     Postprocessor(wolf::Scene* p_scene);

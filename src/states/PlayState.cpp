@@ -1436,26 +1436,24 @@ void PlayState::OnStatusEffectAdditionEvent(const StatusEffectAdditionEvent& eve
     {
         // std::cout << "SE: " << event.statusEffect << ", duration: " << event.duration << std::endl;
 
-        std::array<float, Postprocessor::Effect::NONE> durations;
-        durations.fill(0.0f);
-        int index = -1;
+        Postprocessor::Effect effect = Postprocessor::Effect::NONE;
         switch(event.statusEffect)
         {
             case(StatusComponent::StatusEffectType::BURNING):
             {
-                index = Postprocessor::Effect::BURNING;
+                effect = Postprocessor::Effect::BURNING;
                 break;
             }
             
             case(StatusComponent::StatusEffectType::POISONED):
             {
-                index = Postprocessor::Effect::POISONED;
+                effect = Postprocessor::Effect::POISONED;
                 break;
             }
 
             case(StatusComponent::StatusEffectType::PETRIFIED):
             {
-                index = Postprocessor::Effect::GRAYSCALE;
+                effect = Postprocessor::Effect::GRAYSCALE;
                 break;
             }
             default:
@@ -1463,9 +1461,8 @@ void PlayState::OnStatusEffectAdditionEvent(const StatusEffectAdditionEvent& eve
                 return;
             }
         }
-        
-        durations[index] = event.duration;
-        Postprocessor::GetInstance()->AddEffect(Postprocessor::PostprocessData(durations), m_pFBO->GetTextureID());
+
+        Postprocessor::GetInstance()->AddEffect(effect, event.duration, m_pFBO->GetTextureID());
     }
 }
 
