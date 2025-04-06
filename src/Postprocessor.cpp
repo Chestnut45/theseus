@@ -93,10 +93,11 @@ void Postprocessor::Postprocess()
                 float duration = posda.m_aEffectDurations[i];
 
                 // Skip if duration expired
-                if(duration < 0.0f) continue;
+                if(duration <= 0.0f) continue;
 
                 // Apply effects
                 Effect effect = (Effect)i;
+
                 switch (effect)
                 {
                     case Effect::BURNING:
@@ -107,21 +108,24 @@ void Postprocessor::Postprocess()
 
                     case Effect::GRAYSCALE:
                     {
+                        
                         HandleGrayscaleEffect(currentTex);
                         break;
                     }
 
                     case Effect::POISONED:
                     {
+                        
                         HandlePoisonedEffect(currentTex);
                         break;
                     }
                     
                     default:
+                    {
                         HandleNoneEffect(currentTex);   // Only implemented to ensure SwitchFramebuffers() does not break when defaulted - Should NEVER be called
-                        break;
-                }
-
+                        break;       
+                    }
+                }                
                 // Switch framebuffers after every effect
                 SwitchFramebuffers();
                 // Set current texture to be the texture that was just rendered to

@@ -56,8 +56,7 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
     wolf::EventManager::AddListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
-    
- 
+    wolf::EventManager::AddListener<StatusEffectAdditionEvent, PlayState, &PlayState::OnStatusEffectAdditionEvent>(*this); 
     this->m_pColliderManager = new ColliderManager(&scene);
     m_particleSystem = new ParticleSystem2D();
 
@@ -258,6 +257,7 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+    wolf::EventManager::RemoveListener<StatusEffectAdditionEvent, PlayState, &PlayState::OnStatusEffectAdditionEvent>(*this);
 
     m_pPathfindingManager = nullptr;
     wolf::EventManager::RemoveListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
@@ -950,6 +950,25 @@ void PlayState::BackgroundRender(float delta)
     wolf::FrameBuffer::BindDefault();
 
     Postprocessor::GetInstance()->Postprocess();
+    std::vector<Postprocessor::Effect> effects;
+    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
+    {
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
+        {
+            effects.push_back(Postprocessor::Effect::BURNING);
+        }
+        
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
+        {
+            effects.push_back(Postprocessor::Effect::POISONED);
+        }
+
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+        {
+            effects.push_back(Postprocessor::Effect::GRAYSCALE);
+        }
+        break;
+    }
 }
 
 void PlayState::CreatePlayer()
@@ -1410,7 +1429,45 @@ void PlayState::OnGameWinEvent(const GameWinEvent& event)
     m_returnToMainMenuTimer.Start();  // Return after credits (15s later)
 }
 
+void PlayState::OnStatusEffectAdditionEvent(const StatusEffectAdditionEvent& event)
+{
+    if(event.owner == nullptr) return;
+    if(event.owner->GetID() == m_pPlayerObject->GetID())
+    {
+        // std::cout << "SE: " << event.statusEffect << ", duration: " << event.duration << std::endl;
 
+        std::array<float, Postprocessor::Effect::NONE> durations;
+        durations.fill(0.0f);
+        int index = -1;
+        switch(event.statusEffect)
+        {
+            case(StatusComponent::StatusEffectType::BURNING):
+            {
+                index = Postprocessor::Effect::BURNING;
+                break;
+            }
+            
+            case(StatusComponent::StatusEffectType::POISONED):
+            {
+                index = Postprocessor::Effect::POISONED;
+                break;
+            }
+
+            case(StatusComponent::StatusEffectType::PETRIFIED):
+            {
+                index = Postprocessor::Effect::GRAYSCALE;
+                break;
+            }
+            default:
+            {
+                return;
+            }
+        }
+        
+        durations[index] = event.duration;
+        Postprocessor::GetInstance()->AddEffect(Postprocessor::PostprocessData(durations), m_pFBO->GetTextureID());
+    }
+}
 
 int GetGoldVariant(int tileID) {
     switch (tileID) {
