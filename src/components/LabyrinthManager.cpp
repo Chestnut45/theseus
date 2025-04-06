@@ -2598,6 +2598,8 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add the object to the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(trap);
+
+                        // TODO: Add some item drops around fluid traps
                         break;
                     }
                 }

@@ -1381,7 +1381,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             auto tilePosition = m_pLabyrinthManager->GetTilePosition(triggerPosition);
             auto roomDataOpt = m_pLabyrinthManager->GetRoom(tilePosition);
             if (!roomDataOpt.has_value()) {
-                wolf::Log("No valid room found for poison trap!");
+                wolf::Log("No valid room found for lava trap!");
                 break;
             }
 
