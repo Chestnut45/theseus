@@ -363,18 +363,51 @@ void PlayState::Update(float delta)
             m_pLabyrinthManager->ShowGUI();
     }
 
-    // // Update fluid system components
+    // Cache the player's position
+    auto playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    // Update fluid system components
     for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
     {
         system.Update(delta);
 
-        // DEBUG: Apply force where player is
+        // Always allow the player to splash through fluid systems
         bool playerRolling = m_pPlayerObject->GetComponent<PlayerController>()->GetPlayerAction() == PlayerController::PlayerAction::ROLLING;
-        if (playerRolling) system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 50.0f, 1000.0f * delta);
+        if (playerRolling) system.ApplyRadialForce(playerPos, 50.0f, 1000.0f * delta);
+
+        // TODO: This logic should be encapsulated somewhere else...
+        // Update logic for applying damage to the player via fluid traps
+        auto parent = system.GetGameObject()->GetParent();
+        if (parent)
+        {
+            auto trigger = parent->GetComponent<TriggerComponent>();
+            if (trigger)
+            {
+                switch (trigger->GetPurpose())
+                {
+                    case TriggerPurpose::POISON_TRAP:
+                        if (system.Intersects(playerPos))
+                        {
+                            m_pPlayerObject->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
+                        }
+                        break;
+                    
+                    case TriggerPurpose::LAVA_TRAP:
+                        if (system.Intersects(playerPos))
+                        {
+                            m_pPlayerObject->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+                        }
+                        break;
+                    
+                    default:
+                        break;
+                }
+            }
+        }
 
         // DEBUG: Show editor and break after updating one system
         // system.ShowEditor();
-        break;
+        // break;
     }
     
     // Update the labyrinth manager
@@ -1330,10 +1363,14 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             // Add a delayed drain to remove all the fluid after
             fluidSystem.AddTimedDrain(wolf::Circle(center, 8.0f), 20.0f, 512.0f, 250.0f, 8.0f);
 
-            // Make sure the trap gets completely destroyed after the draining is (hopefully) done
+            // Make sure the fluid system object gets completely destroyed after the draining is done
             fluidObj.AddComponent<TimedDestroyerComponent>(20);
 
-            m_pLabyrinthManager->GetGameObject()->AddChild(fluidObj);
+            // Add the fluid object as a child of the trigger
+            event.m_pTriggerObject->AddChild(fluidObj);
+
+            // Reactivate the trigger after all is finished (20 seconds)
+            event.m_pTriggerObject->GetComponent<TriggerComponent>()->ReactivateDelayed(20);
 
             break;
         }
@@ -1373,15 +1410,19 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             glm::vec2 center = glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2);
 
             // Add a timed spout to spawn lava!
-            fluidSystem.AddTimedSpout(center, 2.0f, room.m_bounds.m_size.x * room.m_bounds.m_size.y);
+            fluidSystem.AddTimedSpout(center, 2.0f, room.m_bounds.m_size.x * room.m_bounds.m_size.y * 8);
 
             // Add a delayed drain to remove all the fluid after
             fluidSystem.AddTimedDrain(wolf::Circle(center, 8.0f), 20.0f, 512.0f, 250.0f, 8.0f);
 
-            // Make sure the trap gets completely destroyed after the draining is (hopefully) done
+            // Make sure the fluid system object gets completely destroyed after the draining is done
             fluidObj.AddComponent<TimedDestroyerComponent>(20);
 
-            m_pLabyrinthManager->GetGameObject()->AddChild(fluidObj);
+            // Add the fluid object as a child of the trigger
+            event.m_pTriggerObject->AddChild(fluidObj);
+
+            // Reactivate the trigger after all is finished (20 seconds)
+            event.m_pTriggerObject->GetComponent<TriggerComponent>()->ReactivateDelayed(20);
 
             break;
         }

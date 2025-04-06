@@ -415,6 +415,20 @@ void BoundedFluidSystem2D::AddStaticCollisionRect(const wolf::Rectangle& rect)
     m_collisionRects.push_back(rect);
 }
 
+bool BoundedFluidSystem2D::Intersects(const glm::vec2& position) const
+{
+    // TODO: This can be sped up easily by only checking 9 grid cells if needed
+    for (auto& p : m_particles)
+    {
+        if (glm::distance2(p.m_pos, position) <= m_kernelRadiusSqr)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void BoundedFluidSystem2D::AddTimedSpout(const glm::vec2& position, float lifespan, int particlesPerSecond)
 {
     Spout spout(position, lifespan, 1.0f / particlesPerSecond);

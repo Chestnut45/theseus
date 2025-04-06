@@ -2594,7 +2594,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add the TriggerComponent
                         auto purpose = entity.m_type == Room::EntityType::PoisonTrap ? TriggerPurpose::POISON_TRAP : TriggerPurpose::LAVA_TRAP;
-                        trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::SINGLE_USE, purpose, EntityListenType::PLAYER);
+                        trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, purpose, EntityListenType::PLAYER);
 
                         // Add the object to the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(trap);

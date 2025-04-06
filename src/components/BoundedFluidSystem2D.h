@@ -132,6 +132,9 @@ public:
     // TODO: Support more than AABBs
     void AddStaticCollisionRect(const wolf::Rectangle& rect);
 
+    // Returns whether the given point intersects any of the fluid particles
+    bool Intersects(const glm::vec2& position) const;
+
     // Set / Get the gravity state
     void SetGravity(bool value) { m_simulateGravity = value; }
     bool IsGravityEnabled() const { return m_simulateGravity; }
