@@ -206,6 +206,9 @@ void PlayerController::InitializeAnimations()
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
     m_pAnimComponent->SetLayer(10);
+    
+    // Render the player without lighting
+    m_pAnimComponent->SetLightingEnabled(false);
 }
 
 // Main update loop for the player controller

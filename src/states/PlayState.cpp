@@ -954,9 +954,8 @@ void PlayState::BackgroundRender(float delta)
     std::map<int, std::vector<std::pair<AnimatedSprite2D*, wolf::Transform2D*>>> sortedAnimatedSprites;
     for (auto&&[_, sprite, transform] : m_pGameInstance->GetScene().Each<AnimatedSprite2D, wolf::Transform2D>())
     {
-        // Ignore sprites that do not have light objects in their hierarchy -
-        // they've already been rendered in the main scene pass!
-        if (!sprite.GetGameObject()->HasAnyRecursive<LightComponent>()) continue;
+        // Ignore sprites that were rendered during the lighting (scene) pass
+        if (sprite.IsLightingEnabled()) continue;
         
         int layer = sprite.GetLayer();
 

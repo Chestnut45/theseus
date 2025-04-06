@@ -2070,6 +2070,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
                         sprite.SetAnimation(frameName);
                         sprite.SetOriginToCenterOfFrame();
+                        sprite.SetLightingEnabled(false);
                         
                         // Add collider
                         auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
@@ -2105,6 +2106,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
                         sprite.SetAnimation("LegendaryClosed");
                         sprite.SetOriginToCenterOfFrame();
+                        sprite.SetLightingEnabled(false);
                         
                         // Add collider
                         auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
@@ -2140,6 +2142,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
                         sprite.SetAnimation("RareClosed");
                         sprite.SetOriginToCenterOfFrame();
+                        sprite.SetLightingEnabled(false);
                         
                         // Add collider
                         auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
@@ -2175,6 +2178,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
                         sprite.SetAnimation("EpicClosed");
                         sprite.SetOriginToCenterOfFrame();
+                        sprite.SetLightingEnabled(false);
                         
                         // Add collider
                         auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
@@ -2210,6 +2214,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
                         sprite.SetAnimation("UncommonClosed");
                         sprite.SetOriginToCenterOfFrame();
+                        sprite.SetLightingEnabled(false);
                         
                         // Add collider
                         auto& collider = chest.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
@@ -2247,6 +2252,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Set up the animated sprite
                         auto& animSprite = dispensary.AddComponent<AnimatedSprite2D>("data/dispensary_anim_init.yaml");
+                        animSprite.SetLightingEnabled(false);
 
                         // Add the dispensary inventory
                         auto& inventory = dispensary.AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(50, 300));
@@ -2262,6 +2268,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Set up the icon's animated sprite
                         auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/item_icons_anim_init.yaml");
                         iconSprite.SetLayer(9);
+                        iconSprite.SetLightingEnabled(false);
                         
                         // Add the icon as a child object of the dispensary
                         dispensary.AddChild(icon);
@@ -2673,6 +2680,7 @@ void LabyrinthManager::GenerateEntrance()
 
     // Set up the animated sprite
     auto& animSprite = dispensary.AddComponent<AnimatedSprite2D>("data/dispensary_anim_init.yaml");
+    animSprite.SetLightingEnabled(false);
 
     // Add the dispensary inventory
     auto& inventory = dispensary.AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(50, 300));
@@ -2689,6 +2697,7 @@ void LabyrinthManager::GenerateEntrance()
     // Set up the icon's animated sprite
     auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/item_icons_anim_init.yaml");
     iconSprite.SetLayer(9);
+    iconSprite.SetLightingEnabled(false);
     
     // Add the icon as a child object of the dispensary
     dispensary.AddChild(icon);
