@@ -1158,7 +1158,7 @@ void PlayerController::EndPlacing()
     {
         wolf::EventManager::TriggerEvent(EndPlacingPlaceableEvent(this->m_pCurrentPlaceable));
     }
-    // Else, trigger event with mullptr
+    // Else, trigger event with nullptr
     else
     {
         wolf::EventManager::TriggerEvent(EndPlacingPlaceableEvent(nullptr));

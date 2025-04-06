@@ -100,7 +100,7 @@ void PortalTileManager::Update(float p_dt)
         }
     }
 
-    // If a tile was set for remove
+    // If a tile was set for removal
     if(m_iRemovalIndex != -2)
     {    
         // If it was the available tile, trigger the event to attempt to retrieve it
@@ -199,7 +199,7 @@ void PortalTileManager::HandleDestroyPlaceableEvent(const DestroyPlaceableEvent&
 {
     if(p_event.pcTpye != PlaceableType::PORTAL) return;
 
-    // Deleate available portal tile & remove its reference
+    // Delete available portal tile & remove its reference
     if(m_iRemovalIndex == -1)
     {
         PortalTile::DeleteAvailablePortalTile(this->m_pAvailablePortalTile);
