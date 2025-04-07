@@ -202,7 +202,7 @@ void PlayState::Enter()
         return;
     }
 
-    // Add a test light to the player
+    // Add a light to the player
     wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
     auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 125.0f, true);
     m_pPlayerObject->AddChild(*pLightGO);
