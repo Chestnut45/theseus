@@ -37,7 +37,7 @@ rooms: [
 	},
 	{
 		name: Basic Fight Rooms,
-		instances: 10,
+		instances: 12,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
