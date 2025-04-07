@@ -88,6 +88,7 @@ struct Drain
     float m_pullRadius;
     float m_pullStrength;
     float m_delay;
+    bool m_sfxPlayed = false;
 
     Drain(const wolf::Circle& bounds, float lifespan, float pullRadius, float pullStrength, float delay = 0.0f)
         :

@@ -3,6 +3,7 @@
 #include <glm/gtx/norm.hpp>
 #include <imgui/imgui.h>
 
+#include <W_Audio.h>
 #include <W_Logging.h>
 #include <W_Transform2D.h>
 
@@ -133,6 +134,12 @@ void BoundedFluidSystem2D::Update(float delta)
 
         // Ensure delay has been met before running drain logic
         if (drain.m_lifetime < drain.m_delay) continue;
+
+        if (!drain.m_sfxPlayed)
+        {
+            drain.m_sfxPlayed = true;
+            wolf::Audio::Play("data/sounds/sfx_liquid_drain.wav", 0.5f);
+        }
         
         // Suck particles
         ApplyRadialForce(drain.m_bounds.m_position, drain.m_pullRadius, -drain.m_pullStrength * m_targetFrametime);

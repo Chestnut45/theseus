@@ -79,13 +79,18 @@ void PlayState::Enter()
     glm::vec2 viewSize = camera.GetViewSize();
     m_pFBO = wolf::BufferManager::CreateFrameBuffer(viewSize.x, viewSize.y, viewSize.x, viewSize.y);
 
-    // Add the labyrinth manager and generate the default labyrinth config
+    // Add the labyrinth manager and load the default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+
+    // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();
     m_pPathfindingManager = &pathfindingManagerObject.AddComponent<PathfindingManager>(m_pLabyrinthManager);    
     NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+    ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+
+    // Actually generate the labyrinth from the given seed
     m_pLabyrinthManager->GenerateLabyrinth();
 
     GLShapesRenderer::CreateInstance();
@@ -141,8 +146,6 @@ void PlayState::Enter()
         m_bossRoomSize = room.m_bounds.m_size;
         break;
     }
-
-    ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
     wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
@@ -373,7 +376,16 @@ void PlayState::Update(float delta)
 
         // Always allow the player to splash through fluid systems
         bool playerRolling = m_pPlayerObject->GetComponent<PlayerController>()->GetPlayerAction() == PlayerController::PlayerAction::ROLLING;
-        if (playerRolling) system.ApplyRadialForce(playerPos, 50.0f, 1000.0f * delta);
+        if (playerRolling)
+        {
+            system.ApplyRadialForce(playerPos, 50.0f, 1000.0f * delta);
+        }
+
+        // Only play splash sfx if initial roll + colliding
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && system.Intersects(playerPos))
+        {
+            wolf::Audio::Play("data/sounds/sfx_liquid_splash.wav", 0.64f);
+        }
 
         // TODO: This logic should be encapsulated somewhere else...
         // Update logic for applying damage to the player via fluid traps
@@ -1349,9 +1361,9 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
 
             // Edit poison colors
-            fluidSystem.SetFluidColor(glm::vec4(0.4f, 0.01, 0.45f, 0.75f));
-            fluidSystem.SetWaveColor(glm::vec4(0.7f, 0.05f, 0.6f, 0.75f));
-            fluidSystem.SetCausticColor(glm::vec4(0.7f, 0.05f, 0.6f, 0.75f));
+            fluidSystem.SetFluidColor(glm::vec4(0.01f, 0.5f, 0.25f, 0.75f));
+            fluidSystem.SetWaveColor(glm::vec4(0.24f, 0.7f, 0.36f, 0.75f));
+            fluidSystem.SetCausticColor(glm::vec4(0.32f, 0.78f, 0.26f, 0.75f));
             fluidSystem.SetCausticFrequency(0.4f);
 
             glm::vec2 center = glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2);
@@ -1370,6 +1382,9 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
             // Reactivate the trigger after all is finished (20 seconds)
             event.m_pTriggerObject->GetComponent<TriggerComponent>()->ReactivateDelayed(20);
+
+            wolf::Audio::Play("data/sounds/sfx_liquid_flow.wav", 0.5f);
+            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.4f);
 
             break;
         }
@@ -1422,6 +1437,9 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
             // Reactivate the trigger after all is finished (20 seconds)
             event.m_pTriggerObject->GetComponent<TriggerComponent>()->ReactivateDelayed(20);
+
+            wolf::Audio::Play("data/sounds/sfx_liquid_flow.wav", 0.5f);
+            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.4f);
 
             break;
         }

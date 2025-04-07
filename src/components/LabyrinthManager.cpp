@@ -2606,7 +2606,23 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Add the object to the correct chunk
                         GetChunk(GetChunkID(pos))->AddChild(trap);
 
-                        // TODO: Add some item drops around fluid traps
+                        // Add some item drops to entice the player
+                        std::vector<wolf::GameObject*> droppedItems = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/fluid_trap_loot.yaml", pos, -1.0f);
+                        
+                        // Push each item in a random direction
+                        for (auto& pItem : droppedItems)
+                        {
+                            if (wolf::Transform2D* pTransform = pItem->GetComponent<wolf::Transform2D>())
+                            {
+                                auto offset = glm::vec2(m_rng.NextFloat(-96.0f, 96.0f), m_rng.NextFloat(-96.0f, 96.0f));
+                                pTransform->Translate(offset);
+                            }
+
+                            if (ColliderComponent* pItemCollider = pItem->GetComponent<ColliderComponent>())
+                            {
+                                pItemCollider->SetActive(false);
+                            }
+                        }
                         break;
                     }
                 }
