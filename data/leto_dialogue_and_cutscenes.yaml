@@ -2,7 +2,7 @@ CutscenesAndDialogues:
   anti_minotaur:
     characters:
       - name: "Leto"
-        portraitPath: "data/textures/sPlayerTest.png"
+        portraitPath: "data/textures/LetoPortrait.png"
     sequence:
       - type: "dialogue"
         character: "Leto"
