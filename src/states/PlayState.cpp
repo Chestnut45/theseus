@@ -199,7 +199,7 @@ void PlayState::Enter()
         return;
     }
 
-    // Add a test light to the player
+    // Add a light to the player
     wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
     auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 125.0f, true);
     m_pPlayerObject->AddChild(*pLightGO);
@@ -220,6 +220,12 @@ void PlayState::Enter()
         transform->SetPosition(newPosition);
     }
     wolf::EventManager::EnqueueEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+
+    // Queue up all of Ariadne's dialogue
+    auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
+    ariadneNPCComp->QueueDialogue("hello");
+    ariadneNPCComp->QueueDialogue("traps");
+    ariadneNPCComp->QueueDialogue("survivors");
 
     // Stop all audio and begin the maze music
     wolf::Audio::Stop();
