@@ -173,7 +173,7 @@ Postprocessor::~Postprocessor()
     m_pWriteFBO = nullptr;
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    glDeleteFramebuffers(1, &m_uiHeatDistortionSSBO);
+    glDeleteBuffers(1, &m_uiHeatDistortionSSBO);
     m_uiHeatDistortionSSBO = 0;
 
     m_pScene = nullptr;
@@ -311,6 +311,9 @@ void Postprocessor::HandleHeatDistortionEffect(GLuint p_tex)
 
     // Unbind the VAO
     glBindVertexArray(0);
+
+    // Bind default framebuffer (screen)
+    wolf::FrameBuffer::BindDefault();
 }
 
 void Postprocessor::HandlePoisonedEffect(GLuint p_tex)
