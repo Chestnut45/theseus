@@ -111,6 +111,13 @@ void Postprocessor::Postprocess()
                         break;
                     }
 
+                    case Effect::HEAT_DISTORTION:
+                    {
+                        
+                        HandleHeatDistortionEffect(currentTex);
+                        break;
+                    }
+
                     case Effect::GRAYSCALE:
                     {
                         
@@ -188,7 +195,7 @@ void Postprocessor::AddEffect(Effect p_effect, float p_duration, GLuint p_tex)
 {
     if(p_tex <= 0) return;
 
-
+    
     // Check if texture is registered
     auto itr = m_mPostprocessData.find(p_tex);
 
@@ -208,7 +215,6 @@ void Postprocessor::AddEffect(Effect p_effect, float p_duration, GLuint p_tex)
     // If texture is already registered
     else
     {
-        
         // If input duration is ggreater than or equal to 0, then set new duration
         if(p_duration >= 0.0f)
         {

@@ -32,7 +32,6 @@
 #include "GLShapesRenderer.h"
 #include "PortalTileManager.h"
 #include "Postprocessor.h"
-#include "TileFireManager.h"
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
 #include <BossController.h>
@@ -57,6 +56,8 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
     wolf::EventManager::AddListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
     wolf::EventManager::AddListener<StatusEffectAdditionEvent, PlayState, &PlayState::OnStatusEffectAdditionEvent>(*this); 
+    wolf::EventManager::AddListener<TileFireIgnitionEvent, PlayState, &PlayState::OnTileFireIgnitionEvent>(*this); 
+
     this->m_pColliderManager = new ColliderManager(&scene);
     m_particleSystem = new ParticleSystem2D();
 
@@ -100,7 +101,9 @@ void PlayState::Enter()
     TileFireManager::GetInstance()->SetPropagationActiveness(true);
 
     Postprocessor::CreateInstance(&scene);
-    Postprocessor::GetInstance()->AddEffect(Postprocessor::PostprocessData({0.0f, 0.0f, 0.0f}), m_pFBO->GetTextureID());
+    std::array<float, Postprocessor::Effect::NONE> effectDurations;
+    effectDurations.fill(0.0f);
+    Postprocessor::GetInstance()->AddEffect(Postprocessor::PostprocessData(effectDurations), m_pFBO->GetTextureID());
 
     // Place the bossfight trigger
     const auto& rooms = m_pLabyrinthManager->GetRooms();
@@ -261,6 +264,7 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
     wolf::EventManager::RemoveListener<StatusEffectAdditionEvent, PlayState, &PlayState::OnStatusEffectAdditionEvent>(*this);
+    wolf::EventManager::RemoveListener<TileFireIgnitionEvent, PlayState, &PlayState::OnTileFireIgnitionEvent>(*this); 
 
     m_pPathfindingManager = nullptr;
     wolf::EventManager::RemoveListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
@@ -1503,6 +1507,11 @@ void PlayState::OnStatusEffectAdditionEvent(const StatusEffectAdditionEvent& eve
 
         Postprocessor::GetInstance()->AddEffect(effect, event.duration, m_pFBO->GetTextureID());
     }
+}
+
+void PlayState::OnTileFireIgnitionEvent(const TileFireIgnitionEvent& event)
+{
+    Postprocessor::GetInstance()->AddEffect(Postprocessor::Effect::HEAT_DISTORTION, event.lifespan, m_pFBO->GetTextureID());
 }
 
 int GetGoldVariant(int tileID) {
