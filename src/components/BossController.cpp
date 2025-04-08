@@ -722,7 +722,7 @@ void BossController::StartWave()
     SpawnWave(1);
 
     // Start the boss music
-    wolf::Audio::Play("data/sounds/bgm_boss_theme.wav", 1.0f, 0.0f, 0.0f, true, 6.433f);
+    wolf::Audio::Play("data/sounds/bgm_boss_theme.wav", 1.0f, 0.0f, 0.0f, false, true, 6.433f);
 }
 
 bool BossController::IsValidSpawnTile(glm::ivec2 tilePos)

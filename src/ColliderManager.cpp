@@ -11,6 +11,9 @@
 
 #include "ColliderManager.h"
 
+#include <components/ThrowableObjectComponent.h>
+#include <W_Audio.h>
+
 ColliderManager::ColliderManager(wolf::Scene* p_scene)
 {
     this->m_scene = p_scene;
@@ -33,7 +36,14 @@ void ColliderManager::RemoveFlagged()
 {
     for (int i = 0; i < this->m_vToBeDestroyed.size(); i++)
     {
-        // std::cout << "ColliderManager - Remove id:" << this->m_vToBeDestroyed.at(i) << std::endl;
+        auto pObject = m_scene->GetObject(m_vToBeDestroyed.at(i));
+
+        // Detect when throwable objects are destroyed and fire off sfx
+        if (pObject->HasAll<ThrowableObjectComponent>())
+        {
+            wolf::Audio::Play("data/sounds/sfx_throwable_break.wav", 0.32f);
+        }
+
         this->m_scene->DeleteObject(this->m_vToBeDestroyed.at(i));
     }
     this->m_vToBeDestroyed.clear();

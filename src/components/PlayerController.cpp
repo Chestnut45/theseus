@@ -454,6 +454,9 @@ void PlayerController::PickUpObject() {
     // If the player is attacking, don't bother trying to pick anything up
     if (m_action == PlayerAction::ATTACKING) return;
     
+    // Don't pick up if already holding an object
+    if (m_isHoldingObject) return;
+    
     // If the player is rolling, reset the rolling state before picking up an object
     if (m_action == PlayerAction::ROLLING) {
         EndRoll(); // Ensure rolling-related mechanics are stopped
@@ -1852,7 +1855,7 @@ void PlayerController::StartDeath() {
     // Stop background music and play death music
     wolf::Audio::Stop("data/sounds/bgm_maze.wav");
     wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
-    wolf::Audio::Play("data/sounds/bgm_death.wav", 0.75f, 0.0f, 0.0f, true, 27.428f);
+    wolf::Audio::Play("data/sounds/bgm_death.wav", 0.75f, 0.0f, 0.0f, false, true, 27.428f);
 }
 
 void PlayerController::RenderDeathScreen() {

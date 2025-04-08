@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include <soloud.h>
 #include <soloud_wav.h>
@@ -32,7 +33,7 @@ public:
     // 
     // NOTE: Multiple instances of the same sample can
     // be played simultaneously with different arguments.
-    static void Play(const std::string& filepath, float volume = 1.0f, float pitchOffset = 0.0f, float pan = 0.0f, bool loop = false, float loopPoint = 0.0f);
+    static void Play(const std::string& filepath, float volume = 1.0f, float pitchOffset = 0.0f, float pan = 0.0f, bool falloff = false, bool loop = false, float loopPoint = 0.0f);
 
     // Stops all instances of an audio sample that are currently playing
     static void Stop(const std::string& filepath);
@@ -58,6 +59,9 @@ private:
 
     // Loaded audio samples
     static inline std::unordered_map<std::string, SoLoud::Wav> s_samples;
+
+    // Map of filepaths to possibly active handles used for volume normalization
+    static inline std::unordered_map<std::string, std::vector<SoLoud::handle>> s_handles;
 
     // Init/Deinit functions, automatically called by wolf::App during initialization
     static void _Setup();
