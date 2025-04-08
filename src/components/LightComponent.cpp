@@ -145,6 +145,7 @@ void LightComponent::Init() {
     // Retrieve the transform
     m_pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
     m_v2Origin = m_pTransform->GetGlobalPosition();
+    m_v2OriginLastFrame = m_v2Origin;
 
     // Retrieve the scene
     m_pScene = &this->GetGameObject()->GetScene();
@@ -177,6 +178,16 @@ void LightComponent::Update(float p_fDelta) {
 
     // Update the origin point of the light's radius
     m_v2Origin = m_pTransform->GetGlobalPosition();
+
+    // If the light has moved
+    if (m_v2Origin != m_v2OriginLastFrame) {
+        // We need to recalculate the geometry of its rays
+        m_bDirty = true;
+    }
+    else {
+        // Otherwise, we set the dirty flag to false for now
+        m_bDirty = false;
+    }
 
     // Scale the radius to match the GlobalScale
     // (this happens repeatedly in case the light's GameObject suddenly gains a parent and the scale changes)
@@ -217,6 +228,14 @@ void LightComponent::Update(float p_fDelta) {
             if (collider.GetColliderType() == ColliderComponent::ColliderType::NONE && collider.GetGameObject()->GetComponent<LightComponent>() == nullptr) {
                 // So we want to ignore it
                 continue;
+            }
+
+            // If we intersected with this collider last frame and it's position has changed, OR we've never seen this collider before
+            if ((m_muiv2CollidersLastFrame.count(collider.GetGameObject()->GetID()) && m_muiv2CollidersLastFrame[collider.GetGameObject()->GetID()] != collider.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition())
+                || !m_muiv2CollidersLastFrame.count(collider.GetGameObject()->GetID()))
+            {
+                // We need to recalculate the light's geometry
+                m_bDirty = true;
             }
 
             // Go through the corner points of each rectangle in the collider
@@ -313,259 +332,283 @@ void LightComponent::Update(float p_fDelta) {
                     vpRectanglesInAOE.push_back(wolf::Rectangle(v2TopLeft.x, v2TopLeft.y, v2BotRight.x, v2BotRight.y));  
                 }
             }
+
+            // If we've reached this point then the collider is being included in this frame's geometry, so we save its position
+            m_muiv2CollidersThisFrame.insert({collider.GetGameObject()->GetID(), collider.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition()});
         }
     }
-
+    
     // ------------------------------- Phase 2: Finding potential collision points  --------------------------------------
 
-    // Go through all of the rectangles in the AOE
-    for (wolf::Rectangle rect : vpRectanglesInAOE) {
-        // Get the corners of the rectangle
-        // !-- GetCorners() returns: top-left, top-right, bottom-left, bottom-right --!
-        std::array<glm::vec2, 4> arv2Corners = rect.GetCorners();
-
-        // And store them in variables for easy readability
-        glm::vec2 v2TopLeft = arv2Corners[0];
-        glm::vec2 v2TopRight = arv2Corners[1];
-        glm::vec2 v2BotLeft = arv2Corners[2];
-        glm::vec2 v2BotRight = arv2Corners[3];
-
-        // Figure out the approximate location of the rectangle in relation to the light source
-        glm::vec2 v2RectPos = glm::vec2((v2TopLeft.x + v2TopRight.x) * 0.5f, (v2TopLeft.y + v2BotLeft.y) * 0.5f);
-        RoughPosition enRoughPos = this->CalculateRoughObjPosition(v2RectPos);
-        
-        // Use said location to figure out which sides of the rectangle the light could
-        // be hitting and which sides can be safely ignored.
-        switch (enRoughPos) {
-            case TOP_LEFT:
-                // Shoot a line to the bottom-left, bottom-right, and top-right corners
-                this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
-
-                /* --------------------------------------------------------------------------------------
-                // The points that are furthest away from the light when the object is in one of the
-                // diagonal positions (TOP_LEFT, TOP_RIGHT, BOT_LEFT, BOT_RIGHT) have the potential
-                // to cause the light to shoot a ray through the object so we check those points against
-                // the side directly across from them before they get added to the colliding points vector
-                // --------------------------------------------------------------------------------------- */
-                this->CheckForCollisionAndAdd(v2BotLeft, {v2TopRight, v2BotRight});
-                this->CheckForCollisionAndAdd(v2TopRight, {v2BotLeft, v2BotRight});
-        
-            break;
-            
-            case TOP_CENTER:
-                // Shoot a line to the bottom-left and bottom-right corners
-                this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
-                this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
-
-            break;
-            
-            case TOP_RIGHT:
-                // Shoot a line to the top-left, bottom-left, and bottom-right corners
-                this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
-
-                // Make sure that the ray doesn't go through the rectangle
-                this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2BotLeft});
-                this->CheckForCollisionAndAdd(v2TopLeft, {v2BotLeft, v2BotRight});
-
-            break;
-            
-            case MID_LEFT:
-                // Shoot a line to the top-right and bottom-right corners
-                this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
-                this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
-
-            break;
-            
-            case MID_RIGHT:
-                // Shoot a line to the top-left and bottom-left corners
-                this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
-                this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
-
-            break;
-            
-            case BOT_LEFT:
-                // Shoot a line to the top-left, top-right, and bottom-right corners
-                this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
-
-                // Make sure that the ray doesn't go through the rectangle
-                this->CheckForCollisionAndAdd(v2TopLeft, {v2TopRight, v2BotRight});
-                this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2TopRight});
-
-            break;
-            
-            case BOT_CENTER:
-                // Shoot a line to the top-left and top-right corners
-                this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
-                this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
-
-            break;
-            
-            case BOT_RIGHT:
-                // Shoot a line to the top-right, top-left, and bottom-left corners
-                this->CheckForCollisionAndAdd(v2TopLeft, {v2BotLeft, v2BotRight});
-
-                // Make sure that the ray doesn't go through the rectangle
-                this->CheckForCollisionAndAdd(v2BotLeft, {v2TopLeft, v2TopRight});
-                this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2BotLeft});
-
-            break;
-
-            case SELF:
-                // Shoot a line to the four corners of the light's radius rectangle
-                // (If these lines intersect something they'll be removed in the next pass)
-                m_vv2fCollidingPoints.push_back({v2TopLeft, CalculateAngleOfIntersection(v2TopLeft)});
-                m_vv2fCollidingPoints.push_back({v2TopRight, CalculateAngleOfIntersection(v2TopRight)});
-                m_vv2fCollidingPoints.push_back({v2BotLeft, CalculateAngleOfIntersection(v2BotLeft)});
-                m_vv2fCollidingPoints.push_back({v2BotRight, CalculateAngleOfIntersection(v2BotRight)});
-            
-            break;
-        }
-
-        // We also want to add any point where the rectangle's sides collide with the borders of the light's AOE
-        this->CheckForAOECollisionAndAdd(v2TopLeft, v2BotLeft);     // Check and add left
-        this->CheckForAOECollisionAndAdd(v2TopRight, v2BotRight);   // Check and add right
-        this->CheckForAOECollisionAndAdd(v2TopLeft, v2TopRight);    // Check and add top
-        this->CheckForAOECollisionAndAdd(v2BotLeft, v2BotRight);    // Check and addbottom
+    // If we do not need to recalculate the light's geometry
+    if (!m_bDirty) {
+        // Then use the geometry from last frame
+        m_vcvVertexData = m_vcvLastFrameVertexData;
     }
+    else {
+        // Go through all of the rectangles in the AOE
+        for (wolf::Rectangle rect : vpRectanglesInAOE) {
+            // Get the corners of the rectangle
+            // !-- GetCorners() returns: top-left, top-right, bottom-left, bottom-right --!
+            std::array<glm::vec2, 4> arv2Corners = rect.GetCorners();
 
-// ------------------------ Phase 3: Removing obstructed or impossible collision points  -----------------------------
+            // And store them in variables for easy readability
+            glm::vec2 v2TopLeft = arv2Corners[0];
+            glm::vec2 v2TopRight = arv2Corners[1];
+            glm::vec2 v2BotLeft = arv2Corners[2];
+            glm::vec2 v2BotRight = arv2Corners[3];
 
-    // We don't want to draw light rays that go THROUGH the rectangles in the scene
-    // so we are going to need to check if any of our lines intersect with other colliders
+            // Figure out the approximate location of the rectangle in relation to the light source
+            glm::vec2 v2RectPos = glm::vec2((v2TopLeft.x + v2TopRight.x) * 0.5f, (v2TopLeft.y + v2BotLeft.y) * 0.5f);
+            RoughPosition enRoughPos = this->CalculateRoughObjPosition(v2RectPos);
+            
+            // Use said location to figure out which sides of the rectangle the light could
+            // be hitting and which sides can be safely ignored.
+            switch (enRoughPos) {
+                case TOP_LEFT:
+                    // Shoot a line to the bottom-left, bottom-right, and top-right corners
+                    this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
 
-    // When we do that check, we're going to be adding and removing things from m_vv2fCollidingPoints
-    // in-between iterations through the list of rectangles in the AOE, so we make two vectors to hold
-    // the points that are being added or removed midway.
-    std::vector<std::pair<glm::vec2, float>> vv2fPointsToRemove;
-    std::vector<std::pair<glm::vec2, float>> vv2fPointsToAdd;
-
-    // Then we go through all of the rectangles in the AOE again
-    for (wolf::Rectangle rect : vpRectanglesInAOE) {
-        // Clear the lists of points to add and remove
-        vv2fPointsToRemove.clear();
-        vv2fPointsToAdd.clear();
-
-        // Get the corner points associated with this rectangle
-        std::array<glm::vec2, 4> arv2RectCorners = rect.GetCorners();
-
-        // And use them to onstruct the sides again
-        glm::vec2 v2TopStart = arv2RectCorners[0]; // Top
-        glm::vec2 v2TopEnd = arv2RectCorners[1];
-
-        glm::vec2 v2BotStart = arv2RectCorners[2]; // Bottom
-        glm::vec2 v2BotEnd = arv2RectCorners[3];
-
-        glm::vec2 v2LeftStart = arv2RectCorners[0]; // Left
-        glm::vec2 v2LeftEnd = arv2RectCorners[2];
-
-        glm::vec2 v2RightStart = arv2RectCorners[1]; // Right
-        glm::vec2 v2RightEnd = arv2RectCorners[3];
-
-        // Determine if this rectangle is part of a wall tile
-        bool bRectIsWall = !m_ignoreWallTiles && CheckForWallAtPos({(v2TopStart.x + v2BotEnd.x) * 0.5f, (v2TopStart.y + v2BotEnd.y) * 0.5f});
-
-        // Then go through all of the corner points that we THINK we'll be casting a light ray to
-        for (std::pair<glm::vec2, float> v2fCorner : m_vv2fCollidingPoints) {
-            // Skip corner points that belong to the rectangle we're currently looking at (provided it is not part of a wall)
-            if (!bRectIsWall && std::find(arv2RectCorners.begin(), arv2RectCorners.end(), v2fCorner.first) != arv2RectCorners.end()) {
-                continue;
-            }
-
-            // Check for a collision between the ray shot to this corner point and the rectangle we're currently interested in
-            std::pair<bool, glm::vec2> v2fLeftResult = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2LeftStart, v2LeftEnd);
-            std::pair<bool, glm::vec2> v2fRightResult = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2RightStart, v2RightEnd);
-            std::pair<bool, glm::vec2> v2fTopResult = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2TopStart, v2TopEnd);
-            std::pair<bool, glm::vec2> v2fBotResult = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2BotStart, v2BotEnd);
-
-            // Check if the line between the origin and the corner point we're casting to intersects with another collider.
-            if (v2fLeftResult.first || v2fRightResult.first || v2fTopResult.first || v2fBotResult.first)
-            {
-                // If it does, then we want to replace corner point we're looking at with the nearest point of intersection
-                // between the light and the rectangle instead, so we get the distance of each potential intersect
-                float fLeftDist = glm::distance(m_v2Origin, v2fLeftResult.second);
-                float fRightDist = glm::distance(m_v2Origin, v2fRightResult.second);
-                float fTopDist = glm::distance(m_v2Origin, v2fTopResult.second);
-                float fBotDist = glm::distance(m_v2Origin, v2fBotResult.second);
-
-                // Then we find the point with the shortest distance
-                float fMinDist = std::min(fLeftDist, std::min(fRightDist, std::min(fTopDist, fBotDist)));
-
-                // And add it to a vector of points that will be added to m_vv2fCollidingPoints in the next pass
-                if (fMinDist == fLeftDist) {
-                    // Left intersection point
-                    vv2fPointsToAdd.push_back({v2fLeftResult.second, CalculateAngleOfIntersection(v2fLeftResult.second)});
-                }
-                else if (fMinDist == fRightDist) {
-                    // Right intersection point
-                    vv2fPointsToAdd.push_back({v2fRightResult.second, CalculateAngleOfIntersection(v2fRightResult.second)});
-                    
-                }
-                else if (fMinDist == fTopDist) {
-                    // Top intersection point
-                    vv2fPointsToAdd.push_back({v2fTopResult.second, CalculateAngleOfIntersection(v2fTopResult.second)});
-                }
-                else if (fMinDist == fBotDist) {
-                    // Bottom intersection point
-                    vv2fPointsToAdd.push_back({v2fBotResult.second, CalculateAngleOfIntersection(v2fBotResult.second)});
-                }
+                    /* --------------------------------------------------------------------------------------
+                    // The points that are furthest away from the light when the object is in one of the
+                    // diagonal positions (TOP_LEFT, TOP_RIGHT, BOT_LEFT, BOT_RIGHT) have the potential
+                    // to cause the light to shoot a ray through the object so we check those points against
+                    // the side directly across from them before they get added to the colliding points vector
+                    // --------------------------------------------------------------------------------------- */
+                    this->CheckForCollisionAndAdd(v2BotLeft, {v2TopRight, v2BotRight});
+                    this->CheckForCollisionAndAdd(v2TopRight, {v2BotLeft, v2BotRight});
+            
+                break;
                 
-                // Then mark the original point for removal
-                vv2fPointsToRemove.push_back(v2fCorner);
+                case TOP_CENTER:
+                    // Shoot a line to the bottom-left and bottom-right corners
+                    this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
+                    this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
+
+                break;
+                
+                case TOP_RIGHT:
+                    // Shoot a line to the top-left, bottom-left, and bottom-right corners
+                    this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
+
+                    // Make sure that the ray doesn't go through the rectangle
+                    this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2BotLeft});
+                    this->CheckForCollisionAndAdd(v2TopLeft, {v2BotLeft, v2BotRight});
+
+                break;
+                
+                case MID_LEFT:
+                    // Shoot a line to the top-right and bottom-right corners
+                    this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
+                    this->CheckForCollisionAndAdd(v2BotRight, {v2BotLeft, v2BotRight});
+
+                break;
+                
+                case MID_RIGHT:
+                    // Shoot a line to the top-left and bottom-left corners
+                    this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
+                    this->CheckForCollisionAndAdd(v2BotLeft, {v2BotLeft, v2BotRight});
+
+                break;
+                
+                case BOT_LEFT:
+                    // Shoot a line to the top-left, top-right, and bottom-right corners
+                    this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
+
+                    // Make sure that the ray doesn't go through the rectangle
+                    this->CheckForCollisionAndAdd(v2TopLeft, {v2TopRight, v2BotRight});
+                    this->CheckForCollisionAndAdd(v2BotRight, {v2TopLeft, v2TopRight});
+
+                break;
+                
+                case BOT_CENTER:
+                    // Shoot a line to the top-left and top-right corners
+                    this->CheckForCollisionAndAdd(v2TopLeft, {v2TopLeft, v2TopRight});
+                    this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2TopRight});
+
+                break;
+                
+                case BOT_RIGHT:
+                    // Shoot a line to the top-right, top-left, and bottom-left corners
+                    this->CheckForCollisionAndAdd(v2TopLeft, {v2BotLeft, v2BotRight});
+
+                    // Make sure that the ray doesn't go through the rectangle
+                    this->CheckForCollisionAndAdd(v2BotLeft, {v2TopLeft, v2TopRight});
+                    this->CheckForCollisionAndAdd(v2TopRight, {v2TopLeft, v2BotLeft});
+
+                break;
+
+                case SELF:
+                    // Shoot a line to the four corners of the light's radius rectangle
+                    // (If these lines intersect something they'll be removed in the next pass)
+                    m_vv2fCollidingPoints.push_back({v2TopLeft, CalculateAngleOfIntersection(v2TopLeft)});
+                    m_vv2fCollidingPoints.push_back({v2TopRight, CalculateAngleOfIntersection(v2TopRight)});
+                    m_vv2fCollidingPoints.push_back({v2BotLeft, CalculateAngleOfIntersection(v2BotLeft)});
+                    m_vv2fCollidingPoints.push_back({v2BotRight, CalculateAngleOfIntersection(v2BotRight)});
+                
+                break;
+            }
+
+            // We also want to add any point where the rectangle's sides collide with the borders of the light's AOE
+            this->CheckForAOECollisionAndAdd(v2TopLeft, v2BotLeft);     // Check and add left
+            this->CheckForAOECollisionAndAdd(v2TopRight, v2BotRight);   // Check and add right
+            this->CheckForAOECollisionAndAdd(v2TopLeft, v2TopRight);    // Check and add top
+            this->CheckForAOECollisionAndAdd(v2BotLeft, v2BotRight);    // Check and addbottom
+        }
+
+    // ------------------------ Phase 3: Removing obstructed or impossible collision points  -----------------------------
+
+        // We don't want to draw light rays that go THROUGH the rectangles in the scene
+        // so we are going to need to check if any of our lines intersect with other colliders
+
+        // When we do that check, we're going to be adding and removing things from m_vv2fCollidingPoints
+        // in-between iterations through the list of rectangles in the AOE, so we make two vectors to hold
+        // the points that are being added or removed midway.
+        std::vector<std::pair<glm::vec2, float>> vv2fPointsToRemove;
+        std::vector<std::pair<glm::vec2, float>> vv2fPointsToAdd;
+
+        // Then we go through all of the rectangles in the AOE again
+        for (wolf::Rectangle rect : vpRectanglesInAOE) {
+            // Clear the lists of points to add and remove
+            vv2fPointsToRemove.clear();
+            vv2fPointsToAdd.clear();
+
+            // Get the corner points associated with this rectangle
+            std::array<glm::vec2, 4> arv2RectCorners = rect.GetCorners();
+
+            // And use them to onstruct the sides again
+            glm::vec2 v2TopStart = arv2RectCorners[0]; // Top
+            glm::vec2 v2TopEnd = arv2RectCorners[1];
+
+            glm::vec2 v2BotStart = arv2RectCorners[2]; // Bottom
+            glm::vec2 v2BotEnd = arv2RectCorners[3];
+
+            glm::vec2 v2LeftStart = arv2RectCorners[0]; // Left
+            glm::vec2 v2LeftEnd = arv2RectCorners[2];
+
+            glm::vec2 v2RightStart = arv2RectCorners[1]; // Right
+            glm::vec2 v2RightEnd = arv2RectCorners[3];
+
+            // Determine if this rectangle is part of a wall tile
+            bool bRectIsWall = !m_ignoreWallTiles && CheckForWallAtPos({(v2TopStart.x + v2BotEnd.x) * 0.5f, (v2TopStart.y + v2BotEnd.y) * 0.5f});
+
+            // Then go through all of the corner points that we THINK we'll be casting a light ray to
+            for (std::pair<glm::vec2, float> v2fCorner : m_vv2fCollidingPoints) {
+                // Skip corner points that belong to the rectangle we're currently looking at (provided it is not part of a wall)
+                if (!bRectIsWall && std::find(arv2RectCorners.begin(), arv2RectCorners.end(), v2fCorner.first) != arv2RectCorners.end()) {
+                    continue;
+                }
+
+                // Check for a collision between the ray shot to this corner point and the rectangle we're currently interested in
+                std::pair<bool, glm::vec2> v2fLeftResult = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2LeftStart, v2LeftEnd);
+                std::pair<bool, glm::vec2> v2fRightResult = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2RightStart, v2RightEnd);
+                std::pair<bool, glm::vec2> v2fTopResult = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2TopStart, v2TopEnd);
+                std::pair<bool, glm::vec2> v2fBotResult = this->LineLineCollisionTest(m_v2Origin, v2fCorner.first, v2BotStart, v2BotEnd);
+
+                // Check if the line between the origin and the corner point we're casting to intersects with another collider.
+                if (v2fLeftResult.first || v2fRightResult.first || v2fTopResult.first || v2fBotResult.first)
+                {
+                    // If it does, then we want to replace corner point we're looking at with the nearest point of intersection
+                    // between the light and the rectangle instead, so we get the distance of each potential intersect
+                    float fLeftDist = glm::distance(m_v2Origin, v2fLeftResult.second);
+                    float fRightDist = glm::distance(m_v2Origin, v2fRightResult.second);
+                    float fTopDist = glm::distance(m_v2Origin, v2fTopResult.second);
+                    float fBotDist = glm::distance(m_v2Origin, v2fBotResult.second);
+
+                    // Then we find the point with the shortest distance
+                    float fMinDist = std::min(fLeftDist, std::min(fRightDist, std::min(fTopDist, fBotDist)));
+
+                    // And add it to a vector of points that will be added to m_vv2fCollidingPoints in the next pass
+                    if (fMinDist == fLeftDist) {
+                        // Left intersection point
+                        vv2fPointsToAdd.push_back({v2fLeftResult.second, CalculateAngleOfIntersection(v2fLeftResult.second)});
+                    }
+                    else if (fMinDist == fRightDist) {
+                        // Right intersection point
+                        vv2fPointsToAdd.push_back({v2fRightResult.second, CalculateAngleOfIntersection(v2fRightResult.second)});
+                        
+                    }
+                    else if (fMinDist == fTopDist) {
+                        // Top intersection point
+                        vv2fPointsToAdd.push_back({v2fTopResult.second, CalculateAngleOfIntersection(v2fTopResult.second)});
+                    }
+                    else if (fMinDist == fBotDist) {
+                        // Bottom intersection point
+                        vv2fPointsToAdd.push_back({v2fBotResult.second, CalculateAngleOfIntersection(v2fBotResult.second)});
+                    }
+                    
+                    // Then mark the original point for removal
+                    vv2fPointsToRemove.push_back(v2fCorner);
+                }
+            }
+
+            // Remove the points this rectangle collided with (if any)
+            for (std::pair<glm::vec2, float> v2fBadCorner : vv2fPointsToRemove) {
+                auto it = std::find(m_vv2fCollidingPoints.begin(), m_vv2fCollidingPoints.end(), v2fBadCorner);
+                if (it != m_vv2fCollidingPoints.end()) {
+                    m_vv2fCollidingPoints.erase(it);
+                }
+            }
+
+            // And add in the new intersection points (if any)
+            for (std::pair<glm::vec2, float> v2fGoodPoint : vv2fPointsToAdd) {
+                m_vv2fCollidingPoints.push_back(v2fGoodPoint);
             }
         }
 
-        // Remove the points this rectangle collided with (if any)
-        for (std::pair<glm::vec2, float> v2fBadCorner : vv2fPointsToRemove) {
-            auto it = std::find(m_vv2fCollidingPoints.begin(), m_vv2fCollidingPoints.end(), v2fBadCorner);
-            if (it != m_vv2fCollidingPoints.end()) {
-                m_vv2fCollidingPoints.erase(it);
-            }
+        // If by some devilry we have removed every point in m_vv2fCollidingPoints, we want to
+        // fail gracefully via error rather than SegFaulting so we return here
+        if (m_vv2fCollidingPoints.empty()) {
+            wolf::Error("Problem in LightingComponent: all points removed from m_vv2fCollidingPoints");
+            return;
         }
 
-        // And add in the new intersection points (if any)
-        for (std::pair<glm::vec2, float> v2fGoodPoint : vv2fPointsToAdd) {
-            m_vv2fCollidingPoints.push_back(v2fGoodPoint);
+        // --------------------------------------- Phase 4: Assembling geometry  ---------------------------------------------
+
+        // Otherwise, we sort the collision points by the slopes of their intersection lines
+        std::sort(m_vv2fCollidingPoints.begin(), m_vv2fCollidingPoints.end(), LightComponent::CompareVec2FloatPair);
+
+        // Get the first collison point (we'll need it for the final triangle)
+        glm::vec2 v2FirstPoint = m_vv2fCollidingPoints.back().first;
+
+        // Form triangles using the two points that form each side and the origin
+        while (m_vv2fCollidingPoints.size() != 1) {
+            // Take the first point out of the vector
+            glm::vec2 v2Point1 = m_vv2fCollidingPoints.back().first;
+            m_vv2fCollidingPoints.pop_back();
+
+            glm::vec2 v2Point2 = m_vv2fCollidingPoints.back().first;
+            // We don't pop the second point because we want the triangles to connect to each other
+
+            // Add the triangle to the vertex data
+            m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
+            m_vcvVertexData.push_back({v2Point1.x, v2Point1.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
+            m_vcvVertexData.push_back({v2Point2.x, v2Point2.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
         }
-    }
 
-    // If by some devilry we have removed every point in m_vv2fCollidingPoints, we want to
-    // fail gracefully via error rather than SegFaulting so we return here
-    if (m_vv2fCollidingPoints.empty()) {
-        wolf::Error("Problem in LightingComponent: all points removed from m_vv2fCollidingPoints");
-        return;
-    }
-
-    // --------------------------------------- Phase 4: Assembling geometry  ---------------------------------------------
-
-    // Otherwise, we sort the collision points by the slopes of their intersection lines
-    std::sort(m_vv2fCollidingPoints.begin(), m_vv2fCollidingPoints.end(), LightComponent::CompareVec2FloatPair);
-
-    // Get the first collison point (we'll need it for the final triangle)
-    glm::vec2 v2FirstPoint = m_vv2fCollidingPoints.back().first;
-
-    // Form triangles using the two points that form each side and the origin
-    while (m_vv2fCollidingPoints.size() != 1) {
-        // Take the first point out of the vector
-        glm::vec2 v2Point1 = m_vv2fCollidingPoints.back().first;
+        // Pop the last point and use it to form the final triangle
+        glm::vec2 v2LastPoint = m_vv2fCollidingPoints.back().first;
         m_vv2fCollidingPoints.pop_back();
 
-        glm::vec2 v2Point2 = m_vv2fCollidingPoints.back().first;
-        // We don't pop the second point because we want the triangles to connect to each other
-
-        // Add the triangle to the vertex data
+        // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
         m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
-        m_vcvVertexData.push_back({v2Point1.x, v2Point1.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
-        m_vcvVertexData.push_back({v2Point2.x, v2Point2.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
+        m_vcvVertexData.push_back({v2FirstPoint.x, v2FirstPoint.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
+        m_vcvVertexData.push_back({v2LastPoint.x, v2LastPoint.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
     }
 
-    // Pop the last point and use it to form the final triangle
-    glm::vec2 v2LastPoint = m_vv2fCollidingPoints.back().first;
-    m_vv2fCollidingPoints.pop_back();
+    // Get ready for the next Update
 
-    // Form a final triangle from the first and last points in m_iv2CollidingPoints and the origin
-    m_vcvVertexData.push_back({m_v2Origin.x, m_v2Origin.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
-    m_vcvVertexData.push_back({v2FirstPoint.x, v2FirstPoint.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
-    m_vcvVertexData.push_back({v2LastPoint.x, v2LastPoint.y, m_v4Color.r, m_v4Color.g, m_v4Color.b, m_v4Color.a});
+    // Set the last frame origin
+    m_v2OriginLastFrame = m_v2Origin;
+
+    // Clear the collider map's data for last frame and replace it with this frame's data
+    m_muiv2CollidersLastFrame.clear();
+    m_muiv2CollidersLastFrame = m_muiv2CollidersThisFrame;
+    m_muiv2CollidersThisFrame.clear();
+
+    // Clear the geometry data for last frame and replace it with this frame's data
+    m_vcvLastFrameVertexData.clear();
+    m_vcvLastFrameVertexData = m_vcvVertexData;
 }
 
 // ------------------------------------------------------------------------------------------------------------

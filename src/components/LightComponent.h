@@ -113,6 +113,21 @@ class LightComponent : public wolf::BaseComponent {
         // Flag for whether the light should ignore wall tiles
         bool m_ignoreWallTiles = false;
 
+        // Flag for whether or not the light needs to recalculate its light-ray geometry
+        bool m_bDirty = true;
+
+        // Map to hold the colliders we intersected with last frame (and their last position)
+        std::map<wolf::GameObjectID, glm::vec2> m_muiv2CollidersLastFrame;
+
+        // Map to hold the colliders we intersected with this frame (and their last position)
+        std::map<wolf::GameObjectID, glm::vec2> m_muiv2CollidersThisFrame;
+
+        // Vector to hold the final geometry data from last frame
+        std::vector<ColouredVertex2D> m_vcvLastFrameVertexData;
+
+        // The light's position last frame
+        glm::vec2 m_v2OriginLastFrame;
+
         // Pointer to the scene this light is in
         wolf::Scene* m_pScene = nullptr;
         LabyrinthManager* m_pLabyrinthManager = nullptr;
