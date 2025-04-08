@@ -161,6 +161,13 @@ void PlayerController::LateInitialize()
 
     m_attackTimer.Start();
 
+    // Create Placing Indicator Obj
+    m_pPlacingIndicatorObj = &pGameObject->GetScene().CreateObject2D();
+    m_pPlacingIndicatorObj->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE, LabyrinthManager::SCALE));
+    wolf::Sprite2D* indicatorSprite = &m_pPlacingIndicatorObj->AddComponent<wolf::Sprite2D>("data/textures/tile_hermes_portal.png");
+    indicatorSprite->SetVisibility(false);
+    
+
     InitializeAnimations();
 
     // !-- Aurora added this --!
@@ -450,6 +457,9 @@ void PlayerController::HandlePlayerInput(float delta)
 }
 
 void PlayerController::PickUpObject() {
+    // Don't pick up if already holding an object
+    if (m_isHoldingObject) return;
+    
     // If the player is attacking, don't bother trying to pick anything up
     if (m_action == PlayerAction::ATTACKING) return;
     
@@ -510,35 +520,81 @@ void PlayerController::HandlePetrified(float delta)
 
 void PlayerController::HandlePlacing(float delta)
 {
-    if(wolf::Input::IsLMBJustDown())
+    glm::vec2 cursorWorldPos = CalculateCursorWorldPosition();
+    glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    const float scaledTileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    bool isOutOfRange = false;
+    bool isWall = false;
+
+    // Check if the tile position is out of bounds
+    bool isOutOfBounds = cursorWorldPos.x < 0 || cursorWorldPos.y < 0;
+
+    // Get the position of the tile that the cursor is on
+    glm::ivec2 cursorTilePos = glm::ivec2(0, 0);
+    glm::ivec2 playerTilePos = glm::ivec2(0, 0);
+    for (const auto&&[_, lbmg] : GetGameObject()->GetScene().Each<LabyrinthManager>())
     {
-        glm::vec2 cursorWorldPos = CalculateCursorWorldPosition();
-        
-        // Return if attempting to place item out of bounds
-        if(cursorWorldPos.x < 0 || cursorWorldPos.y < 0) return;
+        playerTilePos = lbmg.GetTilePosition(playerPos);
+        cursorTilePos = lbmg.GetTilePosition(cursorWorldPos);
 
-        // Get the position of the tile that the cursor is on
-        glm::ivec2 cursorTilePos;
-        for (const auto&&[_, lbmg] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+        // Check if the tile position is beyond range
+        if (
+            std::abs(cursorTilePos.x - playerTilePos.x) > m_iPlaceablePlacingRange ||
+            std::abs(cursorTilePos.y - playerTilePos.y) > m_iPlaceablePlacingRange
+        ) 
         {
-            cursorTilePos = lbmg.GetTilePosition(cursorWorldPos);
-
-            // Return if tile is a wall
-            int tileId = lbmg.GetTile(cursorTilePos.x, cursorTilePos.y);
-            if((tileId >= Tile::WallBottomLeft) && (tileId <= Tile::WallTop)) return; 
-            break;
+            isOutOfRange = true;
         }
 
-        // Mark placement as valid
-        m_bIsPlaced = true;
+        // Check if the cursor is hovering over a wall
+        int tileId = lbmg.GetTile(cursorTilePos.x, cursorTilePos.y);
+        if((tileId >= Tile::WallBottomLeft) && (tileId <= Tile::WallTop))
+        {
+            isWall = true;
+        } 
+        break;
+    }
+
+    // If left mouse is just clicked
+    if(wolf::Input::IsLMBJustDown())
+    {    
+        // If attempting to place item out of bounds, out of range, or on a wall, return
+        if(isOutOfBounds || isOutOfRange || isWall) return;
 
         // If placeable is a portal
         if(this->m_pCurrentPlaceable->GetType() == PlaceableType::PORTAL)
         {   
+            // set placement flag
+            m_bIsPlaced = PortalTileManager::GetInstance()->CreatePortalTile(cursorTilePos);
         }
 
+        // Switch player action to NONE
         SetAction(PlayerAction::NONE);
+        return;
     }
+
+
+    glm::vec2 indicatorWorldPos = glm::vec2(
+        cursorWorldPos.x - glm::mod(cursorWorldPos.x, scaledTileSize),
+        cursorWorldPos.y - glm::mod(cursorWorldPos.y, scaledTileSize)
+    );
+    glm::vec3 redTint = glm::vec3(1.5f, 0.5f, 0.5f);
+    glm::vec3 normalTint = glm::vec3(1.0f, 1.0f, 1.0f);
+
+    // If cursor is hovering out of bounds, out of range, or on a wall, set to indicator tint to red
+    if(isOutOfBounds || isOutOfRange || isWall)
+    {
+        m_pPlacingIndicatorObj->GetComponent<wolf::Sprite2D>()->SetTint(redTint);
+    }
+    
+    // If not, set inidcator tint to normal
+    else
+    {
+        m_pPlacingIndicatorObj->GetComponent<wolf::Sprite2D>()->SetTint(normalTint);
+    }
+    
+    // Position the indicator to fit the tile that the cursor is hovering over
+    this->m_pPlacingIndicatorObj->GetComponent<wolf::Transform2D>()->SetPosition(indicatorWorldPos);
 
     HandlePlacingAnimation();
 }
@@ -1015,10 +1071,13 @@ void PlayerController::HandlePlacingAnimation()
 {
     std::string animationName;
 
+    // If player is not moving, get idle animation
     if(glm::length(m_pVelocity->GetVelocity()) <= 0.001f)
     {
         animationName = GetIdleAnimationForDirection(m_lastMoveDirectionEnum);
     }
+    
+    // If player is not moving, get moving animation
     else
     {
         animationName = GetWalkAnimationForDirection(m_lastMoveDirectionEnum);
@@ -1100,14 +1159,18 @@ void PlayerController::EndPetrified()
 
 void PlayerController::EndPlacing()
 {
+    // If placing was successful, trigger event with current placeable object
     if(m_bIsPlaced == true)
     {
         wolf::EventManager::TriggerEvent(EndPlacingPlaceableEvent(this->m_pCurrentPlaceable));
     }
+    // Else, trigger event with nullptr
     else
     {
         wolf::EventManager::TriggerEvent(EndPlacingPlaceableEvent(nullptr));
     }
+
+    this->m_pPlacingIndicatorObj->GetComponent<wolf::Sprite2D>()->SetVisibility(false);
     this->m_pCurrentPlaceable = nullptr;
     m_bIsPlaced = false;
 }
@@ -1743,7 +1806,20 @@ void PlayerController::HandleArmourUnequippedEvent(const ArmourUnequippedEvent& 
 }
 void PlayerController::HandleBeginPlacingItemEvent(const BeginPlacingPlaceableEvent& p_event)
 {
+    // Set reference to current placeable item
     this->m_pCurrentPlaceable = p_event.pItem;
+    
+    // Set sprite visibility to true
+    wolf::Sprite2D* indicatorSprite = this->m_pPlacingIndicatorObj->GetComponent<wolf::Sprite2D>();
+    indicatorSprite->SetVisibility(true);
+
+    // Set sprite texture based on placeable type
+    if(p_event.pItem->GetType() == PlaceableType::PORTAL)
+    {
+        indicatorSprite->SetTexture("data/textures/tile_hermes_portal.png");
+    }
+
+    // Switch action to PLACING
     SetAction(PlayerAction::PLACING);
 }
 
@@ -2013,3 +2089,5 @@ void PlayerController::ResetDeathScreenState() {
     // Reset options (buttons) fade variables
     m_optionsOpacity = 0.0f;
 }
+
+// Taken from ThrouwableObjectComponent by Youssef

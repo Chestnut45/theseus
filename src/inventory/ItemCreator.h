@@ -357,7 +357,7 @@ namespace ItemCreator {
                 {
                     printf("Error: Unknown Placeable Type - Set Type To Default\n");
                 }
-                bool bStackable = itemEntry["is_stackable"] ? itemEntry["is_stackable"].as<bool>() : bStackable;
+                bool bStackable = itemEntry["is_stackable"] ? itemEntry["is_stackable"].as<bool>() : false;
                 pCreatedItem = new PlaceableItem(PLACEABLE, plcType, p_strItemName, strDesc, iValue, bStackable, iTextureFrameIndex, enRarity);
             }
 
