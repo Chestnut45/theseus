@@ -1124,3 +1124,64 @@ std::vector<glm::vec2> NavMeshComponent::ImprovedFunnelAlgorithm(
     
     return path;
 }
+
+bool NavMeshComponent::IsPathValid(const std::vector<glm::vec2>& path) const
+{
+    if (path.size() < 2)
+        return false;
+        
+    // Check each segment of the path
+    for (size_t i = 0; i < path.size() - 1; i++)
+    {
+        // Check if line of sight between points
+        if (!LineOfSight(path[i], path[i+1]))
+            return false;
+            
+        // Check if points are too close to obstacle edges
+        if (i > 0) { // Skip start point
+            float minDistToEdge = std::numeric_limits<float>::max();
+            
+            // Find minimum distance to any boundary edge
+            for (const auto& edge : m_edges)
+            {
+                if (edge.poly2 == -1) // Boundary edge
+                {
+                    float dist = DistancePointToSegment(path[i], edge.start, edge.end);
+                    minDistToEdge = std::min(minDistToEdge, dist);
+                }
+            }
+            
+            // If too close to an edge, path might be invalid
+            if (minDistToEdge < 10.0f) // Adjust threshold as needed
+                return false;
+        }
+    }
+    
+    return true;
+}
+
+std::vector<glm::vec2> NavMeshComponent::CreateGridBasedPath(const glm::vec2& start, const glm::vec2& goal)
+{
+    // Find tile size from LabyrinthManager
+    const float tileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    
+    // Convert world positions to grid positions
+    glm::ivec2 startTile = glm::ivec2(start) / static_cast<int>(tileSize);
+    glm::ivec2 goalTile = glm::ivec2(goal) / static_cast<int>(tileSize);
+    
+    // Ask grid-based pathfinder to find path
+    std::vector<glm::ivec2> gridPath;
+    if (m_pPathfindingManager)
+    {
+        gridPath = m_pPathfindingManager->FindPath(startTile, goalTile);
+    }
+    
+    // Convert grid path back to world coordinates
+    std::vector<glm::vec2> worldPath;
+    for (const auto& tile : gridPath)
+    {
+        worldPath.push_back(glm::vec2(tile) * tileSize + glm::vec2(tileSize/2.0f));
+    }
+    
+    return worldPath;
+}

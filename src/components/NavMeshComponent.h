@@ -75,6 +75,12 @@ public:
     // Update dynamic obstacles
     void UpdateDynamicObstacles(const std::vector<wolf::GameObject*>& obstacles);
 
+    bool IsPathValid(const std::vector<glm::vec2>& path) const;
+    
+    // Add method to force grid-based traversal
+    std::vector<glm::vec2> CreateGridBasedPath(const glm::vec2& start, const glm::vec2& goal);
+    
+
 private:
     // Constants
     static constexpr float SPATIAL_CELL_SIZE = 128.0f;  // Size of spatial hash cells
@@ -113,5 +119,6 @@ private:
     bool m_debugDrawEnabled = false;
 
     inline void ProcessAffectedPolygon(int polyId, bool isPlayer, std::unordered_set<int>& affectedPolygons);
+    
 
 };
