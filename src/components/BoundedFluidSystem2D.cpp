@@ -3,6 +3,7 @@
 #include <glm/gtx/norm.hpp>
 #include <imgui/imgui.h>
 
+#include <W_Audio.h>
 #include <W_Logging.h>
 #include <W_Transform2D.h>
 
@@ -133,6 +134,12 @@ void BoundedFluidSystem2D::Update(float delta)
 
         // Ensure delay has been met before running drain logic
         if (drain.m_lifetime < drain.m_delay) continue;
+
+        if (!drain.m_sfxPlayed)
+        {
+            drain.m_sfxPlayed = true;
+            wolf::Audio::Play("data/sounds/sfx_liquid_drain.wav", 0.5f);
+        }
         
         // Suck particles
         ApplyRadialForce(drain.m_bounds.m_position, drain.m_pullRadius, -drain.m_pullStrength * m_targetFrametime);
@@ -413,6 +420,20 @@ void BoundedFluidSystem2D::SpawnParticle(const glm::vec2& pos, const glm::vec2& 
 void BoundedFluidSystem2D::AddStaticCollisionRect(const wolf::Rectangle& rect)
 {
     m_collisionRects.push_back(rect);
+}
+
+bool BoundedFluidSystem2D::Intersects(const glm::vec2& position) const
+{
+    // TODO: This can be sped up easily by only checking 9 grid cells if needed
+    for (auto& p : m_particles)
+    {
+        if (glm::distance2(p.m_pos, position) <= m_kernelRadiusSqr)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void BoundedFluidSystem2D::AddTimedSpout(const glm::vec2& position, float lifespan, int particlesPerSecond)

@@ -659,8 +659,9 @@ void AnimatedSprite2D::BindUniformsAndTextures(const glm::vec2& position, float 
 
     // Build model matrix
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(position - m_pCurrentAnim->m_v2Origin * scale, 0.0f));
+    model = glm::translate(model, glm::vec3(position, 0.0f));
     model = glm::rotate(model, rotationRadians, glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::translate(model, glm::vec3(-m_pCurrentAnim->m_v2Origin * scale, 0.0f));
     model = glm::scale(model, glm::vec3(scale * m_v2FrameSize, 1.0f));
 
     // Set model uniform

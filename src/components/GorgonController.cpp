@@ -308,6 +308,7 @@ void GorgonController::SetUpAnimations(const std::string& animationInitPath)
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
     m_pAnimComponent->SetLayer(9);
+    m_pAnimComponent->SetLightingEnabled(false);
 }
 
 void GorgonController::MoveTowardsTarget(float delta)

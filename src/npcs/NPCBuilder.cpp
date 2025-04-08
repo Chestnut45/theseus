@@ -176,6 +176,9 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
         // Then set the component's current animation to be the starting animation
         pAnim.SetAnimation(strStartAnim);
 
+        // Ensure all NPCs are fully lit!
+        pAnim.SetLightingEnabled(false);
+
         // Finally, we initialize the NPC
         npcComp.Init();
     }

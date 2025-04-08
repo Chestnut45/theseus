@@ -58,6 +58,9 @@ public:
     bool IsActive() const { return m_active; }
     void SetActive(bool active) { m_active = active; }
 
+    // Reactivates a REUSABLE trigger after the given number of seconds has passed
+    void ReactivateDelayed(float seconds);
+
     // Getters for type and purpose
     TriggerType GetTriggerType() const { return m_triggerType; }
     TriggerPurpose GetPurpose() const { return m_purpose; }
@@ -79,4 +82,8 @@ private:
     TriggerType m_triggerType;
     TriggerPurpose m_purpose;
     EntityListenType::type m_entityTypes;
+
+    // Timer for reactivation
+    wolf::Timer m_reactivateTimer;
+    float m_reactivateSeconds = 0.0f;
 };
