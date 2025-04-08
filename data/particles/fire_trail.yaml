@@ -14,6 +14,7 @@ particle_config:
   continuous_emission: false
   burst_count: 17
   burst_spread: 35.0
+  autodestroy: true
   
   use_texture: true
   texture_path: "data/textures/fire_particle.png"

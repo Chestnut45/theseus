@@ -880,6 +880,7 @@ void ParticleEditor::SaveConfigToYAML(ParticleComponent& particleComponent, cons
         out << YAML::Key << "continuous_emission" << YAML::Value << state.continuousEmission;
         out << YAML::Key << "burst_count" << YAML::Value << state.burstCount;
         out << YAML::Key << "burst_spread" << YAML::Value << state.burstSpread;
+        out << YAML::Key << "autodestroy" << YAML::Value << state.autodestroy;
         
         // Texture properties
         out << YAML::Key << "use_texture" << YAML::Value << state.useTexture;
@@ -1061,6 +1062,9 @@ void ParticleEditor::LoadConfigFromYAML(ParticleComponent& particleComponent, co
                 
             if (particleConfig["burst_spread"])
                 state.burstSpread = particleConfig["burst_spread"].as<float>();
+            
+            if (particleConfig["autodestroy"])
+                state.autodestroy = particleConfig["autodestroy"].as<bool>();
 
             // Texture properties
             if (particleConfig["use_texture"])
