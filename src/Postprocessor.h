@@ -16,6 +16,7 @@ public:
     {
         BURNING,
         GRAYSCALE,
+        HEAT_DISTORTION,
         POISONED,
         NONE
     };
@@ -34,11 +35,14 @@ private:
     void SwitchFramebuffers();
     void HandleBurningEffect(GLuint p_tex);
     void HandleGrayscaleEffect(GLuint p_tex);
+    void HandleHeatDistortionEffect(GLuint p_tex);
     void HandlePoisonedEffect(GLuint p_tex);
     void HandleNoneEffect(GLuint p_tex);
 
 
     static Postprocessor* s_pPostprocessor;
+
+    static const float SCALED_TILE_SIZE;
 
     std::vector<wolf::Program*> m_vShaderPrograms;
     wolf::FrameBuffer * m_pFBO_01 = nullptr;
@@ -49,7 +53,10 @@ private:
     wolf::VertexDeclaration *m_pVAO = nullptr;
     wolf::VertexBuffer *m_pVBO = nullptr;
     
+    GLuint m_uiHeatDistortionSSBO;
+
     wolf::Scene* m_pScene = nullptr;
+    wolf::Camera2D* m_pSceneCamera = nullptr;
 
     wolf::Timer m_timer;
     wolf::RNG m_rng;
