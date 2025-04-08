@@ -81,8 +81,10 @@ void TileFireManager::Render()
 void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float p_cooldown, bool p_reset_burning_lifespan)
 {
     int tileID = m_pLBMG->GetTile(p_tile_pos.x, p_tile_pos.y);
-    if(tileID == -2) return;
-    if(IsWallTile(tileID))return;
+    
+    // Return if out of bounds or wall tile
+    if(tileID == -2 || IsWallTile(tileID)) return;
+
     float lifespan = p_lifespan < 0.0f ? m_fStockLifespan : p_lifespan;
     float burntCooldown = p_cooldown < 0.0f ? m_fStockBurntCooldown : p_cooldown;
     int column = p_tile_pos.x;
@@ -95,6 +97,7 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
     {
         // Create new column & new fire tile
         m_mFireColumns.insert({column, {new FireTile(m_pLBMG, p_tile_pos, lifespan, burntCooldown)}});
+        m_iBurningFireTilesCount += 1;
         return;
     }
 
@@ -108,7 +111,14 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
                 // Return if tile is burnt
                 if(fireTile->m_currentBurnState == FireTile::BurnState::BURNT) return;
                 // Return if tile is burning but lifespan reset flag is false
-                if(fireTile->m_currentBurnState == FireTile::BurnState::BURNING && p_reset_burning_lifespan == false) return;
+                if(fireTile->m_currentBurnState == FireTile::BurnState::BURNING) 
+                {
+                    if(p_reset_burning_lifespan == false) return;
+                }
+                else
+                {
+                    m_iBurningFireTilesCount += 1;
+                }
 
                 // Reset & Return
                 fireTile->Reset(lifespan, burntCooldown);
@@ -118,6 +128,8 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
 
         // If no matching tile, create new fire tile
         m_mFireColumns[column].push_back(new FireTile(m_pLBMG, p_tile_pos, lifespan, burntCooldown));
+        m_iBurningFireTilesCount += 1;
+
     }
 
     return;
@@ -126,6 +138,32 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
 void TileFireManager::SetPropagationActiveness(bool p_propagation)
 {
     m_bIsPropagationEnabled = p_propagation;
+}
+
+// If p_burn_state is set to 3 (DEFAULT_BURNSTATE), then every fire tile will be added
+std::vector<glm::ivec2> TileFireManager::GetFireTilePositions(int p_burn_state) const
+{
+    std::vector<glm::ivec2> positions = {};
+    for(auto const& [column, columnTiles] : m_mFireColumns)
+    {
+        for (int i = 0; i < columnTiles.size(); i++)
+        {
+            FireTile* fireTile = columnTiles.at(i);
+            if(fireTile != nullptr)
+            { 
+                if(p_burn_state == 3 || p_burn_state == fireTile->m_currentBurnState)
+                {
+                    positions.push_back(fireTile->m_vTilePos);
+                }
+            }
+        }
+    }
+    return positions;
+}
+
+int TileFireManager::GetBurningFireTilesCount() const
+{
+    return m_iBurningFireTilesCount;
 }
 
 TileFireManager::TileFireManager(LabyrinthManager* p_lbmg)
@@ -549,6 +587,7 @@ void TileFireManager::FireTile::HandleBurningState(float p_delta)
         m_pFireObj->GetComponent<wolf::Sprite2D>()->SetVisibility(false);
         m_pBurntTileObj->GetComponent<wolf::Sprite2D>()->SetVisibility(true);
         m_currentBurnState = BurnState::BURNT;
+        TileFireManager::GetInstance()->m_iBurningFireTilesCount -= 1;
         return;
     }
     else
