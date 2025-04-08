@@ -34,14 +34,12 @@ private:
         
         // Getters
         glm::ivec2 GetTilePos() const;
-        bool IsActive() const;
         PortalTile* GetSibling() const;
         wolf::GameObjectID GetOccupantID() const;
         wolf::GameObject* GetChunk() const;
         glm::ivec2 GetChunkID() const;
 
         // Setters
-        void SetActive(bool p_active);
         void SetOccupantID(wolf::GameObjectID p_occupant_id);
         
         // Helpers
@@ -51,7 +49,6 @@ private:
 
     private:
         glm::ivec2 m_vTilePos = glm::ivec2(0.0f, 0.0f);
-        bool m_bIsActive = false;
         PortalTile* m_pSiblingPortalTile = nullptr;
         wolf::GameObject* m_pPortalTileSpriteObj = nullptr;
         wolf::GameObjectID m_occupantID = -1;             // Any object teleported to this portal tile that is still occupying it

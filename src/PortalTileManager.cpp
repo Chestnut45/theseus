@@ -301,7 +301,6 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
 {
     // Initialise member variables
     m_vTilePos = p_tile_pos;
-    m_bIsActive = false;
     m_vChunkID = p_lbmg->GetChunkID(p_lbmg->GetWorldPosition(p_tile_pos));
     m_pChunk = p_lbmg->GetChunk(m_vChunkID);
     m_pLabyrinthManager = p_lbmg;
@@ -322,7 +321,7 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
 
     // Add 2D sprite component
     wolf::Sprite2D* sprite = &m_pPortalTileSpriteObj->AddComponent<wolf::Sprite2D>("data/textures/tile_hermes_portal.png");
-    sprite->SetTint(glm::vec3(0.5f));
+    sprite->SetTint(glm::vec3(1.0f));
 
     // Add particle component
     ParticleComponent* particleComponent = &m_pPortalTileSpriteObj->AddComponent<ParticleComponent>();
@@ -338,7 +337,6 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), scaledTileSize * 0.5f, true);
     m_pPortalTileSpriteObj->AddChild(*lightObj);
     lightComponent->Init();
-    lightComponent->SetOn(false);
 
     m_pChunk->AddChild(*m_pPortalTileSpriteObj);
 }
@@ -358,11 +356,6 @@ PortalTileManager::PortalTile::~PortalTile()
 glm::ivec2 PortalTileManager::PortalTile::GetTilePos() const
 {
     return m_vTilePos;
-}
-
-bool PortalTileManager::PortalTile::IsActive() const
-{
-    return m_bIsActive;
 }
 
 PortalTileManager::PortalTile* PortalTileManager::PortalTile::GetSibling() const
@@ -385,11 +378,6 @@ glm::ivec2 PortalTileManager::PortalTile::GetChunkID() const
     return m_vChunkID;
 }
 
-void PortalTileManager::PortalTile::SetActive(bool p_active)
-{
-    m_bIsActive = p_active;
-}
-
 void PortalTileManager::PortalTile::SetOccupantID(wolf::GameObjectID p_occupant_id)
 {
     m_occupantID = p_occupant_id;
@@ -402,91 +390,63 @@ void PortalTileManager::PortalTile::Update(float p_dt)
     // Return if chunk is inactive
     if(!isChunkActive) return;
 
-    // If portal tile is inactive
-    if(!IsActive())
+       
+    // Emit particles
+    if(s_rng.NextFloat(0.0f, 1.0f) <= EMISSION_CHANCE)
     {
-        // If reference to player object exists
-        if(m_pPlayer != nullptr)
-        {
+        m_pPortalTileSpriteObj->GetComponent<ParticleComponent>()->Emit(
+            glm::vec2(
+                m_vTilePos.x * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f,
+                m_vTilePos.y * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f
+            ),
+            glm::vec2(s_rng.NextInt(-25, 25), s_rng.NextInt(-25, 25)),
+            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            4.0f,
+            4.0f
+        );
 
-            glm::vec2 playerPos = m_pPlayer->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            glm::ivec2 playerTilePos  = m_pLabyrinthManager->GetTilePosition(playerPos);
-            // If player is within vicinity
-            if
-            (
-                abs(playerTilePos.x - m_vTilePos.x) <= 1 &&
-                abs(playerTilePos.y - m_vTilePos.y) <= 1
-            )
-            {
-                // Activate portal tile
-                SetActive(true);
-                m_pPortalTileSpriteObj->GetComponent<wolf::Sprite2D>()->SetTint(glm::vec3(1.0f));
-                m_pPortalTileSpriteObj->GetChildren().at(0)->GetComponent<LightComponent>()->SetOn(true);
-            }
+    }
+    // Return if sibling is nullptr
+    if(m_pSiblingPortalTile == nullptr) return;
+
+    // Check if occupant exists
+    wolf::GameObject* occupant = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(m_occupantID);
+    if(occupant != nullptr)
+    {   
+        // Get occupant position data
+        glm::vec2 occupantPos = occupant->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::ivec2 occupantTilePos = m_pLabyrinthManager->GetTilePosition(occupantPos);
+        
+        // If occupant has stepped out of portal tile, remove ID
+        if(occupantTilePos != m_vTilePos)
+        {
+            m_occupantID = -1;
         }
     }
-    // If portal tile is active
     else
-    {        
-        // Emit particles
-        if(s_rng.NextFloat(0.0f, 1.0f) <= EMISSION_CHANCE)
+    {
+        // If occupant is deleted while still standing on portal tile, remove ID
+        if(m_occupantID != -1)
         {
-            m_pPortalTileSpriteObj->GetComponent<ParticleComponent>()->Emit(
-                glm::vec2(
-                    m_vTilePos.x * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f,
-                    m_vTilePos.y * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f
-                ),
-                glm::vec2(s_rng.NextInt(-25, 25), s_rng.NextInt(-25, 25)),
-                glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                4.0f,
-                4.0f
-            );
+            m_occupantID = -1;
+        }  
+    }          
 
-        }
-        // Return if sibling is nullptr
-        if(m_pSiblingPortalTile == nullptr) return;
+    // Check player
+    CheckTeleport(m_pPlayer);
 
-        // Return if sibling is not active
-        if(!m_pSiblingPortalTile->IsActive()) return;
-
-        // Check if occupant exists
-        wolf::GameObject* occupant = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(m_occupantID);
-        if(occupant != nullptr)
-        {   
-            // Get occupant position data
-            glm::vec2 occupantPos = occupant->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            glm::ivec2 occupantTilePos = m_pLabyrinthManager->GetTilePosition(occupantPos);
-            
-            // If occupant has stepped out of portal tile, remove ID
-            if(occupantTilePos != m_vTilePos)
-            {
-                m_occupantID = -1;
-            }
-        }
-        else
-        {
-            // If occupant is deleted while still standing on portal tile, remove ID
-            if(m_occupantID != -1)
-            {
-                m_occupantID = -1;
-            }  
-        }          
-
-        // Check player
-        CheckTeleport(m_pPlayer);
-
-        // Check all objects within the portal tile chunk
-        for(wolf::GameObject* obj : GetChunk()->GetChildren())
-        {
-            CheckTeleport(obj);
-        }
-
-        // Check projectiles
-        for (auto&& [_, velocity, attackDamage] : m_pLabyrinthManager->GetGameObject()->GetScene().Each<VelocityComponent, AttackDamageComponent>())
-        {
-            CheckTeleport(attackDamage.GetGameObject());
-        }
+    // Check all objects within the portal tile chunk
+    for(wolf::GameObject* obj : GetChunk()->GetChildren())
+    {
+        CheckTeleport(obj);
     }
+
+    // Check projectiles
+    for (auto&& [_, velocity, attackDamage] : m_pLabyrinthManager->GetGameObject()->GetScene().Each<VelocityComponent, AttackDamageComponent>())
+    {
+        CheckTeleport(attackDamage.GetGameObject());
+    }
+    
 }
 
 void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
