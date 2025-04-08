@@ -88,6 +88,7 @@ struct Drain
     float m_pullRadius;
     float m_pullStrength;
     float m_delay;
+    bool m_sfxPlayed = false;
 
     Drain(const wolf::Circle& bounds, float lifespan, float pullRadius, float pullStrength, float delay = 0.0f)
         :
@@ -131,6 +132,9 @@ public:
     // Add static collision zones to the simulation
     // TODO: Support more than AABBs
     void AddStaticCollisionRect(const wolf::Rectangle& rect);
+
+    // Returns whether the given point intersects any of the fluid particles
+    bool Intersects(const glm::vec2& position) const;
 
     // Set / Get the gravity state
     void SetGravity(bool value) { m_simulateGravity = value; }

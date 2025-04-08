@@ -1,0 +1,8 @@
+min_items: 2
+max_items: 6
+loot_table: [
+  {name: Gold Coin, probability: 3},
+  {name: Common Schematic, probability: 2},
+  {name: Uncommon Schematic, probability: 1},
+  {name: Rare Schematic, probability: 1},
+]
