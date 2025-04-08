@@ -994,42 +994,42 @@ void PlayState::BackgroundRender(float delta)
     wolf::FrameBuffer::BindDefault();
 
     Postprocessor::GetInstance()->Postprocess();
-    std::vector<Postprocessor::Effect> effects;
-    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
-    {
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
-        {
-            effects.push_back(Postprocessor::Effect::BURNING);
-        }
+    // std::vector<Postprocessor::Effect> effects;
+    // for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
+    // {
+    //     if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
+    //     {
+    //         effects.push_back(Postprocessor::Effect::BURNING);
+    //     }
         
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
-        {
-            effects.push_back(Postprocessor::Effect::POISONED);
-        }
+    //     if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
+    //     {
+    //         effects.push_back(Postprocessor::Effect::POISONED);
+    //     }
 
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
-        {
-            effects.push_back(Postprocessor::Effect::GRAYSCALE);
-        }
-        break;
-    }
+    //     if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    //     {
+    //         effects.push_back(Postprocessor::Effect::GRAYSCALE);
+    //     }
+    //     break;
+    // }
 
-    // Apply heat distortion if there are active fire tiles
-    if(TileFireManager::GetInstance()->GetBurningFireTilesCount() > 0)
-    {    
-        effects.push_back(Postprocessor::Effect::HEAT_DISTORTION);
-    }
+    // // Apply heat distortion if there are active fire tiles
+    // if(TileFireManager::GetInstance()->GetBurningFireTilesCount() > 0)
+    // {    
+    //     effects.push_back(Postprocessor::Effect::HEAT_DISTORTION);
+    // }
     
-    // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
-    if(effects.size() > 0)
-    {
-        Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), effects);
-    }
-    // If not, copy texture to screen
-    else
-    {
-        m_pFBO->Blit();
-    }
+    // // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
+    // if(effects.size() > 0)
+    // {
+    //     Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), effects);
+    // }
+    // // If not, copy texture to screen
+    // else
+    // {
+    //     m_pFBO->Blit();
+    // }
 }
 
 void PlayState::CreatePlayer()

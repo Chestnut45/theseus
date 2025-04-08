@@ -229,52 +229,6 @@ void Postprocessor::AddEffect(Effect p_effect, float p_duration, GLuint p_tex)
 //  PRIVATE METHODS  //
 //-------------------//
 
-Postprocessor::Postprocessor(wolf::Scene* p_scene)
-{
-    m_pScene = p_scene;
-    m_timer.Start();
-    m_rng.NextInt(0, 1);
-
-
-    // Create framebuffers
-    m_pFBO_01 = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
-    m_pFBO_02 = wolf::BufferManager::CreateFrameBuffer(1920, 1080, 1920, 1080);
-    m_pReadFBO = m_pFBO_01;
-    m_pWriteFBO = m_pFBO_02;
-
-    // Create VBO
-    m_pVBO = wolf::BufferManager::CreateVertexBuffer(vertices.data(), sizeof(TexturedVertex2D) * vertices.size());
-
-    // Create VAO
-    m_pVAO = new wolf::VertexDeclaration();
-    m_pVAO->Begin();
-    m_pVAO->SetVertexBuffer(m_pVBO);
-    m_pVAO->AppendAttribute(wolf::Attribute::AT_Position, 2, wolf::ComponentType::CT_Float, 0);
-    m_pVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
-    m_pVAO->End();
-}
-
-Postprocessor::~Postprocessor()
-{
-    for(auto program : m_vShaderPrograms)
-    {
-        wolf::ProgramManager::DestroyProgram(program);
-        program = nullptr;
-    }
-
-    m_vShaderPrograms.clear();
-
-    wolf::BufferManager::DestroyBuffer(m_pFBO_01);
-    m_pFBO_01 = nullptr;
-    wolf::BufferManager::DestroyBuffer(m_pFBO_02);
-    m_pFBO_02 = nullptr;
-    
-    m_pReadFBO = nullptr;
-    m_pWriteFBO = nullptr;
-
-    m_pScene = nullptr;
-}
-
 void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
 {
     if(p_effects.size() <= 0) return;
@@ -337,10 +291,6 @@ void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
     // Render to screen
     m_pReadFBO->Blit();
 }
-
-//-------------------//
-//  PRIVATE METHODS  //
-//-------------------//
 
 Postprocessor::Postprocessor(wolf::Scene* p_scene)
 {
