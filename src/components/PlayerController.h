@@ -94,6 +94,9 @@ public:
     // Gets the player's currently held weapon item, or nullptr if empty
     WeaponItem* GetHeldWeapon() const { return m_pCurrentWeapon; }
 
+    int GetPlaceablePlacingRange() const { return m_iPlaceablePlacingRange; };
+    int GetPlaceableCollectingRange() const { return m_iPlaceableCollectingRange; };
+
     //set player action
     void SetAction(PlayerAction action);
 
@@ -279,6 +282,9 @@ private:
     // Placing-related variables
     PlaceableItem* m_pCurrentPlaceable = nullptr;
     bool m_bIsPlaced = false;
+    int m_iPlaceablePlacingRange = 2;    // How far the player can place a placeable (in terms of tiles)
+    int m_iPlaceableCollectingRange = 2; // How far the player can collect a placeable (in terms of tiles)
+    wolf::GameObject* m_pPlacingIndicatorObj = nullptr;
 
     // Death screen related variables
     wolf::Timer m_runtimeTimer;

@@ -378,6 +378,7 @@ void InventoryComponent::EmptyInventory() {
         while (!it->empty()) {
             ItemBase* pNextItem = it->top();
             delete pNextItem;
+            
             it->pop();
         }
     }

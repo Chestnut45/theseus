@@ -493,7 +493,8 @@ void PlayState::Update(float delta)
                     ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
                     ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
                     ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
-                    ItemBase* pPortal = ItemCreator::CreateItem("Portal");
+                    ItemBase* pPortal1 = ItemCreator::CreateItem("Portal");
+                    ItemBase* pPortal2 = ItemCreator::CreateItem("Portal");
 
                 ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
                 ItemBase* pSpear = ItemCreator::CreateItem("Spear");
@@ -502,6 +503,9 @@ void PlayState::Update(float delta)
                     ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
                     ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
                     
+                    playerInventory->AddItemOrDelete(pPortal1);
+                    playerInventory->AddItemOrDelete(pPortal2);
+
                     playerInventory->AddItemOrDelete(pBoots);
                     playerInventory->AddItemOrDelete(pDentedHelmet);
                     playerInventory->AddItemOrDelete(pRustyChestplate);
@@ -510,7 +514,6 @@ void PlayState::Update(float delta)
                     playerInventory->AddItemOrDelete(pTheezys);
                     playerInventory->AddItemOrDelete(pFauxLeatherGloves);
                     playerInventory->AddItemOrDelete(pLapisLazuliRing);
-                    playerInventory->AddItemOrDelete(pPortal);
 
                     playerInventory->AddItemOrDelete(pBow);
                     playerInventory->AddItemOrDelete(pSpear);
@@ -1013,6 +1016,12 @@ void PlayState::BackgroundRender(float delta)
         break;
     }
 
+    // Apply heat distortion if there are active fire tiles
+    if(TileFireManager::GetInstance()->GetBurningFireTilesCount() > 0)
+    {    
+        effects.push_back(Postprocessor::Effect::HEAT_DISTORTION);
+    }
+    
     // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
     if(effects.size() > 0)
     {
