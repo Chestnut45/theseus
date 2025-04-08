@@ -22,13 +22,14 @@ public:
 
     void AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan = -1.0f, float p_cooldown = -1.0f, bool p_reset_burning_lifespan = true);
     void SetPropagationActiveness(bool p_propagation);
+
 private:
 
     // FireTile Struct
     struct FireTile
     {
         enum BurnState {
-            BURNING,
+            BURNING = 0,
             BURNT,
             UNBURNT,
             DEFAULT_BURNSTATE   // NOT to be used
@@ -77,8 +78,6 @@ private:
         void HandleBurningState(float p_delta);
         void HandleBurntState(float p_delta);
         void HandleUnburntState(float p_delta);
-
-        
     };
 
     bool m_bIsPropagationEnabled = true;
@@ -89,10 +88,14 @@ private:
     LabyrinthManager* m_pLBMG = nullptr;
     wolf::Scene* m_pScene = nullptr;
     wolf::GameObject* m_pPlayerObj = nullptr;
-    
+    int m_iBurningFireTilesCount = 0;
     static TileFireManager* s_pTFMG;
 
     TileFireManager(LabyrinthManager* p_lbmg);
     ~TileFireManager();
     static bool IsWallTile(int p_tile_id);
+
+public:
+    std::vector<glm::ivec2> GetFireTilePositions(int p_burn_state = 3) const;
+    int GetBurningFireTilesCount() const;
 };
