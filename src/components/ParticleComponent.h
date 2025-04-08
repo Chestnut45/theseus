@@ -100,7 +100,7 @@ private:
     GLuint m_rotationVBO; // New VBO for rotation
 
     // Auto-cleanup functionality
-    bool m_autoDestroy = true;       // Whether to auto-destroy when all particles are inactive
+    bool m_autoDestroy = false;       // Whether to auto-destroy when all particles are inactive
     float m_cleanupGracePeriod = 0.5f; // Grace period after all particles are inactive
     float m_cleanupTimer = 0.0f;     // Timer for grace period
     bool m_hasActiveParticles = false; // Track if we've had active particles
