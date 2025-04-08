@@ -139,6 +139,7 @@ void BossController::Init()
     pObject->DeleteComponent<AnimatedSprite2D>();
     m_pAnimSprite = &pObject->AddComponent<AnimatedSprite2D>("data/boss_anim_init.yaml");
     m_pAnimSprite->SetLayer(8);
+    m_pAnimSprite->SetLightingEnabled(false);
 
     // Create health
     pObject->DeleteComponent<HealthComponent>();

@@ -42,18 +42,28 @@ rooms: [
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
-			{type: minitaur, amount: 1, placement: center},
-			{type: minitaur, amount: 3, placement: random},
+			{type: minitaur, amount: 3, placement: random}
 		]
 	},
 	{
 		name: Poison Trap Rooms,
-		instances: 8,
+		instances: 5,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
 		entities: [
 			{type: poison_trap, amount: 1, placement: center},
+			{type: throwable_object, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Lava Trap Rooms,
+		instances: 5,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
+		entities: [
+			{type: lava_trap, amount: 1, placement: center},
 			{type: throwable_object, amount: 2, placement: random}
 		]
 	},
@@ -74,7 +84,7 @@ rooms: [
 		name: Legendary Chest Room,
 		instances: 1,
 		force: false,
-		position: {type: random_radius, position: {x: 47, y: 47}, radius: 20},
+		position: {type: random_radius, position: {x: 47, y: 47}, radius: 32},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
 		entities: [
 			{type: legendary_chest, amount: 1, placement: center},
