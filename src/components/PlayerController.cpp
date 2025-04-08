@@ -457,6 +457,9 @@ void PlayerController::HandlePlayerInput(float delta)
 }
 
 void PlayerController::PickUpObject() {
+    // Don't pick up if already holding an object
+    if (m_isHoldingObject) return;
+    
     // If the player is attacking, don't bother trying to pick anything up
     if (m_action == PlayerAction::ATTACKING) return;
     
