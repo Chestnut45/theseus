@@ -150,6 +150,7 @@ Postprocessor::Postprocessor(wolf::Scene* p_scene)
     m_pVAO->AppendAttribute(wolf::Attribute::AT_TexCoord1, 2, wolf::ComponentType::CT_Float, sizeof(float) * 2);
     m_pVAO->End();
 
+    glGenBuffers(1, &m_uiHeatDistortionSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_uiHeatDistortionSSBO);
 }
 
@@ -170,6 +171,10 @@ Postprocessor::~Postprocessor()
     
     m_pReadFBO = nullptr;
     m_pWriteFBO = nullptr;
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    glDeleteFramebuffers(1, &m_uiHeatDistortionSSBO);
+    m_uiHeatDistortionSSBO = 0;
 
     m_pScene = nullptr;
 }
