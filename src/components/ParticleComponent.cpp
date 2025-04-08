@@ -530,7 +530,7 @@ bool ParticleComponent::LoadConfigFromYAML(const std::string& filename)
         }
         
         // Set default auto-destroy values
-        m_autoDestroy = true;
+        m_autoDestroy = false;
         m_cleanupGracePeriod = 0.5f;
         m_cleanupTimer = 0.0f;
         m_hasActiveParticles = false;
