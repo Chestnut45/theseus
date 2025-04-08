@@ -49,5 +49,11 @@ struct EndPlacingPlaceableEvent {
 };
 
 struct RetrievePlaceableEvent {
-    PlaceableItem* pItem;
+    PlaceableType pcTpye;
+    glm::ivec2 tilePos;
+};
+
+struct DestroyPlaceableEvent {
+    PlaceableType pcTpye;
+    glm::ivec2 tilePos;
 };
