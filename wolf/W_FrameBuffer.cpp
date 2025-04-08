@@ -58,7 +58,7 @@ void FrameBuffer::SetWindowSize(unsigned int p_iWinWidth, unsigned int p_iWinHei
     if(p_iWinWidth == 0 || p_iWinHeight == 0) return;
     
     // return immediately if window size is the same
-    if(this->m_iWinWidth == p_iWinWidth && this->m_iTexHeight == p_iWinHeight) return;
+    if(this->m_iWinWidth == p_iWinWidth && this->m_iWinHeight == p_iWinHeight) return;
 
     // Set new window size
     this->m_iWinWidth = p_iWinWidth;

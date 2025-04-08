@@ -79,13 +79,18 @@ void PlayState::Enter()
     glm::vec2 viewSize = camera.GetViewSize();
     m_pFBO = wolf::BufferManager::CreateFrameBuffer(viewSize.x, viewSize.y, viewSize.x, viewSize.y);
 
-    // Add the labyrinth manager and generate the default labyrinth config
+    // Add the labyrinth manager and load the default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+
+    // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();
     m_pPathfindingManager = &pathfindingManagerObject.AddComponent<PathfindingManager>(m_pLabyrinthManager);    
     NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+    ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+
+    // Actually generate the labyrinth from the given seed
     m_pLabyrinthManager->GenerateLabyrinth();
 
     GLShapesRenderer::CreateInstance();
@@ -141,8 +146,6 @@ void PlayState::Enter()
         m_bossRoomSize = room.m_bounds.m_size;
         break;
     }
-
-    ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
     wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
@@ -363,18 +366,60 @@ void PlayState::Update(float delta)
             m_pLabyrinthManager->ShowGUI();
     }
 
-    // // Update fluid system components
+    // Cache the player's position
+    auto playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    // Update fluid system components
     for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
     {
         system.Update(delta);
 
-        // DEBUG: Apply force where player is
+        // Always allow the player to splash through fluid systems
         bool playerRolling = m_pPlayerObject->GetComponent<PlayerController>()->GetPlayerAction() == PlayerController::PlayerAction::ROLLING;
-        if (playerRolling) system.ApplyRadialForce(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 50.0f, 1000.0f * delta);
+        if (playerRolling)
+        {
+            system.ApplyRadialForce(playerPos, 50.0f, 1000.0f * delta);
+        }
+
+        // Only play splash sfx if initial roll + colliding
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && system.Intersects(playerPos))
+        {
+            wolf::Audio::Play("data/sounds/sfx_liquid_splash.wav", 0.64f);
+        }
+
+        // TODO: This logic should be encapsulated somewhere else...
+        // Update logic for applying damage to the player via fluid traps
+        auto parent = system.GetGameObject()->GetParent();
+        if (parent)
+        {
+            auto trigger = parent->GetComponent<TriggerComponent>();
+            if (trigger)
+            {
+                switch (trigger->GetPurpose())
+                {
+                    case TriggerPurpose::POISON_TRAP:
+                        if (system.Intersects(playerPos))
+                        {
+                            m_pPlayerObject->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
+                        }
+                        break;
+                    
+                    case TriggerPurpose::LAVA_TRAP:
+                        if (system.Intersects(playerPos))
+                        {
+                            m_pPlayerObject->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+                        }
+                        break;
+                    
+                    default:
+                        break;
+                }
+            }
+        }
 
         // DEBUG: Show editor and break after updating one system
         // system.ShowEditor();
-        break;
+        // break;
     }
     
     // Update the labyrinth manager
@@ -924,9 +969,8 @@ void PlayState::BackgroundRender(float delta)
     std::map<int, std::vector<std::pair<AnimatedSprite2D*, wolf::Transform2D*>>> sortedAnimatedSprites;
     for (auto&&[_, sprite, transform] : m_pGameInstance->GetScene().Each<AnimatedSprite2D, wolf::Transform2D>())
     {
-        // Ignore sprites that do not have light objects in their hierarchy -
-        // they've already been rendered in the main scene pass!
-        if (!sprite.GetGameObject()->HasAnyRecursive<LightComponent>()) continue;
+        // Ignore sprites that were rendered during the lighting (scene) pass
+        if (sprite.IsLightingEnabled()) continue;
         
         int layer = sprite.GetLayer();
 
@@ -971,6 +1015,12 @@ void PlayState::BackgroundRender(float delta)
         break;
     }
 
+    // Apply heat distortion if there are active fire tiles
+    if(TileFireManager::GetInstance()->GetBurningFireTilesCount() > 0)
+    {    
+        effects.push_back(Postprocessor::Effect::HEAT_DISTORTION);
+    }
+    
     // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
     if(effects.size() > 0)
     {
@@ -1320,23 +1370,30 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
 
             // Edit poison colors
-            fluidSystem.SetFluidColor(glm::vec4(0.4f, 0.01, 0.45f, 0.75f));
-            fluidSystem.SetWaveColor(glm::vec4(0.7f, 0.05f, 0.6f, 0.75f));
-            fluidSystem.SetCausticColor(glm::vec4(0.7f, 0.05f, 0.6f, 0.75f));
+            fluidSystem.SetFluidColor(glm::vec4(0.01f, 0.5f, 0.25f, 0.75f));
+            fluidSystem.SetWaveColor(glm::vec4(0.24f, 0.7f, 0.36f, 0.75f));
+            fluidSystem.SetCausticColor(glm::vec4(0.32f, 0.78f, 0.26f, 0.75f));
             fluidSystem.SetCausticFrequency(0.4f);
 
             glm::vec2 center = glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2);
 
             // Add a timed spout to spawn poison!
-            fluidSystem.AddTimedSpout(center, 2.0f, 240);
+            fluidSystem.AddTimedSpout(center, 2.0f, room.m_bounds.m_size.x * room.m_bounds.m_size.y * 8);
 
             // Add a delayed drain to remove all the fluid after
             fluidSystem.AddTimedDrain(wolf::Circle(center, 8.0f), 20.0f, 512.0f, 250.0f, 8.0f);
 
-            // Make sure the trap gets completely destroyed after the draining is (hopefully) done
+            // Make sure the fluid system object gets completely destroyed after the draining is done
             fluidObj.AddComponent<TimedDestroyerComponent>(20);
 
-            m_pLabyrinthManager->GetGameObject()->AddChild(fluidObj);
+            // Add the fluid object as a child of the trigger
+            event.m_pTriggerObject->AddChild(fluidObj);
+
+            // Reactivate the trigger after all is finished (20 seconds)
+            event.m_pTriggerObject->GetComponent<TriggerComponent>()->ReactivateDelayed(20);
+
+            wolf::Audio::Play("data/sounds/sfx_liquid_flow.wav", 0.5f);
+            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.4f);
 
             break;
         }
@@ -1347,7 +1404,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             auto tilePosition = m_pLabyrinthManager->GetTilePosition(triggerPosition);
             auto roomDataOpt = m_pLabyrinthManager->GetRoom(tilePosition);
             if (!roomDataOpt.has_value()) {
-                wolf::Log("No valid room found for poison trap!");
+                wolf::Log("No valid room found for lava trap!");
                 break;
             }
 
@@ -1376,15 +1433,22 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             glm::vec2 center = glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2);
 
             // Add a timed spout to spawn lava!
-            fluidSystem.AddTimedSpout(center, 2.0f, 240);
+            fluidSystem.AddTimedSpout(center, 2.0f, room.m_bounds.m_size.x * room.m_bounds.m_size.y * 8);
 
             // Add a delayed drain to remove all the fluid after
             fluidSystem.AddTimedDrain(wolf::Circle(center, 8.0f), 20.0f, 512.0f, 250.0f, 8.0f);
 
-            // Make sure the trap gets completely destroyed after the draining is (hopefully) done
+            // Make sure the fluid system object gets completely destroyed after the draining is done
             fluidObj.AddComponent<TimedDestroyerComponent>(20);
 
-            m_pLabyrinthManager->GetGameObject()->AddChild(fluidObj);
+            // Add the fluid object as a child of the trigger
+            event.m_pTriggerObject->AddChild(fluidObj);
+
+            // Reactivate the trigger after all is finished (20 seconds)
+            event.m_pTriggerObject->GetComponent<TriggerComponent>()->ReactivateDelayed(20);
+
+            wolf::Audio::Play("data/sounds/sfx_liquid_flow.wav", 0.5f);
+            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.4f);
 
             break;
         }
