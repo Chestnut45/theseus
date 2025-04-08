@@ -1834,22 +1834,17 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     {
         m_invulnTimer.Restart();
         m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
-        wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f);
+        wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f, -5000.0f, 0.0f, true);
+    }
+
+    if (event.m_pDamagedObject->HasAny<BossController>())
+    {
+        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f);
     }
     else
     {
-        // TODO: Move out of here if we have time
-        // Play hit sound effect when enemies are damaged
-        if (event.m_pDamagedObject->HasAny<MinitaurController, GorgonController, HarpyController, NPCComponent>())
-        {
-            // NOTE: Using pitch-shifted boss sfx for non-boss enemies because it sounds better
-            wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f, 10000);
-        }
-
-        if (event.m_pDamagedObject->HasAny<BossController>())
-        {
-            wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f);
-        }
+        // NOTE: Using pitch-shifted boss sfx for non-boss enemies because it sounds better
+        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f, 10000, 0.0f, true);
     }
 }
 
