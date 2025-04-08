@@ -100,9 +100,9 @@ void AttackDamageComponent::Update(float p_dt)
                                 // Play burn sfx whenever a burn status effect is applied from a projectile
                                 if (seType == StatusComponent::StatusEffectType::BURNING)
                                 {
-                                    wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.75f);
+                                    wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.64f);
                                 }
-                                
+
                                 thatStatus->AddStatusEffect(seType, lifespan);
                             }
 

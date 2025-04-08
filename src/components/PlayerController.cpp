@@ -1526,7 +1526,7 @@ void PlayerController::StartRoll()
     m_currentAnimation = baseAnimName + dirText;
 
     // Play sfx
-    wolf::Audio::Play("data/sounds/sfx_roll.wav", 1.0f);
+    wolf::Audio::Play("data/sounds/sfx_roll.wav", 1.2f);
 }
 
 void PlayerController::EndRoll()
