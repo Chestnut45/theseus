@@ -11,6 +11,7 @@
 #include <yaml-cpp/yaml.h>
 #include <filesystem>
 #include <W_Transform2D.h>
+#include <unordered_set>
 
 ParticleComponent::ParticleComponent(size_t maxParticles)
 {
@@ -40,12 +41,25 @@ ParticleComponent::~ParticleComponent()
         s_pShader = nullptr;
     }
 
-    // Don't destroy textures here - TextureManager should handle their lifetime
-    // Just clear the pointers
+    // Use a set to track valid textures
+    std::unordered_set<wolf::Texture*> uniqueTextures;
+        
+    // Collect all valid textures
     for (auto& particle : m_particles)
     {
-        particle.m_texture = nullptr;
+        if (particle.m_texture != nullptr)
+        {
+            uniqueTextures.insert(particle.m_texture);
+            particle.m_texture = nullptr; 
+        }
     }
+
+    // Destroy each texture
+    for (auto* texture : uniqueTextures)
+    {
+        wolf::TextureManager::DestroyTexture(texture);
+    }
+
 
     // Clear modifiers
     m_modifiers.clear();

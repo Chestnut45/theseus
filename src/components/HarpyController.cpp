@@ -392,13 +392,6 @@ void HarpyController::HandleAttackingState(float delta)
 
         auto& scene = this->GetGameObject()->GetScene();
 
-        // Clear out any nullptrs from the fireballs vector (from destroyed projectiles)
-        m_activeFireballs.erase(
-            std::remove_if(m_activeFireballs.begin(), m_activeFireballs.end(), 
-                [](wolf::GameObject* obj) { return obj == nullptr; }),
-            m_activeFireballs.end()
-        );
-
         // Spawn 3 projectiles
         for(int i = -1; i <= 1; i += 1)
         {
