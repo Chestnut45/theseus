@@ -108,6 +108,7 @@ PlayerInventoryComponent::PlayerInventoryComponent(int p_iSize, int p_iSlotsPerR
     wolf::EventManager::AddListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
     wolf::EventManager::AddListener<SellItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleSellItemToPlayerEvent>(*this);
     wolf::EventManager::AddListener<PickupDroppedItemEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandlePickupDroppedItemEvent>(*this);
+    wolf::EventManager::AddListener<RetrievePlaceableEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRetrievePlaceableEvent>(*this);
     wolf::EventManager::AddListener<EndPlacingPlaceableEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleEndPlacingPlaceableEvent>(*this);
     wolf::EventManager::AddListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
     wolf::EventManager::AddListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
@@ -128,6 +129,7 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
     wolf::EventManager::RemoveListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
     wolf::EventManager::RemoveListener<SellItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleSellItemToPlayerEvent>(*this);
     wolf::EventManager::RemoveListener<PickupDroppedItemEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandlePickupDroppedItemEvent>(*this);
+    wolf::EventManager::RemoveListener<RetrievePlaceableEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRetrievePlaceableEvent>(*this);
     wolf::EventManager::RemoveListener<EndPlacingPlaceableEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleEndPlacingPlaceableEvent>(*this);
     wolf::EventManager::RemoveListener<DispenseItemToPlayerEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleDispenseItemToPlayerEvent>(*this);
     wolf::EventManager::RemoveListener<SendItemToPlayerInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleAddToPlayerInventoryEvent>(*this);
@@ -1097,6 +1099,23 @@ void PlayerInventoryComponent::HandlePickupDroppedItemEvent(const PickupDroppedI
             wolf::EventManager::TriggerEvent(DestroyDroppedItemEvent(p_event.iDroppedItemId));
         }
     }
+}
+
+void PlayerInventoryComponent::HandleRetrievePlaceableEvent(const RetrievePlaceableEvent &p_event)
+{
+    if(p_event.pcTpye == PlaceableType::PORTAL)
+    {
+        ItemBase* pPortal = ItemCreator::CreateItem("Portal");
+        if (this->AddItem(pPortal)) 
+        {
+            wolf::EventManager::TriggerEvent(DestroyPlaceableEvent(p_event.pcTpye, p_event.tilePos));
+        }
+    }
+    else
+    {
+    }
+    
+    return;
 }
 
 void PlayerInventoryComponent::HandleEndPlacingPlaceableEvent(const EndPlacingPlaceableEvent& p_event)

@@ -58,6 +58,7 @@ class PlayerInventoryComponent : public InventoryComponent {
         void HandleCloseInventoryEvent(const CloseInventoryEvent& p_event);
         void HandleSellItemToPlayerEvent(const SellItemToPlayerEvent& p_event);
         void HandlePickupDroppedItemEvent(const PickupDroppedItemEvent& p_event);
+        void HandleRetrievePlaceableEvent(const RetrievePlaceableEvent& p_event);
         void HandleEndPlacingPlaceableEvent(const EndPlacingPlaceableEvent& p_event);
         void HandleDispenseItemToPlayerEvent(const DispenseItemToPlayerEvent& p_event);
         void HandleAddToPlayerInventoryEvent(const SendItemToPlayerInventoryEvent& p_event);
