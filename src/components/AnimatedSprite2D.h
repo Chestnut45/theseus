@@ -139,6 +139,10 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         void UpdateShaders();
         void BindUniformsAndTextures(const glm::vec2& position, float rotationRadians, const glm::vec2& scale, const glm::vec3& tint);
 
+        // Whether or not this sprite should have lighting applied when rendered
+        bool IsLightingEnabled() const { return m_lightingEnabled; }
+        void SetLightingEnabled(bool value) { m_lightingEnabled = value; }
+
     private:
         bool SetTexture(const std::string& p_strPathToAnimSheet, const glm::vec2& p_v2FrameSize);
 
@@ -173,8 +177,9 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         bool m_bFrameChanged = true;
         bool m_bIsAnimFinished = false;
 
-        // Visibility flag for culling
+        // Rendering flags
         bool m_visible = true;
+        bool m_lightingEnabled = true;
 
         int m_iAnimLoopCount = 0;
 

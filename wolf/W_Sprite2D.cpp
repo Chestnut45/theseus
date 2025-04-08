@@ -91,10 +91,9 @@ void Sprite2D::Draw(const glm::vec2& position, float rotationRadians, const glm:
 
     // Build model matrix
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(position - m_origin * scale, 0.0f));
-    model = glm::translate(model, glm::vec3(glm::vec2(0.5f) * texSize * scale, 0.0f));
+    model = glm::translate(model, glm::vec3(position, 0.0f));
     model = glm::rotate(model, rotationRadians, glm::vec3(0.0f, 0.0f, 1.0f));
-    model = glm::translate(model, glm::vec3(glm::vec2(-0.5f) * texSize * scale, 0.0f));
+    model = glm::translate(model, glm::vec3(-m_origin * scale, 0.0f));
     model = glm::scale(model, glm::vec3(scale * texSize, 1.0f));
 
     // Determine tint to use

@@ -176,6 +176,9 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
         // Then set the component's current animation to be the starting animation
         pAnim.SetAnimation(strStartAnim);
 
+        // Ensure all NPCs are fully lit!
+        pAnim.SetLightingEnabled(false);
+
         // Finally, we initialize the NPC
         npcComp.Init();
     }
@@ -195,9 +198,10 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
 
     // Finally, attach a LightComponent
     wolf::GameObject* pLightGO = &m_pScene->CreateObject2D();
-    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.39f, 0.39f, 0.39f, 0.75f), 75.0f, true);
+    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 75.0f, true);
     pConstructedNPC->AddChild(*pLightGO);
     pLightComp->Init();
+    pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
 
     // If nothing went wrong, we're good to return the GameObject
     return pConstructedNPC;
@@ -255,9 +259,10 @@ wolf::GameObject* NPCBuilder::BuildRandomNPC() {
 
     // Finally, attach a LightComponent
     wolf::GameObject* pLightGO = &m_pScene->CreateObject2D();
-    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.39f, 0.39f, 0.3f, 0.75f), 75.0f, true);
+    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 75.0f, true);
     pRandomNPC->AddChild(*pLightGO);
     pLightComp->Init();
+    pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
 
     // And return what we created (note that if the BuildNPC method ran into an error, this will return nullptr)
     return pRandomNPC;
