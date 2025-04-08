@@ -404,6 +404,8 @@ void HarpyController::HandleAttackingState(float delta)
             pLightComponent.Init();
         }
 
+        wolf::Audio::Play("data/sounds/sfx_fireball_shot.wav", 0.8f);
+
         // Strike again
         if(m_attackChain > 0)
         {

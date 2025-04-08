@@ -18,6 +18,7 @@
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
 #include "BossController.h"
+#include "NPCComponent.h"
 
 #include "../DDACalculator.h"
 #include "../PortalTileManager.h"
@@ -1760,9 +1761,10 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     {
         // TODO: Move out of here if we have time
         // Play hit sound effect when enemies are damaged
-        if (event.m_pDamagedObject->HasAny<MinitaurController, GorgonController, HarpyController>())
+        if (event.m_pDamagedObject->HasAny<MinitaurController, GorgonController, HarpyController, NPCComponent>())
         {
-            wolf::Audio::Play("data/sounds/sfx_hit.wav", 0.15f);
+            // NOTE: Using pitch-shifted boss sfx for non-boss enemies because it sounds better
+            wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f, 10000);
         }
 
         if (event.m_pDamagedObject->HasAny<BossController>())
