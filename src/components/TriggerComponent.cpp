@@ -26,7 +26,20 @@ TriggerComponent::~TriggerComponent() {
 }
 
 void TriggerComponent::Update(float delta) {
-    if (m_active && !m_triggered && (CheckPlayerCollision(delta) || CheckEnemyCollision(delta))) {
+    if (!m_active) return;
+
+    // Update timed reactivation logic
+    if (m_triggered && m_reactivateTimer.IsRunning())
+    {
+        if (m_reactivateTimer.Elapsed() >= m_reactivateSeconds)
+        {
+            m_triggered = false;
+            m_reactivateTimer.Reset();
+        }
+    }
+
+    // Update trigger logic
+    if (!m_triggered && (CheckPlayerCollision(delta) || CheckEnemyCollision(delta))) {
         m_triggered = true;
 
         // Dispatch the TriggerEvent with trap type information
@@ -37,6 +50,12 @@ void TriggerComponent::Update(float delta) {
             GetGameObject()->Delete();
         }
     }
+}
+
+void TriggerComponent::ReactivateDelayed(float seconds)
+{
+    m_reactivateSeconds = seconds;
+    m_reactivateTimer.Restart();
 }
 
 bool TriggerComponent::CheckPlayerCollision(float delta)

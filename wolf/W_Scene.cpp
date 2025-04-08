@@ -153,8 +153,8 @@ void Scene::Render(float delta)
     std::map<int, std::vector<std::pair<AnimatedSprite2D*, Transform2D*>>> sortedAnimatedSprites;
     for (auto&&[_, sprite, transform] : Each<AnimatedSprite2D, Transform2D>())
     {
-        // Ignore sprites with light objects in their hierarchy for the main scene pass
-        if (sprite.GetGameObject()->HasAnyRecursive<LightComponent>()) continue;
+        // Ignore sprites that shouldn't have lighting applied
+        if (!sprite.IsLightingEnabled()) continue;
 
         int layer = sprite.GetLayer();
 

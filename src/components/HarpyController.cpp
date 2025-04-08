@@ -266,6 +266,7 @@ void HarpyController::SetUpAnimations(const std::string& animationInitPath)
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
     m_pAnimComponent->SetLayer(11);
+    m_pAnimComponent->SetLightingEnabled(false);
 }
 
 void HarpyController::MoveTowardsTarget(float delta)
