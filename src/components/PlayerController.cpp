@@ -1848,7 +1848,8 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
             // Add blood splatter particles for enemy damage
             EmitBloodParticles(event);
         }
-
+    }
+    
     if (event.m_pDamagedObject->HasAny<BossController>())
     {
         wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f);
@@ -1857,7 +1858,7 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
         EmitBloodParticles(event, 1.5f); // Higher intensity for bosses
     }
     else
-    {
+    {  
         // NOTE: Using pitch-shifted boss sfx for non-boss enemies because it sounds better
         wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f, 10000, 0.0f, true);
         EmitBloodParticles(event, 1.5f); // Higher intensity for bosses
