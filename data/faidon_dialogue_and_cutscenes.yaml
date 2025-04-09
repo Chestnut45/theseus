@@ -2,7 +2,7 @@ CutscenesAndDialogues:
   no_fear:
     characters:
       - name: "Faidon"
-        portraitPath: "data/textures/sPlayerTest.png"
+        portraitPath: "data/textures/FaidonPortrait.png"
     sequence:
       - type: "dialogue"
         character: "Faidon"

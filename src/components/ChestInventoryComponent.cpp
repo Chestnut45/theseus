@@ -11,6 +11,7 @@
 #include "../inventory/ItemCreator.h"
 
 #include <AnimatedSprite2D.h>
+#include <LightEvents.h>
 
 
 ChestInventoryComponent::~ChestInventoryComponent() {
@@ -357,6 +358,13 @@ void ChestInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEvent&
                 std::string name = pAnim->GetCurrentAnimation()->m_strName;
                 size_t pos = name.find("Open");
                 if (pos != std::string::npos) pAnim->SetAnimation(name.replace(pos, 4, "Closed"));
+
+                if (this->IsEmpty()) {
+                    wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), false));
+                }
+                else {
+                    wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), true));
+                }
             }
         }
     }
@@ -372,6 +380,8 @@ void ChestInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEven
             // Close it
             m_bIsOpen = false;
 
+            wolf::Audio::Play("data/sounds/sfx_chest_close.wav", 0.8f);
+
             // Adjust sprite
             auto* pAnim = GetGameObject()->GetComponent<AnimatedSprite2D>();
             if (pAnim)
@@ -379,6 +389,13 @@ void ChestInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEven
                 std::string name = pAnim->GetCurrentAnimation()->m_strName;
                 size_t pos = name.find("Open");
                 if (pos != std::string::npos) pAnim->SetAnimation(name.replace(pos, 4, "Closed"));
+
+                if (this->IsEmpty()) {
+                    wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), false));
+                }
+                else {
+                    wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), true));
+                }
             }
         }
     }

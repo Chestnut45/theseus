@@ -14,6 +14,7 @@
 #include "MinitaurController.h"
 #include "NPCComponent.h"
 #include "InfightingEvent.h"
+#include "ThrowableObjectComponent.h"
 
 
 AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects, wolf::GameObject* owner)
@@ -85,6 +86,20 @@ void AttackDamageComponent::Update(float p_dt)
                     // Deal damage
                     thatHealth.Damage(m_fDamage);
                     
+                    if (thisObject->HasAll<ThrowableObjectComponent>())
+                    {
+                        wolf::Audio::Play("data/sounds/sfx_throwable_break.wav", 0.32f);
+                    }
+
+                    // Detect when fireballs are destroyed and fire off sfx
+                    if (auto* pAnim = thisObject->GetComponent<AnimatedSprite2D>())
+                    {
+                        if (pAnim->GetCurrentAnimation()->m_strName == "burn")
+                        {
+                            // Ensure falloff for potentially stacked sounds
+                            wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.55f, 0.0f, 0.0f, true);
+                        }
+                    }
 
                     // Apply status effects to the target
                     StatusComponent* thatStatus = thatObject->GetComponent<StatusComponent>();

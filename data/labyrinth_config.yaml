@@ -1,5 +1,4 @@
 random_seed: true
-seed: 204593467
 width: 95
 height: 95
 spike_trap_ratio: 0.020000
@@ -38,13 +37,34 @@ rooms: [
 	},
 	{
 		name: Basic Fight Rooms,
-		instances: 16,
+		instances: 12,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
 		entities: [
-			{type: minitaur, amount: 1, placement: center},
-			{type: minitaur, amount: 3, placement: random},
+			{type: minitaur, amount: 3, placement: random}
+		]
+	},
+	{
+		name: Poison Trap Rooms,
+		instances: 6,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: poison_trap, amount: 1, placement: center},
+			{type: throwable_object, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Lava Trap Rooms,
+		instances: 6,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: lava_trap, amount: 1, placement: center},
+			{type: throwable_object, amount: 2, placement: random}
 		]
 	},
 	{
@@ -64,24 +84,24 @@ rooms: [
 		name: Legendary Chest Room,
 		instances: 1,
 		force: false,
-		position: {type: random_radius, position: {x: 47, y: 47}, radius: 20},
+		position: {type: random_radius, position: {x: 47, y: 47}, radius: 32},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
 		entities: [
-			{type: gorgon, amount: 1, placement: random},
-			{type: minitaur, amount: 3, placement: random},
 			{type: legendary_chest, amount: 1, placement: center},
+			{type: gorgon, amount: 1, placement: random},
+			{type: minitaur, amount: 3, placement: random}
 		]
 	},
 	{
 		name: Epic Chest Room,
 		instances: 2,
 		force: false,
-		position: {type: random_radius, position: {x: 47, y: 47}, radius: 20},
+		position: {type: random_radius, position: {x: 47, y: 47}, radius: 32},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
 		entities: [
 			{type: epic_chest, amount: 1, placement: center},
 			{type: harpy, amount: 2, placement: random},
-			{type: spike_trap, amount: 2, placement: random},
+			{type: spike_trap, amount: 2, placement: random}
 		]
 	},
 	{
@@ -91,8 +111,8 @@ rooms: [
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
-			{type: minitaur, amount: 2, placement: random},
 			{type: uncommon_chest, amount: 1, placement: center},
+			{type: minitaur, amount: 2, placement: random}
 		]
 	},
 	{
@@ -102,7 +122,7 @@ rooms: [
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
-			{type: common_chest, amount: 1, placement: center},
+			{type: common_chest, amount: 1, placement: center}
 		]
 	},
 	{

@@ -13,6 +13,7 @@
 #include "../DDACalculator.h"
 
 #include <cassert>
+#include <LightEvents.h>
 
 GorgonController::GorgonController()
 {
@@ -345,6 +346,7 @@ void GorgonController::SetUpAnimations(const std::string& animationInitPath)
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
     m_pAnimComponent->SetLayer(9);
+    m_pAnimComponent->SetLightingEnabled(false);
 }
 
 void GorgonController::MoveTowardsTarget(float delta)
@@ -516,6 +518,39 @@ void GorgonController::HandleChasingState(float delta)
         ChangeState(EnemyState::ATTACKING);
         return;
     }
+
+    // Else if player is within detection range
+    else
+    {
+        // If player is petrified, switch to prospect
+        if
+        ( 
+            m_pTargetStatusComponent != nullptr                                                             && 
+            m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)
+        )
+        {
+            ChangeState(EnemyState::PROSPECT);
+            return;
+        }
+    }
+
+    // If target is within ranged range
+    if (distanceToTarget <= m_rangedRange)
+    {
+        if 
+        (
+            m_pTargetStatusComponent != nullptr                                                             &&  // If target status component not null
+            m_transitionTimer.Elapsed() >= m_transitionDelay                                                &&  // If transition delay expired
+            m_rangedTimer <= 0.0f                                                                           &&  // If delay between attacks expired
+            !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)   &&  // If target not already petrified
+            IsTargetInLOS()                                                                                     // If target in line of sight
+        )
+        {
+            wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), true));
+            ChangeState(EnemyState::ATTACKING);
+            return;
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -591,53 +626,7 @@ void GorgonController::HandleAttackingState(float delta)
         // If target is in line of sight, petrify target
         if(active && m_pTargetStatusComponent && IsTargetInLOS())
         {
-            // Apply petrification with duration based on attack type
-            float petrificationDuration = 5.0f; // Default duration
-            
-            switch (m_currentGazeAttackType) {
-                case GazeAttackType::QUICK:
-                    petrificationDuration = 3.0f; // Shorter duration
-                    break;
-                    
-                case GazeAttackType::SUSTAINED:
-                    petrificationDuration = 7.0f; // Longer duration
-                    break;
-                    
-                case GazeAttackType::AREA:
-                    petrificationDuration = 5.0f; // Standard duration
-                    
-                    // For area attack, check for other enemies nearby to help coordinate
-                    for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<GorgonController>()) {
-                        if (controller.GetGameObject() != GetGameObject()) {
-                            // Signal to other gorgons via blackboard that petrification succeeded
-                            g_blackboard.SetBool("petrificationSuccess", true);
-                            g_blackboard.SetInt("lastPetrifierID", GetGameObject()->GetID());
-                            break;
-                        }
-                    }
-                    break;
-            }
-            
-            m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, petrificationDuration);
-            
-            // Record success for future strategy adjustment
-            m_attackSuccessTimer = petrificationDuration;
-            g_blackboard.SetFloat("lastPetrificationTime", m_attackSuccessTimer);
-        }
-        
-        // Set cooldown based on attack type
-        switch (m_currentGazeAttackType) {
-            case GazeAttackType::QUICK:
-                m_rangedTimer = m_rangedCooldown * 0.8f; // Shorter cooldown for quick attacks
-                break;
-                
-            case GazeAttackType::SUSTAINED:
-                m_rangedTimer = m_rangedCooldown * 1.2f; // Longer cooldown for sustained attacks
-                break;
-                
-            case GazeAttackType::AREA:
-                m_rangedTimer = m_rangedCooldown; // Standard cooldown for area attacks
-                break;
+            m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
         }
         
         ChangeState(EnemyState::CHASING);

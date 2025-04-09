@@ -2,9 +2,9 @@ CutscenesAndDialogues:
   intro_sequence:
     characters:
       - name: "Theseus"
-        portraitPath: "data/textures/sPlayerTest.png"
+        portraitPath: "data/textures/TheseusPortrait.png"
       - name: "Ariadne"
-        portraitPath: "data/textures/sPlayerTest.png"
+        portraitPath: "data/textures/AriadnePortrait.png"
     sequence:
       - type: "fade"
         from: "black"
@@ -91,7 +91,7 @@ CutscenesAndDialogues:
   hello:
     characters:
       - name: "Ariadne"
-        portraitPath: "data/textures/sPlayerTest.png"
+        portraitPath: "data/textures/AriadnePortrait.png"
     sequence:
       - type: "dialogue"
         character: "Ariadne"

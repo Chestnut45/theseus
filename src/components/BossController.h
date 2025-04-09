@@ -82,6 +82,9 @@ public:
     void SetActive(bool active) { m_active = active; }
     bool IsActive() const { return m_active; }
 
+    // Starts the bossfight (does not spawn first wave!)
+    void StartBossfight();
+
 private:
 
     // State information
@@ -180,6 +183,7 @@ private:
     float m_fireBreathTurningCapRadian;
     float m_fireBreathTurningDelay;
     float m_fireBreathTurningTimer;
+    bool m_fireBreathSFXPlayed = false;
     glm::vec2 m_lastDirection;
 
     int m_chargeAttackDamage;       // Charge state members

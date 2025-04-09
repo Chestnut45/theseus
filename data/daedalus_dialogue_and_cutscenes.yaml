@@ -2,9 +2,9 @@ CutscenesAndDialogues:
   intro_cutscene:
     characters:
       - name: "Daedalus"
-        portraitPath: "data/textures/sPlayerTest.png"
+        portraitPath: "data/textures/DaedalusPortrait.png"
       - name: "Theseus"
-        portraitPath: "data/textures/sPlayerTest.png"
+        portraitPath: "data/textures/TheseusPortrait.png"
     sequence:
       - type: "dialogue"
         character: "Daedalus"
@@ -17,7 +17,7 @@ CutscenesAndDialogues:
   hello:
     characters:
       - name: "Daedalus"
-        portraitPath: "data/textures/sPlayerTest.png"
+        portraitPath: "data/textures/DaedalusPortrait.png"
     sequence:
       - type: "dialogue"
         character: "Daedalus"
@@ -26,7 +26,7 @@ CutscenesAndDialogues:
   goodbye:
     characters:
       - name: "Daedalus"
-        portraitPath: "data/textures/sPlayerTest.png"
+        portraitPath: "data/textures/DaedalusPortrait.png"
     sequence:
       - type: "dialogue"
         character: "Daedalus"

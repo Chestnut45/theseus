@@ -91,6 +91,9 @@ public:
     // Gets the player's currently held weapon item, or nullptr if empty
     WeaponItem* GetHeldWeapon() const { return m_pCurrentWeapon; }
 
+    int GetPlaceablePlacingRange() const { return m_iPlaceablePlacingRange; };
+    int GetPlaceableCollectingRange() const { return m_iPlaceableCollectingRange; };
+
     //set player action
     void SetAction(PlayerAction action);
 
@@ -169,8 +172,6 @@ private:
     void RenderDeathScreen();
     void ResetDeathScreenState(); // cool function to reset vars
 
-
-
     // Animation utility functions
     std::string GetAttackAnimationForDirection(PlayerDirection direction) const;
     std::string GetWalkAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
@@ -211,8 +212,8 @@ private:
     float m_rollDuration = 0.5f;
     float m_stamina = 100.0f;
     const float m_maxStamina = 100.0f;
-    const float m_staminaRegenRate = 20.0f;
-    const float m_staminaRegenDelay = 0.5f;
+    const float m_staminaRegenRate = 22.0f;
+    const float m_staminaRegenDelay = 0.35f;
     wolf::Timer m_staminaRegenTimer;
 
     // Jumping management
@@ -271,6 +272,9 @@ private:
     // Placing-related variables
     PlaceableItem* m_pCurrentPlaceable = nullptr;
     bool m_bIsPlaced = false;
+    int m_iPlaceablePlacingRange = 2;    // How far the player can place a placeable (in terms of tiles)
+    int m_iPlaceableCollectingRange = 2; // How far the player can collect a placeable (in terms of tiles)
+    wolf::GameObject* m_pPlacingIndicatorObj = nullptr;
 
     // Death screen related variables
     wolf::Timer m_runtimeTimer;

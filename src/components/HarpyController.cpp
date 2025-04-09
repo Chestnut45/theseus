@@ -13,6 +13,7 @@
 
 // !-- Aurora added this --!
 #include "inventory/ItemDropCreator.h"
+#include <LightComponent.h>
 
 #include <math.h>
 #include <cassert>
@@ -303,6 +304,7 @@ void HarpyController::SetUpAnimations(const std::string& animationInitPath)
     // Initialize the AnimatedSprite2D component
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
     m_pAnimComponent->SetLayer(11);
+    m_pAnimComponent->SetLightingEnabled(false);
 }
 
 void HarpyController::MoveTowardsTarget(float delta)
@@ -1300,9 +1302,8 @@ void HarpyController::PerformSingleShot() {
     auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(
         m_baseDamage * 1.5f, m_pColliderManager, 0.0f, statusEffects, GetGameObject());
     
-    // Larger projectile
-    auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
-    projectileSprite.SetOriginToCenterOfTexture();
+    auto& projectileSprite = projectile.AddComponent<AnimatedSprite2D>("data/fireball_anim_init.yaml");
+    projectileSprite.SetLayer(20);
     
     // Larger hitbox
     glm::vec2 projectileDimensions = glm::vec2(10.0f, 10.0f);
@@ -1324,6 +1325,12 @@ void HarpyController::PerformSingleShot() {
     // Position and scale
     projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition());
     projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(4.0f));
+
+    // Add a light to the projectile (Aurora added this)
+    wolf::GameObject* pLightGO = &scene.CreateObject2D();
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), 50.0f, true);
+    projectile.AddChild(*pLightGO);
+    pLightComponent.Init();
 }
 
 //-----------------------------------------------------------------------------
@@ -1366,8 +1373,8 @@ void HarpyController::PerformSpreadShot() {
         auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(
             m_baseDamage * 0.8f, m_pColliderManager, 0.0f, statusEffects, GetGameObject());
         
-        auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
-        projectileSprite.SetOriginToCenterOfTexture();
+        auto& projectileSprite = projectile.AddComponent<AnimatedSprite2D>("data/fireball_anim_init.yaml");
+        projectileSprite.SetLayer(20);
         
         // Standard hitbox
         glm::vec2 projectileDimensions = glm::vec2(10.0f, 10.0f);
@@ -1397,6 +1404,12 @@ void HarpyController::PerformSpreadShot() {
         // Position and scale
         projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset * 0.5f);
         projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(2.5f));
+
+        // Add a light to the projectile (Aurora added this)
+        wolf::GameObject* pLightGO = &scene.CreateObject2D();
+        auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), 50.0f, true);
+        projectile.AddChild(*pLightGO);
+        pLightComponent.Init();
     }
 }
 
@@ -1447,8 +1460,8 @@ void HarpyController::PerformBurstAttack() {
         auto& attackDamageComponent = projectile.AddComponent<AttackDamageComponent>(
             m_baseDamage, m_pColliderManager, 0.0f, statusEffects, GetGameObject());
         
-        auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>("data/textures/Fireball.png");
-        projectileSprite.SetOriginToCenterOfTexture();
+        auto& projectileSprite = projectile.AddComponent<AnimatedSprite2D>("data/fireball_anim_init.yaml");
+        projectileSprite.SetLayer(20);
         
         auto& projectileCollider = projectile.AddComponent<ColliderComponent>(
             ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
@@ -1465,6 +1478,12 @@ void HarpyController::PerformBurstAttack() {
         glm::vec2 offset = perpendicularVector * (30.0f * i);
         projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset);
         projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+
+        // Add a light to the projectile (Aurora added this)
+        wolf::GameObject* pLightGO = &scene.CreateObject2D();
+        auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), 50.0f, true);
+        projectile.AddChild(*pLightGO);
+        pLightComponent.Init();
     }
 }
 
