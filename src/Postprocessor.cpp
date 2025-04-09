@@ -57,184 +57,8 @@ Postprocessor* Postprocessor::GetInstance()
     return s_pPostprocessor;
 }
 
-
-void Postprocessor::Update(float p_dt)
-{
-    for(auto& [tex, posda] : m_mPostprocessData)
-    {
-        posda.Update(p_dt);
-    }
-}
-
-void Postprocessor::Postprocess()
-{
-    wolf::Camera2D* camera = m_pScene->GetActiveCamera();
-    if(camera == nullptr)
-    {
-        return;
-    }
-
-    // Update framebuffers if window size has changed
-    glm::vec2 viewSize = camera->GetViewSize();
-    m_pFBO_01->SetTexSize(viewSize.x, viewSize.y);
-    m_pFBO_01->SetWindowSize(viewSize.x, viewSize.y);
-    m_pFBO_02->SetTexSize(viewSize.x, viewSize.y);
-    m_pFBO_02->SetWindowSize(viewSize.x, viewSize.y);
-
-    for(auto const& [tex, posda] : m_mPostprocessData)
-    {
-        GLuint currentTex = tex;
-        
-        if(posda.m_fActiveEffectsCounter <= 0)
-        {
-            HandleNoneEffect(currentTex);
-            SwitchFramebuffers();
-        }
-        
-        else
-        {
-            for(int i = 0; i < Effect::NONE; i++)
-            {
-                float duration = posda.m_aEffectDurations[i];
-
-                // Skip if duration expired
-                if(duration <= 0.0f) continue;
-
-                // Apply effects
-                Effect effect = (Effect)i;
-
-                switch (effect)
-                {
-                    case Effect::BURNING:
-                    {
-                        HandleBurningEffect(currentTex);
-                        break;
-                    }
-
-                    case Effect::HEAT_DISTORTION:
-                    {
-                        
-                        HandleHeatDistortionEffect(currentTex);
-                        break;
-                    }
-
-                    case Effect::GRAYSCALE:
-                    {
-                        
-                        HandleGrayscaleEffect(currentTex);
-                        break;
-                    }
-
-                    case Effect::POISONED:
-                    {
-                        
-                        HandlePoisonedEffect(currentTex);
-                        break;
-                    }
-                    
-                    default:
-                    {
-                        HandleNoneEffect(currentTex);   // Only implemented to ensure SwitchFramebuffers() does not break when defaulted - Should NEVER be called
-                        break;       
-                    }
-                }                
-                // Switch framebuffers after every effect
-                SwitchFramebuffers();
-                // Set current texture to be the texture that was just rendered to
-                currentTex = m_pReadFBO->GetTextureID();
-            }
-        }
-
-        // Render to screen
-        m_pReadFBO->Blit();
-    }
-}
-
-// Adding multiple effects at a time
-// Durations with negative values will be ignored
-void Postprocessor::AddEffect(PostprocessData p_postprocess_data, GLuint p_tex)
-{
-    if(p_tex <= 0) return;
-
-    // Check if texture is registered
-    auto itr = m_mPostprocessData.find(p_tex);
-
-    // If texture is not registered
-    if(itr == m_mPostprocessData.end())
-    {
-        // Create new map object
-        m_mPostprocessData.insert({p_tex, p_postprocess_data});
-        return;
-    }
-
-    // If texture is already registered
-    else
-    {
-        for(int i = 0; i < Effect::NONE; i++)
-        {
-            // If input duration is greater than or equal to 0, then set new duration
-            if(p_postprocess_data.m_aEffectDurations[i] >= 0.0f)
-            {
-                // Increment counter if reactivating an effect
-                if(m_mPostprocessData[p_tex].m_aEffectDurations[i] <= 0.0f && p_postprocess_data.m_aEffectDurations[i] > 0.0f)
-                {
-                    m_mPostprocessData[p_tex].m_fActiveEffectsCounter++;
-                }
-
-                m_mPostprocessData[p_tex].m_aEffectDurations[i] = p_postprocess_data.m_aEffectDurations[i];
-            }
-        }
-    }
-
-}
-
-
-// Adding a single effect
-// Durations with negative values will be ignored
-void Postprocessor::AddEffect(Effect p_effect, float p_duration, GLuint p_tex)
-{
-    if(p_tex <= 0) return;
-
-    
-    // Check if texture is registered
-    auto itr = m_mPostprocessData.find(p_tex);
-
-    // If texture is not registered
-    if(itr == m_mPostprocessData.end())
-    {
-        // Create new map object
-        std::array<float, Postprocessor::Effect::NONE> durations;
-        durations.fill(0.0f);
-        durations[p_effect] = p_duration;
-        PostprocessData posda = PostprocessData(durations);
-        
-        m_mPostprocessData.insert({p_tex, posda});
-        return;
-    }
-
-    // If texture is already registered
-    else
-    {
-        // If input duration is ggreater than or equal to 0, then set new duration
-        if(p_duration >= 0.0f)
-        {
-            // Increment counter if reactivating an effect
-            if(m_mPostprocessData[p_tex].m_aEffectDurations[p_effect] <= 0.0f && p_duration > 0.0f)
-            {
-                m_mPostprocessData[p_tex].m_fActiveEffectsCounter++;
-            }
-
-            m_mPostprocessData[p_tex].m_aEffectDurations[p_effect] = p_duration;
-        }
-        
-    }
-
-}
-
-//-------------------//
-//  PRIVATE METHODS  //
-//-------------------//
-
+// Process the given texture using the effects specified, in order of appearance in the vector
+// Will process the same effect twice if so specified 
 void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
 {
     if(p_effects.size() <= 0) return;
@@ -297,6 +121,10 @@ void Postprocessor::Postprocess(GLuint p_tex, std::vector<Effect> p_effects)
     // Render to screen
     m_pReadFBO->Blit();
 }
+
+//-------------------//
+//  PRIVATE METHODS  //
+//-------------------//
 
 Postprocessor::Postprocessor(wolf::Scene* p_scene)
 {

@@ -22,7 +22,7 @@ public:
 
     void AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan = -1.0f, float p_cooldown = -1.0f, bool p_reset_burning_lifespan = true);
     void SetPropagationActiveness(bool p_propagation);
-    
+
 private:
 
     // FireTile Struct
@@ -98,12 +98,4 @@ private:
 public:
     std::vector<glm::ivec2> GetFireTilePositions(int p_burn_state = 3) const;
     int GetBurningFireTilesCount() const;
-};
-
-struct TileFireIgnitionEvent
-{
-    glm::ivec2 tilePos = glm::ivec2(-1, -1);
-    float lifespan = 0.0f;
-    TileFireIgnitionEvent(glm::ivec2 p_tile_pos, float p_lifespan) : tilePos(p_tile_pos), lifespan(p_lifespan) {};
-    
 };

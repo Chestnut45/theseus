@@ -31,7 +31,6 @@
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
 #include "PathfindingManager.h"
-#include "TileFireManager.h"
 #include <events/GameWinEvent.h>
 #include <W_Timer.h>
 #include <ParticleSystem2D.h>
@@ -59,10 +58,6 @@ public:
     void OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
     void OnGameWinEvent(const GameWinEvent& event);
-
-    // Handlers for events related to postprocessing
-    void OnStatusEffectAdditionEvent(const StatusEffectAdditionEvent& event);
-    void OnTileFireIgnitionEvent(const TileFireIgnitionEvent& event);    
     
     std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}
 
