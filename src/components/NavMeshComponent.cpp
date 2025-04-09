@@ -510,8 +510,11 @@ void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject
     const int updateFrequency = 10;
     
     updateCounter++;
-    if (updateCounter % updateFrequency != 0 && !m_obstacleAffectedPolygons.empty())
+    if (updateCounter != updateFrequency && !m_obstacleAffectedPolygons.empty())
         return;
+    
+    // Reset counter when we update
+    updateCounter = 0;
     
     // Reset previous obstacles
     for (int polyId : m_obstacleAffectedPolygons)

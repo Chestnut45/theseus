@@ -893,26 +893,19 @@ void PlayState::Update(float delta)
 
         if (m_pNavMeshComponent)
         {
-            static int updateCounter = 0;
-            const int updateFrequency = 10;
+            m_navMeshObstacles.clear();
+            m_navMeshObstacles.push_back(m_pPlayerObject);
+
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
+            m_navMeshObstacles.push_back(controller.GetGameObject());
+
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>())
+            m_navMeshObstacles.push_back(controller.GetGameObject());
             
-            updateCounter++;
-            if (updateCounter % updateFrequency == 0) // update every 10 frames
-            {
-                m_navMeshObstacles.clear();
-                m_navMeshObstacles.push_back(m_pPlayerObject);
+            for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>())
+            m_navMeshObstacles.push_back(component.GetGameObject());
 
-                for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
-                m_navMeshObstacles.push_back(controller.GetGameObject());
-
-                for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>())
-                m_navMeshObstacles.push_back(controller.GetGameObject());
-                
-                for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>())
-                m_navMeshObstacles.push_back(component.GetGameObject());
-
-                m_pNavMeshComponent->UpdateDynamicObstacles(m_navMeshObstacles);
-            }
+            m_pNavMeshComponent->UpdateDynamicObstacles(m_navMeshObstacles);
         }
         
     }
