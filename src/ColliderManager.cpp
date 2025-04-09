@@ -38,10 +38,22 @@ void ColliderManager::RemoveFlagged()
     {
         auto pObject = m_scene->GetObject(m_vToBeDestroyed.at(i));
 
+        // TODO: SFX code should not be here, but it's release time! ;)
+
         // Detect when throwable objects are destroyed and fire off sfx
         if (pObject->HasAll<ThrowableObjectComponent>())
         {
             wolf::Audio::Play("data/sounds/sfx_throwable_break.wav", 0.32f);
+        }
+
+        // Detect when fireballs are destroyed and fire off sfx
+        if (auto* pAnim = pObject->GetComponent<AnimatedSprite2D>())
+        {
+            if (pAnim->GetCurrentAnimation()->m_strName == "burn")
+            {
+                // Ensure falloff for potentially stacked sounds
+                wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.55f, 0.0f, 0.0f, true);
+            }
         }
 
         this->m_scene->DeleteObject(this->m_vToBeDestroyed.at(i));

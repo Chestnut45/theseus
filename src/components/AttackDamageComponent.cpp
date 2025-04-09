@@ -106,7 +106,7 @@ void AttackDamageComponent::Update(float p_dt)
                                 if (seType == StatusComponent::StatusEffectType::BURNING)
                                 {
                                     // Ensure falloff for potentially stacked sounds
-                                    wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.64f, 0.0f, 0.0f, true);
+                                    wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.55f, 0.0f, 0.0f, true);
                                 }
 
                                 thatStatus->AddStatusEffect(seType, lifespan);
