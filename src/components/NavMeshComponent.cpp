@@ -37,7 +37,12 @@ void NavMeshComponent::GenerateFromLabyrinth(LabyrinthManager* labyrinthManager)
     const int height = labyrinthManager->GetHeight();
     const float tileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
     
-    std::unordered_map<int, int> posToPolyIndex;
+    // Pre-allocate memory to avoid reallocations
+    m_polygons.reserve(width * height / 2);
+    m_edges.reserve(width * height);
+    
+    // Grid for O(1) lookup of polygon indices
+    std::vector<std::vector<int>> grid(height, std::vector<int>(width, -1));
     
     // Create polygons for walkable tiles
     for (int y = 0; y < height; y++)
@@ -47,7 +52,6 @@ void NavMeshComponent::GenerateFromLabyrinth(LabyrinthManager* labyrinthManager)
             if (!m_pPathfindingManager->IsTileWalkable(x, y))
                 continue;
                 
-            // Create polygon
             glm::vec2 topLeft = labyrinthManager->GetWorldPosition(glm::ivec2(x, y));
             int polyId = m_polygons.size();
             
@@ -63,10 +67,11 @@ void NavMeshComponent::GenerateFromLabyrinth(LabyrinthManager* labyrinthManager)
             poly.center = topLeft + glm::vec2(tileSize / 2.0f);
             
             // Add to spatial hash
-            m_spatialHash[{static_cast<int>(poly.center.x / SPATIAL_CELL_SIZE), 
-                           static_cast<int>(poly.center.y / SPATIAL_CELL_SIZE)}].push_back(polyId);
+            int cellX = static_cast<int>(poly.center.x / SPATIAL_CELL_SIZE);
+            int cellY = static_cast<int>(poly.center.y / SPATIAL_CELL_SIZE);
+            m_spatialHash[{cellX, cellY}].push_back(polyId);
             
-            posToPolyIndex[y * width + x] = polyId;
+            grid[y][x] = polyId;
             m_polygons.push_back(poly);
         }
     }
@@ -74,73 +79,68 @@ void NavMeshComponent::GenerateFromLabyrinth(LabyrinthManager* labyrinthManager)
     // Connect neighbors
     static const std::pair<int, int> directions[] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
     
+    // Second pass: Connect neighbors and create edges
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)
         {
-            auto currentIt = posToPolyIndex.find(y * width + x);
-            if (currentIt == posToPolyIndex.end())
+            int currentPolyId = grid[y][x];
+            if (currentPolyId == -1)
                 continue;
                 
-            int currentPolyId = currentIt->second;
             NavPolygon& currentPoly = m_polygons[currentPolyId];
+            glm::vec2 topLeft = labyrinthManager->GetWorldPosition(glm::ivec2(x, y));
             
-            for (const auto& [dx, dy] : directions)
+            // Track which sides have neighbors (left, right, bottom, top)
+            std::array<bool, 4> hasNeighbor = {false, false, false, false};
+            
+            // Check in all four directions
+            for (int i = 0; i < 4; i++)
             {
+                const auto& [dx, dy] = directions[i];
                 int nx = x + dx, ny = y + dy;
+                
                 if (nx < 0 || nx >= width || ny < 0 || ny >= height)
                     continue;
-                    
-                auto neighborIt = posToPolyIndex.find(ny * width + nx);
-                if (neighborIt == posToPolyIndex.end())
-                    continue;
-                    
-                int neighborPolyId = neighborIt->second;
                 
-                if (std::find(currentPoly.neighbors.begin(), currentPoly.neighbors.end(), neighborPolyId) != currentPoly.neighbors.end())
+                int neighborPolyId = grid[ny][nx];
+                if (neighborPolyId == -1)
                     continue;
-
+                
+                // Add connection to neighbor
                 currentPoly.neighbors.push_back(neighborPolyId);
+                hasNeighbor[i] = true;
                 
-                // Create edge
-                NavEdge edge;
-                glm::vec2 topLeft = labyrinthManager->GetWorldPosition(glm::ivec2(x, y));
-                
-                if (dx == -1) // Left
-                    edge = {topLeft, topLeft + glm::vec2(0, tileSize), currentPolyId, neighborPolyId};
-                else if (dx == 1) // Right
-                    edge = {topLeft + glm::vec2(tileSize, 0), topLeft + glm::vec2(tileSize, tileSize), currentPolyId, neighborPolyId};
-                else if (dy == -1) // Bottom
-                    edge = {topLeft, topLeft + glm::vec2(tileSize, 0), currentPolyId, neighborPolyId};
-                else // Top
-                    edge = {topLeft + glm::vec2(0, tileSize), topLeft + glm::vec2(tileSize, tileSize), currentPolyId, neighborPolyId};
-                
-                m_edges.push_back(edge);
-            }
-        }
-    }
-    
-    // Add boundary edges
-    for (const auto& poly : m_polygons)
-    {
-        for (size_t i = 0; i < poly.vertices.size(); i++)
-        {
-            size_t j = (i + 1) % poly.vertices.size();
-            glm::vec2 start = poly.vertices[i], end = poly.vertices[j];
-            
-            bool edgeExists = false;
-            for (const auto& edge : m_edges)
-            {
-                if ((glm::distance2(edge.start, start) < 0.1f && glm::distance2(edge.end, end) < 0.1f) ||
-                    (glm::distance2(edge.start, end) < 0.1f && glm::distance2(edge.end, start) < 0.1f))
+                // Only create shared edges once (from the polygon with lower ID)
+                if (currentPolyId < neighborPolyId)
                 {
-                    edgeExists = true;
-                    break;
+                    NavEdge edge;
+                    
+                    if (i == 0)  // Left neighbor
+                        edge = {topLeft, topLeft + glm::vec2(0, tileSize), currentPolyId, neighborPolyId};
+                    else if (i == 1)  // Right neighbor
+                        edge = {topLeft + glm::vec2(tileSize, 0), topLeft + glm::vec2(tileSize, tileSize), currentPolyId, neighborPolyId};
+                    else if (i == 2)  // Bottom neighbor
+                        edge = {topLeft, topLeft + glm::vec2(tileSize, 0), currentPolyId, neighborPolyId};
+                    else  // Top neighbor
+                        edge = {topLeft + glm::vec2(0, tileSize), topLeft + glm::vec2(tileSize, tileSize), currentPolyId, neighborPolyId};
+                    
+                    m_edges.push_back(edge);
                 }
             }
             
-            if (!edgeExists)
-                m_edges.push_back({start, end, poly.id, -1});
+            // Create boundary edges where no neighbors exist
+            if (!hasNeighbor[0])  // Left boundary
+                m_edges.push_back({topLeft, topLeft + glm::vec2(0, tileSize), currentPolyId, -1});
+                
+            if (!hasNeighbor[1])  // Right boundary
+                m_edges.push_back({topLeft + glm::vec2(tileSize, 0), topLeft + glm::vec2(tileSize, tileSize), currentPolyId, -1});
+                
+            if (!hasNeighbor[2])  // Bottom boundary
+                m_edges.push_back({topLeft, topLeft + glm::vec2(tileSize, 0), currentPolyId, -1});
+                
+            if (!hasNeighbor[3])  // Top boundary
+                m_edges.push_back({topLeft + glm::vec2(0, tileSize), topLeft + glm::vec2(tileSize, tileSize), currentPolyId, -1});
         }
     }
 }
@@ -504,6 +504,14 @@ std::vector<glm::vec2> NavMeshComponent::ImprovedFunnelAlgorithm(
 void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject*>& obstacles)
 {
     m_obstacles = obstacles;
+
+    // Only update every 10 frames
+    static int updateCounter = 0;
+    const int updateFrequency = 10;
+    
+    updateCounter++;
+    if (updateCounter % updateFrequency != 0 && !m_obstacleAffectedPolygons.empty())
+        return;
     
     // Reset previous obstacles
     for (int polyId : m_obstacleAffectedPolygons)
@@ -523,6 +531,7 @@ void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject
         return;
     
     std::unordered_set<int> newlyAffected;
+    newlyAffected.reserve(obstacles.size() * 4); // Pre-allocate memory
     
     // Get player
     wolf::GameObject* player = m_pPathfindingManager && m_pPathfindingManager->GetLabyrinthManager() ?
@@ -542,10 +551,11 @@ void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject
         glm::vec2 pos = transform->GetGlobalPosition();
         bool isPlayer = (obj == player);
         
-        // Check nearby cells
+        // Calculate bounds for spatial lookup
         int cellX = static_cast<int>(pos.x / SPATIAL_CELL_SIZE);
         int cellY = static_cast<int>(pos.y / SPATIAL_CELL_SIZE);
         
+        // Check neighboring cells
         for (int dy = -1; dy <= 1; dy++)
         {
             for (int dx = -1; dx <= 1; dx++)
@@ -555,19 +565,27 @@ void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject
                 
                 for (int polyId : it->second) 
                 {
+                    // Skip if already processed
                     if (newlyAffected.count(polyId) > 0)
                         continue;
                         
                     const auto& poly = m_polygons[polyId];
                     
-                    // Quick checks
-                    if (IsPointInPolygon(pos, poly) || glm::distance2(poly.center, pos) <= radiusSq) 
+                    // Most efficient check first: center point distance
+                    if (glm::distance2(poly.center, pos) <= radiusSq)
                     {
                         ProcessAffectedPolygon(polyId, isPlayer, newlyAffected);
                         continue;
                     }
                     
-                    // Check vertices
+                    // More expensive: containment test
+                    if (IsPointInPolygon(pos, poly))
+                    {
+                        ProcessAffectedPolygon(polyId, isPlayer, newlyAffected);
+                        continue;
+                    }
+                    
+                    // Most expensive: check all vertices
                     for (const auto& v : poly.vertices) 
                     {
                         if (glm::distance2(v, pos) <= radiusSq) 
