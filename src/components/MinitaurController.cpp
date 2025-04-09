@@ -423,10 +423,6 @@ void MinitaurController::MoveTowardsTarget(float delta)
     FallbackToDistanceChecking();
 }
 
-
-
-
-
 // Fallback to direct distance checking if pathfinding fails
 void MinitaurController::FallbackToDistanceChecking()
 {
