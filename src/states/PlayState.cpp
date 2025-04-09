@@ -33,7 +33,6 @@
 #include "GLShapesRenderer.h"
 #include "PortalTileManager.h"
 #include "Postprocessor.h"
-#include "TileFireManager.h"
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
 #include <BossController.h>
@@ -57,8 +56,9 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
     wolf::EventManager::AddListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
-    
- 
+    wolf::EventManager::AddListener<StatusEffectAdditionEvent, PlayState, &PlayState::OnStatusEffectAdditionEvent>(*this); 
+    wolf::EventManager::AddListener<TileFireIgnitionEvent, PlayState, &PlayState::OnTileFireIgnitionEvent>(*this); 
+
     this->m_pColliderManager = new ColliderManager(&scene);
 
     // Initialize the player object
@@ -101,6 +101,9 @@ void PlayState::Enter()
     TileFireManager::GetInstance()->SetPropagationActiveness(true);
 
     Postprocessor::CreateInstance(&scene);
+    std::array<float, Postprocessor::Effect::NONE> effectDurations;
+    effectDurations.fill(0.0f);
+    Postprocessor::GetInstance()->AddEffect(Postprocessor::PostprocessData(effectDurations), m_pFBO->GetTextureID());
 
     // Place the bossfight trigger
     const auto& rooms = m_pLabyrinthManager->GetRooms();
@@ -263,6 +266,8 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+    wolf::EventManager::RemoveListener<StatusEffectAdditionEvent, PlayState, &PlayState::OnStatusEffectAdditionEvent>(*this);
+    wolf::EventManager::RemoveListener<TileFireIgnitionEvent, PlayState, &PlayState::OnTileFireIgnitionEvent>(*this); 
 
     m_pPathfindingManager = nullptr;
     wolf::EventManager::RemoveListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
@@ -884,6 +889,8 @@ void PlayState::Update(float delta)
 
 
 
+    Postprocessor::GetInstance()->Update(delta);
+
     // Dispatch events
     wolf::EventManager::Dispatch();
 }
@@ -994,47 +1001,10 @@ void PlayState::BackgroundRender(float delta)
     {
         particleComponent.Render();
     }
-    
     // Bind to default framebuffer(screen)
     wolf::FrameBuffer::BindDefault();
 
-    // Query postprocessing effects based on current active status effects of player
-    std::vector<Postprocessor::Effect> effects;
-    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
-    {
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
-        {
-            effects.push_back(Postprocessor::Effect::BURNING);
-        }
-        
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
-        {
-            effects.push_back(Postprocessor::Effect::POISONED);
-        }
-
-        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
-        {
-            effects.push_back(Postprocessor::Effect::GRAYSCALE);
-        }
-        break;
-    }
-
-    // Apply heat distortion if there are active fire tiles
-    if(TileFireManager::GetInstance()->GetBurningFireTilesCount() > 0)
-    {    
-        effects.push_back(Postprocessor::Effect::HEAT_DISTORTION);
-    }
-    
-    // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
-    if(effects.size() > 0)
-    {
-        Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), effects);
-    }
-    // If not, copy texture to screen
-    else
-    {
-        m_pFBO->Blit();
-    }
+    Postprocessor::GetInstance()->Postprocess();
 }
 
 void PlayState::CreatePlayer()
@@ -1505,7 +1475,47 @@ void PlayState::OnGameWinEvent(const GameWinEvent& event)
     m_returnToMainMenuTimer.Start();  // Return after credits (15s later)
 }
 
+void PlayState::OnStatusEffectAdditionEvent(const StatusEffectAdditionEvent& event)
+{
+    if(event.owner == nullptr) return;
+    if(event.owner->GetID() == m_pPlayerObject->GetID())
+    {
+        // std::cout << "SE: " << event.statusEffect << ", duration: " << event.duration << std::endl;
 
+        Postprocessor::Effect effect = Postprocessor::Effect::NONE;
+        switch(event.statusEffect)
+        {
+            case(StatusComponent::StatusEffectType::BURNING):
+            {
+                effect = Postprocessor::Effect::BURNING;
+                break;
+            }
+            
+            case(StatusComponent::StatusEffectType::POISONED):
+            {
+                effect = Postprocessor::Effect::POISONED;
+                break;
+            }
+
+            case(StatusComponent::StatusEffectType::PETRIFIED):
+            {
+                effect = Postprocessor::Effect::GRAYSCALE;
+                break;
+            }
+            default:
+            {
+                return;
+            }
+        }
+
+        Postprocessor::GetInstance()->AddEffect(effect, event.duration, m_pFBO->GetTextureID());
+    }
+}
+
+void PlayState::OnTileFireIgnitionEvent(const TileFireIgnitionEvent& event)
+{
+    Postprocessor::GetInstance()->AddEffect(Postprocessor::Effect::HEAT_DISTORTION, event.lifespan, m_pFBO->GetTextureID());
+}
 
 int GetGoldVariant(int tileID) {
     switch (tileID) {
