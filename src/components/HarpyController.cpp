@@ -776,497 +776,239 @@ void HarpyController::RevertBackToPlayer()
 }
 
 void HarpyController::SetupCombatBehaviorTree() {
-    // Create the root selector
     auto root = std::make_unique<Selector>();
     
-    // === REPOSITIONING SEQUENCE ===
-    auto repositioningSequence = std::make_unique<Sequence>();
-    
-    // Condition: Check if we need to reposition
-    repositioningSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
-        [this]() { return ShouldReposition(); }
-    ));
-    
-    // Action: Move to optimal position
-    repositioningSequence->AddBehaviorNode(std::make_unique<ActionNode>(
-        [this](float delta) {
-            if (!m_isRepositioning) {
-                // Calculate target position
-                m_targetPosition = GetOptimalAttackPosition();
-                m_isRepositioning = true;
-                
-                // Visual feedback
-                SetEmote(EnemyEmote::QUESTION);
-            }
-            
-            // Move towards target position
-            MoveToOptimalPosition(delta);
-            
-            // Check if we've reached the position
-            glm::vec2 currentPos = m_pTransform->GetGlobalPosition();
-            if (glm::length(m_targetPosition - currentPos) < 10.0f) {
-                m_isRepositioning = false;
-                m_repositionTimer = 0.0f;
-                return BehaviorNode::Status::SUCCESS;
-            }
-            
-            return BehaviorNode::Status::RUNNING;
+    // REPOSITIONING
+    auto repoSeq = std::make_unique<Sequence>();
+    repoSeq->AddBehaviorNode(std::make_unique<ConditionNode>([this]() { return ShouldReposition(); }));
+    repoSeq->AddBehaviorNode(std::make_unique<ActionNode>([this](float delta) {
+        if (!m_isRepositioning) {
+            m_targetPosition = GetOptimalAttackPosition();
+            m_isRepositioning = true;
+            SetEmote(EnemyEmote::QUESTION);
         }
-    ));
-    
-    // Add repositioning sequence to root
-    root->AddBehaviorNode(std::move(repositioningSequence));
-    
-    // === ATTACK SEQUENCE ===
-    auto attackSequence = std::make_unique<Sequence>();
-    
-    // Condition: Check if player is in attack range
-    attackSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
-        [this]() { 
-            return GetDistanceToTarget() <= m_rangedRange && m_rangedTimer <= 0.0f;
+        
+        MoveToOptimalPosition(delta);
+        
+        if (glm::length(m_targetPosition - m_pTransform->GetGlobalPosition()) < 10.0f) {
+            m_isRepositioning = false;
+            m_repositionTimer = 0.0f;
+            return BehaviorNode::Status::SUCCESS;
         }
-    ));
+        return BehaviorNode::Status::RUNNING;
+    }));
+    root->AddBehaviorNode(std::move(repoSeq));
     
-    // Condition: Check if player is in line of sight
-    attackSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
-        [this]() { return IsTargetInSight(); }
-    ));
-    
-    // Action: Perform attack based on current pattern
-    attackSequence->AddBehaviorNode(std::make_unique<ActionNode>(
-        [this](float delta) {
-            // If not already attacking, start attack
-            if (m_state != EnemyState::ATTACKING) {
-                ChangeState(EnemyState::ATTACKING);
-                
-                // Set emote to indicate attack
-                SetEmote(EnemyEmote::EXCLAMATION);
-                
-                // Change attack pattern based on situation
-                int nearbyHarpies = g_blackboard.GetInt("nearbyHarpies");
-                
-                // Choose attack pattern
-                if (nearbyHarpies >= 2) {
-                    // Coordinate with other harpies based on ID
-                    int myID = GetGameObject()->GetID();
-                    int patternID = myID % 3;
-                    
-                    switch (patternID) {
-                        case 0: m_currentAttackPattern = AttackPattern::SINGLE; break;
-                        case 1: m_currentAttackPattern = AttackPattern::SPREAD; break;
-                        case 2: m_currentAttackPattern = AttackPattern::BURST; break;
-                    }
-                } else {
-                    // Solo harpy - randomize attack pattern with weights
-                    int randPattern = m_RNG.NextInt(1, 10);
-                    if (randPattern <= 5) { // 50% chance
-                        m_currentAttackPattern = AttackPattern::SINGLE;
-                    } else if (randPattern <= 8) { // 30% chance
-                        m_currentAttackPattern = AttackPattern::SPREAD;
-                    } else { // 20% chance
-                        m_currentAttackPattern = AttackPattern::BURST;
-                    }
-                }
-                
-                return BehaviorNode::Status::RUNNING;
-            }
+    // ATTACK
+    auto attackSeq = std::make_unique<Sequence>();
+    attackSeq->AddBehaviorNode(std::make_unique<ConditionNode>([this]() { 
+        return GetDistanceToTarget() <= m_rangedRange && m_rangedTimer <= 0.0f && IsTargetInSight(); 
+    }));
+    attackSeq->AddBehaviorNode(std::make_unique<ActionNode>([this](float delta) {
+        if (m_state != EnemyState::ATTACKING) {
+            ChangeState(EnemyState::ATTACKING);
+            SetEmote(EnemyEmote::EXCLAMATION);
             
-            // Check if attack is complete
-            if (m_state != EnemyState::ATTACKING) {
-                return BehaviorNode::Status::SUCCESS;
-            }
-            
-            return BehaviorNode::Status::RUNNING;
+            // Choose pattern: coordinated in groups, random when solo
+            int nearbyHarpies = g_blackboard.GetInt("nearbyHarpies");
+            m_currentAttackPattern = nearbyHarpies >= 2 ? 
+                AttackPattern(GetGameObject()->GetID() % 3) : // Group based on ID
+                AttackPattern(m_RNG.NextInt(0, 9) < 5 ? 0 : m_RNG.NextInt(0, 9) < 7 ? 1 : 2); // Solo weighted random
         }
-    ));
+        return (m_state == EnemyState::ATTACKING) ? BehaviorNode::Status::RUNNING : BehaviorNode::Status::SUCCESS;
+    }));
+    root->AddBehaviorNode(std::move(attackSeq));
     
-    // Add attack sequence to root
-    root->AddBehaviorNode(std::move(attackSequence));
+    // CHASE
+    auto chaseSeq = std::make_unique<Sequence>();
+    chaseSeq->AddBehaviorNode(std::make_unique<ConditionNode>([this]() { 
+        return IsTargetInSight() && GetDistanceToTarget() > m_rangedRange; 
+    }));
+    chaseSeq->AddBehaviorNode(std::make_unique<ActionNode>([this](float) {
+        if (m_state != EnemyState::CHASING) ChangeState(EnemyState::CHASING);
+        return BehaviorNode::Status::RUNNING;
+    }));
+    root->AddBehaviorNode(std::move(chaseSeq));
     
-    // === CHASE SEQUENCE ===
-    auto chaseSequence = std::make_unique<Sequence>();
-    
-    // Condition: Check if player is visible but not in attack range
-    chaseSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
-        [this]() { 
-            return IsTargetInSight() && GetDistanceToTarget() > m_rangedRange;
-        }
-    ));
-    
-    // Action: Move towards player
-    chaseSequence->AddBehaviorNode(std::make_unique<ActionNode>(
-        [this](float delta) {
-            if (m_state != EnemyState::CHASING) {
-                ChangeState(EnemyState::CHASING);
-            }
-            
-            // Standard chase behavior is handled in HandleChasingState
-            return BehaviorNode::Status::RUNNING;
-        }
-    ));
-    
-    // Add chase sequence to root
-    root->AddBehaviorNode(std::move(chaseSequence));
-    
-    // Create behavior tree with root
     m_combatBehaviorTree = std::make_unique<BehaviorTree>(std::move(root));
 }
 
-//-----------------------------------------------------------------------------
-// EvaluateStrategy - Determine optimal strategy based on game state
-//-----------------------------------------------------------------------------
 void HarpyController::EvaluateStrategy() {
     if (!m_pTarget || !m_pHealth) return;
     
-    // Cache values
-    int myID = GetGameObject()->GetID();
-    float selfHealth = m_pHealth->GetHealth();
-    float healthPercentage = (selfHealth / m_pHealth->GetMaxHealth()) * 100.0f;
-    
-    // Get player health
-    float playerHealth = 100.0f;
-    auto* playerHealthComp = m_pTarget->GetComponent<HealthComponent>();
-    if (playerHealthComp) {
-        playerHealth = playerHealthComp->GetHealth();
-    }
-    
-    // Count nearby harpies
+    float healthPct = m_pHealth->GetHealth() / m_pHealth->GetMaxHealth() * 100.0f;
     int nearbyHarpies = g_blackboard.GetInt("nearbyHarpies");
     
-    // Strategy selection
-    
-    // 1. Low health - prioritize distance and safety
-    if (healthPercentage < 30.0f) {
+    // Priority checks
+    if (healthPct < 30.0f) {
         g_blackboard.SetStrategy(Strategy::DEFENSIVE);
         return;
     }
     
-    // 2. Player low health - aggressive attacks to finish them
-    if (playerHealth < 20.0f) {
+    auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
+    if (playerHealth && playerHealth->GetHealth() < 20.0f) {
         g_blackboard.SetStrategy(Strategy::AGGRESSIVE);
         return;
     }
     
-    // 3. Group tactics
+    // Group vs solo
     if (nearbyHarpies >= 1) {
-        // When in a group, assign varied roles
-        int roleSelector = myID % 3;
-        switch (roleSelector) {
-            case 0:
-                g_blackboard.SetStrategy(Strategy::AGGRESSIVE);
-                break;
-            case 1:
-                g_blackboard.SetStrategy(Strategy::FLANKING);
-                break;
-            case 2:
-                g_blackboard.SetStrategy(Strategy::DEFENSIVE);
-                break;
-        }
+        // Assign roles by ID
+        g_blackboard.SetStrategy(Strategy(GetGameObject()->GetID() % 3));
     } else {
-        // Solo harpy behavior - adaptive based on conditions
-        auto* playerController = m_pTarget->GetComponent<PlayerController>();
-        bool playerIsAttacking = false;
-        
-        if (playerController) {
-            playerIsAttacking = playerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING;
-        }
-        
-        // If player is attacking or charging, keep distance
-        if (playerIsAttacking) {
-            g_blackboard.SetStrategy(Strategy::DEFENSIVE);
-        } else {
-            // Otherwise, default to aggressive
-            g_blackboard.SetStrategy(Strategy::AGGRESSIVE);
-        }
+        // Defensive if player attacking, otherwise aggressive
+        g_blackboard.SetStrategy(
+            m_pTarget->GetComponent<PlayerController>() && 
+            m_pTarget->GetComponent<PlayerController>()->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING ?
+            Strategy::DEFENSIVE : Strategy::AGGRESSIVE
+        );
     }
 }
 
-//-----------------------------------------------------------------------------
-// UpdateBlackboard - Updates shared information in the blackboard
-//-----------------------------------------------------------------------------
 void HarpyController::UpdateBlackboard() {
     if (!m_pTarget || !m_pTransform) return;
     
-    // Calculate and store distance to player
+    // Update player distance and health
     glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
-    glm::vec2 targetPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    float distanceToPlayer = glm::length(targetPos - selfPos);
+    g_blackboard.SetFloat("playerDistance", glm::length(
+        m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - selfPos));
     
-    g_blackboard.SetFloat("playerDistance", distanceToPlayer);
-    
-    // Update health data
-    static float lastHealth = -1.0f;
-    if (m_pHealth) {
-        float currentHealth = m_pHealth->GetHealth();
-        if (std::abs(currentHealth - lastHealth) > 0.1f) {
-            g_blackboard.SetFloat("selfHealth", currentHealth);
-            g_blackboard.SetFloat("selfHealthPercentage", 
-                                (currentHealth / m_pHealth->GetMaxHealth()) * 100.0f);
-            lastHealth = currentHealth;
-        }
-    }
+    if (m_pHealth)
+        g_blackboard.SetFloat("selfHealthPercentage", 
+            m_pHealth->GetHealth() / m_pHealth->GetMaxHealth() * 100.0f);
     
     // Count nearby harpies periodically
-    static float s_harpyCountTimer = 0.0f;
-    static int s_cachedNearbyHarpies = 0;
-    
-    s_harpyCountTimer += 0.1f; // Approximate delta time
-    if (s_harpyCountTimer > 0.5f) {
-        s_cachedNearbyHarpies = 0;
+    static float harpyCountTimer = 0.0f;
+    if ((harpyCountTimer += 0.1f) > 0.5f) {
+        int count = 0;
         for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<HarpyController>()) {
             if (controller.GetGameObject() != GetGameObject() && controller.GetTarget() == m_pTarget) {
-                glm::vec2 enemyPos = controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-                float distanceToEnemy = glm::length(enemyPos - selfPos);
-                
-                if (distanceToEnemy < m_detectionRange * 1.5f) {
-                    s_cachedNearbyHarpies++;
-                }
+                float dist = glm::length(controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - selfPos);
+                if (dist < m_detectionRange * 1.5f) count++;
             }
         }
-        g_blackboard.SetInt("nearbyHarpies", s_cachedNearbyHarpies);
-        s_harpyCountTimer = 0.0f;
+        g_blackboard.SetInt("nearbyHarpies", count);
+        harpyCountTimer = 0.0f;
     }
 }
 
-
-
-//-----------------------------------------------------------------------------
-// IsTargetInSight - Determine if player is visible
-//-----------------------------------------------------------------------------
 bool HarpyController::IsTargetInSight() {
-    if (!m_pTarget) return false;
-    
-    // Use line-of-sight check here
-    // For now, just using distance as a proxy
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
-    
-    return distanceToPlayer <= m_detectionRange;
+    return m_pTarget && glm::length(
+        m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - 
+        m_pTransform->GetGlobalPosition()) <= m_detectionRange;
 }
 
-//-----------------------------------------------------------------------------
-// GetDistanceToTarget - Calculate distance to current target
-//-----------------------------------------------------------------------------
 float HarpyController::GetDistanceToTarget() const {
-    if (!m_pTarget || !m_pTransform) return 99999.0f;
-    
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    return glm::length(targetPosition - currentPosition);
+    return (!m_pTarget || !m_pTransform) ? 99999.0f : glm::length(
+        m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - 
+        m_pTransform->GetGlobalPosition());
 }
 
-//-----------------------------------------------------------------------------
-// ShouldReposition - Determine if harpy should find a new position
-//-----------------------------------------------------------------------------
 bool HarpyController::ShouldReposition() {
-    if (!m_pTarget || !m_pTransform) return false;
-    
-    // Don't reposition during certain states
-    if (m_state == EnemyState::ATTACKING || 
-        m_state == EnemyState::STUNNED || 
-        m_state == EnemyState::PETRIFIED ||
-        m_state == EnemyState::DEATH ||
-        m_isRepositioning) { // Don't start new repositioning if already repositioning
+    if (!m_pTarget || !m_pTransform || m_state == EnemyState::ATTACKING || 
+        m_state == EnemyState::STUNNED || m_state == EnemyState::PETRIFIED ||
+        m_state == EnemyState::DEATH || m_isRepositioning)
         return false;
-    }
     
-    // Update reposition timer
-    static float s_lastUpdate = 0.0f;
-    m_repositionTimer += 0.1f - s_lastUpdate;
-    s_lastUpdate = 0.1f;
+    // Check timer
+    m_repositionTimer += 0.1f;
+    if (m_repositionTimer < m_repositionDelay) return false;
     
-    // Check if it's time to consider repositioning (less frequent checks)
-    if (m_repositionTimer < m_repositionDelay) {
-        return false;
-    }
-    
-    // Reset the timer regardless of whether we reposition
+    // Reset timer and set delay based on strategy
     m_repositionTimer = 0.0f;
+    m_repositionDelay = (g_blackboard.GetStrategy() == Strategy::DEFENSIVE) ? 5.0f : 8.0f;
     
-    // If we're defensive, reposition more frequently
-    Strategy currentStrategy = g_blackboard.GetStrategy();
-    if (currentStrategy == Strategy::DEFENSIVE) {
-        m_repositionDelay = 5.0f; // Less frequent repositioning (was 3.0f)
-    } else {
-        m_repositionDelay = 8.0f; // Even less frequent (was 5.0f)
-    }
+    // Only 30% chance to consider repositioning
+    if (m_RNG.NextFloat(0.0f, 1.0f) > 0.3f) return false;
     
-    // Only reposition if we have a very good reason (random chance + positioning factors)
-    // This greatly reduces how often harpies reposition
-    if (m_RNG.NextFloat(0.0f, 1.0f) > 0.3f) { // Only 30% chance to even consider repositioning
-        return false;
-    }
-    
-    // More criteria before actually repositioning
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    const float distanceToPlayer = glm::length(targetPosition - currentPosition);
-    
-    // If we're already at a good distance, don't reposition
+    // Check if already at ideal distance
+    float distToPlayer = GetDistanceToTarget();
     Strategy strategy = g_blackboard.GetStrategy();
-    float idealDistance = m_rangedRange * 0.9f;
+    float idealDist = m_rangedRange * (strategy == Strategy::DEFENSIVE ? 0.95f : 
+                                     strategy == Strategy::AGGRESSIVE ? 0.7f : 0.9f);
     
-    if (strategy == Strategy::DEFENSIVE) idealDistance = m_rangedRange * 0.95f;
-    else if (strategy == Strategy::AGGRESSIVE) idealDistance = m_rangedRange * 0.7f;
-    
-    // If already near ideal distance, no need to reposition
-    if (std::abs(distanceToPlayer - idealDistance) < 30.0f) {
-        return false;
-    }
-    
-    return true; // Much less frequent repositioning
+    return std::abs(distToPlayer - idealDist) >= 30.0f;
 }
 
-//-----------------------------------------------------------------------------
-// GetOptimalAttackPosition - Find best position for harpy to attack from
-//-----------------------------------------------------------------------------
 glm::vec2 HarpyController::GetOptimalAttackPosition() {
-    if (!m_pTarget || !m_pTransform) {
-        return m_pTransform->GetGlobalPosition();
-    }
+    if (!m_pTarget || !m_pTransform) return m_pTransform->GetGlobalPosition();
     
     glm::vec2 playerPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
     
-    // Determine optimal attack distance based on strategy
-    Strategy currentStrategy = g_blackboard.GetStrategy();
-    float optimalDistance = m_rangedRange * 0.9f; // Default: just inside attack range
+    // Set optimal distance based on strategy
+    Strategy strategy = g_blackboard.GetStrategy();
+    float optDist = m_rangedRange * (strategy == Strategy::DEFENSIVE ? 0.95f : 
+                                   strategy == Strategy::AGGRESSIVE ? 0.7f : 0.9f);
     
-    if (currentStrategy == Strategy::DEFENSIVE) {
-        optimalDistance = m_rangedRange * 0.95f; // Further when defensive
-    } else if (currentStrategy == Strategy::AGGRESSIVE) {
-        optimalDistance = m_rangedRange * 0.7f; // Closer when aggressive
-    }
-    
-    // For group coordination, distribute positions around player
-    int nearbyHarpies = g_blackboard.GetInt("nearbyHarpies");
-    int myID = GetGameObject()->GetID();
-    
-    // Generate potential positions in a circle around player
-    std::vector<glm::vec2> potentialPositions;
-    int angleCount = 8; // Check 8 evenly distributed directions
-    
-    for (int i = 0; i < angleCount; i++) {
-        float angle = (i * 2.0f * glm::pi<float>()) / angleCount;
-        glm::vec2 direction(cos(angle), sin(angle));
-        glm::vec2 position = playerPos + direction * optimalDistance;
-        potentialPositions.push_back(position);
-    }
-    
-    // Filter and score positions
-    std::vector<std::pair<glm::vec2, float>> scoredPositions;
-    
-    // Get DDACalculator for wall checking
+    // Generate and score positions
+    std::vector<std::pair<glm::vec2, float>> scoredPos;
     DDACalculator* pDDA = DDACalculator::GetInstance();
     
-    for (const auto& pos : potentialPositions) {
-        // First use DDACalculator to check if this position is in a wall
+    // Check 8 directions
+    for (int i = 0; i < 8; i++) {
+        float angle = i * glm::pi<float>() / 4.0f;
+        glm::vec2 dir(cos(angle), sin(angle));
+        glm::vec2 pos = playerPos + dir * optDist;
+        
+        // Skip positions in walls
         if (pDDA && pDDA->GetLabyrinthManager()) {
             LabyrinthManager* pLBMG = pDDA->GetLabyrinthManager();
             glm::ivec2 tilePos = pLBMG->GetTilePosition(pos);
             int tileID = pLBMG->GetTile(tilePos.x, tilePos.y);
-            
-            // Skip this position if it's in a wall tile
-            if (tileID >= Tile::WallBottomLeft && tileID <= Tile::WallTop) {
-                continue;
-            }
+            if (tileID >= Tile::WallBottomLeft && tileID <= Tile::WallTop) continue;
         }
         
-        // Position is not in a wall, continue with other checks
-        if (IsPositionSafe(pos)) {
-            float score = 0.0f;
-            
-            // Distance from current position (closer is better)
-            float distanceFromCurrent = glm::length(pos - selfPos);
-            score -= distanceFromCurrent * 0.1f;
-            
-            // Check if position avoids clustering with other harpies
-            bool isClear = true;
-            for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<HarpyController>()) {
-                if (controller.GetGameObject()->GetID() != myID) {
-                    glm::vec2 otherPos = controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-                    float distToOther = glm::length(otherPos - pos);
-                    
-                    if (distToOther < 50.0f) {
-                        isClear = false;
-                        break;
-                    }
-                }
+        // Score position
+        float score = -glm::length(pos - selfPos) * 0.1f; // Distance penalty
+        
+        // Check for other harpies
+        bool clear = true;
+        for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<HarpyController>()) {
+            if (controller.GetGameObject()->GetID() != GetGameObject()->GetID() &&
+                glm::length(controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - pos) < 50.0f) {
+                clear = false;
+                break;
             }
-            
-            if (isClear) {
-                score += 30.0f;
-            }
-            
-            // Prefer positions aligned with group strategy
-            if (currentStrategy == Strategy::FLANKING) {
-                // When flanking, prefer positions not in player's field of view
-                auto* playerController = m_pTarget->GetComponent<PlayerController>();
-                if (playerController) {
-                    glm::vec2 playerFacing = playerController->GetLastFacingDirectionVector();
-                    glm::vec2 toPosition = glm::normalize(pos - playerPos);
-                    float dotProduct = glm::dot(playerFacing, toPosition);
-                    
-                    // Negative dot product means we're behind player
-                    if (dotProduct < 0) {
-                        score += 25.0f;
-                    }
-                }
-            }
-            
-            scoredPositions.push_back({pos, score});
         }
+        if (clear) score += 30.0f;
+        
+        // Flanking bonus
+        if (strategy == Strategy::FLANKING && m_pTarget->GetComponent<PlayerController>()) {
+            float dot = glm::dot(m_pTarget->GetComponent<PlayerController>()->GetLastFacingDirectionVector(), 
+                                glm::normalize(pos - playerPos));
+            if (dot < 0) score += 25.0f; // Behind player
+        }
+        
+        scoredPos.push_back({pos, score});
     }
     
-    // If no valid positions found, return current position
-    if (scoredPositions.empty()) {
-        return selfPos;
-    }
+    if (scoredPos.empty()) return selfPos;
     
-    // Find position with highest score
-    std::sort(scoredPositions.begin(), scoredPositions.end(), 
-              [](const auto& a, const auto& b) { return a.second > b.second; });
+    // Find best position
+    std::sort(scoredPos.begin(), scoredPos.end(), 
+             [](const auto& a, const auto& b) { return a.second > b.second; });
     
-    return scoredPositions[0].first;
+    return scoredPos[0].first;
 }
 
-//-----------------------------------------------------------------------------
-// MoveToOptimalPosition - Move harpy to target position
-//-----------------------------------------------------------------------------
 void HarpyController::MoveToOptimalPosition(float delta) {
     if (!m_pVelocity || !m_pTransform) return;
     
-    glm::vec2 currentPos = m_pTransform->GetGlobalPosition();
-    glm::vec2 toTarget = m_targetPosition - currentPos;
-    float distanceToTarget = glm::length(toTarget);
+    glm::vec2 toTarget = m_targetPosition - m_pTransform->GetGlobalPosition();
+    float dist = glm::length(toTarget);
     
-    // Only move if we're not very close to the target position
-    if (distanceToTarget > 10.0f) {
-        glm::vec2 direction = toTarget / distanceToTarget; // Normalized direction
+    if (dist > 10.0f) {
+        // Smooth movement
+        glm::vec2 dir = glm::normalize(toTarget);
+        glm::vec2 targetVel = dir * m_chaseSpeed * 0.8f;
+        glm::vec2 blendedVel = m_pVelocity->GetVelocity() * 0.7f + targetVel * 0.3f;
         
-        // Apply smoothing - current velocity contributes 70%, new direction 30%
-        glm::vec2 currentVelocity = m_pVelocity->GetVelocity();
-        glm::vec2 targetVelocity = direction * m_chaseSpeed * 0.8f;
-        
-        // Blend velocities for smooth movement
-        glm::vec2 blendedVelocity = currentVelocity * 0.7f + targetVelocity * 0.3f;
-        
-        // Scale down movement as we get closer to the target
-        float slowdownFactor = std::min(1.0f, distanceToTarget / 50.0f);
-        
-        m_pVelocity->SetVelocity(blendedVelocity * slowdownFactor);
+        // Slow down approaching target
+        m_pVelocity->SetVelocity(blendedVel * std::min(1.0f, dist / 50.0f));
     } else {
-        // We've arrived at the target position
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
     }
-}
-
-//-----------------------------------------------------------------------------
-// IsPositionSafe - Check if a position is valid for the harpy
-//-----------------------------------------------------------------------------
-bool HarpyController::IsPositionSafe(const glm::vec2& position) {
-    return true;
 }
 
 //-----------------------------------------------------------------------------
