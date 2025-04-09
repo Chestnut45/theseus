@@ -141,6 +141,6 @@ private:
     wolf::FrameBuffer* m_pFBO = nullptr;
 
     NavMeshComponent* m_pNavMeshComponent = nullptr;
-
+    std::vector<wolf::GameObject*> m_navMeshObstacles;
 
 };

@@ -894,38 +894,26 @@ void PlayState::Update(float delta)
 
         if (m_pNavMeshComponent)
         {
-            // Collect dynamic obstacles
-            std::vector<wolf::GameObject*> obstacles;
+            static int updateCounter = 0;
+            const int updateFrequency = 10;
             
-            // Add player as an obstacle
-            if (m_pPlayerObject)
+            updateCounter++;
+            if (updateCounter % updateFrequency == 0) // update every 10 frames
             {
-                obstacles.push_back(m_pPlayerObject);
-            }
-            // Add enemies as obstacles
-            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
-            {
-                obstacles.push_back(controller.GetGameObject());
-            }
-            
-            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>())
-            {
-                obstacles.push_back(controller.GetGameObject());
-            }
-            
-            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<HarpyController>())
-            {
-                obstacles.push_back(controller.GetGameObject());
-            }
-            
-            // Add NPCs as obstacles
-            for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>())
-            {
-                obstacles.push_back(component.GetGameObject());
-            }
+                m_navMeshObstacles.clear();
+                m_navMeshObstacles.push_back(m_pPlayerObject);
 
-            // Update the NavMesh with these obstacles
-            m_pNavMeshComponent->UpdateDynamicObstacles(obstacles);
+                for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
+                m_navMeshObstacles.push_back(controller.GetGameObject());
+
+                for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>())
+                m_navMeshObstacles.push_back(controller.GetGameObject());
+                
+                for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>())
+                m_navMeshObstacles.push_back(component.GetGameObject());
+
+                m_pNavMeshComponent->UpdateDynamicObstacles(m_navMeshObstacles);
+            }
         }
     }
 
