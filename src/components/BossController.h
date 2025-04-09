@@ -183,6 +183,7 @@ private:
     float m_fireBreathTurningCapRadian;
     float m_fireBreathTurningDelay;
     float m_fireBreathTurningTimer;
+    bool m_fireBreathSFXPlayed = false;
     glm::vec2 m_lastDirection;
 
     int m_chargeAttackDamage;       // Charge state members
