@@ -1,9 +1,9 @@
-#pragma once
 //-----------------------------------------------------------------------------
 // File: BehaviorTree.h
 // Original Author: Youssef Ashraf
 // Minimal behavior tree implementation for Theseus enemies
 //-----------------------------------------------------------------------------
+#pragma once
 
 #include <vector>
 #include <memory>
@@ -25,19 +25,8 @@ public:
 // Selector: Succeeds if ANY child succeeds, fails if ALL fail
 class Selector : public BehaviorNode {
 public:
-    Status Execute(float deltaTime, Blackboard* blackboard) override {
-        for (auto& child : m_children) {
-            Status status = child->Execute(deltaTime, blackboard);
-            if (status != Status::FAILURE) {
-                return status; // Return SUCCESS or RUNNING
-            }
-        }
-        return Status::FAILURE;
-    }
-    
-    void AddBehaviorNode(std::unique_ptr<BehaviorNode> child) {
-        m_children.push_back(std::move(child));
-    }
+    Status Execute(float deltaTime, Blackboard* blackboard) override;
+    void AddBehaviorNode(std::unique_ptr<BehaviorNode> child);
 
 private:
     std::vector<std::unique_ptr<BehaviorNode>> m_children;
@@ -46,19 +35,8 @@ private:
 // Sequence: Fails if ANY child fails, succeeds if ALL succeed
 class Sequence : public BehaviorNode {
 public:
-    Status Execute(float deltaTime, Blackboard* blackboard) override {
-        for (auto& child : m_children) {
-            Status status = child->Execute(deltaTime, blackboard);
-            if (status != Status::SUCCESS) {
-                return status; // Return FAILURE or RUNNING
-            }
-        }
-        return Status::SUCCESS;
-    }
-    
-    void AddBehaviorNode(std::unique_ptr<BehaviorNode> child) {
-        m_children.push_back(std::move(child));
-    }
+    Status Execute(float deltaTime, Blackboard* blackboard) override;
+    void AddBehaviorNode(std::unique_ptr<BehaviorNode> child);
 
 private:
     std::vector<std::unique_ptr<BehaviorNode>> m_children;
@@ -69,12 +47,8 @@ class ConditionNode : public BehaviorNode {
 public:
     using ConditionFunction = std::function<bool()>;
     
-    explicit ConditionNode(ConditionFunction condition) 
-        : m_condition(condition) {}
-    
-    Status Execute(float deltaTime, Blackboard* blackboard) override {
-        return m_condition() ? Status::SUCCESS : Status::FAILURE;
-    }
+    explicit ConditionNode(ConditionFunction condition);
+    Status Execute(float deltaTime, Blackboard* blackboard) override;
 
 private:
     ConditionFunction m_condition;
@@ -85,12 +59,8 @@ class ActionNode : public BehaviorNode {
 public:
     using ActionFunction = std::function<Status(float)>;
     
-    explicit ActionNode(ActionFunction action) 
-        : m_action(action) {}
-    
-    Status Execute(float deltaTime, Blackboard* blackboard) override {
-        return m_action(deltaTime);
-    }
+    explicit ActionNode(ActionFunction action);
+    Status Execute(float deltaTime, Blackboard* blackboard) override;
 
 private:
     ActionFunction m_action;
@@ -99,14 +69,8 @@ private:
 // Simple behavior tree
 class BehaviorTree {
 public:
-    explicit BehaviorTree(std::unique_ptr<BehaviorNode> rootNode)
-        : m_root(std::move(rootNode)) {}
-    
-    void Update(float deltaTime, Blackboard* blackboard) {
-        if (m_root) {
-            m_root->Execute(deltaTime, blackboard);
-        }
-    }
+    explicit BehaviorTree(std::unique_ptr<BehaviorNode> rootNode);
+    void Update(float deltaTime, Blackboard* blackboard);
 
 private:
     std::unique_ptr<BehaviorNode> m_root;
