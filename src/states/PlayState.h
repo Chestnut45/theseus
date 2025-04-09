@@ -33,10 +33,9 @@
 #include "PathfindingManager.h"
 #include <events/GameWinEvent.h>
 #include <W_Timer.h>
-#include <ParticleSystem2D.h>
-
 #include <unordered_map>
 #include <unordered_set>
+#include <ParticleEditor.h>
 
 class LabyrinthManager;
 
@@ -73,7 +72,6 @@ private:
     //pathfinding manager
     PathfindingManager* m_pPathfindingManager = nullptr;
 
-    ParticleSystem2D* m_particleSystem = nullptr;
 
     // Flags
     bool m_debugHotkeys = false;
@@ -139,4 +137,7 @@ private:
     bool m_isExiting = false;
 
     wolf::FrameBuffer* m_pFBO = nullptr;
+
+    ParticleEditor* m_pParticleEditor = nullptr;
+
 };

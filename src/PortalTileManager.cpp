@@ -165,7 +165,6 @@ PortalTileManager::PortalTileManager(LabyrinthManager* p_lbmg)
         m_pPlayer = playerController.GetGameObject();
         break;
     }
-    m_pParticleSystem2D = new ParticleSystem2D();
 }
 
 PortalTileManager::~PortalTileManager()
@@ -325,7 +324,6 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
 
     // Add particle component
     ParticleComponent* particleComponent = &m_pPortalTileSpriteObj->AddComponent<ParticleComponent>();
-    PortalTileManager::GetInstance()->m_pParticleSystem2D->RegisterComponent(particleComponent);
 
     // Add collider component
     ColliderComponent* colliderComponent = &m_pPortalTileSpriteObj->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, false, false);

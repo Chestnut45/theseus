@@ -10,7 +10,7 @@
 
 #include <LabyrinthManager.h>
 #include "inventory/PlaceableItem.h"
-#include "components/ParticleSystem2D.h"
+
 class PortalTileManager
 {
 friend class PortalTile;
@@ -77,8 +77,6 @@ private:
     std::vector<PortalTile*> m_vPortalTiles;
     wolf::GameObject* m_pPlayer = nullptr;
     static PortalTileManager* s_pPTMG;
-
-    ParticleSystem2D* m_pParticleSystem2D = nullptr;
 
     int m_iRemovalIndex = -2; // -1 is for the available portal tile
 };
