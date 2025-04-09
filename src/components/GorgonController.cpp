@@ -1023,590 +1023,258 @@ void GorgonController::RevertToPlayerTarget()
     m_pTarget = nullptr; // No valid target
 }
 
-//-----------------------------------------------------------------------------
-// SetupCombatBehaviorTree - Creates the behavior tree for Gorgon combat
-//-----------------------------------------------------------------------------
 void GorgonController::SetupCombatBehaviorTree() {
-    // Create the root selector
     auto root = std::make_unique<Selector>();
     
-    // === REPOSITIONING SEQUENCE ===
-    auto repositioningSequence = std::make_unique<Sequence>();
+    // REPOSITIONING
+    auto repoSeq = std::make_unique<Sequence>();
+    repoSeq->AddBehaviorNode(std::make_unique<ConditionNode>([this]() {
+        if (m_state == EnemyState::ATTACKING || m_state == EnemyState::STUNNED || 
+            m_state == EnemyState::PETRIFIED || m_state == EnemyState::DEATH || m_isRepositioning)
+            return false;
+        
+        m_repositionTimer += 0.1f;
+        if (m_repositionTimer < m_repositionDelay) return false;
+        
+        m_repositionTimer = 0.0f;
+        m_repositionDelay = (g_blackboard.GetStrategy() == Strategy::DEFENSIVE) ? 4.0f : 7.0f;
+        
+        if (m_RNG.NextFloat(0.0f, 1.0f) > 0.3f) return false;
+        
+        float dist = GetDistanceToTarget();
+        return (dist < m_rangedRange * 0.7f || dist > m_rangedRange * 1.3f);
+    }));
     
-    // Condition: Check if we should reposition
-    repositioningSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
-        [this]() {
-            // No need to reposition during certain states
-            if (m_state == EnemyState::ATTACKING || 
-                m_state == EnemyState::STUNNED || 
-                m_state == EnemyState::PETRIFIED ||
-                m_state == EnemyState::DEATH ||
-                m_isRepositioning) {
-                return false;
-            }
-            
-            // Update reposition timer
-            static float s_lastUpdate = 0.0f;
-            m_repositionTimer += 0.1f - s_lastUpdate;
-            s_lastUpdate = 0.1f;
-            
-            // Check if it's time to consider repositioning
-            if (m_repositionTimer < m_repositionDelay) {
-                return false;
-            }
-            
-            // Reset timer
-            m_repositionTimer = 0.0f;
-            
-            // Defensive strategy repositions more frequently
-            Strategy currentStrategy = g_blackboard.GetStrategy();
-            if (currentStrategy == Strategy::DEFENSIVE) {
-                m_repositionDelay = 4.0f;
-            } else {
-                m_repositionDelay = 7.0f;
-            }
-            
-            // Random chance to reposition (reduced frequency)
-            if (m_RNG.NextFloat(0.0f, 1.0f) > 0.3f) {
-                return false;
-            }
-            
-            // Get distance to target
-            float distanceToTarget = GetDistanceToTarget();
-            
-            // If not in good attack range, consider repositioning
-            return (distanceToTarget < m_rangedRange * 0.7f || distanceToTarget > m_rangedRange * 1.3f);
+    repoSeq->AddBehaviorNode(std::make_unique<ActionNode>([this](float delta) {
+        if (!m_isRepositioning) {
+            m_targetPosition = GetOptimalAttackPosition();
+            m_isRepositioning = true;
         }
-    ));
-    
-    // Action: Find and move to optimal position
-    repositioningSequence->AddBehaviorNode(std::make_unique<ActionNode>(
-        [this](float delta) {
-            if (!m_isRepositioning) {
-                // Calculate target position
-                m_targetPosition = GetOptimalAttackPosition();
-                m_isRepositioning = true;
-                
-                // Visual feedback
-                SetEmote(EnemyEmote::QUESTION);
-            }
-            
-            // Move towards target position
-            MoveToOptimalPosition(delta);
-            
-            // Check if we've reached the position
-            glm::vec2 currentPos = m_pTransform->GetGlobalPosition();
-            float distanceToTarget = glm::length(m_targetPosition - currentPos);
-            
-            if (distanceToTarget < 10.0f) {
-                m_isRepositioning = false;
-                return BehaviorNode::Status::SUCCESS;
-            }
-            
-            return BehaviorNode::Status::RUNNING;
+        
+        MoveToOptimalPosition(delta);
+        
+        if (glm::length(m_targetPosition - m_pTransform->GetGlobalPosition()) < 10.0f) {
+            m_isRepositioning = false;
+            return BehaviorNode::Status::SUCCESS;
         }
-    ));
+        return BehaviorNode::Status::RUNNING;
+    }));
+    root->AddBehaviorNode(std::move(repoSeq));
     
-    // Add repositioning sequence to root
-    root->AddBehaviorNode(std::move(repositioningSequence));
+    // ATTACK
+    auto attackSeq = std::make_unique<Sequence>();
+    attackSeq->AddBehaviorNode(std::make_unique<ConditionNode>([this]() { 
+        return CanPerformGazeAttack(); 
+    }));
     
-    // === ATTACK SEQUENCE ===
-    auto attackSequence = std::make_unique<Sequence>();
-    
-    // Condition: Check if player is in range and we can attack
-    attackSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
-        [this]() {
-            return CanPerformGazeAttack();
+    attackSeq->AddBehaviorNode(std::make_unique<ActionNode>([this](float) {
+        if (m_state != EnemyState::ATTACKING) {
+            PrepareGazeAttack();
+            ChangeState(EnemyState::ATTACKING);
         }
-    ));
+        return (m_state == EnemyState::ATTACKING) ? BehaviorNode::Status::RUNNING : BehaviorNode::Status::SUCCESS;
+    }));
+    root->AddBehaviorNode(std::move(attackSeq));
     
-    // Action: Perform gaze attack
-    attackSequence->AddBehaviorNode(std::make_unique<ActionNode>(
-        [this](float delta) {
-            // If not already attacking, start attack
-            if (m_state != EnemyState::ATTACKING) {
-                PrepareGazeAttack();
-                ChangeState(EnemyState::ATTACKING);
-                
-                // Set emote to indicate attack
-                SetEmote(EnemyEmote::EXCLAMATION);
-                return BehaviorNode::Status::RUNNING;
-            }
-            
-            // Check if attack is complete
-            if (m_state != EnemyState::ATTACKING) {
-                return BehaviorNode::Status::SUCCESS;
-            }
-            
-            return BehaviorNode::Status::RUNNING;
-        }
-    ));
+    // CHASE
+    auto chaseSeq = std::make_unique<Sequence>();
+    chaseSeq->AddBehaviorNode(std::make_unique<ConditionNode>([this]() {
+        return m_pTarget && m_pTargetStatusComponent && 
+               !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED) &&
+               IsTargetInLOS() && GetDistanceToTarget() > m_rangedRange;
+    }));
     
-    // Add attack sequence to root
-    root->AddBehaviorNode(std::move(attackSequence));
+    chaseSeq->AddBehaviorNode(std::make_unique<ActionNode>([this](float) {
+        if (m_state != EnemyState::CHASING) ChangeState(EnemyState::CHASING);
+        return BehaviorNode::Status::RUNNING;
+    }));
+    root->AddBehaviorNode(std::move(chaseSeq));
     
-    // === CHASE SEQUENCE ===
-    auto chaseSequence = std::make_unique<Sequence>();
+    // PROSPECT
+    auto prospectSeq = std::make_unique<Sequence>();
+    prospectSeq->AddBehaviorNode(std::make_unique<ConditionNode>([this]() {
+        return !m_pTarget || !m_pTargetStatusComponent || 
+               m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED) ||
+               !IsTargetInLOS() || GetDistanceToTarget() > m_detectionRange;
+    }));
     
-    // Condition: Check if player is detected but not in attack range
-    chaseSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
-        [this]() { 
-            if (!m_pTarget || !m_pTargetStatusComponent) return false;
-            
-            // Don't chase if player is petrified
-            if (m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)) {
-                return false;
-            }
-            
-            // Check distance to target
-            float distanceToTarget = GetDistanceToTarget();
-            
-            // If target is in sight but outside optimal attack range, chase
-            return IsTargetInLOS() && distanceToTarget > m_rangedRange;
-        }
-    ));
+    prospectSeq->AddBehaviorNode(std::make_unique<ActionNode>([this](float) {
+        if (m_state != EnemyState::PROSPECT) ChangeState(EnemyState::PROSPECT);
+        return BehaviorNode::Status::RUNNING;
+    }));
+    root->AddBehaviorNode(std::move(prospectSeq));
     
-    // Action: Move towards player
-    chaseSequence->AddBehaviorNode(std::make_unique<ActionNode>(
-        [this](float delta) {
-            if (m_state != EnemyState::CHASING) {
-                ChangeState(EnemyState::CHASING);
-            }
-            
-            // Standard chase behavior is handled in HandleChasingState
-            return BehaviorNode::Status::RUNNING;
-        }
-    ));
-    
-    // Add chase sequence to root
-    root->AddBehaviorNode(std::move(chaseSequence));
-    
-    // === PROSPECT SEQUENCE ===
-    auto prospectSequence = std::make_unique<Sequence>();
-    
-    // Condition: Check if player is not visible or is petrified
-    prospectSequence->AddBehaviorNode(std::make_unique<ConditionNode>(
-        [this]() {
-            if (!m_pTarget || !m_pTargetStatusComponent) return true;
-            
-            // If player is petrified, prospect around
-            if (m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)) {
-                return true;
-            }
-            
-            // If player is not in line of sight, prospect
-            if (!IsTargetInLOS()) {
-                return true;
-            }
-            
-            // If player is too far away, prospect
-            float distanceToTarget = GetDistanceToTarget();
-            return distanceToTarget > m_detectionRange;
-        }
-    ));
-    
-    // Action: Enter prospect state
-    prospectSequence->AddBehaviorNode(std::make_unique<ActionNode>(
-        [this](float delta) {
-            if (m_state != EnemyState::PROSPECT) {
-                ChangeState(EnemyState::PROSPECT);
-            }
-            
-            // Standard prospect behavior is handled in HandleProspectState
-            return BehaviorNode::Status::RUNNING;
-        }
-    ));
-    
-    // Add prospect sequence to root
-    root->AddBehaviorNode(std::move(prospectSequence));
-    
-    // Create behavior tree with root
     m_combatBehaviorTree = std::make_unique<BehaviorTree>(std::move(root));
 }
 
-//-----------------------------------------------------------------------------
-// EvaluateStrategy - Determines optimal strategy based on game state
-//-----------------------------------------------------------------------------
 void GorgonController::EvaluateStrategy() {
     if (!m_pTarget || !m_pHealth) return;
     
-    // Cache values
-    int myID = GetGameObject()->GetID();
-    float selfHealth = m_pHealth->GetHealth();
-    float healthPercentage = (selfHealth / m_pHealth->GetMaxHealth()) * 100.0f;
+    float healthPct = m_pHealth->GetHealth() / m_pHealth->GetMaxHealth() * 100.0f;
     
-    // Get player health
-    float playerHealth = 100.0f;
-    auto* playerHealthComp = m_pTarget->GetComponent<HealthComponent>();
-    if (playerHealthComp) {
-        playerHealth = playerHealthComp->GetHealth();
-    }
-    
-    // Count nearby gorgons
-    int nearbyGorgons = 0;
-    for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<GorgonController>()) {
-        if (controller.GetGameObject() != GetGameObject() && controller.GetTarget() == m_pTarget) {
-            glm::vec2 enemyPos = controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
-            float distanceToEnemy = glm::length(enemyPos - selfPos);
-            
-            if (distanceToEnemy < m_detectionRange * 1.5f) {
-                nearbyGorgons++;
-            }
-        }
-    }
-    
-    // Count nearby enemies of any type
-    int nearbyEnemies = nearbyGorgons;
-    nearbyEnemies += g_blackboard.GetInt("nearbyHarpies");
-    nearbyEnemies += g_blackboard.GetInt("nearbyEnemies"); // From Minitaur count
-    
-    // Strategy selection logic
-    
-    // 1. Low health - prioritize distance and safety
-    if (healthPercentage < 30.0f) {
+    if (healthPct < 30.0f) {
         g_blackboard.SetStrategy(Strategy::DEFENSIVE);
         return;
     }
     
-    // 2. Player low health - be more aggressive
-    if (playerHealth < 20.0f) {
+    auto* playerHealth = m_pTarget->GetComponent<HealthComponent>();
+    if (playerHealth && playerHealth->GetHealth() < 20.0f) {
         g_blackboard.SetStrategy(Strategy::AGGRESSIVE);
         return;
     }
     
-    // 3. Group tactics
+    int nearbyEnemies = g_blackboard.GetInt("nearbyGorgons") + 
+                         g_blackboard.GetInt("nearbyHarpies") + 
+                         g_blackboard.GetInt("nearbyEnemies");
+    
     if (nearbyEnemies >= 1) {
-        // When in a group, assign varied roles
-        int roleSelector = myID % 3;
-        switch (roleSelector) {
-            case 0:
-                g_blackboard.SetStrategy(Strategy::AGGRESSIVE);
-                break;
-            case 1:
-                g_blackboard.SetStrategy(Strategy::FLANKING);
-                break;
-            case 2:
-                g_blackboard.SetStrategy(Strategy::DEFENSIVE);
-                break;
-        }
+        g_blackboard.SetStrategy(Strategy(GetGameObject()->GetID() % 3));
     } else {
-        // Solo gorgon behavior
-        auto* playerController = m_pTarget->GetComponent<PlayerController>();
-        bool playerIsAttacking = false;
-        
-        if (playerController) {
-            playerIsAttacking = playerController->GetPlayerAction() == PlayerController::PlayerAction::ATTACKING;
-        }
-        
-        // If player is attacking or nearby, be more defensive
-        if (playerIsAttacking || GetDistanceToTarget() < m_rangedRange * 0.7f) {
-            g_blackboard.SetStrategy(Strategy::DEFENSIVE);
-        } else {
-            // Otherwise, default to aggressive
-            g_blackboard.SetStrategy(Strategy::AGGRESSIVE);
-        }
+        bool playerIsAttacking = m_pTarget->GetComponent<PlayerController>() && 
+                                m_pTarget->GetComponent<PlayerController>()->GetPlayerAction() == 
+                                PlayerController::PlayerAction::ATTACKING;
+        g_blackboard.SetStrategy((playerIsAttacking || GetDistanceToTarget() < m_rangedRange * 0.7f) ? 
+                              Strategy::DEFENSIVE : Strategy::AGGRESSIVE);
     }
 }
 
-//-----------------------------------------------------------------------------
-// UpdateBlackboard - Updates shared information in the blackboard
-//-----------------------------------------------------------------------------
 void GorgonController::UpdateBlackboard() {
     if (!m_pTarget || !m_pTransform) return;
     
-    // Calculate and store distance to player
-    float distanceToPlayer = GetDistanceToTarget();
-    g_blackboard.SetFloat("playerDistance", distanceToPlayer);
+    g_blackboard.SetFloat("playerDistance", GetDistanceToTarget());
     
-    // Update health data
-    static float lastHealth = -1.0f;
-    if (m_pHealth) {
-        float currentHealth = m_pHealth->GetHealth();
-        if (std::abs(currentHealth - lastHealth) > 0.1f) {
-            g_blackboard.SetFloat("selfHealth", currentHealth);
-            g_blackboard.SetFloat("selfHealthPercentage", 
-                                 (currentHealth / m_pHealth->GetMaxHealth()) * 100.0f);
-            lastHealth = currentHealth;
-        }
-    }
+    if (m_pHealth)
+        g_blackboard.SetFloat("selfHealthPercentage", 
+            m_pHealth->GetHealth() / m_pHealth->GetMaxHealth() * 100.0f);
     
-    // Count nearby gorgons periodically
-    static float s_gorgonCountTimer = 0.0f;
-    static int s_cachedNearbyGorgons = 0;
-    
-    s_gorgonCountTimer += 0.1f; // Approximate delta time
-    if (s_gorgonCountTimer > 0.5f) {
-        s_cachedNearbyGorgons = 0;
+    static float gorgonCountTimer = 0.0f;
+    if ((gorgonCountTimer += 0.1f) > 0.5f) {
+        int count = 0;
+        glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
+        
         for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<GorgonController>()) {
-            if (controller.GetGameObject() != GetGameObject() && controller.GetTarget() == m_pTarget) {
-                glm::vec2 enemyPos = controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-                glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
-                float distanceToEnemy = glm::length(enemyPos - selfPos);
-                
-                if (distanceToEnemy < m_detectionRange * 1.5f) {
-                    s_cachedNearbyGorgons++;
-                }
-            }
+            if (controller.GetGameObject() != GetGameObject() && controller.GetTarget() == m_pTarget &&
+                glm::length(controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - selfPos) < m_detectionRange * 1.5f)
+                count++;
         }
-        g_blackboard.SetInt("nearbyGorgons", s_cachedNearbyGorgons);
-        s_gorgonCountTimer = 0.0f;
+        g_blackboard.SetInt("nearbyGorgons", count);
+        gorgonCountTimer = 0.0f;
     }
     
-    // Track petrification success rate for strategy adjustment
     if (m_pTargetStatusComponent && 
         m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED)) {
-        m_attackSuccessTimer += 0.1f;
-        g_blackboard.SetFloat("lastPetrificationTime", m_attackSuccessTimer);
+        g_blackboard.SetFloat("lastPetrificationTime", m_attackSuccessTimer += 0.1f);
     } else {
         m_attackSuccessTimer = 0.0f;
     }
 }
 
-//-----------------------------------------------------------------------------
-// GetDistanceToTarget - Calculate distance to current target
-//-----------------------------------------------------------------------------
 float GorgonController::GetDistanceToTarget() const {
-    if (!m_pTarget || !m_pTransform) return 9999.0f;
-    
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    return glm::length(targetPosition - currentPosition);
+    return (!m_pTarget || !m_pTransform) ? 9999.0f : glm::length(
+        m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - 
+        m_pTransform->GetGlobalPosition());
 }
 
-//-----------------------------------------------------------------------------
-// PrepareGazeAttack - Setup gaze attack based on current strategy
-//-----------------------------------------------------------------------------
 void GorgonController::PrepareGazeAttack() {
-    // Choose attack type based on strategy
-    Strategy currentStrategy = g_blackboard.GetStrategy();
+    Strategy strategy = g_blackboard.GetStrategy();
     
-    if (currentStrategy == Strategy::AGGRESSIVE) {
-        // Quick attack - faster windup, shorter petrification
+    if (strategy == Strategy::AGGRESSIVE) {
         m_currentGazeAttackType = GazeAttackType::QUICK;
         m_rangedWindupTimer = m_rangedWindupTime * 0.7f;
     } 
-    else if (currentStrategy == Strategy::DEFENSIVE) {
-        // Sustained attack - longer windup, longer petrification
+    else if (strategy == Strategy::DEFENSIVE) {
         m_currentGazeAttackType = GazeAttackType::SUSTAINED;
         m_rangedWindupTimer = m_rangedWindupTime * 1.2f;
     }
-    else if (currentStrategy == Strategy::FLANKING) {
-        // Area attack - medium windup, used when flanking with other enemies
+    else {
         m_currentGazeAttackType = GazeAttackType::AREA;
         m_rangedWindupTimer = m_rangedWindupTime;
     }
-    else {
-        // Default to quick attack
-        m_currentGazeAttackType = GazeAttackType::QUICK;
-        m_rangedWindupTimer = m_rangedWindupTime;
-    }
-    
-    // Visual feedback for attack type
-    switch (m_currentGazeAttackType) {
-        case GazeAttackType::QUICK:
-            m_curentCrosshairColour = glm::vec4(1.0f, 0.7f, 0.0f, 1.0f); // Orange
-            break;
-            
-        case GazeAttackType::SUSTAINED:
-            m_curentCrosshairColour = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f); // Green
-            break;
-            
-        case GazeAttackType::AREA:
-            m_curentCrosshairColour = glm::vec4(0.7f, 0.0f, 0.7f, 1.0f); // Purple
-            break;
-    }
-    
-    m_IsRenderingAttackIndicator = true;
 }
 
-//-----------------------------------------------------------------------------
-// CanPerformGazeAttack - Check if conditions are right for a gaze attack
-//-----------------------------------------------------------------------------
 bool GorgonController::CanPerformGazeAttack() {
-    if (!m_pTarget || !m_pTransform || !m_pTargetStatusComponent) return false;
-    
-    // Basic conditions
-    float distanceToTarget = GetDistanceToTarget();
-    bool inRange = (distanceToTarget <= m_rangedRange);
-    bool cooledDown = (m_rangedTimer <= 0.0f);
-    bool targetNotPetrified = !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED);
-    bool targetInSight = IsTargetInLOS();
-    bool transitionReady = (m_transitionTimer.Elapsed() >= m_transitionDelay);
-    
-    // All conditions must be met
-    return inRange && cooledDown && targetNotPetrified && targetInSight && transitionReady;
+    return m_pTarget && m_pTransform && m_pTargetStatusComponent &&
+           GetDistanceToTarget() <= m_rangedRange &&
+           m_rangedTimer <= 0.0f &&
+           !m_pTargetStatusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED) &&
+           IsTargetInLOS() &&
+           m_transitionTimer.Elapsed() >= m_transitionDelay;
 }
 
-//-----------------------------------------------------------------------------
-// GetOptimalAttackPosition - Find best position for gorgon to attack from
-//-----------------------------------------------------------------------------
 glm::vec2 GorgonController::GetOptimalAttackPosition() {
-    if (!m_pTarget || !m_pTransform) {
-        return m_pTransform->GetGlobalPosition();
-    }
+    if (!m_pTarget || !m_pTransform) return m_pTransform->GetGlobalPosition();
     
     glm::vec2 playerPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 selfPos = m_pTransform->GetGlobalPosition();
     
-    // Determine optimal attack distance based on strategy
-    Strategy currentStrategy = g_blackboard.GetStrategy();
-    float optimalDistance = m_rangedRange * 0.9f; // Default: just inside attack range
+    Strategy strategy = g_blackboard.GetStrategy();
+    float optDist = m_rangedRange * (strategy == Strategy::DEFENSIVE ? 0.95f : 
+                                   strategy == Strategy::AGGRESSIVE ? 0.8f : 0.9f);
     
-    if (currentStrategy == Strategy::DEFENSIVE) {
-        optimalDistance = m_rangedRange * 0.95f; // Further when defensive
-    } else if (currentStrategy == Strategy::AGGRESSIVE) {
-        optimalDistance = m_rangedRange * 0.8f; // Closer when aggressive
-    }
-    
-    // For group coordination, distribute positions around player
-    int nearbyGorgons = g_blackboard.GetInt("nearbyGorgons");
-    int myID = GetGameObject()->GetID();
-    
-    // Generate potential positions in a circle around player
-    std::vector<glm::vec2> potentialPositions;
-    int angleCount = 8; // Check 8 evenly distributed directions
-    
-    for (int i = 0; i < angleCount; i++) {
-        float angle = (i * 2.0f * glm::pi<float>()) / angleCount;
-        glm::vec2 direction(cos(angle), sin(angle));
-        glm::vec2 position = playerPos + direction * optimalDistance;
-        potentialPositions.push_back(position);
-    }
-    
-    // Filter and score positions
-    std::vector<std::pair<glm::vec2, float>> scoredPositions;
-    
-    // Get DDACalculator for wall checking
+    std::vector<std::pair<glm::vec2, float>> scored;
     DDACalculator* pDDA = DDACalculator::GetInstance();
     
-    for (const auto& pos : potentialPositions) {
-        // First use DDACalculator to check if this position is in a wall
+    for (int i = 0; i < 8; i++) {
+        float angle = i * glm::pi<float>() / 4.0f;
+        glm::vec2 pos = playerPos + glm::vec2(cos(angle), sin(angle)) * optDist;
+        
+        // Skip invalid positions
         if (pDDA && pDDA->GetLabyrinthManager()) {
-            LabyrinthManager* pLBMG = pDDA->GetLabyrinthManager();
-            glm::ivec2 tilePos = pLBMG->GetTilePosition(pos);
-            int tileID = pLBMG->GetTile(tilePos.x, tilePos.y);
-            
-            // Skip this position if it's in a wall tile
-            if (tileID >= Tile::WallBottomLeft && tileID <= Tile::WallTop) {
-                continue;
-            }
+            int tileID = pDDA->GetLabyrinthManager()->GetTile(
+                         pDDA->GetLabyrinthManager()->GetTilePosition(pos).x, 
+                         pDDA->GetLabyrinthManager()->GetTilePosition(pos).y);
+            if (tileID >= Tile::WallBottomLeft && tileID <= Tile::WallTop) continue;
         }
         
-        // Position is not in a wall, continue with other checks
-        if (IsPositionSafe(pos)) {
-            float score = 0.0f;
-            
-            // Distance from current position (closer is better)
-            float distanceFromCurrent = glm::length(pos - selfPos);
-            score -= distanceFromCurrent * 0.1f;
-            
-            // Check if position avoids clustering with other gorgons
-            bool isClear = true;
-            for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<GorgonController>()) {
-                if (controller.GetGameObject()->GetID() != myID) {
-                    glm::vec2 otherPos = controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-                    float distToOther = glm::length(otherPos - pos);
-                    
-                    if (distToOther < 50.0f) {
-                        isClear = false;
-                        break;
-                    }
-                }
+        if (m_pTarget && glm::length(pos - playerPos) < m_meleeRange * 1.5f) continue;
+        
+        // Score the position
+        float score = -glm::length(pos - selfPos) * 0.1f;
+        
+        // Avoid clustering
+        bool clear = true;
+        for (auto&& [entity, controller] : GetGameObject()->GetScene().Each<GorgonController>()) {
+            if (controller.GetGameObject()->GetID() != GetGameObject()->GetID() &&
+                glm::length(controller.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition() - pos) < 50.0f) {
+                clear = false;
+                break;
             }
-            
-            if (isClear) {
-                score += 30.0f;
-            }
-            
-            // Prefer positions aligned with group strategy
-            if (currentStrategy == Strategy::FLANKING) {
-                // When flanking, prefer positions not in player's field of view
-                auto* playerController = m_pTarget->GetComponent<PlayerController>();
-                if (playerController) {
-                    glm::vec2 playerFacing = playerController->GetLastFacingDirectionVector();
-                    glm::vec2 toPosition = glm::normalize(pos - playerPos);
-                    float dotProduct = glm::dot(playerFacing, toPosition);
-                    
-                    // Negative dot product means we're behind player
-                    if (dotProduct < 0) {
-                        score += 25.0f;
-                    }
-                }
-            }
-            
-            // For LOS attackers like Gorgons, positions with clear line of sight are critical
-            glm::vec2 endpoint = pDDA->GetEndpoint(pos, playerPos);
-            if (glm::length(endpoint - playerPos) < 0.1f) {
-                // Clear line of sight to player from this position
-                score += 50.0f;
-            }
-            
-            scoredPositions.push_back({pos, score});
         }
+        if (clear) score += 30.0f;
+        
+        // Flanking bonus
+        if (strategy == Strategy::FLANKING && m_pTarget->GetComponent<PlayerController>()) {
+            if (glm::dot(m_pTarget->GetComponent<PlayerController>()->GetLastFacingDirectionVector(), 
+                        glm::normalize(pos - playerPos)) < 0)
+                score += 25.0f;
+        }
+        
+        // LOS bonus
+        if (pDDA && glm::length(pDDA->GetEndpoint(pos, playerPos) - playerPos) < 0.1f)
+            score += 50.0f;
+        
+        scored.push_back({pos, score});
     }
     
-    // If no valid positions found, return current position
-    if (scoredPositions.empty()) {
-        return selfPos;
-    }
+    if (scored.empty()) return selfPos;
     
-    // Find position with highest score
-    std::sort(scoredPositions.begin(), scoredPositions.end(), 
-              [](const auto& a, const auto& b) { return a.second > b.second; });
+    std::sort(scored.begin(), scored.end(), 
+             [](const auto& a, const auto& b) { return a.second > b.second; });
     
-    return scoredPositions[0].first;
+    return scored[0].first;
 }
 
-//-----------------------------------------------------------------------------
-// MoveToOptimalPosition - Move gorgon to target position
-//-----------------------------------------------------------------------------
 void GorgonController::MoveToOptimalPosition(float delta) {
     if (!m_pVelocity || !m_pTransform) return;
     
-    glm::vec2 currentPos = m_pTransform->GetGlobalPosition();
-    glm::vec2 toTarget = m_targetPosition - currentPos;
-    float distanceToTarget = glm::length(toTarget);
+    glm::vec2 toTarget = m_targetPosition - m_pTransform->GetGlobalPosition();
+    float dist = glm::length(toTarget);
     
-    // Only move if we're not very close to the target position
-    if (distanceToTarget > 10.0f) {
-        glm::vec2 direction = toTarget / distanceToTarget; // Normalized direction
-        
-        // Apply smoothing - current velocity contributes 70%, new direction 30%
-        glm::vec2 currentVelocity = m_pVelocity->GetVelocity();
-        glm::vec2 targetVelocity = direction * m_chaseSpeed * 0.8f;
-        
-        // Blend velocities for smooth movement
-        glm::vec2 blendedVelocity = currentVelocity * 0.7f + targetVelocity * 0.3f;
-        
-        // Scale down movement as we get closer to the target
-        float slowdownFactor = std::min(1.0f, distanceToTarget / 50.0f);
-        
-        m_pVelocity->SetVelocity(blendedVelocity * slowdownFactor);
+    if (dist > 10.0f) {
+        glm::vec2 blendedVel = m_pVelocity->GetVelocity() * 0.7f + 
+                             glm::normalize(toTarget) * m_chaseSpeed * 0.24f;
+        m_pVelocity->SetVelocity(blendedVel * std::min(1.0f, dist / 50.0f));
     } else {
-        // We've arrived at the target position
         m_pVelocity->SetVelocity(glm::vec2(0.0f));
     }
 }
-
-//-----------------------------------------------------------------------------
-// IsPositionSafe - Check if a position is valid for the gorgon
-//-----------------------------------------------------------------------------
-bool GorgonController::IsPositionSafe(const glm::vec2& position) {
-    // Basic implementation - could be expanded with more checks
-    
-    // Check if position is too close to player (might be dangerous)
-    if (m_pTarget) {
-        glm::vec2 playerPos = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        float distToPlayer = glm::length(position - playerPos);
-        
-        // Too close to player might be dangerous
-        if (distToPlayer < m_meleeRange * 1.5f) {
-            return false;
-        }
-    }
-    
-    // Further checks could be added (e.g., proximity to other enemies, traps, etc.)
-    return true;
-}   
-
