@@ -13,7 +13,8 @@ particle_config:
   emission_rate: 0.0
   continuous_emission: false
   burst_count: 15
-  burst_spread: 90.0 
+  burst_spread: 90.0
+  autodestroy: true
   
   use_texture: true
   texture_path: "data/textures/blood_particle.png"

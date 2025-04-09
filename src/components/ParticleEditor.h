@@ -46,6 +46,7 @@ private:
         bool continuousEmission = false;
         int burstCount = 10;
         float burstSpread = 360.0f;
+        bool autodestroy = false;
         
         // Configuration
         std::string configFilePath = "data/particles/default.yaml";

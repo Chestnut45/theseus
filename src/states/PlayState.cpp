@@ -907,12 +907,6 @@ void PlayState::Render(float delta)
     }
 
     RenderMap();
-
-    for (auto&& [_, particleComponent] : m_pGameInstance->GetScene().Each<ParticleComponent>())
-    {
-        particleComponent.Render();
-    }
-    
 }
 
 
@@ -990,6 +984,12 @@ void PlayState::BackgroundRender(float delta)
         {
             pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
         }
+    }
+
+    // Render particle components
+    for (auto&& [_, particleComponent] : m_pGameInstance->GetScene().Each<ParticleComponent>())
+    {
+        particleComponent.Render();
     }
     
     // Bind to default framebuffer(screen)
