@@ -141,23 +141,22 @@ void BoundedFluidSystem2D::Update(float delta)
             wolf::Audio::Play("data/sounds/sfx_liquid_drain.wav", 0.5f);
         }
         
-        // Suck particles
+        // Pull particles toward the drain
         ApplyRadialForce(drain.m_bounds.m_position, drain.m_pullRadius, -drain.m_pullStrength * m_targetFrametime);
 
-        // Delete particles!
+        // Delete particles that enter the drain's inner radius
         float radSqr = drain.m_bounds.m_radius * drain.m_bounds.m_radius;
         for (int j = 0; j < m_particles.size(); ++j)
         {
             auto& p = m_particles[j];
             if (glm::distance2(p.m_pos, drain.m_bounds.m_position) < radSqr + m_kernelRadiusSqr)
             {
-                // Erase the particle
                 m_particles.erase(m_particles.begin() + j);
                 j--;
             }
         }
 
-        // Delete drains that are done!
+        // Delete drains that are done
         if (drain.m_lifetime >= drain.m_lifespan)
         {
             m_drains.erase(m_drains.begin() + i);
