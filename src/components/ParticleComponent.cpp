@@ -99,7 +99,7 @@ void ParticleComponent::InitGLResources()
 void ParticleComponent::InitQuadResources()
 {
     // Define a unit quad with texture coordinates
-    GLfloat vertices[] = {
+    const GLfloat vertices[] = {
         // Positions  // TexCoords
         -0.5f, -0.5f,  0.0f, 0.0f, // Bottom-left
          0.5f, -0.5f,  1.0f, 0.0f, // Bottom-right
@@ -107,43 +107,46 @@ void ParticleComponent::InitQuadResources()
         -0.5f,  0.5f,  0.0f, 1.0f  // Top-left
     };
 
-    GLuint indices[] = { 0, 1, 2, 2, 3, 0 };
+    const GLuint indices[] = { 0, 1, 2, 2, 3, 0 };
 
+    // Single-call buffer and VAO generation
+    GLuint buffers[2];
     glGenVertexArrays(1, &m_quadVAO);
-    glGenBuffers(1, &m_quadVBO);
-    glGenBuffers(1, &m_quadEBO);
+    glGenBuffers(2, buffers);
+    m_quadVBO = buffers[0];
+    m_quadEBO = buffers[1];
 
     glBindVertexArray(m_quadVAO);
 
+    // Vertex buffer setup
     glBindBuffer(GL_ARRAY_BUFFER, m_quadVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_quadEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    // Position attribute (location 0)
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-
-    // Texture coordinate attribute (location 3)
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(3);
 
-    // Now unbind the VAO
     glBindVertexArray(0);
 }
 
+
 void ParticleComponent::CleanupGLResources()
 {
-    glDeleteBuffers(1, &m_posVBO);
-    glDeleteBuffers(1, &m_colorVBO);
-    glDeleteBuffers(1, &m_sizeVBO);
-    glDeleteBuffers(1, &m_rotationVBO);
-    glDeleteVertexArrays(1, &m_vao);
-    
-    glDeleteBuffers(1, &m_quadVBO);
-    glDeleteBuffers(1, &m_quadEBO);
-    glDeleteVertexArrays(1, &m_quadVAO);
+    // Consolidated buffer deletion
+    GLuint particleBuffers[] = { m_posVBO, m_colorVBO, m_sizeVBO, m_rotationVBO };
+    GLuint particleVAOs[] = { m_vao };
+    GLuint quadBuffers[] = { m_quadVBO, m_quadEBO };
+    GLuint quadVAOs[] = { m_quadVAO };
+
+    glDeleteBuffers(4, particleBuffers);
+    glDeleteVertexArrays(1, particleVAOs);
+
+    glDeleteBuffers(2, quadBuffers);
+    glDeleteVertexArrays(1, quadVAOs);
 }
 
 void ParticleComponent::Update(float delta)
@@ -303,7 +306,6 @@ void ParticleComponent::RenderTexturedParticles()
     // Group particles by texture for efficient rendering
     std::unordered_map<wolf::Texture*, std::vector<const Particle*>> textureGroups;
     
-    // Group active textured particles
     for (const auto& particle : m_particles)
     {
         if (particle.m_active && particle.m_texture)
@@ -315,42 +317,37 @@ void ParticleComponent::RenderTexturedParticles()
     if (textureGroups.empty())
         return;
     
-    // Make sure shader is bound
-    s_pShader->Bind();
-    
+    // Bind VAO and set base shader uniforms
     glBindVertexArray(m_quadVAO);
     
-    // Set useTexture uniform
-    s_pShader->SetUniform("useTexture", 1);
-    s_pShader->SetUniform("particleTexture", 0); 
-    
-    // Render particles grouped by texture to minimize state changes
+    // Render particles grouped by texture
     for (const auto& [texture, particles] : textureGroups)
     {
-        // Skip invalid textures
         if (!texture || texture->GetID() == 0)
             continue;
         
-        // Bind texture once per group
+        // Bind texture for this group
         glActiveTexture(GL_TEXTURE0);
         texture->Bind(0);
         
+        // Set texture-related uniforms after
+        s_pShader->Bind();
+        s_pShader->SetUniform("useTexture", 1);
+        s_pShader->SetUniform("particleTexture", 0);
+        
+        // Render each particle
         for (const Particle* particle : particles)
         {
-            // Set up model matrix for this particle 
-            float scaleFactor = particle->m_size * 10.0f; // Adjust size scaling as needed
+            // set up model matrix for each particle
+            float scaleFactor = particle->m_size * 10.0f; // edit param as u wish
             
-            // Create model matrix with rotation
             glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(particle->m_pos, 0.0f));
             model = glm::rotate(model, glm::radians(particle->m_rotation), glm::vec3(0.0f, 0.0f, 1.0f));
             model = glm::scale(model, glm::vec3(scaleFactor, scaleFactor, 1.0f));
             
-            // Set particle-specific
             s_pShader->SetUniform("model", model);
             s_pShader->SetUniform("particleColor", particle->m_color);
-            
-            // Important: Re-bind to upload the new uniform values
-            s_pShader->Bind();
+            s_pShader->Bind(); // call bind again
             
             // Draw the quad
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
