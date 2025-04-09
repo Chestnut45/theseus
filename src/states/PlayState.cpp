@@ -884,7 +884,6 @@ void PlayState::Update(float delta)
 
 
 
-    Postprocessor::GetInstance()->Update(delta);
 
     // Dispatch events
     wolf::EventManager::Dispatch();
