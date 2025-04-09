@@ -94,6 +94,4 @@ private:
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;
     wolf::GameObject* m_pEmoteObj = nullptr;
-
-    std::vector<wolf::GameObject*> m_activeFireballs;
 };

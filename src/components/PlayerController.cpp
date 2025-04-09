@@ -1829,39 +1829,27 @@ void PlayerController::HandleBeginPlacingItemEvent(const BeginPlacingPlaceableEv
 
 void PlayerController::OnDamageEvent(const DamageEvent& event)
 {
-    // React to damage and reset invulnerability timer
+    // Player specific handling (invulnerability timer and oof sfx)
     if (event.m_pDamagedObject == GetGameObject())
     {
         m_invulnTimer.Restart();
         m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
         wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f, -5000.0f, 0.0f, true);
-        // Add blood splatter particles for player damage
-        EmitBloodParticles(event);
-    }
-    else
-    {
-        // TODO: Move out of here if we have time
-        // Play hit sound effect when enemies are damaged
-        if (event.m_pDamagedObject->HasAny<MinitaurController, GorgonController, HarpyController>())
-        {
-            wolf::Audio::Play("data/sounds/sfx_hit.wav", 0.15f);
-            // Add blood splatter particles for enemy damage
-            EmitBloodParticles(event);
-        }
     }
     
+    // Boss specific handling
     if (event.m_pDamagedObject->HasAny<BossController>())
     {
         wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f);
             
         // Add blood splatter particles for boss damage (more particles)
-        EmitBloodParticles(event, 1.5f); // Higher intensity for bosses
+        EmitBloodParticles(event, 1.5f);
     }
     else
     {  
-        // NOTE: Using pitch-shifted boss sfx for non-boss enemies because it sounds better
+        // All non-boss enemies and the player get here
         wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f, 10000, 0.0f, true);
-        EmitBloodParticles(event, 1.5f); // Higher intensity for bosses
+        EmitBloodParticles(event, 1.2f);
     }
 }
 

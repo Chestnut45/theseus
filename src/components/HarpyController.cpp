@@ -25,7 +25,6 @@ HarpyController::HarpyController()
 HarpyController::~HarpyController()
 {
     wolf::EventManager::RemoveListener<InfightingEvent, HarpyController, &HarpyController::HandleInfighting>(*this);
-    m_activeFireballs.clear();
 }
 
 void HarpyController::Init(const EnemyData& data)
@@ -104,30 +103,6 @@ void HarpyController::Update(float delta)
         {
             // wolf::Warning("BLUD CAN'T FIND A TARGET");
             RevertBackToPlayer();
-        }
-    }
-
-    for (auto* fireball : m_activeFireballs)
-    {
-        if (!fireball) continue; // Skip null pointers
-        
-        auto* velocity = fireball->GetComponent<VelocityComponent>();
-        auto* particleComp = fireball->GetComponent<ParticleComponent>();
-        if (velocity && particleComp)
-        {
-            glm::vec2 vel = velocity->GetVelocity();
-            if (glm::length(vel) > 0.1f)
-            {
-                // Get the opposite direction of movement for the particles
-                glm::vec2 emitDirection = -glm::normalize(vel);
-                
-                // Update the emission direction in the particle component
-                particleComp->SetEmissionDirection(emitDirection);
-                
-                //sweet touch: Adjust emission velocity based on projectile speed
-                float speed = glm::length(vel) * 0.2f; // 20% of projectile speed
-                particleComp->SetBaseVelocity(emitDirection * speed);
-            }
         }
     }
     

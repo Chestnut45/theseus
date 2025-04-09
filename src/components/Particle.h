@@ -57,10 +57,8 @@ struct Particle
         m_rotation += m_angularVelocity * delta;
         
         // Normalize rotation to 0-360 range
-        while (m_rotation >= 360.0f)
-            m_rotation -= 360.0f;
-        while (m_rotation < 0.0f)
-            m_rotation += 360.0f;
+        m_rotation = fmodf(m_rotation, 360.0f);
+        if (m_rotation < 0) m_rotation += 360.0f;
             
         if (m_lifetime <= 0.0f)
             m_active = false;
