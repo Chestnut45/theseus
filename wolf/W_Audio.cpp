@@ -10,7 +10,7 @@
 namespace wolf
 {
 
-void Audio::Play(const std::string& filepath, float volume, float pitchOffset, float pan, bool loop, float loopPoint)
+void Audio::Play(const std::string& filepath, float volume, float pitchOffset, float pan, bool falloff, bool loop, float loopPoint)
 {
     // Create / retrieve sample
     SoLoud::Wav& sound = s_samples[filepath];
@@ -24,7 +24,36 @@ void Audio::Play(const std::string& filepath, float volume, float pitchOffset, f
 
     // Play the sound with the given arguments
     auto handle = s_core.play(sound);
-    s_core.setVolume(handle, volume);
+    float adjustedVolume = volume;
+
+    // Calculate falloff if requested
+    if (falloff)
+    {
+        // Ensure valid handle map state
+        auto& handles = s_handles[filepath];
+        
+        // Count active voices playing this sound
+        int activeVoices = 1;
+        for (int i = 0; i < handles.size(); ++i)
+        {
+            // Remove invalid handles
+            if (!s_core.isValidVoiceHandle(handles[i]))
+            {
+                handles.erase(handles.begin() + i);
+                i--;
+                continue;
+            }
+
+            // Increase handle count
+            activeVoices++;
+        }
+        handles.push_back(handle);
+
+        // Adjust volume with inverse falloff based on number of active voices
+        adjustedVolume = volume / activeVoices;
+    }
+    
+    s_core.setVolume(handle, adjustedVolume);
     s_core.setPan(handle, pan);
 
     // Protect background music from being killed, but allow regular sfx to be killed in case of overload

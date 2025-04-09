@@ -235,7 +235,7 @@ void PlayState::Enter()
 
     // Stop all audio and begin the maze music
     wolf::Audio::Stop();
-    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, true, 13.714f);
+    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, false, true, 13.714f);
 
     // Now it's safe to register entities
     for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())
@@ -650,9 +650,11 @@ void PlayState::Update(float delta)
                 {
                     auto name = sprite.GetCurrentAnimation()->m_strName;
                     if (chestInventory.IsOpen()) {
+                        wolf::Audio::Play("data/sounds/sfx_chest_close.wav", 0.8f);
                         sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
                     }
                     else {
+                        wolf::Audio::Play("data/sounds/sfx_chest_open.wav", 0.8f);
                         sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
                     }
                     
@@ -668,6 +670,7 @@ void PlayState::Update(float delta)
                 if (chestInventory.IsOpen())
                 {
                     chestInventory.Close();
+                    wolf::Audio::Play("data/sounds/sfx_chest_close.wav", 0.8f);
                     auto name = sprite.GetCurrentAnimation()->m_strName;
                     sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
                     m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
