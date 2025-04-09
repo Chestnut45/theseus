@@ -55,7 +55,7 @@ void BossController::Init()
 {
     // Initialize stats
     m_active = false;
-    m_maxHealth = 4500;
+    m_maxHealth = 400;
     m_prevHealthFraction = 1.0f;
 
     // Phase 1 stats
@@ -722,7 +722,7 @@ void BossController::StartWave()
     SpawnWave(1);
 
     // Start the boss music
-    wolf::Audio::Play("data/sounds/bgm_boss_theme.wav", 1.0f, 0.0f, 0.0f, true, 6.433f);
+    wolf::Audio::Play("data/sounds/bgm_boss_theme.wav", 1.0f, 0.0f, 0.0f, false, true, 6.433f);
 }
 
 bool BossController::IsValidSpawnTile(glm::ivec2 tilePos)
@@ -774,14 +774,14 @@ void BossController::SpawnWave(int waveIndex)
     int minitaurs = 0, gorgons = 0, harpies = 0;
     switch (waveIndex)
     {
-        case 1: minitaurs = 4; harpies = 2; break;
-        case 2: gorgons = 2; harpies = 2; break;
-        case 3: minitaurs = 5; harpies = 3; gorgons = 2; break;
+        // case 1: minitaurs = 4; harpies = 2; break;
+        // case 2: gorgons = 2; harpies = 2; break;
+        // case 3: minitaurs = 5; harpies = 3; gorgons = 2; break;
         
         // DEBUG: Quick way through all phases
-        // case 1:
-        // case 2:
-        // case 3: minitaurs = 1; break;
+        case 1:
+        case 2:
+        case 3: minitaurs = 1; break;
     }
 
     // Get boss position
@@ -1926,6 +1926,7 @@ void BossController::StartFireBreathAttack()
     m_fireBreathTimer = m_fireBreathDuration;
     m_fireBreathRange = 0.0f;
     m_fireBreathWindupTimer = m_fireBreathWindupTime;
+    m_fireBreathSFXPlayed = false;
 
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
     GetGameObject()->GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
@@ -1951,6 +1952,13 @@ void BossController::AttackFireBreath(float delta)
     // If windup expired
     if(m_fireBreathWindupTimer <= 0.0f)
     {
+        // Play fire breath sound
+        if (!m_fireBreathSFXPlayed)
+        {
+            m_fireBreathSFXPlayed = true;
+            wolf::Audio::Play("data/sounds/sfx_fireball_shot.wav", 0.7f, 0.0f, 0.0f, true);
+        }
+
         // If fire breath expired, change state to search
         if(m_fireBreathTimer <= 0.0f)
         {
