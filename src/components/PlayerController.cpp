@@ -18,6 +18,7 @@
 #include "PlayerController.h"
 #include "LabyrinthManager.h"
 #include "BossController.h"
+#include "NPCComponent.h"
 
 #include "../DDACalculator.h"
 #include "../PortalTileManager.h"
@@ -462,6 +463,9 @@ void PlayerController::PickUpObject() {
     
     // If the player is attacking, don't bother trying to pick anything up
     if (m_action == PlayerAction::ATTACKING) return;
+    
+    // Don't pick up if already holding an object
+    if (m_isHoldingObject) return;
     
     // If the player is rolling, reset the rolling state before picking up an object
     if (m_action == PlayerAction::ROLLING) {
@@ -1588,7 +1592,7 @@ void PlayerController::StartRoll()
     m_currentAnimation = baseAnimName + dirText;
 
     // Play sfx
-    wolf::Audio::Play("data/sounds/sfx_roll.wav", 1.0f);
+    wolf::Audio::Play("data/sounds/sfx_roll.wav", 1.2f);
 }
 
 void PlayerController::EndRoll()
@@ -1830,29 +1834,33 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     {
         m_invulnTimer.Restart();
         m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
-        wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f);
-        
+        wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f, -5000.0f, 0.0f, true);
         // Add blood splatter particles for player damage
         EmitBloodParticles(event);
     }
     else
     {
+        // TODO: Move out of here if we have time
         // Play hit sound effect when enemies are damaged
         if (event.m_pDamagedObject->HasAny<MinitaurController, GorgonController, HarpyController>())
         {
             wolf::Audio::Play("data/sounds/sfx_hit.wav", 0.15f);
-            
             // Add blood splatter particles for enemy damage
             EmitBloodParticles(event);
         }
 
-        if (event.m_pDamagedObject->HasAny<BossController>())
-        {
-            wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f);
+    if (event.m_pDamagedObject->HasAny<BossController>())
+    {
+        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f);
             
-            // Add blood splatter particles for boss damage (more particles)
-            EmitBloodParticles(event, 1.5f); // Higher intensity for bosses
-        }
+        // Add blood splatter particles for boss damage (more particles)
+        EmitBloodParticles(event, 1.5f); // Higher intensity for bosses
+    }
+    else
+    {
+        // NOTE: Using pitch-shifted boss sfx for non-boss enemies because it sounds better
+        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f, 10000, 0.0f, true);
+        EmitBloodParticles(event, 1.5f); // Higher intensity for bosses
     }
 }
 
@@ -1934,7 +1942,7 @@ void PlayerController::StartDeath() {
     // Stop background music and play death music
     wolf::Audio::Stop("data/sounds/bgm_maze.wav");
     wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
-    wolf::Audio::Play("data/sounds/bgm_death.wav", 0.75f, 0.0f, 0.0f, true, 27.428f);
+    wolf::Audio::Play("data/sounds/bgm_death.wav", 0.75f, 0.0f, 0.0f, false, true, 27.428f);
 }
 
 void PlayerController::RenderDeathScreen() {

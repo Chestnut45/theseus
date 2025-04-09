@@ -380,6 +380,8 @@ void ChestInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEven
             // Close it
             m_bIsOpen = false;
 
+            wolf::Audio::Play("data/sounds/sfx_chest_close.wav", 0.8f);
+
             // Adjust sprite
             auto* pAnim = GetGameObject()->GetComponent<AnimatedSprite2D>();
             if (pAnim)

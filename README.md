@@ -120,6 +120,7 @@ wolf::Audio::Play("data/sounds/song.mp3", /* file path */
                    0.5f, /* half volume */
                    0.0f, /* pitch offset */
                    -1.0f, /* left channel */
+                   false, /* no falloff */
                    true, /* loop */
                    2.0f /* return to 2.0 seconds on loop */
                    );
