@@ -91,6 +91,16 @@ void AttackDamageComponent::Update(float p_dt)
                         wolf::Audio::Play("data/sounds/sfx_throwable_break.wav", 0.32f);
                     }
 
+                    // Detect when fireballs are destroyed and fire off sfx
+                    if (auto* pAnim = thisObject->GetComponent<AnimatedSprite2D>())
+                    {
+                        if (pAnim->GetCurrentAnimation()->m_strName == "burn")
+                        {
+                            // Ensure falloff for potentially stacked sounds
+                            wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.55f, 0.0f, 0.0f, true);
+                        }
+                    }
+
                     // Apply status effects to the target
                     StatusComponent* thatStatus = thatObject->GetComponent<StatusComponent>();
                     if(thatStatus != nullptr)
@@ -101,14 +111,6 @@ void AttackDamageComponent::Update(float p_dt)
                             if(lifespan != 0.0f)
                             {
                                 StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
-
-                                // Play burn sfx whenever a burn status effect is applied from a projectile
-                                if (seType == StatusComponent::StatusEffectType::BURNING)
-                                {
-                                    // Ensure falloff for potentially stacked sounds
-                                    wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.55f, 0.0f, 0.0f, true);
-                                }
-
                                 thatStatus->AddStatusEffect(seType, lifespan);
                             }
 
