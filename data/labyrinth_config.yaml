@@ -47,10 +47,10 @@ rooms: [
 	},
 	{
 		name: Poison Trap Rooms,
-		instances: 5,
+		instances: 6,
 		force: false,
 		position: {type: random},
-		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: poison_trap, amount: 1, placement: center},
 			{type: throwable_object, amount: 2, placement: random}
@@ -58,10 +58,10 @@ rooms: [
 	},
 	{
 		name: Lava Trap Rooms,
-		instances: 5,
+		instances: 6,
 		force: false,
 		position: {type: random},
-		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: lava_trap, amount: 1, placement: center},
 			{type: throwable_object, amount: 2, placement: random}

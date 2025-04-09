@@ -7,11 +7,14 @@
 #pragma once
 
 #include <wolf.h>
+
 #include <LabyrinthManager.h>
-
-
+#include "inventory/PlaceableItem.h"
+#include "components/ParticleSystem2D.h"
 class PortalTileManager
 {
+friend class PortalTile;
+
 public:
     static void CreateInstance(LabyrinthManager* p_lbmg);
     static void DestroyInstance();
@@ -19,40 +22,33 @@ public:
 
     void Update(float p_dt);
 
-    void CreatePortalTilePair(glm::ivec2 p_tile_pos_1, glm::ivec2 p_tile_pos_2);
+    bool CreatePortalTile(glm::ivec2 p_tile_pos);
 
 private:
-    PortalTileManager(LabyrinthManager* p_lbmg);
-    virtual ~PortalTileManager();
-    bool IsValidTile(glm::ivec2 p_tile_pos) const;
-    
-
     struct PortalTile
     {
     public:
-        static std::pair<PortalTile*, PortalTile*> CreatePair(glm::ivec2 p_tile_pos_1, glm::ivec2 p_tile_pos_2, LabyrinthManager* p_lbmg);
-        static void DeletePair(PortalTile* p_protal_tile_1, PortalTile* p_protal_tile_2);
-        void Update(float p_dt);
+        static PortalTile* CreatePortalTile(glm::ivec2 p_tile_pos, LabyrinthManager* p_lbmg, PortalTile* p_sibling = nullptr);
+        static void DeletePortalAndSibling(PortalTile* p_protal_tile_1);
+        static void DeleteAvailablePortalTile(PortalTile* p_protal_tile);
         
         // Getters
         glm::ivec2 GetTilePos() const;
-        bool IsActive() const;
         PortalTile* GetSibling() const;
         wolf::GameObjectID GetOccupantID() const;
         wolf::GameObject* GetChunk() const;
         glm::ivec2 GetChunkID() const;
 
         // Setters
-        void SetActive(bool p_active);
         void SetOccupantID(wolf::GameObjectID p_occupant_id);
         
         // Helpers
+        void Update(float p_dt);
         void CheckTeleport(wolf::GameObject* p_obj);
         void Teleport(wolf::GameObject* p_obj);
 
     private:
         glm::ivec2 m_vTilePos = glm::ivec2(0.0f, 0.0f);
-        bool m_bIsActive = false;
         PortalTile* m_pSiblingPortalTile = nullptr;
         wolf::GameObject* m_pPortalTileSpriteObj = nullptr;
         wolf::GameObjectID m_occupantID = -1;             // Any object teleported to this portal tile that is still occupying it
@@ -61,13 +57,28 @@ private:
         LabyrinthManager* m_pLabyrinthManager = nullptr;
         wolf::GameObject* m_pPlayer = nullptr;
         const glm::vec2 SPAWN_OFFSET = glm::vec2(LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE * 0.5f);
+        const float EMISSION_CHANCE = 0.005f;
+        const float SCALED_TILE_SIZE = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+        static wolf::RNG s_rng; 
 
         PortalTile(glm::ivec2 p_tile_pos, LabyrinthManager* p_lbmg);
         virtual ~PortalTile();
     }; 
+
+    PortalTileManager(LabyrinthManager* p_lbmg);
+    virtual ~PortalTileManager();
+    void HandleDestroyPlaceableEvent(const DestroyPlaceableEvent& p_event);
+    
+    static bool IsValidTile(glm::ivec2 p_tile_pos);
+    static void RenderCollectPrompt();
     
     LabyrinthManager* m_pLBMG = nullptr;
-    std::vector<std::pair<PortalTile*, PortalTile*>> m_vPortalTilePairs;
-
+    PortalTile* m_pAvailablePortalTile = nullptr;
+    std::vector<PortalTile*> m_vPortalTiles;
+    wolf::GameObject* m_pPlayer = nullptr;
     static PortalTileManager* s_pPTMG;
+
+    ParticleSystem2D* m_pParticleSystem2D = nullptr;
+
+    int m_iRemovalIndex = -2; // -1 is for the available portal tile
 };
