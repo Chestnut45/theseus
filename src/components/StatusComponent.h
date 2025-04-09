@@ -75,3 +75,12 @@ private:
     // !-- Aurora added this method to be used with StatusEffectItems --!
     void HandleApplyStatusEffectEvent(const ApplyStatusEffectEvent& p_event);
 };
+
+struct StatusEffectAdditionEvent
+{
+    StatusComponent::StatusEffectType statusEffect = StatusComponent::StatusEffectType::NONE;
+    float duration = 0.0f;
+    wolf::GameObject* owner = nullptr;
+
+    StatusEffectAdditionEvent(const StatusComponent::StatusEffectType p_se, const float p_duration, wolf::GameObject* p_owner) : statusEffect(p_se), duration(p_duration), owner(p_owner){}
+};
