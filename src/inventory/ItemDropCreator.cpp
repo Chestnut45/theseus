@@ -19,7 +19,7 @@ wolf::RNG* ItemDropCreator::m_pRNG = nullptr;
 int ItemDropCreator::m_iRNGSeed;
 std::map<std::string, YAML::Node> ItemDropCreator::m_mLootTables;
 
-const std::string ItemDropCreator::ITEM_TEXTURE_PATH = "data/textures/ItemIcons-Sheet.png";
+const std::string ItemDropCreator::ITEM_TEXTURE_PATH = "data/textures/sheets/ItemIcons-Sheet.png";
 
 // Creates the ItemDropCreator instance (provided one does not exist already)
 // > p_pScene: the Scene the ItemDropCreator will spawn items into

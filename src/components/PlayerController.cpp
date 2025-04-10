@@ -165,7 +165,7 @@ void PlayerController::LateInitialize()
     // Create Placing Indicator Obj
     m_pPlacingIndicatorObj = &pGameObject->GetScene().CreateObject2D();
     m_pPlacingIndicatorObj->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE, LabyrinthManager::SCALE));
-    wolf::Sprite2D* indicatorSprite = &m_pPlacingIndicatorObj->AddComponent<wolf::Sprite2D>("data/textures/tile_hermes_portal.png");
+    wolf::Sprite2D* indicatorSprite = &m_pPlacingIndicatorObj->AddComponent<wolf::Sprite2D>("data/textures/hermes_portal.png");
     indicatorSprite->SetVisibility(false);
     
 
@@ -212,7 +212,7 @@ void PlayerController::InitializeAnimations()
     }
 
     // Initialize the AnimatedSprite2D component
-    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/player_anim_init.yaml");
+    m_pAnimComponent = &pGameObject->AddComponent<AnimatedSprite2D>("data/animations/player_anim_init.yaml");
     m_pAnimComponent->SetLayer(10);
     
     // Render the player without lighting
@@ -1820,7 +1820,7 @@ void PlayerController::HandleBeginPlacingItemEvent(const BeginPlacingPlaceableEv
     // Set sprite texture based on placeable type
     if(p_event.pItem->GetType() == PlaceableType::PORTAL)
     {
-        indicatorSprite->SetTexture("data/textures/tile_hermes_portal.png");
+        indicatorSprite->SetTexture("data/textures/hermes_portal.png");
     }
 
     // Switch action to PLACING

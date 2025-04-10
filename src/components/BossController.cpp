@@ -137,7 +137,7 @@ void BossController::Init()
 
     // Create sprite
     pObject->DeleteComponent<AnimatedSprite2D>();
-    m_pAnimSprite = &pObject->AddComponent<AnimatedSprite2D>("data/boss_anim_init.yaml");
+    m_pAnimSprite = &pObject->AddComponent<AnimatedSprite2D>("data/animations/boss_anim_init.yaml");
     m_pAnimSprite->SetLayer(8);
     m_pAnimSprite->SetLightingEnabled(false);
 
@@ -1243,7 +1243,7 @@ void BossController::UpdatePhase2(float delta)
                     transform.SetScale(glm::vec2(3.0f));
                     auto& velocity = axe.AddComponent<VelocityComponent>();
                     velocity.SetVelocity(dirToPlayer * 640.0f);
-                    auto& sprite = axe.AddComponent<AnimatedSprite2D>("data/axe_spin_anim_init.yaml");
+                    auto& sprite = axe.AddComponent<AnimatedSprite2D>("data/animations/axe_spin_anim_init.yaml");
                     sprite.SetOriginToCenterOfFrame();
                     auto& homing = axe.AddComponent<HomingComponent>(GetGameObject(), 8.0f, 0.1f);
                     m_pAxeCollider = &axe.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, false, false);

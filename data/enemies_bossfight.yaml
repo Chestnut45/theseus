@@ -8,7 +8,7 @@ enemies:
     detection_range: 2000
     base_damage: 20.0
     chase_speed: 120.0
-    animation_init_file: "data/minitaur_anim_init.yaml"
+    animation_init_file: "data/animations/minitaur_anim_init.yaml"
 
   - type: harpy
     health: 200
@@ -19,7 +19,7 @@ enemies:
     detection_range: 2000
     base_damage: 25
     chase_speed: 80
-    animation_init_file: "data/harpy_anim_init.yaml"
+    animation_init_file: "data/animations/harpy_anim_init.yaml"
 
   - type: gorgon
     health: 600
@@ -30,5 +30,5 @@ enemies:
     detection_range: 2000
     base_damage: 50
     chase_speed: 120
-    animation_init_file: "data/gorgon_anim_init.yaml"
+    animation_init_file: "data/animations/gorgon_anim_init.yaml"
 

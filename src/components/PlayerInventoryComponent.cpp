@@ -10,7 +10,7 @@
 #include "../inventory/ArmourItem.h"
 
 std::vector<ImGuiUVSet*> PlayerInventoryComponent::m_vv2ToggleTextureCoords;
-const std::string PlayerInventoryComponent::m_strToggleTexturePath = "data/textures/InventoryToggleButton-Sheet.png";
+const std::string PlayerInventoryComponent::m_strToggleTexturePath = "data/textures/sheets/InventoryToggleButton-Sheet.png";
 
 const int PlayerInventoryComponent::TOG_BUTTON_CLOSED = 1;
 const int PlayerInventoryComponent::TOG_BUTTON_CLOSED_HOVER = 2;

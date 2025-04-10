@@ -18,7 +18,7 @@ int InventoryComponent::m_iNextIdNum = 0;
 const float InventoryComponent::TOOLTIP_WRAP_POS = 176.0f;
 
 // Shared texture resources
-const std::string InventoryComponent::m_strItemsTexturePath = "data/textures/ItemIcons-Sheet.png";
+const std::string InventoryComponent::m_strItemsTexturePath = "data/textures/sheets/ItemIcons-Sheet.png";
 const ImVec2 InventoryComponent::m_v2TexFrameSize = {32.0f, 32.0f};
 const int InventoryComponent::m_iEmptySlotIndex = 25;
 std::vector<ImGuiUVSet*> InventoryComponent::m_vv2ItemTextureCoords;

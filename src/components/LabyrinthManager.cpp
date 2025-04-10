@@ -1677,7 +1677,7 @@ void LabyrinthManager::GenerateChunks()
 
             // Create tilemap
             auto& tilemap = tilemapObj.AddComponent<wolf::TileMap>(CHUNK_SIZE, CHUNK_SIZE);
-            tilemap.LoadTileSet("data/labyrinth.tileset");
+            tilemap.LoadTileSet("data/textures/tiles/labyrinth.tileset");
 
             // Create collider component
             auto& collider = tilemapObj.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
@@ -2029,31 +2029,31 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         std::string frameName;
                         if (entity.m_type == Room::EntityType::CommonChest)
                         {
-                            lootTablePath = "data/chest_loot_common.yaml";
+                            lootTablePath = "data/loot/chest_loot_common.yaml";
                             frameName = "CommonClosed";
                             color = {0.5f, 0.5f, 0.5f, 0.75f};
                         }
                         if (entity.m_type == Room::EntityType::UncommonChest)
                         {
-                            lootTablePath = "data/chest_loot_uncommon.yaml";
+                            lootTablePath = "data/loot/chest_loot_uncommon.yaml";
                             frameName = "UncommonClosed";
                             color = {0.39f, 0.39f, 0.39f, 0.75f};
                         }
                         if (entity.m_type == Room::EntityType::RareChest)
                         {
-                            lootTablePath = "data/chest_loot_rare.yaml";
+                            lootTablePath = "data/loot/chest_loot_rare.yaml";
                             frameName = "RareClosed";
                             color = {0.0f, 0.0f, 1.0f, 0.75f};
                         }
                         if (entity.m_type == Room::EntityType::EpicChest)
                         {
-                            lootTablePath = "data/chest_loot_epic.yaml";
+                            lootTablePath = "data/loot/chest_loot_epic.yaml";
                             frameName = "EpicClosed";
                             color = {1.0f, 0.0f, 1.0f, 0.75f};
                         }
                         if (entity.m_type == Room::EntityType::LegendaryChest)
                         {
-                            lootTablePath = "data/chest_loot_legendary.yaml";
+                            lootTablePath = "data/loot/chest_loot_legendary.yaml";
                             frameName = "LegendaryClosed";
                             color = {1.0f, 0.64f, 0.0f, 0.75f};
                         }
@@ -2067,7 +2067,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         transform.SetScale(glm::vec2(SCALE));
 
                         // Add the sprite
-                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/animations/chest_anim_init.yaml");
                         sprite.SetAnimation(frameName);
                         sprite.SetOriginToCenterOfFrame();
                         sprite.SetLightingEnabled(false);
@@ -2103,7 +2103,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         transform.SetScale(glm::vec2(SCALE));
 
                         // Add the sprite
-                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/animations/chest_anim_init.yaml");
                         sprite.SetAnimation("LegendaryClosed");
                         sprite.SetOriginToCenterOfFrame();
                         sprite.SetLightingEnabled(false);
@@ -2139,7 +2139,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         transform.SetScale(glm::vec2(SCALE));
 
                         // Add the sprite
-                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/animations/chest_anim_init.yaml");
                         sprite.SetAnimation("RareClosed");
                         sprite.SetOriginToCenterOfFrame();
                         sprite.SetLightingEnabled(false);
@@ -2175,7 +2175,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         transform.SetScale(glm::vec2(SCALE));
 
                         // Add the sprite
-                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/animations/chest_anim_init.yaml");
                         sprite.SetAnimation("EpicClosed");
                         sprite.SetOriginToCenterOfFrame();
                         sprite.SetLightingEnabled(false);
@@ -2211,7 +2211,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         transform.SetScale(glm::vec2(SCALE));
 
                         // Add the sprite
-                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/chest_anim_init.yaml");
+                        auto& sprite = chest.AddComponent<AnimatedSprite2D>("data/animations/chest_anim_init.yaml");
                         sprite.SetAnimation("UncommonClosed");
                         sprite.SetOriginToCenterOfFrame();
                         sprite.SetLightingEnabled(false);
@@ -2240,7 +2240,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                     {
                         // ?-- It would be nice to choose the loot table randomly or based on where the dispensary is spawned
                         //     could use an RNG to index an array or use numbered filenames e.g. "dispensary_loot_N.yaml" --?
-                        std::string strLootTablePath = "data/dispensary_contents" + std::to_string(m_rng.NextInt(1, 4)) + ".yaml";
+                        std::string strLootTablePath = "data/loot/dispensary_contents" + std::to_string(m_rng.NextInt(1, 4)) + ".yaml";
 
                         // Create the dispensary object
                         auto& dispensary = pObject->GetScene().CreateObject2D();
@@ -2251,7 +2251,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         transform.SetScale(glm::vec2(SCALE));
 
                         // Set up the animated sprite
-                        auto& animSprite = dispensary.AddComponent<AnimatedSprite2D>("data/dispensary_anim_init.yaml");
+                        auto& animSprite = dispensary.AddComponent<AnimatedSprite2D>("data/animations/dispensary_anim_init.yaml");
                         animSprite.SetLightingEnabled(false);
 
                         // Add the dispensary inventory
@@ -2266,7 +2266,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& icon = pObject->GetScene().CreateObject2D();
                         
                         // Set up the icon's animated sprite
-                        auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/item_icons_anim_init.yaml");
+                        auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/animations/item_icons_anim_init.yaml");
                         iconSprite.SetLayer(9);
                         iconSprite.SetLightingEnabled(false);
                         
@@ -2322,10 +2322,10 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Figure out which yaml file we should use based on which NPC we're building
                         std::string strNPCYamlFile;
                         if (entity.m_type == Room::EntityType::DaedalusNPC) {
-                            strNPCYamlFile = "data/daedalus_init.yaml";
+                            strNPCYamlFile = "data/npcs/daedalus_init.yaml";
                         }
                         else if (entity.m_type == Room::EntityType::AriadneNPC) {
-                            strNPCYamlFile = "data/ariadne_init.yaml";
+                            strNPCYamlFile = "data/npcs/ariadne_init.yaml";
                         }
 
                         // Create The NPC using the NPCBuilder
@@ -2367,7 +2367,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         transform.SetScale(glm::vec2(SCALE));
 
                         // Set up the animated sprite
-                        auto& animSprite = throwableGO.AddComponent<AnimatedSprite2D>("data/throwable_anim_init.yaml");
+                        auto& animSprite = throwableGO.AddComponent<AnimatedSprite2D>("data/animations/throwable_anim_init.yaml");
                         switch(m_rng.NextInt(1, 9)){
                             case 1:
                             {
@@ -2432,6 +2432,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& trap = pObject->GetScene().CreateObject2D();
 
                         // Add sprite
+                        // TODO: Why are we using this texture for boulder traps?
                         auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
                         sprite.SetOriginToCenterOfTexture();
                         sprite.SetLayer(0);
@@ -2607,7 +2608,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         GetChunk(GetChunkID(pos))->AddChild(trap);
 
                         // Add some item drops to entice the player
-                        std::vector<wolf::GameObject*> droppedItems = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/fluid_trap_loot.yaml", pos, -1.0f);
+                        std::vector<wolf::GameObject*> droppedItems = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/loot/fluid_trap_loot.yaml", pos, -1.0f);
                         
                         // Push each item in a random direction
                         for (auto& pItem : droppedItems)
@@ -2640,7 +2641,7 @@ void LabyrinthManager::GenerateEntrance()
 
     // Create the initial tilemap
     auto& tilemap = spawnRoomObj.AddComponent<wolf::TileMap>(m_spawnPatchSize.x, m_spawnPatchSize.y);
-    tilemap.LoadTileSet("data/labyrinth.tileset");
+    tilemap.LoadTileSet("data/textures/tiles/labyrinth.tileset");
     tilemap.Clear(Tile::Grass);
 
     glm::vec2 patchOrigin = glm::vec2((m_width / 2 * TILE_SIZE - (m_spawnPatchSize.x / 2 * TILE_SIZE)) * SCALE, -m_spawnPatchSize.y * TILE_SIZE * SCALE);
@@ -2695,12 +2696,12 @@ void LabyrinthManager::GenerateEntrance()
     dispensaryTransform.SetScale(glm::vec2(SCALE));
 
     // Set up the animated sprite
-    auto& animSprite = dispensary.AddComponent<AnimatedSprite2D>("data/dispensary_anim_init.yaml");
+    auto& animSprite = dispensary.AddComponent<AnimatedSprite2D>("data/animations/dispensary_anim_init.yaml");
     animSprite.SetLightingEnabled(false);
 
     // Add the dispensary inventory
     auto& inventory = dispensary.AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(50, 300));
-    inventory.FillInventoryFromFile("data/dispensary_contents1.yaml");
+    inventory.FillInventoryFromFile("data/loot/dispensary_contents1.yaml");
 
     // Add the collider
     auto& dispensaryCollider = dispensary.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
@@ -2711,7 +2712,7 @@ void LabyrinthManager::GenerateEntrance()
     auto& icon = pObject->GetScene().CreateObject2D();
     
     // Set up the icon's animated sprite
-    auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/item_icons_anim_init.yaml");
+    auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/animations/item_icons_anim_init.yaml");
     iconSprite.SetLayer(9);
     iconSprite.SetLightingEnabled(false);
     

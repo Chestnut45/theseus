@@ -89,6 +89,7 @@ void ParticleEditor::ShowEditor()
                         ImGui::Separator();
                         
                         // List of sample textures just for demo and presentation - replace with actual texture paths
+                        // TODO: Verify only valid paths here
                         static const char* texturePaths[] = {
                             "data/textures/particle.png",
                             "data/textures/smoke.png",

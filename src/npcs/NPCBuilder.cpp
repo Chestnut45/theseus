@@ -18,7 +18,7 @@ wolf::RNG* NPCBuilder::m_pRNG = nullptr;
 
 int NPCBuilder::m_iRNGSeed;
 
-const std::string NPCBuilder::NPC_DIRECTORY_PATH = "data/npc_directory.yaml";
+const std::string NPCBuilder::NPC_DIRECTORY_PATH = "data/npcs/npc_directory.yaml";
 const ImVec2 NPCBuilder::NPC_INVENTORY_DRAW_POS = {800.0f, 200.0f};
 
 // Creates the NPCBuilder instance (provided one does not already exist)

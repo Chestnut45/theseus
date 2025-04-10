@@ -1,8 +1,0 @@
-min_items: 3
-max_items: 8
-loot_table: [
-  {name: Epic Schematic, probability: 2},
-  {name: Healing Heart, probability: 1},
-  {name: Copper Vambraces, probability: 2},
-  {name: Kilt, probability: 2}
-]

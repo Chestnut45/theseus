@@ -82,7 +82,7 @@ void PlayState::Enter()
     // Add the labyrinth manager and load the default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
-    m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
 
     // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();
@@ -225,7 +225,7 @@ void PlayState::Enter()
         glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
         transform->SetPosition(newPosition);
     }
-    wolf::EventManager::EnqueueEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+    wolf::EventManager::EnqueueEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
     // Queue up all of Ariadne's dialogue
     auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
@@ -837,7 +837,7 @@ void PlayState::Update(float delta)
         if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_9))
         {
             // Trigger both cutscene and dialogue with IDs
-            wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+            wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
         }
 
         this->m_pPathfindingManager->UpdateEntities(delta);
@@ -1821,7 +1821,7 @@ wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
     glm::vec2 ariadnePosition = playerPosition + glm::vec2(0.0f, LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
 
     // Specify the YAML file for Ariadne's NPC data
-    std::string ariadneYamlFile = "data/ariadne_init.yaml";
+    std::string ariadneYamlFile = "data/npcs/ariadne_init.yaml";
 
     // Create Ariadne using the NPCBuilder
     wolf::GameObject& ariadne = *NPCBuilder::Instance()->BuildNPC(ariadneYamlFile);

@@ -53,6 +53,8 @@ private:
 
         // Texture properties
         bool useTexture = false;
+
+        // TODO: This is an invalid default
         char texturePath[256] = "data/particles/textures/default.png";
         
         // Cache for texture preview and emission
