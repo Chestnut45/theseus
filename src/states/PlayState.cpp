@@ -493,45 +493,22 @@ void PlayState::Update(float delta)
         auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
         if (playerInventory) {
             if (m_debugHotkeys)
-            {
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
-
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-                    ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
-                    ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
-                    ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
-                    ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
-                    ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
-                    ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
-                    ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
-                    ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
-                    ItemBase* pPortal1 = ItemCreator::CreateItem("Portal");
-                    ItemBase* pPortal2 = ItemCreator::CreateItem("Portal");
-
-                ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
-                ItemBase* pSpear = ItemCreator::CreateItem("Spear");
-
-                    ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
-                    ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
-                    ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
-                    
-                    playerInventory->AddItemOrDelete(pPortal1);
-                    playerInventory->AddItemOrDelete(pPortal2);
-
-                    playerInventory->AddItemOrDelete(pBoots);
-                    playerInventory->AddItemOrDelete(pDentedHelmet);
-                    playerInventory->AddItemOrDelete(pRustyChestplate);
-                    playerInventory->AddItemOrDelete(pCopperVambraces);
-                    playerInventory->AddItemOrDelete(pKilt);
-                    playerInventory->AddItemOrDelete(pTheezys);
-                    playerInventory->AddItemOrDelete(pFauxLeatherGloves);
-                    playerInventory->AddItemOrDelete(pLapisLazuliRing);
-
-                    playerInventory->AddItemOrDelete(pBow);
-                    playerInventory->AddItemOrDelete(pSpear);
-                    playerInventory->AddItemOrDelete(pHealHeart);
-                    playerInventory->AddItemOrDelete(pHurtHeart);
-                    playerInventory->AddItemOrDelete(pBurnHeart);
+            {   
+                // DEBUG: Fill the inventory with loot
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_1))
+                {
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dull Blade"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Old Bow"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Spear"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Healing Heart"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dented Helmet"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Rusty Chestplate"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Copper Vambraces"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Kilt"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Theezys"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Faux-leather Gloves"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("The Floor is Lava Boots"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lapis Lazuli Ring"));
                 }
 
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
