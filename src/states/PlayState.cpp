@@ -26,12 +26,14 @@
 #include "../components/ThrowableObjectComponent.h"
 #include "../components/BoulderTrapComponent.h"
 #include "../components/MonsterSpawnerComponent.h"
+#include "../components/ParticleComponent.h"
 #include "../inventory/WeaponItem.h"
 #include "../inventory/ArmourItem.h"
 #include "DDACalculator.h"
 #include "GLShapesRenderer.h"
 #include "PortalTileManager.h"
 #include "Postprocessor.h"
+#include "TileFireManager.h"
 #include "../npcs/NPCBuilder.h"
 #include "../components/NPCComponent.h"
 #include <BossController.h>
@@ -55,11 +57,9 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
     wolf::EventManager::AddListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
-    wolf::EventManager::AddListener<StatusEffectAdditionEvent, PlayState, &PlayState::OnStatusEffectAdditionEvent>(*this); 
-    wolf::EventManager::AddListener<TileFireIgnitionEvent, PlayState, &PlayState::OnTileFireIgnitionEvent>(*this); 
-
+    
+ 
     this->m_pColliderManager = new ColliderManager(&scene);
-    m_particleSystem = new ParticleSystem2D();
 
     // Initialize the player object
     CreatePlayer();
@@ -87,6 +87,9 @@ void PlayState::Enter()
     // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();
     m_pPathfindingManager = &pathfindingManagerObject.AddComponent<PathfindingManager>(m_pLabyrinthManager);    
+    auto& navMeshObj = scene.CreateObject2D();
+    m_pNavMeshComponent = &navMeshObj.AddComponent<NavMeshComponent>();
+    m_pNavMeshComponent->Init(m_pPathfindingManager);
     NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
 
@@ -101,9 +104,6 @@ void PlayState::Enter()
     TileFireManager::GetInstance()->SetPropagationActiveness(true);
 
     Postprocessor::CreateInstance(&scene);
-    std::array<float, Postprocessor::Effect::NONE> effectDurations;
-    effectDurations.fill(0.0f);
-    Postprocessor::GetInstance()->AddEffect(Postprocessor::PostprocessData(effectDurations), m_pFBO->GetTextureID());
 
     // Place the bossfight trigger
     const auto& rooms = m_pLabyrinthManager->GetRooms();
@@ -250,7 +250,14 @@ void PlayState::Enter()
     }
 
 
+
+    // Generate the NavMesh from the Labyrinth
+    m_pNavMeshComponent->GenerateFromLabyrinth(m_pLabyrinthManager);
+
     m_gameCompletionTime.Start();
+
+    auto& particleEditorObj = m_pGameInstance->GetScene().CreateObject2D();
+    m_pParticleEditor = &particleEditorObj.AddComponent<ParticleEditor>();
 }
 
 void PlayState::Exit()
@@ -263,8 +270,6 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
-    wolf::EventManager::RemoveListener<StatusEffectAdditionEvent, PlayState, &PlayState::OnStatusEffectAdditionEvent>(*this);
-    wolf::EventManager::RemoveListener<TileFireIgnitionEvent, PlayState, &PlayState::OnTileFireIgnitionEvent>(*this); 
 
     m_pPathfindingManager = nullptr;
     wolf::EventManager::RemoveListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
@@ -284,13 +289,12 @@ void PlayState::Exit()
     ItemDropCreator::DestroyInstance();
     NPCBuilder::DestroyInstance();
 
-    if (m_particleSystem)
-    {
-        delete m_particleSystem;
-        m_particleSystem = nullptr;
-    }
+
     
     wolf::BufferManager::DestroyBuffer(m_pFBO);
+
+    m_pNavMeshComponent = nullptr;
+
 }
 
 void PlayState::Pause()
@@ -369,6 +373,13 @@ void PlayState::Update(float delta)
         // Show the Labyrinth Manager debug GUI
         if (m_showLabyrinthManager) 
             m_pLabyrinthManager->ShowGUI();
+        
+        m_pNavMeshComponent->Update(delta);
+
+        if (m_pParticleEditor)
+        {
+            m_pParticleEditor->Update(delta);
+        }
     }
 
     // Cache the player's position
@@ -670,7 +681,6 @@ void PlayState::Update(float delta)
                 if (chestInventory.IsOpen())
                 {
                     chestInventory.Close();
-                    wolf::Audio::Play("data/sounds/sfx_chest_close.wav", 0.8f);
                     auto name = sprite.GetCurrentAnimation()->m_strName;
                     sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
                     m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
@@ -876,17 +886,29 @@ void PlayState::Update(float delta)
             monsterSpawner.Update(delta);
         }
 
-        m_particleSystem->Update(delta);
-        // Toggle particle system editor with Right Alt
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_ALT) && m_debugHotkeys) {
-            m_particleSystem->ToggleEditor();
+        for (auto&& [_, particleComponent] : m_pGameInstance->GetScene().Each<ParticleComponent>())
+        {
+            particleComponent.Update(delta);
+        }
+
+        if (m_pNavMeshComponent)
+        {
+            m_navMeshObstacles.clear();
+            m_navMeshObstacles.push_back(m_pPlayerObject);
+
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
+            m_navMeshObstacles.push_back(controller.GetGameObject());
+
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>())
+            m_navMeshObstacles.push_back(controller.GetGameObject());
+            
+            for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>())
+            m_navMeshObstacles.push_back(component.GetGameObject());
+
+            m_pNavMeshComponent->UpdateDynamicObstacles(m_navMeshObstacles);
         }
         
-        // Call the editor function inside update
-        m_particleSystem->ShowEditor();
     }
-
-    Postprocessor::GetInstance()->Update(delta);
 
     // Dispatch events
     wolf::EventManager::Dispatch();
@@ -914,14 +936,6 @@ void PlayState::Render(float delta)
     }
 
     RenderMap();
-
-    if (m_particleSystem) {
-        m_particleSystem->Render();
-    }
-
-    GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
-    GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
-
 }
 
 
@@ -1000,10 +1014,58 @@ void PlayState::BackgroundRender(float delta)
             pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
         }
     }
+
+    if (m_pNavMeshComponent && m_pNavMeshComponent->IsDebugDrawEnabled())
+    {
+        m_pNavMeshComponent->DebugDraw();
+    }
+
+    // Render particle components
+    for (auto&& [_, particleComponent] : m_pGameInstance->GetScene().Each<ParticleComponent>())
+    {
+        particleComponent.Render();
+    }
+    
     // Bind to default framebuffer(screen)
     wolf::FrameBuffer::BindDefault();
 
-    Postprocessor::GetInstance()->Postprocess();
+    // Query postprocessing effects based on current active status effects of player
+    std::vector<Postprocessor::Effect> effects;
+    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
+    {
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
+        {
+            effects.push_back(Postprocessor::Effect::BURNING);
+        }
+        
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
+        {
+            effects.push_back(Postprocessor::Effect::POISONED);
+        }
+
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+        {
+            effects.push_back(Postprocessor::Effect::GRAYSCALE);
+        }
+        break;
+    }
+
+    // Apply heat distortion if there are active fire tiles
+    if(TileFireManager::GetInstance()->GetBurningFireTilesCount() > 0)
+    {    
+        effects.push_back(Postprocessor::Effect::HEAT_DISTORTION);
+    }
+    
+    // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
+    if(effects.size() > 0)
+    {
+        Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), effects);
+    }
+    // If not, copy texture to screen
+    else
+    {
+        m_pFBO->Blit();
+    }
 }
 
 void PlayState::CreatePlayer()
@@ -1035,10 +1097,6 @@ void PlayState::CreatePlayer()
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
 
-    // Add ParticleComponent to the player
-    auto& playerParticles = m_pPlayerObject->AddComponent<ParticleComponent>();
-    // Register the player's ParticleComponent in the ParticleSystem
-    m_particleSystem->RegisterComponent(&playerParticles);
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));
@@ -1478,47 +1536,7 @@ void PlayState::OnGameWinEvent(const GameWinEvent& event)
     m_returnToMainMenuTimer.Start();  // Return after credits (15s later)
 }
 
-void PlayState::OnStatusEffectAdditionEvent(const StatusEffectAdditionEvent& event)
-{
-    if(event.owner == nullptr) return;
-    if(event.owner->GetID() == m_pPlayerObject->GetID())
-    {
-        // std::cout << "SE: " << event.statusEffect << ", duration: " << event.duration << std::endl;
 
-        Postprocessor::Effect effect = Postprocessor::Effect::NONE;
-        switch(event.statusEffect)
-        {
-            case(StatusComponent::StatusEffectType::BURNING):
-            {
-                effect = Postprocessor::Effect::BURNING;
-                break;
-            }
-            
-            case(StatusComponent::StatusEffectType::POISONED):
-            {
-                effect = Postprocessor::Effect::POISONED;
-                break;
-            }
-
-            case(StatusComponent::StatusEffectType::PETRIFIED):
-            {
-                effect = Postprocessor::Effect::GRAYSCALE;
-                break;
-            }
-            default:
-            {
-                return;
-            }
-        }
-
-        Postprocessor::GetInstance()->AddEffect(effect, event.duration, m_pFBO->GetTextureID());
-    }
-}
-
-void PlayState::OnTileFireIgnitionEvent(const TileFireIgnitionEvent& event)
-{
-    Postprocessor::GetInstance()->AddEffect(Postprocessor::Effect::HEAT_DISTORTION, event.lifespan, m_pFBO->GetTextureID());
-}
 
 int GetGoldVariant(int tileID) {
     switch (tileID) {

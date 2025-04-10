@@ -14,6 +14,7 @@
 #include <components/AnimatedSprite2D.h>
 #include <EnemyDataLoader.h>
 #include "PathfindingManager.h"
+#include <components/NavMeshComponent.h>
 #include "InfightingEvent.h"
 #include "BehaviorTree.h"
 #include "Blackboard.h"
@@ -157,4 +158,11 @@ private:
     glm::vec2 m_dodgeDir;
     bool m_isDodging = false;
 
+
+    NavMeshComponent* m_pNavMeshComponent = nullptr;
+    std::vector<glm::vec2> m_navMeshPath;
+    float m_navMeshPathUpdateTimer = 0.0f;
+    glm::vec2 m_lastPosition = glm::vec2(0.0f);
+    float m_stuckTimer = 0.0f;
+    bool m_useNavMesh = true;
 };

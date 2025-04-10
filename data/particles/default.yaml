@@ -1,0 +1,6 @@
+particle_config:
+  color: [0.745098, 0.153403, 0.153403, 1]
+  size: 8.275
+  lifetime: 3.197
+  velocity: { x: -26.613, y: 6 }
+  max_particles: 101

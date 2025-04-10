@@ -1022,7 +1022,6 @@ void GorgonController::RevertToPlayerTarget()
     // wolf::Warning("BLUD CAN'T FIND A TARGET");
     m_pTarget = nullptr; // No valid target
 }
-
 void GorgonController::SetupCombatBehaviorTree() {
     auto root = std::make_unique<Selector>();
     

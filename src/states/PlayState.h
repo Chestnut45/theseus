@@ -31,13 +31,12 @@
 #include <TriggerComponent.h>
 #include "EnemyDataLoader.h"
 #include "PathfindingManager.h"
-#include "TileFireManager.h"
 #include <events/GameWinEvent.h>
 #include <W_Timer.h>
-#include <ParticleSystem2D.h>
-
+#include <NavMeshComponent.h>
 #include <unordered_map>
 #include <unordered_set>
+#include <ParticleEditor.h>
 
 class LabyrinthManager;
 
@@ -59,10 +58,6 @@ public:
     void OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
     void OnGameWinEvent(const GameWinEvent& event);
-
-    // Handlers for events related to postprocessing
-    void OnStatusEffectAdditionEvent(const StatusEffectAdditionEvent& event);
-    void OnTileFireIgnitionEvent(const TileFireIgnitionEvent& event);    
     
     std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}
 
@@ -78,7 +73,6 @@ private:
     //pathfinding manager
     PathfindingManager* m_pPathfindingManager = nullptr;
 
-    ParticleSystem2D* m_particleSystem = nullptr;
 
     // Flags
     bool m_debugHotkeys = false;
@@ -144,4 +138,11 @@ private:
     bool m_isExiting = false;
 
     wolf::FrameBuffer* m_pFBO = nullptr;
+
+    NavMeshComponent* m_pNavMeshComponent = nullptr;
+    std::vector<wolf::GameObject*> m_navMeshObstacles;
+
+
+    ParticleEditor* m_pParticleEditor = nullptr;
+
 };

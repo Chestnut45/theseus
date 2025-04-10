@@ -37,7 +37,6 @@ void HarpyController::Init(const EnemyData& data)
         wolf::Error("LateInitialize failed: HarpyController not attached to GameObject!");
         return;
     }
-
     // Call base initialization
     EnemyController::Init();
 
