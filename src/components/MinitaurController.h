@@ -14,6 +14,7 @@
 #include <components/AnimatedSprite2D.h>
 #include <EnemyDataLoader.h>
 #include "PathfindingManager.h"
+#include <components/NavMeshComponent.h>
 #include "InfightingEvent.h"
 
 class MinitaurController : public EnemyController
@@ -117,4 +118,11 @@ private:
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;
     wolf::GameObject* m_pEmoteObj = nullptr;
+
+    NavMeshComponent* m_pNavMeshComponent = nullptr;
+    std::vector<glm::vec2> m_navMeshPath;
+    float m_navMeshPathUpdateTimer = 0.0f;
+    glm::vec2 m_lastPosition = glm::vec2(0.0f);
+    float m_stuckTimer = 0.0f;
+    bool m_useNavMesh = true;
 };

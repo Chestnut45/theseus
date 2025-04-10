@@ -87,6 +87,9 @@ void PlayState::Enter()
     // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();
     m_pPathfindingManager = &pathfindingManagerObject.AddComponent<PathfindingManager>(m_pLabyrinthManager);    
+    auto& navMeshObj = scene.CreateObject2D();
+    m_pNavMeshComponent = &navMeshObj.AddComponent<NavMeshComponent>();
+    m_pNavMeshComponent->Init(m_pPathfindingManager);
     NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
 
@@ -247,6 +250,10 @@ void PlayState::Enter()
     }
 
 
+
+    // Generate the NavMesh from the Labyrinth
+    m_pNavMeshComponent->GenerateFromLabyrinth(m_pLabyrinthManager);
+
     m_gameCompletionTime.Start();
 
     auto& particleEditorObj = m_pGameInstance->GetScene().CreateObject2D();
@@ -285,6 +292,9 @@ void PlayState::Exit()
 
     
     wolf::BufferManager::DestroyBuffer(m_pFBO);
+
+    m_pNavMeshComponent = nullptr;
+
 }
 
 void PlayState::Pause()
@@ -363,6 +373,8 @@ void PlayState::Update(float delta)
         // Show the Labyrinth Manager debug GUI
         if (m_showLabyrinthManager) 
             m_pLabyrinthManager->ShowGUI();
+        
+        m_pNavMeshComponent->Update(delta);
 
         if (m_pParticleEditor)
         {
@@ -879,10 +891,24 @@ void PlayState::Update(float delta)
             particleComponent.Update(delta);
         }
 
+        if (m_pNavMeshComponent)
+        {
+            m_navMeshObstacles.clear();
+            m_navMeshObstacles.push_back(m_pPlayerObject);
+
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
+            m_navMeshObstacles.push_back(controller.GetGameObject());
+
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>())
+            m_navMeshObstacles.push_back(controller.GetGameObject());
+            
+            for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>())
+            m_navMeshObstacles.push_back(component.GetGameObject());
+
+            m_pNavMeshComponent->UpdateDynamicObstacles(m_navMeshObstacles);
+        }
+        
     }
-
-
-
 
     // Dispatch events
     wolf::EventManager::Dispatch();
@@ -987,6 +1013,11 @@ void PlayState::BackgroundRender(float delta)
         {
             pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
         }
+    }
+
+    if (m_pNavMeshComponent && m_pNavMeshComponent->IsDebugDrawEnabled())
+    {
+        m_pNavMeshComponent->DebugDraw();
     }
 
     // Render particle components

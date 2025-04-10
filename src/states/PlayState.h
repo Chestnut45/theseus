@@ -33,6 +33,7 @@
 #include "PathfindingManager.h"
 #include <events/GameWinEvent.h>
 #include <W_Timer.h>
+#include <NavMeshComponent.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <ParticleEditor.h>
@@ -137,6 +138,10 @@ private:
     bool m_isExiting = false;
 
     wolf::FrameBuffer* m_pFBO = nullptr;
+
+    NavMeshComponent* m_pNavMeshComponent = nullptr;
+    std::vector<wolf::GameObject*> m_navMeshObstacles;
+
 
     ParticleEditor* m_pParticleEditor = nullptr;
 
