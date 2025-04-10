@@ -158,6 +158,12 @@ public:
     static const inline int SCALE = 3;
     wolf::GameObjectID TheIdOfTheDispensaryObject;
 
+    // Gets the width of the labyrinth in tiles
+    inline int GetWidth() const { return m_width; }
+
+    // Gets the height of the labyrinth in tiles
+    inline int GetHeight() const { return m_height; }
+
 // Implementation
 private:
 

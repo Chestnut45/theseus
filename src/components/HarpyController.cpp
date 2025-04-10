@@ -35,7 +35,6 @@ void HarpyController::Init(const EnemyData& data)
         wolf::Error("LateInitialize failed: HarpyController not attached to GameObject!");
         return;
     }
-
     // Call base initialization
     EnemyController::Init();
 
@@ -392,6 +391,18 @@ void HarpyController::HandleAttackingState(float delta)
 
             auto& projectileVelocityComponent = projectile.AddComponent<VelocityComponent>();
             projectileVelocityComponent.SetVelocity(projectileDefaultVelocity);
+
+            // Add the particle component for fire trail
+            auto& particleComponent = projectile.AddComponent<ParticleComponent>(75);
+            bool configLoaded = particleComponent.LoadConfigFromYAML("data/particles/fire_trail.yaml");
+            if (!configLoaded) {
+                wolf::Warning("Failed to load fire_trail.yaml for projectile");
+                // Manual fallback setup would go here
+            }
+            
+            // Set continuous emission to true and a reasonable rate
+            particleComponent.SetContinuousEmission(true);
+            particleComponent.SetEmissionRate(40.0f); // 40 particles per second
 
             glm::vec2 offset = perpendicularVector * (30.0f * i);
             projectile.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition() + offset);

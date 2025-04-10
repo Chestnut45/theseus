@@ -28,6 +28,9 @@
 
 #include <DamageEvent.h>
 
+#include <ParticleComponent.h>
+#include "ParticleModifier.h"
+
 class PlayerController : public wolf::BaseComponent
 {
 public:
@@ -172,6 +175,13 @@ private:
     void RenderDeathScreen();
     void ResetDeathScreenState(); // cool function to reset vars
 
+    // Helper method to create blood particles on damage
+    void EmitBloodParticles(const DamageEvent& event, float intensity = 1.0f);
+
+    
+
+
+
     // Animation utility functions
     std::string GetAttackAnimationForDirection(PlayerDirection direction) const;
     std::string GetWalkAnimationForDirection(PlayerDirection direction) const;  // Add this declaration
@@ -299,5 +309,6 @@ private:
     bool m_active = true;
 
     friend class PlayState;
+
 };
 

@@ -312,37 +312,115 @@ void MinitaurController::RenderDebugPath()
 
 void MinitaurController::MoveTowardsTarget(float delta)
 {
-    if (!m_pTarget || !m_pVelocity || !m_pTransform || !m_pPathfindingManager)
+    if (!m_pTarget || !m_pVelocity || !m_pTransform)
         return;
 
-    auto& pathData = m_pPathfindingManager->GetPathData(GetGameObject());
-
-    if (pathData.path.empty())
-    {
-        FallbackToDistanceChecking();
-        return;
-    }
-
-    glm::ivec2 nextTile = pathData.path.front();
-    glm::vec2 nextTileWorldPos = m_pPathfindingManager->GetLabyrinthManager()->GetWorldPosition(nextTile) + glm::vec2(48.0f, 48.0f);
     glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    glm::vec2 direction = nextTileWorldPos - currentPosition;
-
-    if (glm::length(direction) > 0.5f)
+    glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    
+    // STEP 1: Try NavMesh pathfinding first
+    if (m_pNavMeshComponent && m_useNavMesh)
     {
-        direction = glm::normalize(direction);
-        m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+        // Update path periodically
+        if (m_navMeshPath.empty() || m_navMeshPathUpdateTimer <= 0.0f)
+        {
+            // Try full NavMesh pathfinding first
+            m_navMeshPath = m_pNavMeshComponent->FindPath(currentPosition, targetPosition);
+            
+            // Validate the path
+            if (m_navMeshPath.size() >= 2 && !m_pNavMeshComponent->IsPathValid(m_navMeshPath))
+            {
+                m_navMeshPath = m_pNavMeshComponent->CreateGridBasedPath(currentPosition, targetPosition);
+                
+                if (m_navMeshPath.size() < 2)
+                {
+                    m_useNavMesh = false;
+                }
+            }
+            else if (m_navMeshPath.size() < 2)
+            {
+                m_useNavMesh = false;
+            }
+            
+            m_navMeshPathUpdateTimer = 0.5f;
+        }
+        else
+        {
+            m_navMeshPathUpdateTimer -= delta;
+        }
+        
+        // Follow NavMesh path if valid
+        if (m_navMeshPath.size() >= 2)
+        {
+            glm::vec2 nextPoint = m_navMeshPath[1];
+            glm::vec2 direction = nextPoint - currentPosition;
+            float distance = glm::length(direction);
+            
+            // More generous tolerance for waypoint arrival
+            if (distance <= 10.0f)
+            {
+                m_navMeshPath.erase(m_navMeshPath.begin());
+            }
+            else
+            {
+                direction = glm::normalize(direction);
+                m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+                return; // Successfully using NavMesh
+            }
+        }
     }
-    else
+    
+    // STEP 2: Fall back to grid-based pathfinding
+    if (m_pPathfindingManager)
     {
-        // Advance to the next tile
-        pathData.path.erase(pathData.path.begin());
+        auto& pathData = m_pPathfindingManager->GetPathData(GetGameObject());
+        
+        // If we need a new grid path
+        if (pathData.path.empty() || pathData.targetTile != glm::ivec2(targetPosition) / 
+                                     (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE))
+        {
+            glm::ivec2 currentTile = glm::ivec2(currentPosition) / 
+                                    (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+            glm::ivec2 targetTile = glm::ivec2(targetPosition) / 
+                                   (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+            
+            
+            // Explicitly request a new path
+            std::vector<glm::ivec2> newPath = m_pPathfindingManager->FindPath(currentTile, targetTile);
+            
+            if (!newPath.empty())
+            {
+                pathData.path = newPath;
+                pathData.targetTile = targetTile;
+            }
+        }
+        
+        if (!pathData.path.empty())
+        {
+            glm::ivec2 nextTile = pathData.path.front();
+            glm::vec2 nextTileWorldPos = m_pPathfindingManager->GetLabyrinthManager()->GetWorldPosition(nextTile) + 
+                                       glm::vec2(48.0f, 48.0f);
+            glm::vec2 direction = nextTileWorldPos - currentPosition;
+            float distance = glm::length(direction);
+            
+            if (distance > 0.5f)
+            {
+                direction = glm::normalize(direction);
+                m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+                return; // Successfully using grid pathfinding
+            }
+            else
+            {
+                // Advance to the next waypoint
+                pathData.path.erase(pathData.path.begin());
+                return;
+            }
+        }
     }
+    
+    // STEP 3: Fall back to direct distance checking
+    FallbackToDistanceChecking();
 }
-
-
-
-
 
 // Fallback to direct distance checking if pathfinding fails
 void MinitaurController::FallbackToDistanceChecking()
