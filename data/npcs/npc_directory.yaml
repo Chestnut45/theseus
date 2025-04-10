@@ -1,0 +1,5 @@
+directory: [
+  {name: Vasilios, init_file: data/npcs/vasilios_init.yaml, probability: 1},
+  {name: Faidon, init_file: data/npcs/faidon_init.yaml, probability: 1},
+  {name: Leto, init_file: data/npcs/leto_init.yaml, probability: 1}
+]

@@ -1,0 +1,68 @@
+texture: data/textures/sheets/ThrowableObjects-Sheet.png
+frame_size: {x: 32.0, y: 32.0}
+
+animations: [
+  {
+    name: RoundPot,
+    start_frame: 1,
+    end_frame: 1,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: ThinPot,
+    start_frame: 2,
+    end_frame: 2,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: DarkPot,
+    start_frame: 3,
+    end_frame: 3,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: Skull,
+    start_frame: 4,
+    end_frame: 4,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: Bowl,
+    start_frame: 5,
+    end_frame: 5,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: Bottle,
+    start_frame: 6,
+    end_frame: 6,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: Arm,
+    start_frame: 7,
+    end_frame: 7,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: Rock,
+    start_frame: 8,
+    end_frame: 8,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: BrokenSpear,
+    start_frame: 9,
+    end_frame: 9,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+]

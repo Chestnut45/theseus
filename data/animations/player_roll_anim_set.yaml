@@ -1,0 +1,33 @@
+texture: data/textures/sheets/TheseusRoll-Sheet.png
+frame_size: {x: 32.0, y: 32.0}
+
+animations: [
+  {
+    name: RollSouth,
+    start_frame: 1,
+    end_frame: 7,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: RollEast,
+    start_frame: 8,
+    end_frame: 14,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: RollNorth,
+    start_frame: 15,
+    end_frame: 21,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: RollWest,
+    start_frame: 22,
+    end_frame: 28,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  }
+]
