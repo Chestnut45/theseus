@@ -69,11 +69,8 @@ private:
     void PerformSpreadShot();
     void PerformBurstAttack();
     
-    // Positioning methods
-    bool ShouldReposition();
-    glm::vec2 GetOptimalAttackPosition();
-    void MoveToOptimalPosition(float delta);
-    bool IsPositionSafe(const glm::vec2& position);
+    bool IsTargetInLOS();
+
 
     // Harpy-specific properties
     AnimatedSprite2D* m_pAnimComponent = nullptr;
