@@ -419,7 +419,6 @@ void MinitaurController::MoveTowardsTarget(float delta)
     }
     
     // STEP 3: Fall back to direct distance checking
-    printf("Entity %d using direct movement as all pathfinding failed.\n", GetGameObject()->GetID());
     FallbackToDistanceChecking();
 }
 
