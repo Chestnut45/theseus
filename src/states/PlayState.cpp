@@ -4,38 +4,45 @@
 // Modifications : D'Anyil Landry, Nguyễn Minh Nhật, Aurora Ryder
 // ver 1.1
 // A class that's responsible for the Concrete Play State.
+// 
+// Due to the limited timeframe and the amount of features we wanted to tackle,
+// features that changed frequently during development ended up in here.
+// Much of this logic could/should be refactored into self-contained classes.
 //-----------------------------------------------------------------------------
+
+#include <imgui/imgui.h>
 
 #include "PlayState.h"
 #include "PauseState.h"
 #include "DialogueAndCutsceneState.h"
-#include <imgui/imgui.h>
 
-#include "../components/ChestInventoryComponent.h"
-#include "../components/ColliderComponent.h"
-#include "../components/HealthComponent.h"
-#include "../components/HomingComponent.h"
-#include "../components/PlayerInventoryComponent.h"
-#include "../components/AttackDamageComponent.h"
-#include "../components/MerchantInventoryComponent.h"
-#include "../components/DispensaryInventoryComponent.h"
-#include "../components/StatusComponent.h"
-#include "../components/TimedDestroyerComponent.h"
-#include "../components/TrappedChestComponent.h"
-#include "../components/VelocityComponent.h"
-#include "../components/ThrowableObjectComponent.h"
-#include "../components/BoulderTrapComponent.h"
-#include "../components/MonsterSpawnerComponent.h"
-#include "../components/ParticleComponent.h"
-#include "../inventory/WeaponItem.h"
-#include "../inventory/ArmourItem.h"
-#include "DDACalculator.h"
-#include "GLShapesRenderer.h"
-#include "PortalTileManager.h"
-#include "Postprocessor.h"
-#include "TileFireManager.h"
-#include "../npcs/NPCBuilder.h"
-#include "../components/NPCComponent.h"
+#include <MainMenuState.h>
+#include <PlayerController.h>
+#include <ChestInventoryComponent.h>
+#include <ColliderComponent.h>
+#include <HealthComponent.h>
+#include <HomingComponent.h>
+#include <PlayerInventoryComponent.h>
+#include <AttackDamageComponent.h>
+#include <MerchantInventoryComponent.h>
+#include <DispensaryInventoryComponent.h>
+#include <StatusComponent.h>
+#include <TimedDestroyerComponent.h>
+#include <TrappedChestComponent.h>
+#include <VelocityComponent.h>
+#include <ThrowableObjectComponent.h>
+#include <BoulderTrapComponent.h>
+#include <MonsterSpawnerComponent.h>
+#include <ParticleComponent.h>
+#include <WeaponItem.h>
+#include <ArmourItem.h>
+#include <DDACalculator.h>
+#include <GLShapesRenderer.h>
+#include <PortalTileManager.h>
+#include <Postprocessor.h>
+#include <TileFireManager.h>
+#include <NPCBuilder.h>
+#include <NPCComponent.h>
 #include <BossController.h>
 #include <LightComponent.h>
 #include <W_Audio.h>
@@ -82,7 +89,7 @@ void PlayState::Enter()
     // Add the labyrinth manager and load the default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
-    m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
 
     // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();
@@ -225,7 +232,7 @@ void PlayState::Enter()
         glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
         transform->SetPosition(newPosition);
     }
-    wolf::EventManager::EnqueueEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+    wolf::EventManager::EnqueueEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
     // Queue up all of Ariadne's dialogue
     auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
@@ -493,45 +500,22 @@ void PlayState::Update(float delta)
         auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
         if (playerInventory) {
             if (m_debugHotkeys)
-            {
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
-
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-                    ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
-                    ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
-                    ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
-                    ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
-                    ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
-                    ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
-                    ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
-                    ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
-                    ItemBase* pPortal1 = ItemCreator::CreateItem("Portal");
-                    ItemBase* pPortal2 = ItemCreator::CreateItem("Portal");
-
-                ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
-                ItemBase* pSpear = ItemCreator::CreateItem("Spear");
-
-                    ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
-                    ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
-                    ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
-                    
-                    playerInventory->AddItemOrDelete(pPortal1);
-                    playerInventory->AddItemOrDelete(pPortal2);
-
-                    playerInventory->AddItemOrDelete(pBoots);
-                    playerInventory->AddItemOrDelete(pDentedHelmet);
-                    playerInventory->AddItemOrDelete(pRustyChestplate);
-                    playerInventory->AddItemOrDelete(pCopperVambraces);
-                    playerInventory->AddItemOrDelete(pKilt);
-                    playerInventory->AddItemOrDelete(pTheezys);
-                    playerInventory->AddItemOrDelete(pFauxLeatherGloves);
-                    playerInventory->AddItemOrDelete(pLapisLazuliRing);
-
-                    playerInventory->AddItemOrDelete(pBow);
-                    playerInventory->AddItemOrDelete(pSpear);
-                    playerInventory->AddItemOrDelete(pHealHeart);
-                    playerInventory->AddItemOrDelete(pHurtHeart);
-                    playerInventory->AddItemOrDelete(pBurnHeart);
+            {   
+                // DEBUG: Fill the inventory with loot
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_1))
+                {
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dull Blade"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Old Bow"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Spear"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Healing Heart"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dented Helmet"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Rusty Chestplate"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Copper Vambraces"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Kilt"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Theezys"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Faux-leather Gloves"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("The Floor is Lava Boots"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lapis Lazuli Ring"));
                 }
 
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
@@ -837,7 +821,7 @@ void PlayState::Update(float delta)
         if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_9))
         {
             // Trigger both cutscene and dialogue with IDs
-            wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+            wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
         }
 
         this->m_pPathfindingManager->UpdateEntities(delta);
@@ -1821,7 +1805,7 @@ wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
     glm::vec2 ariadnePosition = playerPosition + glm::vec2(0.0f, LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
 
     // Specify the YAML file for Ariadne's NPC data
-    std::string ariadneYamlFile = "data/ariadne_init.yaml";
+    std::string ariadneYamlFile = "data/npcs/ariadne_init.yaml";
 
     // Create Ariadne using the NPCBuilder
     wolf::GameObject& ariadne = *NPCBuilder::Instance()->BuildNPC(ariadneYamlFile);

@@ -8,7 +8,7 @@
 // A class that's responsible for the Concrete Main Menu State.
 //-----------------------------------------------------------------------------
 #include "GameState.h"
-#include <theseus.h>
+#include <Theseus.h>
 
 class MainMenuState : public GameState
 {
