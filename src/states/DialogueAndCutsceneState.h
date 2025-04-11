@@ -8,7 +8,7 @@
 //-----------------------------------------------------------------------------
 
 #include "GameState.h"
-#include "theseus.h"
+#include <Theseus.h>
 #include <unordered_map>
 #include <vector>
 #include <string>

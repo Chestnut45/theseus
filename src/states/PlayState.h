@@ -6,23 +6,30 @@
 // A class that's responsible for the Concrete Play State.
 //-----------------------------------------------------------------------------
 #pragma once
-#include "glm_hash.h"
-#include "GameState.h"
-#include <theseus.h> // Include the main game class
-#include <W_Sprite2D.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
+
+#include "GameState.h"
+
+#include <Theseus.h>
+
+#include <W_Sprite2D.h>
 #include <W_FrameBuffer.h>
 
-#include "../inventory/EquipmentItem.h"
-#include "../inventory/FlatAmtItem.h"
-#include "../inventory/PercentItem.h"
-#include "../inventory/StatusEffectItem.h"
-#include "../inventory/ItemCreator.h"
-#include "../inventory/ItemDropCreator.h"
-#include "../events/DialogueAndCutsceneEvent.h"
-#include "../ColliderManager.h"
-#include "events/TriggerEvent.h"
-#include "events/GameOverEvent.h"
+#include <ColliderManager.h>
+
+#include <EquipmentItem.h>
+#include <FlatAmtItem.h>
+#include <PercentItem.h>
+#include <StatusEffectItem.h>
+#include <ItemCreator.h>
+#include <ItemDropCreator.h>
+
+#include <DialogueAndCutsceneEvent.h>
+#include <TriggerEvent.h>
+#include <GameOverEvent.h>
+
 #include <TrapComponent.h>
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>

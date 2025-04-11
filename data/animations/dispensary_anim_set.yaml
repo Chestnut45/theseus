@@ -1,0 +1,35 @@
+texture: data/textures/sheets/Dispensary-Sheet.png
+frame_size: {x: 32.0, y: 32.0}
+
+animations: [
+  {
+    name: Inactive,
+    start_frame: 1,
+    end_frame: 1,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: Activate,
+    start_frame: 1,
+    end_frame: 11,
+    origin: {x: 16.0, y: 16.0},
+    loops: false,
+    next_anim: Active,
+  },
+  {
+    name: Active,
+    start_frame: 11,
+    end_frame: 11,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: Deactivate,
+    start_frame: 12,
+    end_frame: 22,
+    origin: {x: 16.0, y: 16.0},
+    loops: false,
+    next_anim: Inactive
+  },
+]
