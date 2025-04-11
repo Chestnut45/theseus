@@ -5,6 +5,10 @@
 // Original Author:	D'Anyil Landry
 //
 // A static class providing simple access to audio playback for applications.
+// Supports pitch shifting, stereo pan, looping, and optional volume falloff.
+// 
+// NOTE: Crashes on initialization for specific output devices...
+// Seems like an incomplete Miniaudio implementation for certain formats.
 //-----------------------------------------------------------------------------
 
 #include <cstdint>
@@ -22,6 +26,8 @@ typedef uint32_t AudioID;
 
 class Audio
 {
+    // Necessary for wolf::App to handle audio system setup
+    friend class App;
 
 // Public interface
 public:
@@ -66,9 +72,6 @@ private:
     // Init/Deinit functions, automatically called by wolf::App during initialization
     static void _Setup();
     static void _Shutdown();
-
-    // Necessary for wolf::App to handle audio system setup
-    friend class App;
 };
 
 }

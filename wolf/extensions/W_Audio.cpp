@@ -36,7 +36,7 @@ void Audio::Play(const std::string& filepath, float volume, float pitchOffset, f
         int activeVoices = 1;
         for (int i = 0; i < handles.size(); ++i)
         {
-            // Remove invalid handles
+            // Remove expired handles
             if (!s_core.isValidVoiceHandle(handles[i]))
             {
                 handles.erase(handles.begin() + i);
@@ -44,7 +44,7 @@ void Audio::Play(const std::string& filepath, float volume, float pitchOffset, f
                 continue;
             }
 
-            // Increase handle count
+            // Increase valid handle count
             activeVoices++;
         }
         handles.push_back(handle);
@@ -57,12 +57,11 @@ void Audio::Play(const std::string& filepath, float volume, float pitchOffset, f
     s_core.setPan(handle, pan);
 
     // Protect background music from being killed, but allow regular sfx to be killed in case of overload
+    // NOTE: Shouldn't be hardcoded here, works for this project though.
     if (filepath.starts_with("data/sounds/bgm_")) s_core.setProtectVoice(handle, true);
 
-    // Dirty awful hack pitch shifting (barf)
-    // TODO: Literally anything other than this
+    // Pitch offset is simply added to the sample rate, measured in Hz
     if (pitchOffset != 0.0f) s_core.setSamplerate(handle, s_core.getSamplerate(handle) + pitchOffset);
-
 }
 
 void Audio::Stop(const std::string& filepath)
