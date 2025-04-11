@@ -102,6 +102,18 @@ void MinitaurController::Init(const EnemyData& data)
     {
         wolf::Warning("MinitaurController: No PathfindingManager found in the scene!");
     }
+
+    bool navmeshfound = false;
+    for (auto&& [entity, navmesh] : GetGameObject()->GetScene().Each<NavMeshComponent>())
+    {
+        m_pNavMeshComponent = &navmesh;
+        navmeshfound = true;
+        break; // there's only one PathfindingManager in the scene
+    }
+    if (!navmeshfound)
+    {
+        wolf::Warning("MinitaurController: No navmesh found in the scene!");
+    }
 }
 
 
@@ -312,7 +324,7 @@ void MinitaurController::RenderDebugPath()
 
 void MinitaurController::MoveTowardsTarget(float delta)
 {
-    if (!m_pTarget || !m_pVelocity || !m_pTransform)
+    if (!m_pTarget || !m_pVelocity || !m_pTransform || !m_pPathfindingManager || !m_pNavMeshComponent)
         return;
 
     glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
