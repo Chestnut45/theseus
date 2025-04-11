@@ -20,9 +20,9 @@
 #include <MerchantInventoryComponent.h>
 #include <VelocityComponent.h>
 
-#include "../inventory/ItemDropCreator.h"
-#include "../events/DialogueAndCutsceneEvent.h"
-#include "events/DialogueOrCutsceneEndEvent.h"
+#include <ItemDropCreator.h>
+#include <DialogueAndCutsceneEvent.h>
+#include <DialogueOrCutsceneEndEvent.h>
 
 // Struct used to sort all of the NPC's possible dialogues into a minimum priority queue
 // so that we can programmatically control the ordering and repeatability of each conversation

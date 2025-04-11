@@ -7,14 +7,12 @@
 // A class representing a single colored light with a given radius
 //-----------------------------------------------------------------------------
 
-#include <LabyrinthManager.h>
-#include <W_BaseComponent.h>
-#include <W_Transform2D.h>
-#include <W_Scene.h>
 #include <string>
 
-#include <VertexDeclarations.h>
-#include "ColliderComponent.h"
+#include <W_Transform2D.h>
+#include <W_Scene.h>
+#include <globals/VertexDeclarations.h>
+#include <ColliderComponent.h>
 #include <LabyrinthManager.h>
 #include <W_EventManager.h>
 #include <LightEvents.h>

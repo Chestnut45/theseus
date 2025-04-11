@@ -4,11 +4,11 @@
 // Health.
 //-----------------------------------------------------------------------------
 
-#include "HealthComponent.h"
-#include "PlayerInventoryComponent.h"
-#include "../inventory/ArmourItem.h"
-#include <DamageEvent.h>
 #include <W_EventManager.h>
+#include <HealthComponent.h>
+#include <PlayerInventoryComponent.h>
+#include <ArmourItem.h>
+#include <DamageEvent.h>
 #include <PlayerController.h>
 
 // Constructor for custom health

@@ -45,7 +45,7 @@
 #include <PlayerController.h>
 #include <TriggerComponent.h>
 #include <TrappedChestComponent.h>
-#include "../npcs/NPCBuilder.h"
+#include <NPCBuilder.h>
 #include <HarpyController.h>
 #include <MinitaurController.h>
 #include <GorgonController.h>

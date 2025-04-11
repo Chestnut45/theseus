@@ -7,8 +7,8 @@
 // Checks for collision with HURTBOXDRs if owner object has HURTBOXDD.
 //-----------------------------------------------------------------------------
 #include <wolf.h>
-#include "../ColliderManager.h"
-#include "StatusComponent.h"
+#include <ColliderManager.h>
+#include <StatusComponent.h>
 
 
 class AttackDamageComponent : public wolf::BaseComponent

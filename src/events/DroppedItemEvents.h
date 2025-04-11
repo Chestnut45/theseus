@@ -1,5 +1,6 @@
 #pragma once
-#include "inventory/ItemBase.h"
+
+#include <ItemBase.h>
 
 // Created by Aurora Ryder for use with DroppedItems
 

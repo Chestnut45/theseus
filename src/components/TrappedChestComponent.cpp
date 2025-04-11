@@ -20,8 +20,8 @@
 #include "MinitaurBuilder.h"
 
 #include "DDACalculator.h"
-#include "../GLShapesRenderer.h"
-#include "../VertexDeclarations.h"
+#include <VertexDeclarations.h>
+#include <GLShapesRenderer.h>
 
 wolf::RNG TrappedChestComponent::s_RNG;
 std::vector<std::string> TrappedChestComponent::s_vTaunts;

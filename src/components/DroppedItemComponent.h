@@ -12,8 +12,8 @@
 #include <W_EventManager.h>
 #include <W_GameObject.h>
 
-#include "../inventory/ItemBase.h"
-#include "../events/DroppedItemEvents.h"
+#include "ItemBase.h"
+#include <DroppedItemEvents.h>
 
 class DroppedItemComponent : public wolf::BaseComponent {
     public:

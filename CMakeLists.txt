@@ -14,8 +14,16 @@ add_subdirectory(thirdparty/yaml-cpp)
 
 include_directories(
     src/
-    src/components/
+    src/components
+    src/components/controllers
+    src/components/inventory
+    src/components/particles
     src/events
+    src/managers
+    src/globals
+    src/builders
+    src/states
+    src/items
     wolf/
     thirdparty/
     thirdparty/entt

@@ -4,38 +4,45 @@
 // Modifications : D'Anyil Landry, Nguyễn Minh Nhật, Aurora Ryder
 // ver 1.1
 // A class that's responsible for the Concrete Play State.
+// 
+// Due to the limited timeframe and the amount of features we wanted to tackle,
+// features that changed frequently during development ended up in here.
+// Much of this logic could/should be refactored into self-contained classes.
 //-----------------------------------------------------------------------------
+
+#include <imgui/imgui.h>
 
 #include "PlayState.h"
 #include "PauseState.h"
 #include "DialogueAndCutsceneState.h"
-#include <imgui/imgui.h>
 
-#include "../components/ChestInventoryComponent.h"
-#include "../components/ColliderComponent.h"
-#include "../components/HealthComponent.h"
-#include "../components/HomingComponent.h"
-#include "../components/PlayerInventoryComponent.h"
-#include "../components/AttackDamageComponent.h"
-#include "../components/MerchantInventoryComponent.h"
-#include "../components/DispensaryInventoryComponent.h"
-#include "../components/StatusComponent.h"
-#include "../components/TimedDestroyerComponent.h"
-#include "../components/TrappedChestComponent.h"
-#include "../components/VelocityComponent.h"
-#include "../components/ThrowableObjectComponent.h"
-#include "../components/BoulderTrapComponent.h"
-#include "../components/MonsterSpawnerComponent.h"
-#include "../components/ParticleComponent.h"
-#include "../inventory/WeaponItem.h"
-#include "../inventory/ArmourItem.h"
-#include "DDACalculator.h"
-#include "GLShapesRenderer.h"
-#include "PortalTileManager.h"
-#include "Postprocessor.h"
-#include "TileFireManager.h"
-#include "../npcs/NPCBuilder.h"
-#include "../components/NPCComponent.h"
+#include <MainMenuState.h>
+#include <PlayerController.h>
+#include <ChestInventoryComponent.h>
+#include <ColliderComponent.h>
+#include <HealthComponent.h>
+#include <HomingComponent.h>
+#include <PlayerInventoryComponent.h>
+#include <AttackDamageComponent.h>
+#include <MerchantInventoryComponent.h>
+#include <DispensaryInventoryComponent.h>
+#include <StatusComponent.h>
+#include <TimedDestroyerComponent.h>
+#include <TrappedChestComponent.h>
+#include <VelocityComponent.h>
+#include <ThrowableObjectComponent.h>
+#include <BoulderTrapComponent.h>
+#include <MonsterSpawnerComponent.h>
+#include <ParticleComponent.h>
+#include <WeaponItem.h>
+#include <ArmourItem.h>
+#include <DDACalculator.h>
+#include <GLShapesRenderer.h>
+#include <PortalTileManager.h>
+#include <Postprocessor.h>
+#include <TileFireManager.h>
+#include <NPCBuilder.h>
+#include <NPCComponent.h>
 #include <BossController.h>
 #include <LightComponent.h>
 #include <W_Audio.h>

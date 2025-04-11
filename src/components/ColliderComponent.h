@@ -11,9 +11,8 @@
 
 #include <glm/glm.hpp>
 #include <wolf.h>
-
-#include "../ColliderManager.h"
-#include "../VertexDeclarations.h"
+#include <managers/ColliderManager.h>
+#include <globals/VertexDeclarations.h>
 
 class ColliderManager;
 

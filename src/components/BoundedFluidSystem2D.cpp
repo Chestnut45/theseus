@@ -197,7 +197,6 @@ void BoundedFluidSystem2D::Update(float delta)
         // Iterate all adjacent cells
         for (int neighbourCell = 0; neighbourCell < 9; ++neighbourCell)
         {
-            // Grab the list of particle indices from the spatial grid
             auto& cellParticleIndices = m_spatialMap[gridCell + adjacentCellOffsets[neighbourCell]];
 
             // Sum density contributions from other particles in nearby grid cells
@@ -220,30 +219,22 @@ void BoundedFluidSystem2D::Update(float delta)
         particle.m_pressure = m_gasConstant * (particle.m_density - m_restDensity);
     }
 
-    // Compute forces acting on each particle
+    // Calculate pressure and viscosity forces from nearby particles
     for (auto& particle : m_particles)
     {
         glm::vec2 pressureForce(0.0f);
         glm::vec2 viscosityForce(0.0f);
 
-        // Get the current grid cell
         glm::ivec2 gridCell = GetGridCell(particle.m_pos);
-
-        // Iterate all adjacent cells
         for (int neighbourCell = 0; neighbourCell < 9; ++neighbourCell)
         {
-            // Grab the list of particle indices from the spatial grid
             auto& cellParticleIndices = m_spatialMap[gridCell + adjacentCellOffsets[neighbourCell]];
-
-            // Sum density contributions from other particles in nearby grid cells
             for (int i = 0; i < cellParticleIndices.size(); ++i)
             {
-                // Grab the other particle
                 auto& other = m_particles[cellParticleIndices[i]];
 
                 if (&particle == &other) continue;
 
-                // Ensure it's close enough to count
                 glm::vec2 between = other.m_pos - particle.m_pos;
                 float dist = glm::length(between);
 
@@ -272,6 +263,7 @@ void BoundedFluidSystem2D::Update(float delta)
         p.m_pos += m_fixedDelta * p.m_vel;
 
         // Static collision rectangle boundary enforcement
+        // NOTE: Not the best attempt at rectangle-circle collision resolution - has some issues with tunneling
         for (const auto& rect : m_collisionRects)
         {
             // Find the closest point on the rectangle to the circle
@@ -287,11 +279,7 @@ void BoundedFluidSystem2D::Update(float delta)
             if (distanceSquared < pow(m_boundEpsilon, 2))
             {
                 float distance = std::sqrt(distanceSquared);
-                if (distance == 0.0f)
-                {
-                    // TODO: handle...
-                }
-                else
+                if (distance != 0.0f)
                 {
                     float normalX = deltaX / distance;
                     float normalY = deltaY / distance;
