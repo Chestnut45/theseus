@@ -6,6 +6,7 @@
 // Modifications:   D'Anyil Landry
 //
 // Abstract class representing an OpenGL application.
+// Modified to handle imgui, audio, and input system setup.
 //-----------------------------------------------------------------------------
 
 #include <string>
