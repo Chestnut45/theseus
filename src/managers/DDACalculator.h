@@ -4,7 +4,7 @@
 // Contains methods related to line-based grid traversal
 //-----------------------------------------------------------------------------
 #include <wolf.h>
-#include "components/LabyrinthManager.h"
+#include <LabyrinthManager.h>
 #include "VertexDeclarations.h"
 
 class DDACalculator

@@ -7,9 +7,10 @@
 // A class representing the item version of a piece of armour
 //-----------------------------------------------------------------------------
 
-#include "EquipmentItem.h"
-#include "../components/StatusComponent.h"
 #include <vector>
+
+#include "EquipmentItem.h"
+#include <StatusComponent.h>
 
 // Struct for status effects that can be applied via ArmourItems
 struct ArmourStatusEffect {

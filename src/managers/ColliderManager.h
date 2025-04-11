@@ -16,9 +16,9 @@
 #include <vector>
 #include <wolf.h>
 
-#include "components/HealthComponent.h"
-#include "components/ColliderComponent.h"
-#include "components/VelocityComponent.h"
+#include <HealthComponent.h>
+#include <ColliderComponent.h>
+#include <VelocityComponent.h>
 
 class ColliderComponent;
 

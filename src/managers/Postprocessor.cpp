@@ -6,7 +6,7 @@
 
 
 #include "Postprocessor.h"
-#include "components/LabyrinthManager.h"
+#include <LabyrinthManager.h>
 #include "TileFireManager.h"
 #include <VertexDeclarations.h>
 

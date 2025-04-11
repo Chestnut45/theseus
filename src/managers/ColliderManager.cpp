@@ -11,7 +11,7 @@
 
 #include "ColliderManager.h"
 
-#include <components/ThrowableObjectComponent.h>
+#include <ThrowableObjectComponent.h>
 #include <W_Audio.h>
 
 ColliderManager::ColliderManager(wolf::Scene* p_scene)

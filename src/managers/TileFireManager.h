@@ -7,7 +7,7 @@
 
 #include <glm/glm.hpp>
 #include <wolf.h>
-#include "components/LabyrinthManager.h"
+#include <LabyrinthManager.h>
 
 class TileFireManager
 {

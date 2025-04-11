@@ -9,11 +9,11 @@
 
 #include "EnemyController.h"
 #include <wolf.h>
-#include <components/VelocityComponent.h>
-#include <components/HealthComponent.h>
-#include <components/ColliderComponent.h>
-#include <components/AnimatedSprite2D.h>
-#include <components/StatusComponent.h>
+#include <VelocityComponent.h>
+#include <HealthComponent.h>
+#include <ColliderComponent.h>
+#include <AnimatedSprite2D.h>
+#include <StatusComponent.h>
 #include <EnemyDataLoader.h>
 #include "InfightingEvent.h"
 #include "PathfindingManager.h"

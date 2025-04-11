@@ -14,10 +14,16 @@ add_subdirectory(thirdparty/yaml-cpp)
 
 include_directories(
     src/
+    src/builders
     src/components
+    src/components/combat
     src/components/controllers
+    src/components/interactables
     src/components/inventory
-    src/components/particles
+    src/components/renderable
+    src/components/renderable/particles
+    src/components/traps
+    src/components/utility
     src/events
     src/managers
     src/globals

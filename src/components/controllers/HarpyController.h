@@ -8,10 +8,10 @@
 
 #include "EnemyController.h"
 #include <wolf.h>
-#include <components/VelocityComponent.h>
-#include <components/HealthComponent.h>
-#include <components/ColliderComponent.h>
-#include <components/AnimatedSprite2D.h>
+#include <VelocityComponent.h>
+#include <HealthComponent.h>
+#include <ColliderComponent.h>
+#include <AnimatedSprite2D.h>
 #include <EnemyDataLoader.h>
 #include "events/InfightingEvent.h"
 
