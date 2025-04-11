@@ -8,8 +8,8 @@
 
 #include "W_App.h"
 #include <W_Audio.h>
-#include "W_Input.h"
-#include "W_Logging.h"
+#include <W_Input.h>
+#include <W_Logging.h>
 
 #include <stdlib.h>
 #include <stdio.h>

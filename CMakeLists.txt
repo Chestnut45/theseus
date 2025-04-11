@@ -30,7 +30,8 @@ include_directories(
     src/builders
     src/states
     src/items
-    wolf/
+    wolf
+    wolf/extensions
     thirdparty/
     thirdparty/entt
     thirdparty/soloud/include
