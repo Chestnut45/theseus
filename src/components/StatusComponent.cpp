@@ -68,6 +68,7 @@ void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifesp
     this->m_aStatusEffects[p_se_type].m_isActive = true;
     this->m_aStatusEffects[p_se_type].m_timer.Restart();
     this->m_aStatusEffects[p_se_type].m_fLifespan = p_lifespan;
+    wolf::EventManager::TriggerEvent(StatusEffectAdditionEvent(p_se_type, p_lifespan, GetGameObject()));
     
 }
 

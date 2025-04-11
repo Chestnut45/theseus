@@ -21,6 +21,7 @@
 #include "../inventory/ItemDropCreator.h"
 #include "../events/DialogueAndCutsceneEvent.h"
 #include "../ColliderManager.h"
+#include "TileFireManager.h"
 #include "events/TriggerEvent.h"
 #include "events/GameOverEvent.h"
 #include <TrapComponent.h>
@@ -112,6 +113,10 @@ private:
     wolf::GameObject& CreateBoulderTrap(const glm::vec2& position);
 
     void OnGameOverEvent(const GameOverEvent& event);
+
+    // Handlers for events related to postprocessing
+    void OnStatusEffectAdditionEvent(const StatusEffectAdditionEvent& event);
+    void OnTileFireIgnitionEvent(const TileFireIgnitionEvent& event);
 
    // TO DO: New Helper Methods for BoulderTrap
 

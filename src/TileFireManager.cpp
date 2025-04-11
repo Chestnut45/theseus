@@ -98,6 +98,7 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
         // Create new column & new fire tile
         m_mFireColumns.insert({column, {new FireTile(m_pLBMG, p_tile_pos, lifespan, burntCooldown)}});
         m_iBurningFireTilesCount += 1;
+        wolf::EventManager::TriggerEvent(TileFireIgnitionEvent(p_tile_pos, lifespan));
         return;
     }
 
@@ -118,6 +119,7 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
                 else
                 {
                     m_iBurningFireTilesCount += 1;
+                    wolf::EventManager::TriggerEvent(TileFireIgnitionEvent(p_tile_pos, lifespan));
                 }
 
                 // Reset & Return
@@ -129,7 +131,7 @@ void TileFireManager::AddFireTile(glm::ivec2 p_tile_pos, float p_lifespan, float
         // If no matching tile, create new fire tile
         m_mFireColumns[column].push_back(new FireTile(m_pLBMG, p_tile_pos, lifespan, burntCooldown));
         m_iBurningFireTilesCount += 1;
-
+        wolf::EventManager::TriggerEvent(TileFireIgnitionEvent(p_tile_pos, lifespan));
     }
 
     return;
