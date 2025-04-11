@@ -199,31 +199,38 @@ void LabyrinthManager::Update(float delta)
 void LabyrinthManager::StartBossfight()
 {
     m_inBossfight = true;
-
-    // Temporary list of enemy game objects
-    std::vector<wolf::GameObject*> enemiesToDelete;
+    std::vector<wolf::GameObject*> objectsToDelete;
 
     // Deactivate all chunks
     for (const auto& chunk : m_chunkMap)
     {
         DeactivateChunk(chunk.first);
 
-        // Add all enemy game objects to delete list
         for (auto* pObject : chunk.second.m_pObject->GetChildren())
         {
+            // Add all enemy game objects to delete list
             if (pObject->HasAny<MinitaurController, HarpyController, GorgonController>())
             {
-                enemiesToDelete.push_back(pObject);
+                objectsToDelete.push_back(pObject);
+            }
+
+            // Add all spike traps to the delete list
+            // NOTE: This is to fix the bug where spike traps render on top of wall tiles
+            // when the boss walls trap you inside the chamber - it would be better to
+            // stop spikes from spawning in doorways but we're out of time!
+            if (pObject->HasAll<wolf::Sprite2D, TriggerComponent>())
+            {
+                objectsToDelete.push_back(pObject);
             }
         }
     }
 
-    // Destroy all enemies
-    for (auto pObject : enemiesToDelete)
+    for (auto pObject : objectsToDelete)
     {
         pObject->Delete();
     }
 
+    // Force a chunk update
     m_prevChunk = glm::ivec2(-999, -999);
 }
 
@@ -1232,6 +1239,12 @@ std::vector<LabyrinthManager::Room> LabyrinthManager::PlaceRooms()
             int newSection = m_sections.size();
             m_sections.push_back(Section());
 
+            // Make sure the boss room section ID is cached for later generation steps
+            if (room.m_name == "Minotaur's Chamber")
+            {
+                m_bossRoomSectionID = newSection;
+            }
+
             // Iterate all tiles included in the room
             for (int y = -1; y <= rect.m_size.y; ++y)
             {
@@ -1495,10 +1508,9 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
         }
     }
 
-    // Iterate all sections and knock down connectors
-    for (int i = 0; i < m_sections.size(); ++i)
+    // Lambda for opening connectors from a given section index
+    auto OpenConnectors = [this](int i)
     {
-        // Grab a reference
         auto& section = m_sections[i];
 
         // Keep opening up connectors until we run out
@@ -1547,7 +1559,17 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
             // Delete the connector
             section.m_connectors.erase(section.m_connectors.begin() + index);
         }
+    };
+
+    // Iterate all non boss room sections and knock down connectors
+    for (int i = 0; i < m_sections.size(); ++i)
+    {
+        if (i == m_bossRoomSectionID) continue;
+        OpenConnectors(i);
     }
+
+    // Make boss room accessible to at least one other area, after all other sections are open to the entrance
+    OpenConnectors(m_bossRoomSectionID);
 
     // Build generated room data
     m_generatedRooms.clear();
@@ -2604,8 +2626,10 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto purpose = entity.m_type == Room::EntityType::PoisonTrap ? TriggerPurpose::POISON_TRAP : TriggerPurpose::LAVA_TRAP;
                         trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, purpose, EntityListenType::PLAYER);
 
-                        // Add the object to the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(trap);
+                        // Add the objects to the correct chunk
+                        auto pChunk = GetChunk(GetChunkID(pos));
+                        pChunk->AddChild(trap);
+                        pChunk->AddChild(*sprite.GetGameObject());
 
                         // Add some item drops to entice the player
                         std::vector<wolf::GameObject*> droppedItems = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/loot/fluid_trap_loot.yaml", pos, -1.0f);
@@ -2618,11 +2642,13 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                                 auto offset = glm::vec2(m_rng.NextFloat(-96.0f, 96.0f), m_rng.NextFloat(-96.0f, 96.0f));
                                 pTransform->Translate(offset);
                             }
-
                             if (ColliderComponent* pItemCollider = pItem->GetComponent<ColliderComponent>())
                             {
                                 pItemCollider->SetActive(false);
                             }
+
+                            // Add the dropped item to the chunk
+                            pChunk->AddChild(*pItem);
                         }
                         break;
                     }
