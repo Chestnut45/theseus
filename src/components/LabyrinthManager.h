@@ -4,6 +4,7 @@
 // File:			LabyrinthManager.h
 // Original Author:	D'Anyil Landry
 // Modifications: Nguyễn Minh Nhật, Youssef Ashraf, Aurora Ryder
+// 
 // A class representing a game component used to generate and update the labyrinth.
 // 
 // When attached to a game object, calling Generate() will create all the
@@ -158,6 +159,12 @@ public:
     static const inline int SCALE = 3;
     wolf::GameObjectID TheIdOfTheDispensaryObject;
 
+    // Gets the width of the labyrinth in tiles
+    inline int GetWidth() const { return m_width; }
+
+    // Gets the height of the labyrinth in tiles
+    inline int GetHeight() const { return m_height; }
+
 // Implementation
 private:
 
@@ -278,11 +285,13 @@ private:
             GorgonSpawner,         //-------Added By Nhat-------//
             HarpySpawner,         //-------Added By Nhat-------//
             MinitaurSpawner,         //-------Added By Nhat-------//
+            PoisonTrap,
+            LavaTrap,
 
             // CONSTANT, LEAVE AT END
             ENTITY_COUNT
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC", "Boulder Trap", "Gorgon Spawner", "Harpy Spawner", "Minitaur Spawner"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC", "Boulder Trap", "Gorgon Spawner", "Harpy Spawner", "Minitaur Spawner", "Poison Trap", "Lava Trap"};
 
         enum class SpawnPosType
         {

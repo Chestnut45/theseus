@@ -4,43 +4,58 @@
 // Modifications : D'Anyil Landry, Nguyễn Minh Nhật, Aurora Ryder
 // ver 1.1
 // A class that's responsible for the Concrete Play State.
+// 
+// Due to the limited timeframe and the amount of features we wanted to tackle,
+// features that changed frequently during development ended up in here.
+// Much of this logic could/should be refactored into self-contained classes.
 //-----------------------------------------------------------------------------
+
+#include <imgui/imgui.h>
 
 #include "PlayState.h"
 #include "PauseState.h"
 #include "DialogueAndCutsceneState.h"
-#include <imgui/imgui.h>
 
-#include "../components/ChestInventoryComponent.h"
-#include "../components/ColliderComponent.h"
-#include "../components/HealthComponent.h"
-#include "../components/HomingComponent.h"
-#include "../components/PlayerInventoryComponent.h"
-#include "../components/AttackDamageComponent.h"
-#include "../components/MerchantInventoryComponent.h"
-#include "../components/DispensaryInventoryComponent.h"
-#include "../components/StatusComponent.h"
-#include "../components/TimedDestroyerComponent.h"
-#include "../components/TrappedChestComponent.h"
-#include "../components/VelocityComponent.h"
-#include "../components/ThrowableObjectComponent.h"
-#include "../components/BoulderTrapComponent.h"
-#include "../components/MonsterSpawnerComponent.h"
-#include "../inventory/WeaponItem.h"
-#include "../inventory/ArmourItem.h"
-#include "DDACalculator.h"
-#include "GLShapesRenderer.h"
-#include "PortalTileManager.h"
-#include "TileFireManager.h"
-#include "../npcs/NPCBuilder.h"
-#include "../components/NPCComponent.h"
+#include <MainMenuState.h>
+#include <PlayerController.h>
+#include <ChestInventoryComponent.h>
+#include <ColliderComponent.h>
+#include <HealthComponent.h>
+#include <HomingComponent.h>
+#include <PlayerInventoryComponent.h>
+#include <AttackDamageComponent.h>
+#include <MerchantInventoryComponent.h>
+#include <DispensaryInventoryComponent.h>
+#include <StatusComponent.h>
+#include <TimedDestroyerComponent.h>
+#include <TrappedChestComponent.h>
+#include <VelocityComponent.h>
+#include <ThrowableObjectComponent.h>
+#include <BoulderTrapComponent.h>
+#include <MonsterSpawnerComponent.h>
+#include <ParticleComponent.h>
+#include <WeaponItem.h>
+#include <ArmourItem.h>
+#include <DDACalculator.h>
+#include <GLShapesRenderer.h>
+#include <PortalTileManager.h>
+#include <Postprocessor.h>
+#include <TileFireManager.h>
+#include <NPCBuilder.h>
+#include <NPCComponent.h>
 #include <BossController.h>
+#include <LightComponent.h>
 #include <W_Audio.h>
 #include <events/PauseEvent.h>
 #include <glm/gtc/random.hpp>
+#include <LightEvents.h>
+#include <BoundedFluidSystem2D.h>
+
+#include <W_BufferManager.h>
 
 void PlayState::Enter()
 {
+
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
 
@@ -52,7 +67,6 @@ void PlayState::Enter()
     
  
     this->m_pColliderManager = new ColliderManager(&scene);
-    m_particleSystem = new ParticleSystem2D();
 
     // Initialize the player object
     CreatePlayer();
@@ -65,13 +79,28 @@ void PlayState::Enter()
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
 
-    // Add the labyrinth manager and generate the default labyrinth config
+    // Set the light's default FBO size to be the camera viewport size
+    LightComponent::SetDefaultFBOSize(camera.GetViewSize());
+
+    // Create framebuffer & scene texture
+    glm::vec2 viewSize = camera.GetViewSize();
+    m_pFBO = wolf::BufferManager::CreateFrameBuffer(viewSize.x, viewSize.y, viewSize.x, viewSize.y);
+
+    // Add the labyrinth manager and load the default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
-    m_pLabyrinthManager->LoadConfig("data/labyrinth_config.yaml");
+    m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
+
+    // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();
     m_pPathfindingManager = &pathfindingManagerObject.AddComponent<PathfindingManager>(m_pLabyrinthManager);    
+    auto& navMeshObj = scene.CreateObject2D();
+    m_pNavMeshComponent = &navMeshObj.AddComponent<NavMeshComponent>();
+    m_pNavMeshComponent->Init(m_pPathfindingManager);
     NPCBuilder::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+    ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
+
+    // Actually generate the labyrinth from the given seed
     m_pLabyrinthManager->GenerateLabyrinth();
 
     GLShapesRenderer::CreateInstance();
@@ -79,6 +108,9 @@ void PlayState::Enter()
 
     PortalTileManager::CreateInstance(m_pLabyrinthManager);
     TileFireManager::CreateInstance(m_pLabyrinthManager);
+    TileFireManager::GetInstance()->SetPropagationActiveness(true);
+
+    Postprocessor::CreateInstance(&scene);
 
     // Place the bossfight trigger
     const auto& rooms = m_pLabyrinthManager->GetRooms();
@@ -104,7 +136,7 @@ void PlayState::Enter()
 
         // Spawn the Minotaur Boss
         auto& bossObject = scene.CreateObject2D();
-        auto& controller = bossObject.AddComponent<BossController>();  
+        auto& controller = bossObject.AddComponent<BossController>();
 
         // Move boss to initial location
         auto* pBossTransform = bossObject.GetComponent<wolf::Transform2D>();
@@ -122,11 +154,8 @@ void PlayState::Enter()
         m_pBossWalls = &scene.CreateObject2D();
         m_bossRoomOrigin= room.m_bounds.m_origin;
         m_bossRoomSize = room.m_bounds.m_size;
-
         break;
     }
-
-    ItemDropCreator::CreateInstance(&scene, m_pLabyrinthManager->GetSeed());
     
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
     wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
@@ -183,33 +212,59 @@ void PlayState::Enter()
         return;
     }
 
+    // Add a light to the player
+    wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 125.0f, true);
+    m_pPlayerObject->AddChild(*pLightGO);
+    pLightComponent.Init();
+    pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
+
+    // Make Ariadne's light pink because I can (Aurora)
+    ariadne.GetChildren().front()->GetComponent<LightComponent>()->SetColor(glm::vec4(1.0f, 0.41f, 0.70f, 0.75f));
+
     // Register the closest Minotaur in the shared context
     m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
     m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
 
-
-   
     // Schedule her movement
     auto* transform = ariadne.GetComponent<wolf::Transform2D>();
     if (transform) {
         glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
         transform->SetPosition(newPosition);
     }
-    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+    wolf::EventManager::EnqueueEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
-
+    // Queue up all of Ariadne's dialogue
+    auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
+    ariadneNPCComp->QueueDialogue("hello");
+    ariadneNPCComp->QueueDialogue("traps");
+    ariadneNPCComp->QueueDialogue("survivors");
 
     // Stop all audio and begin the maze music
     wolf::Audio::Stop();
-    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, true, 13.714f);
+    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, false, true, 13.714f);
 
     // Now it's safe to register entities
     for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())
     {
-        m_pPathfindingManager->RegisterEntity(minitaur.GetGameObject());
+        m_pPathfindingManager->RegisterEntity(minitaur.GetGameObject()); 
+    }
+    
+    // Now it's safe to register entities
+    for (auto&& [_, gorgon] : m_pGameInstance->GetScene().Each<GorgonController>())
+    {
+        m_pPathfindingManager->RegisterEntity(gorgon.GetGameObject());
     }
 
+
+
+    // Generate the NavMesh from the Labyrinth
+    m_pNavMeshComponent->GenerateFromLabyrinth(m_pLabyrinthManager);
+
     m_gameCompletionTime.Start();
+
+    auto& particleEditorObj = m_pGameInstance->GetScene().CreateObject2D();
+    m_pParticleEditor = &particleEditorObj.AddComponent<ParticleEditor>();
 }
 
 void PlayState::Exit()
@@ -236,14 +291,17 @@ void PlayState::Exit()
     PortalTileManager::DestroyInstance();
     TileFireManager::DestroyInstance();
 
+    Postprocessor::DestroyInstance();
+
     ItemDropCreator::DestroyInstance();
     NPCBuilder::DestroyInstance();
 
-    if (m_particleSystem)
-    {
-        delete m_particleSystem;
-        m_particleSystem = nullptr;
-    }
+
+    
+    wolf::BufferManager::DestroyBuffer(m_pFBO);
+
+    m_pNavMeshComponent = nullptr;
+
 }
 
 void PlayState::Pause()
@@ -273,13 +331,20 @@ void PlayState::Update(float delta)
             m_bossZoomTimer.Reset();
         }
     }
-
     
     // Push the pause state when 'Escape' is pressed
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
     {
-        wolf::EventManager::TriggerEvent(PauseEvent(true));
-        m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
+        auto pc = m_pPlayerObject->GetComponent<PlayerController>();
+        if(pc->GetPlayerAction() == PlayerController::PlayerAction::PLACING)
+        {
+            pc->SetAction(PlayerController::PlayerAction::NONE);
+        }
+        else
+        {
+            wolf::EventManager::TriggerEvent(PauseEvent(true));
+            m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
+        }
     }
 
     // Update debug hotkeys
@@ -305,10 +370,79 @@ void PlayState::Update(float delta)
         // DEBUG: Teleport to bossfight
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT))
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
+            
+        if(wolf::Input::IsKeyJustDown(GLFW_KEY_F))
+        {
+            glm::ivec2 playerTilePos = m_pLabyrinthManager->GetTilePosition(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+            TileFireManager::GetInstance()->AddFireTile(playerTilePos);
+        }
 
         // Show the Labyrinth Manager debug GUI
         if (m_showLabyrinthManager) 
             m_pLabyrinthManager->ShowGUI();
+        
+        m_pNavMeshComponent->Update(delta);
+
+        if (m_pParticleEditor)
+        {
+            m_pParticleEditor->Update(delta);
+        }
+    }
+
+    // Cache the player's position
+    auto playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    // Update fluid system components
+    for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
+    {
+        system.Update(delta);
+
+        // Always allow the player to splash through fluid systems
+        bool playerRolling = m_pPlayerObject->GetComponent<PlayerController>()->GetPlayerAction() == PlayerController::PlayerAction::ROLLING;
+        if (playerRolling)
+        {
+            system.ApplyRadialForce(playerPos, 50.0f, 1000.0f * delta);
+        }
+
+        // Only play splash sfx if initial roll + colliding
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE) && system.Intersects(playerPos))
+        {
+            wolf::Audio::Play("data/sounds/sfx_liquid_splash.wav", 0.64f);
+        }
+
+        // TODO: This logic should be encapsulated somewhere else...
+        // Update logic for applying damage to the player via fluid traps
+        auto parent = system.GetGameObject()->GetParent();
+        if (parent)
+        {
+            auto trigger = parent->GetComponent<TriggerComponent>();
+            if (trigger)
+            {
+                switch (trigger->GetPurpose())
+                {
+                    case TriggerPurpose::POISON_TRAP:
+                        if (system.Intersects(playerPos))
+                        {
+                            m_pPlayerObject->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
+                        }
+                        break;
+                    
+                    case TriggerPurpose::LAVA_TRAP:
+                        if (system.Intersects(playerPos))
+                        {
+                            m_pPlayerObject->GetComponent<StatusComponent>()->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+                        }
+                        break;
+                    
+                    default:
+                        break;
+                }
+            }
+        }
+
+        // DEBUG: Show editor and break after updating one system
+        // system.ShowEditor();
+        // break;
     }
     
     // Update the labyrinth manager
@@ -345,7 +479,7 @@ void PlayState::Update(float delta)
     }
 
     // Show credits after message disappears
-    if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() < 15.0f)
+    if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() < 20.0f)
     {
         RenderCredits(delta);
     }
@@ -366,40 +500,22 @@ void PlayState::Update(float delta)
         auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
         if (playerInventory) {
             if (m_debugHotkeys)
-            {
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_0)) playerInventory->ToggleOpen();
-
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_1)) {
-                    ItemBase* pBoots = ItemCreator::CreateItem("The Floor is Lava Boots");
-                    ItemBase* pDentedHelmet = ItemCreator::CreateItem("Dented Helmet");
-                    ItemBase* pRustyChestplate = ItemCreator::CreateItem("Rusty Chestplate");
-                    ItemBase* pCopperVambraces = ItemCreator::CreateItem("Copper Vambraces");
-                    ItemBase* pKilt = ItemCreator::CreateItem("Kilt");
-                    ItemBase* pTheezys = ItemCreator::CreateItem("Theezys");
-                    ItemBase* pFauxLeatherGloves = ItemCreator::CreateItem("Faux-leather Gloves");
-                    ItemBase* pLapisLazuliRing = ItemCreator::CreateItem("Lapis Lazuli Ring");
-
-                ItemBase* pBow = ItemCreator::CreateItem("Old Bow");
-                ItemBase* pSpear = ItemCreator::CreateItem("Spear");
-
-                    ItemBase* pHealHeart = ItemCreator::CreateItem("Healing Heart");
-                    ItemBase* pHurtHeart = ItemCreator::CreateItem("Hurting Heart");
-                    ItemBase* pBurnHeart = ItemCreator::CreateItem("Burning Heart");
-                    
-                    playerInventory->AddItemOrDelete(pBoots);
-                    playerInventory->AddItemOrDelete(pDentedHelmet);
-                    playerInventory->AddItemOrDelete(pRustyChestplate);
-                    playerInventory->AddItemOrDelete(pCopperVambraces);
-                    playerInventory->AddItemOrDelete(pKilt);
-                    playerInventory->AddItemOrDelete(pTheezys);
-                    playerInventory->AddItemOrDelete(pFauxLeatherGloves);
-                    playerInventory->AddItemOrDelete(pLapisLazuliRing);
-
-                    playerInventory->AddItemOrDelete(pBow);
-                    playerInventory->AddItemOrDelete(pSpear);
-                    playerInventory->AddItemOrDelete(pHealHeart);
-                    playerInventory->AddItemOrDelete(pHurtHeart);
-                    playerInventory->AddItemOrDelete(pBurnHeart);
+            {   
+                // DEBUG: Fill the inventory with loot
+                if (wolf::Input::IsKeyJustDown(GLFW_KEY_1))
+                {
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dull Blade"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Old Bow"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Spear"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Healing Heart"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dented Helmet"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Rusty Chestplate"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Copper Vambraces"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Kilt"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Theezys"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Faux-leather Gloves"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("The Floor is Lava Boots"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lapis Lazuli Ring"));
                 }
 
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
@@ -511,8 +627,6 @@ void PlayState::Update(float delta)
             status.Update(delta);
         }
 
-        
-
         // Display all open chest GUIs
         const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         for (auto&&[_, chestInventory, transform, sprite] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
@@ -530,10 +644,14 @@ void PlayState::Update(float delta)
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
                 {
                     auto name = sprite.GetCurrentAnimation()->m_strName;
-                    if (chestInventory.IsOpen())
+                    if (chestInventory.IsOpen()) {
+                        wolf::Audio::Play("data/sounds/sfx_chest_close.wav", 0.8f);
                         sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
-                    else
+                    }
+                    else {
+                        wolf::Audio::Play("data/sounds/sfx_chest_open.wav", 0.8f);
                         sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
+                    }
                     
                     chestInventory.ToggleOpen();
                     
@@ -632,6 +750,7 @@ void PlayState::Update(float delta)
                     // If the dispensary has an AnimatedSprite, play the inactive animation
                     if (dispensarySprite) {
                         dispensarySprite->SetAnimation("Deactivate");
+                        wolf::EventManager::TriggerEvent(LightToggleEvent(dispensaryInventory.GetGameObject()->GetID(), false));
                     }
 
                     // Hide the child icon
@@ -702,7 +821,7 @@ void PlayState::Update(float delta)
         if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_9))
         {
             // Trigger both cutscene and dialogue with IDs
-            wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/DialogueAndCutscenes.yaml"));
+            wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
         }
 
         this->m_pPathfindingManager->UpdateEntities(delta);
@@ -737,6 +856,11 @@ void PlayState::Update(float delta)
         // Base update for all game objects and components in the scene
         m_pGameInstance->GetScene().Update(delta);
 
+        // Update the lights in the scene
+        for (auto&& [_, LightComponent] : m_pGameInstance->GetScene().Each<LightComponent>()) {
+            LightComponent.Update(delta);
+        }
+
         // Update damage indicators
         for (auto&& [_, health] : m_pGameInstance->GetScene().Each<HealthComponent>()) {
             health.UpdateDamageIndicators(delta);
@@ -746,28 +870,39 @@ void PlayState::Update(float delta)
             monsterSpawner.Update(delta);
         }
 
-        m_particleSystem->Update(delta);
-        // Toggle particle system editor with Right Alt
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_ALT) && m_debugHotkeys) {
-            m_particleSystem->ToggleEditor();
+        for (auto&& [_, particleComponent] : m_pGameInstance->GetScene().Each<ParticleComponent>())
+        {
+            particleComponent.Update(delta);
+        }
+
+        if (m_pNavMeshComponent)
+        {
+            m_navMeshObstacles.clear();
+            m_navMeshObstacles.push_back(m_pPlayerObject);
+
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
+            m_navMeshObstacles.push_back(controller.GetGameObject());
+
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>())
+            m_navMeshObstacles.push_back(controller.GetGameObject());
+            
+            for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>())
+            m_navMeshObstacles.push_back(component.GetGameObject());
+
+            m_pNavMeshComponent->UpdateDynamicObstacles(m_navMeshObstacles);
         }
         
-        // Call the editor function inside update
-        m_particleSystem->ShowEditor();
     }
 
     // Dispatch events
     wolf::EventManager::Dispatch();
-
-    // ImGui::ShowDemoWindow();
-
-
 }
 
 void PlayState::Render(float delta)
 {
-    // Render the game's scene
-    m_pGameInstance->GetScene().Render(delta);
+    // All of the background render code is done here anyway, might as well not duplicate it
+    BackgroundRender(delta);
+
     auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
     if (playerController)
         playerController->Render(delta);
@@ -785,9 +920,6 @@ void PlayState::Render(float delta)
     }
 
     RenderMap();
-
-    if (m_particleSystem)
-        m_particleSystem->Render();
 }
 
 
@@ -795,11 +927,129 @@ void PlayState::BackgroundUpdate(float delta)
 {
     if (m_showLabyrinthManager) 
         m_pLabyrinthManager->ShowGUI();
+    
+    // Update the lights in the scene
+    for (auto&& [_, LightComponent] : m_pGameInstance->GetScene().Each<LightComponent>()) {
+        LightComponent.Update(delta);
+    }
 }
 
 void PlayState::BackgroundRender(float delta)
 {
+    LightComponent::ClearFBO();
+
+    wolf::Scene* scene = &m_pGameInstance->GetScene();
+    wolf::Camera2D* camera = scene->GetActiveCamera();
+    if(camera != nullptr)
+    {
+        glm::vec2 viewSize = camera->GetViewSize();
+        m_pFBO->SetTexSize(viewSize.x, viewSize.y);
+        m_pFBO->SetWindowSize(viewSize.x, viewSize.y);
+    }
+
+    // Bind framebuffer for rendering scene - leave out UI elements
+    m_pFBO->Bind();
+
+    // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
+
+    // Bind the lighting FBO
+    LightComponent::BindFBOAndBlendFunc();
+
+    // Render light geometry to the lights' shared FBO
+    for (auto&& [_, lightComp] : m_pGameInstance->GetScene().Each<LightComponent>()) {
+        lightComp.RenderLightToFBO();
+    }
+
+    // Unbind the lighting FBO
+    LightComponent::UnbindFBOAndBlendFunc();
+
+    // Blend the light FBO with the screen
+    LightComponent::BlendFBOAndScreen();
+
+    // Render fluid systems
+    for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
+    {
+        if (system.IsIgnoreLighting()) system.Render(delta);
+    }
+
+    // Build map of animated sprites to render by layer
+    std::map<int, std::vector<std::pair<AnimatedSprite2D*, wolf::Transform2D*>>> sortedAnimatedSprites;
+    for (auto&&[_, sprite, transform] : m_pGameInstance->GetScene().Each<AnimatedSprite2D, wolf::Transform2D>())
+    {
+        // Ignore sprites that were rendered during the lighting (scene) pass
+        if (sprite.IsLightingEnabled()) continue;
+        
+        int layer = sprite.GetLayer();
+
+        // Add new spritebatch if it doesn't exist
+        if (!sortedAnimatedSprites.contains(layer)) sortedAnimatedSprites[layer] = {};
+
+        // Push back the next sprite
+        sortedAnimatedSprites[layer].push_back(std::make_pair<AnimatedSprite2D*, wolf::Transform2D*>(&sprite, &transform));
+    }
+
+    // Render all animated sprites in order
+    for (auto iter = sortedAnimatedSprites.begin(); iter != sortedAnimatedSprites.end(); ++iter)
+    {
+        auto& batch = iter->second;
+        for (auto& pair : batch)
+        {
+            pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
+        }
+    }
+
+    if (m_pNavMeshComponent && m_pNavMeshComponent->IsDebugDrawEnabled())
+    {
+        m_pNavMeshComponent->DebugDraw();
+    }
+
+    // Render particle components
+    for (auto&& [_, particleComponent] : m_pGameInstance->GetScene().Each<ParticleComponent>())
+    {
+        particleComponent.Render();
+    }
+    
+    // Bind to default framebuffer(screen)
+    wolf::FrameBuffer::BindDefault();
+
+    // Query postprocessing effects based on current active status effects of player
+    std::vector<Postprocessor::Effect> effects;
+    for (auto&& [_, playerController, status] : m_pGameInstance->GetScene().Each<PlayerController, StatusComponent>())
+    {
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
+        {
+            effects.push_back(Postprocessor::Effect::BURNING);
+        }
+        
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED))
+        {
+            effects.push_back(Postprocessor::Effect::POISONED);
+        }
+
+        if(status.IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+        {
+            effects.push_back(Postprocessor::Effect::GRAYSCALE);
+        }
+        break;
+    }
+
+    // Apply heat distortion if there are active fire tiles
+    if(TileFireManager::GetInstance()->GetBurningFireTilesCount() > 0)
+    {    
+        effects.push_back(Postprocessor::Effect::HEAT_DISTORTION);
+    }
+    
+    // If there are one or more effects, pass framebuffer texture & effects to Postprocessor to postprocess
+    if(effects.size() > 0)
+    {
+        Postprocessor::GetInstance()->Postprocess(m_pFBO->GetTextureID(), effects);
+    }
+    // If not, copy texture to screen
+    else
+    {
+        m_pFBO->Blit();
+    }
 }
 
 void PlayState::CreatePlayer()
@@ -831,10 +1081,6 @@ void PlayState::CreatePlayer()
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
 
-    // Add ParticleComponent to the player
-    auto& playerParticles = m_pPlayerObject->AddComponent<ParticleComponent>();
-    // Register the player's ParticleComponent in the ParticleSystem
-    m_particleSystem->RegisterComponent(&playerParticles);
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));
@@ -1067,13 +1313,15 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
         case TriggerPurpose::BOSS: {
             
+            TileFireManager::GetInstance()->SetPropagationActiveness(false);
+
             // Stop the background music
             wolf::Audio::Stop("data/sounds/bgm_maze.wav");
             
             // Begin the bossfight
             wolf::Log("BOSSFIGHT STARTED");
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
-            m_pBoss->GetComponent<BossController>()->SetActive(true);
+            m_pBoss->GetComponent<BossController>()->StartBossfight();
 
             // Zoom out camera
             m_bossZoomTimer.Restart();
@@ -1110,6 +1358,116 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             
             break;
         }
+
+        case TriggerPurpose::POISON_TRAP:
+        {
+            // Retrieve the room data for the trigger's position
+            auto tilePosition = m_pLabyrinthManager->GetTilePosition(triggerPosition);
+            auto roomDataOpt = m_pLabyrinthManager->GetRoom(tilePosition);
+            if (!roomDataOpt.has_value()) {
+                wolf::Log("No valid room found for poison trap!");
+                break;
+            }
+
+            // Grab room data
+            const auto& room = roomDataOpt.value();
+            const auto& bounds = room.m_bounds;
+
+            // Calculate simulation bounds
+            auto simBounds = wolf::Rectangle(bounds);
+            simBounds.m_top *= 96;
+            simBounds.m_left *= 96;
+            simBounds.m_right *= 96;
+            simBounds.m_bottom *= 96;
+
+            // Create the fluid system
+            auto& fluidObj = m_pGameInstance->GetScene().CreateObject2D();
+            auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
+
+            // Edit poison colors
+            fluidSystem.SetFluidColor(glm::vec4(0.01f, 0.5f, 0.25f, 0.75f));
+            fluidSystem.SetWaveColor(glm::vec4(0.24f, 0.7f, 0.36f, 0.75f));
+            fluidSystem.SetCausticColor(glm::vec4(0.32f, 0.78f, 0.26f, 0.75f));
+            fluidSystem.SetCausticFrequency(0.4f);
+
+            glm::vec2 center = glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2);
+
+            // Add a timed spout to spawn poison!
+            fluidSystem.AddTimedSpout(center, 2.0f, room.m_bounds.m_size.x * room.m_bounds.m_size.y * 8);
+
+            // Add a delayed drain to remove all the fluid after
+            fluidSystem.AddTimedDrain(wolf::Circle(center, 8.0f), 20.0f, 512.0f, 250.0f, 8.0f);
+
+            // Make sure the fluid system object gets completely destroyed after the draining is done
+            fluidObj.AddComponent<TimedDestroyerComponent>(20);
+
+            // Add the fluid object as a child of the trigger
+            event.m_pTriggerObject->AddChild(fluidObj);
+
+            // Reactivate the trigger after all is finished (20 seconds)
+            event.m_pTriggerObject->GetComponent<TriggerComponent>()->ReactivateDelayed(20);
+
+            wolf::Audio::Play("data/sounds/sfx_liquid_flow.wav", 0.5f);
+            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.4f);
+
+            break;
+        }
+
+        case TriggerPurpose::LAVA_TRAP:
+        {
+            // Retrieve the room data for the trigger's position
+            auto tilePosition = m_pLabyrinthManager->GetTilePosition(triggerPosition);
+            auto roomDataOpt = m_pLabyrinthManager->GetRoom(tilePosition);
+            if (!roomDataOpt.has_value()) {
+                wolf::Log("No valid room found for lava trap!");
+                break;
+            }
+
+            // Grab room data
+            const auto& room = roomDataOpt.value();
+            const auto& bounds = room.m_bounds;
+
+            // Calculate simulation bounds
+            auto simBounds = wolf::Rectangle(bounds);
+            simBounds.m_top *= 96;
+            simBounds.m_left *= 96;
+            simBounds.m_right *= 96;
+            simBounds.m_bottom *= 96;
+
+            // Create the fluid system
+            auto& fluidObj = m_pGameInstance->GetScene().CreateObject2D();
+            auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
+
+            // Edit lava colors
+            fluidSystem.SetFluidColor(glm::vec4(1.0f, 0.353, 0.0f, 0.918f));
+            fluidSystem.SetWaveColor(glm::vec4(1.0f, 0.453, 0.0f, 0.918f));
+            fluidSystem.SetCausticColor(glm::vec4(1.0f, 0.553, 0.0f, 0.918f));
+            fluidSystem.SetCausticFrequency(0.5f);
+            fluidSystem.SetIgnoreLighting(true);
+
+            glm::vec2 center = glm::vec2(simBounds.m_left + simBounds.GetWidth() / 2, simBounds.m_bottom + simBounds.GetHeight() / 2);
+
+            // Add a timed spout to spawn lava!
+            fluidSystem.AddTimedSpout(center, 2.0f, room.m_bounds.m_size.x * room.m_bounds.m_size.y * 8);
+
+            // Add a delayed drain to remove all the fluid after
+            fluidSystem.AddTimedDrain(wolf::Circle(center, 8.0f), 20.0f, 512.0f, 250.0f, 8.0f);
+
+            // Make sure the fluid system object gets completely destroyed after the draining is done
+            fluidObj.AddComponent<TimedDestroyerComponent>(20);
+
+            // Add the fluid object as a child of the trigger
+            event.m_pTriggerObject->AddChild(fluidObj);
+
+            // Reactivate the trigger after all is finished (20 seconds)
+            event.m_pTriggerObject->GetComponent<TriggerComponent>()->ReactivateDelayed(20);
+
+            wolf::Audio::Play("data/sounds/sfx_liquid_flow.wav", 0.5f);
+            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.4f);
+
+            break;
+        }
+
         default:
             wolf::Log("Unsupported trigger purpose.");
             break;
@@ -1447,7 +1805,7 @@ wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
     glm::vec2 ariadnePosition = playerPosition + glm::vec2(0.0f, LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
 
     // Specify the YAML file for Ariadne's NPC data
-    std::string ariadneYamlFile = "data/ariadne_init.yaml";
+    std::string ariadneYamlFile = "data/npcs/ariadne_init.yaml";
 
     // Create Ariadne using the NPCBuilder
     wolf::GameObject& ariadne = *NPCBuilder::Instance()->BuildNPC(ariadneYamlFile);
@@ -1477,10 +1835,10 @@ void PlayState::RenderFadeOverlay(float alpha)
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, alpha));
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-    if (m_showCreditsTimer.Elapsed() < 15.0f) flags |= ImGuiWindowFlags_NoInputs;
+    if (m_showCreditsTimer.Elapsed() < 20.0f) flags |= ImGuiWindowFlags_NoInputs;
     if (ImGui::Begin("FadeOverlay", nullptr, flags ))
     {
-        if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() >= 15.0f)
+        if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() >= 20.0f)
         {
             // Style taken from PauseState
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
@@ -1545,7 +1903,9 @@ void PlayState::RenderCredits(float delta)
         "Youssef Ashraf",
         "Nguyen Minh Nhat",
         "",
-        "Music / SFX: D'Anyil Landry",
+        "Lead Artist: Aurora Ryder",
+        "",
+        "Music / SFX Design: D'Anyil Landry",
         "",
         "lots of love, if you got here, ur an amazing person",
         "",
@@ -1557,8 +1917,8 @@ void PlayState::RenderCredits(float delta)
 
     // Set window position and center it
     float windowWidth = 500.0f;
-    float windowHeight = 380.0f;
-    float baseY = ImGui::GetIO().DisplaySize.y - (elapsed * (ImGui::GetIO().DisplaySize.y / 15.0f)); // Adjust scrolling speed
+    float windowHeight = 420.0f;
+    float baseY = ImGui::GetIO().DisplaySize.y - (elapsed * ((ImGui::GetIO().DisplaySize.y + windowHeight) / 20.0f)); // Adjust scrolling speed
 
     ImVec2 windowPos(ImGui::GetIO().DisplaySize.x * 0.5f - windowWidth * 0.5f, baseY);
     ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);

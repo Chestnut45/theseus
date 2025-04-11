@@ -6,21 +6,30 @@
 // A class that's responsible for the Concrete Play State.
 //-----------------------------------------------------------------------------
 #pragma once
-#include "glm_hash.h"
-#include "GameState.h"
-#include <theseus.h> // Include the main game class
-#include <W_Sprite2D.h>
 
-#include "../inventory/EquipmentItem.h"
-#include "../inventory/FlatAmtItem.h"
-#include "../inventory/PercentItem.h"
-#include "../inventory/StatusEffectItem.h"
-#include "../inventory/ItemCreator.h"
-#include "../inventory/ItemDropCreator.h"
-#include "../events/DialogueAndCutsceneEvent.h"
-#include "../ColliderManager.h"
-#include "events/TriggerEvent.h"
-#include "events/GameOverEvent.h"
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
+
+#include "GameState.h"
+
+#include <Theseus.h>
+
+#include <W_Sprite2D.h>
+#include <W_FrameBuffer.h>
+
+#include <ColliderManager.h>
+
+#include <EquipmentItem.h>
+#include <FlatAmtItem.h>
+#include <PercentItem.h>
+#include <StatusEffectItem.h>
+#include <ItemCreator.h>
+#include <ItemDropCreator.h>
+
+#include <DialogueAndCutsceneEvent.h>
+#include <TriggerEvent.h>
+#include <GameOverEvent.h>
+
 #include <TrapComponent.h>
 #include <EnemyController.h>
 #include <MinitaurBuilder.h>
@@ -31,11 +40,10 @@
 #include "PathfindingManager.h"
 #include <events/GameWinEvent.h>
 #include <W_Timer.h>
-#include <ParticleSystem2D.h>
-
+#include <NavMeshComponent.h>
 #include <unordered_map>
 #include <unordered_set>
-
+#include <ParticleEditor.h>
 
 class LabyrinthManager;
 
@@ -43,8 +51,8 @@ class PlayState : public GameState
 {
 public:
     PlayState(GameStateManager* manager, Theseus* gameInstance)
-        : GameState(manager, gameInstance) {}
-
+        : GameState(manager, gameInstance) {
+        }
 
     void Enter() override;
     void Exit() override;
@@ -57,6 +65,7 @@ public:
     void OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event);
     void OnTriggerEvent(const TriggerEvent& event);
     void OnGameWinEvent(const GameWinEvent& event);
+    
     std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}
 
 private:
@@ -71,7 +80,6 @@ private:
     //pathfinding manager
     PathfindingManager* m_pPathfindingManager = nullptr;
 
-    ParticleSystem2D* m_particleSystem = nullptr;
 
     // Flags
     bool m_debugHotkeys = false;
@@ -135,5 +143,13 @@ private:
     void RenderTextCentered(const std::string& text, float size);
     void RenderCredits(float delta);
     bool m_isExiting = false;
+
+    wolf::FrameBuffer* m_pFBO = nullptr;
+
+    NavMeshComponent* m_pNavMeshComponent = nullptr;
+    std::vector<wolf::GameObject*> m_navMeshObstacles;
+
+
+    ParticleEditor* m_pParticleEditor = nullptr;
 
 };

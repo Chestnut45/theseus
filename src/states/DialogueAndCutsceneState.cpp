@@ -464,13 +464,17 @@ void DialogueAndCutsceneState::RenderSequence(float delta) {
     const auto& currentItem = (*m_currentSequence)[m_currentSequenceIndex];
 
     // Handle camera rendering (for cutscenes)
-    if (currentItem.type == "cutscene" || currentItem.type == "combined") {
-        auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
-        if (camera) {
-            // Render the scene with the current camera transformations
-            m_pGameInstance->GetScene().Render(delta);
-        }
-    }
+    // 
+    // NOTE: This caused a bug with light rendering so I axed it (- D'Anyil)
+    // Cutscenes still render properly because of the scene's background render
+    // 
+    // if (currentItem.type == "cutscene" || currentItem.type == "combined") {
+    //     auto* camera = m_pGameInstance->GetScene().GetActiveCamera();
+    //     if (camera) {
+    //         // Render the scene with the current camera transformations
+    //         m_pGameInstance->GetScene().Render(delta);
+    //     }
+    // }
 
     // Handle dialogue rendering
     if (currentItem.type == "dialogue" || currentItem.type == "combined") {

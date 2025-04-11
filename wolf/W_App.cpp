@@ -8,8 +8,8 @@
 
 #include "W_App.h"
 #include <W_Audio.h>
-#include "W_Input.h"
-#include "W_Logging.h"
+#include <W_Input.h>
+#include <W_Logging.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -106,7 +106,6 @@ App::App(const std::string& name, int width, int height)
     Log("OpenGL Context: ", glGetString(GL_VERSION));
 
     // Initialize audio system
-    // NOTE: Commented out until we find a fix for soloud crashing
     Audio::_Setup();
 }
 

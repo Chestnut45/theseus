@@ -1,0 +1,14 @@
+CutscenesAndDialogues:
+  anti_minotaur:
+    characters:
+      - name: "Leto"
+        portraitPath: "data/textures/LetoPortrait.png"
+    sequence:
+      - type: "dialogue"
+        character: "Leto"
+        text: "I wish the queen hadn't had sex with that bull."
+        duration: 2.0
+      - type: "dialogue"
+        character: "Leto"
+        text: "The minotaur is an asshole."
+        duration: 2.0

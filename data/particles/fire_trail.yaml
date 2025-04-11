@@ -1,0 +1,56 @@
+particle_config:
+  color: [1.0, 0.8, 0.2, 0.9]
+  size: 4.6
+  lifetime: 0.6
+  rotation: 0.0
+  angular_velocity: 120.0
+  
+  velocity:
+    x: 0.0
+    y: -17.25
+  
+  max_particles: 75
+  emission_rate: 0.0
+  continuous_emission: false
+  burst_count: 17
+  burst_spread: 35.0
+  autodestroy: true
+  
+  use_texture: true
+  texture_path: "data/textures/fire_particle.png"
+  
+  modifiers:
+    emission_shape:
+      enabled: true
+      shape_type: 0
+      random_direction: true
+      direction_angle: 180.0
+      spread_angle: 34.5
+      emit_from_edge: false
+    
+    gravity:
+      enabled: true
+      gravity_x: 0.0
+      gravity_y: -34.5
+      strength: 1.0
+    
+    drag:
+      enabled: true
+      coefficient: 0.3
+    
+    size_over_lifetime:
+      enabled: true
+      start_scale: 0.92
+      end_scale: 0.23
+      curve_type: 2
+    
+    color_over_lifetime:
+      enabled: true
+      start_color: [1.0, 0.8, 0.2, 0.9]
+      end_color: [1.0, 0.2, 0.0, 0.0]
+    
+    rotation:
+      enabled: true
+      rotation_speed: 180.0
+      random_initial: true
+      random_direction: true

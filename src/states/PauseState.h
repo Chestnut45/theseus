@@ -8,7 +8,7 @@
 //-----------------------------------------------------------------------------
 
 #include "GameState.h"
-#include <theseus.h> // Include the main game class
+#include <Theseus.h> // Include the main game class
 
 class PauseState : public GameState
 {
