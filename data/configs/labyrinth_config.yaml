@@ -11,7 +11,7 @@ rooms: [
 		position: {type: manual, origin: {x: 37, y: 37}},
 		size: {type: manual, value: {x: 21, y: 21}},
 		entities: [
-			{type: throwable_object, amount: 10, placement: random},
+			{type: throwable_object, amount: 16, placement: random},
 		]
 	},
 	{
@@ -23,6 +23,18 @@ rooms: [
 		entities: [
 			{type: daedalus_npc, amount: 1, placement: center},
 			{type: throwable_object, amount: 2, placement: random},
+		]
+	},
+	{
+		name: Legendary Chest Room,
+		instances: 1,
+		force: false,
+		position: {type: random_radius, position: {x: 47, y: 47}, radius: 24},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
+		entities: [
+			{type: legendary_chest, amount: 1, placement: center},
+			{type: gorgon, amount: 1, placement: random},
+			{type: minitaur, amount: 3, placement: random}
 		]
 	},
 	{
@@ -71,7 +83,7 @@ rooms: [
 		name: Elite Rooms,
 		instances: 10,
 		force: false,
-		position: {type: random_radius, position: {x: 47, y: 47}, radius: 20},
+		position: {type: random_radius, position: {x: 47, y: 47}, radius: 24},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 7, y: 7}},
 		entities: [
 			{type: rare_chest, amount: 1, placement: center},
@@ -80,18 +92,7 @@ rooms: [
 			{type: spike_trap, amount: 2, placement: random},
 		]
 	},
-	{
-		name: Legendary Chest Room,
-		instances: 1,
-		force: false,
-		position: {type: random_radius, position: {x: 47, y: 47}, radius: 32},
-		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
-		entities: [
-			{type: legendary_chest, amount: 1, placement: center},
-			{type: gorgon, amount: 1, placement: random},
-			{type: minitaur, amount: 3, placement: random}
-		]
-	},
+	
 	{
 		name: Epic Chest Room,
 		instances: 2,

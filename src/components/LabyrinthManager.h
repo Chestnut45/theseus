@@ -332,6 +332,10 @@ private:
     // Map of tile positions to m_generatedRooms index
     std::unordered_map<glm::ivec2, int> m_tileRoomMap;
 
+    // The section index of the boss room, used for fixing a connectivity issue
+    // NOTE: Value is -1 until the boss room is placed
+    int m_bossRoomSectionID = -1;
+
     // Data structure for a connector
     struct Connector
     {
