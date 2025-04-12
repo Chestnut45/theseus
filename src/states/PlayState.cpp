@@ -648,17 +648,15 @@ void PlayState::Update(float delta)
                 {
                     auto name = sprite.GetCurrentAnimation()->m_strName;
                     if (chestInventory.IsOpen()) {
-                        wolf::Audio::Play("data/sounds/sfx_chest_close.wav", 0.8f);
+                        // NOTE: Close SFX is handled by the event
                         sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
+                        m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
                     }
                     else {
                         wolf::Audio::Play("data/sounds/sfx_chest_open.wav", 0.8f);
                         sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
+                        chestInventory.ToggleOpen();
                     }
-                    
-                    chestInventory.ToggleOpen();
-                    
-                    if (!chestInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
                     break;
                 }
             }
@@ -689,6 +687,8 @@ void PlayState::Update(float delta)
                     ShowTooltip(tooltip);
                     if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
                     {
+                        auto name = sprite.GetCurrentAnimation()->m_strName;
+                        sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
                         trappedChest.OpenTrappedChest();
                     }
                 }
