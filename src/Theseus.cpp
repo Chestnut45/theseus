@@ -1,5 +1,7 @@
 #include "Theseus.h"
 
+#include <stb_image.h>
+
 #include <MainMenuState.h>
 #include <PlayState.h>
 #include <LightComponent.h>
@@ -20,6 +22,12 @@ int main(int, char**)
 
 Theseus::Theseus() : App("Theseus", 1280, 720)
 {
+    // Setup window icon
+    GLFWimage images[1]; 
+    images[0].pixels = stbi_load("data/textures/icon.png", &images[0].width, &images[0].height, 0, 4);
+    glfwSetWindowIcon(m_pWindow, 1, images); 
+    stbi_image_free(images[0].pixels);
+
     // Initialize the game state manager
     m_pStateManager = new GameStateManager();
     
