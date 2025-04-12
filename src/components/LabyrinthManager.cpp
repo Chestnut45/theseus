@@ -1396,9 +1396,9 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
 {
     // Detect all maze sections
     std::vector<glm::ivec2> toProcess;
-    for (int y = 1; y < m_height - 2; ++y)
+    for (int y = 0; y < m_height - 1; ++y)
     {
-        for (int x = 1; x < m_width - 2; ++x)
+        for (int x = 0; x < m_width - 1; ++x)
         {
             if (m_labyrinthGrid.Get(x, y) == LogicalTile::Floor)
             {
@@ -1469,8 +1469,8 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
                 {
                     // This can technically throw, but all placed
                     // floor tiles are guaranteed to be in the map
-                    int leftSection = m_tileSectionMap.at(glm::ivec2(x - 1, y));
-                    int rightSection = m_tileSectionMap.at(glm::ivec2(x + 1, y));
+                    int leftSection = m_tileSectionMap[glm::ivec2(x - 1, y)];
+                    int rightSection = m_tileSectionMap[glm::ivec2(x + 1, y)];
                     if (leftSection != rightSection)
                     {
                         // Create the connector (from smaller section to larger section, by index)
@@ -1491,8 +1491,8 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
                 {
                     // This can technically throw, but all placed
                     // floor tiles are guaranteed to be in the map
-                    int bottomSection = m_tileSectionMap.at(glm::ivec2(x, y - 1));
-                    int topSection = m_tileSectionMap.at(glm::ivec2(x, y + 1));
+                    int bottomSection = m_tileSectionMap[glm::ivec2(x, y - 1)];
+                    int topSection = m_tileSectionMap[glm::ivec2(x, y + 1)];
                     if (bottomSection != topSection)
                     {
                         // Create the connector (from smaller section to larger section, by index)
