@@ -17,6 +17,7 @@ ImVec2 StatusComponent::s_vTextureSize = ImVec2(48.0f, 48.0f);
 
 StatusComponent::StatusComponent()
 {
+    // Initialise status effect icon textures & descriptions
     if(s_iComponentCounter == 0)
     {
         s_pTextures[StatusComponent::StatusEffectType::BURNING] = wolf::TextureManager::CreateTexture("data/textures/SEBurning.png");
@@ -37,6 +38,7 @@ StatusComponent::StatusComponent()
 
     for(int i = 0; i < StatusEffectType::NONE; i++)
     {
+        // Initialise variables
         this->m_aStatusEffects[i].m_OwnerComponent = this;
         this->m_aStatusEffects[i].m_StatusEffectType = (StatusEffectType)i;
 
@@ -64,7 +66,6 @@ StatusComponent::~StatusComponent()
 
 void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifespan)
 {
-    // this->m_aStatusEffects[p_se_type].m_StatusEffectType = p_se_type;
     this->m_aStatusEffects[p_se_type].m_isActive = true;
     this->m_aStatusEffects[p_se_type].m_timer.Restart();
     this->m_aStatusEffects[p_se_type].m_fLifespan = p_lifespan;
@@ -73,6 +74,7 @@ void StatusComponent::AddStatusEffect(StatusEffectType p_se_type, float p_lifesp
 
 void StatusComponent::SetStatusEffectResistance(StatusEffectType p_se_type, float p_resistance_value)
 {
+    // If resistance value is negative, return
     if(p_resistance_value < 0.0f) return;
 
     float absoluteValue = p_resistance_value;
@@ -81,7 +83,9 @@ void StatusComponent::SetStatusEffectResistance(StatusEffectType p_se_type, floa
     right = std::modf(absoluteValue, &left); // Getting integral & decimal
     left = left <= 1.0f ? 0.0f : 1.0f;
 
-    m_aStatusEffectResistance[p_se_type] = left == 1.0f ? left : right; // Final value always in range [0, 1]
+    // If input value is equal to 1, set resistance value to 1
+    // if input value is smaller or larger than 1, set resistance value to only the decimal part
+    m_aStatusEffectResistance[p_se_type] = left == 1.0f ? left : right; 
 }
 
 bool StatusComponent::IsStatusEffectActive(StatusEffectType p_se_type) const
@@ -124,6 +128,7 @@ float StatusComponent::GetStatusEffectResistance(StatusEffectType p_se_type) con
 
 void StatusComponent::RemoveStatusEffect(StatusEffectType p_se_type)
 {
+    // Set active flag & reset application timer
     this->m_aStatusEffects[p_se_type].m_isActive = false;
     this->m_aStatusEffects[p_se_type].m_fSEApplicationTimer = StatusEffect::SE_APPLICATION_INTERVALS[this->m_aStatusEffects[p_se_type].m_StatusEffectType];
 }
@@ -175,6 +180,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
 {
     switch (this->m_StatusEffectType)
     {
+        // Deal 16 pierce damage (excluding resistance)
         case StatusEffectType::BURNING:
         {
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
@@ -189,9 +195,10 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             }
             break;
         }
-        
+
+        // Heal 8 hp
         case StatusEffectType::HEALING:
-        {
+        {        
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
@@ -204,11 +211,13 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             break;
         }
 
+        // No effect
         case StatusEffectType::PETRIFIED:
         {
             break;
         }      
         
+        // Deal 8 pierce damage (excluding resistance)
         case StatusEffectType::POISONED:
         {
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();

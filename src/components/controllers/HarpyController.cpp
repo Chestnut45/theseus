@@ -623,7 +623,6 @@ void HarpyController::ExitStunnedState()
 
 void HarpyController::SetEmote(EnemyEmote p_emote)
 {
-    // std::cout << "HarpyController - p_emote: " << p_emote << std::endl;
     m_fEmoteTimer = EMOTE_TIME;
     switch(p_emote)
     {

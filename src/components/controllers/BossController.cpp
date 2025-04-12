@@ -1670,8 +1670,10 @@ void BossController::ChangeStatesPhase3(State p_state)
         break;
     }
 
+    // Set current state to the new one
     m_state = p_state;
 
+    // If health is lower than the limit, boost boss stats
     if(!m_isSupercharged && m_pHealth->GetHealth() <= m_pHealth->GetMaxHealth() * m_superchargeHealthFraction)
     {
         m_isSupercharged = true;
@@ -1946,6 +1948,7 @@ void BossController::AttackFireBreath(float delta)
     }
     else
     {
+        // Update timer
         this->m_fireBreathTurningTimer += delta;
     }
 
@@ -1966,10 +1969,12 @@ void BossController::AttackFireBreath(float delta)
             return;    
         }
 
+        // If not supercharged, perform standard fire breath attack
         if(!m_isSupercharged)
         {
             BreatheFire(delta);
         }
+        // If supercharged, perform supercharged fire breath attack
         else
         {
             BreatheFireSupercharged(delta);
@@ -1977,6 +1982,7 @@ void BossController::AttackFireBreath(float delta)
     }
     else
     {
+        // Update timer
         m_fireBreathWindupTimer -= delta;
         
         // If entering attack
@@ -2113,12 +2119,13 @@ void BossController::BreatheFireSupercharged(float delta)
                         break;
                     }
                 }
+                // Stop adding fire tiles if line is blocked
                 if(isBlocked == true)
                 {
                     break;
                 }
 
-                // 
+                // If the player is not hit, player is not rolling, and the player is on the same tile as the current one, damage the player 
                 if(
                     !isPlayerHit                                                                        &&
                     m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING   &&
@@ -2129,6 +2136,7 @@ void BossController::BreatheFireSupercharged(float delta)
                     m_pPlayerObject->GetComponent<HealthComponent>()->Damage(10.0f);
                 }
 
+                // Add fire tile
                 TileFireManager::GetInstance()->AddFireTile(tile);
             }
         }
@@ -2305,6 +2313,7 @@ void BossController::EndChargeAttack()
     m_pHoming->SetActive(false);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 
+    // Decrement chain count
     if(m_chargeChainCount > 0)
     {
         m_chargeChainCount--;
@@ -2345,14 +2354,16 @@ void BossController::Pull(float delta)
         // Update timer
         m_pullTimer -= delta;
 
-        // Pull player
+        // Get data
         glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
-    
+        
+        // Calculate the direction from the player to the Boss
         VelocityComponent* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
         glm::vec2 direction = thisPos - playerPos;
         direction = glm::length(direction) > 0.01f ? glm::normalize(direction) : glm::vec2(0.0f);
 
+         // Pull player
         // Adjust force if rolling
         float adjustedForce = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ROLLING ? m_pullForce * 0.01f : m_pullForce;
         pPlayerVel->SetVelocity(pPlayerVel->GetVelocity() + direction * adjustedForce * delta);
@@ -2377,14 +2388,18 @@ void BossController::Dead(float delta)
 
 void BossController::LastStandSupercharge()
 {
+    // Decrease idle time & stun time, increase seach speed
     m_idleTimeRange *= 0.75f;
     m_stunTime *= 0.5f;
     m_searchSpeed += 100.0f;
 
+    // Decrease charge windup time, increase charge damage & charge speed
     m_chargeWindupTime -= 0.5f;
     m_chargeAttackDamage += 50.0f;
     m_chargeSpeed += 200.0f;
 
+    
+    // Decrease fire breath windup time, increase fire breath speed & rangeW
     m_fireBreathWindupTime -= 0.5f;
     m_fireBreathRangeExtender += 300.0f;
 }
