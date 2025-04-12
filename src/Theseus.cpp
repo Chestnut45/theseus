@@ -50,12 +50,12 @@ void Theseus::Update(float delta)
         // Update camera's size to match the window
         wolf::Camera2D* camera = m_scene.GetActiveCamera();
         if (camera) camera->SetViewSize(m_width, m_height);
+        
+        // Resize static framebuffers
         LightComponent::ResizeFBO(m_width, m_height);
-
-        // Update fluid system framebuffer
         BoundedFluidSystem2D::ResizeFramebuffer(m_width, m_height);
 
-        // Update resize flag
+        // Reset flag
         m_windowResized = false;
     }
 
