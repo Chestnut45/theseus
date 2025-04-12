@@ -324,7 +324,7 @@ void MinitaurController::RenderDebugPath()
 
 void MinitaurController::MoveTowardsTarget(float delta)
 {
-    if (!m_pTarget || !m_pVelocity || !m_pTransform || !m_pPathfindingManager || !m_pNavMeshComponent)
+    if (!m_pTarget || !m_pVelocity || !m_pTransform)
         return;
 
     glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
