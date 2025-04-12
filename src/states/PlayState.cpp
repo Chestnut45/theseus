@@ -381,7 +381,8 @@ void PlayState::Update(float delta)
         if (m_showLabyrinthManager) 
             m_pLabyrinthManager->ShowGUI();
         
-        m_pNavMeshComponent->Update(delta);
+        if (m_pNavMeshComponent)
+            m_pNavMeshComponent->Update(delta);
 
         if (m_pParticleEditor)
         {
@@ -516,6 +517,8 @@ void PlayState::Update(float delta)
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Faux-leather Gloves"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("The Floor is Lava Boots"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lapis Lazuli Ring"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
                 }
 
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
