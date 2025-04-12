@@ -381,7 +381,8 @@ void PlayState::Update(float delta)
         if (m_showLabyrinthManager) 
             m_pLabyrinthManager->ShowGUI();
         
-        m_pNavMeshComponent->Update(delta);
+        if (m_pNavMeshComponent)
+            m_pNavMeshComponent->Update(delta);
 
         if (m_pParticleEditor)
         {
