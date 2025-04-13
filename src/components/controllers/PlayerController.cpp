@@ -262,6 +262,24 @@ void PlayerController::Update(float delta)
 
     if (m_action != PlayerAction::DEAD)
     {
+        // Constantly apply healing status for the ring if it is equipped
+        ItemBase* pItem = pInventory ? pInventory->GetEquippedItem(EquipmentSlot::ACCESSORY) : nullptr;
+        if (pItem)
+        {
+            auto pRing = dynamic_cast<ArmourItem*>(pItem);
+            if (pRing && pRing->GetName() == "Lapis Lazuli Ring")
+            {
+                auto pStatus = GetGameObject()->GetComponent<StatusComponent>();
+                if (pStatus)
+                {
+                    for (auto info : *pRing->GetStatusEffectList())
+                    {
+                        pStatus->AddStatusEffect(info.enType, info.fDuration);
+                    }
+                }
+            }
+        }
+
         RegenerateStamina(delta);
         // Call SetAnimationBasedOnState() only if the action or direction has changed
         if (m_action != m_previousAction || m_lastMoveDirectionEnum != m_previousDirection)
