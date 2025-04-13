@@ -1925,6 +1925,7 @@ void PlayerController::StartDeath() {
 
     m_runtimeTimer.Stop(); // Stop the timer
     m_deathRuntime = m_runtimeTimer.Elapsed(); // Capture elapsed time once
+    m_pAnimComponent->SetAnimation("Dead");
     m_pAnimComponent->SetAnimPaused(true);
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
     

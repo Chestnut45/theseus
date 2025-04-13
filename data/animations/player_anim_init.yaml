@@ -14,4 +14,5 @@ animation_sets: [
   data/animations/player_spear_anim_set.yaml,
   data/animations/player_sword_anim_set.yaml,
   data/animations/player_roll_anim_set.yaml,
+  data/animations/player_death_anim_set.yaml
 ]
