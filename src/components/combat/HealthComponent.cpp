@@ -78,8 +78,6 @@ void HealthComponent::Damage(float p_damage)
 
             ArmourItem* accessorygear = static_cast<ArmourItem*>(pic->GetEquippedItem(EquipmentSlot::ACCESSORY));
             damageReduction += accessorygear != nullptr ? accessorygear->GetDamageReduction() : 0;
-
-            // std::cout << "HealthComponent - damred: " << damageReduction << std::endl;
         }
 
         float finalDamage = p_damage * (1.0f - damageReduction);
@@ -180,12 +178,16 @@ void HealthComponent::RenderDamageIndicators()
 
 void HealthComponent::AddDamageIndicator(float p_damage, ImVec4 p_text_colour)
 {
+    // Add a new damage indicator
     this->m_vDamageIndicators.emplace_back(DamageIndicator());
     int index = this->m_vDamageIndicators.size() - 1;
+
+    // Get transform & damage value as a string
     wolf::Transform2D* gameobjTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
     std::string damageValueString = std::to_string((int)p_damage);
+    
+    // Add data to the damage indicator
     DamageIndicator* dmg_ind = &this->m_vDamageIndicators.at(index);
-    // Setup
     dmg_ind->id = std::to_string(DamageIndicator::idGenerator);
     dmg_ind->damageValue = damageValueString;
     dmg_ind->damageValueTextSize = ImGui::CalcTextSize(damageValueString.c_str());
@@ -200,12 +202,16 @@ void HealthComponent::AddDamageIndicator(float p_damage, ImVec4 p_text_colour)
 
 void HealthComponent::AddDamageIndicator(std::string p_damage_str, ImVec4 p_text_colour)
 {
+    // Add a new damage indicator
     this->m_vDamageIndicators.emplace_back(DamageIndicator());
     int index = this->m_vDamageIndicators.size() - 1;
+
+    // Get transform & damage value as a string
     wolf::Transform2D* gameobjTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
     std::string damageValueString = p_damage_str;
+
+    // Add data to the damage indicator
     DamageIndicator* dmg_ind = &this->m_vDamageIndicators.at(index);
-    // Setup
     dmg_ind->id = std::to_string(DamageIndicator::idGenerator);
     dmg_ind->damageValue = damageValueString;
     dmg_ind->damageValueTextSize = ImGui::CalcTextSize(damageValueString.c_str());
@@ -246,6 +252,7 @@ void HealthComponent::HandleFlatHealthItemEvent(const FlatHealthItemEvent& p_eve
 
 void HealthComponent::DamageIndicator::Update(float p_delta)
 {
+    // Update lifetime
     lifetime -= p_delta;
     if(ownerComponent != nullptr)
     {                

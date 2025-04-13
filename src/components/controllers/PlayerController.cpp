@@ -513,7 +513,6 @@ void PlayerController::DropObject() {
         m_throwPower = 0.0f;
 
         SetAction(PlayerAction::NONE);
-        // std::cout << "Dropped object!" << std::endl;
     }
 }
 
@@ -1018,7 +1017,6 @@ void PlayerController::HandleBowRangeIndicator(float delta)
     glm::vec2 trueEndpoint = DDACalculator::GetInstance()->GetEndpoint(playerPos, endpoint);
 
     glm::vec4 colour = m_bowRangeIndicatorColour;
-    // std::cout << colour.r << ", " << colour.g << ", " << colour.b << ", " << colour.a << std::endl;
 
     GLShapesRenderer::GetInstance()->AddLine(
                                             {playerPos.x, playerPos.y, colour.r, colour.g, colour.b, colour.a}, 
@@ -1199,7 +1197,6 @@ void PlayerController::EndPlacing()
 
 void PlayerController::ThrowHeldObject() {
     if (!m_isHoldingObject || !m_pHeldObject) {
-        // std::cout << "No object is being held to throw!" << std::endl;
         return;
     }
 

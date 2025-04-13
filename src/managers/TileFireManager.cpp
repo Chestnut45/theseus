@@ -39,7 +39,6 @@ void TileFireManager::Update(float p_delta)
 
     glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(m_pPlayerObj->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     int playerTileColumn = playerTilePos.x;
-    // std::cout << "playerpos - x: " << playerTilePos.x << ", y: " << playerTilePos.y << std::endl;
     
     // Go through each fire column
     for(auto const& [column, columnTiles] : m_mFireColumns)
@@ -451,12 +450,6 @@ TileFireManager::FireTile::FireTile(LabyrinthManager* p_lbmg, glm::ivec2& p_tile
         }
     }
 
-    // for(int i = 0; i < 8; i++)
-    // {
-    //     std::cout << i << ": " << m_aNeighbourWeights[i] << std::endl;
-    // }
-    // printf("-------\n");
-
     wolf::Scene* scene = &p_lbmg->GetGameObject()->GetScene();
 
     // Create fireObj
@@ -488,6 +481,7 @@ TileFireManager::FireTile::~FireTile()
 
 void TileFireManager::FireTile::Update(float p_delta)
 {
+    // Update based on current state
     switch(m_currentBurnState)
     {
         case FireTile::BurnState::BURNING:

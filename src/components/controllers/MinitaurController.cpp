@@ -551,6 +551,8 @@ void MinitaurController::HandleChasingState(float delta)
         ChangeState(EnemyState::PROSPECT);      
         return;
     }
+
+    // If player is within melee range, transition delay expired, and melee timer expired, attack
     if (distanceToPlayer <= m_meleeRange)
     {
         if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_meleeTimer <= 0.0f)

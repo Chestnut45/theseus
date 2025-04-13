@@ -260,6 +260,8 @@ void PortalTileManager::RenderCollectPrompt()
 PortalTileManager::PortalTile* PortalTileManager::PortalTile::CreatePortalTile(glm::ivec2 p_tile_pos, LabyrinthManager* p_lbmg, PortalTile* p_sibling)
 {
     PortalTile* portalTile = new PortalTile(p_tile_pos, p_lbmg);
+
+    // If sibling is not nullptr, couple the two portal tiles together
     if(p_sibling != nullptr)
     {
         portalTile->m_pSiblingPortalTile = p_sibling;
@@ -449,6 +451,7 @@ void PortalTileManager::PortalTile::Update(float p_dt)
 
 void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
 {
+    // Return if object is the same as the sprite obj
     if(p_obj->GetID() == m_pPortalTileSpriteObj->GetID()) return;
     
     // Return if object is occupant

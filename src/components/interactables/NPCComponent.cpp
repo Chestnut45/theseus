@@ -349,7 +349,6 @@ void NPCComponent::StunNPC()
 
 void NPCComponent::SetActive(bool p_active)
 {
-    // std::cout << "Set Active: " << p_active << std::endl;
     m_isActive = p_active;
 }
 

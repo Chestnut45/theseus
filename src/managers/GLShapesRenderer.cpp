@@ -47,12 +47,14 @@ GLShapesRenderer* GLShapesRenderer::GetInstance()
 
 void GLShapesRenderer::AddLine(ColouredVertex2D p_coords_1, ColouredVertex2D p_coords_2)
 {
+    // Add vertices to vector
     m_vVertices_L.push_back(p_coords_1);
     m_vVertices_L.push_back(p_coords_2);
 }
 
 void GLShapesRenderer::AddTriangle(ColouredVertex2D p_coords_1, ColouredVertex2D p_coords_2, ColouredVertex2D p_coords_3)
 {
+    // Add vertices to vector
     m_vVertices_T.push_back(p_coords_1);
     m_vVertices_T.push_back(p_coords_2);
     m_vVertices_T.push_back(p_coords_3);
@@ -66,12 +68,14 @@ void GLShapesRenderer::AddQuad(ColouredVertex2D p_coords_1, ColouredVertex2D p_c
 
 void GLShapesRenderer::AddQuad(ColouredVertex2D p_lower_left, float p_width, float p_height)
 {
-    // Setup data
     glm::vec4 colour = glm::vec4(p_lower_left.r, p_lower_left.g, p_lower_left.b, p_lower_left.a);
+    
+    // Create vertices
     ColouredVertex2D upperLeft = {p_lower_left.x, p_lower_left.y + p_height, colour.r, colour.g, colour.b, colour.a};
     ColouredVertex2D lowerRight = {p_lower_left.x + p_width, p_lower_left.y, colour.r, colour.g, colour.b, colour.a};
     ColouredVertex2D upperRight = {p_lower_left.x + p_width, p_lower_left.y + p_height, colour.r, colour.g, colour.b, colour.a};
     
+    // Add vertices to vector
     this->AddTriangle(p_lower_left, upperLeft, upperRight);
     this->AddTriangle(upperRight, lowerRight, p_lower_left);
 }
@@ -106,9 +110,11 @@ void GLShapesRenderer::AddRegularPolygon(ColouredVertex2D p_centre, float p_radi
         lastVertexPos = currentVertexPos;
         currentVertexPos = centrePos + this->GetRotatedVector(firstVector, currentRadAngle);
 
+        // Create vertices
         ColouredVertex2D lastPoint = {lastVertexPos.x, lastVertexPos.y, p_centre.r, p_centre.g, p_centre.b, p_centre.a};
         ColouredVertex2D nextPoint = {currentVertexPos.x, currentVertexPos.y, p_centre.r, p_centre.g, p_centre.b, p_centre.a};
         
+        // Add vertices to vector
         m_vVertices_L.push_back(lastPoint);
         m_vVertices_L.push_back(nextPoint);
     }
@@ -116,12 +122,13 @@ void GLShapesRenderer::AddRegularPolygon(ColouredVertex2D p_centre, float p_radi
 
 void GLShapesRenderer::RenderAndDeleteLines()
 {
+    // Return if the lines program is null or there are no line vertices
     if (!m_pProgram_L || m_vVertices_L.size() == 0)
     {
         return;    
     }
-    //printf("GLSR - RenDel_L\n");
-        
+    
+    // Render lines
     glm::mat4 model = glm::mat4(1.0f);
     m_pProgram_L->SetUniform("model", model);
     m_pProgram_L->Bind();
@@ -129,18 +136,20 @@ void GLShapesRenderer::RenderAndDeleteLines()
     m_pVB_L->Bind();
     glBufferData(GL_ARRAY_BUFFER, sizeof(ColouredVertex2D) * m_vVertices_L.size(), m_vVertices_L.data(), GL_STATIC_DRAW);
     glDrawArrays(GL_LINES, 0, m_vVertices_L.size());
+    
+    // Clear the vector
     m_vVertices_L.clear();
 }
 
 void GLShapesRenderer::RenderAndDeleteTriangles()
 {
+    // Return if the triangles program is null or there are no line vertices
     if (!m_pProgram_T || m_vVertices_T.size() == 0)
     {
         return;    
     }
-    //printf("GLSR - RenDel_T\n");
-    //std::cout << "GLSR - Vertex Count: " << m_vVertices_T.size() << std::endl;
-        
+    
+    // Render lines    
     glm::mat4 model = glm::mat4(1.0f);
     m_pProgram_T->SetUniform("model", model);
     m_pProgram_T->Bind();
@@ -148,6 +157,8 @@ void GLShapesRenderer::RenderAndDeleteTriangles()
     m_pVB_T->Bind();
     glBufferData(GL_ARRAY_BUFFER, sizeof(ColouredVertex2D) * m_vVertices_T.size(), m_vVertices_T.data(), GL_STATIC_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, m_vVertices_T.size());
+    
+    // Clear the vector
     m_vVertices_T.clear();
 }
 
@@ -193,7 +204,7 @@ GLShapesRenderer::~GLShapesRenderer()
 
 glm::vec2 GLShapesRenderer::GetRotatedVector(glm::vec2 p_vector, float p_rad_angle)
 {
-    // Precalculate sin & cos of rad angle
+    // Calculate sin & cos of rad angle
     const float RAD_ANGLE_SIN = glm::sin(p_rad_angle);
     const float RAD_ANGLE_COS = glm::cos(p_rad_angle);
 

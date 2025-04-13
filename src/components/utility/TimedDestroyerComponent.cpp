@@ -20,11 +20,13 @@ TimedDestroyerComponent::~TimedDestroyerComponent()
 
 void TimedDestroyerComponent::Update(float p_delta)
 {   
-    // If expired, destroy
+    // If timer expired, destroy game object
     if(this->m_fTimer >= m_fLifespan)
     {
         this->GetGameObject()->GetScene().DeleteObject(this->GetGameObject()->GetID());
     }
+
+    // Update timer by frame or delta tile
     this->m_fTimer = this->m_bIsFrameTimer ? this->m_fTimer + 1 : this->m_fTimer + p_delta;
 
 }
