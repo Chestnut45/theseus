@@ -85,6 +85,8 @@ void MinitaurController::Init(const EnemyData& data)
     AnimatedSprite2D* emotesSpritesheet = &m_pEmoteObj->AddComponent<AnimatedSprite2D>("data/animations/emotes_anim_init.yaml");
     emotesSpritesheet->SetAnimPaused(true);
     emotesSpritesheet->SetOriginToCenterOfFrame();
+    emotesSpritesheet->SetLightingEnabled(false);
+    emotesSpritesheet->SetLayer(100);
 
     // Initialise emotes-related variables
     m_fEmoteTimer = EMOTE_TIME;
