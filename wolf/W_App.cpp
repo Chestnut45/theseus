@@ -212,11 +212,13 @@ void App::SetFullscreen(bool p_fullscreen)
         const GLFWvidmode* mode = glfwGetVideoMode(monitor);
         glfwSetWindowMonitor(m_pWindow, NULL, (mode->width - m_width) / 2, (mode->height - m_height) / 2, m_width, m_height, 0);
     }
+    m_fullscreen = p_fullscreen;
 }
 
 void App::SetVsync(bool p_vsync)
 {
     glfwSwapInterval(p_vsync);
+    m_vsync = p_vsync;
 }
 
 void App::ShowDebug()

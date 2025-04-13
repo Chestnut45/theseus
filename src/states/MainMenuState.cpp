@@ -110,7 +110,8 @@ void MainMenuState::Update(float delta)
             // TODO: Serialize state to disk if we have time
             static bool fullscreen = false;
             static bool vsync = false;
-            static float volume = 1.0f;
+            static float volume = 0.8f;
+            static const float volumeOffset = 0.2f;
             
             ImGui::SetCursorPosX(startX - 50);
             ImGui::SetCursorPosY(buttonY - 64);
@@ -127,7 +128,11 @@ void MainMenuState::Update(float delta)
             ImGui::EndChild();
             ImGui::SetCursorPosX(startX - 50);
             ImGui::SetNextItemWidth(256);
-            ImGui::SliderFloat("Master Volume", &volume, 0.0f, 1.0f, "%.2f");
+            if (ImGui::SliderFloat("Master Volume", &volume, 0.0f, 1.0f, "%.2f"))
+            {
+                wolf::Audio::SetGlobalVolume(volume + volumeOffset);
+            }
+
             ImGui::NewLine();
             ImGui::SetCursorPosX(startX + 10);
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
