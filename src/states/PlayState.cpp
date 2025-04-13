@@ -55,6 +55,12 @@
 
 void PlayState::Enter()
 {
+    // Setup background rendering resources
+    glGenVertexArrays(1, &m_dummyVAO);
+    m_pBackgroundShader = wolf::ProgramManager::CreateProgram("data/shaders/fullscreen_pass.vs", "data/shaders/field_background.fs");
+    m_pFieldTexture = wolf::TextureManager::CreateTexture("data/textures/field_bg.png");
+    m_pFieldTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest, wolf::Texture::FilterMode::FM_Nearest);
+    m_pFieldTexture->SetWrapMode(wolf::Texture::WrapMode::WM_Repeat, wolf::Texture::WrapMode::WM_Repeat);
 
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
@@ -302,6 +308,10 @@ void PlayState::Exit()
 
     m_pNavMeshComponent = nullptr;
 
+    // Destroy background rendering resources
+    wolf::ProgramManager::DestroyProgram(m_pBackgroundShader);
+    wolf::TextureManager::DestroyTexture(m_pFieldTexture);
+    glDeleteVertexArrays(1, &m_dummyVAO);
 }
 
 void PlayState::Pause()
@@ -952,6 +962,12 @@ void PlayState::BackgroundRender(float delta)
 
     // Bind framebuffer for rendering scene - leave out UI elements
     m_pFBO->Bind();
+
+    // Render the field first as a single fullscreen pass
+    glBindVertexArray(m_dummyVAO);
+    m_pFieldTexture->Bind(10);
+    m_pBackgroundShader->Bind();
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 
     // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);

@@ -2668,7 +2668,6 @@ void LabyrinthManager::GenerateEntrance()
     // Create the initial tilemap
     auto& tilemap = spawnRoomObj.AddComponent<wolf::TileMap>(m_spawnPatchSize.x, m_spawnPatchSize.y);
     tilemap.LoadTileSet("data/textures/tiles/labyrinth.tileset");
-    tilemap.Clear(Tile::Grass);
 
     glm::vec2 patchOrigin = glm::vec2((m_width / 2 * TILE_SIZE - (m_spawnPatchSize.x / 2 * TILE_SIZE)) * SCALE, -m_spawnPatchSize.y * TILE_SIZE * SCALE);
 

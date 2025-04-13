@@ -152,4 +152,8 @@ private:
 
     ParticleEditor* m_pParticleEditor = nullptr;
 
+    // Background rendering resources
+    GLuint m_dummyVAO = 0;
+    wolf::Program* m_pBackgroundShader = nullptr;
+    wolf::Texture* m_pFieldTexture = nullptr;
 };
