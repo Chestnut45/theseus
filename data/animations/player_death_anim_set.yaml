@@ -1,0 +1,12 @@
+texture: data/textures/TheseusDead.png
+frame_size: {x: 32.0, y: 32.0}
+
+animations: [
+  {
+    name: Dead,
+    start_frame: 1,
+    end_frame: 1,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+]
