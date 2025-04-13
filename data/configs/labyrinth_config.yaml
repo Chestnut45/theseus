@@ -1,4 +1,5 @@
-random_seed: true
+random_seed: false
+seed: 747098804
 width: 95
 height: 95
 spike_trap_ratio: 0.020000
@@ -18,7 +19,7 @@ rooms: [
 		name: Daedalus Workshop,
 		instances: 1,
 		force: false,
-		position: {type: random},
+		position: {type: random_radius, position: {x: 47, y: 47}, radius: 24},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: daedalus_npc, amount: 1, placement: center},
@@ -29,7 +30,7 @@ rooms: [
 		name: Legendary Chest Room,
 		instances: 1,
 		force: false,
-		position: {type: random_radius, position: {x: 47, y: 47}, radius: 24},
+		position: {type: random_radius, position: {x: 47, y: 47}, radius: 26},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
 		entities: [
 			{type: legendary_chest, amount: 1, placement: center},
