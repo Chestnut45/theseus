@@ -105,6 +105,7 @@ void DialogueAndCutsceneState::StartSequence(const std::string& sequenceID) {
         m_timeSinceLastKeyframe = 0.0f;
         m_cutsceneTimer = 0.0f;
         m_currentKeyframeIndex = 0;
+        m_fadeTimer = 0.0f;
 
         // std::cout << "Starting sequence: " << sequenceID << std::endl;
     } else {
@@ -130,6 +131,10 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
 
     // Handle fade transitions
     if (currentItem.type == "fade") {
+
+        // Fix for freezing causing bad fades
+        if (delta > 0.25f) delta = 0.0167f;
+        
         m_fadeTimer += delta;
 
         // Update fade alpha based on fade direction

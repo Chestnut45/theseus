@@ -248,7 +248,7 @@ void PlayState::Enter()
         glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
         transform->SetPosition(newPosition);
     }
-    wolf::EventManager::EnqueueEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
+    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
     // Queue up all of Ariadne's dialogue
     auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
