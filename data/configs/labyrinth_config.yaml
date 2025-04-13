@@ -1,5 +1,4 @@
-random_seed: false
-seed: 747098804
+random_seed: true
 width: 95
 height: 95
 spike_trap_ratio: 0.020000
@@ -140,7 +139,7 @@ rooms: [
 	},
 	{
 		name: Boulder Trap Room,
-		instances: 2,
+		instances: 3,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 9, y: 9}},

@@ -2454,8 +2454,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& trap = pObject->GetScene().CreateObject2D();
 
                         // Add sprite
-                        // TODO: Why are we using this texture for boulder traps?
-                        auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
+                        auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/pressure_plate.png");
                         sprite.SetOriginToCenterOfTexture();
                         sprite.SetLayer(0);
 
