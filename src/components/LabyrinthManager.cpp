@@ -1473,8 +1473,6 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
                 // Left-right connector case
                 if (m_labyrinthGrid.Get(x - 1, y) == LogicalTile::Floor && m_labyrinthGrid.Get(x + 1, y) == LogicalTile::Floor)
                 {
-                    // This can technically throw, but all placed
-                    // floor tiles are guaranteed to be in the map
                     int leftSection = m_tileSectionMap[glm::ivec2(x - 1, y)];
                     int rightSection = m_tileSectionMap[glm::ivec2(x + 1, y)];
                     if (leftSection != rightSection)
@@ -1495,8 +1493,6 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
                 // Top-bottom connector case
                 if (m_labyrinthGrid.Get(x, y - 1) == LogicalTile::Floor && m_labyrinthGrid.Get(x, y + 1) == LogicalTile::Floor)
                 {
-                    // This can technically throw, but all placed
-                    // floor tiles are guaranteed to be in the map
                     int bottomSection = m_tileSectionMap[glm::ivec2(x, y - 1)];
                     int topSection = m_tileSectionMap[glm::ivec2(x, y + 1)];
                     if (bottomSection != topSection)
