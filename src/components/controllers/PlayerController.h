@@ -171,7 +171,7 @@ private:
     void RegenerateStamina(float delta); // Regenerates stamina over time
     void CheckHealth();
     void RenderThrowPowerBar(); // rendering for the power bar
-    void RenderDeathScreen();
+    void RenderDeathScreen(float delta);
     void ResetDeathScreenState(); // cool function to reset vars
 
     // Helper method to create blood particles on damage

@@ -25,4 +25,19 @@ public:
     void Render(float delta) override;
     void BackgroundUpdate(float delta) override;
     void BackgroundRender(float delta) override;
+
+private:
+
+    enum class Screen
+    {
+        MAIN,
+        OPTIONS,
+        SEED_SELECT,
+        FADE
+    };
+
+    Screen m_screen = Screen::MAIN;
+    std::string m_seedText;
+    bool m_randomSeed = true;
+    float m_fadeTime = 0.0f;
 };

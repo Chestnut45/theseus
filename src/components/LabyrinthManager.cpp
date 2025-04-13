@@ -1088,6 +1088,12 @@ wolf::GameObject* LabyrinthManager::GetPlayer() const
     return nullptr;
 }
 
+void LabyrinthManager::SetSeed(int seed)
+{
+    m_randomizeSeed = false;
+    m_rng.SetSeed(seed);
+}
+
 std::vector<LabyrinthManager::Room> LabyrinthManager::PlaceRooms()
 {
     // Place all rooms into the labyrinth
@@ -1467,8 +1473,6 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
                 // Left-right connector case
                 if (m_labyrinthGrid.Get(x - 1, y) == LogicalTile::Floor && m_labyrinthGrid.Get(x + 1, y) == LogicalTile::Floor)
                 {
-                    // This can technically throw, but all placed
-                    // floor tiles are guaranteed to be in the map
                     int leftSection = m_tileSectionMap[glm::ivec2(x - 1, y)];
                     int rightSection = m_tileSectionMap[glm::ivec2(x + 1, y)];
                     if (leftSection != rightSection)
@@ -1489,8 +1493,6 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
                 // Top-bottom connector case
                 if (m_labyrinthGrid.Get(x, y - 1) == LogicalTile::Floor && m_labyrinthGrid.Get(x, y + 1) == LogicalTile::Floor)
                 {
-                    // This can technically throw, but all placed
-                    // floor tiles are guaranteed to be in the map
                     int bottomSection = m_tileSectionMap[glm::ivec2(x, y - 1)];
                     int topSection = m_tileSectionMap[glm::ivec2(x, y + 1)];
                     if (bottomSection != topSection)
@@ -2454,8 +2456,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& trap = pObject->GetScene().CreateObject2D();
 
                         // Add sprite
-                        // TODO: Why are we using this texture for boulder traps?
-                        auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
+                        auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/pressure_plate.png");
                         sprite.SetOriginToCenterOfTexture();
                         sprite.SetLayer(0);
 
@@ -2668,7 +2669,6 @@ void LabyrinthManager::GenerateEntrance()
     // Create the initial tilemap
     auto& tilemap = spawnRoomObj.AddComponent<wolf::TileMap>(m_spawnPatchSize.x, m_spawnPatchSize.y);
     tilemap.LoadTileSet("data/textures/tiles/labyrinth.tileset");
-    tilemap.Clear(Tile::Grass);
 
     glm::vec2 patchOrigin = glm::vec2((m_width / 2 * TILE_SIZE - (m_spawnPatchSize.x / 2 * TILE_SIZE)) * SCALE, -m_spawnPatchSize.y * TILE_SIZE * SCALE);
 

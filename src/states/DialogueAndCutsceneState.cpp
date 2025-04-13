@@ -38,7 +38,9 @@ void DialogueAndCutsceneState::Enter() {
 // Exit
 void DialogueAndCutsceneState::Exit() {
     // Send off an event to let anyone interested know that the dialogue has finished
-    wolf::EventManager::TriggerEvent(DialogueOrCutsceneEndEvent(m_currentSequence->at(m_currentSequenceIndex - 1).sequenceID, m_triggerNPCID));
+    // Ensure safe index!
+    int index = glm::clamp(static_cast<int>(m_currentSequenceIndex) - 1, 0, static_cast<int>(m_currentSequence->size()));
+    wolf::EventManager::TriggerEvent(DialogueOrCutsceneEndEvent(m_currentSequence->at(index).sequenceID, m_triggerNPCID));
 
     // Destroy all character portraits
     for (auto& pair : m_characterPortraits) {
@@ -105,6 +107,7 @@ void DialogueAndCutsceneState::StartSequence(const std::string& sequenceID) {
         m_timeSinceLastKeyframe = 0.0f;
         m_cutsceneTimer = 0.0f;
         m_currentKeyframeIndex = 0;
+        m_fadeTimer = 0.0f;
 
         // std::cout << "Starting sequence: " << sequenceID << std::endl;
     } else {
@@ -130,6 +133,10 @@ void DialogueAndCutsceneState::AdvanceSequence(float delta) {
 
     // Handle fade transitions
     if (currentItem.type == "fade") {
+
+        // Fix for freezing causing bad fades
+        if (delta > 0.25f) delta = 0.0167f;
+        
         m_fadeTimer += delta;
 
         // Update fade alpha based on fade direction
@@ -480,7 +487,7 @@ void DialogueAndCutsceneState::RenderSequence(float delta) {
     if (currentItem.type == "dialogue" || currentItem.type == "combined") {
         // Smooth fade-in effect for the dialogue box
         static float fadeOpacity = 0.0f;
-        fadeOpacity = std::min(fadeOpacity + 0.05f, 1.0f); // Gradually increase opacity
+        fadeOpacity = std::min(fadeOpacity + delta, 1.0f); // Gradually increase opacity
 
         // Check if we're on the last line of the dialogue
         bool isLastLine = (m_currentSequence && m_currentSequenceIndex >= m_currentSequence->size() - 1);

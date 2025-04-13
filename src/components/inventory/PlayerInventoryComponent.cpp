@@ -528,6 +528,15 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     // We open a little pop-up menu
                     ImGui::OpenPopup(strPopUpID.c_str());
                 }
+
+                // Push the pop-up style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 2.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
                 
                 // The pop-up menu has different buttons based on what "state" the game is in
                 if (ImGui::BeginPopup(strPopUpID.c_str())) {
@@ -583,6 +592,9 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     }
                     ImGui::EndPopup();
                 }
+                
+                ImGui::PopStyleVar(1);
+                ImGui::PopStyleColor(5);
             }
             else { // Otherwise, this slot is empty
                 // Push some style vars and colors

@@ -230,7 +230,7 @@ Lapis Lazuli Ring: {
   status_effects: [
     {
       type: HEALING,
-      duration: 5.0,
+      duration: 1.0,
     }
   ]
 }

@@ -83,7 +83,7 @@ void GorgonController::Init(const EnemyData& data)
     m_pEmoteObj = &pGameObject->GetScene().CreateObject2D();
     pGameObject->AddChild(*m_pEmoteObj);
     wolf::Transform2D* transform = m_pEmoteObj->GetComponent<wolf::Transform2D>();
-    transform->SetPosition(glm::vec2(-8.0f, 8.0f));
+    transform->SetPosition(glm::vec2(0.0f, 24.0f));
 
     // Init attack state members
     m_rangedWindupTimer = m_rangedWindupTime;
@@ -91,7 +91,8 @@ void GorgonController::Init(const EnemyData& data)
     // Add emotes spritesheet
     AnimatedSprite2D* emotesSpritesheet = &m_pEmoteObj->AddComponent<AnimatedSprite2D>("data/animations/emotes_anim_init.yaml");
     emotesSpritesheet->SetAnimPaused(true);
-    emotesSpritesheet->SetOriginToCenterOfFrame();
+    emotesSpritesheet->SetLightingEnabled(false);
+    emotesSpritesheet->SetLayer(100);
 
     // Initialise emotes-related variables
     m_fEmoteTimer = EMOTE_TIME;

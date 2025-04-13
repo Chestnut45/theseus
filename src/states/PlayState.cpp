@@ -53,8 +53,20 @@
 
 #include <W_BufferManager.h>
 
+PlayState::PlayState(GameStateManager* manager, Theseus* gameInstance, const std::string& seedText)
+    : GameState(manager, gameInstance),
+    m_seedText(seedText)
+{
+}
+
 void PlayState::Enter()
 {
+    // Setup background rendering resources
+    glGenVertexArrays(1, &m_dummyVAO);
+    m_pBackgroundShader = wolf::ProgramManager::CreateProgram("data/shaders/fullscreen_pass.vs", "data/shaders/field_background.fs");
+    m_pFieldTexture = wolf::TextureManager::CreateTexture("data/textures/field_bg.png");
+    m_pFieldTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest, wolf::Texture::FilterMode::FM_Nearest);
+    m_pFieldTexture->SetWrapMode(wolf::Texture::WrapMode::WM_Repeat, wolf::Texture::WrapMode::WM_Repeat);
 
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
@@ -90,6 +102,10 @@ void PlayState::Enter()
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
+
+    // Set the seed from the main menu if not empty
+    // TODO: Special seeds! (custom challenge configs, easter eggs, whatever)
+    if (m_seedText.length() > 0) m_pLabyrinthManager->SetSeed(static_cast<int>(std::hash<std::string>{}(m_seedText)));
 
     // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();
@@ -232,7 +248,7 @@ void PlayState::Enter()
         glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
         transform->SetPosition(newPosition);
     }
-    wolf::EventManager::EnqueueEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
+    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
     // Queue up all of Ariadne's dialogue
     auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
@@ -255,8 +271,6 @@ void PlayState::Enter()
     {
         m_pPathfindingManager->RegisterEntity(gorgon.GetGameObject());
     }
-
-
 
     // Generate the NavMesh from the Labyrinth
     m_pNavMeshComponent->GenerateFromLabyrinth(m_pLabyrinthManager);
@@ -302,6 +316,10 @@ void PlayState::Exit()
 
     m_pNavMeshComponent = nullptr;
 
+    // Destroy background rendering resources
+    wolf::ProgramManager::DestroyProgram(m_pBackgroundShader);
+    wolf::TextureManager::DestroyTexture(m_pFieldTexture);
+    glDeleteVertexArrays(1, &m_dummyVAO);
 }
 
 void PlayState::Pause()
@@ -342,8 +360,12 @@ void PlayState::Update(float delta)
         }
         else
         {
-            wolf::EventManager::TriggerEvent(PauseEvent(true));
-            m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
+            // Don't allow pausing when the credits start
+            if (m_gameCompletionTime.IsRunning())
+            {
+                wolf::EventManager::TriggerEvent(PauseEvent(true));
+                m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
+            }
         }
     }
 
@@ -476,7 +498,7 @@ void PlayState::Update(float delta)
     // Display completion message for 5 seconds
     if (m_completionMessageTimer.IsRunning() && m_completionMessageTimer.Elapsed() < 5.0f)
     {
-        RenderTextCentered("You have completed Theseus in " + std::to_string(m_gameCompletionTime.Elapsed()), 5.0f);
+        RenderTextCentered("You have completed Theseus in " + std::format("{:.3f}", m_gameCompletionTime.Elapsed()), 4.0f);
     }
 
     // Show credits after message disappears
@@ -630,174 +652,177 @@ void PlayState::Update(float delta)
             status.Update(delta);
         }
 
-        // Display all open chest GUIs
-        const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        for (auto&&[_, chestInventory, transform, sprite] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
+        // Don't pickup items or interact with things if we're dead!
+        if (m_pPlayerObject->GetComponent<PlayerController>()->GetPlayerAction() != PlayerController::PlayerAction::DEAD)
         {
-            // Show GUI
-            chestInventory.ShowInventoryGUI();
-
-            // Distance checking
-            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+            // Display all open chest GUIs
+            const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            for (auto&&[_, chestInventory, transform, sprite] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
             {
-                // Player is in range of the chest, display tooltip
-                std::string tooltip = chestInventory.IsOpen() ? "Press E to Close Chest" : "Press E to Open Chest";
-                ShowTooltip(tooltip);
+                // Show GUI
+                chestInventory.ShowInventoryGUI();
 
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                // Distance checking
+                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
                 {
-                    auto name = sprite.GetCurrentAnimation()->m_strName;
-                    if (chestInventory.IsOpen()) {
-                        wolf::Audio::Play("data/sounds/sfx_chest_close.wav", 0.8f);
-                        sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
-                    }
-                    else {
-                        wolf::Audio::Play("data/sounds/sfx_chest_open.wav", 0.8f);
-                        sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
-                    }
-                    
-                    chestInventory.ToggleOpen();
-                    
-                    if (!chestInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
-                    break;
-                }
-            }
-            else
-            {
-                // Close chest if the player walks away
-                if (chestInventory.IsOpen())
-                {
-                    chestInventory.Close();
-                    auto name = sprite.GetCurrentAnimation()->m_strName;
-                    sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
-                    m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
-                }
-            }
-        }
-
-        // Trapped chests
-        for (auto&&[_, trappedChest, transform, sprite] : m_pGameInstance->GetScene().Each<TrappedChestComponent, wolf::Transform2D, AnimatedSprite2D>())
-        {
-            // Update trapped chests
-            trappedChest.Update(delta);
-            // Distance checking
-            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
-            {
-                if(trappedChest.IsOpen() == false)
-                {
-                    std::string tooltip = "Press E to Open Chest";
+                    // Player is in range of the chest, display tooltip
+                    std::string tooltip = chestInventory.IsOpen() ? "Press E to Close Chest" : "Press E to Open Chest";
                     ShowTooltip(tooltip);
+
                     if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
                     {
-                        trappedChest.OpenTrappedChest();
-                    }
-                }
-            }
-        }
-
-        // Display all open dispensary GUIs
-        for (auto&&[_, dispensaryInventory, transform] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent, wolf::Transform2D>())
-        {
-
-            // If the dispensary has an animated sprite we're going to want to retrieve it
-            AnimatedSprite2D* dispensarySprite = dispensaryInventory.GetGameObject()->GetComponent<AnimatedSprite2D>();
-
-            // Show GUI
-            dispensaryInventory.ShowInventoryGUI();
-
-            // Distance checking
-            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
-            {
-                // Player is in range of the chest, display tooltip
-                std::string tooltip = dispensaryInventory.IsOpen() ? "Press E to Close Daedalus Dispensary" : "Press E to Open Daedalus Dispensary";
-                ShowTooltip(tooltip);
-
-                // When you interact with the dispensary
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
-                {
-                    // Either open or close it
-                    dispensaryInventory.ToggleOpen();
-
-                    // If the dispensary has an AnimatedSprite
-                    if (dispensarySprite) {
-                        // Play the activation animation when we open it
-                        if (dispensaryInventory.IsOpen()) {
-                            dispensarySprite->SetAnimation("Activate");
+                        auto name = sprite.GetCurrentAnimation()->m_strName;
+                        if (chestInventory.IsOpen()) {
+                            // NOTE: Close SFX is handled by the event
+                            sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
+                            m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
                         }
                         else {
-                            // And set it back to inactive when we close it
+                            wolf::Audio::Play("data/sounds/sfx_chest_open.wav", 0.8f);
+                            sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
+                            chestInventory.ToggleOpen();
+                        }
+                        break;
+                    }
+                }
+                else
+                {
+                    // Close chest if the player walks away
+                    if (chestInventory.IsOpen())
+                    {
+                        chestInventory.Close();
+                        auto name = sprite.GetCurrentAnimation()->m_strName;
+                        sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
+                        m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                    }
+                }
+            }
+
+            // Trapped chests
+            for (auto&&[_, trappedChest, transform, sprite] : m_pGameInstance->GetScene().Each<TrappedChestComponent, wolf::Transform2D, AnimatedSprite2D>())
+            {
+                // Update trapped chests
+                trappedChest.Update(delta);
+                // Distance checking
+                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+                {
+                    if(trappedChest.IsOpen() == false)
+                    {
+                        std::string tooltip = "Press E to Open Chest";
+                        ShowTooltip(tooltip);
+                        if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                        {
+                            auto name = sprite.GetCurrentAnimation()->m_strName;
+                            sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
+                            trappedChest.OpenTrappedChest();
+                        }
+                    }
+                }
+            }
+
+            // Display all open dispensary GUIs
+            for (auto&&[_, dispensaryInventory, transform] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent, wolf::Transform2D>())
+            {
+                // If the dispensary has an animated sprite we're going to want to retrieve it
+                AnimatedSprite2D* dispensarySprite = dispensaryInventory.GetGameObject()->GetComponent<AnimatedSprite2D>();
+
+                // Show GUI
+                dispensaryInventory.ShowInventoryGUI();
+
+                // Distance checking
+                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+                {
+                    // Player is in range of the chest, display tooltip
+                    std::string tooltip = dispensaryInventory.IsOpen() ? "Press E to Close Daedalus Dispensary" : "Press E to Open Daedalus Dispensary";
+                    ShowTooltip(tooltip);
+
+                    // When you interact with the dispensary
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                    {
+                        // Either open or close it
+                        dispensaryInventory.ToggleOpen();
+
+                        // If the dispensary has an AnimatedSprite
+                        if (dispensarySprite) {
+                            // Play the activation animation when we open it
+                            if (dispensaryInventory.IsOpen()) {
+                                dispensarySprite->SetAnimation("Activate");
+                            }
+                            else {
+                                // And set it back to inactive when we close it
+                                dispensarySprite->SetAnimation("Deactivate");
+                            }
+                        }
+
+                        // Hide the child icon
+                        for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
+                            AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                            if (anim) {
+                                anim->SetAnimation("Transparent");
+                            }
+                        }
+
+                        // Also, if we close it, close the player inventory as well
+                        if (!dispensaryInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                        break;
+                    }
+                }
+                else
+                {
+                    // Close dispensary if the player walks away
+                    if (dispensaryInventory.IsOpen())
+                    {
+                        dispensaryInventory.Close();
+
+                        // If the dispensary has an AnimatedSprite, play the inactive animation
+                        if (dispensarySprite) {
                             dispensarySprite->SetAnimation("Deactivate");
+                            wolf::EventManager::TriggerEvent(LightToggleEvent(dispensaryInventory.GetGameObject()->GetID(), false));
                         }
-                    }
 
-                    // Hide the child icon
-                    for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
-                        AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
-                        if (anim) {
-                            anim->SetAnimation("Transparent");
+                        // Hide the child icon
+                        for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
+                            AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                            if (anim) {
+                                anim->SetAnimation("Transparent");
+                            }
                         }
-                    }
 
-                    // Also, if we close it, close the player inventory as well
-                    if (!dispensaryInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
-                    break;
+                        // Close the player's inventory as well
+                        m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                    }
                 }
             }
-            else
+            
+            for (auto&&[_, droppedItem, transform] : m_pGameInstance->GetScene().Each<DroppedItemComponent, wolf::Transform2D>())
             {
-                // Close dispensary if the player walks away
-                if (dispensaryInventory.IsOpen())
+                // Distance checking
+                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
                 {
-                    dispensaryInventory.Close();
+                    // Player is in range of the chest, display tooltip
+                    std::string tooltip = "Press E to pickup";
+                    ShowTooltip(tooltip);
 
-                    // If the dispensary has an AnimatedSprite, play the inactive animation
-                    if (dispensarySprite) {
-                        dispensarySprite->SetAnimation("Deactivate");
-                        wolf::EventManager::TriggerEvent(LightToggleEvent(dispensaryInventory.GetGameObject()->GetID(), false));
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                    {
+                        droppedItem.PickUpItem();
+                        break;
                     }
-
-                    // Hide the child icon
-                    for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
-                        AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
-                        if (anim) {
-                            anim->SetAnimation("Transparent");
-                        }
-                    }
-
-                    // Close the player's inventory as well
-                    m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
                 }
             }
-        }
-        
-        for (auto&&[_, droppedItem, transform] : m_pGameInstance->GetScene().Each<DroppedItemComponent, wolf::Transform2D>())
-        {
-            // Distance checking
-            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
-            {
-                // Player is in range of the chest, display tooltip
-                std::string tooltip = "Press E to pickup";
-                ShowTooltip(tooltip);
 
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
-                {
-                    droppedItem.PickUpItem();
-                    break;
-                }
-            }
-        }
+            for (auto&&[_, npc, transform] : m_pGameInstance->GetScene().Each<NPCComponent, wolf::Transform2D>()) {
+                // Distance check
+                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f) {
+                    // Player is in range of the NPC so we display the tooltip
+                    std::string tooltip = "Press E to talk to " + npc.GetName();
+                    ShowTooltip(tooltip);
 
-        for (auto&&[_, npc, transform] : m_pGameInstance->GetScene().Each<NPCComponent, wolf::Transform2D>()) {
-            // Distance check
-            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f) {
-                // Player is in range of the NPC so we display the tooltip
-                std::string tooltip = "Press E to talk to " + npc.GetName();
-                ShowTooltip(tooltip);
-
-                // And if the player interacts with the NPC we play their next dialogue/cutscene
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
-                    npc.PlayNextDialogue();
-                    break;
+                    // And if the player interacts with the NPC we play their next dialogue/cutscene
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+                        npc.PlayNextDialogue();
+                        break;
+                    }
                 }
             }
         }
@@ -948,10 +973,17 @@ void PlayState::BackgroundRender(float delta)
         glm::vec2 viewSize = camera->GetViewSize();
         m_pFBO->SetTexSize(viewSize.x, viewSize.y);
         m_pFBO->SetWindowSize(viewSize.x, viewSize.y);
+        camera->Bind();
     }
 
     // Bind framebuffer for rendering scene - leave out UI elements
     m_pFBO->Bind();
+
+    // Render the field first as a single fullscreen pass
+    glBindVertexArray(m_dummyVAO);
+    m_pFieldTexture->Bind(10);
+    m_pBackgroundShader->Bind();
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 
     // Render the game's scene
     m_pGameInstance->GetScene().Render(delta);
@@ -1479,7 +1511,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
 void PlayState::OnGameWinEvent(const GameWinEvent& event)
 {
-    m_gameCompletionTime.Pause();
+    m_gameCompletionTime.Stop();
 
     // Deactivate the player controller
     m_pPlayerObject->GetComponent<PlayerController>()->SetActive(false);
@@ -1704,9 +1736,10 @@ void PlayState::RenderMap() {
     const glm::ivec2 playerChunk = glm::ivec2(playerPosition / (tileWorldSize * LabyrinthManager::CHUNK_SIZE));
 
     // Thick stylish golden border
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 4.0f); // Thicker border
-    ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 215, 0, 255)); // Gold color
+    // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 255)); // Black background
 
     ImGui::SetNextWindowSize(ImVec2(mapSize, mapSize));
@@ -1795,9 +1828,11 @@ void PlayState::RenderMap() {
 
 
     ImGui::End();
+    ImVec2 borderMin(windowMin.x - 2, windowMin.y - 2);
+    ImVec2 borderMax(windowMax.x + 2, windowMax.y + 2);
     // --- Draw the border AFTER the minimap rendering ---
-    drawList->AddRect(windowMin, windowMax, IM_COL32(255, 215, 0, 255), 8.0f, 0, 6.0f); // Thick gold border
-    drawList->AddRect(windowMin, windowMax, IM_COL32(255, 165, 0, 128), 12.0f, 0, 3.0f); // Outer glow
+    drawList->AddRect(borderMin, borderMax, IM_COL32(255, 169, 0, 255), 10.0f, 0, 4.0f); // Thick gold border
+    drawList->AddRect(borderMin, borderMax, IM_COL32(255, 169, 0, 128), 10.0f, 0, 3.0f); // Outer glow
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(2);
 }
@@ -1845,9 +1880,9 @@ void PlayState::RenderFadeOverlay(float alpha)
         {
             // Style taken from PauseState
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.75f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 

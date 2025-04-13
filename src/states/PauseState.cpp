@@ -38,7 +38,7 @@ void PauseState::Update(float delta)
 
     // Button sizes
     const int buttonWidth = 128;
-    const int buttonHeight = 32;
+    const int buttonHeight = 40;
 
     // Set the UI window to cover the game screen
     ImGui::SetNextWindowPos({0.0f, 0.0f});
@@ -67,10 +67,10 @@ void PauseState::Update(float delta)
 
     // Push the button style vars and colors
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
 
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.75f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 

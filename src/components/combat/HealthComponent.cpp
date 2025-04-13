@@ -266,47 +266,30 @@ void HealthComponent::DamageIndicator::Render()
     // Get data for calculations
     wolf::Scene* scene = &ownerComponent->GetGameObject()->GetScene();
     wolf::Camera2D* camera = scene->GetActiveCamera();
-    glm::vec2 cameraPos = camera->GetPosition();
-    glm::vec2 viewSize = camera->GetViewSize();
-    glm::vec2 viewSizeHalf = glm::vec2(viewSize.x * 0.5f, viewSize.y * 0.5f);
     glm::vec2 worldpos = currentPos;
     
-    // Calculate boundaries of camera
-    float l, r, t, b;
-    l = cameraPos.x - viewSizeHalf.x;
-    r = cameraPos.x + viewSizeHalf.x;
-    t = cameraPos.y + viewSizeHalf.y;
-    b = cameraPos.y - viewSizeHalf.y;
-    
-    // If indicator is visible, render
-    if
-    (
-        worldpos.x >= l &&
-        worldpos.x <= r &&
-        worldpos.y <= t &&
-        worldpos.y >= b
-    )
-    {   
-        glm::vec2 screenpos;
-        screenpos.x = (worldpos.x - (cameraPos.x - viewSizeHalf.x));
-        screenpos.y = (worldpos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
-                
-        // Setup
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground |
-                         ImGuiWindowFlags_NoMouseInputs |
-                         ImGuiWindowFlags_NoResize |
-                         ImGuiWindowFlags_NoSavedSettings |
-                         ImGuiWindowFlags_NoTitleBar |
-                         ImGuiWindowFlags_NoFocusOnAppearing | // Prevent focus
-                         ImGuiWindowFlags_NoBringToFrontOnFocus; // Prevent altering window order        
-        ImGui::SetNextWindowPos({screenpos.x, screenpos.y});
-        ImGui::SetNextWindowSize(DamageIndicator::WINDOW_SIZE);
-        ImGui::Begin(id.c_str(), nullptr, flags);
-        ImGui::SetCursorPosX((DamageIndicator::WINDOW_SIZE.x - damageValueTextSize.x) * 0.5f);
-        ImGui::TextColored(damageValueTextColour, "%s", damageValue.c_str());
+    // Convert world space into screen space
+    glm::vec4 clipSpacePos = camera->GetMatrix() * glm::vec4(worldpos, 0.0f, 1.0f);
+    glm::vec3 ndc = glm::vec3(clipSpacePos) / clipSpacePos.w;
+    glm::vec2 screenpos;
+    screenpos.x = (ndc.x * 0.5f + 0.5f) * camera->GetViewSize().x;
+    screenpos.y = (1.0f - (ndc.y * 0.5f + 0.5f)) * camera->GetViewSize().y;
+            
+    // Setup
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground |
+                        ImGuiWindowFlags_NoMouseInputs |
+                        ImGuiWindowFlags_NoResize |
+                        ImGuiWindowFlags_NoSavedSettings |
+                        ImGuiWindowFlags_NoTitleBar |
+                        ImGuiWindowFlags_NoFocusOnAppearing | // Prevent focus
+                        ImGuiWindowFlags_NoBringToFrontOnFocus; // Prevent altering window order        
+    ImGui::SetNextWindowPos({screenpos.x, screenpos.y});
+    ImGui::SetNextWindowSize(DamageIndicator::WINDOW_SIZE);
+    ImGui::Begin(id.c_str(), nullptr, flags);
+    ImGui::SetCursorPosX((DamageIndicator::WINDOW_SIZE.x - damageValueTextSize.x) * 0.5f);
+    ImGui::TextColored(damageValueTextColour, "%s", damageValue.c_str());
 
-        // End rendering
-        ImGui::End();
-    }
+    // End rendering
+    ImGui::End();
 
 }

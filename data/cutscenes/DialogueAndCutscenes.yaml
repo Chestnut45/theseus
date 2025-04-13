@@ -13,7 +13,7 @@ CutscenesAndDialogues:
         camera_keyframes:
           - target: "Theseus"
             zoom: 1.0
-            duration: 1.5
+            duration: 0.25
       - type: "combined"
         dialogue:
           character: "Ariadne"
