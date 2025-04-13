@@ -34,6 +34,8 @@ void MainMenuState::Update(float delta)
     ImGui::SetNextWindowPos({0.0f, 0.0f});
     ImGui::SetNextWindowSize({(float)w, (float)h});
 
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+
     // Make the window non-resizable, remove toolbar, etc.
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | 
                              ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | 
@@ -68,19 +70,30 @@ void MainMenuState::Update(float delta)
     ImGui::NewLine();
 
     // Push the button style vars and colors
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 3.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
+    // ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 3.0f);
+    // ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
+    // ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    // ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.5f * buttonShade));
+    // ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    // ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.75f * buttonShade));
+    
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.5f * buttonShade));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.75f * buttonShade));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.75f * buttonShade));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.24f * buttonShade));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(1.0f, 0.75f, 0.0f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
 
     // Calculate some offsets
     float startX = (dimensions.x - buttonWidth) * 0.5f;
-    float buttonY = dimensions.y * 0.72f;
+    float buttonY = dimensions.y * 0.74f;
 
     switch (m_screen)
     {
@@ -93,14 +106,14 @@ void MainMenuState::Update(float delta)
                 m_screen = Screen::SEED_SELECT;
             }
             ImGui::NewLine();
-            ImGui::SetCursorPosX(startX + 10);
-            if (ImGui::Button("Options", {buttonWidth - 20, buttonHeight}))
+            ImGui::SetCursorPosX(startX + 16);
+            if (ImGui::Button("Options", {buttonWidth - 32, buttonHeight - 8}))
             {
                 m_screen = Screen::OPTIONS;
             }
             ImGui::NewLine();
-            ImGui::SetCursorPosX(startX + 10);
-            if (ImGui::Button("Quit", {buttonWidth - 20, buttonHeight}))
+            ImGui::SetCursorPosX(startX + 16);
+            if (ImGui::Button("Quit", {buttonWidth - 32, buttonHeight - 8}))
             {
                 m_pGameInstance->Shutdown();
             }
@@ -138,9 +151,9 @@ void MainMenuState::Update(float delta)
             }
 
             ImGui::NewLine();
-            ImGui::SetCursorPosX(startX + 10);
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
-            if (ImGui::Button("Back", {buttonWidth - 20, buttonHeight}) || wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
+            ImGui::SetCursorPosX(startX + 16);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
+            if (ImGui::Button("Back", {buttonWidth - 32, buttonHeight - 8}) || wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
             {
                 m_screen = Screen::MAIN;
             }
@@ -173,9 +186,9 @@ void MainMenuState::Update(float delta)
                 m_screen = Screen::FADE;
             }
             ImGui::NewLine();
-            ImGui::SetCursorPosX(startX + 10);
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
-            if (ImGui::Button("Back", {buttonWidth - 20, buttonHeight}) || wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
+            ImGui::SetCursorPosX(startX + 16);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
+            if (ImGui::Button("Back", {buttonWidth - 32, buttonHeight - 8}) || wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
             {
                 m_screen = Screen::MAIN;
                 m_randomSeed = true;
@@ -195,8 +208,8 @@ void MainMenuState::Update(float delta)
             break;
     }
 
-    ImGui::PopStyleVar(2);
-    ImGui::PopStyleColor(8);
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(11);
 
     // Close window and pop vars
     ImGui::End();

@@ -1736,9 +1736,10 @@ void PlayState::RenderMap() {
     const glm::ivec2 playerChunk = glm::ivec2(playerPosition / (tileWorldSize * LabyrinthManager::CHUNK_SIZE));
 
     // Thick stylish golden border
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 4.0f); // Thicker border
-    ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 215, 0, 255)); // Gold color
+    // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 255)); // Black background
 
     ImGui::SetNextWindowSize(ImVec2(mapSize, mapSize));
@@ -1827,9 +1828,11 @@ void PlayState::RenderMap() {
 
 
     ImGui::End();
+    ImVec2 borderMin(windowMin.x - 2, windowMin.y - 2);
+    ImVec2 borderMax(windowMax.x + 2, windowMax.y + 2);
     // --- Draw the border AFTER the minimap rendering ---
-    drawList->AddRect(windowMin, windowMax, IM_COL32(255, 215, 0, 255), 8.0f, 0, 6.0f); // Thick gold border
-    drawList->AddRect(windowMin, windowMax, IM_COL32(255, 165, 0, 128), 12.0f, 0, 3.0f); // Outer glow
+    drawList->AddRect(borderMin, borderMax, IM_COL32(255, 169, 0, 255), 10.0f, 0, 4.0f); // Thick gold border
+    drawList->AddRect(borderMin, borderMax, IM_COL32(255, 169, 0, 128), 10.0f, 0, 3.0f); // Outer glow
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(2);
 }
@@ -1877,9 +1880,9 @@ void PlayState::RenderFadeOverlay(float alpha)
         {
             // Style taken from PauseState
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.75f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 

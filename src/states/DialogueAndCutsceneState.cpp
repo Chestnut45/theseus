@@ -487,7 +487,7 @@ void DialogueAndCutsceneState::RenderSequence(float delta) {
     if (currentItem.type == "dialogue" || currentItem.type == "combined") {
         // Smooth fade-in effect for the dialogue box
         static float fadeOpacity = 0.0f;
-        fadeOpacity = std::min(fadeOpacity + 0.05f, 1.0f); // Gradually increase opacity
+        fadeOpacity = std::min(fadeOpacity + delta, 1.0f); // Gradually increase opacity
 
         // Check if we're on the last line of the dialogue
         bool isLastLine = (m_currentSequence && m_currentSequenceIndex >= m_currentSequence->size() - 1);
