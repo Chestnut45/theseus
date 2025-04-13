@@ -360,8 +360,12 @@ void PlayState::Update(float delta)
         }
         else
         {
-            wolf::EventManager::TriggerEvent(PauseEvent(true));
-            m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
+            // Don't allow pausing when the credits start
+            if (m_gameCompletionTime.IsRunning())
+            {
+                wolf::EventManager::TriggerEvent(PauseEvent(true));
+                m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
+            }
         }
     }
 
@@ -494,7 +498,7 @@ void PlayState::Update(float delta)
     // Display completion message for 5 seconds
     if (m_completionMessageTimer.IsRunning() && m_completionMessageTimer.Elapsed() < 5.0f)
     {
-        RenderTextCentered("You have completed Theseus in " + std::to_string(m_gameCompletionTime.Elapsed()), 5.0f);
+        RenderTextCentered("You have completed Theseus in " + std::format("{:.3f}", m_gameCompletionTime.Elapsed()), 4.0f);
     }
 
     // Show credits after message disappears
@@ -1506,7 +1510,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
 void PlayState::OnGameWinEvent(const GameWinEvent& event)
 {
-    m_gameCompletionTime.Pause();
+    m_gameCompletionTime.Stop();
 
     // Deactivate the player controller
     m_pPlayerObject->GetComponent<PlayerController>()->SetActive(false);
