@@ -15,8 +15,9 @@ void main()
     vec4 clipSpacePos = vec4(texCoords * 2.0 - 1.0, 0.0, 1.0);
     vec4 worldPos = inverse(viewProj) * clipSpacePos;  
     worldPos /= worldPos.w;
+    worldPos.y *= -1;
 
-    // Scale by texture and texture resolution and scaling factor
+    // Scale by texture resolution and scaling factor
     vec2 sampleCoords = worldPos.xy / (128 * 3);
 
     // Final sample

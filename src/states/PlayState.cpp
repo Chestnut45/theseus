@@ -973,6 +973,7 @@ void PlayState::BackgroundRender(float delta)
         glm::vec2 viewSize = camera->GetViewSize();
         m_pFBO->SetTexSize(viewSize.x, viewSize.y);
         m_pFBO->SetWindowSize(viewSize.x, viewSize.y);
+        camera->Bind();
     }
 
     // Bind framebuffer for rendering scene - leave out UI elements
