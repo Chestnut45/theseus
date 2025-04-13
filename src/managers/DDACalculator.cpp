@@ -42,7 +42,7 @@ DDACalculator* DDACalculator::GetInstance()
 // If the line is blocked by a wall, return the intersection point between the line & the wall
 glm::vec2 DDACalculator::GetEndpoint(glm::vec2 p_src_pos, glm::vec2 p_dst_pos)
 {
-    // Check
+    // If labyrinth manager is not nullptr
     if(this->m_pLBMG != nullptr)
     {
         glm::ivec2 srcTilePos = this->m_pLBMG->GetTilePosition(p_src_pos);
@@ -51,7 +51,7 @@ glm::vec2 DDACalculator::GetEndpoint(glm::vec2 p_src_pos, glm::vec2 p_dst_pos)
         glm::ivec2 dstTilePos = this->m_pLBMG->GetTilePosition(p_dst_pos);
         int dstTileID = this->m_pLBMG->GetTile(dstTilePos.x, dstTilePos.y);
 
-        // If src is on wall tile
+        // If source is on a wall tile, return source
         if
         (
             srcTilePos != glm::ivec2(-1, -1)    && 
@@ -61,7 +61,7 @@ glm::vec2 DDACalculator::GetEndpoint(glm::vec2 p_src_pos, glm::vec2 p_dst_pos)
             return p_src_pos;
         }
         
-        // If src & dst are on same tile
+        // If source & destination are on the same tile, return destination
         if
         (
             srcTilePos != glm::ivec2(-1, -1)    &&
@@ -73,7 +73,7 @@ glm::vec2 DDACalculator::GetEndpoint(glm::vec2 p_src_pos, glm::vec2 p_dst_pos)
 
         const int tileSize = (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
 
-        // calculate vector from src to dst & related data
+        // calculate vector from source to destination & related data
         glm::vec2 line = p_dst_pos - p_src_pos;
         glm::vec2 normalisedLine = glm::normalize(line);
         float distance = glm::length(line);
@@ -95,23 +95,26 @@ glm::vec2 DDACalculator::GetEndpoint(glm::vec2 p_src_pos, glm::vec2 p_dst_pos)
             sqrt(1 + (normalisedLine.x / normalisedLine.y) * (normalisedLine.x / normalisedLine.y))
         );
 
-        // Initialise length of rays & tile incrementors based on position of src
+        // Initialise length of rays & tile incrementors based on position of source
+        // Line is going right
         if(line.x > 0.0f)
         {
             tileStep.x = 1;
             rayLength.x = abs(this->GetTileWorldPos(glm::ivec2(srcTilePos.x + 1, srcTilePos.y)).x - p_src_pos.x) * rayStep.x;
         }
+        // Line is going left
         else
         {
             tileStep.x = -1;
             rayLength.x = abs(p_src_pos.x - this->GetTileWorldPos(glm::ivec2(srcTilePos.x, srcTilePos.y)).x) * rayStep.x;
         }
-
+        // Line is going up
         if(line.y > 0.0f)
         {
             tileStep.y = 1;
             rayLength.y = abs(this->GetTileWorldPos(glm::ivec2(srcTilePos.x, srcTilePos.y + 1)).y - p_src_pos.y) * rayStep.y;
         }
+        // Line is going down
         else
         {
             tileStep.y = -1;
@@ -125,15 +128,17 @@ glm::vec2 DDACalculator::GetEndpoint(glm::vec2 p_src_pos, glm::vec2 p_dst_pos)
         bool isIterating = true;
         float distanceCheck = 0.0f;
 
+        // Iterate until the distance iterated is greater than the distance between source & destination
         while(distanceCheck < distance)
         {
-
+            // Increment ray x if ray x is shorter than ray y
             if(rayLength.x < rayLength.y)
             {
                 currentTilePos.x += tileStep.x;
                 distanceCheck = rayLength.x;
                 rayLength.x += rayStep.x;
             }
+            // Increment ray y if ray y is shorter than ray x
             else
             {
                 currentTilePos.y += tileStep.y;
@@ -155,6 +160,8 @@ glm::vec2 DDACalculator::GetEndpoint(glm::vec2 p_src_pos, glm::vec2 p_dst_pos)
             }
         }
     }
+
+    // Return destination position by default
     return p_dst_pos;
 }
 
@@ -163,18 +170,20 @@ std::vector<glm::ivec2> DDACalculator::GetTraversedTiles(glm::vec2 p_src_pos, gl
 {
     std::vector<glm::ivec2> tiles;
 
-    // Check
+    // If labyrinth manager is not nullptr
     if(this->m_pLBMG != nullptr)
-    {
+    {   
+        // Calculate data for source
         glm::ivec2 srcTilePos = this->m_pLBMG->GetTilePosition(p_src_pos);
         int srcTileID = this->m_pLBMG->GetTile(srcTilePos.x, srcTilePos.y);
         
+        // Calculate data for destination
         glm::ivec2 dstTilePos = this->m_pLBMG->GetTilePosition(p_dst_pos);
         int dstTileID = this->m_pLBMG->GetTile(dstTilePos.x, dstTilePos.y);
 
         tiles.push_back(srcTilePos);
 
-        // If src is on wall tile
+        // If source is on a wall tile, return only the source tile
         if
         (
             srcTilePos != glm::ivec2(-1, -1)    && 
@@ -184,7 +193,7 @@ std::vector<glm::ivec2> DDACalculator::GetTraversedTiles(glm::vec2 p_src_pos, gl
             return tiles;
         }
         
-        // If src & dst are on same tile
+        // If source & destination are on the same tile, return only the source tile
         if
         (
             srcTilePos != glm::ivec2(-1, -1)    &&
@@ -196,7 +205,7 @@ std::vector<glm::ivec2> DDACalculator::GetTraversedTiles(glm::vec2 p_src_pos, gl
 
         const int tileSize = (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
 
-        // calculate vector from src to dst & related data
+        // calculate vector from source to destination & related data
         glm::vec2 line = p_dst_pos - p_src_pos;
         glm::vec2 normalisedLine = glm::normalize(line);
         float distance = glm::length(line);
@@ -218,23 +227,26 @@ std::vector<glm::ivec2> DDACalculator::GetTraversedTiles(glm::vec2 p_src_pos, gl
             sqrt(1 + (normalisedLine.x / normalisedLine.y) * (normalisedLine.x / normalisedLine.y))
         );
 
-        // Initialise length of rays & tile incrementors based on position of src
+        // Initialise length of rays & tile incrementors based on position of source
+        // Line is going right
         if(line.x > 0.0f)
         {
             tileStep.x = 1;
             rayLength.x = abs(this->GetTileWorldPos(glm::ivec2(srcTilePos.x + 1, srcTilePos.y)).x - p_src_pos.x) * rayStep.x;
         }
+        // Line is going left
         else
         {
             tileStep.x = -1;
             rayLength.x = abs(p_src_pos.x - this->GetTileWorldPos(glm::ivec2(srcTilePos.x, srcTilePos.y)).x) * rayStep.x;
         }
-
+        // Line is going up
         if(line.y > 0.0f)
         {
             tileStep.y = 1;
             rayLength.y = abs(this->GetTileWorldPos(glm::ivec2(srcTilePos.x, srcTilePos.y + 1)).y - p_src_pos.y) * rayStep.y;
         }
+        // Line is going down
         else
         {
             tileStep.y = -1;
@@ -250,13 +262,14 @@ std::vector<glm::ivec2> DDACalculator::GetTraversedTiles(glm::vec2 p_src_pos, gl
 
         while(distanceCheck < distance)
         {
-
+            // Increment ray x if ray x is shorter than ray y
             if(rayLength.x < rayLength.y)
             {
                 currentTilePos.x += tileStep.x;
                 distanceCheck = rayLength.x;
                 rayLength.x += rayStep.x;
             }
+            // Increment ray y if ray y is shorter than ray x
             else
             {
                 currentTilePos.y += tileStep.y;
@@ -266,7 +279,7 @@ std::vector<glm::ivec2> DDACalculator::GetTraversedTiles(glm::vec2 p_src_pos, gl
 
             currentTileID = this->m_pLBMG->GetTile(currentTilePos.x, currentTilePos.y);
             
-            // If blocked by a wall, return endpoint
+            // If blocked by a wall, return the current set of tiles
             if(p_is_blocked && this->IsWallTile(currentTileID))
             {
                 if(distanceCheck < distance)
@@ -275,17 +288,20 @@ std::vector<glm::ivec2> DDACalculator::GetTraversedTiles(glm::vec2 p_src_pos, gl
                 }
                 break;
             }
+            // If not, add the tile
             else
             {
                 tiles.push_back(currentTilePos);
             }
 
+            // If destination tile is reached, break
             if(currentTilePos == dstTilePos)
             {
                 break;
             }
         }
     }
+    // Return the tiles traversed
     return tiles;
 }
 

@@ -58,9 +58,13 @@ void MonsterSpawnerComponent::Update(float p_delta)
         break;
     }
     
-    // if player is on spawner tile, spawn monsters
+    
     glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerControllerComp->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+    
+    // If player is out of bounds, return
     if(playerTilePos == glm::ivec2(-1)) return;;
+
+    // if player is not stepping on trigger, return
     if(
         playerTilePos.x < m_MSData.triggerTilePos.x                                 ||
         playerTilePos.x > m_MSData.triggerTilePos.x + (m_MSData.triggerSize.x - 1)  ||
@@ -70,6 +74,9 @@ void MonsterSpawnerComponent::Update(float p_delta)
     {
         return;
     }
+
+    
+    // if player is stepping on trigger
     else
     {
         SpawnMonsters();
@@ -80,7 +87,7 @@ void MonsterSpawnerComponent::Update(float p_delta)
 
 void MonsterSpawnerComponent::SpawnMonsters()
 {
-    // get player controller
+    // Get player controller
     PlayerController* playerControllerComp = nullptr;
     for (auto&& [_, pcComp] : GetGameObject()->GetScene().Each<PlayerController>())
     {
@@ -89,7 +96,7 @@ void MonsterSpawnerComponent::SpawnMonsters()
     }
     glm::ivec2 playerTilePos = m_pLBMG->GetTilePosition(playerControllerComp->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     
-
+    // Perform queries
     QueryOccupiedTiles();
     QueryAvailableTiles();
 
@@ -211,6 +218,7 @@ void MonsterSpawnerComponent::SpawnMonsters()
 
 void MonsterSpawnerComponent::QueryOccupiedTiles()
 {
+    // Calculate sides of the spawner
     int left = m_MSData.spawnerTilePos.x;
     int right = m_MSData.spawnerTilePos.x + m_MSData.spawnerSize.x - 1;
     int bottom = m_MSData.spawnerTilePos.y;
@@ -232,7 +240,6 @@ void MonsterSpawnerComponent::QueryOccupiedTiles()
                 std::find(m_vOccupiedTiles.begin(), m_vOccupiedTiles.end(), tilePos) == m_vOccupiedTiles.end()
             )
             {
-                //std::cout <<"wallTile - x: " << i << ", y: " << j << std::endl;
                 m_vOccupiedTiles.push_back(tilePos);
             }
         }   
@@ -279,7 +286,6 @@ void MonsterSpawnerComponent::QueryOccupiedTiles()
                 // Mark tile as occupied if object has any of the following components
                 if(obj->HasAny<ChestInventoryComponent, ColliderComponent, DispensaryInventoryComponent, MinitaurController, NPCComponent, PlayerController, TrappedChestComponent>())
                 {
-                    //std::cout <<"id: " << obj->GetID() << std::endl;
                     m_vOccupiedTiles.push_back(objTilePos);
                 }
 
@@ -315,6 +321,7 @@ void MonsterSpawnerComponent::HandleSpawnerBoundLines()
     glm::ivec2 spawnerSize = m_MSData.spawnerSize * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
     glm::vec2 worldPos = m_pLBMG->GetWorldPosition(m_MSData.spawnerTilePos);
 
+    // Calculate bound sides
     glm::vec2 lb = worldPos;
     glm::vec2 lt = lb + glm::vec2(0.0f, spawnerSize.y);
     glm::vec2 rb = lb + glm::vec2(spawnerSize.x, 0.0f);
@@ -348,6 +355,8 @@ void MonsterSpawnerComponent::HandleTriggerBoundLines()
     glm::ivec2 triggerSize = m_MSData.triggerSize * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
     glm::vec2 worldPos = m_pLBMG->GetWorldPosition(m_MSData.triggerTilePos);
 
+    
+    // Calculate bound sides
     glm::vec2 lb = worldPos;
     glm::vec2 lt = lb + glm::vec2(0.0f, triggerSize.y);
     glm::vec2 rb = lb + glm::vec2(triggerSize.x, 0.0f);

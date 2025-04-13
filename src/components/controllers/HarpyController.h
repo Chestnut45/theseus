@@ -29,6 +29,8 @@ private:
     void SetUpAnimations(const std::string& animationInitPath);          
     void UpdateAnimationBasedOnDirection();
     void MoveTowardsTarget(float delta);
+
+    // State handler methods
     void HandleIdleState(float delta);
     void HandleChasingState(float delta);
     void HandleAttackingState(float delta);
@@ -36,6 +38,7 @@ private:
     void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
 
+    // State enter methods
     void EnterAttackState();
     void EnterChasingState();
     void EnterPetrifiedState();
@@ -43,16 +46,16 @@ private:
     void EnterStunnedState();
     void EnterDeathState();
 
+    // State exit methods
     void ExitAttackState();
     void ExitChasingState();
     void ExitIdleState();
     void ExitPetrifiedState();
     void ExitStunnedState();
 
+    // Helper methods
     void RevertBackToPlayer();
-    void HandleInfighting(const InfightingEvent& event); //added this
-
-    
+    void HandleInfighting(const InfightingEvent& event); //added this    
     void SetEmote(EnemyEmote p_emote);
 
     // Minitaur-specific properties
