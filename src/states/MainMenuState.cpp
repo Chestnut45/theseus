@@ -52,11 +52,12 @@ void MainMenuState::Update(float delta)
     static wolf::Texture* pbackgroundTexture = nullptr;
     if (!pbackgroundTexture) {
         pbackgroundTexture = wolf::TextureManager::CreateTexture("data/textures/TheseusTitle.png");
+        pbackgroundTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest, wolf::Texture::FilterMode::FM_Nearest);
         backgroundTextureID = reinterpret_cast<void*>(pbackgroundTexture->GetID());
     }
 
     // Darken background
-    float shade = (m_screen == Screen::MAIN) ? 1.0f : (m_screen == Screen::FADE) ? 0.32f * (1.0f - m_fadeTime) : 0.32f;
+    float shade = (m_screen == Screen::MAIN) ? 0.95f : (m_screen == Screen::FADE) ? 0.32f * (1.0f - m_fadeTime) : 0.32f;
     float buttonShade = (m_screen == Screen::MAIN) ? 1.0f : 0.64f;
 
     // Draw the background image
