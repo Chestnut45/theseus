@@ -144,6 +144,7 @@ public:
 
     // Gets the current seed used to generate the labyrinth
     inline int GetSeed() const { return m_rng.GetSeed(); };
+    void SetSeed(int seed);
 
     //return a random valid spawn position within the room’s bounds
     glm::ivec2 GetRandomRoomSpawnPosition(const RoomData& roomData);

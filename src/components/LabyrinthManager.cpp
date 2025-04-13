@@ -1088,6 +1088,12 @@ wolf::GameObject* LabyrinthManager::GetPlayer() const
     return nullptr;
 }
 
+void LabyrinthManager::SetSeed(int seed)
+{
+    m_randomizeSeed = false;
+    m_rng.SetSeed(seed);
+}
+
 std::vector<LabyrinthManager::Room> LabyrinthManager::PlaceRooms()
 {
     // Place all rooms into the labyrinth

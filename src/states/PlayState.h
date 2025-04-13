@@ -50,9 +50,8 @@ class LabyrinthManager;
 class PlayState : public GameState
 {
 public:
-    PlayState(GameStateManager* manager, Theseus* gameInstance)
-        : GameState(manager, gameInstance) {
-        }
+
+    PlayState(GameStateManager* manager, Theseus* gameInstance, const std::string& seedText);
 
     void Enter() override;
     void Exit() override;
@@ -69,17 +68,15 @@ public:
     std::unordered_map<std::string, wolf::GameObjectID>& GetEntityIDs() {return m_entityIDs;}
 
 private:
-    
-    // Game objects / components that will exist for the duration of the play state
+
     wolf::GameObject* m_pPlayerObject = nullptr;
+
+    // Managers
     LabyrinthManager* m_pLabyrinthManager = nullptr;
-
-    // Manager for colliders
     ColliderManager* m_pColliderManager = nullptr;
-
-    //pathfinding manager
     PathfindingManager* m_pPathfindingManager = nullptr;
 
+    std::string m_seedText;
 
     // Flags
     bool m_debugHotkeys = false;
@@ -87,7 +84,7 @@ private:
     bool m_showInventoryGUI = false;
     bool m_noClip = false;
 
-    // Location to spawn player when bossfight starts
+    // Boss data
     glm::vec2 m_bossfightPlayerPos;
     wolf::GameObject* m_pBoss = nullptr;
     wolf::GameObject* m_pBossWalls = nullptr;
@@ -95,15 +92,39 @@ private:
     glm::ivec2 m_bossRoomOrigin;
     glm::ivec2 m_bossRoomSize;
 
-    // Timer for transitioning the camera zoom into the bossfight
+    // Timer for transitioning the camera zoom when the player enters the chamber
     wolf::Timer m_bossZoomTimer;
+
+    // Credits data
+    wolf::Timer m_cameraShakeTimer;
+    wolf::Timer m_fadeToBlackTimer;
+    wolf::Timer m_completionMessageTimer;
+    wolf::Timer m_showCreditsTimer;
+    wolf::Timer m_returnToMainMenuTimer;
+    wolf::Timer m_gameCompletionTime;
+    bool m_isExiting = false;
+
+    // Field background rendering resources
+    GLuint m_dummyVAO = 0;
+    wolf::Program* m_pBackgroundShader = nullptr;
+    wolf::Texture* m_pFieldTexture = nullptr;
+
+    // Map data
+    std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
+    std::unordered_set<glm::ivec2> m_visitedChunks; // Track visited chunks
+    bool m_isMapExpanded = false;                  // Toggle for expanded map
+    
+    // Navigation data
+    NavMeshComponent* m_pNavMeshComponent = nullptr;
+    std::vector<wolf::GameObject*> m_navMeshObstacles;
+
+    ParticleEditor* m_pParticleEditor = nullptr;
+    wolf::FrameBuffer* m_pFBO = nullptr;
 
     // Private helper methods
     void ConvertPlayerTileToGold();
 
-    // Creates the player object and all of its components
-    // PRE: The player must not have been created yet
-    // POST: m_pPlayerObject will be set to a pointer to the newly created player object
+    // Entity creation methods
     void CreatePlayer();
     void CreateMinitaurEnemy();
     void CreateHarpyEnemy();
@@ -111,49 +132,18 @@ private:
     void CreateTrappedChest();
     wolf::GameObject& CreateAriadneAndReturn(glm::vec2 playerPosition);
 
-
-
-    void CreateThrowableObject();
-    wolf::GameObject& CreateSpikeTrap(const glm::vec2& position);
-    wolf::GameObject& CreateBoulderTrap(const glm::vec2& position);
-
+    // Handlers
     void OnGameOverEvent(const GameOverEvent& event);
-
-   // TO DO: New Helper Methods for BoulderTrap
 
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);
 
+    // Extra rendering methods
     void RenderMap();
-    bool IsWallTile(int tileID);
-
-    std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
-
-    std::unordered_set<glm::ivec2> m_visitedChunks; // Track visited chunks
-    bool m_isMapExpanded = false;                  // Toggle for expanded map
-
-    wolf::Timer m_cameraShakeTimer;
-    wolf::Timer m_fadeToBlackTimer;
-    wolf::Timer m_completionMessageTimer;
-    wolf::Timer m_showCreditsTimer;
-    wolf::Timer m_returnToMainMenuTimer;
-    wolf::Timer m_gameCompletionTime;
-
-    void RenderFadeOverlay(float alpha);
     void RenderTextCentered(const std::string& text, float size);
     void RenderCredits(float delta);
-    bool m_isExiting = false;
+    void RenderFadeOverlay(float alpha);
 
-    wolf::FrameBuffer* m_pFBO = nullptr;
-
-    NavMeshComponent* m_pNavMeshComponent = nullptr;
-    std::vector<wolf::GameObject*> m_navMeshObstacles;
-
-
-    ParticleEditor* m_pParticleEditor = nullptr;
-
-    // Background rendering resources
-    GLuint m_dummyVAO = 0;
-    wolf::Program* m_pBackgroundShader = nullptr;
-    wolf::Texture* m_pFieldTexture = nullptr;
+    // Helpers
+    bool IsWallTile(int tileID);
 };

@@ -53,6 +53,12 @@
 
 #include <W_BufferManager.h>
 
+PlayState::PlayState(GameStateManager* manager, Theseus* gameInstance, const std::string& seedText)
+    : GameState(manager, gameInstance),
+    m_seedText(seedText)
+{
+}
+
 void PlayState::Enter()
 {
     // Setup background rendering resources
@@ -96,6 +102,10 @@ void PlayState::Enter()
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
     m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
+
+    // Set the seed from the main menu if not empty
+    // TODO: Special seeds! (custom challenge configs, easter eggs, whatever)
+    if (m_seedText.length() > 0) m_pLabyrinthManager->SetSeed(static_cast<int>(std::hash<std::string>{}(m_seedText)));
 
     // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();

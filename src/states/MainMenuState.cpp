@@ -25,17 +25,12 @@ void MainMenuState::Exit()
 
 void MainMenuState::Update(float delta)
 {
-    // Shutdown with escape key on main menu too
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) m_pGameInstance->Shutdown();
 
-    // Get the dimensions of the game window
     const int w = m_pGameInstance->GetWidth();
     const int h = m_pGameInstance->GetHeight();
-
-    // Button sizes
-    const int buttonWidth = 128;
+    const int buttonWidth = 160;
     const int buttonHeight = 48;
-    const int buttonSpacing = 20; // Space between buttons
 
     // Set the UI window to cover the screen
     ImGui::SetNextWindowPos({0.0f, 0.0f});
@@ -60,9 +55,12 @@ void MainMenuState::Update(float delta)
         backgroundTextureID = reinterpret_cast<void*>(pbackgroundTexture->GetID());
     }
 
+    // Darken background
+    float shade = (m_screen == Screen::MAIN) ? 1.0f : 0.32f;
+
     // Draw the background image
     ImGui::SetCursorPos(ImVec2(0, 0));
-    ImGui::Image(backgroundTextureID, ImGui::GetWindowSize(), ImVec2(0,0), ImVec2(1,1));
+    ImGui::Image(backgroundTextureID, ImGui::GetWindowSize(), ImVec2(0,0), ImVec2(1,1), ImVec4(shade, shade, shade, 1.0));
 
     // Centered title
     ImVec2 dimensions = ImGui::GetWindowSize();
@@ -71,30 +69,108 @@ void MainMenuState::Update(float delta)
     ImGui::NewLine();
 
     // Push the button style vars and colors
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 15.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 3.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.5f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
 
-    // Center buttons side by side
-    float totalButtonWidth = (2 * buttonWidth) + buttonSpacing;
-    float startX = (dimensions.x - totalButtonWidth) * 0.5f;
-    float buttonY = dimensions.y * 0.75f;
+    // Calculate some offsets
+    float startX = (dimensions.x - buttonWidth) * 0.5f;
+    float buttonY = dimensions.y * 0.72f;
 
-    ImGui::SetCursorPosX(startX);
-    ImGui::SetCursorPosY(buttonY);
-    if (ImGui::Button("Play", {buttonWidth, buttonHeight}))
+    switch (m_screen)
     {
-        m_pStateManager->PushState(new PlayState(m_pStateManager, m_pGameInstance));
-    }
+        case Screen::MAIN:
 
-    ImGui::SameLine(); // Keep the next button on the same row
-    ImGui::SetCursorPosX(startX + buttonWidth + buttonSpacing);
-    if (ImGui::Button("Quit", {buttonWidth, buttonHeight}))
-    {
-        m_pGameInstance->Shutdown();
+            ImGui::SetCursorPosX(startX - 10);
+            ImGui::SetCursorPosY(buttonY - 64);
+            if (ImGui::Button("Play", {buttonWidth + 20, buttonHeight}))
+            {
+                m_screen = Screen::START_GAME;
+            }
+            ImGui::NewLine();
+            ImGui::SetCursorPosX(startX + 10);
+            if (ImGui::Button("Options", {buttonWidth - 20, buttonHeight}))
+            {
+                m_screen = Screen::OPTIONS;
+            }
+            ImGui::NewLine();
+            ImGui::SetCursorPosX(startX + 10);
+            if (ImGui::Button("Quit", {buttonWidth - 20, buttonHeight}))
+            {
+                m_pGameInstance->Shutdown();
+            }
+
+            break;
+        
+        case Screen::OPTIONS:
+            
+            // TODO: Serialize state to disk if we have time
+            static bool fullscreen = false;
+            static bool vsync = false;
+            static float volume = 1.0f;
+            
+            ImGui::SetCursorPosX(startX - 50);
+            ImGui::SetCursorPosY(buttonY - 64);
+            ImGui::BeginChild("###Constraint", ImVec2(256, 20));
+            ImGui::SeparatorText("Display");
+            ImGui::EndChild();
+            ImGui::SetCursorPosX(startX - 50);
+            if (ImGui::Checkbox("Fullscreen", &fullscreen)) m_pGameInstance->SetFullscreen(fullscreen);
+            ImGui::SetCursorPosX(startX - 50);
+            if (ImGui::Checkbox("Vsync", &vsync)) m_pGameInstance->SetVsync(vsync);
+            ImGui::SetCursorPosX(startX - 50);
+            ImGui::BeginChild("###Constraint2", ImVec2(256, 20));
+            ImGui::SeparatorText("Audio");
+            ImGui::EndChild();
+            ImGui::SetCursorPosX(startX - 50);
+            ImGui::SetNextItemWidth(256);
+            ImGui::SliderFloat("Master Volume", &volume, 0.0f, 1.0f, "%.2f");
+            ImGui::NewLine();
+            ImGui::SetCursorPosX(startX + 10);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
+            if (ImGui::Button("Back", {buttonWidth - 20, buttonHeight}))
+            {
+                m_screen = Screen::MAIN;
+            }
+
+            break;
+        
+        case Screen::START_GAME:
+
+            ImGui::SetCursorPosX(startX + 32);
+            ImGui::SetCursorPosY(buttonY - 72);
+            if (ImGui::Checkbox("Random Seed", &m_randomSeed))
+            {
+                if (m_randomSeed)
+                {
+                    m_seedText.clear();
+                }
+            }
+            ImGui::SetCursorPosX(dimensions.x / 2 - 128);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8);
+            ImGui::SetNextItemWidth(256);
+            if (m_randomSeed) ImGui::BeginDisabled();
+            ImGui::InputText("Seed", &m_seedText, ImGuiInputTextFlags_CharsNoBlank);
+            if (m_randomSeed) ImGui::EndDisabled();
+            ImGui::SetCursorPosX(startX - 10);
+            ImGui::SetCursorPosY(buttonY);
+            if (ImGui::Button("Enter the Labyrinth", {buttonWidth + 20, buttonHeight}))
+            {
+                // TODO: Play sfx
+                m_pStateManager->PushState(new PlayState(m_pStateManager, m_pGameInstance, m_seedText));
+            }
+            ImGui::NewLine();
+            ImGui::SetCursorPosX(startX + 10);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
+            if (ImGui::Button("Back", {buttonWidth - 20, buttonHeight}))
+            {
+                m_screen = Screen::MAIN;
+            }
+
+            break;
     }
 
     ImGui::PopStyleVar(2);
