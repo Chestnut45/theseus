@@ -57,6 +57,7 @@ void MainMenuState::Update(float delta)
 
     // Darken background
     float shade = (m_screen == Screen::MAIN) ? 1.0f : 0.32f;
+    float buttonShade = (m_screen == Screen::MAIN) ? 1.0f : 0.64f;
 
     // Draw the background image
     ImGui::SetCursorPos(ImVec2(0, 0));
@@ -72,9 +73,11 @@ void MainMenuState::Update(float delta)
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 3.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.5f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.8f));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.5f * buttonShade));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.75f * buttonShade));
+    ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(1.0f, 0.75f, 0.0f, 1.0f));
 
     // Calculate some offsets
     float startX = (dimensions.x - buttonWidth) * 0.5f;
@@ -179,7 +182,7 @@ void MainMenuState::Update(float delta)
     }
 
     ImGui::PopStyleVar(2);
-    ImGui::PopStyleColor(5);
+    ImGui::PopStyleColor(7);
 
     // Close window and pop vars
     ImGui::End();
