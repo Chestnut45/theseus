@@ -272,8 +272,6 @@ void PlayState::Enter()
         m_pPathfindingManager->RegisterEntity(gorgon.GetGameObject());
     }
 
-
-
     // Generate the NavMesh from the Labyrinth
     m_pNavMeshComponent->GenerateFromLabyrinth(m_pLabyrinthManager);
 
@@ -650,174 +648,177 @@ void PlayState::Update(float delta)
             status.Update(delta);
         }
 
-        // Display all open chest GUIs
-        const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        for (auto&&[_, chestInventory, transform, sprite] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
+        // Don't pickup items or interact with things if we're dead!
+        if (m_pPlayerObject->GetComponent<PlayerController>()->GetPlayerAction() != PlayerController::PlayerAction::DEAD)
         {
-            // Show GUI
-            chestInventory.ShowInventoryGUI();
-
-            // Distance checking
-            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+            // Display all open chest GUIs
+            const auto& playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            for (auto&&[_, chestInventory, transform, sprite] : m_pGameInstance->GetScene().Each<ChestInventoryComponent, wolf::Transform2D, AnimatedSprite2D>())
             {
-                // Player is in range of the chest, display tooltip
-                std::string tooltip = chestInventory.IsOpen() ? "Press E to Close Chest" : "Press E to Open Chest";
-                ShowTooltip(tooltip);
+                // Show GUI
+                chestInventory.ShowInventoryGUI();
 
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                // Distance checking
+                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
                 {
-                    auto name = sprite.GetCurrentAnimation()->m_strName;
-                    if (chestInventory.IsOpen()) {
-                        // NOTE: Close SFX is handled by the event
-                        sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
-                        m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
-                    }
-                    else {
-                        wolf::Audio::Play("data/sounds/sfx_chest_open.wav", 0.8f);
-                        sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
-                        chestInventory.ToggleOpen();
-                    }
-                    break;
-                }
-            }
-            else
-            {
-                // Close chest if the player walks away
-                if (chestInventory.IsOpen())
-                {
-                    chestInventory.Close();
-                    auto name = sprite.GetCurrentAnimation()->m_strName;
-                    sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
-                    m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
-                }
-            }
-        }
-
-        // Trapped chests
-        for (auto&&[_, trappedChest, transform, sprite] : m_pGameInstance->GetScene().Each<TrappedChestComponent, wolf::Transform2D, AnimatedSprite2D>())
-        {
-            // Update trapped chests
-            trappedChest.Update(delta);
-            // Distance checking
-            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
-            {
-                if(trappedChest.IsOpen() == false)
-                {
-                    std::string tooltip = "Press E to Open Chest";
+                    // Player is in range of the chest, display tooltip
+                    std::string tooltip = chestInventory.IsOpen() ? "Press E to Close Chest" : "Press E to Open Chest";
                     ShowTooltip(tooltip);
+
                     if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
                     {
                         auto name = sprite.GetCurrentAnimation()->m_strName;
-                        sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
-                        trappedChest.OpenTrappedChest();
-                    }
-                }
-            }
-        }
-
-        // Display all open dispensary GUIs
-        for (auto&&[_, dispensaryInventory, transform] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent, wolf::Transform2D>())
-        {
-
-            // If the dispensary has an animated sprite we're going to want to retrieve it
-            AnimatedSprite2D* dispensarySprite = dispensaryInventory.GetGameObject()->GetComponent<AnimatedSprite2D>();
-
-            // Show GUI
-            dispensaryInventory.ShowInventoryGUI();
-
-            // Distance checking
-            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
-            {
-                // Player is in range of the chest, display tooltip
-                std::string tooltip = dispensaryInventory.IsOpen() ? "Press E to Close Daedalus Dispensary" : "Press E to Open Daedalus Dispensary";
-                ShowTooltip(tooltip);
-
-                // When you interact with the dispensary
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
-                {
-                    // Either open or close it
-                    dispensaryInventory.ToggleOpen();
-
-                    // If the dispensary has an AnimatedSprite
-                    if (dispensarySprite) {
-                        // Play the activation animation when we open it
-                        if (dispensaryInventory.IsOpen()) {
-                            dispensarySprite->SetAnimation("Activate");
+                        if (chestInventory.IsOpen()) {
+                            // NOTE: Close SFX is handled by the event
+                            sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
+                            m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
                         }
                         else {
-                            // And set it back to inactive when we close it
+                            wolf::Audio::Play("data/sounds/sfx_chest_open.wav", 0.8f);
+                            sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
+                            chestInventory.ToggleOpen();
+                        }
+                        break;
+                    }
+                }
+                else
+                {
+                    // Close chest if the player walks away
+                    if (chestInventory.IsOpen())
+                    {
+                        chestInventory.Close();
+                        auto name = sprite.GetCurrentAnimation()->m_strName;
+                        sprite.SetAnimation(name.find("Open") != std::string::npos ? name.replace(name.find("Open"), 4, "Closed") : name);
+                        m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                    }
+                }
+            }
+
+            // Trapped chests
+            for (auto&&[_, trappedChest, transform, sprite] : m_pGameInstance->GetScene().Each<TrappedChestComponent, wolf::Transform2D, AnimatedSprite2D>())
+            {
+                // Update trapped chests
+                trappedChest.Update(delta);
+                // Distance checking
+                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+                {
+                    if(trappedChest.IsOpen() == false)
+                    {
+                        std::string tooltip = "Press E to Open Chest";
+                        ShowTooltip(tooltip);
+                        if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                        {
+                            auto name = sprite.GetCurrentAnimation()->m_strName;
+                            sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
+                            trappedChest.OpenTrappedChest();
+                        }
+                    }
+                }
+            }
+
+            // Display all open dispensary GUIs
+            for (auto&&[_, dispensaryInventory, transform] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent, wolf::Transform2D>())
+            {
+                // If the dispensary has an animated sprite we're going to want to retrieve it
+                AnimatedSprite2D* dispensarySprite = dispensaryInventory.GetGameObject()->GetComponent<AnimatedSprite2D>();
+
+                // Show GUI
+                dispensaryInventory.ShowInventoryGUI();
+
+                // Distance checking
+                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
+                {
+                    // Player is in range of the chest, display tooltip
+                    std::string tooltip = dispensaryInventory.IsOpen() ? "Press E to Close Daedalus Dispensary" : "Press E to Open Daedalus Dispensary";
+                    ShowTooltip(tooltip);
+
+                    // When you interact with the dispensary
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                    {
+                        // Either open or close it
+                        dispensaryInventory.ToggleOpen();
+
+                        // If the dispensary has an AnimatedSprite
+                        if (dispensarySprite) {
+                            // Play the activation animation when we open it
+                            if (dispensaryInventory.IsOpen()) {
+                                dispensarySprite->SetAnimation("Activate");
+                            }
+                            else {
+                                // And set it back to inactive when we close it
+                                dispensarySprite->SetAnimation("Deactivate");
+                            }
+                        }
+
+                        // Hide the child icon
+                        for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
+                            AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                            if (anim) {
+                                anim->SetAnimation("Transparent");
+                            }
+                        }
+
+                        // Also, if we close it, close the player inventory as well
+                        if (!dispensaryInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                        break;
+                    }
+                }
+                else
+                {
+                    // Close dispensary if the player walks away
+                    if (dispensaryInventory.IsOpen())
+                    {
+                        dispensaryInventory.Close();
+
+                        // If the dispensary has an AnimatedSprite, play the inactive animation
+                        if (dispensarySprite) {
                             dispensarySprite->SetAnimation("Deactivate");
+                            wolf::EventManager::TriggerEvent(LightToggleEvent(dispensaryInventory.GetGameObject()->GetID(), false));
                         }
-                    }
 
-                    // Hide the child icon
-                    for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
-                        AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
-                        if (anim) {
-                            anim->SetAnimation("Transparent");
+                        // Hide the child icon
+                        for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
+                            AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
+                            if (anim) {
+                                anim->SetAnimation("Transparent");
+                            }
                         }
-                    }
 
-                    // Also, if we close it, close the player inventory as well
-                    if (!dispensaryInventory.IsOpen()) m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
-                    break;
+                        // Close the player's inventory as well
+                        m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
+                    }
                 }
             }
-            else
+            
+            for (auto&&[_, droppedItem, transform] : m_pGameInstance->GetScene().Each<DroppedItemComponent, wolf::Transform2D>())
             {
-                // Close dispensary if the player walks away
-                if (dispensaryInventory.IsOpen())
+                // Distance checking
+                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
                 {
-                    dispensaryInventory.Close();
+                    // Player is in range of the chest, display tooltip
+                    std::string tooltip = "Press E to pickup";
+                    ShowTooltip(tooltip);
 
-                    // If the dispensary has an AnimatedSprite, play the inactive animation
-                    if (dispensarySprite) {
-                        dispensarySprite->SetAnimation("Deactivate");
-                        wolf::EventManager::TriggerEvent(LightToggleEvent(dispensaryInventory.GetGameObject()->GetID(), false));
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                    {
+                        droppedItem.PickUpItem();
+                        break;
                     }
-
-                    // Hide the child icon
-                    for (auto& child : dispensaryInventory.GetGameObject()->GetChildren()) {
-                        AnimatedSprite2D* anim = child->GetComponent<AnimatedSprite2D>();
-                        if (anim) {
-                            anim->SetAnimation("Transparent");
-                        }
-                    }
-
-                    // Close the player's inventory as well
-                    m_pPlayerObject->GetComponent<PlayerInventoryComponent>()->Close();
                 }
             }
-        }
-        
-        for (auto&&[_, droppedItem, transform] : m_pGameInstance->GetScene().Each<DroppedItemComponent, wolf::Transform2D>())
-        {
-            // Distance checking
-            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f)
-            {
-                // Player is in range of the chest, display tooltip
-                std::string tooltip = "Press E to pickup";
-                ShowTooltip(tooltip);
 
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
-                {
-                    droppedItem.PickUpItem();
-                    break;
-                }
-            }
-        }
+            for (auto&&[_, npc, transform] : m_pGameInstance->GetScene().Each<NPCComponent, wolf::Transform2D>()) {
+                // Distance check
+                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f) {
+                    // Player is in range of the NPC so we display the tooltip
+                    std::string tooltip = "Press E to talk to " + npc.GetName();
+                    ShowTooltip(tooltip);
 
-        for (auto&&[_, npc, transform] : m_pGameInstance->GetScene().Each<NPCComponent, wolf::Transform2D>()) {
-            // Distance check
-            if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f) {
-                // Player is in range of the NPC so we display the tooltip
-                std::string tooltip = "Press E to talk to " + npc.GetName();
-                ShowTooltip(tooltip);
-
-                // And if the player interacts with the NPC we play their next dialogue/cutscene
-                if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
-                    npc.PlayNextDialogue();
-                    break;
+                    // And if the player interacts with the NPC we play their next dialogue/cutscene
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+                        npc.PlayNextDialogue();
+                        break;
+                    }
                 }
             }
         }
