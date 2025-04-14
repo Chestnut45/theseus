@@ -1,8 +1,11 @@
 min_items: 4
-max_items: 10
+max_items: 8
 loot_table: [
   {name: Legendary Schematic, probability: 3},
   {name: Healing Heart, probability: 2},
   {name: The Floor is Lava Boots, probability: 4},
-  {name: Lapis Lazuli Ring, probability: 4}
+  {name: Lapis Lazuli Ring, probability: 4},
+  {name: Portal, probability: 2},
+  {name: Portal, probability: 2},
+  {name: Gold Pile, probability: 2},
 ]

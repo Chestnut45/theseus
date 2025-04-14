@@ -6,6 +6,22 @@ Gold Coin: {
   rarity: COMMON,
 }
 
+Gold Handful: {
+  id: GOLD,
+  description: A handful of gold!,
+  value: 5,
+  texture_frame: 5,
+  rarity: UNCOMMON,
+}
+
+Gold Pile: {
+  id: GOLD,
+  description: A pile of gold!,
+  value: 15,
+  texture_frame: 5,
+  rarity: RARE,
+}
+
 Common Schematic: {
   id: SCHEMATIC,
   description: One of Daedalus' old schematics. Can be traded at a dispensary for cheap equipment.,
@@ -56,14 +72,27 @@ Healing Heart: {
   num_uses: 1,
   type: FLAT_AMT,
   attribute: HEALTH,
-  amount: 50.0,
+  amount: 100.0,
 }
 
-Hurting Heart: {
+Liquid Life: {
   id: CONSUMABLE,
-  description: This will hurt.,
+  description: Don't ask where I got this. Seriously.,
+  value: 30,
+  texture_frame: 6,
+  rarity: UNCOMMON,
+  is_stackable: false,
+  num_uses: 1,
+  type: PERCENT_AMT,
+  attribute: HEALTH,
+  amount: 0.25,
+}
+
+Pain Juice: {
+  id: CONSUMABLE,
+  description: I tried juicing a Minitaur's heart. It's painful to drink.,
   value: 5,
-  texture_frame: 21,
+  texture_frame: 8,
   rarity: COMMON,
   is_stackable: false,
   num_uses: 1,
@@ -72,18 +101,18 @@ Hurting Heart: {
   amount: -0.5,
 }
 
-Burning Heart: {
+Lava Wine: {
   id: CONSUMABLE,
   type: STATUS_EFFECT,
-  description: A love so hot it BURNS.,
+  description: It seemed like a good idea at the time!,
   value: 5,
-  texture_frame: 21,
+  texture_frame: 4,
   rarity: COMMON,
   is_stackable: false,
   num_uses: 3,
   type: STATUS_EFFECT,
   status_effect_type: BURNING,
-  duration: 2.0,
+  duration: 1.0,
 }
 
 Dull Blade: {
@@ -142,14 +171,7 @@ The Floor is Lava Boots: {
   rarity: LEGENDARY,
   slot: FEET,
   damage_reduction: 0.05,
-  has_status_effects: true,
-
-  status_effect_resistances: [
-    {
-      type: BURNING,
-      value: 0.5
-    }
-  ]
+  has_status_effects: false,
 }
 
 Dented Helmet: {
@@ -221,7 +243,7 @@ Faux-leather Gloves: {
 Lapis Lazuli Ring: {
   id: EQUIPMENT,
   description: Lapis Lazuli ores can be mined with a stone pickaxe or better and drops 4-9 lapis lazuli.,
-  value: 5,
+  value: 50,
   texture_frame: 24,
   rarity: LEGENDARY,
   slot: ACCESSORY,
