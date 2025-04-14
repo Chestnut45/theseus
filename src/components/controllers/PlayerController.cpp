@@ -167,6 +167,7 @@ void PlayerController::LateInitialize()
     m_pPlacingIndicatorObj->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE, LabyrinthManager::SCALE));
     wolf::Sprite2D* indicatorSprite = &m_pPlacingIndicatorObj->AddComponent<wolf::Sprite2D>("data/textures/hermes_portal.png");
     indicatorSprite->SetVisibility(false);
+    indicatorSprite->SetLayer(1);
     
 
     InitializeAnimations();
@@ -550,6 +551,7 @@ void PlayerController::HandlePlacing(float delta)
     const float scaledTileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
     bool isOutOfRange = false;
     bool isWall = false;
+    bool isOccupied = false;
 
     // Check if the tile position is out of bounds
     bool isOutOfBounds = cursorWorldPos.x < 0 || cursorWorldPos.y < 0;
@@ -577,6 +579,8 @@ void PlayerController::HandlePlacing(float delta)
         {
             isWall = true;
         } 
+
+        isOccupied = PortalTileManager::GetInstance()->IsTileOccupiedByAnotherPortalTile(cursorTilePos);
         break;
     }
 
@@ -584,7 +588,7 @@ void PlayerController::HandlePlacing(float delta)
     if(wolf::Input::IsLMBJustDown())
     {    
         // If attempting to place item out of bounds, out of range, or on a wall, return
-        if(isOutOfBounds || isOutOfRange || isWall) return;
+        if(isOutOfBounds || isOutOfRange || isWall || isOccupied) return;
 
         // If placeable is a portal
         if(this->m_pCurrentPlaceable->GetType() == PlaceableType::PORTAL)
@@ -607,7 +611,7 @@ void PlayerController::HandlePlacing(float delta)
     glm::vec3 normalTint = glm::vec3(1.0f, 1.0f, 1.0f);
 
     // If cursor is hovering out of bounds, out of range, or on a wall, set to indicator tint to red
-    if(isOutOfBounds || isOutOfRange || isWall)
+    if(isOutOfBounds || isOutOfRange || isWall || isOccupied)
     {
         m_pPlacingIndicatorObj->GetComponent<wolf::Sprite2D>()->SetTint(redTint);
     }
