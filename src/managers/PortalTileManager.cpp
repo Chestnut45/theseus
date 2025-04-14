@@ -153,7 +153,26 @@ bool PortalTileManager::CreatePortalTile(glm::ivec2 p_tile_pos)
         m_pAvailablePortalTile = nullptr;
     }
     return true;
-    
+}
+
+bool PortalTileManager::IsTileOccupiedByAnotherPortalTile(glm::ivec2 p_tile_pos)
+{
+    // If occupied by an available portal tile, return true
+    if(m_pAvailablePortalTile != nullptr && m_pAvailablePortalTile->GetTilePos() == p_tile_pos)
+    {
+        return true;
+    }
+
+    for(const auto portalTile : m_vPortalTiles)
+    {
+        // If occupied by a portal tile or its sibling, return true
+        if(portalTile->GetTilePos() == p_tile_pos || portalTile->GetSibling()->GetTilePos() == p_tile_pos)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 PortalTileManager::PortalTileManager(LabyrinthManager* p_lbmg)
@@ -323,6 +342,7 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     // Add 2D sprite component
     wolf::Sprite2D* sprite = &m_pPortalTileSpriteObj->AddComponent<wolf::Sprite2D>("data/textures/hermes_portal.png");
     sprite->SetTint(glm::vec3(1.0f));
+    sprite->SetLayer(0);
 
     // Add particle component
     ParticleComponent* particleComponent = &m_pPortalTileSpriteObj->AddComponent<ParticleComponent>();
