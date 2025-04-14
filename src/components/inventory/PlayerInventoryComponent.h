@@ -36,6 +36,9 @@ class PlayerInventoryComponent : public InventoryComponent {
         ItemBase* GetEquippedItem(EquipmentSlot p_enSlot);
         void RemoveEquippedItem(EquipmentSlot p_enSlot);
 
+        virtual void Close();
+        virtual void ToggleOpen();
+
         virtual void ShowInventoryGUI();
         void ShowToggleButtonGUI();
 
@@ -52,7 +55,12 @@ class PlayerInventoryComponent : public InventoryComponent {
 
         inline int GetNumSchematicsOfRarity(Rarity p_enRarity) const {return m_iSchematics[p_enRarity];};
 
-        
+        inline void HideAllPrompts() {
+            m_bShowTooExpensivePrompt = false;
+            m_bShowMissingSchematicPrompt = false;
+            m_bShowFullInventoryPrompt = false;
+        };
+
         void HandleOpenInventoryEvent(const OpenInventoryEvent& p_event);
         void HandleCloseInventoryEvent(const CloseInventoryEvent& p_event);
         void HandleSellItemToPlayerEvent(const SellItemToPlayerEvent& p_event);

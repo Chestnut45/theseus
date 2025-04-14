@@ -485,9 +485,8 @@ void InventoryComponent::ShowInventoryGUI() {
                 }
             }
             else { // Otherwise, this is an empty inventory slot
-            if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pFrameTexture->GetID(), m_v2TexFrameSize, m_vv2FrameTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2FrameTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
-
-            }
+                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pFrameTexture->GetID(), m_v2TexFrameSize, m_vv2FrameTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2FrameTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
+                }
             }
 
             // If we've drawn the maximum number of slots per row
