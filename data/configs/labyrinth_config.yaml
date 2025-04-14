@@ -127,14 +127,23 @@ rooms: [
 		]
 	},
 	{
+		name: Merchant Room,
+		instances: 1,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: vasilios_npc, amount: 1, placement: random},
+		]
+	},
+	{
 		name: NPC Room,
-		instances: 6,
+		instances: 5,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: random_npc, amount: 1, placement: random},
-			{type: throwable_object, amount: 2, placement: random},
 		]
 	},
 	{

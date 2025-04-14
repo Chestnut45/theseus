@@ -75,6 +75,7 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["spike_trap"] = Room::EntityType::SpikeTrap;
     s_entityIDs["ariadne_npc"] = Room::EntityType::AriadneNPC;
     s_entityIDs["daedalus_npc"] = Room::EntityType::DaedalusNPC;
+    s_entityIDs["vasilios_npc"] = Room::EntityType::VasiliosNPC;
     s_entityIDs["random_npc"] = Room::EntityType::RandomNPC;
     s_entityIDs["boulder_trap"] = Room::EntityType::BoulderTrap;
     s_entityIDs["gorgon_spawner"] = Room::EntityType::GorgonSpawner;
@@ -2342,6 +2343,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                     case Room::EntityType::DaedalusNPC:
                     case Room::EntityType::AriadneNPC:
+                    case Room::EntityType::VasiliosNPC:
                     {
                         // Figure out which yaml file we should use based on which NPC we're building
                         std::string strNPCYamlFile;
@@ -2350,6 +2352,10 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         }
                         else if (entity.m_type == Room::EntityType::AriadneNPC) {
                             strNPCYamlFile = "data/npcs/ariadne_init.yaml";
+                        }
+                        else if (entity.m_type == Room::EntityType::VasiliosNPC)
+                        {
+                            strNPCYamlFile = "data/npcs/vasilios_init.yaml";
                         }
 
                         // Create The NPC using the NPCBuilder

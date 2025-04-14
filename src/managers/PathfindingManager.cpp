@@ -151,7 +151,7 @@ void PathfindingManager::UpdateEntities(float delta)
         }
         
         // Skip if no valid target
-        if (!target)
+        if (!target || !target->HasAny<wolf::Transform2D>())
             continue;
 
         glm::ivec2 currentTile = glm::ivec2(entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition()) /

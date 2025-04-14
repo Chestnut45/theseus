@@ -859,7 +859,6 @@ void PlayState::Update(float delta)
             velocity.Update(delta);  // Update velocity with friction and other forces
         }
 
-
         // Update collisions
         this->m_pColliderManager->Update(delta);
         // Apply velocity for all objects with Transform2D and VelocityComponent

@@ -281,6 +281,7 @@ private:
             SpikeTrap,
             DaedalusNPC,
             AriadneNPC,
+            VasiliosNPC,
             RandomNPC,
             BoulderTrap,
             GorgonSpawner,         //-------Added By Nhat-------//
@@ -292,7 +293,7 @@ private:
             // CONSTANT, LEAVE AT END
             ENTITY_COUNT
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Random NPC", "Boulder Trap", "Gorgon Spawner", "Harpy Spawner", "Minitaur Spawner", "Poison Trap", "Lava Trap"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Vasilios NPC", "Random NPC", "Boulder Trap", "Gorgon Spawner", "Harpy Spawner", "Minitaur Spawner", "Poison Trap", "Lava Trap"};
 
         enum class SpawnPosType
         {

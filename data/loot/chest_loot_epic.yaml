@@ -4,7 +4,7 @@ loot_table: [
   {name: Epic Schematic, probability: 2},
   {name: Gold Pile, probability: 2},
   {name: Healing Heart, probability: 2},
-  {name: Liquid Life, probability: 1},
+  {name: Liquid Life, probability: 2},
   {name: Copper Vambraces, probability: 1},
   {name: Kilt, probability: 1}
 ]
