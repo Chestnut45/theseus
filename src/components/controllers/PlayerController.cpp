@@ -281,6 +281,7 @@ void PlayerController::Update(float delta)
         }
 
         RegenerateStamina(delta);
+
         // Call SetAnimationBasedOnState() only if the action or direction has changed
         if (m_action != m_previousAction || m_lastMoveDirectionEnum != m_previousDirection)
         {
@@ -291,12 +292,7 @@ void PlayerController::Update(float delta)
 
         HandlePlayerInput(delta);
 
-        // If holding an object, handle throw/drop actions
-        if (m_isHoldingObject) {
-            HandleThrowing(delta);  // Throw if needed
-            HandleMovement(delta);  // Continue to allow movement
-            return;  // Skip attack or other actions while holding an object
-        }
+        
 
         // Check if player is petrified
         StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
@@ -320,6 +316,13 @@ void PlayerController::Update(float delta)
             } 
         }
         CheckHealth();
+        
+        // If holding an object, handle throw/drop actions
+        if (m_isHoldingObject && m_action != PlayerAction::PETRIFIED) {
+            HandleThrowing(delta);  // Throw if needed
+            HandleMovement(delta);  // Continue to allow movement
+            return;  // Skip attack or other actions while holding an object
+        }
     }
 
     // Handle regular player actions
@@ -461,7 +464,8 @@ void PlayerController::HandlePlayerInput(float delta)
         m_action != PlayerAction::PETRIFIED                     &&
         m_attackTimer.Elapsed() >= m_pCurrentWeapon->GetDelay() && 
         !m_inventoryOpen                                        && 
-        !m_inventoryHovered)
+        !m_inventoryHovered                                     &&
+        !m_isHoldingObject)
     {
         SetAction(PlayerAction::ATTACKING);
     }
@@ -1551,6 +1555,11 @@ void PlayerController::StartAttack()
 
 void PlayerController::StartPetrified()
 {
+    if (m_isHoldingObject)
+    {
+        DropObject();
+    }
+    
     // Values hardcoded based on 5s petrification attack from GorgonController, perhaps more sensible to centralise & handle effects in StatusComponent
     // TODO: Move SetSpecialEffects() calls involving petrification from PlayerController & all EnemyControllers to StatusComponent
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED, 0.1f, 4.8f, 0.1f);
