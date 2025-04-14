@@ -37,6 +37,16 @@ void WindowResizeCallback(GLFWwindow* window, int width, int height)
     pApp->m_windowResized = true;
 }
 
+const char* GetClipboardText(void* window)
+{
+    return glfwGetClipboardString(static_cast<GLFWwindow*>(window));
+}
+
+void SetClipboardText(void* window, const char* text)
+{
+    glfwSetClipboardString(static_cast<GLFWwindow*>(window), text);
+}
+
 App::App(const std::string& name, int width, int height)
   : m_name(name), m_width(width), m_height(height)
 {
@@ -94,6 +104,9 @@ App::App(const std::string& name, int width, int height)
     iconConfig.GlyphMinAdvanceX = iconFontSize;
     iconConfig.GlyphOffset.y = 1.5f;
     io.Fonts->AddFontFromFileTTF("thirdparty/" FONT_ICON_FILE_NAME_FAS, iconFontSize, &iconConfig, iconRange);
+    io.SetClipboardTextFn = SetClipboardText;
+    io.GetClipboardTextFn = GetClipboardText;
+    io.ClipboardUserData = m_pWindow;
 
     // Setup Dear ImGui Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(m_pWindow, true);
