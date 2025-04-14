@@ -26,7 +26,7 @@ namespace wolf
 
 void _ErrorCallback(int error, const char* description)
 {
-    FatalError(description);
+    Error(description);
 }
 
 void WindowResizeCallback(GLFWwindow* window, int width, int height)
@@ -37,14 +37,14 @@ void WindowResizeCallback(GLFWwindow* window, int width, int height)
     pApp->m_windowResized = true;
 }
 
-const char* GetClipboardText(void* window)
+const char* GetClipboardText(ImGuiContext* ctx)
 {
-    return glfwGetClipboardString(static_cast<GLFWwindow*>(window));
+    return glfwGetClipboardString(static_cast<GLFWwindow*>(ctx->PlatformIO.Platform_ImeUserData));
 }
 
-void SetClipboardText(void* window, const char* text)
+void SetClipboardText(ImGuiContext* ctx, const char* text)
 {
-    glfwSetClipboardString(static_cast<GLFWwindow*>(window), text);
+    glfwSetClipboardString(static_cast<GLFWwindow*>(ctx->PlatformIO.Platform_ImeUserData), text);
 }
 
 App::App(const std::string& name, int width, int height)
@@ -104,9 +104,12 @@ App::App(const std::string& name, int width, int height)
     iconConfig.GlyphMinAdvanceX = iconFontSize;
     iconConfig.GlyphOffset.y = 1.5f;
     io.Fonts->AddFontFromFileTTF("thirdparty/" FONT_ICON_FILE_NAME_FAS, iconFontSize, &iconConfig, iconRange);
-    io.SetClipboardTextFn = SetClipboardText;
-    io.GetClipboardTextFn = GetClipboardText;
-    io.ClipboardUserData = m_pWindow;
+
+    // Setup proper clipboard support
+    ImGuiPlatformIO& platformIO = ImGui::GetPlatformIO();
+    platformIO.Platform_SetClipboardTextFn = SetClipboardText;
+    platformIO.Platform_GetClipboardTextFn = GetClipboardText;
+    platformIO.Platform_ImeUserData = m_pWindow;
 
     // Setup Dear ImGui Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(m_pWindow, true);
