@@ -1694,23 +1694,22 @@ ImU32 GetTileColor(int tileID) {
 }
 
 void PlayState::RenderMap() {
-    static float defaultZoomScale = 0.2f; // Default zoom level when not expanded
-    static float expandedZoomScale = 1.0f; // Persisted zoom level for expanded map
+    static float defaultZoomScale = 0.15f; // Default zoom level when not expanded
+    static float expandedZoomScale = 0.15f; // Persisted zoom level for expanded map
     static bool isExpandedPrev = false; // Tracks if the map was expanded in the previous frame
+
+    // Update the zoom scale and reset if switching between states
+    if (!m_isMapExpanded && isExpandedPrev) {
+        defaultZoomScale = glm::clamp(expandedZoomScale * 0.333333f, 0.1f, 1.0f); // Adjust default zoom to see more
+    }
+    float zoomScale = m_isMapExpanded ? expandedZoomScale : defaultZoomScale;
+    isExpandedPrev = m_isMapExpanded;
 
     // Determine the zoom level based on whether the map is expanded
     if (m_isMapExpanded) {
         float scrollDelta = ImGui::GetIO().MouseWheel;
-        expandedZoomScale = glm::clamp(expandedZoomScale + scrollDelta * 0.1f, 0.2f, 2.0f); // Adjust expanded zoom
+        expandedZoomScale = glm::clamp(expandedZoomScale + scrollDelta * 0.1f, 0.1f, 1.0f); // Adjust expanded zoom
     }
-
-    // Update the zoom scale and reset if switching between states
-    float zoomScale = m_isMapExpanded ? expandedZoomScale : defaultZoomScale;
-
-    if (!m_isMapExpanded && isExpandedPrev) {
-        defaultZoomScale = glm::clamp(expandedZoomScale * 0.5f, 0.2f, 1.0f); // Adjust default zoom to see more
-    }
-    isExpandedPrev = m_isMapExpanded;
 
     // Define map dimensions and scaling
     const float mapSize = m_isMapExpanded ? 600.0f : 200.0f; // Larger default map size for expanded view
