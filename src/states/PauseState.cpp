@@ -55,9 +55,14 @@ void PauseState::Update(float delta)
 
     // Centered title
     ImVec2 dimensions = ImGui::GetWindowSize();
-    float textWidth = ImGui::CalcTextSize("Paused").x;
-    ImGui::SetCursorPosX((dimensions.x - textWidth) * 0.5f);
-    ImGui::SetCursorPosY((dimensions.y - (buttonHeight * 4)) * 0.5f);
+
+    // Figure out how much space we need to show all of the text
+    float textWidth = ImGui::CalcTextSize("Paused").x * 2.0f + ImGui::CalcTextSize("Left-Click (held) - Charge Bow / Throw Object").x * 0.5f;
+    
+    // Position the Paused header based on that
+    glm::vec2 pausedPos = glm::vec2((dimensions.x - textWidth) * 0.5f, (dimensions.y - (buttonHeight * 4)) * 0.5f);
+    ImGui::SetCursorPosX(pausedPos.x);
+    ImGui::SetCursorPosY(pausedPos.y);
     ImGui::TextColored(ImColor(128, 128, 128, 255), "Paused");
 
     // Spacing
@@ -74,7 +79,8 @@ void PauseState::Update(float delta)
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
-    ImGui::SetCursorPosX((dimensions.x - buttonWidth) * 0.5f);
+    // Position the Resume button based on where the Paused header is
+    ImGui::SetCursorPosX(pausedPos.x - buttonWidth * 0.34f);
     if (ImGui::Button("Resume", {buttonWidth, buttonHeight}))
     {
         resume = true;
@@ -83,7 +89,8 @@ void PauseState::Update(float delta)
     // Single character for spacing
     ImGui::Text(" ");
 
-    ImGui::SetCursorPosX((dimensions.x - buttonWidth) * 0.5f);
+    // Position the Main Menu button based on where the Paused header is
+    ImGui::SetCursorPosX(pausedPos.x - buttonWidth * 0.34f);
     if (ImGui::Button("Main Menu", {buttonWidth, buttonHeight}))
     {
         m_pStateManager->ClearAndPushState(new MainMenuState(m_pStateManager, m_pGameInstance));
@@ -91,6 +98,47 @@ void PauseState::Update(float delta)
 
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(5);
+
+    // !-------------------- Aurora added this ----------------------!
+
+    // Newline for style
+    ImGui::NewLine();
+
+    // Figure out where the Controls header and text will be based on the position of the Paused header
+    float controlsPosX = pausedPos.x + ImGui::CalcTextSize("Left-Click (held) - Charge Bow / Throw Object").x * 0.5f;
+
+    // Show the controls header
+    ImGui::SetCursorPosX(controlsPosX);
+    ImGui::SetCursorPosY(pausedPos.y);
+    ImGui::TextColored(ImColor(128, 128, 128, 255), "Controls");
+
+    ImGui::NewLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+
+    // List each of the controls and what they do
+
+    ImGui::SetCursorPosX(controlsPosX);
+    ImGui::Text("WASD - Move");
+
+    ImGui::SetCursorPosX(controlsPosX);
+    ImGui::Text("Spacebar - Roll");
+
+    ImGui::SetCursorPosX(controlsPosX);
+    ImGui::Text("E - Pickup / Interact");
+
+    ImGui::SetCursorPosX(controlsPosX);
+    ImGui::Text("M - Open / Close Minimap");
+
+    ImGui::SetCursorPosX(controlsPosX);
+    ImGui::Text("Left-Click - Attack / Select");
+
+    ImGui::SetCursorPosX(controlsPosX);
+    ImGui::Text("Left-Click (held) - Charge Bow / Throw Object");
+
+    // Pop the style color we added
+    ImGui::PopStyleColor(1);
+
+    // !-------------------------------------------------------------!
 
     // Close window and pop vars
     ImGui::End();

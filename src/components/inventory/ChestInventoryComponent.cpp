@@ -38,6 +38,29 @@ bool ChestInventoryComponent::FillFromLootTable(const std::string& filepath, wol
         // Load the file
         YAML::Node node = YAML::LoadFile(filepath);
 
+        // Add the guaranteed items
+        if (node["guaranteed_items"])
+        {
+            YAML::Node guaranteed = node["guaranteed_items"];
+            int numGuaranteed = guaranteed.size();
+            for (int i = 0; i < numGuaranteed; ++i)
+            {
+                YAML::Node entry = guaranteed[i];
+                std::string itemName = entry["name"].as<std::string>();
+                int amount = entry["amount"] ? entry["amount"].as<int>() : 1;
+                for (int j = 0; j < amount; ++j)
+                {
+                    ItemBase* pItem = ItemCreator::CreateItem(itemName);
+                    if (!pItem)
+                    {
+                        wolf::Error("Item name invalid: ", itemName);
+                        continue;
+                    }
+                    AddItemOrDelete(pItem);
+                }
+            }
+        }
+
         // Get the number of items if it exists
         int numItems = node["items"] ? node["items"].as<int>() : 0;
 

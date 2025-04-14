@@ -25,7 +25,7 @@ merchant_init: {
   max_slots_per_row: 4,
   percent_markup: 0.15,
   starting_gold: 200,
-  merchant_loot_file: data/loot/test_chest_contents.yaml,
+  merchant_loot_file: data/loot/vasilios_loot.yaml,
 }
 
 health: 100

@@ -1,5 +1,7 @@
-items: 1
+items: 3
 loot_table: [
+  {name: Gold Coin, probability: 3},
+  {name: Gold Coin, probability: 2},
   {name: Common Schematic, probability: 2},
   {name: Dull Blade, probability: 1},
   {name: Rusty Chestplate, probability: 1}
