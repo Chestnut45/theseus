@@ -40,7 +40,7 @@ DDACalculator* DDACalculator::GetInstance()
 
 // Returns the endpoint of the line between the source and the destination
 // If the line is blocked by a wall, return the intersection point between the line & the wall
-glm::vec2 DDACalculator::GetEndpoint(glm::vec2 p_src_pos, glm::vec2 p_dst_pos)
+glm::vec2 DDACalculator::GetEndpoint(glm::vec2 p_src_pos, glm::vec2 p_dst_pos, bool checkSourceWall)
 {
     // If labyrinth manager is not nullptr
     if(this->m_pLBMG != nullptr)
@@ -55,7 +55,8 @@ glm::vec2 DDACalculator::GetEndpoint(glm::vec2 p_src_pos, glm::vec2 p_dst_pos)
         if
         (
             srcTilePos != glm::ivec2(-1, -1)    && 
-            this->IsWallTile(srcTileID) == true
+            this->IsWallTile(srcTileID) == true &&
+            checkSourceWall
         )
         {
             return p_src_pos;

@@ -282,6 +282,7 @@ void DialogueAndCutsceneState::LoadFromYAML(const std::string& yamlFilePath) {
                     // Load portraits into a global map (if not already loaded)
                     if (m_characterPortraits.find(character.name) == m_characterPortraits.end()) {
                         character.portraitTexture = wolf::TextureManager::CreateTexture(character.portraitPath);
+                        character.portraitTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest, wolf::Texture::FilterMode::FM_Nearest);
                         m_characterPortraits[character.name] = character.portraitTexture;
                     }
                 }
@@ -561,7 +562,7 @@ void DialogueAndCutsceneState::RenderSequence(float delta) {
 
         // Display character name and portrait if available
         if (hasPortrait && portraitTexture) {
-            ImGui::Image((void*)(intptr_t)portraitTexture->GetID(), ImVec2(64, 64));
+            ImGui::Image((void*)(intptr_t)portraitTexture->GetID(), ImVec2(47, 47));
             ImGui::SameLine();
         }
 
@@ -595,6 +596,7 @@ void DialogueAndCutsceneState::RenderSequence(float delta) {
 
         float totalButtonWidth = showContinueButton ? 420.0f : 2 * buttonWidth;
         ImGui::SetCursorPosX((ImGui::GetWindowWidth() - totalButtonWidth) / 2);  // Center buttons
+        ImGui::SetCursorPosY(ImGui::GetWindowHeight() * 0.75f);
 
         // Button styling for a polished look
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);

@@ -332,7 +332,7 @@ void AnimatedSprite2D::SetAnimation(const std::string& p_strName, int p_iTargetA
 // and Carol Boers' UPEI CS-4650 Animation Controller Component ***
 void AnimatedSprite2D::Update(float p_fDelta) {
     // Check if the animation is paused
-    if(true)
+    if(!m_bIsAnimPaused)
     {
         // Quick check to make sure that we have an animation
         if (m_pCurrentAnim) {
