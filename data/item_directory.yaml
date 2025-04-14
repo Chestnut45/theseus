@@ -157,7 +157,7 @@ Old Bow: {
   has_projectiles: true,
   projectile: {
     damage: 1.0,
-    hurtbox_size: {x: 8.0, y: 8.0},
+    hurtbox_size: {x: 6.0, y: 6.0},
     initial_velocity: {x: 768.0, y: 768.0},
     sprite_path: data/textures/Arrow.png
   }

@@ -261,8 +261,8 @@ private:
     float m_chargeTime = 0.0f;  // New variable to store charge time for throws
     float m_throwSpeed = 300.0f;  // Speed multiplier for the throw
     float m_throwPower = 0.0f;       // Power for the throw
-    const float m_maxThrowPower = 100.0f; // Max limit for the throw power
-    const float m_powerChargeRate = 25.0f; // Rate at which power increases
+    const float m_maxThrowPower = 125.0f; // Max limit for the throw power
+    const float m_powerChargeRate = 75.0f; // Rate at which power increases
     const ImVec2 THROW_POWER_BAR_SIZE = ImVec2(100.0f, 15.0f);
 
     // Animation and state tracking flags
