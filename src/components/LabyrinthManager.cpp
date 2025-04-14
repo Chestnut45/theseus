@@ -2441,13 +2441,13 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         }
 
                         auto& colliderComp = throwableGO.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-                        colliderComp.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
+                        colliderComp.AddColliderBox(glm::vec2(8.0f, 8.0f), glm::vec2(-4.0f, 4.0f));
 
                         // Add the throwable component
                         auto& throwableComp = throwableGO.AddComponent<ThrowableObjectComponent>(20.0f, m_pColliderManager);
 
-                        // Add throwable as a child object of the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(throwableGO);
+                        // Add throwable as a child object of the LABYRINTH, not the chunks
+                        GetGameObject()->AddChild(throwableGO);
                         break;
                     }
                     case Room::EntityType::BoulderTrap:

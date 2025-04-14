@@ -523,7 +523,7 @@ void PlayerController::DropObject() {
 void PlayerController::HandleThrowing(float delta) {
     // Charge the throw power while holding the button
     if (wolf::Input::IsLMBHeld() && m_isHoldingObject) {
-        m_throwPower += 75.0f * delta;
+        m_throwPower += m_powerChargeRate * delta;
         m_throwPower = std::min(m_throwPower, m_maxThrowPower); // Cap to max throw power
         SetAction(PlayerAction::THROWING);
     }
@@ -708,7 +708,6 @@ void PlayerController::HandleBowAttack(float delta)
             VelocityComponent* playerVelocityComponent = player->GetComponent<VelocityComponent>();
             glm::vec2 playerVelocity = playerVelocityComponent == nullptr ? glm::vec2(0.0f) : playerVelocityComponent->GetVelocity();
             glm::vec2 playerDirection = GetVectorFromDirection(this->m_lastFaceDirectionEnum);
-            glm::vec2 spawnOffset;
 
             // Set data for projectile collider
             ProjectileProperties projprop = m_pCurrentWeapon->GetProjectileProperties();
@@ -732,11 +731,10 @@ void PlayerController::HandleBowAttack(float delta)
             // Add attack damage component
             float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.01f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
             auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200);
-            
+
             // Calculate spawn offset
-            spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + projectileDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - projectileDimensions.x * 0.5f) : (spawnOffset.x));
-            spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + projectileDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - projectileDimensions.y * 0.5f) : (spawnOffset.y));
-            projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+            glm::vec2 spawnOffset = m_attackDir * 32.0f;
+            projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
             
             // Calculate projectile velocity
             float arrowSpeed = glm::max(glm::length(projprop.v2Velocity) * 0.4f, glm::length(projprop.v2Velocity) * m_bowChargeScale);
@@ -1018,7 +1016,7 @@ void PlayerController::HandleBowRangeIndicator(float delta)
 {
     glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 endpoint = playerPos + m_attackDir * m_arrowRange;   // m_attackDir is already normalised
-    glm::vec2 trueEndpoint = DDACalculator::GetInstance()->GetEndpoint(playerPos, endpoint);
+    glm::vec2 trueEndpoint = DDACalculator::GetInstance()->GetEndpoint(playerPos, endpoint, false);
 
     glm::vec4 colour = m_bowRangeIndicatorColour;
 
@@ -1204,29 +1202,14 @@ void PlayerController::ThrowHeldObject() {
         return;
     }
 
-    // Determine throw direction based on player’s facing direction
-    glm::vec2 throwDirection;
-    switch (m_lastFaceDirectionEnum) {
-        case PlayerDirection::NORTH:       throwDirection = glm::vec2(0.0f, 1.0f); break;
-        case PlayerDirection::EAST:        throwDirection = glm::vec2(1.0f, 0.0f); break;
-        case PlayerDirection::SOUTH:       throwDirection = glm::vec2(0.0f, -1.0f); break;
-        case PlayerDirection::WEST:        throwDirection = glm::vec2(-1.0f, 0.0f); break;
-        case PlayerDirection::NORTH_EAST:  throwDirection = glm::normalize(glm::vec2(1.0f, 1.0f)); break;
-        case PlayerDirection::NORTH_WEST:  throwDirection = glm::normalize(glm::vec2(-1.0f, 1.0f)); break;
-        case PlayerDirection::SOUTH_EAST:  throwDirection = glm::normalize(glm::vec2(1.0f, -1.0f)); break;
-        case PlayerDirection::SOUTH_WEST:  throwDirection = glm::normalize(glm::vec2(-1.0f, -1.0f)); break;
-        default:                           throwDirection = glm::vec2(1.0f, 0.0f); break; // Default to right
-    }
-
-    // Get player velocity
-    VelocityComponent* playerVelocityComponent = GetGameObject()->GetComponent<VelocityComponent>();
-    glm::vec2 playerVelocity = playerVelocityComponent ? playerVelocityComponent->GetVelocity() : glm::vec2(0.0f);
+    CalculateAttackDirection();
+    glm::vec2 throwDirection = m_attackDir;
 
     // Set the object's velocity based on throw direction, throw power, and player's velocity
     auto* throwableVelocity = m_pHeldObject->GetGameObject()->GetComponent<VelocityComponent>();
     if (!throwableVelocity) throwableVelocity = &m_pHeldObject->GetGameObject()->AddComponent<VelocityComponent>();
     
-    glm::vec2 finalVelocity = throwDirection * m_throwPower * 3.0f + playerVelocity;
+    glm::vec2 finalVelocity = throwDirection * m_throwPower * 3.0f;
     throwableVelocity->SetVelocity(finalVelocity);
 
     // Set the state of the held object to THROWN and reset holding variables
