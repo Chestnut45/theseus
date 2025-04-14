@@ -214,8 +214,8 @@ bool InventoryComponent::AddItem(ItemBase* p_pItem) {
         // first item in them when we're looking for something
         ItemBase* pItem = m_vvpContents[i].top();
 
-        // If we find an item with the same ID and it is stackable
-        if (pItem->GetID() == p_pItem->GetID() && p_pItem->IsStackable() && pItem->IsStackable()) {
+        // If we find an item with the same name and ID and it is stackable
+        if (pItem->GetName() == p_pItem->GetName() && pItem->GetID() == p_pItem->GetID() && p_pItem->IsStackable() && pItem->IsStackable()) {
             // Then we push the item to the stack
             m_vvpContents[i].push(p_pItem);
             m_iLastUsedSlot = i; // Save what index we added the item to

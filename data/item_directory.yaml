@@ -81,7 +81,7 @@ Liquid Life: {
   value: 30,
   texture_frame: 6,
   rarity: UNCOMMON,
-  is_stackable: false,
+  is_stackable: true,
   num_uses: 1,
   type: PERCENT_AMT,
   attribute: HEALTH,
