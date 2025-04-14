@@ -54,10 +54,15 @@ void TileFireManager::Update(float p_delta)
         }
     }
 
+    // Also ignore if players hitbox is inactive
+    ColliderComponent* pPlayerCollider = m_pPlayerObj->GetComponent<ColliderComponent>();
+    bool playerHitboxActive = pPlayerCollider && pPlayerCollider->IsActive();
+
     // If player is not rolling & on a registered column
     if(
         m_pPlayerObj->GetComponent<PlayerController>()->GetPlayerAction() != PlayerController::PlayerAction::ROLLING &&
-        m_mFireColumns.find(playerTilePos.x) != m_mFireColumns.end()
+        m_mFireColumns.find(playerTilePos.x) != m_mFireColumns.end() &&
+        playerHitboxActive
     )
     {
         // Interate through every tile in that column
