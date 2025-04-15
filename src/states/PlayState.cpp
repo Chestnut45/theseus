@@ -110,8 +110,21 @@ void PlayState::Enter()
         // Check for special configs
         if (m_seedText == "goodluck")
         {
-            m_pLabyrinthManager->LoadConfig("data/configs/good_luck.yaml");
+            m_pLabyrinthManager->LoadConfig("data/configs/secret/goodluck.yaml");
             specialSeed = true;
+        }
+        else if (m_seedText == "gottagofast")
+        {
+            m_pLabyrinthManager->LoadConfig("data/configs/secret/gottagofast.yaml");
+            specialSeed = true;
+            auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
+            if (playerController)
+            {
+                playerController->m_currentMoveSpeed = 800.0f;
+                playerController->m_normalMoveSpeed = 800.0f;
+                playerController->m_rollSpeed = 1600.0f;
+                playerController->m_inventoryMoveSpeed = 400.0f;
+            }
         }
         else
         {
@@ -235,24 +248,24 @@ void PlayState::Enter()
         }
     }
 
-    if (minitaurPositions.empty())
+    if (!minitaurPositions.empty())
     {
-        wolf::Log("No Minotaurs found in Basic Fight Rooms!");
-        return;
-    }
+        // Find the closest Minotaur to the player
+        MinitaurController* closestMinitaur = nullptr;
+        float closestDistanceToPlayer = std::numeric_limits<float>::max();
 
-    // Find the closest Minotaur to the player
-    MinitaurController* closestMinitaur = nullptr;
-    float closestDistanceToPlayer = std::numeric_limits<float>::max();
-
-    for (const auto& [minitaurController, position] : minitaurPositions)
-    {
-        float distanceToPlayer = glm::distance(playerPosition, position);
-        if (distanceToPlayer < closestDistanceToPlayer)
+        for (const auto& [minitaurController, position] : minitaurPositions)
         {
-            closestMinitaur = minitaurController;
-            closestDistanceToPlayer = distanceToPlayer;
+            float distanceToPlayer = glm::distance(playerPosition, position);
+            if (distanceToPlayer < closestDistanceToPlayer)
+            {
+                closestMinitaur = minitaurController;
+                closestDistanceToPlayer = distanceToPlayer;
+            }
         }
+
+        // Register the closest Minotaur in the shared context
+        if (closestMinitaur) m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
     }
 
     // Add a light to the player
@@ -264,9 +277,7 @@ void PlayState::Enter()
 
     // Make Ariadne's light pink because I can (Aurora)
     ariadne.GetChildren().front()->GetComponent<LightComponent>()->SetColor(glm::vec4(1.0f, 0.41f, 0.70f, 0.75f));
-
-    // Register the closest Minotaur in the shared context
-    m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
+    
     m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
 
     // Schedule her movement
@@ -275,16 +286,27 @@ void PlayState::Enter()
         glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
         transform->SetPosition(newPosition);
     }
-    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
-    // Queue up all of Ariadne's dialogue
-    auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
-    ariadneNPCComp->QueueDialogue("hello");
-    ariadneNPCComp->QueueDialogue("traps");
-    ariadneNPCComp->QueueDialogue("survivors");
+    if (!specialSeed)
+    {
+        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
-    // Stop all audio and begin the maze music
-    wolf::Audio::Stop();
+        // Queue up all of Ariadne's dialogue
+        auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
+        ariadneNPCComp->QueueDialogue("hello");
+        ariadneNPCComp->QueueDialogue("traps");
+        ariadneNPCComp->QueueDialogue("survivors");
+    }
+    else
+    {
+        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("special_intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
+
+        // Queue up all of Ariadne's dialogue
+        auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
+        ariadneNPCComp->QueueDialogue("hello");
+        ariadneNPCComp->QueueDialogue("traps");
+    }
+
     wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, false, true, 13.714f);
 
     // Now it's safe to register entities

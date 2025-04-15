@@ -1245,6 +1245,7 @@ void BossController::UpdatePhase2(float delta)
                     velocity.SetVelocity(dirToPlayer * 640.0f);
                     auto& sprite = axe.AddComponent<AnimatedSprite2D>("data/animations/axe_spin_anim_init.yaml");
                     sprite.SetOriginToCenterOfFrame();
+                    sprite.SetLightingEnabled(false);
                     auto& homing = axe.AddComponent<HomingComponent>(GetGameObject(), 8.0f, 0.1f);
                     m_pAxeCollider = &axe.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, false, false);
                     m_pAxeCollider->AddColliderBox(glm::vec2(224), glm::vec2(-112, 112));

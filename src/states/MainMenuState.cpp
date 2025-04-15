@@ -102,23 +102,48 @@ void MainMenuState::Update(float delta)
 
             ImGui::SetCursorPosX(startX - 10);
             ImGui::SetCursorPosY(buttonY - 64);
+            static bool hovered0 = false;
+            static bool wasHovered0 = false;
             if (ImGui::Button("Play", {buttonWidth + 20, buttonHeight}))
             {
                 m_screen = Screen::SEED_SELECT;
+                wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
             }
+            hovered0  = ImGui::IsItemHovered();
+            if (hovered0 && !wasHovered0)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            wasHovered0 = hovered0;
             ImGui::NewLine();
             ImGui::SetCursorPosX(startX + 16);
+            static bool hovered1 = false;
+            static bool wasHovered1 = false;
             if (ImGui::Button("Options", {buttonWidth - 32, buttonHeight - 8}))
             {
                 m_screen = Screen::OPTIONS;
+                wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
             }
+            hovered1  = ImGui::IsItemHovered();
+            if (hovered1 && !wasHovered1)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            wasHovered1 = hovered1;
             ImGui::NewLine();
             ImGui::SetCursorPosX(startX + 16);
+            static bool hovered2 = false;
+            static bool wasHovered2 = false;
             if (ImGui::Button("Quit", {buttonWidth - 32, buttonHeight - 8}))
             {
                 m_pGameInstance->Shutdown();
             }
-            
+            hovered2  = ImGui::IsItemHovered();
+            if (hovered2 && !wasHovered2)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            wasHovered2 = hovered2;
             if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) m_pGameInstance->Shutdown();
 
             break;
@@ -148,7 +173,7 @@ void MainMenuState::Update(float delta)
             ImGui::SetNextItemWidth(256);
             if (ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f, "%.2f"))
             {
-                wolf::Audio::SetGlobalVolume(volume + volumeOffset);
+                wolf::Audio::SetGlobalVolume(volume * 1.2f);
             }
 
             ImGui::NewLine();
