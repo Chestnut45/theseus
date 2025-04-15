@@ -1859,7 +1859,7 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     else
     {  
         // All non-boss enemies and the player get here
-        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f, 10000, 0.0f, true);
+        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.75f, 8000, 0.0f, true);
         EmitBloodParticles(event, 1.2f);
     }
 }

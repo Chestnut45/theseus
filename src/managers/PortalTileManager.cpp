@@ -12,6 +12,7 @@
 #include <ParticleComponent.h>
 #include <PlayerController.h>
 #include <VelocityComponent.h>
+#include <W_Audio.h>
 
 PortalTileManager* PortalTileManager::s_pPTMG = nullptr;
 
@@ -431,7 +432,7 @@ void PortalTileManager::PortalTile::Update(float p_dt)
 
     // Check if occupant exists
     wolf::GameObject* occupant = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(m_occupantID);
-    if(occupant != nullptr)
+    if(occupant != nullptr && occupant->HasAll<wolf::Transform2D>())
     {   
         // Get occupant position data
         glm::vec2 occupantPos = occupant->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -551,4 +552,6 @@ void PortalTileManager::PortalTile::Teleport(wolf::GameObject* p_obj)
 
     // Set object as new occupant
     m_pSiblingPortalTile->SetOccupantID(p_obj->GetID());
+
+    wolf::Audio::Play("data/sounds/sfx_portal.wav", 0.4f);
 }
