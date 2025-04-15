@@ -9,9 +9,6 @@
 
 ### Debug Hotkeys:
 - `:               Toggle Performance Window
-- Delete:          Toggle ALL Debug Hotkeys
-- 0:               Toggle Inventory
-- 9:               Play Intro Cutscene
 - 1:               Fill Inventory
 - /:               Toggle Theseus' Collider
 - \\:              Toggle Collider Visualizations
