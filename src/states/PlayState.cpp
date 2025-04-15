@@ -126,6 +126,16 @@ void PlayState::Enter()
                 playerController->m_inventoryMoveSpeed = 400.0f;
             }
         }
+        else if (m_seedText == "thefloorislava")
+        {
+            m_pLabyrinthManager->LoadConfig("data/configs/secret/thefloorislava.yaml");
+            specialSeed = true;
+        }
+        else if (m_seedText == "minitaurmania")
+        {
+            m_pLabyrinthManager->LoadConfig("data/configs/secret/minitaurmania.yaml");
+            specialSeed = true;
+        }
         else
         {
             // If not a special seed, load the default config
