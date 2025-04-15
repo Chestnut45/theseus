@@ -13,7 +13,7 @@ CutscenesAndDialogues:
         camera_keyframes:
           - target: "Theseus"
             zoom: 1.0
-            duration: 1.5
+            duration: 0.25
       - type: "combined"
         dialogue:
           character: "Ariadne"
@@ -84,6 +84,35 @@ CutscenesAndDialogues:
         character: "Theseus"
         text: "Thank you, my lady. See you when I'm done with the top dawg."
         duration: 3.5
+      - type: "fade"
+        to: "black"
+        duration: 1.5
+  
+  special_intro_sequence:
+    characters:
+      - name: "Theseus"
+        portraitPath: "data/textures/TheseusPortrait.png"
+      - name: "Ariadne"
+        portraitPath: "data/textures/AriadnePortrait.png"
+    sequence:
+      - type: "fade"
+        from: "black"
+        duration: 1.5
+      - type: "cutscene"
+        camera_keyframes:
+          - target: "Theseus"
+            zoom: 1.0
+            duration: 0.25
+      - type: "combined"
+        dialogue:
+          character: "Ariadne"
+          text: "Where are we...?"
+          duration: 2.5
+        cutscene:
+          camera_keyframes:
+            - target: "Ariadne"
+              zoom: 1.0
+              duration: 1.5
       - type: "fade"
         to: "black"
         duration: 1.5

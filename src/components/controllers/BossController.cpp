@@ -349,12 +349,12 @@ void BossController::UpdateAnimation()
     auto* pAnim = m_pAnimSprite->GetCurrentAnimation();
     if (pAnim->m_strName == "ThroneBreak")
     {
-        if (!m_pAnimSprite->IsAnimationFinished() || m_throneBreakTimer.Elapsed() < 3.0f)
+        static bool growled = false;
+        if (m_throneBreakTimer.Elapsed() < 3.0f)
         {
-            static bool growled = false;
-            if (!growled && m_throneBreakTimer.Elapsed() > 1.0f)
+            if (!growled && m_throneBreakTimer.Elapsed() >= 1.0f)
             {
-                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f);
+                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f);
                 growled = true;
             }
             return;
@@ -1245,6 +1245,7 @@ void BossController::UpdatePhase2(float delta)
                     velocity.SetVelocity(dirToPlayer * 640.0f);
                     auto& sprite = axe.AddComponent<AnimatedSprite2D>("data/animations/axe_spin_anim_init.yaml");
                     sprite.SetOriginToCenterOfFrame();
+                    sprite.SetLightingEnabled(false);
                     auto& homing = axe.AddComponent<HomingComponent>(GetGameObject(), 8.0f, 0.1f);
                     m_pAxeCollider = &axe.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, false, false);
                     m_pAxeCollider->AddColliderBox(glm::vec2(224), glm::vec2(-112, 112));
@@ -1419,7 +1420,7 @@ void BossController::UpdatePhase2(float delta)
     // Under half health, change to phase 3
     if (m_pHealth->GetHealth() <= m_maxHealth / 2 && m_state != State::TRANSITION_TO_PHASE_3)
     {
-        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -8000.0f);
+        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -8000.0f);
         m_state = State::TRANSITION_TO_PHASE_3;
         m_pCollider->SetActive(false);
         m_transitionTimer.Restart();
@@ -1439,7 +1440,7 @@ void BossController::StartAxeAttack()
     m_axeAttackTimer.Restart();
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
-    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f);
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f);
 
     // Update stats
     m_attackChain = (m_prevAttack == 0) ? m_attackChain + 1 : 1;
@@ -1507,7 +1508,7 @@ void BossController::UpdatePhase3(float delta)
         
         // Stop music, play death growl
         wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
-        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -10000.0f);
+        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -10000.0f);
 
         // Instantly make the player invulnerable
         m_pPlayerObject->GetComponent<HealthComponent>()->SetActive(false);
@@ -1670,8 +1671,10 @@ void BossController::ChangeStatesPhase3(State p_state)
         break;
     }
 
+    // Set current state to the new one
     m_state = p_state;
 
+    // If health is lower than the limit, boost boss stats
     if(!m_isSupercharged && m_pHealth->GetHealth() <= m_pHealth->GetMaxHealth() * m_superchargeHealthFraction)
     {
         m_isSupercharged = true;
@@ -1931,7 +1934,7 @@ void BossController::StartFireBreathAttack()
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
     GetGameObject()->GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
 
-    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, -3000.0f);
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -3000.0f);
 }
 
 void BossController::AttackFireBreath(float delta)
@@ -1946,6 +1949,7 @@ void BossController::AttackFireBreath(float delta)
     }
     else
     {
+        // Update timer
         this->m_fireBreathTurningTimer += delta;
     }
 
@@ -1966,10 +1970,12 @@ void BossController::AttackFireBreath(float delta)
             return;    
         }
 
+        // If not supercharged, perform standard fire breath attack
         if(!m_isSupercharged)
         {
             BreatheFire(delta);
         }
+        // If supercharged, perform supercharged fire breath attack
         else
         {
             BreatheFireSupercharged(delta);
@@ -1977,6 +1983,7 @@ void BossController::AttackFireBreath(float delta)
     }
     else
     {
+        // Update timer
         m_fireBreathWindupTimer -= delta;
         
         // If entering attack
@@ -2113,12 +2120,13 @@ void BossController::BreatheFireSupercharged(float delta)
                         break;
                     }
                 }
+                // Stop adding fire tiles if line is blocked
                 if(isBlocked == true)
                 {
                     break;
                 }
 
-                // 
+                // If the player is not hit, player is not rolling, and the player is on the same tile as the current one, damage the player 
                 if(
                     !isPlayerHit                                                                        &&
                     m_pPlayerController->GetPlayerAction() != PlayerController::PlayerAction::ROLLING   &&
@@ -2129,6 +2137,7 @@ void BossController::BreatheFireSupercharged(float delta)
                     m_pPlayerObject->GetComponent<HealthComponent>()->Damage(10.0f);
                 }
 
+                // Add fire tile
                 TileFireManager::GetInstance()->AddFireTile(tile);
             }
         }
@@ -2206,7 +2215,7 @@ void BossController::StartChargeAttack()
     }
 
     m_chargeStompSFXTimer.Restart();
-    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.5f, 3000.0f);
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, 3000.0f);
 }
 
 void BossController::AttackCharge(float delta)
@@ -2305,6 +2314,7 @@ void BossController::EndChargeAttack()
     m_pHoming->SetActive(false);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 
+    // Decrement chain count
     if(m_chargeChainCount > 0)
     {
         m_chargeChainCount--;
@@ -2345,14 +2355,16 @@ void BossController::Pull(float delta)
         // Update timer
         m_pullTimer -= delta;
 
-        // Pull player
+        // Get data
         glm::vec2 thisPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::vec2 playerPos = m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(); 
-    
+        
+        // Calculate the direction from the player to the Boss
         VelocityComponent* pPlayerVel = m_pPlayerObject->GetComponent<VelocityComponent>();
         glm::vec2 direction = thisPos - playerPos;
         direction = glm::length(direction) > 0.01f ? glm::normalize(direction) : glm::vec2(0.0f);
 
+         // Pull player
         // Adjust force if rolling
         float adjustedForce = m_pPlayerController->GetPlayerAction() == PlayerController::PlayerAction::ROLLING ? m_pullForce * 0.01f : m_pullForce;
         pPlayerVel->SetVelocity(pPlayerVel->GetVelocity() + direction * adjustedForce * delta);
@@ -2377,14 +2389,18 @@ void BossController::Dead(float delta)
 
 void BossController::LastStandSupercharge()
 {
+    // Decrease idle time & stun time, increase seach speed
     m_idleTimeRange *= 0.75f;
     m_stunTime *= 0.5f;
     m_searchSpeed += 100.0f;
 
+    // Decrease charge windup time, increase charge damage & charge speed
     m_chargeWindupTime -= 0.5f;
     m_chargeAttackDamage += 50.0f;
     m_chargeSpeed += 200.0f;
 
+    
+    // Decrease fire breath windup time, increase fire breath speed & rangeW
     m_fireBreathWindupTime -= 0.5f;
     m_fireBreathRangeExtender += 300.0f;
 }

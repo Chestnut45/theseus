@@ -137,6 +137,29 @@ PlayerInventoryComponent::~PlayerInventoryComponent() {
     wolf::EventManager::RemoveListener<RemoveFromPlayerEquipmentEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleRemoveFromPlayerEquipmentEvent>(*this);
 }
 
+// Overloads InventoryComponent::Close
+void PlayerInventoryComponent::Close() {
+    // Hide any prompts we have showing
+    HideAllPrompts();
+
+    // Let anyone interested know which specific chest was closed
+    wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+    m_bIsOpen = false;
+}
+
+// Overloads InventoryComponent::ToggleOpen
+void PlayerInventoryComponent::ToggleOpen() {
+    m_bIsOpen = !m_bIsOpen;
+
+    if (m_bIsOpen) {
+        wolf::EventManager::TriggerEvent(OpenInventoryEvent(m_enType, m_iIdNum));
+    }
+    else {
+        HideAllPrompts();
+        wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
+    }
+}
+
 void PlayerInventoryComponent::ShowToggleButtonGUI() {
     //  Prevents the player clicking on a tile position that overlaps the inventory button
     if(m_bIsPlacing) return;
@@ -528,6 +551,15 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     // We open a little pop-up menu
                     ImGui::OpenPopup(strPopUpID.c_str());
                 }
+
+                // Push the pop-up style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 2.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.239f, 0.239f, 0.239f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
                 
                 // The pop-up menu has different buttons based on what "state" the game is in
                 if (ImGui::BeginPopup(strPopUpID.c_str())) {
@@ -583,6 +615,9 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     }
                     ImGui::EndPopup();
                 }
+                
+                ImGui::PopStyleVar(1);
+                ImGui::PopStyleColor(5);
             }
             else { // Otherwise, this slot is empty
                 // Push some style vars and colors
@@ -964,11 +999,13 @@ void PlayerInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryEve
         // Then we can safely discard the id number because we're done moving items between the two inventories
         m_iOpenChestIdNum = -1;
         m_bIsOpen = false;
+        HideAllPrompts();
     }
     else if (p_event.enType == MERCHANT_INVENTORY && p_event.iIdNum == m_iOpenMerchantIdNum) {
         // We do the same with merchant inventories
         m_iOpenMerchantIdNum = -1;
         m_bIsOpen = false;
+        HideAllPrompts();
     }
 }
 
@@ -1101,6 +1138,7 @@ void PlayerInventoryComponent::HandlePickupDroppedItemEvent(const PickupDroppedI
     }
 }
 
+// Nhat added this
 void PlayerInventoryComponent::HandleRetrievePlaceableEvent(const RetrievePlaceableEvent &p_event)
 {
     if(p_event.pcTpye == PlaceableType::PORTAL)
@@ -1111,13 +1149,11 @@ void PlayerInventoryComponent::HandleRetrievePlaceableEvent(const RetrievePlacea
             wolf::EventManager::TriggerEvent(DestroyPlaceableEvent(p_event.pcTpye, p_event.tilePos));
         }
     }
-    else
-    {
-    }
     
     return;
 }
 
+// Nhat added this
 void PlayerInventoryComponent::HandleEndPlacingPlaceableEvent(const EndPlacingPlaceableEvent& p_event)
 {
     if(p_event.pItem != nullptr)

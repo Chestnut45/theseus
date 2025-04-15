@@ -35,6 +35,8 @@ private:
     void SetUpAnimations(const std::string& animationInitPath);          
     void UpdateAnimationBasedOnDirection();
     void MoveTowardsTarget(float delta);
+
+    // State handler methods
     void HandleIdleState(float delta);
     void HandleProspectState(float delta);
     void HandleChasingState(float delta);
@@ -43,6 +45,7 @@ private:
     void HandleStunnedState(float delta);
     void HandleDeathState(float delta);
 
+    // State enter methods
     void EnterAttackState();
     void EnterChasingState();
     void EnterIdleState();
@@ -51,6 +54,7 @@ private:
     void EnterStunnedState();
     void EnterDeathState();
 
+    // State exit methods
     void ExitAttackState();
     void ExitChasingState();
     void ExitIdleState();
@@ -58,6 +62,7 @@ private:
     void ExitProspectState();
     void ExitStunnedState();
 
+    // Helper methods
     void HandleInfighting(const InfightingEvent& event); //added this
     void RevertToPlayerTarget();
     void SetEmote(EnemyEmote p_emote);

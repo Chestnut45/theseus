@@ -78,8 +78,6 @@ void HealthComponent::Damage(float p_damage)
 
             ArmourItem* accessorygear = static_cast<ArmourItem*>(pic->GetEquippedItem(EquipmentSlot::ACCESSORY));
             damageReduction += accessorygear != nullptr ? accessorygear->GetDamageReduction() : 0;
-
-            // std::cout << "HealthComponent - damred: " << damageReduction << std::endl;
         }
 
         float finalDamage = p_damage * (1.0f - damageReduction);
@@ -180,12 +178,16 @@ void HealthComponent::RenderDamageIndicators()
 
 void HealthComponent::AddDamageIndicator(float p_damage, ImVec4 p_text_colour)
 {
+    // Add a new damage indicator
     this->m_vDamageIndicators.emplace_back(DamageIndicator());
     int index = this->m_vDamageIndicators.size() - 1;
+
+    // Get transform & damage value as a string
     wolf::Transform2D* gameobjTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
     std::string damageValueString = std::to_string((int)p_damage);
+    
+    // Add data to the damage indicator
     DamageIndicator* dmg_ind = &this->m_vDamageIndicators.at(index);
-    // Setup
     dmg_ind->id = std::to_string(DamageIndicator::idGenerator);
     dmg_ind->damageValue = damageValueString;
     dmg_ind->damageValueTextSize = ImGui::CalcTextSize(damageValueString.c_str());
@@ -200,12 +202,16 @@ void HealthComponent::AddDamageIndicator(float p_damage, ImVec4 p_text_colour)
 
 void HealthComponent::AddDamageIndicator(std::string p_damage_str, ImVec4 p_text_colour)
 {
+    // Add a new damage indicator
     this->m_vDamageIndicators.emplace_back(DamageIndicator());
     int index = this->m_vDamageIndicators.size() - 1;
+
+    // Get transform & damage value as a string
     wolf::Transform2D* gameobjTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
     std::string damageValueString = p_damage_str;
+
+    // Add data to the damage indicator
     DamageIndicator* dmg_ind = &this->m_vDamageIndicators.at(index);
-    // Setup
     dmg_ind->id = std::to_string(DamageIndicator::idGenerator);
     dmg_ind->damageValue = damageValueString;
     dmg_ind->damageValueTextSize = ImGui::CalcTextSize(damageValueString.c_str());
@@ -246,6 +252,7 @@ void HealthComponent::HandleFlatHealthItemEvent(const FlatHealthItemEvent& p_eve
 
 void HealthComponent::DamageIndicator::Update(float p_delta)
 {
+    // Update lifetime
     lifetime -= p_delta;
     if(ownerComponent != nullptr)
     {                
@@ -259,47 +266,30 @@ void HealthComponent::DamageIndicator::Render()
     // Get data for calculations
     wolf::Scene* scene = &ownerComponent->GetGameObject()->GetScene();
     wolf::Camera2D* camera = scene->GetActiveCamera();
-    glm::vec2 cameraPos = camera->GetPosition();
-    glm::vec2 viewSize = camera->GetViewSize();
-    glm::vec2 viewSizeHalf = glm::vec2(viewSize.x * 0.5f, viewSize.y * 0.5f);
     glm::vec2 worldpos = currentPos;
     
-    // Calculate boundaries of camera
-    float l, r, t, b;
-    l = cameraPos.x - viewSizeHalf.x;
-    r = cameraPos.x + viewSizeHalf.x;
-    t = cameraPos.y + viewSizeHalf.y;
-    b = cameraPos.y - viewSizeHalf.y;
-    
-    // If indicator is visible, render
-    if
-    (
-        worldpos.x >= l &&
-        worldpos.x <= r &&
-        worldpos.y <= t &&
-        worldpos.y >= b
-    )
-    {   
-        glm::vec2 screenpos;
-        screenpos.x = (worldpos.x - (cameraPos.x - viewSizeHalf.x));
-        screenpos.y = (worldpos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
-                
-        // Setup
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground |
-                         ImGuiWindowFlags_NoMouseInputs |
-                         ImGuiWindowFlags_NoResize |
-                         ImGuiWindowFlags_NoSavedSettings |
-                         ImGuiWindowFlags_NoTitleBar |
-                         ImGuiWindowFlags_NoFocusOnAppearing | // Prevent focus
-                         ImGuiWindowFlags_NoBringToFrontOnFocus; // Prevent altering window order        
-        ImGui::SetNextWindowPos({screenpos.x, screenpos.y});
-        ImGui::SetNextWindowSize(DamageIndicator::WINDOW_SIZE);
-        ImGui::Begin(id.c_str(), nullptr, flags);
-        ImGui::SetCursorPosX((DamageIndicator::WINDOW_SIZE.x - damageValueTextSize.x) * 0.5f);
-        ImGui::TextColored(damageValueTextColour, "%s", damageValue.c_str());
+    // Convert world space into screen space
+    glm::vec4 clipSpacePos = camera->GetMatrix() * glm::vec4(worldpos, 0.0f, 1.0f);
+    glm::vec3 ndc = glm::vec3(clipSpacePos) / clipSpacePos.w;
+    glm::vec2 screenpos;
+    screenpos.x = (ndc.x * 0.5f + 0.5f) * camera->GetViewSize().x;
+    screenpos.y = (1.0f - (ndc.y * 0.5f + 0.5f)) * camera->GetViewSize().y;
+            
+    // Setup
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoBackground |
+                        ImGuiWindowFlags_NoMouseInputs |
+                        ImGuiWindowFlags_NoResize |
+                        ImGuiWindowFlags_NoSavedSettings |
+                        ImGuiWindowFlags_NoTitleBar |
+                        ImGuiWindowFlags_NoFocusOnAppearing | // Prevent focus
+                        ImGuiWindowFlags_NoBringToFrontOnFocus; // Prevent altering window order        
+    ImGui::SetNextWindowPos({screenpos.x, screenpos.y});
+    ImGui::SetNextWindowSize(DamageIndicator::WINDOW_SIZE);
+    ImGui::Begin(id.c_str(), nullptr, flags);
+    ImGui::SetCursorPosX((DamageIndicator::WINDOW_SIZE.x - damageValueTextSize.x) * 0.5f);
+    ImGui::TextColored(damageValueTextColour, "%s", damageValue.c_str());
 
-        // End rendering
-        ImGui::End();
-    }
+    // End rendering
+    ImGui::End();
 
 }

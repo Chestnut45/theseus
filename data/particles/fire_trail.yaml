@@ -40,8 +40,8 @@ particle_config:
     
     size_over_lifetime:
       enabled: true
-      start_scale: 0.92
-      end_scale: 0.23
+      start_scale: 3
+      end_scale: 1
       curve_type: 2
     
     color_over_lifetime:

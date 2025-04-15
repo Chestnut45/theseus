@@ -75,6 +75,7 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["spike_trap"] = Room::EntityType::SpikeTrap;
     s_entityIDs["ariadne_npc"] = Room::EntityType::AriadneNPC;
     s_entityIDs["daedalus_npc"] = Room::EntityType::DaedalusNPC;
+    s_entityIDs["vasilios_npc"] = Room::EntityType::VasiliosNPC;
     s_entityIDs["random_npc"] = Room::EntityType::RandomNPC;
     s_entityIDs["boulder_trap"] = Room::EntityType::BoulderTrap;
     s_entityIDs["gorgon_spawner"] = Room::EntityType::GorgonSpawner;
@@ -1088,6 +1089,12 @@ wolf::GameObject* LabyrinthManager::GetPlayer() const
     return nullptr;
 }
 
+void LabyrinthManager::SetSeed(int seed)
+{
+    m_randomizeSeed = false;
+    m_rng.SetSeed(seed);
+}
+
 std::vector<LabyrinthManager::Room> LabyrinthManager::PlaceRooms()
 {
     // Place all rooms into the labyrinth
@@ -1467,8 +1474,6 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
                 // Left-right connector case
                 if (m_labyrinthGrid.Get(x - 1, y) == LogicalTile::Floor && m_labyrinthGrid.Get(x + 1, y) == LogicalTile::Floor)
                 {
-                    // This can technically throw, but all placed
-                    // floor tiles are guaranteed to be in the map
                     int leftSection = m_tileSectionMap[glm::ivec2(x - 1, y)];
                     int rightSection = m_tileSectionMap[glm::ivec2(x + 1, y)];
                     if (leftSection != rightSection)
@@ -1489,8 +1494,6 @@ void LabyrinthManager::ConnectRooms(const std::vector<LabyrinthManager::Room>& p
                 // Top-bottom connector case
                 if (m_labyrinthGrid.Get(x, y - 1) == LogicalTile::Floor && m_labyrinthGrid.Get(x, y + 1) == LogicalTile::Floor)
                 {
-                    // This can technically throw, but all placed
-                    // floor tiles are guaranteed to be in the map
                     int bottomSection = m_tileSectionMap[glm::ivec2(x, y - 1)];
                     int topSection = m_tileSectionMap[glm::ivec2(x, y + 1)];
                     if (bottomSection != topSection)
@@ -2340,6 +2343,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                     case Room::EntityType::DaedalusNPC:
                     case Room::EntityType::AriadneNPC:
+                    case Room::EntityType::VasiliosNPC:
                     {
                         // Figure out which yaml file we should use based on which NPC we're building
                         std::string strNPCYamlFile;
@@ -2348,6 +2352,10 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         }
                         else if (entity.m_type == Room::EntityType::AriadneNPC) {
                             strNPCYamlFile = "data/npcs/ariadne_init.yaml";
+                        }
+                        else if (entity.m_type == Room::EntityType::VasiliosNPC)
+                        {
+                            strNPCYamlFile = "data/npcs/vasilios_init.yaml";
                         }
 
                         // Create The NPC using the NPCBuilder
@@ -2439,13 +2447,13 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         }
 
                         auto& colliderComp = throwableGO.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-                        colliderComp.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
+                        colliderComp.AddColliderBox(glm::vec2(8.0f, 8.0f), glm::vec2(-4.0f, 4.0f));
 
                         // Add the throwable component
                         auto& throwableComp = throwableGO.AddComponent<ThrowableObjectComponent>(20.0f, m_pColliderManager);
 
-                        // Add throwable as a child object of the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(throwableGO);
+                        // Add throwable as a child object of the LABYRINTH, not the chunks
+                        GetGameObject()->AddChild(throwableGO);
                         break;
                     }
                     case Room::EntityType::BoulderTrap:
@@ -2454,8 +2462,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         auto& trap = pObject->GetScene().CreateObject2D();
 
                         // Add sprite
-                        // TODO: Why are we using this texture for boulder traps?
-                        auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/SpikesRetracted.png");
+                        auto& sprite = trap.AddComponent<wolf::Sprite2D>("data/textures/pressure_plate.png");
                         sprite.SetOriginToCenterOfTexture();
                         sprite.SetLayer(0);
 
@@ -2668,7 +2675,6 @@ void LabyrinthManager::GenerateEntrance()
     // Create the initial tilemap
     auto& tilemap = spawnRoomObj.AddComponent<wolf::TileMap>(m_spawnPatchSize.x, m_spawnPatchSize.y);
     tilemap.LoadTileSet("data/textures/tiles/labyrinth.tileset");
-    tilemap.Clear(Tile::Grass);
 
     glm::vec2 patchOrigin = glm::vec2((m_width / 2 * TILE_SIZE - (m_spawnPatchSize.x / 2 * TILE_SIZE)) * SCALE, -m_spawnPatchSize.y * TILE_SIZE * SCALE);
 

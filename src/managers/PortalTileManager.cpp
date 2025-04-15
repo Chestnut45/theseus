@@ -12,6 +12,7 @@
 #include <ParticleComponent.h>
 #include <PlayerController.h>
 #include <VelocityComponent.h>
+#include <W_Audio.h>
 
 PortalTileManager* PortalTileManager::s_pPTMG = nullptr;
 
@@ -153,7 +154,26 @@ bool PortalTileManager::CreatePortalTile(glm::ivec2 p_tile_pos)
         m_pAvailablePortalTile = nullptr;
     }
     return true;
-    
+}
+
+bool PortalTileManager::IsTileOccupiedByAnotherPortalTile(glm::ivec2 p_tile_pos)
+{
+    // If occupied by an available portal tile, return true
+    if(m_pAvailablePortalTile != nullptr && m_pAvailablePortalTile->GetTilePos() == p_tile_pos)
+    {
+        return true;
+    }
+
+    for(const auto portalTile : m_vPortalTiles)
+    {
+        // If occupied by a portal tile or its sibling, return true
+        if(portalTile->GetTilePos() == p_tile_pos || portalTile->GetSibling()->GetTilePos() == p_tile_pos)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 PortalTileManager::PortalTileManager(LabyrinthManager* p_lbmg)
@@ -260,6 +280,8 @@ void PortalTileManager::RenderCollectPrompt()
 PortalTileManager::PortalTile* PortalTileManager::PortalTile::CreatePortalTile(glm::ivec2 p_tile_pos, LabyrinthManager* p_lbmg, PortalTile* p_sibling)
 {
     PortalTile* portalTile = new PortalTile(p_tile_pos, p_lbmg);
+
+    // If sibling is not nullptr, couple the two portal tiles together
     if(p_sibling != nullptr)
     {
         portalTile->m_pSiblingPortalTile = p_sibling;
@@ -321,6 +343,7 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     // Add 2D sprite component
     wolf::Sprite2D* sprite = &m_pPortalTileSpriteObj->AddComponent<wolf::Sprite2D>("data/textures/hermes_portal.png");
     sprite->SetTint(glm::vec3(1.0f));
+    sprite->SetLayer(0);
 
     // Add particle component
     ParticleComponent* particleComponent = &m_pPortalTileSpriteObj->AddComponent<ParticleComponent>();
@@ -409,7 +432,7 @@ void PortalTileManager::PortalTile::Update(float p_dt)
 
     // Check if occupant exists
     wolf::GameObject* occupant = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(m_occupantID);
-    if(occupant != nullptr)
+    if(occupant != nullptr && occupant->HasAll<wolf::Transform2D>())
     {   
         // Get occupant position data
         glm::vec2 occupantPos = occupant->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -449,6 +472,7 @@ void PortalTileManager::PortalTile::Update(float p_dt)
 
 void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
 {
+    // Return if object is the same as the sprite obj
     if(p_obj->GetID() == m_pPortalTileSpriteObj->GetID()) return;
     
     // Return if object is occupant
@@ -528,4 +552,6 @@ void PortalTileManager::PortalTile::Teleport(wolf::GameObject* p_obj)
 
     // Set object as new occupant
     m_pSiblingPortalTile->SetOccupantID(p_obj->GetID());
+
+    wolf::Audio::Play("data/sounds/sfx_portal.wav", 0.4f);
 }

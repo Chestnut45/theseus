@@ -23,6 +23,7 @@ public:
     void Update(float p_dt);
 
     bool CreatePortalTile(glm::ivec2 p_tile_pos);
+    bool IsTileOccupiedByAnotherPortalTile(glm::ivec2 p_tile_pos);
 
 private:
     struct PortalTile

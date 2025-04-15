@@ -64,6 +64,7 @@ void MerchantInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEve
         if (p_event.enType != PLAYER_INVENTORY && p_event.iIdNum != m_iIdNum) {
             // Close this one
             m_bIsOpen = false;
+            m_bShowSellForLessPrompt = false;
         }
     }
 }
@@ -73,6 +74,7 @@ void MerchantInventoryComponent::HandleOpenInventoryEvent(const OpenInventoryEve
 void MerchantInventoryComponent::Close() {
     // Close the inventory and let anyone interested know it happened
     m_bIsOpen = false;
+    m_bShowSellForLessPrompt = false;
     wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
 
     // Then check if there is an npc attached to our GameObject
@@ -93,6 +95,7 @@ void MerchantInventoryComponent::HandleCloseInventoryEvent(const CloseInventoryE
         if (m_bIsOpen) {
             // Close it
             m_bIsOpen = false;
+            m_bShowSellForLessPrompt = false;
 
             // Then check if there is an npc attached to our GameObject
             NPCComponent* pNPC = this->GetGameObject()->GetComponent<NPCComponent>();

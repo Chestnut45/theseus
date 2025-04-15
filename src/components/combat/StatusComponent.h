@@ -39,6 +39,7 @@ public:
     StatusComponent& operator=(StatusComponent&& other) = delete;
 
     void AddStatusEffect(StatusEffectType p_se_type, float p_lifespan);
+    void RemoveStatusEffect(StatusEffectType p_se_type);
     void SetStatusEffectResistance(StatusEffectType p_se_type, float p_resistance_value);
     bool IsStatusEffectActive(StatusEffectType p_se_type) const;
     float GetStatusEffectResistance(StatusEffectType p_se_type) const;
@@ -70,7 +71,7 @@ private:
     static std::string s_aStatusEffectDescriptions[StatusEffectType::NONE];
     static wolf::Texture* s_pTextures[StatusEffectType::NONE];
 
-    void RemoveStatusEffect(StatusEffectType p_se_type);
+    
     
     // !-- Aurora added this method to be used with StatusEffectItems --!
     void HandleApplyStatusEffectEvent(const ApplyStatusEffectEvent& p_event);

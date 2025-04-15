@@ -171,7 +171,7 @@ private:
     void RegenerateStamina(float delta); // Regenerates stamina over time
     void CheckHealth();
     void RenderThrowPowerBar(); // rendering for the power bar
-    void RenderDeathScreen();
+    void RenderDeathScreen(float delta);
     void ResetDeathScreenState(); // cool function to reset vars
 
     // Helper method to create blood particles on damage
@@ -243,10 +243,11 @@ private:
     // Bow attack members
     float m_bowChargeScale = 0.0f;          // Current charge of the boe
     float m_bowMaxChargeScale = 1.0f;       // Limit of the power of the charge
-    float m_bowChargeRate = 1.0f;           // Multiplier of delta for charge scale
+    float m_bowChargeRate = 1.2f;           // Multiplier of delta for charge scale
     float m_arrowRange = 0.0f;              // Current range of the arrow given the current charge
     float m_arrowMaxRange = 600.0f;         // Max range
     bool m_bIsChargingOver = false;        // Prevents double-charging by clicking again after releasing mouse
+    bool m_bowFired = false;
     int m_currentBowAnim = 0;
     glm::vec4 m_bowRangeIndicatorColour = glm::vec4(0.0f, 1.0f, 0.4f, 1.0f);
     const ImVec2 BOW_POWER_BAR_SIZE = ImVec2(100.0f, 15.0f);
@@ -261,8 +262,8 @@ private:
     float m_chargeTime = 0.0f;  // New variable to store charge time for throws
     float m_throwSpeed = 300.0f;  // Speed multiplier for the throw
     float m_throwPower = 0.0f;       // Power for the throw
-    const float m_maxThrowPower = 100.0f; // Max limit for the throw power
-    const float m_powerChargeRate = 25.0f; // Rate at which power increases
+    const float m_maxThrowPower = 125.0f; // Max limit for the throw power
+    const float m_powerChargeRate = 150.0f; // Rate at which power increases
     const ImVec2 THROW_POWER_BAR_SIZE = ImVec2(100.0f, 15.0f);
 
     // Animation and state tracking flags
@@ -308,6 +309,7 @@ private:
     bool m_active = true;
 
     friend class PlayState;
+    friend class PauseState;
 
 };
 

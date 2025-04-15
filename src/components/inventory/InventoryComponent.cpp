@@ -214,8 +214,8 @@ bool InventoryComponent::AddItem(ItemBase* p_pItem) {
         // first item in them when we're looking for something
         ItemBase* pItem = m_vvpContents[i].top();
 
-        // If we find an item with the same ID and it is stackable
-        if (pItem->GetID() == p_pItem->GetID() && p_pItem->IsStackable() && pItem->IsStackable()) {
+        // If we find an item with the same name and ID and it is stackable
+        if (pItem->GetName() == p_pItem->GetName() && pItem->GetID() == p_pItem->GetID() && p_pItem->IsStackable() && pItem->IsStackable()) {
             // Then we push the item to the stack
             m_vvpContents[i].push(p_pItem);
             m_iLastUsedSlot = i; // Save what index we added the item to
@@ -485,9 +485,8 @@ void InventoryComponent::ShowInventoryGUI() {
                 }
             }
             else { // Otherwise, this is an empty inventory slot
-            if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pFrameTexture->GetID(), m_v2TexFrameSize, m_vv2FrameTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2FrameTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
-
-            }
+                if (ImGui::ImageButton("Empty Slot", (void*)(intptr_t)m_pFrameTexture->GetID(), m_v2TexFrameSize, m_vv2FrameTextureCoords[m_iEmptySlotIndex]->m_v2TopLeft, m_vv2FrameTextureCoords[m_iEmptySlotIndex]->m_v2BotRight)) {
+                }
             }
 
             // If we've drawn the maximum number of slots per row

@@ -6,18 +6,21 @@ animations: [
     name: Exclamation,
     start_frame: 1,
     end_frame: 1,
+    origin: {x: 8, y: 8},
     loops: false
   },
   {
     name: Question,
     start_frame: 2,
     end_frame: 2,
+    origin: {x: 8, y: 8},
     loops: false
   },
   {
     name: None,
     start_frame: 3,
     end_frame: 3,
+    origin: {x: 8, y: 8},
     loops: false
   },
 ]

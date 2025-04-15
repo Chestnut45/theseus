@@ -7,5 +7,5 @@ start_animation: {
 }
 
 animation_sets: [
-  data/animations/emotes_anim_set.yaml,
+  data/animations/emotes_anim_set.yaml
 ]

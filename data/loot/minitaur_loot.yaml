@@ -3,5 +3,6 @@ max_items: 4
 loot_table: [
   {name: Gold Coin, probability: 3},
   {name: Healing Heart, probability: 2},
+  {name: Gold Handful, probability: 1},
   {name: Common Schematic, probability: 1}
 ]

@@ -476,7 +476,6 @@ void ColliderManager::CheckCornerCollision(float p_delta)
 
                 if (HandleCornerCollision(collider1, velocity1, corners1, collider2, scale1, translation1))
                 {
-                    // std::cout << "Corner collision detected and velocity adjusted!" << std::endl;
                 }
             }
 
@@ -485,7 +484,6 @@ void ColliderManager::CheckCornerCollision(float p_delta)
             {
                 if (HandleCornerCollision(collider1, velocity1, corners1, collider2, scale1, translation1))
                 {
-                    // std::cout << "Corner collision detected and velocity adjusted!" << std::endl;
                 }
             }
         }

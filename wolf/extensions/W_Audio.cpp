@@ -7,6 +7,8 @@
 
 #include "W_Audio.h"
 
+#include <glm/glm.hpp>
+
 namespace wolf
 {
 
@@ -21,7 +23,7 @@ void Audio::Play(const std::string& filepath, float volume, float pitchOffset, f
     // Setup loop state before playing
     sound.setLooping(loop);
     sound.setLoopPoint(loopPoint);
-
+    
     // Play the sound with the given arguments
     auto handle = s_core.play(sound);
     float adjustedVolume = volume;
@@ -88,6 +90,17 @@ void Audio::Load(const std::string& filepath)
     s_core.stopAudioSource(sound);
 
     sound.load(filepath.c_str());
+}
+
+float Audio::GetGlobalVolume()
+{
+    return s_core.getGlobalVolume();
+}
+
+void Audio::SetGlobalVolume(float volume)
+{
+    float adjusted = glm::clamp(volume, 0.0f, 1.2f);
+    s_core.setGlobalVolume(adjusted);
 }
 
 void Audio::_Setup()

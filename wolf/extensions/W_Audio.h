@@ -57,6 +57,9 @@ public:
 
     // TODO: Filters? (reverb, delay, bitcrushing, etc.)
 
+    static float GetGlobalVolume();
+    static void SetGlobalVolume(float volume);
+
 // Implementation
 private:
     

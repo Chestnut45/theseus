@@ -167,6 +167,7 @@ void PlayerController::LateInitialize()
     m_pPlacingIndicatorObj->GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(LabyrinthManager::SCALE, LabyrinthManager::SCALE));
     wolf::Sprite2D* indicatorSprite = &m_pPlacingIndicatorObj->AddComponent<wolf::Sprite2D>("data/textures/hermes_portal.png");
     indicatorSprite->SetVisibility(false);
+    indicatorSprite->SetLayer(1);
     
 
     InitializeAnimations();
@@ -262,7 +263,26 @@ void PlayerController::Update(float delta)
 
     if (m_action != PlayerAction::DEAD)
     {
+        // Constantly apply healing status for the ring if it is equipped
+        ItemBase* pItem = pInventory ? pInventory->GetEquippedItem(EquipmentSlot::ACCESSORY) : nullptr;
+        if (pItem)
+        {
+            auto pRing = dynamic_cast<ArmourItem*>(pItem);
+            if (pRing && pRing->GetName() == "Lapis Lazuli Ring")
+            {
+                auto pStatus = GetGameObject()->GetComponent<StatusComponent>();
+                if (pStatus)
+                {
+                    for (auto info : *pRing->GetStatusEffectList())
+                    {
+                        pStatus->AddStatusEffect(info.enType, info.fDuration);
+                    }
+                }
+            }
+        }
+
         RegenerateStamina(delta);
+
         // Call SetAnimationBasedOnState() only if the action or direction has changed
         if (m_action != m_previousAction || m_lastMoveDirectionEnum != m_previousDirection)
         {
@@ -273,12 +293,7 @@ void PlayerController::Update(float delta)
 
         HandlePlayerInput(delta);
 
-        // If holding an object, handle throw/drop actions
-        if (m_isHoldingObject) {
-            HandleThrowing(delta);  // Throw if needed
-            HandleMovement(delta);  // Continue to allow movement
-            return;  // Skip attack or other actions while holding an object
-        }
+        
 
         // Check if player is petrified
         StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
@@ -302,6 +317,13 @@ void PlayerController::Update(float delta)
             } 
         }
         CheckHealth();
+        
+        // If holding an object, handle throw/drop actions
+        if (m_isHoldingObject && m_action != PlayerAction::PETRIFIED) {
+            HandleThrowing(delta);  // Throw if needed
+            HandleMovement(delta);  // Continue to allow movement
+            return;  // Skip attack or other actions while holding an object
+        }
     }
 
     // Handle regular player actions
@@ -443,7 +465,8 @@ void PlayerController::HandlePlayerInput(float delta)
         m_action != PlayerAction::PETRIFIED                     &&
         m_attackTimer.Elapsed() >= m_pCurrentWeapon->GetDelay() && 
         !m_inventoryOpen                                        && 
-        !m_inventoryHovered)
+        !m_inventoryHovered                                     &&
+        !m_isHoldingObject)
     {
         SetAction(PlayerAction::ATTACKING);
     }
@@ -495,14 +518,13 @@ void PlayerController::DropObject() {
         m_throwPower = 0.0f;
 
         SetAction(PlayerAction::NONE);
-        // std::cout << "Dropped object!" << std::endl;
     }
 }
 
 void PlayerController::HandleThrowing(float delta) {
     // Charge the throw power while holding the button
     if (wolf::Input::IsLMBHeld() && m_isHoldingObject) {
-        m_throwPower += 75.0f * delta;
+        m_throwPower += m_powerChargeRate * delta;
         m_throwPower = std::min(m_throwPower, m_maxThrowPower); // Cap to max throw power
         SetAction(PlayerAction::THROWING);
     }
@@ -529,6 +551,7 @@ void PlayerController::HandlePlacing(float delta)
     const float scaledTileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
     bool isOutOfRange = false;
     bool isWall = false;
+    bool isOccupied = false;
 
     // Check if the tile position is out of bounds
     bool isOutOfBounds = cursorWorldPos.x < 0 || cursorWorldPos.y < 0;
@@ -556,6 +579,8 @@ void PlayerController::HandlePlacing(float delta)
         {
             isWall = true;
         } 
+
+        isOccupied = PortalTileManager::GetInstance()->IsTileOccupiedByAnotherPortalTile(cursorTilePos);
         break;
     }
 
@@ -563,7 +588,7 @@ void PlayerController::HandlePlacing(float delta)
     if(wolf::Input::IsLMBJustDown())
     {    
         // If attempting to place item out of bounds, out of range, or on a wall, return
-        if(isOutOfBounds || isOutOfRange || isWall) return;
+        if(isOutOfBounds || isOutOfRange || isWall || isOccupied) return;
 
         // If placeable is a portal
         if(this->m_pCurrentPlaceable->GetType() == PlaceableType::PORTAL)
@@ -586,7 +611,7 @@ void PlayerController::HandlePlacing(float delta)
     glm::vec3 normalTint = glm::vec3(1.0f, 1.0f, 1.0f);
 
     // If cursor is hovering out of bounds, out of range, or on a wall, set to indicator tint to red
-    if(isOutOfBounds || isOutOfRange || isWall)
+    if(isOutOfBounds || isOutOfRange || isWall || isOccupied)
     {
         m_pPlacingIndicatorObj->GetComponent<wolf::Sprite2D>()->SetTint(redTint);
     }
@@ -643,14 +668,17 @@ void PlayerController::HandleDeath(float delta)
 
 void PlayerController::HandleBowAttack(float delta)
 {
-    // Play sfx if just clicked
-    if (wolf::Input::IsLMBJustDown()) wolf::Audio::Play("data/sounds/sfx_bow_loading.wav", 0.9f);
-
     // Charging bow
     if(wolf::Input::IsLMBDown())
     {
         if(m_bIsChargingOver == false)
         {
+            // Play sfx if just clicked
+            if (wolf::Input::IsLMBJustDown()) wolf::Audio::Play("data/sounds/sfx_bow_loading.wav", 0.9f);
+
+            // Reset fired flag
+            m_bowFired = false;
+
             // Calculate scale of charge power
             m_bowChargeScale += delta * m_bowChargeRate;
             m_bowChargeScale = std::min(m_bowChargeScale, m_bowMaxChargeScale);
@@ -677,7 +705,7 @@ void PlayerController::HandleBowAttack(float delta)
     // Firing arrow
     if(m_bIsChargingOver) 
     {        
-        if(m_currentBowAnim == 1 && m_pAnimComponent->IsAnimationFinished() == true)
+        if(!m_bowFired)
         {    
             // Attack
             auto* player = this->GetGameObject();
@@ -687,7 +715,6 @@ void PlayerController::HandleBowAttack(float delta)
             VelocityComponent* playerVelocityComponent = player->GetComponent<VelocityComponent>();
             glm::vec2 playerVelocity = playerVelocityComponent == nullptr ? glm::vec2(0.0f) : playerVelocityComponent->GetVelocity();
             glm::vec2 playerDirection = GetVectorFromDirection(this->m_lastFaceDirectionEnum);
-            glm::vec2 spawnOffset;
 
             // Set data for projectile collider
             ProjectileProperties projprop = m_pCurrentWeapon->GetProjectileProperties();
@@ -711,11 +738,10 @@ void PlayerController::HandleBowAttack(float delta)
             // Add attack damage component
             float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.01f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
             auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200);
-            
+
             // Calculate spawn offset
-            spawnOffset.x = spawnOffset.x > 0.0f ? (spawnOffset.x + projectileDimensions.x * 0.5f) : ( spawnOffset.x < 0.0f ? (spawnOffset.x - projectileDimensions.x * 0.5f) : (spawnOffset.x));
-            spawnOffset.y = spawnOffset.y > 0.0f ? (spawnOffset.y + projectileDimensions.y * 0.5f) : ( spawnOffset.y < 0.0f ? (spawnOffset.y - projectileDimensions.y * 0.5f) : (spawnOffset.y));
-            projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+            glm::vec2 spawnOffset = m_attackDir * 32.0f;
+            projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
             
             // Calculate projectile velocity
             float arrowSpeed = glm::max(glm::length(projprop.v2Velocity) * 0.4f, glm::length(projprop.v2Velocity) * m_bowChargeScale);
@@ -736,6 +762,7 @@ void PlayerController::HandleBowAttack(float delta)
 
             // Play sfx
             wolf::Audio::Play("data/sounds/sfx_arrow_shot.wav", 0.5f);
+            m_bowFired = true;
         }
     }
     HandleBowAttackAnimation();
@@ -997,10 +1024,9 @@ void PlayerController::HandleBowRangeIndicator(float delta)
 {
     glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     glm::vec2 endpoint = playerPos + m_attackDir * m_arrowRange;   // m_attackDir is already normalised
-    glm::vec2 trueEndpoint = DDACalculator::GetInstance()->GetEndpoint(playerPos, endpoint);
+    glm::vec2 trueEndpoint = DDACalculator::GetInstance()->GetEndpoint(playerPos, endpoint, false);
 
     glm::vec4 colour = m_bowRangeIndicatorColour;
-    // std::cout << colour.r << ", " << colour.g << ", " << colour.b << ", " << colour.a << std::endl;
 
     GLShapesRenderer::GetInstance()->AddLine(
                                             {playerPos.x, playerPos.y, colour.r, colour.g, colour.b, colour.a}, 
@@ -1181,33 +1207,17 @@ void PlayerController::EndPlacing()
 
 void PlayerController::ThrowHeldObject() {
     if (!m_isHoldingObject || !m_pHeldObject) {
-        // std::cout << "No object is being held to throw!" << std::endl;
         return;
     }
 
-    // Determine throw direction based on player’s facing direction
-    glm::vec2 throwDirection;
-    switch (m_lastFaceDirectionEnum) {
-        case PlayerDirection::NORTH:       throwDirection = glm::vec2(0.0f, 1.0f); break;
-        case PlayerDirection::EAST:        throwDirection = glm::vec2(1.0f, 0.0f); break;
-        case PlayerDirection::SOUTH:       throwDirection = glm::vec2(0.0f, -1.0f); break;
-        case PlayerDirection::WEST:        throwDirection = glm::vec2(-1.0f, 0.0f); break;
-        case PlayerDirection::NORTH_EAST:  throwDirection = glm::normalize(glm::vec2(1.0f, 1.0f)); break;
-        case PlayerDirection::NORTH_WEST:  throwDirection = glm::normalize(glm::vec2(-1.0f, 1.0f)); break;
-        case PlayerDirection::SOUTH_EAST:  throwDirection = glm::normalize(glm::vec2(1.0f, -1.0f)); break;
-        case PlayerDirection::SOUTH_WEST:  throwDirection = glm::normalize(glm::vec2(-1.0f, -1.0f)); break;
-        default:                           throwDirection = glm::vec2(1.0f, 0.0f); break; // Default to right
-    }
-
-    // Get player velocity
-    VelocityComponent* playerVelocityComponent = GetGameObject()->GetComponent<VelocityComponent>();
-    glm::vec2 playerVelocity = playerVelocityComponent ? playerVelocityComponent->GetVelocity() : glm::vec2(0.0f);
+    CalculateAttackDirection();
+    glm::vec2 throwDirection = m_attackDir;
 
     // Set the object's velocity based on throw direction, throw power, and player's velocity
     auto* throwableVelocity = m_pHeldObject->GetGameObject()->GetComponent<VelocityComponent>();
     if (!throwableVelocity) throwableVelocity = &m_pHeldObject->GetGameObject()->AddComponent<VelocityComponent>();
     
-    glm::vec2 finalVelocity = throwDirection * m_throwPower * 3.0f + playerVelocity;
+    glm::vec2 finalVelocity = throwDirection * m_throwPower * 3.0f;
     throwableVelocity->SetVelocity(finalVelocity);
 
     // Set the state of the held object to THROWN and reset holding variables
@@ -1536,6 +1546,11 @@ void PlayerController::StartAttack()
 
 void PlayerController::StartPetrified()
 {
+    if (m_isHoldingObject)
+    {
+        DropObject();
+    }
+    
     // Values hardcoded based on 5s petrification attack from GorgonController, perhaps more sensible to centralise & handle effects in StatusComponent
     // TODO: Move SetSpecialEffects() calls involving petrification from PlayerController & all EnemyControllers to StatusComponent
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED, 0.1f, 4.8f, 0.1f);
@@ -1642,7 +1657,7 @@ void PlayerController::Render(float delta)
 {
     if (!m_active || !m_pTransform) return;
     if (m_action == PlayerAction::DEAD) {
-        RenderDeathScreen();
+        RenderDeathScreen(delta);
         return;
     }
 
@@ -1848,7 +1863,7 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     else
     {  
         // All non-boss enemies and the player get here
-        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f, 10000, 0.0f, true);
+        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.75f, 8000, 0.0f, true);
         EmitBloodParticles(event, 1.2f);
     }
 }
@@ -1925,6 +1940,7 @@ void PlayerController::StartDeath() {
 
     m_runtimeTimer.Stop(); // Stop the timer
     m_deathRuntime = m_runtimeTimer.Elapsed(); // Capture elapsed time once
+    m_pAnimComponent->SetAnimation("Dead");
     m_pAnimComponent->SetAnimPaused(true);
     m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
     
@@ -1934,14 +1950,14 @@ void PlayerController::StartDeath() {
     wolf::Audio::Play("data/sounds/bgm_death.wav", 0.75f, 0.0f, 0.0f, false, true, 27.428f);
 }
 
-void PlayerController::RenderDeathScreen() {
+void PlayerController::RenderDeathScreen(float delta) {
     ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 
     // Step 1: Fade to Black
     if (!m_fadeComplete) {
-        m_fadeOpacity += 0.01f;
-        if (m_fadeOpacity >= 1.0f) {
-            m_fadeOpacity = 1.0f;
+        m_fadeOpacity += delta * 0.75f;
+        if (m_fadeOpacity >= 0.75f) {
+            m_fadeOpacity = 0.75f;
             m_fadeComplete = true;
         }
     }
@@ -1969,7 +1985,7 @@ void PlayerController::RenderDeathScreen() {
 
     // Step 2: "You Died" message
     if (m_fadeComplete && !m_messageFadeComplete) {
-        m_messageOpacity += 0.01f;
+        m_messageOpacity += delta;
         if (m_messageOpacity >= 1.0f) {
             m_messageOpacity = 1.0f;
             m_messageFadeComplete = true;
@@ -1982,23 +1998,16 @@ void PlayerController::RenderDeathScreen() {
         ImGui::SetNextWindowPos(textPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(ImVec2(300, 100));
         ImGui::Begin("##GameOverMessage", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        
-        // Add a glow effect using shadow text
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, m_messageOpacity * 0.5f));
         ImGui::SetWindowFontScale(2.8f);
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.0f);  // Offset shadow vertically
-        ImGui::Text("You Died");
-
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3.0f);  // Reset position
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, m_messageOpacity)); // Bright red
         ImGui::Text("You Died");
-        ImGui::PopStyleColor(2);
+        ImGui::PopStyleColor(1);
         ImGui::End();
     }
 
     // Step 3: Runtime display
     if (m_messageFadeComplete && !m_runtimeFadeComplete) {
-        m_runtimeOpacity += 0.01f;
+        m_runtimeOpacity += delta;
         if (m_runtimeOpacity >= 1.0f) {
             m_runtimeOpacity = 1.0f;
             m_runtimeFadeComplete = true;
@@ -2011,51 +2020,44 @@ void PlayerController::RenderDeathScreen() {
         ImGui::SetNextWindowPos(runtimePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(ImVec2(300, 100));
         ImGui::Begin("##RuntimeInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-
-        // Add shadow text for a glowing effect
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, m_runtimeOpacity * 0.5f));
         ImGui::SetWindowFontScale(1.8f);
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.0f);
-        ImGui::Text("Run Time: %.2f seconds", m_deathRuntime);
-
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.0f);
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, m_runtimeOpacity)); // White text
         ImGui::Text("Run Time: %.2f seconds", m_deathRuntime);
-        ImGui::PopStyleColor(2);
+        ImGui::PopStyleColor(1);
         ImGui::End();
     }
 
     // Step 4: Options (Buttons)
     if (m_runtimeFadeComplete) {
-        m_optionsOpacity += 0.01f;
-        if (m_optionsOpacity > 1.0f) {
-            m_optionsOpacity = 1.0f;
+        m_optionsOpacity += 0.75f * delta;
+        if (m_optionsOpacity > 0.75f) {
+            m_optionsOpacity = 0.75f;
         }
     }
 
     if (m_optionsOpacity > 0.0f) {
-        ImVec2 optionsPos((displaySize.x + 48.0f) * 0.5f, displaySize.y * 0.7f);
+        ImVec2 optionsPos((displaySize.x + 60.0f) * 0.5f, displaySize.y * 0.64f);
         ImGui::SetNextWindowPos(optionsPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(ImVec2(320, 160));
         ImGui::Begin("##DeathScreenOptions", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
 
         // Style adjustments for the buttons
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 16.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(16.0f, 10.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 15.0f));
 
         // Button colors with gradient effect
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, m_optionsOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.286f, 0.286f, 0.286f, m_optionsOpacity));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.14f, 0.14f, m_optionsOpacity));
-        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, m_optionsOpacity));
-        ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0.0f, 0.0f, 0.0f, m_optionsOpacity * 0.6f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0.0f, 0.0f, 0.0f, 0.6f));
 
         // Enable border and shadow for a polished look
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
 
         // "Return to Main Menu" button
-        if (ImGui::Button("Return to Main Menu", ImVec2(240, 50))) {
+        if (ImGui::Button("Return to Main Menu", ImVec2(240, 40))) {
             wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
             ResetDeathScreenState();
         }
@@ -2063,7 +2065,7 @@ void PlayerController::RenderDeathScreen() {
         ImGui::Spacing();
 
         // "Exit Game" button
-        if (ImGui::Button("Exit Game", ImVec2(240, 50))) {
+        if (ImGui::Button("Exit Game", ImVec2(240, 40))) {
             wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::EXIT));
             ResetDeathScreenState();
         }

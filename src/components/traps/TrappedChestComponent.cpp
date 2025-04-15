@@ -140,11 +140,13 @@ void TrappedChestComponent::DisplayTaunt()
     glm::vec2 viewSize = camera->GetViewSize();
     glm::vec2 worldpos = gameObjTransform->GetGlobalPosition() + glm::vec2(0.0f, 30.0f) * gameObjTransform->GetGlobalScale();
 
-    // Calculate position of taunt text on screen
+    // Convert world space into screen space
+    glm::vec4 clipSpacePos = camera->GetMatrix() * glm::vec4(worldpos, 0.0f, 1.0f);
+    glm::vec3 ndc = glm::vec3(clipSpacePos) / clipSpacePos.w;
     glm::vec2 screenpos;
-    screenpos.x = (worldpos.x - (cameraPos.x - viewSize.x * 0.5f));
-    screenpos.y = (worldpos.y - (cameraPos.y - viewSize.y * 0.5f)) * (-1) + viewSize.y;
-    screenpos += glm::vec2(-TrappedChestComponent::WINDOW_SIZE_HALF.x, TrappedChestComponent::WINDOW_SIZE_HALF.y);
+    screenpos.x = (ndc.x * 0.5f + 0.5f) * camera->GetViewSize().x;
+    screenpos.y = (1.0f - (ndc.y * 0.5f + 0.5f)) * camera->GetViewSize().y;
+    screenpos.x -= WINDOW_SIZE_HALF.x;
 
     std::string windowName = "TrappedChest" + std::to_string(m_iID);
     std::string taunt = TrappedChestComponent::s_vTaunts.at(m_iTauntIndex);

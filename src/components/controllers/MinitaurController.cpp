@@ -79,15 +79,13 @@ void MinitaurController::Init(const EnemyData& data)
     m_pEmoteObj = &pGameObject->GetScene().CreateObject2D();
     pGameObject->AddChild(*m_pEmoteObj);
     wolf::Transform2D* transform = m_pEmoteObj->GetComponent<wolf::Transform2D>();
-    transform->SetPosition(glm::vec2(-8.0f, 8.0f));
+    transform->SetPosition(glm::vec2(0.0f, 16.0f));
 
     // Add emotes spritesheet
     AnimatedSprite2D* emotesSpritesheet = &m_pEmoteObj->AddComponent<AnimatedSprite2D>("data/animations/emotes_anim_init.yaml");
     emotesSpritesheet->SetAnimPaused(true);
-    emotesSpritesheet->SetOriginToCenterOfFrame();
-
-    // Initialise emotes-related variables
-    m_fEmoteTimer = EMOTE_TIME;
+    emotesSpritesheet->SetLightingEnabled(false);
+    emotesSpritesheet->SetLayer(100);
 
     // Find the PathfindingManager in the scene
     bool pathfindingManagerFound = false;
@@ -553,6 +551,8 @@ void MinitaurController::HandleChasingState(float delta)
         ChangeState(EnemyState::PROSPECT);      
         return;
     }
+
+    // If player is within melee range, transition delay expired, and melee timer expired, attack
     if (distanceToPlayer <= m_meleeRange)
     {
         if (m_transitionTimer.Elapsed() >= m_transitionDelay && m_meleeTimer <= 0.0f)
@@ -577,8 +577,7 @@ void MinitaurController::HandleAttackingState(float delta)
         // Brighten sprite to indicate attack
         if(m_pAnimComponent != nullptr)
         {
-            glm::vec3 currentTint = m_pAnimComponent->GetTint();
-            glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_meleeWindupTime * 0.5f));
+            glm::vec3 nextTint = glm::vec3(glm::mix(1.0f, 2.0f, (m_meleeWindupTime - m_meleeWindupTimer) / m_meleeWindupTime));
             m_pAnimComponent->SetTint(nextTint);
         }
 
@@ -622,7 +621,8 @@ void MinitaurController::HandleAttackingState(float delta)
             }
 
             // Chain another attack
-            ChangeState(EnemyState::ATTACKING);
+            // ChangeState(EnemyState::ATTACKING);
+            ChangeState(EnemyState::CHASING);
             return;
         }
         else
@@ -772,6 +772,7 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
 void MinitaurController::EnterAttackState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    m_meleeWindupTimer = m_meleeWindupTime;
 }
 
 void MinitaurController::EnterChasingState()
@@ -817,7 +818,7 @@ void MinitaurController::ExitChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Stop();
-    m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
+    m_transitionDelay = 0.0f;
 }
 
 void MinitaurController::ExitIdleState()
