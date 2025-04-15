@@ -547,6 +547,7 @@ void PlayerController::HandlePetrified(float delta)
 void PlayerController::HandlePlacing(float delta)
 {
     glm::vec2 cursorWorldPos = CalculateCursorWorldPosition();
+
     glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const float scaledTileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
     bool isOutOfRange = false;
@@ -1135,12 +1136,13 @@ glm::vec2 PlayerController::CalculateCursorWorldPosition() const
     glm::vec2 cameraPos = camera->GetPosition();
     glm::vec2 viewSize = camera->GetViewSize();
     glm::vec2 worldPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    
+    float zoom = camera->GetZoom();
+
     glm::vec2 cursorScreenPos = wolf::Input::GetMousePos();
     glm::vec2 cursorWorldPos = glm::vec2
     (
-        cameraPos.x + (cursorScreenPos.x - viewSize.x * 0.5f),
-        cameraPos.y + (viewSize.y * 0.5f - cursorScreenPos.y)
+        cameraPos.x + (cursorScreenPos.x - viewSize.x * 0.5f) / zoom,
+        cameraPos.y + (viewSize.y * 0.5f - cursorScreenPos.y) / zoom
     );
     return cursorWorldPos;
 }
