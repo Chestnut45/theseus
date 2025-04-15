@@ -98,20 +98,38 @@ void PauseState::Update(float delta)
 
     // Position the Resume button based on where the Paused header is
     ImGui::SetCursorPosX(pausedPos.x - buttonWidth * 0.34f);
+    static bool hovered0 = false;
+    static bool wasHovered0 = false;
     if (ImGui::Button("Resume", {buttonWidth, buttonHeight}))
     {
         resume = true;
+        wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
     }
+    hovered0 = ImGui::IsItemHovered();
+    if (hovered0 && !wasHovered0)
+    {
+        wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+    }
+    wasHovered0 = hovered0;
 
     // Single character for spacing
     ImGui::Text(" ");
 
     // Position the Main Menu button based on where the Paused header is
     ImGui::SetCursorPosX(pausedPos.x - buttonWidth * 0.34f);
+    static bool hovered1 = false;
+    static bool wasHovered1 = false;
     if (ImGui::Button("Main Menu", {buttonWidth, buttonHeight}))
     {
         m_pStateManager->ClearAndPushState(new MainMenuState(m_pStateManager, m_pGameInstance));
+        wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
     }
+    hovered1 = ImGui::IsItemHovered();
+    if (hovered1 && !wasHovered1)
+    {
+        wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+    }
+    wasHovered1 = hovered1;
 
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(5);

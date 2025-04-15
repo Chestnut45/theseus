@@ -179,10 +179,19 @@ void MainMenuState::Update(float delta)
             ImGui::NewLine();
             ImGui::SetCursorPosX(startX + 16);
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
+            static bool hovered3 = false;
+            static bool wasHovered3 = false;
             if (ImGui::Button("Back", {buttonWidth - 32, buttonHeight - 8}) || wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
             {
                 m_screen = Screen::MAIN;
+                wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
             }
+            hovered3 = ImGui::IsItemHovered();
+            if (hovered3 && !wasHovered3)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            wasHovered3 = hovered3;
 
             break;
 
@@ -205,21 +214,38 @@ void MainMenuState::Update(float delta)
             if (m_randomSeed) ImGui::EndDisabled();
             ImGui::SetCursorPosX(startX - 10);
             ImGui::SetCursorPosY(buttonY);
+            static bool hovered4 = false;
+            static bool wasHovered4 = false;
             if (ImGui::Button("Enter the Labyrinth", {buttonWidth + 20, buttonHeight}))
             {
                 wolf::Audio::Stop();
                 wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -8000.0f);
                 m_screen = Screen::FADE;
             }
+            hovered4 = ImGui::IsItemHovered();
+            if (hovered4 && !wasHovered4)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            wasHovered4 = hovered4;
             ImGui::NewLine();
             ImGui::SetCursorPosX(startX + 16);
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
+            static bool hovered5 = false;
+            static bool wasHovered5 = false;
             if (ImGui::Button("Back", {buttonWidth - 32, buttonHeight - 8}) || wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
             {
                 m_screen = Screen::MAIN;
                 m_randomSeed = true;
                 m_seedText.clear();
+                wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
             }
+            hovered5 = ImGui::IsItemHovered();
+            if (hovered5 && !wasHovered5)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            wasHovered5 = hovered5;
             ImGui::SetCursorPosX(14);
             ImGui::SetCursorPosY(ImGui::GetWindowSize().y - 32);
             ImGui::Checkbox("Debug Mode Enabled", &m_debugModeEnabled);
