@@ -577,8 +577,7 @@ void MinitaurController::HandleAttackingState(float delta)
         // Brighten sprite to indicate attack
         if(m_pAnimComponent != nullptr)
         {
-            glm::vec3 currentTint = m_pAnimComponent->GetTint();
-            glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_meleeWindupTime * 0.5f));
+            glm::vec3 nextTint = glm::vec3(glm::mix(1.0f, 2.0f, (m_meleeWindupTime - m_meleeWindupTimer) / m_meleeWindupTime));
             m_pAnimComponent->SetTint(nextTint);
         }
 
@@ -622,7 +621,8 @@ void MinitaurController::HandleAttackingState(float delta)
             }
 
             // Chain another attack
-            ChangeState(EnemyState::ATTACKING);
+            // ChangeState(EnemyState::ATTACKING);
+            ChangeState(EnemyState::CHASING);
             return;
         }
         else
@@ -772,6 +772,7 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
 void MinitaurController::EnterAttackState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+    m_meleeWindupTimer = m_meleeWindupTime;
 }
 
 void MinitaurController::EnterChasingState()
@@ -817,7 +818,7 @@ void MinitaurController::ExitChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Stop();
-    m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
+    m_transitionDelay = 0.0f;
 }
 
 void MinitaurController::ExitIdleState()

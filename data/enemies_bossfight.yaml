@@ -2,12 +2,12 @@ enemies:
   - type: minitaur
     health: 150
     armour: 3
-    melee_range: 80.0
-    melee_cooldown: 1
-    melee_windup: 1
+    melee_range: 100.0
+    melee_cooldown: 0.5
+    melee_windup: 0.25
     detection_range: 2000
-    base_damage: 20.0
-    chase_speed: 120.0
+    base_damage: 25.0
+    chase_speed: 120
     animation_init_file: "data/animations/minitaur_anim_init.yaml"
 
   - type: harpy
@@ -15,10 +15,10 @@ enemies:
     armour: 2
     ranged_range: 300
     ranged_cooldown: 2
-    ranged_windup: 1.5
+    ranged_windup: 1
     detection_range: 2000
     base_damage: 25
-    chase_speed: 80
+    chase_speed: 120
     animation_init_file: "data/animations/harpy_anim_init.yaml"
 
   - type: gorgon
