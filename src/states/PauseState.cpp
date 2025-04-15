@@ -11,6 +11,8 @@
 #include <W_Input.h>
 #include <W_EventManager.h>
 #include <events/PauseEvent.h>
+#include <PlayerController.h>
+#include <LabyrinthManager.h>
 
 void PauseState::Enter()
 {
@@ -29,6 +31,21 @@ void PauseState::Update(float delta)
 
     // Escape key triggers resume next frame
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) resume = true;
+
+    // Grab the seed
+    int seed = 0;
+    for (auto&&[_, manager] : m_pGameInstance->GetScene().Each<LabyrinthManager>())
+    {
+        seed = manager.GetSeed();
+        break;
+    }
+
+    bool debugEnabled = false;
+    for (auto&&[_, player] : m_pGameInstance->GetScene().Each<PlayerController>())
+    {
+        debugEnabled = player.m_debugHotkeys;
+        break;
+    }
 
     // Get the dimensions of the game window
     const int w = m_pGameInstance->GetWidth();
@@ -81,20 +98,38 @@ void PauseState::Update(float delta)
 
     // Position the Resume button based on where the Paused header is
     ImGui::SetCursorPosX(pausedPos.x - buttonWidth * 0.34f);
+    static bool hovered0 = false;
+    static bool wasHovered0 = false;
     if (ImGui::Button("Resume", {buttonWidth, buttonHeight}))
     {
         resume = true;
+        wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
     }
+    hovered0 = ImGui::IsItemHovered();
+    if (hovered0 && !wasHovered0)
+    {
+        wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+    }
+    wasHovered0 = hovered0;
 
     // Single character for spacing
     ImGui::Text(" ");
 
     // Position the Main Menu button based on where the Paused header is
     ImGui::SetCursorPosX(pausedPos.x - buttonWidth * 0.34f);
+    static bool hovered1 = false;
+    static bool wasHovered1 = false;
     if (ImGui::Button("Main Menu", {buttonWidth, buttonHeight}))
     {
         m_pStateManager->ClearAndPushState(new MainMenuState(m_pStateManager, m_pGameInstance));
+        wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
     }
+    hovered1 = ImGui::IsItemHovered();
+    if (hovered1 && !wasHovered1)
+    {
+        wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+    }
+    wasHovered1 = hovered1;
 
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(5);
@@ -139,6 +174,12 @@ void PauseState::Update(float delta)
     ImGui::PopStyleColor(1);
 
     // !-------------------------------------------------------------!
+
+    // Debug information
+    ImGui::SetCursorPosX(12);
+    ImGui::SetCursorPosY(ImGui::GetWindowSize().y - 24);
+    std::string debugString = debugEnabled ? "- Debug Mode Enabled " : "";
+    ImGui::Text("Theseus v1.1 %s- Seed: %d", debugString.data(), seed);
 
     // Close window and pop vars
     ImGui::End();

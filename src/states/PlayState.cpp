@@ -53,9 +53,10 @@
 
 #include <W_BufferManager.h>
 
-PlayState::PlayState(GameStateManager* manager, Theseus* gameInstance, const std::string& seedText)
+PlayState::PlayState(GameStateManager* manager, Theseus* gameInstance, const std::string& seedText, bool debugAllowed)
     : GameState(manager, gameInstance),
-    m_seedText(seedText)
+    m_seedText(seedText),
+    m_debugHotkeys(debugAllowed)
 {
 }
 
@@ -101,11 +102,66 @@ void PlayState::Enter()
     // Add the labyrinth manager and load the default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
-    m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
 
-    // Set the seed from the main menu if not empty
-    // TODO: Special seeds! (custom challenge configs, easter eggs, whatever)
-    if (m_seedText.length() > 0) m_pLabyrinthManager->SetSeed(static_cast<int>(std::hash<std::string>{}(m_seedText)));
+    // Seed logic from main menu
+    bool specialSeed = false;
+    if (m_seedText.length() > 0)
+    {
+        // Check for special configs
+        if (m_seedText == "goodluck")
+        {
+            m_pLabyrinthManager->LoadConfig("data/configs/secret/goodluck.yaml");
+            specialSeed = true;
+        }
+        else if (m_seedText == "gottagofast")
+        {
+            m_pLabyrinthManager->LoadConfig("data/configs/secret/gottagofast.yaml");
+            specialSeed = true;
+            auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
+            if (playerController)
+            {
+                playerController->m_currentMoveSpeed = 800.0f;
+                playerController->m_normalMoveSpeed = 800.0f;
+                playerController->m_rollSpeed = 1600.0f;
+                playerController->m_inventoryMoveSpeed = 400.0f;
+            }
+        }
+        else if (m_seedText == "thefloorislava")
+        {
+            m_pLabyrinthManager->LoadConfig("data/configs/secret/thefloorislava.yaml");
+            specialSeed = true;
+        }
+        else if (m_seedText == "minitaurmania")
+        {
+            m_pLabyrinthManager->LoadConfig("data/configs/secret/minitaurmania.yaml");
+            specialSeed = true;
+        }
+        else
+        {
+            // If not a special seed, load the default config
+            m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
+            
+            // Default is hashed seed from main menu text
+            int seed = static_cast<int>(std::hash<std::string>{}(m_seedText));
+            try
+            {
+                // Try converting directly to an integer if we can
+                seed = std::stoi(m_seedText);
+            }
+            catch (const std::exception&)
+            {
+                // Revert to hashed seed if any issue happens
+                seed = static_cast<int>(std::hash<std::string>{}(m_seedText));
+            }
+            
+            m_pLabyrinthManager->SetSeed(seed);
+        }
+    }
+    else
+    {
+        // Load the default config with a random seed
+        m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
+    }
 
     // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();
@@ -202,30 +258,24 @@ void PlayState::Enter()
         }
     }
 
-    if (minitaurPositions.empty())
+    if (!minitaurPositions.empty())
     {
-        wolf::Log("No Minotaurs found in Basic Fight Rooms!");
-        return;
-    }
+        // Find the closest Minotaur to the player
+        MinitaurController* closestMinitaur = nullptr;
+        float closestDistanceToPlayer = std::numeric_limits<float>::max();
 
-    // Find the closest Minotaur to the player
-    MinitaurController* closestMinitaur = nullptr;
-    float closestDistanceToPlayer = std::numeric_limits<float>::max();
-
-    for (const auto& [minitaurController, position] : minitaurPositions)
-    {
-        float distanceToPlayer = glm::distance(playerPosition, position);
-        if (distanceToPlayer < closestDistanceToPlayer)
+        for (const auto& [minitaurController, position] : minitaurPositions)
         {
-            closestMinitaur = minitaurController;
-            closestDistanceToPlayer = distanceToPlayer;
+            float distanceToPlayer = glm::distance(playerPosition, position);
+            if (distanceToPlayer < closestDistanceToPlayer)
+            {
+                closestMinitaur = minitaurController;
+                closestDistanceToPlayer = distanceToPlayer;
+            }
         }
-    }
 
-    if (!closestMinitaur)
-    {
-        // wolf::Log("Failed to find the closest Minotaur to the player!");
-        return;
+        // Register the closest Minotaur in the shared context
+        if (closestMinitaur) m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
     }
 
     // Add a light to the player
@@ -237,9 +287,7 @@ void PlayState::Enter()
 
     // Make Ariadne's light pink because I can (Aurora)
     ariadne.GetChildren().front()->GetComponent<LightComponent>()->SetColor(glm::vec4(1.0f, 0.41f, 0.70f, 0.75f));
-
-    // Register the closest Minotaur in the shared context
-    m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
+    
     m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
 
     // Schedule her movement
@@ -248,16 +296,27 @@ void PlayState::Enter()
         glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
         transform->SetPosition(newPosition);
     }
-    wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
-    // Queue up all of Ariadne's dialogue
-    auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
-    ariadneNPCComp->QueueDialogue("hello");
-    ariadneNPCComp->QueueDialogue("traps");
-    ariadneNPCComp->QueueDialogue("survivors");
+    if (!specialSeed)
+    {
+        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
-    // Stop all audio and begin the maze music
-    wolf::Audio::Stop();
+        // Queue up all of Ariadne's dialogue
+        auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
+        ariadneNPCComp->QueueDialogue("hello");
+        ariadneNPCComp->QueueDialogue("traps");
+        ariadneNPCComp->QueueDialogue("survivors");
+    }
+    else
+    {
+        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("special_intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
+
+        // Queue up all of Ariadne's dialogue
+        auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
+        ariadneNPCComp->QueueDialogue("hello");
+        ariadneNPCComp->QueueDialogue("traps");
+    }
+
     wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, false, true, 13.714f);
 
     // Now it's safe to register entities
@@ -367,14 +426,6 @@ void PlayState::Update(float delta)
                 m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
             }
         }
-    }
-
-    // Update debug hotkeys
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_DELETE))
-    {
-        // Toggle debug hotkeys for both us and the player
-        m_debugHotkeys = !m_debugHotkeys;
-        m_pPlayerObject->GetComponent<PlayerController>()->m_debugHotkeys = m_debugHotkeys;
     }
 
     if (m_debugHotkeys)
@@ -1114,6 +1165,7 @@ void PlayState::CreatePlayer()
     // NOTE: This manages all player animations and the animated sprite component for the player
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
+    playerController.m_debugHotkeys = m_debugHotkeys;
 
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
@@ -1694,23 +1746,22 @@ ImU32 GetTileColor(int tileID) {
 }
 
 void PlayState::RenderMap() {
-    static float defaultZoomScale = 0.2f; // Default zoom level when not expanded
-    static float expandedZoomScale = 1.0f; // Persisted zoom level for expanded map
+    static float defaultZoomScale = 0.15f; // Default zoom level when not expanded
+    static float expandedZoomScale = 0.15f; // Persisted zoom level for expanded map
     static bool isExpandedPrev = false; // Tracks if the map was expanded in the previous frame
+
+    // Update the zoom scale and reset if switching between states
+    if (!m_isMapExpanded && isExpandedPrev) {
+        defaultZoomScale = glm::clamp(expandedZoomScale * 0.333333f, 0.1f, 1.0f); // Adjust default zoom to see more
+    }
+    float zoomScale = m_isMapExpanded ? expandedZoomScale : defaultZoomScale;
+    isExpandedPrev = m_isMapExpanded;
 
     // Determine the zoom level based on whether the map is expanded
     if (m_isMapExpanded) {
         float scrollDelta = ImGui::GetIO().MouseWheel;
-        expandedZoomScale = glm::clamp(expandedZoomScale + scrollDelta * 0.1f, 0.2f, 2.0f); // Adjust expanded zoom
+        expandedZoomScale = glm::clamp(expandedZoomScale + scrollDelta * 0.1f, 0.1f, 1.0f); // Adjust expanded zoom
     }
-
-    // Update the zoom scale and reset if switching between states
-    float zoomScale = m_isMapExpanded ? expandedZoomScale : defaultZoomScale;
-
-    if (!m_isMapExpanded && isExpandedPrev) {
-        defaultZoomScale = glm::clamp(expandedZoomScale * 0.5f, 0.2f, 1.0f); // Adjust default zoom to see more
-    }
-    isExpandedPrev = m_isMapExpanded;
 
     // Define map dimensions and scaling
     const float mapSize = m_isMapExpanded ? 600.0f : 200.0f; // Larger default map size for expanded view

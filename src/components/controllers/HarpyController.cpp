@@ -14,6 +14,8 @@
 #include <ItemDropCreator.h>
 #include <LightComponent.h>
 
+#include <DDACalculator.h>
+
 #include <math.h>
 #include <cassert>
 
@@ -318,15 +320,29 @@ void HarpyController::HandleChasingState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
+    // Prevent shooting when on top of a wall tile or when line of sight is blocked
+    bool canAttack = DDACalculator::GetInstance()->GetEndpoint(currentPosition, targetPosition) == targetPosition;
+    for (auto&&[_, manager] : GetGameObject()->GetScene().Each<LabyrinthManager>())
+    {
+        glm::ivec2 tilePos = manager.GetTilePosition(currentPosition);
+        int tile = (int)manager.GetTile(tilePos.x, tilePos.y);
+        if (tile >= Tile::WallBottomLeft && tile <= Tile::WallTop)
+        {
+            canAttack = false;
+        }
+        break;
+    }
+
     if(distanceToPlayer <= m_rangedRange)
     {
         if
         (
             m_transitionTimer.Elapsed() >= m_transitionDelay    && // If transition delay expired 
-            m_rangedTimer <= 0.0f                                  // If delay between attacks expired
+            m_rangedTimer <= 0.0f                               && // If delay between attacks expired
+            canAttack
         )
         {
-            ChangeState(EnemyState::ATTACKING);            
+            ChangeState(EnemyState::ATTACKING);
         }
     }
 }

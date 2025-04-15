@@ -668,14 +668,17 @@ void PlayerController::HandleDeath(float delta)
 
 void PlayerController::HandleBowAttack(float delta)
 {
-    // Play sfx if just clicked
-    if (wolf::Input::IsLMBJustDown()) wolf::Audio::Play("data/sounds/sfx_bow_loading.wav", 0.9f);
-
     // Charging bow
     if(wolf::Input::IsLMBDown())
     {
         if(m_bIsChargingOver == false)
         {
+            // Play sfx if just clicked
+            if (wolf::Input::IsLMBJustDown()) wolf::Audio::Play("data/sounds/sfx_bow_loading.wav", 0.9f);
+
+            // Reset fired flag
+            m_bowFired = false;
+
             // Calculate scale of charge power
             m_bowChargeScale += delta * m_bowChargeRate;
             m_bowChargeScale = std::min(m_bowChargeScale, m_bowMaxChargeScale);
@@ -702,7 +705,7 @@ void PlayerController::HandleBowAttack(float delta)
     // Firing arrow
     if(m_bIsChargingOver) 
     {        
-        if(m_currentBowAnim == 1 && m_pAnimComponent->IsAnimationFinished() == true)
+        if(!m_bowFired)
         {    
             // Attack
             auto* player = this->GetGameObject();
@@ -759,6 +762,7 @@ void PlayerController::HandleBowAttack(float delta)
 
             // Play sfx
             wolf::Audio::Play("data/sounds/sfx_arrow_shot.wav", 0.5f);
+            m_bowFired = true;
         }
     }
     HandleBowAttackAnimation();
@@ -1859,7 +1863,7 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     else
     {  
         // All non-boss enemies and the player get here
-        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.8f, 10000, 0.0f, true);
+        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.75f, 8000, 0.0f, true);
         EmitBloodParticles(event, 1.2f);
     }
 }
