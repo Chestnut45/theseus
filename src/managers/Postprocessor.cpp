@@ -205,7 +205,7 @@ void Postprocessor::HandleBurningEffect(GLuint p_tex)
     program->SetUniform("fireSineFrequency", 32.0f);
     program->SetUniform("fireSineMidline", 0.32f);
     program->SetUniform("time", (float)m_timer.Elapsed() * 4.0f);
-    program->SetUniform("burnRGB", glm::vec3(1.2f, 0.4f, 0.04f));   // Red tint of screen
+    program->SetUniform("burnRGB", glm::vec3(1.0f, 0.4f, 0.1f));   // Red tint of screen
 
     // Bind the texture to apply postprocessing effects to
     glActiveTexture(GL_TEXTURE0);
@@ -325,7 +325,7 @@ void Postprocessor::HandlePoisonedEffect(GLuint p_tex)
     wolf::Program* program = m_vShaderPrograms.at(Effect::POISONED);
     program->Bind();
     program->SetUniform("time", (float)(m_timer.Elapsed()) * 6.0f);
-    program->SetUniform("amplitude", 0.01f);
+    program->SetUniform("amplitude", 0.005f);
     program->SetUniform("frequency", (float)M_PI * 3.0f);
 
     // Bind the texture to apply postprocessing effects to
