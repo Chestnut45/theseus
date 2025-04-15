@@ -308,6 +308,7 @@ private:
     bool m_active = true;
 
     friend class PlayState;
+    friend class PauseState;
 
 };
 

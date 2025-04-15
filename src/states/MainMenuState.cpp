@@ -195,6 +195,9 @@ void MainMenuState::Update(float delta)
                 m_randomSeed = true;
                 m_seedText.clear();
             }
+            ImGui::SetCursorPosX(14);
+            ImGui::SetCursorPosY(ImGui::GetWindowSize().y - 32);
+            ImGui::Checkbox("Debug Mode Enabled", &m_debugModeEnabled);
 
             break;
         
@@ -202,7 +205,7 @@ void MainMenuState::Update(float delta)
             
             if (m_fadeTime >= 1.0f)
             {
-                m_pStateManager->PushState(new PlayState(m_pStateManager, m_pGameInstance, m_seedText));
+                m_pStateManager->PushState(new PlayState(m_pStateManager, m_pGameInstance, m_seedText, m_debugModeEnabled));
             }
             m_fadeTime += delta;
 

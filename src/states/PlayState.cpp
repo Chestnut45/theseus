@@ -53,9 +53,10 @@
 
 #include <W_BufferManager.h>
 
-PlayState::PlayState(GameStateManager* manager, Theseus* gameInstance, const std::string& seedText)
+PlayState::PlayState(GameStateManager* manager, Theseus* gameInstance, const std::string& seedText, bool debugAllowed)
     : GameState(manager, gameInstance),
-    m_seedText(seedText)
+    m_seedText(seedText),
+    m_debugHotkeys(debugAllowed)
 {
 }
 
@@ -101,11 +102,35 @@ void PlayState::Enter()
     // Add the labyrinth manager and load the default config
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
-    m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
 
-    // Set the seed from the main menu if not empty
-    // TODO: Special seeds! (custom challenge configs, easter eggs, whatever)
-    if (m_seedText.length() > 0) m_pLabyrinthManager->SetSeed(static_cast<int>(std::hash<std::string>{}(m_seedText)));
+    // Seed logic from main menu
+    if (m_seedText.length() > 0)
+    {
+        // Check for special configs
+
+        // If not a special seed, load the default config
+        m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
+        
+        // Default is hashed seed from main menu text
+        int seed = static_cast<int>(std::hash<std::string>{}(m_seedText));
+        try
+        {
+            // Try converting directly to an integer if we can
+            seed = std::stoi(m_seedText);
+        }
+        catch (const std::exception&)
+        {
+            // Revert to hashed seed if any issue happens
+            seed = static_cast<int>(std::hash<std::string>{}(m_seedText));
+        }
+        
+        m_pLabyrinthManager->SetSeed(seed);
+    }
+    else
+    {
+        // Load the default config with a random seed
+        m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
+    }
 
     // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();
@@ -367,14 +392,6 @@ void PlayState::Update(float delta)
                 m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
             }
         }
-    }
-
-    // Update debug hotkeys
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_DELETE))
-    {
-        // Toggle debug hotkeys for both us and the player
-        m_debugHotkeys = !m_debugHotkeys;
-        m_pPlayerObject->GetComponent<PlayerController>()->m_debugHotkeys = m_debugHotkeys;
     }
 
     if (m_debugHotkeys)
@@ -1114,6 +1131,7 @@ void PlayState::CreatePlayer()
     // NOTE: This manages all player animations and the animated sprite component for the player
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
+    playerController.m_debugHotkeys = m_debugHotkeys;
 
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();

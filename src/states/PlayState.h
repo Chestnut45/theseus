@@ -51,7 +51,7 @@ class PlayState : public GameState
 {
 public:
 
-    PlayState(GameStateManager* manager, Theseus* gameInstance, const std::string& seedText);
+    PlayState(GameStateManager* manager, Theseus* gameInstance, const std::string& seedText, bool debugAllowed);
 
     void Enter() override;
     void Exit() override;

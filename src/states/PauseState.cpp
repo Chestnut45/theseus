@@ -11,6 +11,8 @@
 #include <W_Input.h>
 #include <W_EventManager.h>
 #include <events/PauseEvent.h>
+#include <PlayerController.h>
+#include <LabyrinthManager.h>
 
 void PauseState::Enter()
 {
@@ -29,6 +31,21 @@ void PauseState::Update(float delta)
 
     // Escape key triggers resume next frame
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) resume = true;
+
+    // Grab the seed
+    int seed = 0;
+    for (auto&&[_, manager] : m_pGameInstance->GetScene().Each<LabyrinthManager>())
+    {
+        seed = manager.GetSeed();
+        break;
+    }
+
+    bool debugEnabled = false;
+    for (auto&&[_, player] : m_pGameInstance->GetScene().Each<PlayerController>())
+    {
+        debugEnabled = player.m_debugHotkeys;
+        break;
+    }
 
     // Get the dimensions of the game window
     const int w = m_pGameInstance->GetWidth();
@@ -139,6 +156,12 @@ void PauseState::Update(float delta)
     ImGui::PopStyleColor(1);
 
     // !-------------------------------------------------------------!
+
+    // Debug information
+    ImGui::SetCursorPosX(12);
+    ImGui::SetCursorPosY(ImGui::GetWindowSize().y - 24);
+    std::string debugString = debugEnabled ? "- Debug Mode Enabled " : "";
+    ImGui::Text("Theseus v1.1 %s- Seed: %d", debugString.data(), seed);
 
     // Close window and pop vars
     ImGui::End();
