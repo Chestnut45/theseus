@@ -104,27 +104,35 @@ void PlayState::Enter()
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
 
     // Seed logic from main menu
+    bool specialSeed = false;
     if (m_seedText.length() > 0)
     {
         // Check for special configs
-
-        // If not a special seed, load the default config
-        m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
-        
-        // Default is hashed seed from main menu text
-        int seed = static_cast<int>(std::hash<std::string>{}(m_seedText));
-        try
+        if (m_seedText == "goodluck")
         {
-            // Try converting directly to an integer if we can
-            seed = std::stoi(m_seedText);
+            m_pLabyrinthManager->LoadConfig("data/configs/good_luck.yaml");
+            specialSeed = true;
         }
-        catch (const std::exception&)
+        else
         {
-            // Revert to hashed seed if any issue happens
-            seed = static_cast<int>(std::hash<std::string>{}(m_seedText));
+            // If not a special seed, load the default config
+            m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
+            
+            // Default is hashed seed from main menu text
+            int seed = static_cast<int>(std::hash<std::string>{}(m_seedText));
+            try
+            {
+                // Try converting directly to an integer if we can
+                seed = std::stoi(m_seedText);
+            }
+            catch (const std::exception&)
+            {
+                // Revert to hashed seed if any issue happens
+                seed = static_cast<int>(std::hash<std::string>{}(m_seedText));
+            }
+            
+            m_pLabyrinthManager->SetSeed(seed);
         }
-        
-        m_pLabyrinthManager->SetSeed(seed);
     }
     else
     {
@@ -245,12 +253,6 @@ void PlayState::Enter()
             closestMinitaur = minitaurController;
             closestDistanceToPlayer = distanceToPlayer;
         }
-    }
-
-    if (!closestMinitaur)
-    {
-        // wolf::Log("Failed to find the closest Minotaur to the player!");
-        return;
     }
 
     // Add a light to the player
