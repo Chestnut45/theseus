@@ -39,6 +39,7 @@
 #include "EnemyDataLoader.h"
 #include "PathfindingManager.h"
 #include <events/GameWinEvent.h>
+#include <events/LabyrinthEvents.h>
 #include <W_Timer.h>
 #include <NavMeshComponent.h>
 #include <unordered_map>
@@ -134,6 +135,8 @@ private:
 
     // Handlers
     void OnGameOverEvent(const GameOverEvent& event);
+    void OnRegenerateEvent(const LabyrinthRegenerateEvent& event);
+    void OnDestroyEvent(const LabyrinthDestroyEvent& event);
 
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);

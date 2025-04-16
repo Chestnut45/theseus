@@ -20,6 +20,8 @@
 #include <W_Logging.h>
 #include <W_TileMap.h>
 #include <W_Transform2D.h>
+#include <W_EventManager.h>
+#include <LabyrinthEvents.h>
 
 // For std::shuffle
 #include <algorithm>
@@ -444,12 +446,18 @@ void LabyrinthManager::DestroyLabyrinth()
 
     // Update flag
     m_isGenerated = false;
+
+    // Notify so that listeners like the nav mesh may update
+    wolf::EventManager::TriggerEvent(LabyrinthDestroyEvent(this));
 }
 
 void LabyrinthManager::Regenerate()
 {
     DestroyLabyrinth();
     GenerateLabyrinth();
+
+    // Notify so that listeners like the nav mesh may update
+    wolf::EventManager::TriggerEvent(LabyrinthRegenerateEvent(this));
 }
 
 void LabyrinthManager::ShowGUI()

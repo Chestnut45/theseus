@@ -77,6 +77,8 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::AddListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
     wolf::EventManager::AddListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
+    wolf::EventManager::AddListener<LabyrinthRegenerateEvent, PlayState, &PlayState::OnRegenerateEvent>(*this);
+    wolf::EventManager::AddListener<LabyrinthDestroyEvent, PlayState, &PlayState::OnDestroyEvent>(*this);
     
  
     this->m_pColliderManager = new ColliderManager(&scene);
@@ -350,6 +352,8 @@ void PlayState::Exit()
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
+    wolf::EventManager::RemoveListener<LabyrinthRegenerateEvent, PlayState, &PlayState::OnRegenerateEvent>(*this);
+    wolf::EventManager::RemoveListener<LabyrinthDestroyEvent, PlayState, &PlayState::OnDestroyEvent>(*this);
 
     m_pPathfindingManager = nullptr;
     wolf::EventManager::RemoveListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
@@ -1660,6 +1664,22 @@ void PlayState::OnGameOverEvent(const GameOverEvent& event) {
         case GameOverType::EXIT:
             m_pGameInstance->Shutdown();
             break;
+    }
+}
+
+void PlayState::OnRegenerateEvent(const LabyrinthRegenerateEvent& event)
+{
+    if (m_pNavMeshComponent && event.m_pLabyrinthManager)
+    {
+        m_pNavMeshComponent->GenerateFromLabyrinth(event.m_pLabyrinthManager);
+    }
+}
+
+void PlayState::OnDestroyEvent(const LabyrinthDestroyEvent& event)
+{
+    if (m_pNavMeshComponent && event.m_pLabyrinthManager)
+    {
+        m_pNavMeshComponent->Clear();
     }
 }
 

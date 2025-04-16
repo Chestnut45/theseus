@@ -605,6 +605,16 @@ void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject
     m_obstacleAffectedPolygons.assign(newlyAffected.begin(), newlyAffected.end());
 }
 
+void NavMeshComponent::Clear()
+{
+    m_obstacles.clear();
+    m_polygons.clear();
+    m_edges.clear();
+    m_spatialHash.clear();
+    m_obstacleAffectedPolygons.clear();
+    m_originalVisibility.clear();
+}
+
 void NavMeshComponent::ProcessAffectedPolygon(int polyId, bool isPlayer, std::unordered_set<int>& affected)
 {
     if (isPlayer)
