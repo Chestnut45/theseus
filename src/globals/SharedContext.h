@@ -12,6 +12,10 @@ public:
         m_entityIDs[name] = id;
     }
 
+    void RemoveEntity(const std::string& name) {
+        if (m_entityIDs.contains(name)) m_entityIDs.erase(name);
+    }
+
     wolf::GameObjectID GetEntityID(const std::string& name) const {
         auto it = m_entityIDs.find(name);
         if (it != m_entityIDs.end()) {

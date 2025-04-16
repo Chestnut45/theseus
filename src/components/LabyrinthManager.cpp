@@ -1037,14 +1037,14 @@ int LabyrinthManager::GetTile(int x, int y) const
 
     if (!pChunk)
     {
-        wolf::Warning("Chunk does not exist in call to GetTile(...)");
+        // wolf::Warning("Chunk does not exist in call to GetTile(...)");
         return -2;
     }
 
     auto* pTilemap = pChunk->GetChildren()[0]->GetComponent<wolf::TileMap>();
     if (!pTilemap)
     {
-        wolf::Warning("No tilemap found in call to GetTile(...)");
+        // wolf::Warning("No tilemap found in call to GetTile(...)");
         return -2;
     }
 

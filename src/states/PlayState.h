@@ -89,6 +89,7 @@ private:
     glm::vec2 m_bossfightPlayerPos;
     wolf::GameObject* m_pBoss = nullptr;
     wolf::GameObject* m_pBossWalls = nullptr;
+    wolf::GameObject* m_pBossTrigger = nullptr;
     std::vector<glm::ivec2> m_bossRoomDoorTiles;
     glm::ivec2 m_bossRoomOrigin;
     glm::ivec2 m_bossRoomSize;
@@ -124,13 +125,12 @@ private:
 
     // Private helper methods
     void ConvertPlayerTileToGold();
+    void RegisterClosestMinitaur();
 
     // Entity creation methods
     void CreatePlayer();
-    void CreateMinitaurEnemy();
-    void CreateHarpyEnemy();
-    void CreateGorgonEnemy();
-    void CreateTrappedChest();
+    void SpawnBossObjects();
+    void DestroyBossObjects();
     wolf::GameObject& CreateAriadneAndReturn(glm::vec2 playerPosition);
 
     // Handlers

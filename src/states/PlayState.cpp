@@ -186,99 +186,10 @@ void PlayState::Enter()
 
     Postprocessor::CreateInstance(&scene);
 
-    // Place the bossfight trigger
-    const auto& rooms = m_pLabyrinthManager->GetRooms();
-    for (const auto& room : rooms)
-    {
-        if (room.m_name != "Minotaur's Chamber") continue;
+    // Initialize bossfight specific objects
+    SpawnBossObjects();
 
-        // Store door tile locations
-        m_bossRoomDoorTiles = room.m_doors;
-
-        // Create trigger object and collider
-        auto& object = scene.CreateObject2D();
-        auto& collider = object.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, false, false);
-        auto size = glm::vec2(room.m_bounds.m_size.x, room.m_bounds.m_size.y) * (float)(LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
-        auto position = glm::vec2(room.m_bounds.m_origin.x, room.m_bounds.m_origin.y + room.m_bounds.m_size.y);
-        position *= LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE;
-        collider.AddColliderBox(size, position);
-        object.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::SINGLE_USE, TriggerPurpose::BOSS);
-
-        // Set the position to teleport the player to when the bossfight starts
-        m_bossfightPlayerPos = m_pLabyrinthManager->GetWorldPosition(room.m_bounds.m_origin) + size * 0.5f;
-        m_bossfightPlayerPos.y -= (size.y * 0.25f);
-
-        // Spawn the Minotaur Boss
-        auto& bossObject = scene.CreateObject2D();
-        auto& controller = bossObject.AddComponent<BossController>();
-
-        // Move boss to initial location
-        auto* pBossTransform = bossObject.GetComponent<wolf::Transform2D>();
-        pBossTransform->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.5f));
-        pBossTransform->SetScale(glm::vec2(3.0f));
-
-        // Then call init (uses location to access boss room)
-        controller.Init();
-
-        // Grab pointer to boss object
-        m_pBoss = &bossObject;
-        m_pGameInstance->GetSharedContext().RegisterEntity("Minotaur", m_pBoss->GetID());
-
-        // Create other object groups
-        m_pBossWalls = &scene.CreateObject2D();
-        m_bossRoomOrigin= room.m_bounds.m_origin;
-        m_bossRoomSize = room.m_bounds.m_size;
-        break;
-    }
-    
-    glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
-    wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
-
-    // Track all Minotaurs and their positions
-    std::unordered_map<MinitaurController*, glm::vec2> minitaurPositions;
-
-    // Find all "Basic Fight Rooms" and record Minotaurs' positions
-    for (const auto& room : m_pLabyrinthManager->GetRooms())
-    {
-        if (room.m_name == "Basic Fight Rooms")
-        {
-            glm::vec2 roomCenter = m_pLabyrinthManager->GetWorldPosition(glm::vec2(room.m_bounds.m_origin)) +
-                                   glm::vec2(room.m_bounds.m_size) * 0.5f;
-
-            // Record all Minotaurs in the room
-            for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
-            {
-                glm::vec2 minitaurPos = glm::vec2(minitaurController.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
-                float distanceToRoom = glm::distance(roomCenter, minitaurPos);
-
-                // Ensure the Minotaur is within this room
-                if (distanceToRoom < glm::length(glm::vec2(room.m_bounds.m_size)) * LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE)
-                {
-                    minitaurPositions[&minitaurController] = minitaurPos;
-                }
-            }
-        }
-    }
-
-    if (!minitaurPositions.empty())
-    {
-        // Find the closest Minotaur to the player
-        MinitaurController* closestMinitaur = nullptr;
-        float closestDistanceToPlayer = std::numeric_limits<float>::max();
-
-        for (const auto& [minitaurController, position] : minitaurPositions)
-        {
-            float distanceToPlayer = glm::distance(playerPosition, position);
-            if (distanceToPlayer < closestDistanceToPlayer)
-            {
-                closestMinitaur = minitaurController;
-                closestDistanceToPlayer = distanceToPlayer;
-            }
-        }
-
-        // Register the closest Minotaur in the shared context
-        if (closestMinitaur) m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
-    }
+    RegisterClosestMinitaur();
 
     // Add a light to the player
     wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
@@ -286,22 +197,16 @@ void PlayState::Enter()
     m_pPlayerObject->AddChild(*pLightGO);
     pLightComponent.Init();
     pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
-
-    // Make Ariadne's light pink because I can (Aurora)
-    ariadne.GetChildren().front()->GetComponent<LightComponent>()->SetColor(glm::vec4(1.0f, 0.41f, 0.70f, 0.75f));
     
     m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
 
-    // Schedule her movement
-    auto* transform = ariadne.GetComponent<wolf::Transform2D>();
-    if (transform) {
-        glm::vec2 newPosition = transform->GetGlobalPosition() + glm::vec2(100.0f, 100.0f);
-        transform->SetPosition(newPosition);
-    }
+    // Create ariadne and queue dialogue
+    glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
+    wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
 
     if (!specialSeed)
     {
-        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
+        if (!m_debugHotkeys) wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
         // Queue up all of Ariadne's dialogue
         auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
@@ -311,7 +216,7 @@ void PlayState::Enter()
     }
     else
     {
-        wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("special_intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
+        if (!m_debugHotkeys) wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("special_intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
         // Queue up all of Ariadne's dialogue
         auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
@@ -1176,6 +1081,124 @@ void PlayState::CreatePlayer()
     transform.SetScale(glm::vec2(3));
 }
 
+void PlayState::SpawnBossObjects()
+{
+    auto& scene = m_pGameInstance->GetScene();
+    const auto& rooms = m_pLabyrinthManager->GetRooms();
+
+    for (const auto& room : rooms)
+    {
+        if (room.m_name != "Minotaur's Chamber") continue;
+
+        // Store door tile locations
+        m_bossRoomDoorTiles = room.m_doors;
+
+        // Create trigger object and collider
+        m_pBossTrigger = &scene.CreateObject2D();
+        auto& collider = m_pBossTrigger->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, false, false);
+        auto size = glm::vec2(room.m_bounds.m_size.x, room.m_bounds.m_size.y) * (float)(LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+        auto position = glm::vec2(room.m_bounds.m_origin.x, room.m_bounds.m_origin.y + room.m_bounds.m_size.y);
+        position *= LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE;
+        collider.AddColliderBox(size, position);
+        m_pBossTrigger->AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::SINGLE_USE, TriggerPurpose::BOSS);
+
+        // Set the position to teleport the player to when the bossfight starts
+        m_bossfightPlayerPos = m_pLabyrinthManager->GetWorldPosition(room.m_bounds.m_origin) + size * 0.5f;
+        m_bossfightPlayerPos.y -= (size.y * 0.25f);
+
+        // Spawn the Minotaur Boss
+        auto& bossObject = scene.CreateObject2D();
+        auto& controller = bossObject.AddComponent<BossController>();
+
+        // Move boss to initial location
+        auto* pBossTransform = bossObject.GetComponent<wolf::Transform2D>();
+        pBossTransform->SetPosition(m_bossfightPlayerPos + glm::vec2(0.0f, size.y * 0.5f));
+        pBossTransform->SetScale(glm::vec2(3.0f));
+
+        // Then call init (uses location to access boss room)
+        controller.Init();
+
+        // Grab pointer to boss object
+        m_pBoss = &bossObject;
+        m_pGameInstance->GetSharedContext().RegisterEntity("Minotaur", m_pBoss->GetID());
+
+        // Create other object groups
+        m_pBossWalls = &scene.CreateObject2D();
+        m_bossRoomOrigin = room.m_bounds.m_origin;
+        m_bossRoomSize = room.m_bounds.m_size;
+        break;
+    }
+}
+
+void PlayState::DestroyBossObjects()
+{
+    m_pGameInstance->GetSharedContext().RemoveEntity("Minotaur");
+
+    m_bossfightPlayerPos = glm::vec2(0.0f);
+    m_bossRoomOrigin = glm::ivec2(0);
+    m_bossRoomSize = glm::ivec2(0);
+
+    m_bossRoomDoorTiles.clear();
+
+    if (m_pBossTrigger) m_pBossTrigger->Delete();
+    if (m_pBossWalls) m_pBossWalls->Delete();
+    if (m_pBoss) m_pBoss->Delete();
+    m_pBossTrigger = nullptr;
+    m_pBossWalls = nullptr;
+    m_pBoss = nullptr;
+}
+
+void PlayState::RegisterClosestMinitaur()
+{
+    glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
+
+    // Track all Minotaurs and their positions
+    std::unordered_map<MinitaurController*, glm::vec2> minitaurPositions;
+
+    // Find all "Basic Fight Rooms" and record Minotaurs' positions
+    for (const auto& room : m_pLabyrinthManager->GetRooms())
+    {
+        if (room.m_name == "Basic Fight Rooms")
+        {
+            glm::vec2 roomCenter = m_pLabyrinthManager->GetWorldPosition(glm::vec2(room.m_bounds.m_origin)) +
+                                   glm::vec2(room.m_bounds.m_size) * 0.5f;
+
+            // Record all Minotaurs in the room
+            for (auto&& [_, minitaurController] : m_pGameInstance->GetScene().Each<MinitaurController>())
+            {
+                glm::vec2 minitaurPos = glm::vec2(minitaurController.GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+                float distanceToRoom = glm::distance(roomCenter, minitaurPos);
+
+                // Ensure the Minotaur is within this room
+                if (distanceToRoom < glm::length(glm::vec2(room.m_bounds.m_size)) * LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE)
+                {
+                    minitaurPositions[&minitaurController] = minitaurPos;
+                }
+            }
+        }
+    }
+
+    if (!minitaurPositions.empty())
+    {
+        // Find the closest Minotaur to the player
+        MinitaurController* closestMinitaur = nullptr;
+        float closestDistanceToPlayer = std::numeric_limits<float>::max();
+
+        for (const auto& [minitaurController, position] : minitaurPositions)
+        {
+            float distanceToPlayer = glm::distance(playerPosition, position);
+            if (distanceToPlayer < closestDistanceToPlayer)
+            {
+                closestMinitaur = minitaurController;
+                closestDistanceToPlayer = distanceToPlayer;
+            }
+        }
+
+        // Register the closest Minotaur in the shared context
+        if (closestMinitaur) m_pGameInstance->GetSharedContext().RegisterEntity("Minitaur", closestMinitaur->GetGameObject()->GetID());
+    }
+}
+
 void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& event) {
     // std::cout << "Triggered sequence: " << event.sequenceID << std::endl;
 
@@ -1184,8 +1207,6 @@ void PlayState::OnDialogueAndCutsceneTriggered(const DialogueAndCutsceneEvent& e
     dialogueAndCutsceneState->LoadSequence(event.sequenceID);  // Start the specific sequence
     m_pStateManager->PushState(dialogueAndCutsceneState);
 }
-
-
 
 // Event handler to spawn traps when a trigger is triggered
 void PlayState::OnTriggerEvent(const TriggerEvent& event) {
@@ -1403,6 +1424,8 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
 
         case TriggerPurpose::BOSS: {
             
+            if (!m_pBoss || !m_pBossWalls || !m_pBossTrigger) break;
+
             TileFireManager::GetInstance()->SetPropagationActiveness(false);
 
             // Stop the background music
@@ -1669,6 +1692,28 @@ void PlayState::OnGameOverEvent(const GameOverEvent& event) {
 
 void PlayState::OnRegenerateEvent(const LabyrinthRegenerateEvent& event)
 {
+    DestroyBossObjects();
+    m_pPathfindingManager->ClearEntities();
+    SpawnBossObjects();
+
+    // Create ariadne and setup dialogue
+    glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
+    wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
+    auto* ariadneNPCComp = ariadne.GetComponent<NPCComponent>();
+    ariadneNPCComp->QueueDialogue("hello");
+    ariadneNPCComp->QueueDialogue("traps");
+    ariadneNPCComp->QueueDialogue("survivors");
+
+    // Register entities
+    for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())
+    {
+        m_pPathfindingManager->RegisterEntity(minitaur.GetGameObject()); 
+    }
+    for (auto&& [_, gorgon] : m_pGameInstance->GetScene().Each<GorgonController>())
+    {
+        m_pPathfindingManager->RegisterEntity(gorgon.GetGameObject());
+    }
+
     if (m_pNavMeshComponent && event.m_pLabyrinthManager)
     {
         m_pNavMeshComponent->GenerateFromLabyrinth(event.m_pLabyrinthManager);
@@ -1681,6 +1726,8 @@ void PlayState::OnDestroyEvent(const LabyrinthDestroyEvent& event)
     {
         m_pNavMeshComponent->Clear();
     }
+    DestroyBossObjects();
+    m_pPathfindingManager->ClearEntities();
 }
 
 void PlayState::ShowTooltip(const std::string& text)
@@ -1909,8 +1956,8 @@ void PlayState::RenderMap() {
 
 wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
 {
-    // Offset position to place Ariadne on top of the player by one tile
-    glm::vec2 ariadnePosition = playerPosition + glm::vec2(0.0f, LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
+    // Offset position
+    glm::vec2 ariadnePosition = playerPosition + glm::vec2(0.0f, LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE) + glm::vec2(100.0f, 100.0f);
 
     // Specify the YAML file for Ariadne's NPC data
     std::string ariadneYamlFile = "data/npcs/ariadne_init.yaml";
@@ -1926,7 +1973,8 @@ wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
     // Optionally register Ariadne in the shared context for reference in cutscenes
     m_pGameInstance->GetSharedContext().RegisterEntity("Ariadne", ariadne.GetID());
 
-    // wolf::Log("Ariadne created at position: (" + std::to_string(ariadnePosition.x) + ", " + std::to_string(ariadnePosition.y) + ").");
+    // Make Ariadne's light pink because I can (Aurora)
+    ariadne.GetChildren().front()->GetComponent<LightComponent>()->SetColor(glm::vec4(1.0f, 0.41f, 0.70f, 0.75f));
 
     return ariadne;
 }
