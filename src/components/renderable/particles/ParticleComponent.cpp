@@ -203,15 +203,8 @@ void ParticleComponent::Update(float delta)
             float size = 4.0f;
             float lifetime = 0.6f;
             
-            // Get texture if one was loaded by config
-            wolf::Texture* texture = nullptr;
-            if (!m_particles.empty() && m_particles[0].m_texture)
-            {
-                texture = m_particles[0].m_texture;
-            }
-            
             // Emit the particle
-            Emit(position, velocity, color, size, lifetime, texture);
+            Emit(position, velocity, color, size, lifetime, m_pTex);
             
             // Reset timer, accounting for remainder
             m_emissionTimer = fmod(m_emissionTimer, emissionInterval);
@@ -244,7 +237,16 @@ void ParticleComponent::Render()
 
     // Enable blending for transparency
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    if (m_additiveBlend)
+    {
+        glBlendFunc(GL_ONE, GL_ONE);
+    }
+    else
+    {
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
+    
     
     s_pShader->Bind();
 
@@ -341,7 +343,7 @@ void ParticleComponent::RenderTexturedParticles()
         for (const Particle* particle : particles)
         {
             // set up model matrix for each particle
-            float scaleFactor = particle->m_size * 10.0f; // edit param as u wish
+            float scaleFactor = particle->m_size;
             
             glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(particle->m_pos, 0.0f));
             model = glm::rotate(model, glm::radians(particle->m_rotation), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -527,6 +529,16 @@ bool ParticleComponent::LoadConfigFromYAML(const std::string& filename)
         if (particleConfig["max_particles"]) {
             SetMaxParticles(particleConfig["max_particles"].as<size_t>());
         }
+
+        if (particleConfig["texture_path"])
+        {
+            m_pTex = wolf::TextureManager::CreateTexture(particleConfig["texture_path"].as<std::string>());
+        }
+
+        if (particleConfig["additive"])
+        {
+            m_additiveBlend = particleConfig["additive"].as<bool>();
+        }
         
         // Set default auto-destroy values
         m_autoDestroy = false;
@@ -536,6 +548,8 @@ bool ParticleComponent::LoadConfigFromYAML(const std::string& filename)
 
         if (particleConfig["autodestroy"])
             m_autoDestroy = particleConfig["autodestroy"].as<bool>();
+        
+        
         
         // Load modifiers from the YAML file
         if (particleConfig["modifiers"]) {

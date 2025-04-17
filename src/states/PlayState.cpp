@@ -243,8 +243,8 @@ void PlayState::Enter()
 
     m_gameCompletionTime.Start();
 
-    auto& particleEditorObj = m_pGameInstance->GetScene().CreateObject2D();
-    m_pParticleEditor = &particleEditorObj.AddComponent<ParticleEditor>();
+    // auto& particleEditorObj = m_pGameInstance->GetScene().CreateObject2D();
+    // m_pParticleEditor = &particleEditorObj.AddComponent<ParticleEditor>();
 }
 
 void PlayState::Exit()
@@ -366,10 +366,10 @@ void PlayState::Update(float delta)
         if (m_pNavMeshComponent)
             m_pNavMeshComponent->Update(delta);
 
-        if (m_pParticleEditor)
-        {
-            m_pParticleEditor->Update(delta);
-        }
+        // if (m_pParticleEditor)
+        // {
+        //     m_pParticleEditor->Update(delta);
+        // }
     }
 
     // Cache the player's position

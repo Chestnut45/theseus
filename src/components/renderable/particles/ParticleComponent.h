@@ -127,5 +127,6 @@ private:
     glm::vec2 m_baseVelocity = glm::vec2(0.0f, 0.0f);
     void* m_userData = nullptr;
 
-
+    wolf::Texture* m_pTex = nullptr;
+    bool m_additiveBlend = false;
 };

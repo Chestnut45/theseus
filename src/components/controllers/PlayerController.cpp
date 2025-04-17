@@ -2186,7 +2186,7 @@ void PlayerController::EmitBloodParticles(const DamageEvent& event, float intens
         velocity,                         // Direction and speed
         glm::vec4(0.7f, 0.1f, 0.1f, 0.9f), // Dark red color
         4.0f * intensity,                  // Size, scaled by intensity
-        1.0f,                             // Lifetime
+        0.6f,                             // Lifetime
         static_cast<int>(15 * intensity),  // Particle count, scaled by intensity
         90.0f,                            // Spread angle
         bloodTexture                      // Blood texture

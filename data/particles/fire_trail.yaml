@@ -18,6 +18,7 @@ particle_config:
   
   use_texture: true
   texture_path: "data/textures/fire_particle.png"
+  additive: true
   
   modifiers:
     emission_shape:
@@ -40,14 +41,14 @@ particle_config:
     
     size_over_lifetime:
       enabled: true
-      start_scale: 5
-      end_scale: 1
+      start_scale: 12
+      end_scale: 0.1
       curve_type: 2
     
     color_over_lifetime:
       enabled: true
-      start_color: [1.0, 0.95, 0.15, 1.0]
-      end_color: [1.0, 0.2, 0.0, 0.0]
+      start_color: [0.9, 0.85, 0.05, 0.5]
+      end_color: [0.8, 0.1, 0.0, 0.0]
     
     rotation:
       enabled: true

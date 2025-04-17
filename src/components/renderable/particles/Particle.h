@@ -61,6 +61,10 @@ struct Particle
         if (m_rotation < 0) m_rotation += 360.0f;
             
         if (m_lifetime <= 0.0f)
+        {
             m_active = false;
+            m_lifetime = 0.0f;
+        }
+
     }
 };
