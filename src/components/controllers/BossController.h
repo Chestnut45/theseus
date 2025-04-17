@@ -77,6 +77,9 @@ public:
     // POST: All member component pointers are valid OR an error is logged
     void Init();
 
+    // Call to clear internal state and delete objects from the scene
+    void Deinit();
+
     void Update(float delta);
 
     void SetActive(bool active) { m_active = active; }

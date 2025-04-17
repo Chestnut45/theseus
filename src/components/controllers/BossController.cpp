@@ -277,6 +277,12 @@ void BossController::Init()
     EnterPhase1();
 }
 
+void BossController::Deinit()
+{
+    m_pBossPillarGroup->Delete();
+    if (m_pAxeCollider) m_pAxeCollider->GetGameObject()->Delete();
+}
+
 // <----------------- GENERAL UPDATE METHODS ----------------->
 
 void BossController::Update(float delta)

@@ -462,13 +462,43 @@ void LabyrinthManager::Regenerate()
 
 void LabyrinthManager::ShowGUI()
 {
+    auto* pCamera = GetGameObject()->GetScene().GetActiveCamera();
+    if (!pCamera) return;
+
     // Setup window flags
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_MenuBar;
+    ImGuiWindowFlags flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, 4.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 32.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
+
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.75f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.7f, 0.359f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.7f, 0.359f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.7f, 0.359f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.24f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(1.0f, 0.75f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.7f, 0.359f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ImVec4(0.7f, 0.359f, 0.0f, 1.0f));
 
     // Set window position and size
-    ImGui::SetNextWindowPos({0, 0});
-    ImGui::SetNextWindowSize({320, 512});
-    ImGui::Begin("Daedalus' Terminal v0.1", nullptr, flags);
+    int w = pCamera->GetViewSize().x;
+    int h = pCamera->GetViewSize().y;
+    ImGui::SetNextWindowSize(ImVec2(320, 480));
+    ImGui::SetNextWindowPos(ImVec2(w - 324, h - 484));
+    ImGui::Begin("Daedalus' Terminal v1.0", nullptr, flags);
 
     // Menu bar for saving / loading labyrinth configs
     if (ImGui::BeginMenuBar())
@@ -507,6 +537,14 @@ void LabyrinthManager::ShowGUI()
         ImGui::EndMenuBar();
     }
 
+    ImGui::SeparatorText("Controls");
+
+    // Buttons to destroy / regenerate the labyrinth
+    ImVec2 buttonSize(128, 24);
+    if (ImGui::Button("Destroy", buttonSize)) DestroyLabyrinth();
+    ImGui::SameLine();
+    if (ImGui::Button("Regenerate", buttonSize)) Regenerate();
+
     ImGui::SeparatorText("Labyrinth Properties");
 
     // Property editors
@@ -518,16 +556,16 @@ void LabyrinthManager::ShowGUI()
         ImGui::InputInt("Seed", &seed);
         if (prevSeed != seed) m_rng.SetSeed(seed);
     }
-    ImGui::DragInt("Width", &m_width, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
-    ImGui::DragInt("Height", &m_height, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
-    ImGui::DragFloat("Spike Trap Ratio", &m_spikeTrapFloorRatio, 0.001f, 0.0f, 1.0f);
+    ImGui::SliderInt("Width", &m_width, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
+    ImGui::SliderInt("Height", &m_height, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
+    ImGui::SliderFloat("Spike Ratio", &m_spikeTrapFloorRatio, 0.0f, 1.0f, "%.2f");
 
     ImGui::SeparatorText("Rooms");
 
     // TODO: Separate procedural room parameters and custom rooms
 
     // Adds a new room to the labyrinth
-    if (ImGui::Button("Add Room")) m_rooms.push_back(Room());
+    if (ImGui::Button("Add Room", ImVec2(96, 24))) m_rooms.push_back(Room());
 
     // Displays an editor for all rooms
     for (int i = 0; i < m_rooms.size(); ++i)
@@ -623,7 +661,7 @@ void LabyrinthManager::ShowGUI()
             ImGui::Separator();
             ImGui::Text("Entities");
 
-            if (ImGui::Button("Add Entity"))
+            if (ImGui::Button("Add Entity", ImVec2(96, 24)))
             {
                 room.m_entitySpawns.push_back(Room::EntitySpawnData());
             }
@@ -705,15 +743,11 @@ void LabyrinthManager::ShowGUI()
         }
     }
 
-    ImGui::SeparatorText("Controls");
-
-    // Buttons to destroy / regenerate the labyrinth
-    if (ImGui::Button("Destroy")) DestroyLabyrinth();
-    ImGui::SameLine();
-    if (ImGui::Button("Regenerate")) Regenerate();
-
     // End of window
     ImGui::End();
+
+    ImGui::PopStyleVar(4);
+    ImGui::PopStyleColor(19);
 }
 
 void LabyrinthManager::LoadConfig(const std::string& filepath)

@@ -1071,13 +1071,13 @@ void PlayerController::RenderBowPowerBar()
     // Render background bar with a slightly larger size for a frame effect
     ImGui::SetNextWindowPos(ImVec2(screenPos.x - 5.0f, screenPos.y - 5.0f));
     ImGui::SetNextWindowSize(ImVec2(THROW_POWER_BAR_SIZE.x + 10.0f, THROW_POWER_BAR_SIZE.y + 3.0f));
-    ImGui::Begin("##PowerBarBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+    ImGui::Begin("##PowerBarBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
     ImGui::End();
 
     // Render the bow power bar
     ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y));
     ImGui::SetNextWindowSize(BOW_POWER_BAR_SIZE);
-    ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+    ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
     ImVec4 barColor = ImVec4(1.0f - (m_bowChargeScale / m_bowMaxChargeScale), (m_bowChargeScale / m_bowMaxChargeScale), 0.0f, 1.0f); // Gradient from red to green
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
     ImGui::ProgressBar(m_bowChargeScale / m_bowMaxChargeScale, ImVec2(-1, 10.0f));
@@ -1087,7 +1087,7 @@ void PlayerController::RenderBowPowerBar()
     // Render label "Power" below the bar
     ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y - 20.0f));
     ImGui::SetNextWindowSize(ImVec2(100.0f, 10.0f));
-    ImGui::Begin("##PowerLabel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+    ImGui::Begin("##PowerLabel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
     ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Power");
     ImGui::End();
 

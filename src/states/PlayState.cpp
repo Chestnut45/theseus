@@ -1142,7 +1142,12 @@ void PlayState::DestroyBossObjects()
 
     if (m_pBossTrigger) m_pBossTrigger->Delete();
     if (m_pBossWalls) m_pBossWalls->Delete();
-    if (m_pBoss) m_pBoss->Delete();
+    if (m_pBoss)
+    {
+        auto* pController = m_pBoss->GetComponent<BossController>();
+        if (pController) pController->Deinit();
+        m_pBoss->Delete();
+    }
     m_pBossTrigger = nullptr;
     m_pBossWalls = nullptr;
     m_pBoss = nullptr;
@@ -1703,6 +1708,8 @@ void PlayState::OnRegenerateEvent(const LabyrinthRegenerateEvent& event)
     ariadneNPCComp->QueueDialogue("hello");
     ariadneNPCComp->QueueDialogue("traps");
     ariadneNPCComp->QueueDialogue("survivors");
+    m_pLabyrinthManager->GetGameObject()->AddChild(ariadne);
+
 
     // Register entities
     for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())
@@ -1728,6 +1735,7 @@ void PlayState::OnDestroyEvent(const LabyrinthDestroyEvent& event)
     }
     DestroyBossObjects();
     m_pPathfindingManager->ClearEntities();
+    m_pGameInstance->GetSharedContext().RemoveEntity("Ariadne");
 }
 
 void PlayState::ShowTooltip(const std::string& text)
