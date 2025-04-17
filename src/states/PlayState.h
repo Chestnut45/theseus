@@ -84,6 +84,7 @@ private:
     bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;
     bool m_noClip = false;
+    bool m_renderDebugColliders = false;
 
     // Boss data
     glm::vec2 m_bossfightPlayerPos;

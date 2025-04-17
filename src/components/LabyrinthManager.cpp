@@ -537,6 +537,10 @@ void LabyrinthManager::ShowGUI()
         ImGui::EndMenuBar();
     }
 
+    ImGui::BeginDisabled();
+    ImGui::Text("%s", m_configPath.data());
+    ImGui::EndDisabled();
+
     ImGui::SeparatorText("Controls");
 
     // Buttons to destroy / regenerate the labyrinth
@@ -851,6 +855,8 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
             // Add the room to the list of rooms
             m_rooms.push_back(room);
         }
+
+        m_configPath = filepath;
     }
     catch (YAML::Exception& e)
     {

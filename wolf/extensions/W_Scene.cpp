@@ -175,20 +175,6 @@ void Scene::Render(float delta)
             pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
         }
     }
-
-    // Queue all colliders for debug rendering
-    if (m_renderDebugColliders)
-    {
-        for (auto&&[_, collider] : Each<ColliderComponent>())
-        {
-            if (collider.IsActive()) collider.FillVertexArray();
-        }
-        ColliderComponent::DebugDrawAndFlush();
-    }
-    
-    // Render Shapes
-    GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
-    GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
 }
 
 void _SceneTests()

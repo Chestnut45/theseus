@@ -141,7 +141,7 @@ void PlayState::Enter()
         else
         {
             // If not a special seed, load the default config
-            m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
+            m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
             
             // Default is hashed seed from main menu text
             int seed = static_cast<int>(std::hash<std::string>{}(m_seedText));
@@ -162,7 +162,7 @@ void PlayState::Enter()
     else
     {
         // Load the default config with a random seed
-        m_pLabyrinthManager->LoadConfig("data/configs/labyrinth_config.yaml");
+        m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
     }
 
     // Initialize managers that require the labyrinth manager seed
@@ -342,7 +342,7 @@ void PlayState::Update(float delta)
         // Show debug hitboxes with backslash
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_BACKSLASH))
         {
-            m_pGameInstance->GetScene().ToggleDebugDrawing();
+            m_renderDebugColliders = !m_renderDebugColliders;
         }
 
         // Toggle Labyrinth Manager GUI with the semicolon key
@@ -1003,6 +1003,20 @@ void PlayState::BackgroundRender(float delta)
     {
         particleComponent.Render();
     }
+
+    // Queue all colliders for debug rendering
+    if (m_renderDebugColliders)
+    {
+        for (auto&&[_, collider] : m_pGameInstance->GetScene().Each<ColliderComponent>())
+        {
+            if (collider.IsActive()) collider.FillVertexArray();
+        }
+        ColliderComponent::DebugDrawAndFlush();
+    }
+
+    // Render line shapes outside of lighting
+    GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
+    GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
     
     // Bind to default framebuffer(screen)
     wolf::FrameBuffer::BindDefault();

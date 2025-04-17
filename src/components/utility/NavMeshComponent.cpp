@@ -660,7 +660,7 @@ void NavMeshComponent::DebugDraw() const
             );
         }
     }
-    renderer->RenderAndDeleteTriangles();
+    // renderer->RenderAndDeleteTriangles();
     
     // Draw edges
     for (const auto& edge : m_edges) 
@@ -671,7 +671,7 @@ void NavMeshComponent::DebugDraw() const
             {edge.end.x, edge.end.y, color.r, color.g, color.b, color.a}
         );
     }
-    renderer->RenderAndDeleteLines();
+    // renderer->RenderAndDeleteLines();
 }
 
 bool NavMeshComponent::IsPathValid(const std::vector<glm::vec2>& path) const

@@ -169,6 +169,8 @@ public:
 // Implementation
 private:
 
+    std::string m_configPath;
+    
     // Pseudo random number generator
     wolf::RNG m_rng;
 
