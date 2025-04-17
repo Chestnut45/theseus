@@ -1904,11 +1904,10 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
     auto* pObject = GetGameObject();
 
     // Load enemy data
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
-    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-    EnemyData harpyData = loader.LoadEnemyData("harpy");
-    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+    EnemyDataLoader::LoadAllEnemyData("data/enemies.yaml");
+    EnemyData minitaurData = EnemyDataLoader::LoadEnemyData("minitaur");
+    EnemyData harpyData = EnemyDataLoader::LoadEnemyData("harpy");
+    EnemyData gorgonData = EnemyDataLoader::LoadEnemyData("gorgon");
 
     MinitaurBuilder minitaurBuilder(pObject->GetScene());
     HarpyBuilder harpyBuilder(pObject->GetScene());

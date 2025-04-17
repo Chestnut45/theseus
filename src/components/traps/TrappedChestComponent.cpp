@@ -259,13 +259,12 @@ void TrappedChestComponent::SpawnGorgon()
     wolf::Scene* scene = &gameObj->GetScene();
 
     // Load all enemy data
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
+    EnemyDataLoader::LoadAllEnemyData("data/enemies.yaml");
 
     // Build gorgon
     GorgonBuilder gorgonBuilder(gameObj->GetScene());
     glm::vec2 position = gameObjTransform->GetGlobalPosition();
-    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+    EnemyData gorgonData = EnemyDataLoader::LoadEnemyData("gorgon");
     auto& gorgon = gorgonBuilder.BuildGorgon(gorgonData, position);
     auto* transform = gorgon.GetComponent<wolf::Transform2D>();
     if (transform)
@@ -283,13 +282,12 @@ void TrappedChestComponent::SpawnHarpy()
     wolf::Scene* scene = &gameObj->GetScene();
 
     // Load all enemy data
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
+    EnemyDataLoader::LoadAllEnemyData("data/enemies.yaml");
 
     // Build harpy
     HarpyBuilder harpyBuilder(gameObj->GetScene());
     glm::vec2 position = gameObjTransform->GetGlobalPosition();
-    EnemyData harpyData = loader.LoadEnemyData("harpy");
+    EnemyData harpyData = EnemyDataLoader::LoadEnemyData("harpy");
     auto& harpy = harpyBuilder.BuildHarpy(harpyData, position);
     // Set harpy scale
     auto* transform = harpy.GetComponent<wolf::Transform2D>();
@@ -308,13 +306,12 @@ void TrappedChestComponent::SpawnMinitaur()
     wolf::Scene* scene = &gameObj->GetScene();
 
     // Load all enemy data
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
+    EnemyDataLoader::LoadAllEnemyData("data/enemies.yaml");
 
     // Build minitaur
     MinitaurBuilder minitaurBuilder(gameObj->GetScene());
     glm::vec2 position = gameObjTransform->GetGlobalPosition(); 
-    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
+    EnemyData minitaurData = EnemyDataLoader::LoadEnemyData("minitaur");
     auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, position);
     auto* transform = minitaur.GetComponent<wolf::Transform2D>();
     if (transform)

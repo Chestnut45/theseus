@@ -72,8 +72,18 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
     std::unordered_map<std::string, NPCDialogueEntry*> m_mDialogueMap;
 
     try {
-        // First load up the npc file
-        YAML::Node pNPCDetails = YAML::LoadFile(p_strFilePath);
+        YAML::Node pNPCDetails;
+
+        if (s_configCache.contains(p_strFilePath))
+        {
+            pNPCDetails = s_configCache[p_strFilePath];
+        }
+        else
+        {
+            // Load from disk
+            pNPCDetails = YAML::LoadFile(p_strFilePath);
+            s_configCache[p_strFilePath] = pNPCDetails;
+        }
 
         // Then start looking for the attributes we need to create an NPCComponent
         std::string strName = pNPCDetails["name"].as<std::string>();
@@ -213,8 +223,18 @@ wolf::GameObject* NPCBuilder::BuildRandomNPC() {
     wolf::GameObject* pRandomNPC = nullptr;
 
     try {
-        // Load up the NPC directory file
-        YAML::Node baseNode = YAML::LoadFile(NPC_DIRECTORY_PATH);
+        YAML::Node baseNode;
+
+        if (s_configCache.contains("SPECIAL_DIRECTORY_STRING"))
+        {
+            baseNode = s_configCache["SPECIAL_DIRECTORY_STRING"];
+        }
+        else
+        {
+            // Load from disk
+            baseNode = YAML::LoadFile(NPC_DIRECTORY_PATH);
+            s_configCache["SPECIAL_DIRECTORY_STRING"] = baseNode;
+        }
 
         // And grab the directory node
         YAML::Node directory = baseNode["directory"];

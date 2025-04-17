@@ -62,6 +62,10 @@ PlayState::PlayState(GameStateManager* manager, Theseus* gameInstance, const std
 
 void PlayState::Enter()
 {
+    // Preload both enemy configs from disk
+    EnemyDataLoader::LoadAllEnemyData("data/enemies_bossfight.yaml");
+    EnemyDataLoader::LoadAllEnemyData("data/enemies.yaml");
+    
     // Setup background rendering resources
     glGenVertexArrays(1, &m_dummyVAO);
     m_pBackgroundShader = wolf::ProgramManager::CreateProgram("data/shaders/fullscreen_pass.vs", "data/shaders/field_background.fs");
@@ -79,7 +83,6 @@ void PlayState::Enter()
     wolf::EventManager::AddListener<GameWinEvent, PlayState, &PlayState::OnGameWinEvent>(*this);
     wolf::EventManager::AddListener<LabyrinthRegenerateEvent, PlayState, &PlayState::OnRegenerateEvent>(*this);
     wolf::EventManager::AddListener<LabyrinthDestroyEvent, PlayState, &PlayState::OnDestroyEvent>(*this);
-    
  
     this->m_pColliderManager = new ColliderManager(&scene);
 

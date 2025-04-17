@@ -101,11 +101,10 @@ void MonsterSpawnerComponent::SpawnMonsters()
     QueryAvailableTiles();
 
     // Load enemy data
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
-    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-    EnemyData harpyData = loader.LoadEnemyData("harpy");
-    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+    EnemyDataLoader::LoadAllEnemyData("data/enemies.yaml");
+    EnemyData minitaurData = EnemyDataLoader::LoadEnemyData("minitaur");
+    EnemyData harpyData = EnemyDataLoader::LoadEnemyData("harpy");
+    EnemyData gorgonData = EnemyDataLoader::LoadEnemyData("gorgon");
     MinitaurBuilder minitaurBuilder(GetGameObject()->GetScene());
     HarpyBuilder harpyBuilder(GetGameObject()->GetScene());
     GorgonBuilder gorgonBuilder(GetGameObject()->GetScene());
