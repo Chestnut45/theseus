@@ -127,6 +127,8 @@ void ParticleComponent::InitQuadResources()
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(3);
 
@@ -296,6 +298,7 @@ void ParticleComponent::RenderPointParticles()
     
     // Set shader uniforms for point particles
     s_pShader->SetUniform("useTexture", 0);
+    s_pShader->Bind();
     
     // Draw all point particles in one batch
     glDrawArrays(GL_POINTS, 0, positions.size());
@@ -327,13 +330,12 @@ void ParticleComponent::RenderTexturedParticles()
             continue;
         
         // Bind texture for this group
-        glActiveTexture(GL_TEXTURE0);
         texture->Bind(0);
         
         // Set texture-related uniforms after
-        s_pShader->Bind();
         s_pShader->SetUniform("useTexture", 1);
         s_pShader->SetUniform("particleTexture", 0);
+        s_pShader->Bind();
         
         // Render each particle
         for (const Particle* particle : particles)
