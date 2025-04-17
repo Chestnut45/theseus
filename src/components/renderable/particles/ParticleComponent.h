@@ -19,6 +19,7 @@
 #include <W_TextureManager.h>
 #include <memory>
 #include <unordered_map>
+#include <yaml-cpp/yaml.h>
 
 #include "Particle.h"
 
@@ -129,4 +130,7 @@ private:
 
     wolf::Texture* m_pTex = nullptr;
     bool m_additiveBlend = false;
+
+    // Cache of config nodes so we don't load from disk every time blood happens
+    static inline std::unordered_map<std::string, YAML::Node> s_configNodeMap;
 };

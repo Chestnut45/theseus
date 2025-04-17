@@ -8,7 +8,7 @@
 #include <W_Logging.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <W_GameObject.h>
-#include <yaml-cpp/yaml.h>
+
 #include <filesystem>
 #include <W_Transform2D.h>
 #include <unordered_set>
@@ -500,19 +500,29 @@ void ParticleComponent::ApplyModifiers(Particle& particle, float delta, bool isN
 bool ParticleComponent::LoadConfigFromYAML(const std::string& filename)
 {
     try {
-        // wolf::Log("Attempting to load YAML config from ", filename.c_str());
-        
-        if (!std::filesystem::exists(filename)) {
-            wolf::Error("Config file does not exist: ", filename.c_str());
-            return false;
-        }
-        
+        // Attempt to load from cache
         YAML::Node config;
-        try {
-            config = YAML::LoadFile(filename);
-        } catch (const YAML::Exception& e) {
-            wolf::Error("YAML parsing error: ", e.what());
-            return false;
+        if (s_configNodeMap.contains(filename))
+        {
+            config = s_configNodeMap[filename];
+        }
+        else
+        {
+            // Not in cache, load from disk
+            if (!std::filesystem::exists(filename)) {
+                wolf::Error("Config file does not exist: ", filename.c_str());
+                return false;
+            }
+            
+            try {
+                config = YAML::LoadFile(filename);
+            } catch (const YAML::Exception& e) {
+                wolf::Error("YAML parsing error: ", e.what());
+                return false;
+            }
+
+            // Save to cache if we were successful
+            s_configNodeMap[filename] = config;
         }
         
         YAML::Node particleConfig = config["particle_config"];
