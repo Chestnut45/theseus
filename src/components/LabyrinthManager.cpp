@@ -469,7 +469,7 @@ void LabyrinthManager::ShowGUI()
     ImGuiWindowFlags flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, 4.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 32.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
 
@@ -477,9 +477,9 @@ void LabyrinthManager::ShowGUI()
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.75f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.7f, 0.359f, 0.0f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.7f, 0.359f, 0.0f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.7f, 0.359f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.5f, 0.159f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.5f, 0.159f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.5f, 0.159f, 0.0f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.24f));
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
@@ -581,8 +581,10 @@ void LabyrinthManager::ShowGUI()
         bool keepRoom = true;
 
         ImGui::PushID(&room);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.159f, 0.0f, 1.0f));
         if (ImGui::CollapsingHeader((room.m_name + "###").c_str(), &keepRoom, ImGuiTreeNodeFlags_None))
         {
+            ImGui::PopStyleColor(1);
             ImGui::InputText("Name", &room.m_name);
             ImGui::DragInt("Instances", &room.m_instances, 1.0f, 1, 1024);
             ImGui::Checkbox("Force Generation", &room.m_force);
@@ -735,6 +737,11 @@ void LabyrinthManager::ShowGUI()
                     e--;
                 }
             }
+        }
+        else
+        {
+            // Pop the collapsing header text color
+            ImGui::PopStyleColor(1);
         }
         ImGui::PopID();
 
