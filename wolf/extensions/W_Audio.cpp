@@ -20,6 +20,30 @@ void Audio::Play(const std::string& filepath, float volume, float pitchOffset, f
     // Load from file on first play
     if (sound.getLength() == 0) sound.load(filepath.c_str());
 
+    // Skip playing if within cooldown window
+    auto& handles = s_handles[filepath];
+    bool soundJustPlayed = false;
+    for (int i = 0; i < handles.size(); ++i)
+    {
+        // Remove expired handles
+        if (!s_core.isValidVoiceHandle(handles[i]))
+        {
+            handles.erase(handles.begin() + i);
+            i--;
+            continue;
+        }
+
+        // Catch recently played sfx
+        if (s_core.getStreamPosition(handles[i]) < 0.05f)
+        {
+            soundJustPlayed = true;
+            break;
+        }
+    }
+
+    // Early out if within cooldown window
+    if (soundJustPlayed) return;
+
     // Setup loop state before playing
     sound.setLooping(loop);
     sound.setLoopPoint(loopPoint);
@@ -28,14 +52,14 @@ void Audio::Play(const std::string& filepath, float volume, float pitchOffset, f
     auto handle = s_core.play(sound);
     float adjustedVolume = volume;
 
+    // Always push back handle
+    handles.push_back(handle);
+
     // Calculate falloff if requested
     if (falloff)
-    {
-        // Ensure valid handle map state
-        auto& handles = s_handles[filepath];
-        
+    {   
         // Count active voices playing this sound
-        int activeVoices = 1;
+        int activeVoices = 0;
         for (int i = 0; i < handles.size(); ++i)
         {
             // Remove expired handles
@@ -49,7 +73,6 @@ void Audio::Play(const std::string& filepath, float volume, float pitchOffset, f
             // Increase valid handle count
             activeVoices++;
         }
-        handles.push_back(handle);
 
         // Adjust volume with inverse falloff based on number of active voices
         adjustedVolume = volume / activeVoices;

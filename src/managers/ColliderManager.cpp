@@ -52,7 +52,7 @@ void ColliderManager::RemoveFlagged()
             if (pAnim->GetCurrentAnimation()->m_strName == "burn")
             {
                 // Ensure falloff for potentially stacked sounds
-                wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.55f, 0.0f, 0.0f, true);
+                wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.64f);
             }
         }
 

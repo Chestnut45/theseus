@@ -1964,7 +1964,7 @@ void BossController::AttackFireBreath(float delta)
         if (!m_fireBreathSFXPlayed)
         {
             m_fireBreathSFXPlayed = true;
-            wolf::Audio::Play("data/sounds/sfx_fireball_shot.wav", 0.7f, 0.0f, 0.0f, true);
+            wolf::Audio::Play("data/sounds/sfx_fireball_shot.wav", 0.6f);
         }
 
         // If fire breath expired, change state to search

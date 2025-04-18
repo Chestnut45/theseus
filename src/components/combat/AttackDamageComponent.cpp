@@ -88,7 +88,7 @@ void AttackDamageComponent::Update(float p_dt)
                     
                     if (thisObject->HasAll<ThrowableObjectComponent>())
                     {
-                        wolf::Audio::Play("data/sounds/sfx_throwable_break.wav", 0.32f);
+                        wolf::Audio::Play("data/sounds/sfx_throwable_break.wav", 0.34f);
                     }
 
                     // Detect when fireballs are destroyed and fire off sfx
@@ -97,7 +97,7 @@ void AttackDamageComponent::Update(float p_dt)
                         if (pAnim->GetCurrentAnimation()->m_strName == "burn")
                         {
                             // Ensure falloff for potentially stacked sounds
-                            wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.55f, 0.0f, 0.0f, true);
+                            wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.64f);
                         }
                     }
 
