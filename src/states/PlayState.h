@@ -39,6 +39,7 @@
 #include "EnemyDataLoader.h"
 #include "PathfindingManager.h"
 #include <events/GameWinEvent.h>
+#include <events/LabyrinthEvents.h>
 #include <W_Timer.h>
 #include <NavMeshComponent.h>
 #include <unordered_map>
@@ -83,11 +84,13 @@ private:
     bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;
     bool m_noClip = false;
+    bool m_renderDebugColliders = false;
 
     // Boss data
     glm::vec2 m_bossfightPlayerPos;
     wolf::GameObject* m_pBoss = nullptr;
     wolf::GameObject* m_pBossWalls = nullptr;
+    wolf::GameObject* m_pBossTrigger = nullptr;
     std::vector<glm::ivec2> m_bossRoomDoorTiles;
     glm::ivec2 m_bossRoomOrigin;
     glm::ivec2 m_bossRoomSize;
@@ -123,17 +126,18 @@ private:
 
     // Private helper methods
     void ConvertPlayerTileToGold();
+    void RegisterClosestMinitaur();
 
     // Entity creation methods
     void CreatePlayer();
-    void CreateMinitaurEnemy();
-    void CreateHarpyEnemy();
-    void CreateGorgonEnemy();
-    void CreateTrappedChest();
+    void SpawnBossObjects();
+    void DestroyBossObjects();
     wolf::GameObject& CreateAriadneAndReturn(glm::vec2 playerPosition);
 
     // Handlers
     void OnGameOverEvent(const GameOverEvent& event);
+    void OnRegenerateEvent(const LabyrinthRegenerateEvent& event);
+    void OnDestroyEvent(const LabyrinthDestroyEvent& event);
 
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);

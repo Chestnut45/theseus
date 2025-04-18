@@ -398,6 +398,7 @@ void HarpyController::HandleAttackingState(float delta)
 
             auto& projectileSprite = projectile.AddComponent<AnimatedSprite2D>("data/animations/fireball_anim_init.yaml");
             projectileSprite.SetLayer(20);
+            projectileSprite.SetLightingEnabled(false);
             
             auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
             projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);

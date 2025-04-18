@@ -20,6 +20,8 @@
 #include <W_Logging.h>
 #include <W_TileMap.h>
 #include <W_Transform2D.h>
+#include <W_EventManager.h>
+#include <LabyrinthEvents.h>
 
 // For std::shuffle
 #include <algorithm>
@@ -444,23 +446,59 @@ void LabyrinthManager::DestroyLabyrinth()
 
     // Update flag
     m_isGenerated = false;
+
+    // Notify so that listeners like the nav mesh may update
+    wolf::EventManager::TriggerEvent(LabyrinthDestroyEvent(this));
 }
 
 void LabyrinthManager::Regenerate()
 {
     DestroyLabyrinth();
     GenerateLabyrinth();
+
+    // Notify so that listeners like the nav mesh may update
+    wolf::EventManager::TriggerEvent(LabyrinthRegenerateEvent(this));
 }
 
 void LabyrinthManager::ShowGUI()
 {
+    auto* pCamera = GetGameObject()->GetScene().GetActiveCamera();
+    if (!pCamera) return;
+
     // Setup window flags
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_MenuBar;
+    ImGuiWindowFlags flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 32.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
+
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.75f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.5f, 0.159f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.5f, 0.159f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.5f, 0.159f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.24f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(1.0f, 0.75f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.7f, 0.359f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ImVec4(0.7f, 0.359f, 0.0f, 1.0f));
 
     // Set window position and size
-    ImGui::SetNextWindowPos({0, 0});
-    ImGui::SetNextWindowSize({320, 512});
-    ImGui::Begin("Daedalus' Terminal v0.1", nullptr, flags);
+    int w = pCamera->GetViewSize().x;
+    int h = pCamera->GetViewSize().y;
+    ImGui::SetNextWindowSize(ImVec2(320, 480));
+    ImGui::SetNextWindowPos(ImVec2(w - 324, h - 484));
+    ImGui::Begin("Daedalus' Terminal v1.0", nullptr, flags);
 
     // Menu bar for saving / loading labyrinth configs
     if (ImGui::BeginMenuBar())
@@ -499,6 +537,18 @@ void LabyrinthManager::ShowGUI()
         ImGui::EndMenuBar();
     }
 
+    ImGui::BeginDisabled();
+    ImGui::Text("%s", m_configPath.data());
+    ImGui::EndDisabled();
+
+    ImGui::SeparatorText("Controls");
+
+    // Buttons to destroy / regenerate the labyrinth
+    ImVec2 buttonSize(128, 24);
+    if (ImGui::Button("Destroy", buttonSize)) DestroyLabyrinth();
+    ImGui::SameLine();
+    if (ImGui::Button("Regenerate", buttonSize)) Regenerate();
+
     ImGui::SeparatorText("Labyrinth Properties");
 
     // Property editors
@@ -510,16 +560,16 @@ void LabyrinthManager::ShowGUI()
         ImGui::InputInt("Seed", &seed);
         if (prevSeed != seed) m_rng.SetSeed(seed);
     }
-    ImGui::DragInt("Width", &m_width, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
-    ImGui::DragInt("Height", &m_height, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
-    ImGui::DragFloat("Spike Trap Ratio", &m_spikeTrapFloorRatio, 0.001f, 0.0f, 1.0f);
+    ImGui::SliderInt("Width", &m_width, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
+    ImGui::SliderInt("Height", &m_height, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
+    ImGui::SliderFloat("Spike Ratio", &m_spikeTrapFloorRatio, 0.0f, 1.0f, "%.2f");
 
     ImGui::SeparatorText("Rooms");
 
     // TODO: Separate procedural room parameters and custom rooms
 
     // Adds a new room to the labyrinth
-    if (ImGui::Button("Add Room")) m_rooms.push_back(Room());
+    if (ImGui::Button("Add Room", ImVec2(96, 24))) m_rooms.push_back(Room());
 
     // Displays an editor for all rooms
     for (int i = 0; i < m_rooms.size(); ++i)
@@ -531,8 +581,10 @@ void LabyrinthManager::ShowGUI()
         bool keepRoom = true;
 
         ImGui::PushID(&room);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.159f, 0.0f, 1.0f));
         if (ImGui::CollapsingHeader((room.m_name + "###").c_str(), &keepRoom, ImGuiTreeNodeFlags_None))
         {
+            ImGui::PopStyleColor(1);
             ImGui::InputText("Name", &room.m_name);
             ImGui::DragInt("Instances", &room.m_instances, 1.0f, 1, 1024);
             ImGui::Checkbox("Force Generation", &room.m_force);
@@ -615,7 +667,7 @@ void LabyrinthManager::ShowGUI()
             ImGui::Separator();
             ImGui::Text("Entities");
 
-            if (ImGui::Button("Add Entity"))
+            if (ImGui::Button("Add Entity", ImVec2(96, 24)))
             {
                 room.m_entitySpawns.push_back(Room::EntitySpawnData());
             }
@@ -686,6 +738,11 @@ void LabyrinthManager::ShowGUI()
                 }
             }
         }
+        else
+        {
+            // Pop the collapsing header text color
+            ImGui::PopStyleColor(1);
+        }
         ImGui::PopID();
 
         // Delete room if requested
@@ -697,15 +754,11 @@ void LabyrinthManager::ShowGUI()
         }
     }
 
-    ImGui::SeparatorText("Controls");
-
-    // Buttons to destroy / regenerate the labyrinth
-    if (ImGui::Button("Destroy")) DestroyLabyrinth();
-    ImGui::SameLine();
-    if (ImGui::Button("Regenerate")) Regenerate();
-
     // End of window
     ImGui::End();
+
+    ImGui::PopStyleVar(4);
+    ImGui::PopStyleColor(19);
 }
 
 void LabyrinthManager::LoadConfig(const std::string& filepath)
@@ -809,6 +862,8 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
             // Add the room to the list of rooms
             m_rooms.push_back(room);
         }
+
+        m_configPath = filepath;
     }
     catch (YAML::Exception& e)
     {
@@ -1029,14 +1084,14 @@ int LabyrinthManager::GetTile(int x, int y) const
 
     if (!pChunk)
     {
-        wolf::Warning("Chunk does not exist in call to GetTile(...)");
+        // wolf::Warning("Chunk does not exist in call to GetTile(...)");
         return -2;
     }
 
     auto* pTilemap = pChunk->GetChildren()[0]->GetComponent<wolf::TileMap>();
     if (!pTilemap)
     {
-        wolf::Warning("No tilemap found in call to GetTile(...)");
+        // wolf::Warning("No tilemap found in call to GetTile(...)");
         return -2;
     }
 
@@ -1856,11 +1911,10 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
     auto* pObject = GetGameObject();
 
     // Load enemy data
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
-    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-    EnemyData harpyData = loader.LoadEnemyData("harpy");
-    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+    EnemyDataLoader::LoadAllEnemyData("data/enemies.yaml");
+    EnemyData minitaurData = EnemyDataLoader::LoadEnemyData("minitaur");
+    EnemyData harpyData = EnemyDataLoader::LoadEnemyData("harpy");
+    EnemyData gorgonData = EnemyDataLoader::LoadEnemyData("gorgon");
 
     MinitaurBuilder minitaurBuilder(pObject->GetScene());
     HarpyBuilder harpyBuilder(pObject->GetScene());

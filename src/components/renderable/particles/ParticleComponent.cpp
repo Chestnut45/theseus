@@ -8,7 +8,7 @@
 #include <W_Logging.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <W_GameObject.h>
-#include <yaml-cpp/yaml.h>
+
 #include <filesystem>
 #include <W_Transform2D.h>
 #include <unordered_set>
@@ -127,6 +127,8 @@ void ParticleComponent::InitQuadResources()
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(3);
 
@@ -201,15 +203,8 @@ void ParticleComponent::Update(float delta)
             float size = 4.0f;
             float lifetime = 0.6f;
             
-            // Get texture if one was loaded by config
-            wolf::Texture* texture = nullptr;
-            if (!m_particles.empty() && m_particles[0].m_texture)
-            {
-                texture = m_particles[0].m_texture;
-            }
-            
             // Emit the particle
-            Emit(position, velocity, color, size, lifetime, texture);
+            Emit(position, velocity, color, size, lifetime, m_pTex);
             
             // Reset timer, accounting for remainder
             m_emissionTimer = fmod(m_emissionTimer, emissionInterval);
@@ -242,7 +237,16 @@ void ParticleComponent::Render()
 
     // Enable blending for transparency
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    if (m_additiveBlend)
+    {
+        glBlendFunc(GL_ONE, GL_ONE);
+    }
+    else
+    {
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
+    
     
     s_pShader->Bind();
 
@@ -296,6 +300,7 @@ void ParticleComponent::RenderPointParticles()
     
     // Set shader uniforms for point particles
     s_pShader->SetUniform("useTexture", 0);
+    s_pShader->Bind();
     
     // Draw all point particles in one batch
     glDrawArrays(GL_POINTS, 0, positions.size());
@@ -327,19 +332,18 @@ void ParticleComponent::RenderTexturedParticles()
             continue;
         
         // Bind texture for this group
-        glActiveTexture(GL_TEXTURE0);
         texture->Bind(0);
         
         // Set texture-related uniforms after
-        s_pShader->Bind();
         s_pShader->SetUniform("useTexture", 1);
         s_pShader->SetUniform("particleTexture", 0);
+        s_pShader->Bind();
         
         // Render each particle
         for (const Particle* particle : particles)
         {
             // set up model matrix for each particle
-            float scaleFactor = particle->m_size * 10.0f; // edit param as u wish
+            float scaleFactor = particle->m_size;
             
             glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(particle->m_pos, 0.0f));
             model = glm::rotate(model, glm::radians(particle->m_rotation), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -496,19 +500,29 @@ void ParticleComponent::ApplyModifiers(Particle& particle, float delta, bool isN
 bool ParticleComponent::LoadConfigFromYAML(const std::string& filename)
 {
     try {
-        // wolf::Log("Attempting to load YAML config from ", filename.c_str());
-        
-        if (!std::filesystem::exists(filename)) {
-            wolf::Error("Config file does not exist: ", filename.c_str());
-            return false;
-        }
-        
+        // Attempt to load from cache
         YAML::Node config;
-        try {
-            config = YAML::LoadFile(filename);
-        } catch (const YAML::Exception& e) {
-            wolf::Error("YAML parsing error: ", e.what());
-            return false;
+        if (s_configNodeMap.contains(filename))
+        {
+            config = s_configNodeMap[filename];
+        }
+        else
+        {
+            // Not in cache, load from disk
+            if (!std::filesystem::exists(filename)) {
+                wolf::Error("Config file does not exist: ", filename.c_str());
+                return false;
+            }
+            
+            try {
+                config = YAML::LoadFile(filename);
+            } catch (const YAML::Exception& e) {
+                wolf::Error("YAML parsing error: ", e.what());
+                return false;
+            }
+
+            // Save to cache if we were successful
+            s_configNodeMap[filename] = config;
         }
         
         YAML::Node particleConfig = config["particle_config"];
@@ -525,6 +539,16 @@ bool ParticleComponent::LoadConfigFromYAML(const std::string& filename)
         if (particleConfig["max_particles"]) {
             SetMaxParticles(particleConfig["max_particles"].as<size_t>());
         }
+
+        if (particleConfig["texture_path"])
+        {
+            m_pTex = wolf::TextureManager::CreateTexture(particleConfig["texture_path"].as<std::string>());
+        }
+
+        if (particleConfig["additive"])
+        {
+            m_additiveBlend = particleConfig["additive"].as<bool>();
+        }
         
         // Set default auto-destroy values
         m_autoDestroy = false;
@@ -534,6 +558,8 @@ bool ParticleComponent::LoadConfigFromYAML(const std::string& filename)
 
         if (particleConfig["autodestroy"])
             m_autoDestroy = particleConfig["autodestroy"].as<bool>();
+        
+        
         
         // Load modifiers from the YAML file
         if (particleConfig["modifiers"]) {

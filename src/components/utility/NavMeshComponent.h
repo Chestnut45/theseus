@@ -46,6 +46,7 @@ public:
     void GenerateFromLabyrinth(LabyrinthManager* labyrinthManager);
     void Update(float delta);
     void UpdateDynamicObstacles(const std::vector<wolf::GameObject*>& obstacles);
+    void Clear();
 
     // Pathfinding functions
     std::vector<glm::vec2> FindPath(const glm::vec2& start, const glm::vec2& goal);

@@ -605,6 +605,16 @@ void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject
     m_obstacleAffectedPolygons.assign(newlyAffected.begin(), newlyAffected.end());
 }
 
+void NavMeshComponent::Clear()
+{
+    m_obstacles.clear();
+    m_polygons.clear();
+    m_edges.clear();
+    m_spatialHash.clear();
+    m_obstacleAffectedPolygons.clear();
+    m_originalVisibility.clear();
+}
+
 void NavMeshComponent::ProcessAffectedPolygon(int polyId, bool isPlayer, std::unordered_set<int>& affected)
 {
     if (isPlayer)
@@ -650,7 +660,7 @@ void NavMeshComponent::DebugDraw() const
             );
         }
     }
-    renderer->RenderAndDeleteTriangles();
+    // renderer->RenderAndDeleteTriangles();
     
     // Draw edges
     for (const auto& edge : m_edges) 
@@ -661,7 +671,7 @@ void NavMeshComponent::DebugDraw() const
             {edge.end.x, edge.end.y, color.r, color.g, color.b, color.a}
         );
     }
-    renderer->RenderAndDeleteLines();
+    // renderer->RenderAndDeleteLines();
 }
 
 bool NavMeshComponent::IsPathValid(const std::vector<glm::vec2>& path) const

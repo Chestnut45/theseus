@@ -154,7 +154,7 @@ public:
     }
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
-    static const inline int MAX_LABYRINTH_DIM = 16'383;
+    static const inline int MAX_LABYRINTH_DIM = 250;
     static const inline int TILE_SIZE = 32;
     static const inline int CHUNK_SIZE = 8;
     static const inline int SCALE = 3;
@@ -169,6 +169,8 @@ public:
 // Implementation
 private:
 
+    std::string m_configPath;
+    
     // Pseudo random number generator
     wolf::RNG m_rng;
 

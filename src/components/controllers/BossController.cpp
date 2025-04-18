@@ -277,6 +277,12 @@ void BossController::Init()
     EnterPhase1();
 }
 
+void BossController::Deinit()
+{
+    m_pBossPillarGroup->Delete();
+    if (m_pAxeCollider) m_pAxeCollider->GetGameObject()->Delete();
+}
+
 // <----------------- GENERAL UPDATE METHODS ----------------->
 
 void BossController::Update(float delta)
@@ -755,12 +761,10 @@ void BossController::SpawnWave(int waveIndex)
     }
 
     // Load enemy data
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies_bossfight.yaml");
-
-    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-    EnemyData harpyData = loader.LoadEnemyData("harpy");
-    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+    EnemyDataLoader::LoadAllEnemyData("data/enemies_bossfight.yaml");
+    EnemyData minitaurData = EnemyDataLoader::LoadEnemyData("minitaur");
+    EnemyData harpyData = EnemyDataLoader::LoadEnemyData("harpy");
+    EnemyData gorgonData = EnemyDataLoader::LoadEnemyData("gorgon");
 
     // Scene reference
     wolf::Scene& scene = GetGameObject()->GetScene();

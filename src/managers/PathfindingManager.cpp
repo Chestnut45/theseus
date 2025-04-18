@@ -265,7 +265,10 @@ void PathfindingManager::UpdateEntities(float delta)
     }
 }
 
-
+void PathfindingManager::ClearEntities()
+{
+    m_registeredEntities.clear();
+}
 
 void PathfindingManager::RegisterEntity(wolf::GameObject* entity)
 {
