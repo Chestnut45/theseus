@@ -536,16 +536,21 @@ void GorgonController::HandleAttackingState(float delta)
 
         // Determine if target's collider is active and a hurtbox
         auto* pCollider = m_pTarget->GetComponent<ColliderComponent>();
-        const bool active = pCollider ? (pCollider->IsActive() && pCollider->IsHurtbox()) : false;
+        const bool active = pCollider ? (pCollider->IsActive()) : false;
 
         // If target is in line of sight, petrify target and switch to prospect
         if(active && m_pTargetStatusComponent && IsTargetInLOS())
         {
-            m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 4.0f);
+            m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3.0f);
             
             if (auto* pHealth = m_pTarget->GetComponent<HealthComponent>())
             {
                 pHealth->Pierce(20.0f);
+            }
+
+            if (auto* pSprite = m_pTarget->GetComponent<AnimatedSprite2D>())
+            {
+                pSprite->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED, 0.6f, 2.2f, 0.2f);
             }
 
             wolf::Audio::Play("data/sounds/sfx_petrification.wav", 0.45f);
