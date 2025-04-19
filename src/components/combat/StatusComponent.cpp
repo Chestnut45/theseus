@@ -187,7 +187,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             if(health != nullptr)
             {
                 float resistance = m_OwnerComponent->m_aStatusEffectResistance[StatusEffectType::BURNING];
-                health->Pierce(16.0f * (1.0f - resistance));
+                health->Pierce(15.0f * (1.0f - resistance));
             }
             else
             {
@@ -202,7 +202,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
-                health->Heal(8.0f);
+                health->Heal(10.0f);
             }
             else
             {
@@ -224,7 +224,7 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             if(health != nullptr)
             {
                 float resistance = m_OwnerComponent->m_aStatusEffectResistance[StatusEffectType::POISONED];
-                health->Pierce(8.0f * (1.0f - resistance));
+                health->Pierce(10.0f * (1.0f - resistance));
             }
             else
             {
