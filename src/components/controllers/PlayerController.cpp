@@ -1845,7 +1845,9 @@ void PlayerController::HandleBeginPlacingItemEvent(const BeginPlacingPlaceableEv
 void PlayerController::OnDamageEvent(const DamageEvent& event)
 {
     // Player specific handling (invulnerability timer and oof sfx)
-    if (event.m_pDamagedObject == GetGameObject())
+    // NOTE: All status effects pierce, so this means fire and poison no longer cause invuln >:)
+    // This also means you don't constantly "oof" when on fire. Win-win
+    if (event.m_pDamagedObject == GetGameObject() && !event.m_pierce)
     {
         m_invulnTimer.Restart();
         m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);

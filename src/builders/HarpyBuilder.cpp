@@ -25,7 +25,7 @@ wolf::GameObject& HarpyBuilder::BuildHarpy(const EnemyData& data, const glm::vec
     harpyObject->AddComponent<HealthComponent>(data.health);
     harpyObject->AddComponent<VelocityComponent>();
     auto& collider = harpyObject->AddComponent<ColliderComponent>(ColliderComponent::HURTBOXDR, false, true);
-    collider.AddColliderBox(glm::vec2(18.0f, 20.0f), glm::vec2(-9.0f, 10.0f));
+    collider.AddColliderBox(glm::vec2(12.0f, 14.0f), glm::vec2(-6.0f, 6.0f));
 
     // Add status component
     auto& statusComponent = harpyObject->AddComponent<StatusComponent>();

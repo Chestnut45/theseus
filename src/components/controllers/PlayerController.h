@@ -216,7 +216,7 @@ private:
     bool m_superSpeed = false;
 
     // Stamina management
-    float m_rollSpeed = 400.0f;
+    float m_rollSpeed = 420.0f;
     float m_rollTimer = 0.0f;
     float m_rollDuration = 0.5f;
     float m_stamina = 100.0f;
