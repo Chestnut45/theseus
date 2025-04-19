@@ -1062,6 +1062,12 @@ glm::ivec2 LabyrinthManager::GetTilePosition(const glm::vec2& worldPosition) con
 {
     if (worldPosition.x < 0 || worldPosition.y < 0 || worldPosition.x >= m_width * SCALE * TILE_SIZE || worldPosition.y >= m_height * SCALE * TILE_SIZE)
     {
+        if (m_spawnPatchBounds.Intersects(worldPosition))
+        {
+            glm::ivec2 result = worldPosition / glm::vec2(SCALE * TILE_SIZE);
+            result.y -= 1;
+            return result;
+        }
         return glm::ivec2(-1);
     }
     
@@ -1076,7 +1082,20 @@ glm::vec2 LabyrinthManager::GetWorldPosition(const glm::ivec2& tilePosition) con
 int LabyrinthManager::GetTile(int x, int y) const
 {
     // Validate position
-    if (x < 0 || y < 0 || x >= m_width || y >= m_height) return -2;
+    if (x < 0 || y < 0 || x >= m_width || y >= m_height)
+    {
+        if (m_spawnPatchBounds.Intersects(glm::vec2(x, y) * glm::vec2(TILE_SIZE * SCALE)))
+        {
+            auto* pTileMap = m_pSpawnRoom->GetComponent<wolf::TileMap>();
+            if (pTileMap)
+            {
+                glm::ivec2 pos = glm::vec2(x - m_spawnPatchOriginTile.x, y - m_spawnPatchOriginTile.y);
+                return pTileMap->GetTile(pos.x, pos.y);
+            }
+        }
+
+        return -2;
+    }
 
     // Grab chunk pointer
     glm::ivec2 chunkID(x / CHUNK_SIZE, y / CHUNK_SIZE);
@@ -2723,17 +2742,25 @@ void LabyrinthManager::GenerateEntrance()
 {
     auto* pObject = GetGameObject();
 
-    auto& spawnRoomObj = pObject->GetScene().CreateObject2D();
-    pObject->AddChild(spawnRoomObj);
+    m_pSpawnRoom = &pObject->GetScene().CreateObject2D();
+    pObject->AddChild(*m_pSpawnRoom);
 
     // Create the initial tilemap
-    auto& tilemap = spawnRoomObj.AddComponent<wolf::TileMap>(m_spawnPatchSize.x, m_spawnPatchSize.y);
+    auto& tilemap = m_pSpawnRoom->AddComponent<wolf::TileMap>(m_spawnPatchSize.x, m_spawnPatchSize.y);
     tilemap.LoadTileSet("data/textures/tiles/labyrinth.tileset");
 
     glm::vec2 patchOrigin = glm::vec2((m_width / 2 * TILE_SIZE - (m_spawnPatchSize.x / 2 * TILE_SIZE)) * SCALE, -m_spawnPatchSize.y * TILE_SIZE * SCALE);
+    m_spawnPatchBounds = wolf::Rectangle(
+        patchOrigin.x,
+        patchOrigin.y + m_spawnPatchSize.y * TILE_SIZE * SCALE,
+        patchOrigin.x + m_spawnPatchSize.x * TILE_SIZE * SCALE,
+        patchOrigin.y
+    );
+
+    m_spawnPatchOriginTile = patchOrigin / glm::vec2(TILE_SIZE * SCALE);
 
     // Position and scale the object
-    auto& transform = *spawnRoomObj.GetComponent<wolf::Transform2D>();
+    auto& transform = *m_pSpawnRoom->GetComponent<wolf::Transform2D>();
     transform.SetPosition(patchOrigin);
     transform.SetScale(glm::vec2(SCALE));
 
@@ -2765,7 +2792,7 @@ void LabyrinthManager::GenerateEntrance()
     }
 
     // Place walls
-    auto& collider = spawnRoomObj.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
+    auto& collider = m_pSpawnRoom->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, false);
     collider.AddColliderBox(glm::vec2(672, 96), glm::vec2(864, 1920));
     collider.AddColliderBox(glm::vec2(96, 576), glm::vec2(864, 2400));
     collider.AddColliderBox(glm::vec2(96, 576), glm::vec2(1440, 2400));

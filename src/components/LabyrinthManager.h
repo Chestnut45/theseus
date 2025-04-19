@@ -186,8 +186,11 @@ private:
     float m_spikeTrapFloorRatio = 0.0f;
 
     // Spawn area settings
+    wolf::GameObject* m_pSpawnRoom = nullptr;
     glm::ivec2 m_spawnPatchSize = glm::ivec2(25);
     glm::ivec2 m_spawnRoomSize = glm::ivec2(5);
+    wolf::Rectangle m_spawnPatchBounds = wolf::Rectangle();
+    glm::ivec2 m_spawnPatchOriginTile = glm::ivec2(0);
 
     // Flags
     bool m_randomizeSeed = false;
