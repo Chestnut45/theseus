@@ -540,6 +540,13 @@ void MinitaurController::HandleChasingState(float delta)
 {
     MoveTowardsTarget(delta);
 
+    if (m_oinkTimer.Elapsed() > m_nextOinkTime)
+    {
+        m_nextOinkTime = m_RNG.NextFloat(0.2f, 0.65f);
+        m_oinkTimer.Restart();
+        wolf::Audio::Play("data/sounds/sfx_minitaur_oink.wav", 1.2f, m_RNG.NextInt(-10000, 0));
+    }
+
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
@@ -766,12 +773,14 @@ void MinitaurController::EnterAttackState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
     m_meleeWindupTimer = m_meleeWindupTime;
+    wolf::Audio::Play("data/sounds/sfx_minitaur_attack.wav", 0.75f, -8000);
 }
 
 void MinitaurController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
+    m_oinkTimer.Restart();
 }
 
 void MinitaurController::EnterIdleState()
@@ -812,6 +821,7 @@ void MinitaurController::ExitChasingState()
     m_transitionTimer.Reset();
     m_transitionTimer.Stop();
     m_transitionDelay = 0.0f;
+    m_oinkTimer.Reset();
 }
 
 void MinitaurController::ExitIdleState()

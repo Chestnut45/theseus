@@ -4,7 +4,7 @@ enemies:
     armour: 3
     melee_range: 100.0
     melee_cooldown: 0.5
-    melee_windup: 0.35
+    melee_windup: 0.45
     detection_range: 500
     base_damage: 25.0
     chase_speed: 120

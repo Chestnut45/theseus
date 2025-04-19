@@ -316,6 +316,12 @@ void HarpyController::HandleChasingState(float delta)
 {
     MoveTowardsTarget(delta);
 
+    if (m_wingFlapTimer.Elapsed() > 0.45f)
+    {
+        m_wingFlapTimer.Restart();
+        wolf::Audio::Play("data/sounds/sfx_harpy_wing_flap.wav", 1.0f, m_RNG.NextInt(5000, 10000));
+    }
+
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
@@ -571,6 +577,7 @@ void HarpyController::EnterAttackState()
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
     if(m_attackChain <= 0){
         m_attackChain = m_RNG.NextInt(1, 2);
+        wolf::Audio::Play("data/sounds/sfx_harpy_screech.wav", 1.4f);
     }
 }
 
@@ -578,6 +585,8 @@ void HarpyController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
+    m_wingFlapTimer.Restart();
+    wolf::Audio::Play("data/sounds/sfx_harpy_wing_flap.wav", 1.0f, m_RNG.NextInt(5000, 10000));
 }
 void HarpyController::EnterPetrifiedState()
 {
@@ -615,6 +624,7 @@ void HarpyController::ExitChasingState()
     m_transitionTimer.Reset();
     m_transitionTimer.Stop();
     m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
+    m_wingFlapTimer.Reset();
 }
 
 void HarpyController::ExitIdleState()
