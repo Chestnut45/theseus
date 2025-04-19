@@ -211,8 +211,8 @@ void LabyrinthManager::StartBossfight()
 
         for (auto* pObject : chunk.second.m_pObject->GetChildren())
         {
-            // Add all enemy game objects to delete list
-            if (pObject->HasAny<MinitaurController, HarpyController, GorgonController>())
+            // Add all enemy game objects and NPCs to delete list
+            if (pObject->HasAny<MinitaurController, HarpyController, GorgonController, NPCComponent>())
             {
                 objectsToDelete.push_back(pObject);
             }

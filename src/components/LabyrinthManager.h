@@ -156,7 +156,7 @@ public:
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 250;
     static const inline int TILE_SIZE = 32;
-    static const inline int CHUNK_SIZE = 8;
+    static const inline int CHUNK_SIZE = 12;
     static const inline int SCALE = 3;
     wolf::GameObjectID TheIdOfTheDispensaryObject;
 
