@@ -794,6 +794,10 @@ void GorgonController::EnterDeathState()
 {
     m_IsRenderingAttackIndicator = false;
     SetEmote(EnemyEmote::NONE);
+    if (m_pAnimComponent)
+    {
+        m_pAnimComponent->SetAnimPaused(true);
+    }
 }
 
 void GorgonController::ExitAttackState()
