@@ -15,6 +15,7 @@
 #include <AnimatedSprite2D.h>
 #include <StatusComponent.h>
 #include <EnemyDataLoader.h>
+#include <LightComponent.h>
 #include "InfightingEvent.h"
 #include "PathfindingManager.h"
 class GorgonController : public EnemyController
@@ -99,8 +100,6 @@ private:
     wolf::RNG m_RNG; 
 
     float m_targetDetectionTimer = 0.0f; // Taget detecction reaction delay
-
-    
 
     // Prospect state members
     float m_prospectCounter = 0.0f;

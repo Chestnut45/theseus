@@ -502,7 +502,6 @@ void GorgonController::HandleChasingState(float delta)
             IsTargetInLOS()                                                                                     // If target in line of sight
         )
         {
-            wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), true));
             ChangeState(EnemyState::ATTACKING);
             return;
         }
@@ -521,13 +520,12 @@ void GorgonController::HandleAttackingState(float delta)
     if(m_rangedWindupTimer > 0.0f)
     {
         m_rangedWindupTimer -= delta;
+        if (m_rangedWindupTimer <= 0.0f) m_rangedWindupTimer = 0.0f;
         
         // Brighten sprite to indicate attack
-        if(m_pAnimComponent != nullptr)
+        if(m_pAnimComponent)
         {
-            glm::vec3 currentTint = m_pAnimComponent->GetTint();
-            glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_rangedWindupTime * 0.5f));
-            m_pAnimComponent->SetTint(nextTint);
+            m_pAnimComponent->SetTint(glm::vec3(1.0f) * glm::mix(1.0f, 2.0f, (m_rangedWindupTime - m_rangedWindupTimer) / m_rangedWindupTime));
         }
     }
     
@@ -543,10 +541,16 @@ void GorgonController::HandleAttackingState(float delta)
         // If target is in line of sight, petrify target and switch to prospect
         if(active && m_pTargetStatusComponent && IsTargetInLOS())
         {
-            m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
+            m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 4.0f);
+            
+            if (auto* pHealth = m_pTarget->GetComponent<HealthComponent>())
+            {
+                pHealth->Pierce(20.0f);
+            }
+
+            wolf::Audio::Play("data/sounds/sfx_petrification.wav", 0.45f);
         }
         
-        wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), false));
         ChangeState(EnemyState::CHASING);
         return;
     }
@@ -615,12 +619,12 @@ void GorgonController::UpdateAnimationBasedOnDirection()
                 if (fabs(vectorToTarget.x) > fabs(vectorToTarget.y))
                 {
                     // Moving left or right
-                    animationName = (vectorToTarget.x > 0.0f) ? "StandEast" : "StandWest";
+                    animationName = (vectorToTarget.x > 0.0f) ? "AttackEast" : "AttackWest";
                 }
                 else
                 {
                     // Moving up or down
-                    animationName = (vectorToTarget.y > 0.0f) ? "StandNorth" : "StandSouth";
+                    animationName = (vectorToTarget.y > 0.0f) ? "AttackNorth" : "AttackSouth";
                 }
             }
         }
@@ -757,6 +761,8 @@ void GorgonController::EnterAttackState()
         m_RNG.NextFloat(-4.0f, 4.0f)
         );
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+    if (m_pAnimComponent) m_pAnimComponent->SetTint(glm::vec3(1.0f));
 }
 
 void GorgonController::EnterChasingState()
@@ -794,10 +800,7 @@ void GorgonController::ExitAttackState()
 {   
     m_curentCrosshairColour = CROSSHAIR_COLOUR;
 
-    if(m_pAnimComponent != nullptr)
-    {
-        m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
-    }
+    if (m_pAnimComponent) m_pAnimComponent->SetTint(glm::vec3(1.0f));
 
     m_rangedTimer = m_rangedCooldown;
     m_rangedWindupTimer = m_rangedWindupTime;

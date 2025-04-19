@@ -373,24 +373,24 @@ void PlayerController::HandlePlayerInput(float delta)
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_UP))
         {
             StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::HEALING, 5.0f);
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::HEALING, 3.0f);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_DOWN))
         {
             StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3.0f);
         }
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_LEFT))
         {
             StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 3.0f);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT))
         {
             StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 3.0f);
         }
 
         // Super speed hotkey
@@ -1851,7 +1851,7 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     {
         m_invulnTimer.Restart();
         m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
-        wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f, -5000.0f, 0.0f, true);
+        wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f, -5000.0f);
     }
     
     // Boss specific handling
@@ -1865,7 +1865,7 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     else
     {  
         // All non-boss enemies and the player get here
-        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.75f, 8000, 0.0f, true);
+        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.75f, 8000);
         EmitBloodParticles(event, 1.2f);
     }
 }
@@ -1949,7 +1949,7 @@ void PlayerController::StartDeath() {
     // Stop background music and play death music
     wolf::Audio::Stop("data/sounds/bgm_maze.wav");
     wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
-    wolf::Audio::Play("data/sounds/bgm_death.wav", 0.75f, 0.0f, 0.0f, false, true, 27.428f);
+    wolf::Audio::Play("data/sounds/bgm_death.wav", 0.85f, 0.0f, 0.0f, false, true, 27.428f);
 }
 
 void PlayerController::RenderDeathScreen(float delta) {

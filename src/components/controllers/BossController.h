@@ -23,6 +23,7 @@ class ColliderComponent;
 class HomingComponent;
 class PlayerController;
 class LabyrinthManager;
+class LightComponent;
 
 // NOTE: You can only forward declare from within the same namespace
 namespace wolf
@@ -103,6 +104,7 @@ private:
     StatusComponent* m_pStatus = nullptr;
     ColliderComponent* m_pCollider = nullptr;
     HomingComponent* m_pHoming = nullptr;   // Added by Nhật
+    LightComponent* m_pLight = nullptr;
 
     // Pointer to shadow sprite (only valid during phase 2!)
     wolf::GameObject* m_pShadowObject = nullptr;

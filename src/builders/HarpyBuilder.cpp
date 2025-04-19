@@ -7,6 +7,7 @@
 #include "HarpyBuilder.h"
 #include "HarpyController.h"
 #include "StatusComponent.h"
+#include "LightComponent.h"
 #include <cassert>
 
 // Build the Harpy GameObject and initialize its components
@@ -34,6 +35,13 @@ wolf::GameObject& HarpyBuilder::BuildHarpy(const EnemyData& data, const glm::vec
     auto& controller = harpyObject->AddComponent<HarpyController>();
     controller.Init(data);
     controller.SetPlayerID(m_scene.GetPlayerID());
+
+    // Add a light to the harpy
+    wolf::GameObject* pLightGO = &m_scene.CreateObject2D();
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.85f, 0.65f, 0.45f, 0.75f), 95.0f, true);
+    harpyObject->AddChild(*pLightGO);
+    pLightComponent.Init();
+    pLightComponent.SetShadowsEnabled(false);
 
     return *harpyObject;
 }

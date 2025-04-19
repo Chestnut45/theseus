@@ -88,7 +88,7 @@ void AttackDamageComponent::Update(float p_dt)
                     
                     if (thisObject->HasAll<ThrowableObjectComponent>())
                     {
-                        wolf::Audio::Play("data/sounds/sfx_throwable_break.wav", 0.34f);
+                        wolf::Audio::Play("data/sounds/sfx_throwable_break.wav", 0.45f);
                     }
 
                     // Detect when fireballs are destroyed and fire off sfx

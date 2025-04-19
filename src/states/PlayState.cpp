@@ -227,7 +227,7 @@ void PlayState::Enter()
         ariadneNPCComp->QueueDialogue("traps");
     }
 
-    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, false, true, 13.714f);
+    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.75f, 0.0f, 0.0f, false, true, 13.714f);
 
     // Now it's safe to register entities
     for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())

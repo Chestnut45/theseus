@@ -208,12 +208,12 @@ void BossController::Init()
         collider.AddColliderBox(glm::vec2(96.0f), glm::vec2(0.0f, 96.0f));
 
         // Add a light
-        LightComponent& light = GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.8f), 100.0f, true);
+        LightComponent& light = GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.75f), 150.0f, true);
         pillar.AddChild(*light.GetGameObject());
         light.Init();
         light.SetIgnoreWallTiles(true);
+        light.SetShadowsEnabled(false);
         light.GetGameObject()->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(16, 16));
-        light.SetOn(false);
     }
     
     // Find player controller
@@ -244,35 +244,10 @@ void BossController::Init()
     sprite.SetOriginToCenterOfTexture();
 
     // Add a light
-    LightComponent& light = GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.8f), 150.0f, true);
-    GetGameObject()->AddChild(*light.GetGameObject());
-    light.Init();
-    light.SetIgnoreWallTiles(true);
-    light.SetOn(false);
-
-    // DEBUG: Fluid sim stress testing
-
-    // Calculate simulation bounds
-    // auto simBounds = wolf::Rectangle(r);
-    // simBounds.m_top *= 96;
-    // simBounds.m_left *= 96;
-    // simBounds.m_right *= 96;
-    // simBounds.m_bottom *= 96;
-
-    // // Create the fluid system
-    // auto& fluidObj = pObject->GetScene().CreateObject2D();
-    // auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
-    // fluidSystem.SetupDamBreak(1000);
-    // fluidSystem.SetGravity(true);
-
-    // // TODO: Add pillars... (breaking?)
-    // auto rect = wolf::Rectangle(0.0f, 96.0f, 96.0f, 0.0f);
-    // for (const auto& tile : locations)
-    // {
-    //     auto bounds = rect;
-    //     bounds.Translate(m_pLabyrinthManager->GetWorldPosition(tile));
-    //     fluidSystem.AddStaticCollisionRect(bounds);
-    // }
+    m_pLight = &GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.75f), 200.0f, true);
+    GetGameObject()->AddChild(*m_pLight->GetGameObject());
+    m_pLight->Init();
+    m_pLight->SetOn(false);
 
     EnterPhase1();
 }
@@ -334,7 +309,7 @@ void BossController::StartBossfight()
             auto pLight = pChild->GetComponent<LightComponent>();
             if (pLight)
             {
-                pLight->SetOn(true);
+                pLight->SetShadowsEnabled(true);
             }
         }
     }
@@ -728,7 +703,7 @@ void BossController::StartWave()
     SpawnWave(1);
 
     // Start the boss music
-    wolf::Audio::Play("data/sounds/bgm_boss_theme.wav", 1.0f, 0.0f, 0.0f, false, true, 6.433f);
+    wolf::Audio::Play("data/sounds/bgm_boss_theme.wav", 1.1f, 0.0f, 0.0f, false, true, 6.433f);
 }
 
 bool BossController::IsValidSpawnTile(glm::ivec2 tilePos)
@@ -1254,6 +1229,9 @@ void BossController::UpdatePhase2(float delta)
                     m_pAxeCollider = &axe.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, false, false);
                     m_pAxeCollider->AddColliderBox(glm::vec2(224), glm::vec2(-112, 112));
 
+                    // Add a light to the axe
+
+
                     // Change state
                     m_state = State::APPROACH;
 
@@ -1325,6 +1303,7 @@ void BossController::UpdatePhase2(float delta)
                     m_altitude = 0.0f;
                     m_pCollider->SetActive(true);
                     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+                    m_pLight->SetShadowsEnabled(true);
                     m_nextAttackTimer.Reset();
 
                     // Reset shadow scale
@@ -1463,6 +1442,9 @@ void BossController::StartLeapAttack()
     // Disable collider and restart timer
     m_pCollider->SetActive(false);
     m_leapAttackTimer.Restart();
+
+    // Disable shadows when leaping to prevent the light flickering
+    m_pLight->SetShadowsEnabled(false);
 
     // Update stats
     m_attackChain = (m_prevAttack == 1) ? m_attackChain + 1 : 1;
