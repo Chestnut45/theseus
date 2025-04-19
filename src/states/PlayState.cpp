@@ -504,6 +504,7 @@ void PlayState::Update(float delta)
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lapis Lazuli Ring"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Burning Blade"));
                 }
 
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
@@ -609,10 +610,25 @@ void PlayState::Update(float delta)
             npc.Update(delta);
         }
 
-        // Inflict status effects upon the player
+        // Update all status components
+        const glm::vec3 fireTintColor = glm::vec3(1.2f, 0.75f, 0.0f);
         for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
         {
             status.Update(delta);
+
+            // Update sprite tints if status is active
+            if (auto* pAnim = status.GetGameObject()->GetComponent<AnimatedSprite2D>())
+            {
+                if (status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
+                {
+                    pAnim->SetTint(fireTintColor);
+                }
+                else
+                {
+                    // Reset if fire tint is still active
+                    if (pAnim->GetTint() == fireTintColor) pAnim->SetTint(glm::vec3(1.0f));
+                }
+            }
         }
 
         // Don't pickup items or interact with things if we're dead!

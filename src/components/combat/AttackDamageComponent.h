@@ -16,7 +16,7 @@ class AttackDamageComponent : public wolf::BaseComponent
 public:
 
     // Constructor with optional arguments for applying knockback / status effects
-    AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude = 0.0f, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects = {},wolf::GameObject* owner = nullptr);
+    AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude = 0.0f, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects = {}, wolf::GameObject* owner = nullptr);
     virtual ~AttackDamageComponent();
 
     void Update(float p_dt);

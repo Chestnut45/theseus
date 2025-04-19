@@ -92,12 +92,13 @@ void AttackDamageComponent::Update(float p_dt)
                     }
 
                     // Detect when fireballs are destroyed and fire off sfx
+                    bool burnSFXPlayed = false;
                     if (auto* pAnim = thisObject->GetComponent<AnimatedSprite2D>())
                     {
                         if (pAnim->GetCurrentAnimation()->m_strName == "burn")
                         {
-                            // Ensure falloff for potentially stacked sounds
                             wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.64f);
+                            burnSFXPlayed = true;
                         }
                     }
 
@@ -112,6 +113,11 @@ void AttackDamageComponent::Update(float p_dt)
                             {
                                 StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
                                 thatStatus->AddStatusEffect(seType, lifespan);
+
+                                if (seType == StatusComponent::StatusEffectType::BURNING && !burnSFXPlayed)
+                                {
+                                    wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.64f);
+                                }
                             }
 
                         }

@@ -98,9 +98,6 @@ public:
 
     //set player action
     void SetAction(PlayerAction action);
-
-    // setting the holding object bool variable
-    void SetHoldingObject(bool isHolding);
  
     // This getter simply returns the current value of m_lastFaceDirectionEnum, allowing ThrowableObjectComponent to access it.
     PlayerDirection GetLastFacingDirection() const { return m_lastFaceDirectionEnum; }

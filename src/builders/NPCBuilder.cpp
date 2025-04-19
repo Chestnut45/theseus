@@ -11,6 +11,7 @@
 
 #include <unordered_map>
 #include <LightComponent.h>
+#include <StatusComponent.h>
 
 NPCBuilder* NPCBuilder::m_pInstance = nullptr;
 wolf::Scene* NPCBuilder::m_pScene = nullptr;
@@ -174,6 +175,9 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
 
         // Use that information to create and attach an AnimatedSprite2D
         auto& pAnim = pConstructedNPC->AddComponent<AnimatedSprite2D>(strTexturePath, v2FrameSize, fPlaybackSpeed);
+
+        // Add a status component
+        pConstructedNPC->AddComponent<StatusComponent>();
 
         // Then loop through all of the animation sets
         YAML::Node animSets = animInit["animation_sets"];

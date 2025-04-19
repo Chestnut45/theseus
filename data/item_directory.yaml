@@ -281,3 +281,17 @@ Portal: {
   rarity: LEGENDARY,
   has_status_effects: false,
 }
+
+Burning Blade: {
+  id: EQUIPMENT,
+  description: A magical blade infused with harpy breath.,
+  value: 100,
+  texture_frame: 22,
+  rarity: RARE,
+  slot: WEAPON,
+  type: SWORD,
+  delay: 0.25,
+  damage: 75.0,
+  hurtbox_size: {x: 18.0, y: 18.0},
+  has_projectiles: false
+}

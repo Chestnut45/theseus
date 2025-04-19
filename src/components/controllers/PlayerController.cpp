@@ -142,10 +142,6 @@ void PlayerController::SetAction(PlayerAction action)
     m_action = action;
 }
 
-void PlayerController::SetHoldingObject(bool isHolding) {
-    m_isHoldingObject = isHolding;
-}
-
 // Initialize components related to the player
 void PlayerController::LateInitialize()
 {
@@ -892,7 +888,36 @@ void PlayerController::HandleSwordAttack(float delta)
         meleeCollider.AddColliderBox(meleeDimensions * playerScale, offset);
         meleeCollider.SetIgnoreTag(player->GetID());
 
-        auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f);
+        if (m_pCurrentWeapon->GetName() == "Burning Blade")
+        {
+            // Apply burn status from burning blade
+            std::vector<std::pair<StatusComponent::StatusEffectType, float>> effects;
+            effects.push_back(std::make_pair(StatusComponent::StatusEffectType::BURNING, 5.0f));
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f, effects);
+
+            // Create a new GameObject for particles
+            auto& particleObject = scene.CreateObject2D();
+            particleObject.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition());
+            auto& particleComponent = particleObject.AddComponent<ParticleComponent>(32);
+            particleComponent.SetAutoDestroy(true);
+            particleComponent.SetCleanupGracePeriod(0.5f);
+            particleComponent.LoadConfigFromYAML("data/particles/fire_sparks.yaml");
+            glm::vec2 faceDir = GetVectorFromDirection(m_lastFaceDirectionEnum);
+            particleComponent.EmitBurst(
+                m_pTransform->GetGlobalPosition() + faceDir * glm::vec2(45.0f),
+                faceDir * glm::vec2(100.0f),
+                glm::vec4(1.0f),
+                8.0f,
+                0.5f,
+                32,
+                90.0f,
+                wolf::TextureManager::CreateTexture("data/textures/fire_particle.png")
+            );
+        }
+        else
+        {
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f);
+        }
         
         melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
         melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
@@ -1216,6 +1241,10 @@ void PlayerController::ThrowHeldObject() {
     // Set the object's velocity based on throw direction, throw power, and player's velocity
     auto* throwableVelocity = m_pHeldObject->GetGameObject()->GetComponent<VelocityComponent>();
     if (!throwableVelocity) throwableVelocity = &m_pHeldObject->GetGameObject()->AddComponent<VelocityComponent>();
+
+    // Center the transform so the throw is always consistent and aim is correct
+    auto* t = m_pHeldObject->GetGameObject()->GetComponent<wolf::Transform2D>();
+    t->SetPosition(m_pTransform->GetGlobalPosition());
     
     glm::vec2 finalVelocity = throwDirection * m_throwPower * 3.0f;
     throwableVelocity->SetVelocity(finalVelocity);
@@ -1342,7 +1371,7 @@ void PlayerController::SetAnimationBasedOnState()
     {
         return;
     }
-    
+
 
     std::string animationName;
 
@@ -1491,8 +1520,16 @@ std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection dir
     }
     else if(type == WeaponType::SWORD) 
     {
-        weaponType = "Sword";
-        startingSheet = "Attack";
+        if (m_pCurrentWeapon->GetName() == "Burning Blade")
+        {
+            weaponType = "BurningBlade";
+            startingSheet = "Attack";
+        }
+        else
+        {
+            weaponType = "Sword";
+            startingSheet = "Attack";
+        }
     }
 
     switch (direction)
