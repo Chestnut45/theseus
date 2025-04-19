@@ -245,6 +245,7 @@ void LightComponent::Update(float p_fDelta) {
                         // If it is, and the rectangle is NOT the light's AOE collider
                         if (this->GetGameObject()->GetID() != collider.GetGameObject()->GetID()) {
                             // Then the light is inside of a wall/solid object and we don't want to draw ANY rays
+                            if (m_ignoreWallTiles) continue;
                             return;
                         }
                     }

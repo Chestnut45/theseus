@@ -199,6 +199,7 @@ void PlayState::Enter()
     auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 125.0f, true);
     m_pPlayerObject->AddChild(*pLightGO);
     pLightComponent.Init();
+    pLightComponent.SetIgnoreWallTiles(true);
     pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
     
     m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());

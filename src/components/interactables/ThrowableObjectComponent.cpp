@@ -31,7 +31,7 @@ void ThrowableObjectComponent::Update(float delta) {
 
     switch (m_state) {
         case ThrowableState::IDLE:
-            m_pCollider->SetActive(false);
+            m_pCollider->SetColliderType(ColliderComponent::ColliderType::OCCLUDER);
             if (IsCloseToPlayer(150.0f)) {
                 m_hoverAnimationOffset = sin(ImGui::GetTime() * 3.0f) * 5.0f;
                 RenderPickupPrompt();
@@ -39,12 +39,12 @@ void ThrowableObjectComponent::Update(float delta) {
             break;
 
         case ThrowableState::PICKED_UP:
-            m_pCollider->SetActive(false);
+            m_pCollider->SetColliderType(ColliderComponent::ColliderType::OCCLUDER);
             FollowPlayer(delta);
             break;
 
         case ThrowableState::THROWN:
-            m_pCollider->SetActive(true);
+            m_pCollider->SetColliderType(ColliderComponent::ColliderType::HURTBOXDD);
             // Add the AttackDamageComponent to the GameObject
             if (!GetGameObject()->HasAll<AttackDamageComponent>()) {
                 auto& attackDamageComponent = GetGameObject()->AddComponent<AttackDamageComponent>(

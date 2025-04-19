@@ -745,12 +745,6 @@ void GorgonController::HandleDeathState(float delta)
                     // wall
                     pItemVel->ApplyKnockback(glm::vec2(1.0f, 0.0f), 10.0f);
                 }
-                ColliderComponent* pItemCollider = pItem->GetComponent<ColliderComponent>();
-                if (pItemCollider)
-                {
-                    // Disable the collider after knockback
-                    pItemCollider->SetActive(false);
-                }
             }
             GetGameObject()->Delete();
         }

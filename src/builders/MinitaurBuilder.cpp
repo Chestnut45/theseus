@@ -41,6 +41,7 @@ wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, const gl
     auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(1.0f, 0.69f, 0.61f, 0.25f), 65.0f, true);
     minitaurObject->AddChild(*pLightGO);
     pLightComponent.Init();
+    pLightComponent.SetIgnoreWallTiles(true);
 
     return *minitaurObject;
 }

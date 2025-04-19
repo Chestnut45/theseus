@@ -29,6 +29,7 @@ public:
         HURTBOXDR,
         HITHURTBOXDD,
         HITHURTBOXDR,
+        OCCLUDER,
         NONE
     };
 
@@ -51,6 +52,7 @@ public:
 
     bool IsHitbox() const;
     bool IsHurtbox() const;
+    bool IsOccluder() const;
     bool IsHurtboxDamageDealer() const;
     bool IsHurtboxDamageReceiver() const;
     bool IsDestroyedOnCollision() const;

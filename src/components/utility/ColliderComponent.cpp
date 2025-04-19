@@ -93,6 +93,12 @@ bool ColliderComponent::IsHitbox() const
     return false;
 }
 
+bool ColliderComponent::IsOccluder() const
+{
+    return m_eColliderType == ColliderType::OCCLUDER;
+}
+
+
 bool ColliderComponent::IsHurtbox() const
 {
     if(this->m_eColliderType == ColliderType::HURTBOXDD || this->m_eColliderType == ColliderType::HURTBOXDR || this->m_eColliderType == ColliderType::HITHURTBOXDD || this->m_eColliderType == ColliderType::HITHURTBOXDR)

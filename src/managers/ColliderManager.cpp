@@ -76,6 +76,9 @@ void ColliderManager::CheckCollisions(float p_delta)
         // Skip inactive or flagged colliders
         if (!collider1.IsActive()) continue;
 
+        // Skip occluders
+        if (collider1.IsOccluder()) continue;
+
         // Cache properties for collider1
         const bool isHitbox1 = collider1.IsHitbox();
         const bool isDestroyedOnCollision1 = collider1.IsDestroyedOnCollision();
@@ -86,6 +89,9 @@ void ColliderManager::CheckCollisions(float p_delta)
 
             // Skip inactive or flagged colliders
             if (!collider2.IsActive()) continue;
+
+            // Skip occluders
+            if (collider2.IsOccluder()) continue;
 
             // Cache properties for collider2
             const bool isHitbox2 = collider2.IsHitbox();

@@ -41,6 +41,7 @@ wolf::GameObject& GorgonBuilder::BuildGorgon(const EnemyData& data, const glm::v
     auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.57f, 0.93f, 0.57f, 0.75f), 75.0f, true);
     gorgonObject->AddChild(*pLightGO);
     pLightComponent.Init();
+    pLightComponent.SetIgnoreWallTiles(true);
 
     return *gorgonObject;
 }
