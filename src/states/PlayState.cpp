@@ -505,6 +505,7 @@ void PlayState::Update(float delta)
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Burning Blade"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Poison-Tipped Spear"));
                 }
 
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
@@ -612,6 +613,8 @@ void PlayState::Update(float delta)
 
         // Update all status components
         const glm::vec3 fireTintColor = glm::vec3(1.2f, 0.75f, 0.0f);
+        const glm::vec3 poisonTintColor = glm::vec3(0.0f, 0.64f, 0.24f);
+        const glm::vec3 bothTintColor = fireTintColor + poisonTintColor;
         for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
         {
             status.Update(delta);
@@ -619,14 +622,30 @@ void PlayState::Update(float delta)
             // Update sprite tints if status is active
             if (auto* pAnim = status.GetGameObject()->GetComponent<AnimatedSprite2D>())
             {
-                if (status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING))
+                bool fire = status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING);
+                bool poison = status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED);
+                if (fire && poison)
                 {
-                    pAnim->SetTint(fireTintColor);
+                    pAnim->SetTint(bothTintColor);
                 }
                 else
                 {
-                    // Reset if fire tint is still active
-                    if (pAnim->GetTint() == fireTintColor) pAnim->SetTint(glm::vec3(1.0f));
+                    if (fire)
+                    {
+                        pAnim->SetTint(fireTintColor);
+                    }
+                    else if (poison)
+                    {
+                        pAnim->SetTint(poisonTintColor);
+                    }
+                    else
+                    {
+                        const glm::vec3 tint = pAnim->GetTint();
+                        if (tint == fireTintColor || tint == poisonTintColor || tint == bothTintColor)
+                        {
+                            pAnim->SetTint(glm::vec3(1.0f));
+                        }
+                    }
                 }
             }
         }

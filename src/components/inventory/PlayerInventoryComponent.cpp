@@ -526,6 +526,10 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 ImGui::PopStyleVar(2);
                 ImGui::PopStyleColor(3);
 
+                // Push the tooltip style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
                 // Same as a regular item, when we hover over an equipment slot we display the item's details in a tooltip
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     // We display the details string that we constructed earlier
@@ -542,6 +546,9 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
                     ImGui::EndTooltip();
                 }
+
+                ImGui::PopStyleVar(1);
+                ImGui::PopStyleColor(1);
 
                 // We need a way for ImGui to differientiate between equipment slots so we make an id string
                 std::string strPopUpID = "E:" + std::to_string(t);

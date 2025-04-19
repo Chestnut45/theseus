@@ -250,6 +250,12 @@ void PlayerController::Update(float delta)
         m_invulnTimer.Reset();
     }
 
+    // Update health color timer
+    if (m_healthColorTimer.Elapsed() > m_invulnSeconds)
+    {
+        m_healthColorTimer.Reset();
+    }
+
     auto* pInventory = pGameObject->GetComponent<PlayerInventoryComponent>();
     if (pInventory)
     {
@@ -819,7 +825,36 @@ void PlayerController::HandleSpearAttack(float delta)
         meleeCollider.AddColliderBox(meleeDimensions * playerScale, offset);
         meleeCollider.SetIgnoreTag(player->GetID());
 
-        auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f);
+        if (m_pCurrentWeapon->GetName() == "Poison-Tipped Spear")
+        {
+            // Apply poison status from poison spear
+            std::vector<std::pair<StatusComponent::StatusEffectType, float>> effects;
+            effects.push_back(std::make_pair(StatusComponent::StatusEffectType::POISONED, 5.0f));
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f, effects);
+
+            // Spew particles
+            auto& particleObject = scene.CreateObject2D();
+            particleObject.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition());
+            auto& particleComponent = particleObject.AddComponent<ParticleComponent>(32);
+            particleComponent.SetAutoDestroy(true);
+            particleComponent.SetCleanupGracePeriod(0.5f);
+            particleComponent.LoadConfigFromYAML("data/particles/poison_spray.yaml");
+            glm::vec2 faceDir = GetVectorFromDirection(m_lastFaceDirectionEnum);
+            particleComponent.EmitBurst(
+                m_pTransform->GetGlobalPosition() + faceDir * glm::vec2(45.0f),
+                faceDir * glm::vec2(100.0f),
+                glm::vec4(1.0f),
+                8.0f,
+                0.5f,
+                32,
+                90.0f,
+                wolf::TextureManager::CreateTexture("data/textures/poison_particle.png")
+            );
+        }
+        else
+        {
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f);
+        }
         
         melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
         melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
@@ -895,7 +930,7 @@ void PlayerController::HandleSwordAttack(float delta)
             effects.push_back(std::make_pair(StatusComponent::StatusEffectType::BURNING, 5.0f));
             auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f, effects);
 
-            // Create a new GameObject for particles
+            // Spew particles
             auto& particleObject = scene.CreateObject2D();
             particleObject.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition());
             auto& particleComponent = particleObject.AddComponent<ParticleComponent>(32);
@@ -1515,8 +1550,16 @@ std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection dir
     
     else if(type == WeaponType::SPEAR)
     {
-        weaponType = "Spear";
-        startingSheet = "Attack";
+        if (m_pCurrentWeapon->GetName() == "Poison-Tipped Spear")
+        {
+            weaponType = "PoisonSpear";
+            startingSheet = "Attack";
+        }
+        else
+        {
+            weaponType = "Spear";
+            startingSheet = "Attack";
+        }
     }
     else if(type == WeaponType::SWORD) 
     {
@@ -1718,7 +1761,7 @@ void PlayerController::Render(float delta)
     auto* healthComponent = GetGameObject()->GetComponent<HealthComponent>();
     if (healthComponent)
     {
-        float colorCoefficient = m_invulnTimer.IsRunning() ? 1.0f - m_invulnTimer.Elapsed() : 0.0f;
+        float colorCoefficient = m_healthColorTimer.IsRunning() ? 1.0f - m_healthColorTimer.Elapsed() : 0.0f;
 
         // Update health color
         ImVec4 healthColor = ImVec4(1.0f, colorCoefficient,  colorCoefficient, 1.0f);
@@ -1882,13 +1925,18 @@ void PlayerController::HandleBeginPlacingItemEvent(const BeginPlacingPlaceableEv
 void PlayerController::OnDamageEvent(const DamageEvent& event)
 {
     // Player specific handling (invulnerability timer and oof sfx)
-    // NOTE: All status effects pierce, so this means fire and poison no longer cause invuln >:)
-    // This also means you don't constantly "oof" when on fire. Win-win
-    if (event.m_pDamagedObject == GetGameObject() && !event.m_pierce)
+    if (event.m_pDamagedObject == GetGameObject())
     {
-        m_invulnTimer.Restart();
-        m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
-        wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f, -5000.0f);
+        m_healthColorTimer.Restart();
+
+        // NOTE: All status effects pierce, so this means fire and poison no longer cause invuln >:)
+        // This also means you don't constantly "oof" when on fire. Win-win
+        if (!event.m_pierce)
+        {
+            m_invulnTimer.Restart();
+            m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
+            wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f, -5000.0f);
+        }
     }
     
     // Boss specific handling

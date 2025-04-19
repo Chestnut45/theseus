@@ -18,6 +18,7 @@ particle_config:
   
   use_texture: true
   texture_path: "data/textures/fire_particle.png"
+  additive: true
   
   modifiers:
     emission_shape:

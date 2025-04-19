@@ -253,6 +253,7 @@ private:
     float m_prevHealthFraction = 1.0f;
     float m_invulnSeconds = 1.0f;
     wolf::Timer m_invulnTimer;
+    wolf::Timer m_healthColorTimer;
 
     //picking up management
     bool m_isHoldingObject = false;

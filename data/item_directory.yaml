@@ -284,7 +284,7 @@ Portal: {
 
 Burning Blade: {
   id: EQUIPMENT,
-  description: A magical blade infused with harpy breath.,
+  description: A magical blade infused with Harpy breath.,
   value: 100,
   texture_frame: 22,
   rarity: RARE,
@@ -293,5 +293,19 @@ Burning Blade: {
   delay: 0.25,
   damage: 75.0,
   hurtbox_size: {x: 18.0, y: 18.0},
+  has_projectiles: false
+}
+
+Poison-Tipped Spear: {
+  id: EQUIPMENT,
+  description: A magical spear infused with Gorgon tears.,
+  value: 100,
+  texture_frame: 27,
+  rarity: EPIC,
+  slot: WEAPON,
+  type: SPEAR,
+  delay: 0.25,
+  damage: 75.0,
+  hurtbox_size: {x: 24.0, y: 24.0},
   has_projectiles: false
 }
