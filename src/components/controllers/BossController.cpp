@@ -753,14 +753,14 @@ void BossController::SpawnWave(int waveIndex)
     int minitaurs = 0, gorgons = 0, harpies = 0;
     switch (waveIndex)
     {
-        case 1: minitaurs = 4; harpies = 2; break;
-        case 2: gorgons = 2; harpies = 2; break;
-        case 3: minitaurs = 5; harpies = 3; gorgons = 2; break;
+        // case 1: minitaurs = 4; harpies = 2; break;
+        // case 2: gorgons = 2; harpies = 2; break;
+        // case 3: minitaurs = 5; harpies = 3; gorgons = 2; break;
         
         // DEBUG: Quick way through all phases
-        // case 1:
-        // case 2:
-        // case 3: minitaurs = 1; break;
+        case 1:
+        case 2:
+        case 3: minitaurs = 1; break;
     }
 
     // Get boss position
@@ -1230,7 +1230,11 @@ void BossController::UpdatePhase2(float delta)
                     m_pAxeCollider->AddColliderBox(glm::vec2(224), glm::vec2(-112, 112));
 
                     // Add a light to the axe
-
+                    wolf::GameObject* pLightGO = &GetGameObject()->GetScene().CreateObject2D();
+                    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.6f, 0.4f, 0.18f, 0.75f), 250.0f, true);
+                    axe.AddChild(*pLightGO);
+                    pLightComponent.Init();
+                    pLightComponent.SetShadowsEnabled(false);
 
                     // Change state
                     m_state = State::APPROACH;
