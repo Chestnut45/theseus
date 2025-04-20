@@ -757,7 +757,7 @@ void PlayerController::HandleBowAttack(float delta)
                     
                     // Add attack damage component
                     float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.01f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
-                    auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200.0f);
+                    auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 500.0f * m_bowChargeScale);
 
                     // Calculate actual direction
                     glm::vec2 shotDir = glm::rotate(m_attackDir, offsetAngle - (offsetAngle * i));
@@ -804,7 +804,7 @@ void PlayerController::HandleBowAttack(float delta)
                 {
                     std::vector<std::pair<StatusComponent::StatusEffectType, float>> effects;
                     effects.push_back(std::make_pair(StatusComponent::StatusEffectType::PETRIFIED, 5.0f));
-                    auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200.0f, effects);
+                    auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 500.0f * m_bowChargeScale, effects);
 
                     // Add a light
                     wolf::GameObject* pLightGO = &scene.CreateObject2D();
@@ -815,7 +815,7 @@ void PlayerController::HandleBowAttack(float delta)
                 }
                 else
                 {
-                    auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200.0f);
+                    auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 500.0f * m_bowChargeScale);
                 }
 
                 // Calculate spawn offset
