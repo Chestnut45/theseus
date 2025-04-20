@@ -13,6 +13,7 @@
 #include <PlayerController.h>
 #include <VelocityComponent.h>
 #include <W_Audio.h>
+#include <W_RNG.h>
 
 PortalTileManager* PortalTileManager::s_pPTMG = nullptr;
 
@@ -355,9 +356,10 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     // Add light component
     wolf::GameObject* lightObj = &p_lbmg->GetGameObject()->GetScene().CreateObject2D();
     lightObj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(LabyrinthManager::TILE_SIZE * 0.5f, LabyrinthManager::TILE_SIZE * 0.5f));
-    LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), scaledTileSize * 0.5f, true);
+    LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), scaledTileSize, true);
     m_pPortalTileSpriteObj->AddChild(*lightObj);
     lightComponent->Init();
+    lightComponent->SetIgnoreWallTiles(true);
 
     m_pChunk->AddChild(*m_pPortalTileSpriteObj);
 }
@@ -436,6 +438,10 @@ void PortalTileManager::PortalTile::Update(float p_dt)
     {   
         // Get occupant position data
         glm::vec2 occupantPos = occupant->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        if (occupant->HasAll<PlayerController>())
+        {
+            occupantPos.y -= 12.0f;
+        }
         glm::ivec2 occupantTilePos = m_pLabyrinthManager->GetTilePosition(occupantPos);
         
         // If occupant has stepped out of portal tile, remove ID
@@ -459,6 +465,7 @@ void PortalTileManager::PortalTile::Update(float p_dt)
     // Check all objects within the portal tile chunk
     for(wolf::GameObject* obj : GetChunk()->GetChildren())
     {
+        
         CheckTeleport(obj);
     }
 
@@ -486,6 +493,10 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
     // Calculate tile position of object
     wolf::Transform2D* objTransform = p_obj->GetComponent<wolf::Transform2D>();
     glm::vec2 objPos = objTransform->GetGlobalPosition();
+    if (p_obj->HasAll<PlayerController>())
+    {
+        objPos.y -= 12.0f;
+    }
     glm::ivec2 objTilePos = m_pLabyrinthManager->GetTilePosition(objPos);
 
     // Skip if object is not on portal
@@ -553,5 +564,6 @@ void PortalTileManager::PortalTile::Teleport(wolf::GameObject* p_obj)
     // Set object as new occupant
     m_pSiblingPortalTile->SetOccupantID(p_obj->GetID());
 
-    wolf::Audio::Play("data/sounds/sfx_portal.wav", 0.4f);
+    static wolf::RNG rng;
+    wolf::Audio::Play("data/sounds/sfx_portal.wav", 0.6f, rng.NextInt(-8000, 0));
 }
