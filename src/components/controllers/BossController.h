@@ -89,6 +89,9 @@ public:
     // Starts the bossfight (does not spawn first wave!)
     void StartBossfight();
 
+    bool IsAirborne() const;
+    bool IsAlive() const;
+
 private:
 
     // State information

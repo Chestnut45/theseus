@@ -166,6 +166,8 @@ public:
     // Gets the height of the labyrinth in tiles
     inline int GetHeight() const { return m_height; }
 
+    bool IsBossfightStarted() const { return m_inBossfight; }
+
 // Implementation
 private:
 

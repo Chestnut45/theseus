@@ -753,14 +753,14 @@ void BossController::SpawnWave(int waveIndex)
     int minitaurs = 0, gorgons = 0, harpies = 0;
     switch (waveIndex)
     {
-        case 1: minitaurs = 4; harpies = 2; break;
-        case 2: gorgons = 2; harpies = 2; break;
-        case 3: minitaurs = 5; harpies = 3; gorgons = 2; break;
+        // case 1: minitaurs = 4; harpies = 2; break;
+        // case 2: gorgons = 2; harpies = 2; break;
+        // case 3: minitaurs = 5; harpies = 3; gorgons = 2; break;
         
         // DEBUG: Quick way through all phases
-        // case 1:
-        // case 2:
-        // case 3: minitaurs = 1; break;
+        case 1:
+        case 2:
+        case 3: minitaurs = 1; break;
     }
 
     // Get boss position
@@ -1407,12 +1407,29 @@ void BossController::UpdatePhase2(float delta)
     // Under half health, change to phase 3
     if (m_pHealth->GetHealth() <= m_maxHealth / 2 && m_state != State::TRANSITION_TO_PHASE_3)
     {
+        // If somehow the boss is dead before phase 3 ever starts
+        if (!IsAlive())
+        {
+            // Skip the transition and force an update to begin the death animation
+            EnterPhase3();
+            UpdatePhase3(delta);
+        }
         wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, -8000.0f);
         m_state = State::TRANSITION_TO_PHASE_3;
         m_pCollider->SetActive(false);
         m_transitionTimer.Restart();
         m_transitionStartPos = m_pTransform->GetGlobalPosition();
     }
+}
+
+bool BossController::IsAirborne() const
+{
+    return m_state == State::LEAP_ATTACK && m_leapAttackTimer.Elapsed() < 1.25f;
+}
+
+bool BossController::IsAlive() const
+{
+    return m_pHealth->GetHealth() > 0;
 }
 
 void BossController::StartAxeAttack()

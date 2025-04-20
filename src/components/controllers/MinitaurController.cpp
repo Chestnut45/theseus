@@ -773,7 +773,7 @@ void MinitaurController::EnterAttackState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
     m_meleeWindupTimer = m_meleeWindupTime;
-    wolf::Audio::Play("data/sounds/sfx_minitaur_attack.wav", 0.75f, m_RNG.NextInt(-15000, -5000));
+    wolf::Audio::Play("data/sounds/sfx_minitaur_attack.wav", 0.7f, m_RNG.NextInt(-15000, -5000));
 }
 
 void MinitaurController::EnterChasingState()

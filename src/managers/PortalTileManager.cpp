@@ -12,8 +12,10 @@
 #include <ParticleComponent.h>
 #include <PlayerController.h>
 #include <VelocityComponent.h>
+#include <BossController.h>
 #include <W_Audio.h>
 #include <W_RNG.h>
+
 
 PortalTileManager* PortalTileManager::s_pPTMG = nullptr;
 
@@ -186,6 +188,12 @@ PortalTileManager::PortalTileManager(LabyrinthManager* p_lbmg)
         m_pPlayer = playerController.GetGameObject();
         break;
     }
+
+    for (auto&& [_, boss] : p_lbmg->GetGameObject()->GetScene().Each<BossController>())
+    {
+        m_pBoss = boss.GetGameObject();
+        break;
+    }
 }
 
 PortalTileManager::~PortalTileManager()
@@ -334,6 +342,13 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
         break;
     }
 
+    // Get boss object
+    for (auto&& [_, boss] : p_lbmg->GetGameObject()->GetScene().Each<BossController>())
+    {
+        m_pBoss = boss.GetGameObject();
+        break;
+    }
+
     float scaledTileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
 
     // Create sprite object
@@ -410,9 +425,8 @@ void PortalTileManager::PortalTile::Update(float p_dt)
 {
     bool isChunkActive = m_pLabyrinthManager->IsChunkActive(GetChunkID());
     
-    // Return if chunk is inactive
-    if(!isChunkActive) return;
-
+    // Return if chunk is inactive and we haven't started the bossfight yet
+    if(!isChunkActive && !m_pLabyrinthManager->IsBossfightStarted()) return;
        
     // Emit particles
     if(s_rng.NextFloat(0.0f, 1.0f) <= EMISSION_CHANCE)
@@ -461,6 +475,14 @@ void PortalTileManager::PortalTile::Update(float p_dt)
 
     // Check player
     CheckTeleport(m_pPlayer);
+
+    // Check boss
+    if (m_pBoss)
+    {
+        // But only if the controller is alive and not airborne
+        auto* pController = m_pBoss->GetComponent<BossController>();
+        if (pController && pController->IsAlive() && !pController->IsAirborne()) CheckTeleport(m_pBoss);
+    }
 
     // Check all objects within the portal tile chunk
     for(wolf::GameObject* obj : GetChunk()->GetChildren())

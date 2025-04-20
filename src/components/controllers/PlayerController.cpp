@@ -575,6 +575,21 @@ void PlayerController::HandlePlacing(float delta)
             isOutOfRange = true;
         }
 
+        // When the bossfight has started, treat everything except the boss room as out of range
+        if (lbmg.IsBossfightStarted())
+        {
+            const auto& rooms = lbmg.GetRooms();
+            for (const auto& room : rooms)
+            {
+                if (room.m_name != "Minotaur's Chamber") continue;
+                if (!room.m_bounds.Intersects(cursorTilePos))
+                {
+                    isOutOfRange = true;
+                    break;
+                }
+            }
+        }
+
         // Check if the cursor is hovering over a wall
         int tileId = lbmg.GetTile(cursorTilePos.x, cursorTilePos.y);
         if((tileId >= Tile::WallBottomLeft) && (tileId <= Tile::WallTop))
