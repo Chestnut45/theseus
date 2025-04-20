@@ -460,13 +460,17 @@ void BossController::RenderHealthBar(float delta)
         float colorCoefficient = m_damageFlashTimer.IsRunning() ? 1.0f - m_damageFlashTimer.Elapsed() : 0.0f;
 
         // Update health color
-        ImVec4 healthColor = ImVec4(1.0f, colorCoefficient, colorCoefficient, 1.0f);
+        ImVec4 healthColor = ImVec4(0.65f, colorCoefficient * 0.65f, colorCoefficient * 0.65f, 1.0f);
 
         // Render previous health fraction underneath to indicate damage taken
         m_prevHealthFraction += (healthComponent->GetHealth() / healthComponent->GetMaxHealth() - m_prevHealthFraction) * delta * 4.0f;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 32.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.9f, 0.559f, 0.0f, 1.0f));
 
         // Draw health bar
         ImGui::SetNextWindowPos(basePos);
@@ -505,7 +509,8 @@ void BossController::RenderHealthBar(float delta)
         }
         ImGui::End();
 
-        ImGui::PopStyleVar(2);
+        ImGui::PopStyleVar(5);
+        ImGui::PopStyleColor();
     }
 }
 

@@ -251,6 +251,7 @@ private:
 
     // Invulnerability after taking damage
     float m_prevHealthFraction = 1.0f;
+    float m_prevStaminaFraction = 1.0f;
     float m_invulnSeconds = 1.0f;
     wolf::Timer m_invulnTimer;
     wolf::Timer m_healthColorTimer;

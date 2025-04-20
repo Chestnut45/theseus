@@ -1098,7 +1098,7 @@ void PlayerController::HandleBowAttackAnimation()
 void PlayerController::HandleBowRangeIndicator(float delta)
 {
     glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 endpoint = playerPos + m_attackDir * m_arrowRange;   // m_attackDir is already normalised
+    glm::vec2 endpoint = playerPos + m_attackDir * 1000.0f;   // m_attackDir is already normalised
     glm::vec2 trueEndpoint = DDACalculator::GetInstance()->GetEndpoint(playerPos, endpoint, false);
 
     glm::vec4 colour = m_bowRangeIndicatorColour;
@@ -1136,12 +1136,12 @@ void PlayerController::RenderBowPowerBar()
     screenPos.x = (barPos.x - (cameraPos.x - viewSizeHalf.x));
     screenPos.y = (barPos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
 
-    // Push ImGui styles for a more vibrant look with background, rounded frame, and padding
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);           // Rounded corners for the frame
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.0f);          // Rounded corners for the window
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3.0f, 2.0f)); // Padding inside the bar for a thicker look
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f)); // Semi-transparent black background
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 1.0f, 1.0f, 0.5f));   // Soft white border
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.24f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
     // Render background bar with a slightly larger size for a frame effect
     ImGui::SetNextWindowPos(ImVec2(screenPos.x - 5.0f, screenPos.y - 5.0f));
@@ -1155,20 +1155,20 @@ void PlayerController::RenderBowPowerBar()
     ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
     ImVec4 barColor = ImVec4(1.0f - (m_bowChargeScale / m_bowMaxChargeScale), (m_bowChargeScale / m_bowMaxChargeScale), 0.0f, 1.0f); // Gradient from red to green
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
-    ImGui::ProgressBar(m_bowChargeScale / m_bowMaxChargeScale, ImVec2(-1, 10.0f));
+    ImGui::ProgressBar(m_bowChargeScale / m_bowMaxChargeScale, ImVec2(-1, 10.0f), "");
     ImGui::PopStyleColor();
     ImGui::End();
 
     // Render label "Power" below the bar
-    ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y - 20.0f));
+    ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y - 26.0f));
     ImGui::SetNextWindowSize(ImVec2(100.0f, 10.0f));
     ImGui::Begin("##PowerLabel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
-    ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Power");
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Power");
     ImGui::End();
 
     // Pop all the style vars and colors
-    ImGui::PopStyleVar(3);
-    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(4);
 }
 
 
@@ -1754,7 +1754,7 @@ void PlayerController::Render(float delta)
         return;
     }
 
-    float barWidth = 256.0f;
+    float barWidth = 258.0f;
     float barHeight = 18.0f;
     float verticalOffset = 20.0f;  // Offset between health and stamina bars
 
@@ -1764,7 +1764,7 @@ void PlayerController::Render(float delta)
 
     // Push ImGui style variables for a more polished and "arty" look
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);          // Rounded corners
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);           // Rounded frame corners
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 2.0f)); // Inner padding
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.8f)); // Semi-transparent background
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));   // Border color
@@ -1777,25 +1777,25 @@ void PlayerController::Render(float delta)
         float colorCoefficient = m_healthColorTimer.IsRunning() ? 1.0f - m_healthColorTimer.Elapsed() : 0.0f;
 
         // Update health color
-        ImVec4 healthColor = ImVec4(1.0f, colorCoefficient,  colorCoefficient, 1.0f);
+        ImVec4 healthColor = ImVec4(0.65f, colorCoefficient * 0.65f,  colorCoefficient * 0.65f, 1.0f);
 
         // Render previous health fraction underneath to indicate damage taken
         m_prevHealthFraction += (healthComponent->GetHealth() / healthComponent->GetMaxHealth() - m_prevHealthFraction) * delta * 4.0f;
 
-        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for health bar
+        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y));
         ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
         ImGui::Begin("##HealthBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor); // Deep red health color
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor);
         ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1, barHeight), "");
-        ImGui::PopStyleColor(); // Pop color for health bar
+        ImGui::PopStyleColor();
         ImGui::End();
 
-        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for health bar
+        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y));
         ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
         ImGui::Begin("##HealthBar2", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
         ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor);
         ImGui::ProgressBar(m_prevHealthFraction, ImVec2(-1.0f, barHeight));
-        ImGui::PopStyleColor(); // Pop color for health bar
+        ImGui::PopStyleColor();
         ImGui::End();  
     }
 
@@ -1808,7 +1808,7 @@ void PlayerController::Render(float delta)
     }
 
     // Render the health bar frame on top of the actual bar
-    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pHealthBarTexture->GetWidth() - 9.0f, basePos.y - barHeight});
+    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pHealthBarTexture->GetWidth() - 9.0f, basePos.y - barHeight - 1.0f});
     ImGui::SetNextWindowSize({0,0});
     ImGui::Begin("HealthBarFrame", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
     ImGui::Image(healthBarTextureID, ImVec2(pHealthBarTexture->GetWidth(), pHealthBarTexture->GetHeight()), ImVec2(0, 0), ImVec2(1, 1));
@@ -1820,14 +1820,29 @@ void PlayerController::Render(float delta)
     // Change the stamina bar height to be slightly smaller
     barHeight = 15.0f;
 
-    // Render the stamina bar below the health bar
-    ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for stamina bar
+    float colorCoefficient = m_staminaRegenTimer.IsRunning() ? 1.0f - m_staminaRegenTimer.Elapsed() : 0.0f;
+
+    // Update stamina color
+    ImVec4 color = ImVec4(0.65f * colorCoefficient, 0.65f,  0.16f + 0.65f * colorCoefficient, 1.0f);
+
+    // Render previous stamina fraction underneath to indicate usage
+    m_prevStaminaFraction += (m_stamina / m_maxStamina - m_prevStaminaFraction) * delta * 4.0f;
+
+    ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y));
     ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
     ImGui::Begin("##StaminaBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.0f, 1.0f, 0.0f, 1.0f)); // Green stamina color
-    ImGui::ProgressBar(m_stamina / m_maxStamina, ImVec2(-1, barHeight)); // Full width, defined height
-    ImGui::PopStyleColor(); // Pop color for stamina bar
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, color);
+    ImGui::ProgressBar(m_stamina / m_maxStamina, ImVec2(-1, barHeight), "");
+    ImGui::PopStyleColor();
     ImGui::End();
+
+    ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y));
+    ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
+    ImGui::Begin("##StaminaBar2", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, color);
+    ImGui::ProgressBar(m_prevStaminaFraction, ImVec2(-1.0f, barHeight));
+    ImGui::PopStyleColor();
+    ImGui::End();  
 
     // Load the stamina bar frame image once
     static ImTextureID staminaBarTextureID = nullptr;
@@ -1838,7 +1853,7 @@ void PlayerController::Render(float delta)
     }
 
     // Render the stamina bar frame on top of the actual bar
-    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pStaminaBarTexture->GetWidth() - 9.0f, basePos.y - barHeight - (barHeight / 2.0f)});
+    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pStaminaBarTexture->GetWidth() - 9.0f, basePos.y - barHeight - (barHeight / 2.0f) + 1.0f});
     ImGui::SetNextWindowSize({0,0});
     ImGui::Begin("StaminaBarFrame", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
     ImGui::Image(staminaBarTextureID, ImVec2(pStaminaBarTexture->GetWidth(), pStaminaBarTexture->GetHeight()), ImVec2(0, 0), ImVec2(1, 1));
@@ -1969,55 +1984,55 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
 }
 
 void PlayerController::RenderThrowPowerBar() {
-        // Get positions
-        wolf::Scene* scene = &this->GetGameObject()->GetScene();
-        wolf::Camera2D* camera = scene->GetActiveCamera();
-        glm::vec2 cameraPos = camera->GetPosition();
-        glm::vec2 viewSize = camera->GetViewSize();
-        glm::vec2 viewSizeHalf = glm::vec2(viewSize.x * 0.5f, viewSize.y * 0.5f);
-        glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    
-        // Calculate position of power bar in world space
-        glm::vec2 barPos = playerPos - glm::vec2(BOW_POWER_BAR_SIZE.x, BOW_POWER_BAR_SIZE.y) * 0.5f;
-        barPos.y += 32.0f * LabyrinthManager::SCALE;
-    
-        glm::vec2 screenPos;
-        screenPos.x = (barPos.x - (cameraPos.x - viewSizeHalf.x));
-        screenPos.y = (barPos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
+    // Get positions
+    wolf::Scene* scene = &this->GetGameObject()->GetScene();
+    wolf::Camera2D* camera = scene->GetActiveCamera();
+    glm::vec2 cameraPos = camera->GetPosition();
+    glm::vec2 viewSize = camera->GetViewSize();
+    glm::vec2 viewSizeHalf = glm::vec2(viewSize.x * 0.5f, viewSize.y * 0.5f);
+    glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
 
-    // Push ImGui styles for a more vibrant look with background, rounded frame, and padding
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);           // Rounded corners for the frame
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.0f);          // Rounded corners for the window
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3.0f, 2.0f)); // Padding inside the bar for a thicker look
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f)); // Semi-transparent black background
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 1.0f, 1.0f, 0.5f));   // Soft white border
+    // Calculate position of power bar in world space
+    glm::vec2 barPos = playerPos - glm::vec2(THROW_POWER_BAR_SIZE.x, THROW_POWER_BAR_SIZE.y) * 0.5f;
+    barPos.y += 32.0f * LabyrinthManager::SCALE;
+
+    glm::vec2 screenPos;
+    screenPos.x = (barPos.x - (cameraPos.x - viewSizeHalf.x));
+    screenPos.y = (barPos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.24f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
     // Render background bar with a slightly larger size for a frame effect
     ImGui::SetNextWindowPos(ImVec2(screenPos.x - 5.0f, screenPos.y - 5.0f));
     ImGui::SetNextWindowSize(ImVec2(THROW_POWER_BAR_SIZE.x + 10.0f, THROW_POWER_BAR_SIZE.y + 3.0f));
-    ImGui::Begin("##PowerBarBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+    ImGui::Begin("##PowerBarBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
     ImGui::End();
 
-    // Render the throw power bar
+    // Render the bow power bar
     ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y));
-    ImGui::SetNextWindowSize(THROW_POWER_BAR_SIZE);
-    ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-    ImVec4 barColor = ImVec4(1.0f - (m_throwPower / m_maxThrowPower), (m_throwPower / m_maxThrowPower), 0.0f, 1.0f); // Gradient from red to green
+    ImGui::SetNextWindowSize(BOW_POWER_BAR_SIZE);
+    ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
+    ImVec4 barColor = ImVec4(1.0f - (m_throwPower / m_maxThrowPower), (m_throwPower / m_maxThrowPower), 0.0f, 1.0f);
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
-    ImGui::ProgressBar(m_throwPower / m_maxThrowPower, ImVec2(-1, 10.0f));
+    ImGui::ProgressBar(m_throwPower / m_maxThrowPower, ImVec2(-1, 10.0f), "");
     ImGui::PopStyleColor();
     ImGui::End();
 
     // Render label "Power" below the bar
-    ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y - 20.0f));
+    ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y - 26.0f));
     ImGui::SetNextWindowSize(ImVec2(100.0f, 10.0f));
-    ImGui::Begin("##PowerLabel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-    ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Power");
+    ImGui::Begin("##PowerLabel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Power");
     ImGui::End();
 
     // Pop all the style vars and colors
-    ImGui::PopStyleVar(3);
-    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(4);
 }
 
 void PlayerController::CheckHealth() {

@@ -104,24 +104,28 @@ void PlayState::Enter()
     glm::vec2 viewSize = camera.GetViewSize();
     m_pFBO = wolf::BufferManager::CreateFrameBuffer(viewSize.x, viewSize.y, viewSize.x, viewSize.y);
 
-    // Add the labyrinth manager and load the default config
+    // Add the labyrinth manager and determine the config to load
     m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
     m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
-
-    // Seed logic from main menu
-    bool specialSeed = false;
-    if (m_seedText.length() > 0)
+    bool usedSecretSeed = false;
+    if (m_seedText.length() == 0)
     {
+        // Load the default config with a random seed
+        m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
+    }
+    else
+    {
+        // TODO: Cleanup seed code
         // Check for special configs
         if (m_seedText == "goodluck")
         {
             m_pLabyrinthManager->LoadConfig("data/configs/secret/goodluck.yaml");
-            specialSeed = true;
+            usedSecretSeed = true;
         }
         else if (m_seedText == "gottagofast")
         {
             m_pLabyrinthManager->LoadConfig("data/configs/secret/gottagofast.yaml");
-            specialSeed = true;
+            usedSecretSeed = true;
             auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
             if (playerController)
             {
@@ -134,12 +138,12 @@ void PlayState::Enter()
         else if (m_seedText == "thefloorislava")
         {
             m_pLabyrinthManager->LoadConfig("data/configs/secret/thefloorislava.yaml");
-            specialSeed = true;
+            usedSecretSeed = true;
         }
         else if (m_seedText == "minitaurmania")
         {
             m_pLabyrinthManager->LoadConfig("data/configs/secret/minitaurmania.yaml");
-            specialSeed = true;
+            usedSecretSeed = true;
         }
         else
         {
@@ -161,11 +165,6 @@ void PlayState::Enter()
             
             m_pLabyrinthManager->SetSeed(seed);
         }
-    }
-    else
-    {
-        // Load the default config with a random seed
-        m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
     }
 
     // Initialize managers that require the labyrinth manager seed
@@ -208,7 +207,7 @@ void PlayState::Enter()
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
     wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
 
-    if (!specialSeed)
+    if (!usedSecretSeed)
     {
         if (!m_debugHotkeys) wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
