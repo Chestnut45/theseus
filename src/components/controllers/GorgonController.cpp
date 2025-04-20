@@ -550,7 +550,7 @@ void GorgonController::HandleAttackingState(float delta)
 
             if (auto* pSprite = m_pTarget->GetComponent<AnimatedSprite2D>())
             {
-                pSprite->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED, 0.6f, 2.2f, 0.2f);
+                pSprite->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED, 0.25f, 2.5f, 0.25f);
             }
 
             wolf::Audio::Play("data/sounds/sfx_petrification.wav", 0.45f);

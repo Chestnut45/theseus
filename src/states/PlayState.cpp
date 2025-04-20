@@ -506,6 +506,7 @@ void PlayState::Update(float delta)
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Burning Blade"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Poison-Tipped Spear"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Medusa's Bow"));
                 }
 
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {

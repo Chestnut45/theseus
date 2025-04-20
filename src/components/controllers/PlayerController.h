@@ -259,7 +259,7 @@ private:
     //picking up management
     bool m_isHoldingObject = false;
     float m_chargeTime = 0.0f;  // New variable to store charge time for throws
-    float m_throwSpeed = 300.0f;  // Speed multiplier for the throw
+    float m_throwSpeed = 5.0f;  // Speed multiplier for the throw
     float m_throwPower = 0.0f;       // Power for the throw
     const float m_maxThrowPower = 125.0f; // Max limit for the throw power
     const float m_powerChargeRate = 150.0f; // Rate at which power increases

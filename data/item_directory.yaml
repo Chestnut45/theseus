@@ -166,7 +166,7 @@ Old Bow: {
   slot: WEAPON,
   type: BOW,
   delay: 0.4,
-  damage: 150.0,
+  damage: 100.0,
   hurtbox_size: {x: 1.0, y: 1.0},
   has_projectiles: true,
   projectile: {
@@ -285,7 +285,7 @@ Portal: {
 Burning Blade: {
   id: EQUIPMENT,
   description: A magical blade infused with Harpy breath.,
-  value: 100,
+  value: 200,
   texture_frame: 22,
   rarity: RARE,
   slot: WEAPON,
@@ -298,8 +298,8 @@ Burning Blade: {
 
 Poison-Tipped Spear: {
   id: EQUIPMENT,
-  description: A magical spear infused with Gorgon tears.,
-  value: 100,
+  description: A magical spear dipped in Gorgon tears.,
+  value: 125,
   texture_frame: 27,
   rarity: EPIC,
   slot: WEAPON,
@@ -308,4 +308,24 @@ Poison-Tipped Spear: {
   damage: 75.0,
   hurtbox_size: {x: 24.0, y: 24.0},
   has_projectiles: false
+}
+
+Medusa's Bow: {
+  id: EQUIPMENT,
+  description: A bow with seemingly-infinite petrifying arrows.,
+  value: 150,
+  texture_frame: 28,
+  rarity: EPIC,
+  slot: WEAPON,
+  type: BOW,
+  delay: 0.4,
+  damage: 150.0,
+  hurtbox_size: {x: 1.0, y: 1.0},
+  has_projectiles: true,
+  projectile: {
+    damage: 1.0,
+    hurtbox_size: {x: 6.0, y: 6.0},
+    initial_velocity: {x: 768.0, y: 768.0},
+    sprite_path: data/textures/MedusaArrow.png
+  }
 }

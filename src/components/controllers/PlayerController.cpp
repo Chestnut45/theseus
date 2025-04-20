@@ -753,8 +753,10 @@ void PlayerController::HandleBowAttack(float delta)
             projectileCollider.SetIgnoreTag(player->GetID());
             
             // Add attack damage component
+            std::vector<std::pair<StatusComponent::StatusEffectType, float>> effects;
+            effects.push_back(std::make_pair(StatusComponent::StatusEffectType::PETRIFIED, 5.0f));
             float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.01f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
-            auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200);
+            auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200.0f, effects);
 
             // Calculate spawn offset
             glm::vec2 spawnOffset = m_attackDir * 32.0f;
@@ -1017,6 +1019,11 @@ void PlayerController::HandleBowAttackAnimation()
                 m_currentBowAnim = 1;
 
                 std::string sheet = "BowFire";
+
+                if (m_pCurrentWeapon->GetName() == "Medusa's Bow")
+                {
+                    sheet = "MedusaBowFire";
+                }
                 
                 switch (m_lastFaceDirectionEnum)
                 {
@@ -1077,6 +1084,11 @@ void PlayerController::HandleBowAttackAnimation()
         else
         {
             std::string sheet = "BowFire";
+
+            if (m_pCurrentWeapon->GetName() == "Medusa's Bow")
+            {
+                sheet = "MedusaBowFire";
+            }
                 
             switch (m_lastFaceDirectionEnum)
             {
@@ -1297,7 +1309,7 @@ void PlayerController::ThrowHeldObject() {
     auto* t = m_pHeldObject->GetGameObject()->GetComponent<wolf::Transform2D>();
     t->SetPosition(m_pTransform->GetGlobalPosition());
     
-    glm::vec2 finalVelocity = throwDirection * m_throwPower * 3.0f;
+    glm::vec2 finalVelocity = throwDirection * m_throwPower * m_throwSpeed;
     throwableVelocity->SetVelocity(finalVelocity);
 
     // Set the state of the held object to THROWN and reset holding variables
@@ -1561,6 +1573,10 @@ std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection dir
     if(type == WeaponType::BOW) 
     {
         weaponType = "Bow";
+        if (m_pCurrentWeapon->GetName() == "Medusa's Bow")
+        {
+            weaponType = "MedusaBow";
+        }
         startingSheet = "Load";
     }
     

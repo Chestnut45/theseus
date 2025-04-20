@@ -154,7 +154,7 @@ void MinitaurController::Update(float delta)
     {
         // Switch to the DEATH state if the health is depleted
         ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
-        collider->SetActive(false);
+        collider->SetColliderType(ColliderComponent::ColliderType::HURTBOXDR);
         ChangeState(EnemyState::DEATH);
         
         return;
@@ -831,7 +831,11 @@ void MinitaurController::ExitIdleState()
 
 void MinitaurController::ExitPetrifiedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_pAnimComponent->SetAnimPaused(false);
 }
 
@@ -844,7 +848,11 @@ void MinitaurController::ExitProspectState()
 
 void MinitaurController::ExitStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_stunnedTimer = 0.0f;
 }
 

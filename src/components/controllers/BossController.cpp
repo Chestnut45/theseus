@@ -267,6 +267,42 @@ void BossController::Update(float delta)
     // Update previous state
     m_prevState = m_state;
 
+    // Run petrification logic always
+    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+    if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    {
+        if (CanBePetrified())
+        {
+            m_state = State::PETRIFIED;
+        }
+    }
+    else 
+    {
+        // On exiting petrified state
+        if(m_state == State::PETRIFIED)
+        {
+            m_pAnimSprite->SetTint(glm::vec3(1.0f));
+            switch (m_phase)
+            {
+                case FightPhase::PHASE_1:
+                    m_state = State::SIT;
+                    break;
+                
+                case FightPhase::PHASE_2:
+                    m_state = State::APPROACH;
+                    break;
+                
+                case FightPhase::PHASE_3:
+                    m_state = State::SEARCHING;
+                    break;
+            }
+        }     
+
+        m_pAnimSprite->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+
+        m_nextAttackTimer.Restart();
+    }
+
     // Call phase-specific update method
     switch (m_phase)
     {
@@ -283,7 +319,7 @@ void BossController::Update(float delta)
             break;
     }
 
-    UpdateAnimation();
+    if (m_state != State::PETRIFIED) UpdateAnimation();
     if (m_renderHealthBar) RenderHealthBar(delta);
 }
 
@@ -1425,6 +1461,13 @@ void BossController::UpdatePhase2(float delta)
         m_transitionTimer.Restart();
         m_transitionStartPos = m_pTransform->GetGlobalPosition();
     }
+}
+
+bool BossController::CanBePetrified() const
+{
+    return m_state != State::TRANSITION_TO_PHASE_3 &&
+        m_state != State::DEAD &&
+        m_state != State::SIT;
 }
 
 bool BossController::IsAirborne() const

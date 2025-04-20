@@ -7,7 +7,7 @@ enemies:
     melee_windup: 0.45
     detection_range: 500
     base_damage: 25.0
-    chase_speed: 120
+    chase_speed: 125
     animation_init_file: "data/animations/minitaur_anim_init.yaml"
 
   - type: harpy
@@ -18,7 +18,7 @@ enemies:
     ranged_windup: 1
     detection_range: 500
     base_damage: 25
-    chase_speed: 120
+    chase_speed: 135
     animation_init_file: "data/animations/harpy_anim_init.yaml"
 
   - type: gorgon
@@ -27,7 +27,7 @@ enemies:
     ranged_range: 300
     ranged_cooldown: 1
     ranged_windup: 1.5
-    detection_range: 400
+    detection_range: 700
     base_damage: 50
     chase_speed: 110
     animation_init_file: "data/animations/gorgon_anim_init.yaml"

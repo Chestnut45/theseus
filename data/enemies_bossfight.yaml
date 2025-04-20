@@ -18,7 +18,7 @@ enemies:
     ranged_windup: 1
     detection_range: 2000
     base_damage: 25
-    chase_speed: 120
+    chase_speed: 150
     animation_init_file: "data/animations/harpy_anim_init.yaml"
 
   - type: gorgon
@@ -29,6 +29,6 @@ enemies:
     ranged_windup: 1.5
     detection_range: 2000
     base_damage: 50
-    chase_speed: 120
+    chase_speed: 125
     animation_init_file: "data/animations/gorgon_anim_init.yaml"
 

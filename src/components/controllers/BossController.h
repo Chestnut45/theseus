@@ -68,6 +68,7 @@ public:
 
         // Special states
         TAUNT, // Could play an animation when the player dies
+        PETRIFIED,
         DEAD
     };
 
@@ -90,6 +91,7 @@ public:
     void StartBossfight();
 
     // Helpful state
+    bool CanBePetrified() const;
     bool IsAirborne() const;
     bool IsAlive() const;
 
