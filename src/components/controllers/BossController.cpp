@@ -758,14 +758,14 @@ void BossController::SpawnWave(int waveIndex)
     int minitaurs = 0, gorgons = 0, harpies = 0;
     switch (waveIndex)
     {
-        // case 1: minitaurs = 4; harpies = 2; break;
-        // case 2: gorgons = 2; harpies = 2; break;
-        // case 3: minitaurs = 5; harpies = 3; gorgons = 2; break;
+        case 1: minitaurs = 4; harpies = 2; break;
+        case 2: gorgons = 2; harpies = 2; break;
+        case 3: minitaurs = 5; harpies = 3; gorgons = 2; break;
         
         // DEBUG: Quick way through all phases
-        case 1:
-        case 2:
-        case 3: minitaurs = 1; break;
+        // case 1:
+        // case 2:
+        // case 3: minitaurs = 1; break;
     }
 
     // Get boss position
