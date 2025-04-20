@@ -498,13 +498,15 @@ void PlayState::Update(float delta)
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Triple-Shot Bow"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Medusa's Bow"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Zeus' Wrath"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Juggin Juice"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Liquid Life"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Gorgon Tears"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lapis Lazuli Ring"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lava Wine"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dented Helmet"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Theezys"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lapis Lazuli Ring"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
                 }
 
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {
