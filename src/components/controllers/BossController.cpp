@@ -276,7 +276,7 @@ void BossController::Update(float delta)
             m_state = State::PETRIFIED;
         }
     }
-    else 
+    else
     {
         // On exiting petrified state
         if(m_state == State::PETRIFIED)

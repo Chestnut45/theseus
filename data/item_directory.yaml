@@ -93,7 +93,7 @@ Pain Juice: {
   description: I tried juicing a Minitaur's heart. It's painful to drink.,
   value: 5,
   texture_frame: 8,
-  rarity: COMMON,
+  rarity: RARE,
   is_stackable: false,
   num_uses: 1,
   type: PERCENT_AMT,
@@ -327,5 +327,25 @@ Medusa's Bow: {
     hurtbox_size: {x: 6.0, y: 6.0},
     initial_velocity: {x: 768.0, y: 768.0},
     sprite_path: data/textures/MedusaArrow.png
+  }
+}
+
+Triple-Shot Bow: {
+  id: EQUIPMENT,
+  description: Fires a volley of arrows at once.,
+  value: 150,
+  texture_frame: 29,
+  rarity: RARE,
+  slot: WEAPON,
+  type: BOW,
+  delay: 0.4,
+  damage: 100.0,
+  hurtbox_size: {x: 1.0, y: 1.0},
+  has_projectiles: true,
+  projectile: {
+    damage: 1.0,
+    hurtbox_size: {x: 6.0, y: 6.0},
+    initial_velocity: {x: 768.0, y: 768.0},
+    sprite_path: data/textures/Arrow.png
   }
 }

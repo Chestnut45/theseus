@@ -812,7 +812,8 @@ void PlayState::Update(float delta)
 
             for (auto&&[_, npc, transform] : m_pGameInstance->GetScene().Each<NPCComponent, wolf::Transform2D>()) {
                 // Distance check
-                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f) {
+                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f &&
+                    npc.GetState() != NPCComponent::PETRIFIED) {
                     // Player is in range of the NPC so we display the tooltip
                     std::string tooltip = "Press E to talk to " + npc.GetName();
                     ShowTooltip(tooltip);
