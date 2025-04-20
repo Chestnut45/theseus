@@ -2013,9 +2013,14 @@ void PlayState::RenderMap() {
     ImGui::End();
     ImVec2 borderMin(windowMin.x - 2, windowMin.y - 2);
     ImVec2 borderMax(windowMax.x + 2, windowMax.y + 2);
-    // --- Draw the border AFTER the minimap rendering ---
-    drawList->AddRect(borderMin, borderMax, IM_COL32(255, 169, 0, 255), 10.0f, 0, 4.0f); // Thick gold border
-    drawList->AddRect(borderMin, borderMax, IM_COL32(255, 169, 0, 128), 10.0f, 0, 3.0f); // Outer glow
+    // Testing circular minimap
+    // Draw circular boundary
+    // ImVec2 windowPos = ImGui::GetWindowPos();
+    // ImVec2 center = ImVec2(windowPos.x + 128, windowPos.y + 128);
+    // drawList->AddCircleFilled(center, 128, IM_COL32(30, 30, 30, 220)); // Background
+    // drawList->AddCircle(center, 128, IM_COL32(255, 255, 255, 255), 64, 3.0f); // Border
+    // drawList->AddRect(borderMin, borderMax, IM_COL32(255, 169, 0, 255), 10.0f, 0, 4.0f); // Thick gold border
+    // drawList->AddRect(borderMin, borderMax, IM_COL32(255, 169, 0, 128), 10.0f, 0, 3.0f); // Outer glow
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(2);
 }

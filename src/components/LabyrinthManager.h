@@ -48,6 +48,15 @@ public:
         // Labyrinth-space tile positions for each doorway tile
         // connecting this room to another part of the labyrinth
         std::vector<glm::ivec2> m_doors;
+
+        // Labyrinth-space tiles that do not contain a spawned entity
+        std::vector<glm::ivec2> m_emptyTiles;
+
+        // Helper methods
+        bool IsEmpty(const glm::ivec2& tile)
+        {
+            return std::find(m_emptyTiles.begin(), m_emptyTiles.end(), tile) != m_emptyTiles.end();
+        }
     };
 
 // Public interface

@@ -32,6 +32,7 @@
 
 #include <AttackDamageComponent.h>
 #include <TimedDestroyerComponent.h>
+#include <ThrowableObjectComponent.h>
 #include <GorgonBuilder.h>
 #include <MinitaurBuilder.h>
 #include <HarpyBuilder.h>
@@ -192,6 +193,22 @@ void BossController::Init()
 
     for (const auto& tile : locations)
     {
+        // Hack fix for throwables spawning on top of the pillars
+        if (!roomOptional->IsEmpty(tile))
+        {
+            glm::vec2 tileWorldPos = m_pLabyrinthManager->GetWorldPosition(tile) + 48.0f;
+            for (auto&&[_, obj, transform] : GetGameObject()->GetScene().Each<ThrowableObjectComponent, wolf::Transform2D>())
+            {
+                // Delete the throwable that is occupying the pillar tile
+                // 48.0f = half tile radius (32px * 3 / 2)
+                if (glm::length(transform.GetGlobalPosition() - tileWorldPos) <= 48.0f)
+                {
+                    obj.GetGameObject()->Delete();
+                    break;
+                }
+            }
+        }
+
         m_pLabyrinthManager->SetTile(tile.x, tile.y, Tile::WallMinotaur);
 
         // Spawn a pillar as a child object of the pillar group object

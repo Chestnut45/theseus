@@ -65,7 +65,7 @@ Legendary Schematic: {
 Healing Heart: {
   id: CONSUMABLE,
   description: This heart will heal you!,
-  value: 10,
+  value: 25,
   texture_frame: 21,
   rarity: COMMON,
   is_stackable: true,
@@ -78,7 +78,7 @@ Healing Heart: {
 Liquid Life: {
   id: CONSUMABLE,
   description: Don't ask where I got this. Seriously.,
-  value: 30,
+  value: 250,
   texture_frame: 4,
   rarity: UNCOMMON,
   is_stackable: true,
@@ -90,8 +90,8 @@ Liquid Life: {
 
 Juggin Juice: {
   id: CONSUMABLE,
-  description: "It is Tuesday, my doods.",
-  value: 100,
+  description: "Smells like Tuesday...",
+  value: 500,
   texture_frame: 31,
   rarity: LEGENDARY,
   is_stackable: true,
@@ -270,7 +270,7 @@ Faux-leather Gloves: {
 Lapis Lazuli Ring: {
   id: EQUIPMENT,
   description: Lapis Lazuli ores can be mined with a stone pickaxe or better and drops 4-9 lapis lazuli.,
-  value: 100,
+  value: 250,
   texture_frame: 24,
   rarity: LEGENDARY,
   slot: ACCESSORY,
@@ -288,7 +288,7 @@ Portal: {
   id: PLACEABLE,
   placeable_type: PORTAL,
   description: Think With Portals!(TM),
-  value: 100,
+  value: 200,
   texture_frame: 26,
   is_stackable: true,
   rarity: LEGENDARY,
@@ -365,13 +365,13 @@ Triple-Shot Bow: {
 
 Zeus' Wrath: {
   id: EQUIPMENT,
-  description: Strike your foes from the heavens.,
+  description: A medallion enabling its holder to summon pure energy down from the heavens onto their foes.,
   value: 1000,
   texture_frame: 30,
   rarity: LEGENDARY,
   slot: WEAPON,
   type: DIVINE,
-  delay: 0.1,
+  delay: 0.5,
   damage: 250.0,
   hurtbox_size: {x: 32.0, y: 32.0},
   has_projectiles: false

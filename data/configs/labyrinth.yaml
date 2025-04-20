@@ -11,7 +11,7 @@ rooms: [
 		position: {type: manual, origin: {x: 37, y: 37}},
 		size: {type: manual, value: {x: 21, y: 21}},
 		entities: [
-			{type: throwable_object, amount: 16, placement: random},
+			{type: throwable_object, amount: 32, placement: random},
 		]
 	},
 	{
