@@ -82,13 +82,26 @@ Liquid Life: {
   texture_frame: 4,
   rarity: UNCOMMON,
   is_stackable: true,
-  num_uses: 1,
+  num_uses: 2,
   type: PERCENT_AMT,
   attribute: HEALTH,
   amount: 0.5,
 }
 
-Pain Juice: {
+Juggin Juice: {
+  id: CONSUMABLE,
+  description: "It is Tuesday, my doods.",
+  value: 100,
+  texture_frame: 30,
+  rarity: LEGENDARY,
+  is_stackable: true,
+  num_uses: 1,
+  type: PERCENT_AMT,
+  attribute: HEALTH,
+  amount: 1.0,
+}
+
+Pain Puree: {
   id: CONSUMABLE,
   description: I tried juicing a Minitaur's heart. It's painful to drink.,
   value: 5,
@@ -132,7 +145,7 @@ Gorgon Tears: {
 Dull Blade: {
   id: EQUIPMENT,
   description: A blade so dull butter could cut through it.,
-  value: 10,
+  value: 25,
   texture_frame: 1,
   rarity: COMMON,
   slot: WEAPON,
@@ -146,7 +159,7 @@ Dull Blade: {
 Spear: {
   id: EQUIPMENT,
   description: The pen is mightier than the sword and this is a very large pen indeed.,
-  value: 10,
+  value: 50,
   texture_frame: 2,
   rarity: UNCOMMON,
   slot: WEAPON,
@@ -160,7 +173,7 @@ Spear: {
 Old Bow: {
   id: EQUIPMENT,
   description: This bow smells very musty,
-  value: 5,
+  value: 50,
   texture_frame: 3,
   rarity: COMMON,
   slot: WEAPON,
@@ -213,7 +226,7 @@ Rusty Chestplate: {
 Copper Vambraces: {
   id: EQUIPMENT,
   description: Protects your forearms!,
-  value: 1,
+  value: 10,
   texture_frame: 11,
   rarity: EPIC,
   slot: ARMS,
@@ -257,7 +270,7 @@ Faux-leather Gloves: {
 Lapis Lazuli Ring: {
   id: EQUIPMENT,
   description: Lapis Lazuli ores can be mined with a stone pickaxe or better and drops 4-9 lapis lazuli.,
-  value: 50,
+  value: 100,
   texture_frame: 24,
   rarity: LEGENDARY,
   slot: ACCESSORY,
@@ -275,7 +288,7 @@ Portal: {
   id: PLACEABLE,
   placeable_type: PORTAL,
   description: Think With Portals!(TM),
-  value: 30,
+  value: 100,
   texture_frame: 26,
   is_stackable: true,
   rarity: LEGENDARY,
@@ -285,9 +298,9 @@ Portal: {
 Burning Blade: {
   id: EQUIPMENT,
   description: A magical blade infused with Harpy breath.,
-  value: 200,
+  value: 175,
   texture_frame: 22,
-  rarity: RARE,
+  rarity: EPIC,
   slot: WEAPON,
   type: SWORD,
   delay: 0.25,
@@ -301,7 +314,7 @@ Poison-Tipped Spear: {
   description: A magical spear dipped in Gorgon tears.,
   value: 125,
   texture_frame: 27,
-  rarity: EPIC,
+  rarity: RARE,
   slot: WEAPON,
   type: SPEAR,
   delay: 0.25,
@@ -312,14 +325,14 @@ Poison-Tipped Spear: {
 
 Medusa's Bow: {
   id: EQUIPMENT,
-  description: A bow with seemingly-infinite petrifying arrows.,
+  description: A bow with an endless supply of petrifying arrows.,
   value: 150,
   texture_frame: 28,
-  rarity: EPIC,
+  rarity: LEGENDARY,
   slot: WEAPON,
   type: BOW,
   delay: 0.4,
-  damage: 150.0,
+  damage: 200.0,
   hurtbox_size: {x: 1.0, y: 1.0},
   has_projectiles: true,
   projectile: {
@@ -333,9 +346,9 @@ Medusa's Bow: {
 Triple-Shot Bow: {
   id: EQUIPMENT,
   description: Fires a volley of arrows at once.,
-  value: 150,
+  value: 100,
   texture_frame: 29,
-  rarity: RARE,
+  rarity: UNCOMMON,
   slot: WEAPON,
   type: BOW,
   delay: 0.4,

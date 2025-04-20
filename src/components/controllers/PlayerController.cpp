@@ -739,45 +739,100 @@ void PlayerController::HandleBowAttack(float delta)
             glm::vec2 projectileDimensions = projprop.v2HurtboxSize;
             glm::vec2 hurtboxOffset = glm::vec2(-projectileDimensions.x, projectileDimensions.y) * 0.5f;
 
-            // Spawn projectile object & add components
-            auto& scene = player->GetScene();
-            auto& projectile = scene.CreateObject2D();
+            if (m_pCurrentWeapon->GetName() == "Triple-Shot Bow")
+            {
+                float offsetAngle = glm::radians(15.0f);
+                for (int i = 0; i < 3; ++i)
+                {
+                    // Spawn projectile object & add components
+                    auto& scene = player->GetScene();
+                    auto& projectile = scene.CreateObject2D();
 
-            // Add sprite component
-            auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>(projprop.strPathToSprite);
-            projectileSprite.SetOriginToCenterOfTexture();
-            
-            // Add collider component
-            auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-            projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
-            projectileCollider.SetIgnoreTag(player->GetID());
-            
-            // Add attack damage component
-            std::vector<std::pair<StatusComponent::StatusEffectType, float>> effects;
-            effects.push_back(std::make_pair(StatusComponent::StatusEffectType::PETRIFIED, 5.0f));
-            float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.01f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
-            auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200.0f, effects);
+                    // Add sprite component
+                    auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>(projprop.strPathToSprite);
+                    projectileSprite.SetOriginToCenterOfTexture();
+                    
+                    // Add collider component
+                    auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+                    projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+                    projectileCollider.SetIgnoreTag(player->GetID());
+                    
+                    // Add attack damage component
+                    float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.01f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
+                    auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200.0f);
 
-            // Calculate spawn offset
-            glm::vec2 spawnOffset = m_attackDir * 32.0f;
-            projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
-            
-            // Calculate projectile velocity
-            float arrowSpeed = glm::max(glm::length(projprop.v2Velocity) * 0.4f, glm::length(projprop.v2Velocity) * m_bowChargeScale);
-            auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
-            projectileVelocity.SetVelocity(m_attackDir * arrowSpeed);
+                    // Calculate actual direction
+                    glm::vec2 shotDir = glm::rotate(m_attackDir, offsetAngle - (offsetAngle * i));
 
-            // Add timed destroyer component
-            float time = m_arrowRange / arrowSpeed + 0.5f;
-            auto& projectileTDComponent = projectile.AddComponent<TimedDestroyerComponent>(time);
+                    // Calculate spawn offset
+                    glm::vec2 spawnOffset = shotDir * 32.0f;
+                    projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
+                    
+                    // Calculate projectile velocity
+                    float arrowSpeed = glm::max(glm::length(projprop.v2Velocity) * 0.4f, glm::length(projprop.v2Velocity) * m_bowChargeScale);
+                    auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+                    projectileVelocity.SetVelocity(shotDir * arrowSpeed);
 
-            // Calculate how to rotate arrow sprite
-            glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);
-            float angle = std::acos(glm::dot(baseVector, m_attackDir) / (glm::length(baseVector) * glm::length(m_attackDir)));
-            if(m_attackDir.y < 0.0f) angle *= -1;
-            projectile.GetComponent<wolf::Transform2D>()->SetRotation(angle);
+                    // Add timed destroyer component
+                    float time = m_arrowRange / arrowSpeed + 0.5f;
+                    auto& projectileTDComponent = projectile.AddComponent<TimedDestroyerComponent>(time);
 
-            projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+                    // Calculate how to rotate arrow sprite
+                    glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);
+                    float angle = std::acos(glm::dot(baseVector, shotDir) / (glm::length(baseVector) * glm::length(shotDir)));
+                    if(shotDir.y < 0.0f) angle *= -1;
+                    projectile.GetComponent<wolf::Transform2D>()->SetRotation(angle);
+                    projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+                }
+            }
+            else
+            {
+                // Spawn projectile object & add components
+                auto& scene = player->GetScene();
+                auto& projectile = scene.CreateObject2D();
+
+                // Add sprite component
+                auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>(projprop.strPathToSprite);
+                projectileSprite.SetOriginToCenterOfTexture();
+                
+                // Add collider component
+                auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+                projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+                projectileCollider.SetIgnoreTag(player->GetID());
+                
+                // Add attack damage component
+                float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.01f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
+                if (m_pCurrentWeapon->GetName() == "Medusa's Bow")
+                {
+                    std::vector<std::pair<StatusComponent::StatusEffectType, float>> effects;
+                    effects.push_back(std::make_pair(StatusComponent::StatusEffectType::PETRIFIED, 5.0f));
+                    auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200.0f, effects);
+                }
+                else
+                {
+                    auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200.0f);
+                }
+
+                // Calculate spawn offset
+                glm::vec2 spawnOffset = m_attackDir * 32.0f;
+                projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
+                
+                // Calculate projectile velocity
+                float arrowSpeed = glm::max(glm::length(projprop.v2Velocity) * 0.4f, glm::length(projprop.v2Velocity) * m_bowChargeScale);
+                auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+                projectileVelocity.SetVelocity(m_attackDir * arrowSpeed);
+
+                // Add timed destroyer component
+                float time = m_arrowRange / arrowSpeed + 0.5f;
+                auto& projectileTDComponent = projectile.AddComponent<TimedDestroyerComponent>(time);
+
+                // Calculate how to rotate arrow sprite
+                glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);
+                float angle = std::acos(glm::dot(baseVector, m_attackDir) / (glm::length(baseVector) * glm::length(m_attackDir)));
+                if(m_attackDir.y < 0.0f) angle *= -1;
+                projectile.GetComponent<wolf::Transform2D>()->SetRotation(angle);
+                projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+            }
 
             // Play sfx
             wolf::Audio::Play("data/sounds/sfx_arrow_shot.wav", 0.5f);
@@ -1024,6 +1079,11 @@ void PlayerController::HandleBowAttackAnimation()
                 {
                     sheet = "MedusaBowFire";
                 }
+                else if (m_pCurrentWeapon->GetName() == "Triple-Shot Bow")
+                {
+                    sheet = "TripleBowFire";
+                }
+                
                 
                 switch (m_lastFaceDirectionEnum)
                 {
@@ -1089,7 +1149,11 @@ void PlayerController::HandleBowAttackAnimation()
             {
                 sheet = "MedusaBowFire";
             }
-                
+            else if (m_pCurrentWeapon->GetName() == "Triple-Shot Bow")
+            {
+                sheet = "TripleBowFire";
+            }
+            
             switch (m_lastFaceDirectionEnum)
             {
                 case PlayerDirection::SOUTH:       { sheet += "South"; break; }
@@ -1576,6 +1640,10 @@ std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection dir
         if (m_pCurrentWeapon->GetName() == "Medusa's Bow")
         {
             weaponType = "MedusaBow";
+        }
+        else if (m_pCurrentWeapon->GetName() == "Triple-Shot Bow")
+        {
+            weaponType = "TripleBow";
         }
         startingSheet = "Load";
     }

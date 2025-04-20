@@ -491,22 +491,18 @@ void PlayState::Update(float delta)
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_1))
                 {
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dull Blade"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Old Bow"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Spear"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Healing Heart"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dented Helmet"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Rusty Chestplate"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Copper Vambraces"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Kilt"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Theezys"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Faux-leather Gloves"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("The Floor is Lava Boots"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lapis Lazuli Ring"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Burning Blade"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Spear"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Poison-Tipped Spear"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Old Bow"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Triple-Shot Bow"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Medusa's Bow"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Liquid Life"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lapis Lazuli Ring"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dented Helmet"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Theezys"));
                 }
 
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_2)) {

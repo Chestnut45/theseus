@@ -13,6 +13,8 @@ animation_sets: [
   data/animations/player_bow_fire_anim_set.yaml,
   data/animations/player_medusa_bow_load_anim_set.yaml,
   data/animations/player_medusa_bow_fire_anim_set.yaml,
+  data/animations/player_triple_bow_load_anim_set.yaml,
+  data/animations/player_triple_bow_fire_anim_set.yaml,
   data/animations/player_spear_anim_set.yaml,
   data/animations/player_poison_spear_anim_set.yaml,
   data/animations/player_sword_anim_set.yaml,
