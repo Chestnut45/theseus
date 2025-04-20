@@ -15,6 +15,7 @@
 #include <BossController.h>
 #include <W_Audio.h>
 #include <W_RNG.h>
+#include <W_TextureManager.h>
 
 
 PortalTileManager* PortalTileManager::s_pPTMG = nullptr;
@@ -29,6 +30,8 @@ void PortalTileManager::CreateInstance(LabyrinthManager* p_lbmg)
     if(s_pPTMG == nullptr)
     {
         s_pPTMG = new PortalTileManager(p_lbmg);
+        s_pParticleTex = wolf::TextureManager::CreateTexture("data/textures/portal_particle.png");
+        s_pParticleTex->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest, wolf::Texture::FilterMode::FM_Nearest);
     }
 }
 
@@ -38,6 +41,8 @@ void PortalTileManager::DestroyInstance()
     {
         delete s_pPTMG;
         s_pPTMG = nullptr;
+        wolf::TextureManager::DestroyTexture(s_pParticleTex);
+        s_pParticleTex = nullptr;
     }
 }
 
@@ -363,6 +368,7 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
 
     // Add particle component
     ParticleComponent* particleComponent = &m_pPortalTileSpriteObj->AddComponent<ParticleComponent>();
+    particleComponent->LoadConfigFromYAML("data/particles/portal.yaml");
 
     // Add collider component
     ColliderComponent* colliderComponent = &m_pPortalTileSpriteObj->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, false, false);
@@ -377,6 +383,8 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     lightComponent->SetIgnoreWallTiles(true);
 
     m_pChunk->AddChild(*m_pPortalTileSpriteObj);
+
+    m_emissionTimer.Start();
 }
 
 PortalTileManager::PortalTile::~PortalTile()
@@ -428,20 +436,25 @@ void PortalTileManager::PortalTile::Update(float p_dt)
     // Return if chunk is inactive and we haven't started the bossfight yet
     if(!isChunkActive && !m_pLabyrinthManager->IsBossfightStarted()) return;
        
-    // Emit particles
-    if(s_rng.NextFloat(0.0f, 1.0f) <= EMISSION_CHANCE)
+    // Emit particles (now with consistent speed)
+    if(m_emissionTimer.Elapsed() > m_nextEmission)
     {
-        m_pPortalTileSpriteObj->GetComponent<ParticleComponent>()->Emit(
-            glm::vec2(
-                m_vTilePos.x * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f,
-                m_vTilePos.y * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f
-            ),
-            glm::vec2(s_rng.NextInt(-25, 25), s_rng.NextInt(-25, 25)),
-            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            4.0f,
-            4.0f
-        );
-
+        m_nextEmission = s_rng.NextFloat(0.01f, 1.0f);
+        m_emissionTimer.Restart();
+        if (auto* pParticles = m_pPortalTileSpriteObj->GetComponent<ParticleComponent>())
+        {
+            pParticles->Emit(
+                glm::vec2(
+                    m_vTilePos.x * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f,
+                    m_vTilePos.y * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f
+                ),
+                glm::vec2(s_rng.NextInt(-25, 25), s_rng.NextInt(-25, 25)),
+                glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                4.0f,
+                4.0f,
+                s_pParticleTex
+            );
+        }
     }
     // Return if sibling is nullptr
     if(m_pSiblingPortalTile == nullptr) return;

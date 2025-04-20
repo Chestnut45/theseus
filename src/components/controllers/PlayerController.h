@@ -221,6 +221,7 @@ private:
     const float m_staminaRegenRate = 22.0f;
     const float m_staminaRegenDelay = 0.45f;
     wolf::Timer m_staminaRegenTimer;
+    wolf::Timer m_staminaColorTimer;
 
     // Jumping management
     bool m_isJumping = false;

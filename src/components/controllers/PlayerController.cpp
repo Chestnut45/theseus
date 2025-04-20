@@ -250,10 +250,14 @@ void PlayerController::Update(float delta)
         m_invulnTimer.Reset();
     }
 
-    // Update health color timer
+    // Update health/stamina color timer
     if (m_healthColorTimer.Elapsed() > m_invulnSeconds)
     {
         m_healthColorTimer.Reset();
+    }
+    if (m_staminaColorTimer.Elapsed() > 1.0f)
+    {
+        m_staminaColorTimer.Reset();
     }
 
     auto* pInventory = pGameObject->GetComponent<PlayerInventoryComponent>();
@@ -656,12 +660,6 @@ void PlayerController::HandleDeath(float delta)
             {
                 m_pVelocity->SetVelocity(glm::vec2(0.0f));
             }
-
-            ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
-            if(collider != nullptr)
-            {
-                collider->SetColliderType(ColliderComponent::ColliderType::NONE);
-            }
             
             m_pAnimComponent->SetTint(glm::vec3(1,0,0));
         }
@@ -807,6 +805,13 @@ void PlayerController::HandleBowAttack(float delta)
                     std::vector<std::pair<StatusComponent::StatusEffectType, float>> effects;
                     effects.push_back(std::make_pair(StatusComponent::StatusEffectType::PETRIFIED, 5.0f));
                     auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200.0f, effects);
+
+                    // Add a light
+                    wolf::GameObject* pLightGO = &scene.CreateObject2D();
+                    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.57f, 0.93f, 0.57f, 0.75f), 50.0f, true);
+                    projectile.AddChild(*pLightGO);
+                    pLightComponent.Init();
+                    pLightComponent.SetIgnoreWallTiles(true);
                 }
                 else
                 {
@@ -1695,6 +1700,10 @@ void PlayerController::RegenerateStamina(float delta)
     {
         m_stamina += m_staminaRegenRate * delta;
         m_stamina = std::min(m_stamina, m_maxStamina); // Clamp stamina to max limit
+        if (m_stamina == m_maxStamina)
+        {
+            m_staminaRegenTimer.Reset();
+        }
     }
 }
 
@@ -1760,6 +1769,7 @@ void PlayerController::StartRoll()
     {
         m_stamina -= 10.0f;
         m_staminaRegenTimer.Restart();
+        m_staminaColorTimer.Restart();
     }
 
     // Compass direction animation names
@@ -1848,7 +1858,7 @@ void PlayerController::Render(float delta)
 
     // Push ImGui style variables for a more polished and "arty" look
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);          // Rounded corners
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 2.0f)); // Inner padding
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.8f)); // Semi-transparent background
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));   // Border color
@@ -1904,10 +1914,10 @@ void PlayerController::Render(float delta)
     // Change the stamina bar height to be slightly smaller
     barHeight = 15.0f;
 
-    float colorCoefficient = m_staminaRegenTimer.IsRunning() ? 1.0f - m_staminaRegenTimer.Elapsed() : 0.0f;
+    float colorCoefficient = m_staminaColorTimer.IsRunning() ? 1.0f - m_staminaColorTimer.Elapsed() : 0.0f;
 
     // Update stamina color
-    ImVec4 color = ImVec4(0.65f * colorCoefficient, 0.65f,  0.16f + 0.65f * colorCoefficient, 1.0f);
+    ImVec4 color = ImVec4(0.65f * colorCoefficient, 0.45f + 0.65f * colorCoefficient,  0.24f + 0.65f * colorCoefficient, 1.0f);
 
     // Render previous stamina fraction underneath to indicate usage
     m_prevStaminaFraction += (m_stamina / m_maxStamina - m_prevStaminaFraction) * delta * 4.0f;
@@ -2256,18 +2266,34 @@ void PlayerController::RenderDeathScreen(float delta) {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
 
         // "Return to Main Menu" button
+        static bool hovered = false;
+        static bool wasHovered = false;
         if (ImGui::Button("Return to Main Menu", ImVec2(240, 40))) {
             wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
             ResetDeathScreenState();
         }
+        hovered = ImGui::IsItemHovered();
+        if (hovered && !wasHovered)
+        {
+            wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+        }
+        wasHovered = hovered;
 
         ImGui::Spacing();
 
         // "Exit Game" button
+        static bool hovered2 = false;
+        static bool wasHovered2 = false;
         if (ImGui::Button("Exit Game", ImVec2(240, 40))) {
             wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::EXIT));
             ResetDeathScreenState();
         }
+        hovered2 = ImGui::IsItemHovered();
+        if (hovered2 && !wasHovered2)
+        {
+            wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+        }
+        wasHovered2 = hovered2;
 
         // Pop all style changes
         ImGui::PopStyleVar(4); // Pop FrameRounding, FramePadding, ItemSpacing, and FrameBorderSize
