@@ -22,7 +22,7 @@ enemies:
     animation_init_file: "data/animations/harpy_anim_init.yaml"
 
   - type: gorgon
-    health: 600
+    health: 500
     armour: 1
     ranged_range: 300
     ranged_cooldown: 1

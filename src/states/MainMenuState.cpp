@@ -210,7 +210,7 @@ void MainMenuState::Update(float delta)
             if (ImGui::Button("Enter the Labyrinth", {buttonWidth + 20, buttonHeight}))
             {
                 wolf::Audio::Stop();
-                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -8000.0f);
+                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, -8000.0f);
                 m_screen = Screen::FADE;
             }
             hovered4 = ImGui::IsItemHovered();

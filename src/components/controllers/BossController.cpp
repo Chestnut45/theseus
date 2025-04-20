@@ -335,7 +335,7 @@ void BossController::UpdateAnimation()
         {
             if (!growled && m_throneBreakTimer.Elapsed() >= 1.0f)
             {
-                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f);
+                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f);
                 growled = true;
             }
             return;
@@ -1407,7 +1407,7 @@ void BossController::UpdatePhase2(float delta)
     // Under half health, change to phase 3
     if (m_pHealth->GetHealth() <= m_maxHealth / 2 && m_state != State::TRANSITION_TO_PHASE_3)
     {
-        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -8000.0f);
+        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, -8000.0f);
         m_state = State::TRANSITION_TO_PHASE_3;
         m_pCollider->SetActive(false);
         m_transitionTimer.Restart();
@@ -1427,7 +1427,7 @@ void BossController::StartAxeAttack()
     m_axeAttackTimer.Restart();
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
-    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f);
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f);
 
     // Update stats
     m_attackChain = (m_prevAttack == 0) ? m_attackChain + 1 : 1;
@@ -1498,7 +1498,7 @@ void BossController::UpdatePhase3(float delta)
         
         // Stop music, play death growl
         wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
-        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -10000.0f);
+        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, -10000.0f);
 
         // Instantly make the player invulnerable
         m_pPlayerObject->GetComponent<HealthComponent>()->SetActive(false);
@@ -1924,7 +1924,7 @@ void BossController::StartFireBreathAttack()
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
     GetGameObject()->GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
 
-    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -3000.0f);
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, -3000.0f);
 }
 
 void BossController::AttackFireBreath(float delta)
@@ -2205,7 +2205,7 @@ void BossController::StartChargeAttack()
     }
 
     m_chargeStompSFXTimer.Restart();
-    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, 3000.0f);
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, 3000.0f);
 }
 
 void BossController::AttackCharge(float delta)
