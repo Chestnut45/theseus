@@ -92,7 +92,7 @@ Juggin Juice: {
   id: CONSUMABLE,
   description: "It is Tuesday, my doods.",
   value: 100,
-  texture_frame: 30,
+  texture_frame: 31,
   rarity: LEGENDARY,
   is_stackable: true,
   num_uses: 1,
@@ -361,4 +361,18 @@ Triple-Shot Bow: {
     initial_velocity: {x: 768.0, y: 768.0},
     sprite_path: data/textures/Arrow.png
   }
+}
+
+Zeus' Wrath: {
+  id: EQUIPMENT,
+  description: Strike your foes from the heavens.,
+  value: 1000,
+  texture_frame: 30,
+  rarity: LEGENDARY,
+  slot: WEAPON,
+  type: DIVINE,
+  delay: 0.25,
+  damage: 500.0,
+  hurtbox_size: {x: 32.0, y: 32.0},
+  has_projectiles: false
 }

@@ -177,4 +177,53 @@ animations: [
     origin: {x: 16.0, y: 16.0},
     loops: false
   },
+  {
+    name: "26",
+    start_frame: 26,
+    end_frame: 26,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: "27",
+    start_frame: 27,
+    end_frame: 27,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: "28",
+    start_frame: 28,
+    end_frame: 28,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: "29",
+    start_frame: 29,
+    end_frame: 29,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: "30",
+    start_frame: 30,
+    end_frame: 30,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: "31",
+    start_frame: 31,
+    end_frame: 31,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: "32",
+    start_frame: 32,
+    end_frame: 32,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
 ]

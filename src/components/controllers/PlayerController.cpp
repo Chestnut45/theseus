@@ -474,7 +474,43 @@ void PlayerController::HandlePlayerInput(float delta)
         !m_inventoryHovered                                     &&
         !m_isHoldingObject)
     {
-        SetAction(PlayerAction::ATTACKING);
+        if (m_pCurrentWeapon->GetName() == "Zeus' Wrath")
+        {
+            auto& object = GetGameObject()->GetScene().CreateObject2D();
+            if (auto* pTransform = object.GetComponent<wolf::Transform2D>())
+            {
+                // Set location to cursor location
+                pTransform->SetPosition(CalculateCursorWorldPosition());
+                pTransform->SetScale(glm::vec2(LabyrinthManager::SCALE));
+            }
+
+            // Spawn the animation
+            auto& anim = object.AddComponent<AnimatedSprite2D>("data/animations/lightning_anim_init.yaml");
+            anim.SetLightingEnabled(false);
+            anim.SetLayer(500);
+            
+            // Add attack damage component
+            float damage = m_pCurrentWeapon->GetDamage();
+            auto& adc = object.GetScene().CreateObject2D().AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 2400.0f);
+            adc.SetDelay(0.2f);
+            object.AddChild(*adc.GetGameObject());
+
+            // Add collider component
+            auto& collider = adc.GetGameObject()->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, false, true);
+            collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
+            collider.SetIgnoreTag(GetGameObject()->GetID());
+
+            // Add a timed destroyer
+            object.AddComponent<TimedDestroyerComponent>(1.0f);
+
+            // Play sfx with random offset
+            static wolf::RNG rng(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+            wolf::Audio::Play("data/sounds/sfx_lightning.wav", 0.7f, rng.NextInt(-10000, 0));
+        }
+        else
+        {
+            SetAction(PlayerAction::ATTACKING);
+        }
     }
     
     // Handle pick up and drop actions
@@ -1005,7 +1041,7 @@ void PlayerController::HandleSwordAttack(float delta)
             // Apply burn status from burning blade
             std::vector<std::pair<StatusComponent::StatusEffectType, float>> effects;
             effects.push_back(std::make_pair(StatusComponent::StatusEffectType::BURNING, 5.0f));
-            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f, effects);
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 1500.0f, effects);
 
             // Spew particles
             auto& particleObject = scene.CreateObject2D();
@@ -1028,7 +1064,7 @@ void PlayerController::HandleSwordAttack(float delta)
         }
         else
         {
-            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f);
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 1500.0f);
         }
         
         melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
@@ -1467,6 +1503,8 @@ void PlayerController::HandleAttacking(float delta)
             HandleSwordAttack(delta);
             break;
         }
+        default:
+            break;
     }
 
 }

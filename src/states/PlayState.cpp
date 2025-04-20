@@ -497,9 +497,11 @@ void PlayState::Update(float delta)
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Old Bow"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Triple-Shot Bow"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Medusa's Bow"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Zeus' Wrath"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Liquid Life"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Gorgon Tears"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lapis Lazuli Ring"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dented Helmet"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Theezys"));
@@ -2068,12 +2070,20 @@ void PlayState::RenderFadeOverlay(float alpha)
 
             ImGui::SetCursorPosY(ImGui::GetIO().DisplaySize.y * 0.6f); // Center 
             ImGui::SetCursorPosX((ImGui::GetIO().DisplaySize.x - 200.0f) * 0.5f); // Center
+            static bool hovered = false;
+            static bool wasHovered = false;
             if (ImGui::Button("Return to Main Menu", ImVec2(200.0f, 50.0f)))
             {
                 // Return to the main menu when clicked
                 wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
                 m_isExiting = true;
             }
+            hovered = ImGui::IsItemHovered();
+            if (hovered && !wasHovered)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            wasHovered = hovered;
 
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor(4);
