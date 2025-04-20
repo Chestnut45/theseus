@@ -495,18 +495,22 @@ void HarpyController::UpdateAnimationBasedOnDirection()
         if (fabs(velocity.x) > fabs(velocity.y))
         {
             // Moving left or right
-            animationName = (velocity.x > 0.0f) ? "StandEast" : "StandWest";
+            animationName = (velocity.x > 0.0f) ? "FlyEast" : "FlyWest";
         }
         else
         {
             // Moving up or down
-            animationName = (velocity.y > 0.0f) ? "StandNorth" : "StandSouth";
+            animationName = (velocity.y > 0.0f) ? "FlyNorth" : "FlySouth";
         }
     }
     else
     {
         // If not moving, default to idle state based on the last direction
-        animationName = "StandSouth";  // Modify as needed
+        std::string name = m_pAnimComponent->GetCurrentAnimation()->m_strName;
+        if (name != "")
+        {
+            animationName = name.find("Fly") != std::string::npos ? name.replace(name.find("Fly"), 3, "Stand") : name;
+        }
     }
 
     // Check if the animation needs to be changed
@@ -606,6 +610,10 @@ void HarpyController::EnterStunnedState()
 void HarpyController::EnterDeathState()
 {
     SetEmote(EnemyEmote::NONE);
+    if (m_pAnimComponent)
+    {
+        m_pAnimComponent->SetAnimPaused(true);
+    }
 }
 
 void HarpyController::ExitAttackState()
