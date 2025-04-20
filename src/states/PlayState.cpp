@@ -2079,9 +2079,10 @@ void PlayState::RenderFadeOverlay(float alpha)
                 // Return to the main menu when clicked
                 wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
                 m_isExiting = true;
+                wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
             }
             hovered = ImGui::IsItemHovered();
-            if (hovered && !wasHovered)
+            if (hovered && !wasHovered && !m_isExiting)
             {
                 wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
             }
