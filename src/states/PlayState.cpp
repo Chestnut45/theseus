@@ -1879,13 +1879,13 @@ ImU32 GetTileColor(int tileID) {
 }
 
 void PlayState::RenderMap() {
-    static float defaultZoomScale = 0.15f; // Default zoom level when not expanded
-    static float expandedZoomScale = 0.15f; // Persisted zoom level for expanded map
-    static bool isExpandedPrev = false; // Tracks if the map was expanded in the previous frame
+    static float defaultZoomScale = 0.12f;
+    static float expandedZoomScale = 0.12f;
+    static bool isExpandedPrev = false;
 
     // Update the zoom scale and reset if switching between states
     if (!m_isMapExpanded && isExpandedPrev) {
-        defaultZoomScale = glm::clamp(expandedZoomScale * 0.333333f, 0.1f, 1.0f); // Adjust default zoom to see more
+        defaultZoomScale = expandedZoomScale;
     }
     float zoomScale = m_isMapExpanded ? expandedZoomScale : defaultZoomScale;
     isExpandedPrev = m_isMapExpanded;
@@ -1893,7 +1893,7 @@ void PlayState::RenderMap() {
     // Determine the zoom level based on whether the map is expanded
     if (m_isMapExpanded) {
         float scrollDelta = ImGui::GetIO().MouseWheel;
-        expandedZoomScale = glm::clamp(expandedZoomScale + scrollDelta * 0.1f, 0.1f, 1.0f); // Adjust expanded zoom
+        expandedZoomScale = glm::clamp(expandedZoomScale + glm::sign(scrollDelta) * 0.01f, 0.05f, 0.15f); // Adjust expanded zoom
     }
 
     // Define map dimensions and scaling
@@ -1920,24 +1920,31 @@ void PlayState::RenderMap() {
 
     // Thick stylish golden border
     // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 255)); // Black background
 
     ImGui::SetNextWindowSize(ImVec2(mapSize, mapSize));
     ImGui::SetNextWindowPos(mapPosition);
     ImGui::Begin("ChunkMap###AlwaysVisible", nullptr,
                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
-                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs);
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs |
+                 ImGuiWindowFlags_NoBackground);
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     // Get window min/max for border placement
     ImVec2 windowMin = ImGui::GetWindowPos();
     ImVec2 windowMax = ImVec2(windowMin.x + mapSize, windowMin.y + mapSize);
+    ImVec2 windowPos = ImGui::GetWindowPos();
+    const float mapRadius = mapSize / 2.0f;
+    ImVec2 center = ImVec2(windowPos.x + mapRadius, windowPos.y + mapRadius);
+
+    // Background
+    drawList->AddCircleFilled(center, mapRadius, IM_COL32(30, 30, 30, 220));
     
     // Helper lambda for rendering tiles
     auto renderTile = [&](const glm::vec2& worldPos, ImU32 color) {
         glm::vec2 relativePos = (worldPos - playerPosition) * labyrinthScale;
+        if (glm::length(relativePos) > mapRadius) return;
         relativePos.y = -relativePos.y; // Invert Y-axis for rendering
         const ImVec2 min(mapCenterX + relativePos.x - halfTileSizeScaled, 
                          mapCenterY + relativePos.y - halfTileSizeScaled);
@@ -1948,7 +1955,7 @@ void PlayState::RenderMap() {
     };
 
     // Render chunks and tiles
-    const int chunkRenderRadius = 1; // Render surrounding chunks within 1 chunk radius
+    const int chunkRenderRadius = m_isMapExpanded ? 8 : 2;
     for (int cx = -chunkRenderRadius; cx <= chunkRenderRadius; ++cx) {
         for (int cy = -chunkRenderRadius; cy <= chunkRenderRadius; ++cy) {
             glm::ivec2 chunkID = playerChunk + glm::ivec2(cx, cy);
@@ -1966,13 +1973,10 @@ void PlayState::RenderMap() {
         }
     }
 
-    // Render player position
-    drawList->AddCircleFilled(ImVec2(mapCenterX, mapCenterY), 5.0f, IM_COL32(0, 255, 0, 255));
-    drawList->AddCircle(ImVec2(mapCenterX, mapCenterY), 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f);
-
     // Helper lambda for rendering entities
     auto renderEntity = [&](const glm::vec2& entityPos, ImU32 color) {
         glm::vec2 relativePos = ((entityPos + glm::vec2(-48.0f, -60.0f)) - playerPosition) * labyrinthScale;
+        if (glm::length(relativePos) > mapRadius) return;
         relativePos.y = -relativePos.y; // Invert Y-axis
         const ImVec2 entityMarker(mapCenterX + relativePos.x, mapCenterY + relativePos.y);
         drawList->AddCircle(entityMarker, 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f); // Outline
@@ -2009,20 +2013,23 @@ void PlayState::RenderMap() {
         if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
     }
 
+    // Render player position
+    drawList->AddCircleFilled(ImVec2(mapCenterX, mapCenterY), 5.0f, IM_COL32(0, 255, 0, 255));
+    drawList->AddCircle(ImVec2(mapCenterX, mapCenterY), 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f);
+
+    // Border
+    drawList->PushClipRect(
+        ImVec2(center.x - mapRadius - 10.0f, center.y - mapRadius - 10.0f),
+        ImVec2(center.x + mapRadius + 10.0f, center.y + mapRadius + 10.0f),
+        false
+    );
+    drawList->AddCircle(center, mapRadius + 2.0f, IM_COL32(32, 32, 32, 255), 64, 18.0f);
+    drawList->AddCircle(center, mapRadius + 2.0f, IM_COL32(255, 168, 0, 255), 64, 9.0f);
+    drawList->PopClipRect();
 
     ImGui::End();
-    ImVec2 borderMin(windowMin.x - 2, windowMin.y - 2);
-    ImVec2 borderMax(windowMax.x + 2, windowMax.y + 2);
-    // Testing circular minimap
-    // Draw circular boundary
-    // ImVec2 windowPos = ImGui::GetWindowPos();
-    // ImVec2 center = ImVec2(windowPos.x + 128, windowPos.y + 128);
-    // drawList->AddCircleFilled(center, 128, IM_COL32(30, 30, 30, 220)); // Background
-    // drawList->AddCircle(center, 128, IM_COL32(255, 255, 255, 255), 64, 3.0f); // Border
-    // drawList->AddRect(borderMin, borderMax, IM_COL32(255, 169, 0, 255), 10.0f, 0, 4.0f); // Thick gold border
-    // drawList->AddRect(borderMin, borderMax, IM_COL32(255, 169, 0, 128), 10.0f, 0, 3.0f); // Outer glow
     ImGui::PopStyleVar(2);
-    ImGui::PopStyleColor(2);
+    ImGui::PopStyleColor(1);
 }
 
 wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)

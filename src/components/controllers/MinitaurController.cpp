@@ -153,8 +153,6 @@ void MinitaurController::Update(float delta)
     if (m_pHealth->GetHealth() <= 0 && m_state != EnemyState::DEATH)
     {
         // Switch to the DEATH state if the health is depleted
-        ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
-        collider->SetColliderType(ColliderComponent::ColliderType::HURTBOXDR);
         ChangeState(EnemyState::DEATH);
         
         return;

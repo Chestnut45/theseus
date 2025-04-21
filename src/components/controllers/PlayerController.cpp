@@ -503,6 +503,13 @@ void PlayerController::HandlePlayerInput(float delta)
             // Add a timed destroyer
             object.AddComponent<TimedDestroyerComponent>(1.0f);
 
+            // Add a light
+            wolf::GameObject& lightObj = object.GetScene().CreateObject2D();
+            auto& light = lightObj.AddComponent<LightComponent>(glm::vec4(0.8f, 0.8f, 0.55f, 0.7f), 150.0f, true);
+            object.AddChild(lightObj);
+            light.Init();
+            light.SetIgnoreWallTiles(true);
+
             // Play sfx with random offset
             static wolf::RNG rng(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
             wolf::Audio::Play("data/sounds/sfx_lightning.wav", 0.7f, rng.NextInt(-10000, 0));
