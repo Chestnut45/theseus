@@ -1897,8 +1897,8 @@ ImU32 GetTileColor(int tileID) {
 }
 
 void PlayState::RenderMap() {
-    static float defaultZoomScale = 0.12f;
-    static float expandedZoomScale = 0.12f;
+    static float defaultZoomScale = 0.1f;
+    static float expandedZoomScale = 0.1f;
     static bool isExpandedPrev = false;
 
     // Update the zoom scale and reset if switching between states
