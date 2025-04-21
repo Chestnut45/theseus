@@ -1064,9 +1064,9 @@ glm::ivec2 LabyrinthManager::GetTilePosition(const glm::vec2& worldPosition) con
     {
         if (m_spawnPatchBounds.Intersects(worldPosition))
         {
-            glm::ivec2 result = worldPosition / glm::vec2(SCALE * TILE_SIZE);
-            result.y -= 1;
-            return result;
+            glm::vec2 result = worldPosition / glm::vec2(SCALE * TILE_SIZE);
+            result.y = glm::floor(result.y);
+            return glm::ivec2(result);
         }
         return glm::ivec2(-1);
     }

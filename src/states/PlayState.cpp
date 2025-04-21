@@ -1991,6 +1991,22 @@ void PlayState::RenderMap() {
         }
     }
 
+    // Render the starting room tiles as well
+    const auto& spawnRect = m_pLabyrinthManager->GetSpawnPatchRect();
+    for (int x = spawnRect.m_left; x < spawnRect.m_right; x += tileWorldSize)
+    {
+        for (int y = spawnRect.m_bottom; y < spawnRect.m_top; y += tileWorldSize)
+        {
+            glm::vec2 worldPos = glm::vec2(x, y);
+            glm::ivec2 tilePos = m_pLabyrinthManager->GetTilePosition(worldPos);
+            int tileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+            
+            if (tileID > 0 && tileID != Tile::Empty) {
+                renderTile(glm::vec2(tilePos) * tileWorldSize, GetTileColor(tileID));
+            }
+        }
+    }
+
     // Helper lambda for rendering entities
     auto renderEntity = [&](const glm::vec2& entityPos, ImU32 color) {
         glm::vec2 relativePos = ((entityPos + glm::vec2(-48.0f, -60.0f)) - playerPosition) * labyrinthScale;

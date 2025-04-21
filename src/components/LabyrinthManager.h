@@ -177,6 +177,8 @@ public:
 
     bool IsBossfightStarted() const { return m_inBossfight; }
 
+    const wolf::Rectangle& GetSpawnPatchRect() const { return m_spawnPatchBounds; }
+
 // Implementation
 private:
 
