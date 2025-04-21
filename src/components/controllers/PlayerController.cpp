@@ -795,6 +795,7 @@ void PlayerController::HandleBowAttack(float delta)
                     // Add sprite component
                     auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>(projprop.strPathToSprite);
                     projectileSprite.SetOriginToCenterOfTexture();
+                    projectileSprite.SetLightingEnabled(false);
                     
                     // Add collider component
                     auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
@@ -804,6 +805,13 @@ void PlayerController::HandleBowAttack(float delta)
                     // Add attack damage component
                     float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.01f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
                     auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 500.0f * m_bowChargeScale);
+
+                    // Add a light
+                    wolf::GameObject* pLightGO = &scene.CreateObject2D();
+                    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 50.0f, true);
+                    projectile.AddChild(*pLightGO);
+                    pLightComponent.Init();
+                    pLightComponent.SetIgnoreWallTiles(true);
 
                     // Calculate actual direction
                     glm::vec2 shotDir = glm::rotate(m_attackDir, offsetAngle - (offsetAngle * i));
@@ -838,6 +846,7 @@ void PlayerController::HandleBowAttack(float delta)
                 // Add sprite component
                 auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>(projprop.strPathToSprite);
                 projectileSprite.SetOriginToCenterOfTexture();
+                projectileSprite.SetLightingEnabled(false);
                 
                 // Add collider component
                 auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
@@ -862,6 +871,13 @@ void PlayerController::HandleBowAttack(float delta)
                 else
                 {
                     auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 500.0f * m_bowChargeScale);
+
+                    // Add a light
+                    wolf::GameObject* pLightGO = &scene.CreateObject2D();
+                    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 50.0f, true);
+                    projectile.AddChild(*pLightGO);
+                    pLightComponent.Init();
+                    pLightComponent.SetIgnoreWallTiles(true);
                 }
 
                 // Calculate spawn offset

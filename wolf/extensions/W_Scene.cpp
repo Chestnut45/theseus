@@ -125,6 +125,9 @@ void Scene::Render(float delta)
     std::map<int, std::vector<std::pair<Sprite2D*, Transform2D*>>> sortedSprites;
     for (auto&&[_, sprite, transform] : Each<Sprite2D, Transform2D>())
     {
+        // Ignore sprites that shouldn't have lighting applied
+        if (!sprite.IsLightingEnabled()) continue;
+        
         int layer = sprite.GetLayer();
 
         // Add new spritebatch if it doesn't exist

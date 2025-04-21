@@ -993,6 +993,32 @@ void PlayState::BackgroundRender(float delta)
     // Blend the light FBO with the screen
     LightComponent::BlendFBOAndScreen();
 
+    // Build map of sprites to render by layer
+    std::map<int, std::vector<std::pair<wolf::Sprite2D*, wolf::Transform2D*>>> sortedSprites;
+    for (auto&&[_, sprite, transform] : m_pGameInstance->GetScene().Each<wolf::Sprite2D, wolf::Transform2D>())
+    {
+        // Ignore sprites that were rendered during the lighting (scene) pass
+        if (sprite.IsLightingEnabled()) continue;
+        
+        int layer = sprite.GetLayer();
+
+        // Add new spritebatch if it doesn't exist
+        if (!sortedSprites.contains(layer)) sortedSprites[layer] = {};
+
+        // Push back the next sprite
+        sortedSprites[layer].push_back(std::make_pair<wolf::Sprite2D*, wolf::Transform2D*>(&sprite, &transform));
+    }
+
+    // Render all sprites in order
+    for (auto iter = sortedSprites.begin(); iter != sortedSprites.end(); ++iter)
+    {
+        auto& batch = iter->second;
+        for (auto& pair : batch)
+        {
+            pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
+        }
+    }
+
     // Render fluid systems
     for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
     {
@@ -1982,19 +2008,15 @@ void PlayState::RenderMap() {
     }
     for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<HarpyController>()) {
         auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 255, 0, 255));
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 0, 0, 255));
     }
     for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>()) {
         auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(128, 0, 128, 255));
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 0, 0, 255));
     }
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>()) {
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
         if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 0, 255, 255));
-    }
-    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<DroppedItemComponent>()) {
-        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 255, 255, 255));
     }
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<ChestInventoryComponent>()) {
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
@@ -2003,6 +2025,10 @@ void PlayState::RenderMap() {
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<TrappedChestComponent>()) {
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
         if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 255, 255, 255)); // Cyan
     }
 
     // Render player position
