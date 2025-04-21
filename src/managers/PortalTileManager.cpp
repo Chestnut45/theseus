@@ -559,8 +559,8 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
         // If object is a projectile
         if(p_obj->HasAll<AttackDamageComponent, VelocityComponent>())
         {
-            // Teleport object
-            Teleport(p_obj);
+            // Don't teleport as it breaks multi-shot bows
+            // NOTE: You can still tp single projectiles no problem
             return;
         }
 
