@@ -276,15 +276,18 @@ void HarpyController::MoveTowardsTarget(float delta)
     if (!m_pTarget || !m_pVelocity || !m_pTransform) return;
 
     // Calculate the direction towards the player and move the Harpy
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    // Offset to avoid sticking to walls when chasing the player
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPosition.y -= 12.0f;
+    }
+
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
 
     // Calculate direction vector
     glm::vec2 direction = targetPosition - currentPosition;
-
-    // Log for debugging current position, target position, and distance
-    // printf("Harpy MoveTowardsTarget: Current Pos: (%f, %f), Target Pos: (%f, %f)\n", 
-    //        currentPosition.x, currentPosition.y, targetPosition.x, targetPosition.y);
 
     if (glm::length(direction) > 0.01f) {
         direction = glm::normalize(direction);
@@ -300,7 +303,14 @@ void HarpyController::MoveTowardsTarget(float delta)
 
 void HarpyController::HandleIdleState(float delta)
 {
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    // Offset to avoid sticking to walls when chasing the player
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPosition.y -= 12.0f;
+    }
+
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
     
@@ -322,7 +332,14 @@ void HarpyController::HandleChasingState(float delta)
         wolf::Audio::Play("data/sounds/sfx_harpy_wing_flap.wav", 0.8f, m_RNG.NextInt(-10000, 10000));
     }
 
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    // Offset to avoid sticking to walls when chasing the player
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPosition.y -= 12.0f;
+    }
+
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
@@ -378,7 +395,14 @@ void HarpyController::HandleAttackingState(float delta)
         m_pAnimComponent->SetTint(glm::vec3(1.0f)); // Reset windup tint
 
         // Retrieving & calculating data
-        const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+        // Offset to avoid sticking to walls when chasing the player
+        if (m_pTarget->HasAny<PlayerController>())
+        {
+            targetPosition.y -= 12.0f;
+        }
+
         const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
         const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 

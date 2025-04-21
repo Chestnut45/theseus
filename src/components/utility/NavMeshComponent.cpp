@@ -553,6 +553,9 @@ void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject
         
         glm::vec2 pos = transform->GetGlobalPosition();
         bool isPlayer = (obj == player);
+
+        // Offset to fix tile position when hugging top wall
+        if (isPlayer) pos.y -= 16.0f;
         
         // Calculate bounds for spatial lookup
         int cellX = static_cast<int>(pos.x / SPATIAL_CELL_SIZE);
@@ -566,7 +569,7 @@ void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject
                 auto it = m_spatialHash.find({cellX + dx, cellY + dy});
                 if (it == m_spatialHash.end()) continue;
                 
-                for (int polyId : it->second) 
+                for (int polyId : it->second)
                 {
                     // Skip if already processed
                     if (newlyAffected.count(polyId) > 0)

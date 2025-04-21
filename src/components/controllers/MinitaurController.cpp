@@ -325,6 +325,14 @@ void MinitaurController::MoveTowardsTarget(float delta)
 
     glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPosition.y -= 16.0f;
+    }
+
+    // Reset flag to always attempt using the navmesh first
+    m_useNavMesh = true;
     
     // STEP 1: Try NavMesh pathfinding first
     if (m_pNavMeshComponent && m_useNavMesh)
@@ -350,7 +358,9 @@ void MinitaurController::MoveTowardsTarget(float delta)
                 m_useNavMesh = false;
             }
             
-            m_navMeshPathUpdateTimer = 0.5f;
+            // Add random variation so they don't stick on top of each other as much
+            static wolf::RNG navRNG(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+            m_navMeshPathUpdateTimer = navRNG.NextFloat(0.1f, 0.6f);
         }
         else
         {
@@ -365,7 +375,7 @@ void MinitaurController::MoveTowardsTarget(float delta)
             float distance = glm::length(direction);
             
             // More generous tolerance for waypoint arrival
-            if (distance <= 10.0f)
+            if (distance <= 48.0f)
             {
                 m_navMeshPath.erase(m_navMeshPath.begin());
             }
@@ -411,7 +421,7 @@ void MinitaurController::MoveTowardsTarget(float delta)
             glm::vec2 direction = nextTileWorldPos - currentPosition;
             float distance = glm::length(direction);
             
-            if (distance > 0.5f)
+            if (distance > 48.0f)
             {
                 direction = glm::normalize(direction);
                 m_pVelocity->SetVelocity(direction * m_chaseSpeed);
@@ -435,6 +445,12 @@ void MinitaurController::FallbackToDistanceChecking()
 {
     glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPosition.y -= 16.0f;
+    }
+    
     glm::vec2 direction = targetPosition - currentPosition;
 
     if (glm::length(direction) > 0.01f)

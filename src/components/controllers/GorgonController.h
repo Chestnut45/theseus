@@ -18,6 +18,7 @@
 #include <LightComponent.h>
 #include "InfightingEvent.h"
 #include "PathfindingManager.h"
+#include <NavMeshComponent.h>
 class GorgonController : public EnemyController
 {
 public:
@@ -131,4 +132,11 @@ private:
     const glm::vec4 CROSSHAIR_COLOUR = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
     glm::vec4 m_curentCrosshairColour = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
     glm::vec2 m_crosshairOffset = glm::vec2(0.0f, 0.0f);
+
+    NavMeshComponent* m_pNavMeshComponent = nullptr;
+    std::vector<glm::vec2> m_navMeshPath;
+    float m_navMeshPathUpdateTimer = 0.0f;
+    glm::vec2 m_lastPosition = glm::vec2(0.0f);
+    float m_stuckTimer = 0.0f;
+    bool m_useNavMesh = true;
 };

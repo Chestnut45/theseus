@@ -426,7 +426,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     if (ImGui::Button("Drop")) {
                         wolf::Transform2D* pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
                         if (pTransform) {
-                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pItem, pTransform->GetGlobalPosition(), 5.0f);
+                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pItem, pTransform->GetGlobalPosition(), -1.0f);
                         }
                         this->RemoveItem(k);
                         ImGui::CloseCurrentPopup();
@@ -604,7 +604,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     if (ImGui::Button("Drop")) {
                         wolf::Transform2D* pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
                         if (pTransform) {
-                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pEquipItem, pTransform->GetGlobalPosition(), 5.0f);
+                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pEquipItem, pTransform->GetGlobalPosition(), -1.0f);
                         }
                         this->RemoveEquippedItem(pEquipItem->GetEquipmentSlot());
                         ImGui::CloseCurrentPopup();

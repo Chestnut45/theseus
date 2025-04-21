@@ -845,14 +845,24 @@ void PlayState::Update(float delta)
             }
         }
 
-        // Trigger CutsceneDialogueEvent when pressing 9
-        if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_9))
-        {
-            // Trigger both cutscene and dialogue with IDs
-            wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
-        }
-
         this->m_pPathfindingManager->UpdateEntities(delta);
+
+        if (m_pNavMeshComponent)
+        {
+            m_navMeshObstacles.clear();
+            m_navMeshObstacles.push_back(m_pPlayerObject);
+
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
+            m_navMeshObstacles.push_back(controller.GetGameObject());
+
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>())
+            m_navMeshObstacles.push_back(controller.GetGameObject());
+            
+            for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>())
+            m_navMeshObstacles.push_back(component.GetGameObject());
+
+            m_pNavMeshComponent->UpdateDynamicObstacles(m_navMeshObstacles);
+        }
 
         // Update velocity components to apply friction and decelerate objects
         for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
@@ -902,22 +912,7 @@ void PlayState::Update(float delta)
             particleComponent.Update(delta);
         }
 
-        if (m_pNavMeshComponent)
-        {
-            m_navMeshObstacles.clear();
-            m_navMeshObstacles.push_back(m_pPlayerObject);
-
-            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
-            m_navMeshObstacles.push_back(controller.GetGameObject());
-
-            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>())
-            m_navMeshObstacles.push_back(controller.GetGameObject());
-            
-            for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>())
-            m_navMeshObstacles.push_back(component.GetGameObject());
-
-            m_pNavMeshComponent->UpdateDynamicObstacles(m_navMeshObstacles);
-        }
+        
         
     }
 
