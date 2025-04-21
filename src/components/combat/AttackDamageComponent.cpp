@@ -60,8 +60,13 @@ void AttackDamageComponent::Update(float p_dt)
     ColliderComponent* thisCollider = thisObject->GetComponent<ColliderComponent>();
     wolf::Transform2D* thisTransform = thisObject->GetComponent<wolf::Transform2D>();
 
-    m_delay -= p_dt;
-    if (m_delay > 0.0f) return;
+    
+    if (m_delay > 0.0f)
+    {
+        m_delay -= p_dt;
+        return;
+    }
+    
     m_delay = 0.0f;
     
     // If collider of this object is HurtboxDD
