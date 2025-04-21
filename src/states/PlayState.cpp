@@ -951,10 +951,7 @@ void PlayState::Render(float delta)
 
 
 void PlayState::BackgroundUpdate(float delta)
-{
-    if (m_showLabyrinthManager) 
-        m_pLabyrinthManager->ShowGUI();
-    
+{   
     // Update the lights in the scene
     for (auto&& [_, LightComponent] : m_pGameInstance->GetScene().Each<LightComponent>()) {
         LightComponent.Update(delta);

@@ -13,6 +13,7 @@
 #include <PlayerController.h>
 #include <VelocityComponent.h>
 #include <BossController.h>
+#include <HarpyController.h>
 #include <W_Audio.h>
 #include <W_RNG.h>
 #include <W_TextureManager.h>
@@ -462,7 +463,7 @@ void PortalTileManager::PortalTile::Update(float p_dt)
     // Check if occupant exists
     wolf::GameObject* occupant = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(m_occupantID);
     if(occupant != nullptr && occupant->HasAll<wolf::Transform2D>())
-    {   
+    {
         // Get occupant position data
         glm::vec2 occupantPos = occupant->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         if (occupant->HasAll<PlayerController>())
@@ -500,7 +501,8 @@ void PortalTileManager::PortalTile::Update(float p_dt)
     // Check all objects within the portal tile chunk
     for(wolf::GameObject* obj : GetChunk()->GetChildren())
     {
-        
+        // Don't tp harpies (they fly overhead)
+        if (obj->HasAny<HarpyController>()) continue;
         CheckTeleport(obj);
     }
 
@@ -525,8 +527,12 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
 
     glm::ivec2 portalTilePos = GetTilePos();
 
-    // Calculate tile position of object
+    // Ensure transform is present
     wolf::Transform2D* objTransform = p_obj->GetComponent<wolf::Transform2D>();
+    if (!objTransform) return;
+
+    // Calculate tile position of object
+
     glm::vec2 objPos = objTransform->GetGlobalPosition();
     if (p_obj->HasAll<PlayerController>())
     {

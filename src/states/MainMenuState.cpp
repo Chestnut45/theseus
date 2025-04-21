@@ -239,7 +239,7 @@ void MainMenuState::Update(float delta)
             wasHovered5 = hovered5;
             ImGui::SetCursorPosX(14);
             ImGui::SetCursorPosY(ImGui::GetWindowSize().y - 32);
-            ImGui::Checkbox("Debug Mode Enabled", &m_debugModeEnabled);
+            ImGui::Checkbox("Debug Mode", &m_debugModeEnabled);
 
             break;
         
