@@ -296,7 +296,7 @@ void BossController::Update(float delta)
     else
     {
         // On exiting petrified state
-        if(m_state == State::PETRIFIED)
+        if (m_state == State::PETRIFIED)
         {
             m_pAnimSprite->SetTint(glm::vec3(1.0f));
             switch (m_phase)
@@ -313,11 +313,10 @@ void BossController::Update(float delta)
                     m_state = State::SEARCHING;
                     break;
             }
-        }     
 
-        m_pAnimSprite->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
-
-        m_nextAttackTimer.Restart();
+            m_nextAttackTimer.Restart();
+            m_pAnimSprite->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+        }
     }
 
     // Call phase-specific update method
@@ -383,13 +382,12 @@ void BossController::UpdateAnimation()
     auto* pAnim = m_pAnimSprite->GetCurrentAnimation();
     if (pAnim->m_strName == "ThroneBreak")
     {
-        static bool growled = false;
         if (m_throneBreakTimer.Elapsed() < 3.0f)
         {
-            if (!growled && m_throneBreakTimer.Elapsed() >= 1.0f)
+            if (!m_phase2Growled && m_throneBreakTimer.Elapsed() >= 1.0f)
             {
                 wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f);
-                growled = true;
+                m_phase2Growled = true;
             }
             return;
         }
@@ -811,14 +809,14 @@ void BossController::SpawnWave(int waveIndex)
     int minitaurs = 0, gorgons = 0, harpies = 0;
     switch (waveIndex)
     {
-        case 1: minitaurs = 4; harpies = 2; break;
-        case 2: gorgons = 2; harpies = 2; break;
-        case 3: minitaurs = 5; harpies = 3; gorgons = 2; break;
+        // case 1: minitaurs = 4; harpies = 2; break;
+        // case 2: gorgons = 2; harpies = 2; break;
+        // case 3: minitaurs = 5; harpies = 3; gorgons = 2; break;
         
         // DEBUG: Quick way through all phases
-        // case 1:
-        // case 2:
-        // case 3: minitaurs = 1; break;
+        case 1:
+        case 2:
+        case 3: minitaurs = 1; break;
     }
 
     // Get boss position
@@ -826,13 +824,11 @@ void BossController::SpawnWave(int waveIndex)
     glm::ivec2 bossTilePos = m_pLabyrinthManager->GetTilePosition(bossPos);
 
     // If first wave, determine and save spawn locations
-    static std::vector<glm::vec2> savedMinitaurSpawns;
-    static std::vector<glm::vec2> savedHarpySpawns;
     
     // Define Minitaur spawn locations (grouped left & right)
-    if (waveIndex == 1 || savedMinitaurSpawns.empty())
+    if (waveIndex == 1 || m_savedMinitaurSpawns.empty())
     {
-        savedMinitaurSpawns.clear();
+        m_savedMinitaurSpawns.clear();
         glm::ivec2 leftGroupStart = bossTilePos + glm::ivec2(-4, -3);
         glm::ivec2 rightGroupStart = bossTilePos + glm::ivec2(4, -3);
 
@@ -841,29 +837,29 @@ void BossController::SpawnWave(int waveIndex)
             glm::ivec2 spawnTile = (i % 2 == 0) ? leftGroupStart + glm::ivec2(i, 0)
                                                 : rightGroupStart + glm::ivec2(i, 0);
             glm::vec2 spawnPos = m_pLabyrinthManager->GetWorldPosition(spawnTile);
-            if (IsValidSpawnTile(spawnTile)) savedMinitaurSpawns.push_back(spawnPos);
+            if (IsValidSpawnTile(spawnTile)) m_savedMinitaurSpawns.push_back(spawnPos);
         }
     }
 
     // Define Harpy spawn locations (split left & right)
-    if (waveIndex == 1 || savedHarpySpawns.empty())
+    if (waveIndex == 1 || m_savedHarpySpawns.empty())
     {
-        savedHarpySpawns.clear();
+        m_savedHarpySpawns.clear();
         glm::ivec2 leftHarpy = bossTilePos + glm::ivec2(-6, -7);
         glm::ivec2 rightHarpy = bossTilePos + glm::ivec2(6, -7);
 
         if (IsValidSpawnTile(leftHarpy))
-            savedHarpySpawns.push_back(m_pLabyrinthManager->GetWorldPosition(leftHarpy));
+            m_savedHarpySpawns.push_back(m_pLabyrinthManager->GetWorldPosition(leftHarpy));
         if (IsValidSpawnTile(rightHarpy))
-            savedHarpySpawns.push_back(m_pLabyrinthManager->GetWorldPosition(rightHarpy));
+            m_savedHarpySpawns.push_back(m_pLabyrinthManager->GetWorldPosition(rightHarpy));
     }
 
     // Spawn Minitaurs (use saved positions for later waves)
     if (waveIndex != 3) // Normal spawning for waves 1 & 2
     {
-        for (size_t i = 0; i < savedMinitaurSpawns.size() && i < minitaurs; i++)
+        for (size_t i = 0; i < m_savedMinitaurSpawns.size() && i < minitaurs; i++)
         {
-            auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, savedMinitaurSpawns[i]);
+            auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, m_savedMinitaurSpawns[i]);
             minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
             m_enemyIDs.insert(minitaur.GetID());
         }
@@ -886,9 +882,9 @@ void BossController::SpawnWave(int waveIndex)
     }
 
     // Spawn Harpies (use saved positions for later waves)
-    for (size_t i = 0; i < savedHarpySpawns.size() && i < harpies; i++)
+    for (size_t i = 0; i < m_savedHarpySpawns.size() && i < harpies; i++)
     {
-        auto& harpy = harpyBuilder.BuildHarpy(harpyData, savedHarpySpawns[i]);
+        auto& harpy = harpyBuilder.BuildHarpy(harpyData, m_savedHarpySpawns[i]);
         harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
         m_enemyIDs.insert(harpy.GetID());
     }
@@ -1066,10 +1062,6 @@ void BossController::EnterPhase2()
 
 void BossController::UpdatePhase2(float delta)
 {
-    // Timing variables
-    static float nextStrafeSwap = 1.0f;
-    static float nextAttackTime = 2.0f;
-
     // Don't update until fully entered
     if (m_state == State::SIT) return;
 

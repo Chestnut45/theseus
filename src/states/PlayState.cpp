@@ -73,7 +73,9 @@ void PlayState::Enter()
     m_pFieldTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest, wolf::Texture::FilterMode::FM_Nearest);
     m_pFieldTexture->SetWrapMode(wolf::Texture::WrapMode::WM_Repeat, wolf::Texture::WrapMode::WM_Repeat);
 
-    m_pFogShader = wolf::ProgramManager::CreateProgram("data/shaders/fullscreen_pass.vs", "data/shaders/fog_pass.fs");
+    m_pFogMapShader = wolf::ProgramManager::CreateProgram("data/shaders/fullscreen_pass.vs", "data/shaders/fog_pass_map.fs");
+    m_pFogWorldShader = wolf::ProgramManager::CreateProgram("data/shaders/fullscreen_pass.vs", "data/shaders/fog_pass_world.fs");
+
     glGenTextures(1, &m_fogTraversalTex);
     glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, FOG_TEX_SIZE, FOG_TEX_SIZE, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
@@ -306,7 +308,8 @@ void PlayState::Exit()
     wolf::TextureManager::DestroyTexture(m_pFieldTexture);
     glDeleteVertexArrays(1, &m_dummyVAO);
 
-    wolf::ProgramManager::DestroyProgram(m_pFogShader);
+    wolf::ProgramManager::DestroyProgram(m_pFogMapShader);
+    wolf::ProgramManager::DestroyProgram(m_pFogWorldShader);
     glDeleteTextures(1, &m_fogTraversalTex);
 }
 
@@ -1097,6 +1100,9 @@ void PlayState::BackgroundRender(float delta)
             pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
         }
     }
+
+    // TODO: Render the fog mask into the game world
+    
 
     if (m_pNavMeshComponent && m_pNavMeshComponent->IsDebugDrawEnabled())
     {
@@ -1992,12 +1998,12 @@ void FogCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
     int w = state->m_pLabyrinthManager->GetWidth();
     int h = state->m_pLabyrinthManager->GetHeight();
     int scale = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
-    state->m_pFogShader->SetUniform("mapPosSize", state->m_cachedMapPosAndSize);
-    state->m_pFogShader->SetUniform("mapZoom", state->m_cachedMapZoom);
-    state->m_pFogShader->SetUniform("playerPos", glm::vec3(state->m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 1.0f));
-    state->m_pFogShader->SetUniform("time", (float)state->m_gameCompletionTime.Elapsed());
-    state->m_pFogShader->SetUniform("labyrinthDimWorldScale", glm::vec4(w, h, scale, scale));
-    state->m_pFogShader->Bind();
+    state->m_pFogMapShader->SetUniform("mapPosSize", state->m_cachedMapPosAndSize);
+    state->m_pFogMapShader->SetUniform("mapZoom", state->m_cachedMapZoom);
+    state->m_pFogMapShader->SetUniform("playerPos", glm::vec3(state->m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 1.0f));
+    state->m_pFogMapShader->SetUniform("time", (float)state->m_gameCompletionTime.Elapsed());
+    state->m_pFogMapShader->SetUniform("labyrinthDimWorldScale", glm::vec4(w, h, scale, scale));
+    state->m_pFogMapShader->Bind();
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
     // Restore previous state

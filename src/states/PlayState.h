@@ -124,7 +124,8 @@ private:
     static const int FOG_TEX_FLAT_LENGTH = FOG_TEX_SIZE * FOG_TEX_SIZE;
     glm::vec4 m_cachedMapPosAndSize{0.0f};
     float m_cachedMapZoom = 0.1f;
-    wolf::Program* m_pFogShader = nullptr;
+    wolf::Program* m_pFogMapShader = nullptr;
+    wolf::Program* m_pFogWorldShader = nullptr;
     GLuint m_fogTraversalTex = 0;
     std::vector<uint8_t> m_fogMaskTexels;
     friend void FogCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd);

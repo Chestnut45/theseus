@@ -151,7 +151,9 @@ private:
     float m_waveTransitionTimer;
     bool m_waveActive;
     std::unordered_set<int> m_enemyIDs;
-    
+
+    std::vector<glm::vec2> m_savedMinitaurSpawns;
+    std::vector<glm::vec2> m_savedHarpySpawns;
 
 
     // Phase 2 stats
@@ -164,10 +166,13 @@ private:
     bool m_strafeClockwise;
     bool m_axeSummoned;
     bool m_slamStun;
+    bool m_phase2Growled = false;
     float m_strafeSpeed;
     float m_chaseSpeed;
     float m_shadowDistance;
     float m_altitude;
+    float nextStrafeSwap = 1.0f;
+    float nextAttackTime = 2.0f;
     wolf::Timer m_whooshTimer;
     wolf::Timer m_dodgeTimer;
     wolf::Timer m_strafeSwapTimer;
