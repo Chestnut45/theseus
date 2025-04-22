@@ -1476,7 +1476,7 @@ bool BossController::CanBePetrified() const
 {
     return m_state != State::TRANSITION_TO_PHASE_3 &&
         m_state != State::DEAD &&
-        m_state != State::SIT;
+        m_phase != FightPhase::PHASE_1;
 }
 
 bool BossController::IsAirborne() const
