@@ -1195,7 +1195,7 @@ void PlayState::CreatePlayer()
     collider.AddColliderBox(glm::vec2(7.0f, 9.0f), glm::vec2(-4.0f, -4.0f));
 
     // Add health
-    auto& health = m_pPlayerObject->AddComponent<HealthComponent>(800);
+    auto& health = m_pPlayerObject->AddComponent<HealthComponent>(500);
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
