@@ -343,6 +343,14 @@ void HarpyController::HandleChasingState(float delta)
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
+    if (distanceToPlayer >= m_detectionRange)
+    {
+        // Player is out of range, lose sight
+        ChangeState(EnemyState::IDLE);
+        SetEmote(EnemyEmote::QUESTION);
+        return;
+    }
+
     // Prevent shooting when on top of a wall tile or when line of sight is blocked
     bool canAttack = DDACalculator::GetInstance()->GetEndpoint(currentPosition, targetPosition) == targetPosition;
     for (auto&&[_, manager] : GetGameObject()->GetScene().Each<LabyrinthManager>())
@@ -356,7 +364,7 @@ void HarpyController::HandleChasingState(float delta)
         break;
     }
 
-    if(distanceToPlayer <= m_rangedRange)
+    if (distanceToPlayer <= m_rangedRange)
     {
         if
         (
