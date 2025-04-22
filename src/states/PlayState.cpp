@@ -73,6 +73,20 @@ void PlayState::Enter()
     m_pFieldTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest, wolf::Texture::FilterMode::FM_Nearest);
     m_pFieldTexture->SetWrapMode(wolf::Texture::WrapMode::WM_Repeat, wolf::Texture::WrapMode::WM_Repeat);
 
+    m_pFogShader = wolf::ProgramManager::CreateProgram("data/shaders/fullscreen_pass.vs", "data/shaders/fog_pass.fs");
+    glGenTextures(1, &m_fogTraversalTex);
+    glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, FOG_TEX_SIZE, FOG_TEX_SIZE, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Init the fog map texels
+    m_fogMaskTexels.clear();
+    m_fogMaskTexels.reserve(FOG_TEX_FLAT_LENGTH);
+    m_fogMaskTexels.assign(FOG_TEX_FLAT_LENGTH, 0);
+
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
 
@@ -291,6 +305,9 @@ void PlayState::Exit()
     wolf::ProgramManager::DestroyProgram(m_pBackgroundShader);
     wolf::TextureManager::DestroyTexture(m_pFieldTexture);
     glDeleteVertexArrays(1, &m_dummyVAO);
+
+    wolf::ProgramManager::DestroyProgram(m_pFogShader);
+    glDeleteTextures(1, &m_fogTraversalTex);
 }
 
 void PlayState::Pause()
@@ -911,9 +928,39 @@ void PlayState::Update(float delta)
         {
             particleComponent.Update(delta);
         }
+    }
 
-        
-        
+    // Update fog mask before rendering
+    // NOTE: We use ariadne to determine if the labyrinth is generated or not
+    if (m_pAriadne)
+    {
+        // Calculate offset player position
+        const float tileWorldSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+        glm::vec2 normPos = playerPos / tileWorldSize;
+        glm::vec2 labyrinthSize(m_pLabyrinthManager->GetWidth(), m_pLabyrinthManager->GetHeight());
+        glm::ivec2 center = glm::ivec2(normPos * (float)FOG_TEX_SIZE / labyrinthSize);
+
+        // Write player position and radius into mask
+        int revealRadius = 64;
+        for (int y = -revealRadius; y <= revealRadius; ++y)
+        {
+            for (int x = -revealRadius; x <= revealRadius; ++x)
+            {
+                int px = center.x + x;
+                int py = center.y + y;
+
+                // Ignore 1 pixel border to ensure map always clamps out to fog
+                if (px <= 0 || px >= FOG_TEX_SIZE - 1 || py <= 0 || py >= FOG_TEX_SIZE - 1) continue;
+                if (x * x + y * y <= revealRadius * revealRadius)
+                {
+                    m_fogMaskTexels[py * FOG_TEX_SIZE + px] = 255;
+                }
+            }
+        }
+
+        // Upload data
+        glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, FOG_TEX_SIZE, FOG_TEX_SIZE, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
     }
 
     // Dispatch events
@@ -1773,6 +1820,15 @@ void PlayState::OnRegenerateEvent(const LabyrinthRegenerateEvent& event)
     m_pPathfindingManager->ClearEntities();
     SpawnBossObjects();
 
+    // Init the fog map again
+    m_fogMaskTexels.clear();
+    m_fogMaskTexels.reserve(FOG_TEX_FLAT_LENGTH);
+    m_fogMaskTexels.assign(FOG_TEX_FLAT_LENGTH, 0);
+
+    // Upload data
+    glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, FOG_TEX_SIZE, FOG_TEX_SIZE, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
+
     // Reseed NPC builder
     NPCBuilder::DestroyInstance();
     NPCBuilder::CreateInstance(&m_pGameInstance->GetScene(), m_pLabyrinthManager->GetSeed());
@@ -1785,7 +1841,6 @@ void PlayState::OnRegenerateEvent(const LabyrinthRegenerateEvent& event)
     ariadneNPCComp->QueueDialogue("traps");
     ariadneNPCComp->QueueDialogue("survivors");
     m_pLabyrinthManager->GetGameObject()->AddChild(ariadne);
-
 
     // Register entities
     for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())
@@ -1812,6 +1867,16 @@ void PlayState::OnDestroyEvent(const LabyrinthDestroyEvent& event)
     DestroyBossObjects();
     m_pPathfindingManager->ClearEntities();
     m_pGameInstance->GetSharedContext().RemoveEntity("Ariadne");
+    m_pAriadne = nullptr;
+
+    // Init the fog map again
+    m_fogMaskTexels.clear();
+    m_fogMaskTexels.reserve(FOG_TEX_FLAT_LENGTH);
+    m_fogMaskTexels.assign(FOG_TEX_FLAT_LENGTH, 0);
+
+    // Upload data
+    glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, FOG_TEX_SIZE, FOG_TEX_SIZE, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
 }
 
 void PlayState::ShowTooltip(const std::string& text)
@@ -1896,6 +1961,54 @@ ImU32 GetTileColor(int tileID) {
     }
 }
 
+// Fog of war render callback for inserting into imgui window
+void FogCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
+{
+    // Grab the play state
+    PlayState* state = static_cast<PlayState*>(cmd->UserCallbackData);
+
+    // Query previous gl state
+    GLint previousVAO = 0;
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
+    GLint previousShader;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &previousShader);
+    GLboolean previousBlend;
+    glGetBooleanv(GL_BLEND, &previousBlend);
+    GLint previousBlendSrcRGB; glGetIntegerv(GL_BLEND_SRC_RGB, &previousBlendSrcRGB);
+    GLint previousBlendDstRGB; glGetIntegerv(GL_BLEND_DST_RGB, &previousBlendDstRGB);
+    GLint previousBlendSrcAlpha; glGetIntegerv(GL_BLEND_SRC_ALPHA, &previousBlendSrcAlpha);
+    GLint previousBlendDstAlpha; glGetIntegerv(GL_BLEND_DST_ALPHA, &previousBlendDstAlpha);
+    GLint previousUnit = 0;
+    glGetIntegerv(GL_ACTIVE_TEXTURE, &previousUnit);
+    glActiveTexture(GL_TEXTURE6);
+    GLint previousTex;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
+
+    // Fog of war rendering
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBindVertexArray(state->m_dummyVAO);
+    glBindTexture(GL_TEXTURE_2D, state->m_fogTraversalTex);
+    int w = state->m_pLabyrinthManager->GetWidth();
+    int h = state->m_pLabyrinthManager->GetHeight();
+    int scale = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    state->m_pFogShader->SetUniform("mapPosSize", state->m_cachedMapPosAndSize);
+    state->m_pFogShader->SetUniform("mapZoom", state->m_cachedMapZoom);
+    state->m_pFogShader->SetUniform("playerPos", glm::vec3(state->m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 1.0f));
+    state->m_pFogShader->SetUniform("time", (float)state->m_gameCompletionTime.Elapsed());
+    state->m_pFogShader->SetUniform("labyrinthDimWorldScale", glm::vec4(w, h, scale, scale));
+    state->m_pFogShader->Bind();
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    // Restore previous state
+    glBindTexture(GL_TEXTURE_2D, previousTex);
+    glActiveTexture(previousUnit);
+    glBindVertexArray(previousVAO);
+    glUseProgram(previousShader);
+    previousBlend ? glEnable(GL_BLEND) : glDisable(GL_BLEND);
+    glBlendFuncSeparate(previousBlendSrcRGB, previousBlendDstRGB, previousBlendSrcAlpha, previousBlendDstAlpha);
+}
+
 void PlayState::RenderMap() {
     static float defaultZoomScale = 0.1f;
     static float expandedZoomScale = 0.1f;
@@ -1956,6 +2069,13 @@ void PlayState::RenderMap() {
     const float mapRadius = mapSize / 2.0f;
     ImVec2 center = ImVec2(windowPos.x + mapRadius, windowPos.y + mapRadius);
 
+    // Update cached values
+    m_cachedMapPosAndSize.x = mapCenterX;
+    m_cachedMapPosAndSize.y = displaySize.y - mapCenterY;
+    m_cachedMapPosAndSize.z = mapRadius;
+    m_cachedMapPosAndSize.w = mapRadius;
+    m_cachedMapZoom = m_isMapExpanded ? expandedZoomScale : defaultZoomScale;
+
     // Background
     drawList->AddCircleFilled(center, mapRadius, IM_COL32(30, 30, 30, 220));
     
@@ -1991,22 +2111,6 @@ void PlayState::RenderMap() {
         }
     }
 
-    // Render the starting room tiles as well
-    const auto& spawnRect = m_pLabyrinthManager->GetSpawnPatchRect();
-    for (int x = spawnRect.m_left; x < spawnRect.m_right; x += tileWorldSize)
-    {
-        for (int y = spawnRect.m_bottom; y < spawnRect.m_top; y += tileWorldSize)
-        {
-            glm::vec2 worldPos = glm::vec2(x, y);
-            glm::ivec2 tilePos = m_pLabyrinthManager->GetTilePosition(worldPos);
-            int tileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
-            
-            if (tileID > 0 && tileID != Tile::Empty) {
-                renderTile(glm::vec2(tilePos) * tileWorldSize, GetTileColor(tileID));
-            }
-        }
-    }
-
     // Helper lambda for rendering entities
     auto renderEntity = [&](const glm::vec2& entityPos, ImU32 color) {
         glm::vec2 relativePos = ((entityPos + glm::vec2(-48.0f, -60.0f)) - playerPosition) * labyrinthScale;
@@ -2018,6 +2122,7 @@ void PlayState::RenderMap() {
     };
 
     // Render entities by type
+    // TODO: Double code these... color is not enough, can we draw shapes here?
     for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>()) {
         auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
         if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 0, 0, 255));
@@ -2042,9 +2147,51 @@ void PlayState::RenderMap() {
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
         if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
     }
+    wolf::Transform2D* pSpawnDispensaryTransform = nullptr;
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent>()) {
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 255, 255, 255)); // Cyan
+        if (transform)
+        {
+            glm::vec2 pos = transform->GetGlobalPosition();
+            if (pos.y < 0.0f)
+            {
+                // Grab the starting dispensary to render after the fog callback
+                pSpawnDispensaryTransform = transform;
+            }
+            else
+            {
+                renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 255, 255, 255));
+            }
+        }
+    }
+
+    drawList->AddCallback(FogCallback, (void*)this);
+
+    // Render the starting room tiles as well
+    const auto& spawnRect = m_pLabyrinthManager->GetSpawnPatchRect();
+    for (int x = spawnRect.m_left; x < spawnRect.m_right; x += tileWorldSize)
+    {
+        for (int y = spawnRect.m_bottom; y < spawnRect.m_top; y += tileWorldSize)
+        {
+            glm::vec2 worldPos = glm::vec2(x, y);
+            glm::ivec2 tilePos = m_pLabyrinthManager->GetTilePosition(worldPos);
+            int tileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+            
+            if (tileID > 0 && tileID != Tile::Empty) {
+                renderTile(glm::vec2(tilePos) * tileWorldSize, GetTileColor(tileID));
+            }
+        }
+    }
+
+    // Render starting entities separately after fog and starting tiles, and only if they're found!
+    if (pSpawnDispensaryTransform)
+    {
+        renderEntity(pSpawnDispensaryTransform->GetGlobalPosition(), IM_COL32(0, 255, 255, 255));
+    }
+    if (m_pAriadne)
+    {
+        auto* transform = m_pAriadne->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 0, 255, 255));
     }
 
     // Render player position
@@ -2087,6 +2234,8 @@ wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
 
     // Make Ariadne's light pink because I can (Aurora)
     ariadne.GetChildren().front()->GetComponent<LightComponent>()->SetColor(glm::vec4(1.0f, 0.41f, 0.70f, 0.75f));
+
+    m_pAriadne = &ariadne;
 
     return ariadne;
 }
