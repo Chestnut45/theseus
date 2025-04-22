@@ -23,7 +23,7 @@ starts_as_merchant: true
 merchant_init: {
   inventory_size: 16,
   max_slots_per_row: 4,
-  percent_markup: 0.15,
+  percent_markup: 0,
   starting_gold: 200,
   merchant_loot_file: data/loot/vasilios_loot.yaml,
 }

@@ -65,7 +65,7 @@ Legendary Schematic: {
 Healing Heart: {
   id: CONSUMABLE,
   description: This heart will heal you!,
-  value: 25,
+  value: 50,
   texture_frame: 21,
   rarity: COMMON,
   is_stackable: true,
@@ -78,7 +78,7 @@ Healing Heart: {
 Liquid Life: {
   id: CONSUMABLE,
   description: Don't ask where I got this. Seriously.,
-  value: 250,
+  value: 100,
   texture_frame: 4,
   rarity: UNCOMMON,
   is_stackable: true,
@@ -91,7 +91,7 @@ Liquid Life: {
 Juggin Juice: {
   id: CONSUMABLE,
   description: "Smells like Tuesday...",
-  value: 500,
+  value: 444,
   texture_frame: 31,
   rarity: LEGENDARY,
   is_stackable: true,
@@ -104,7 +104,7 @@ Juggin Juice: {
 Pain Puree: {
   id: CONSUMABLE,
   description: I tried juicing a Minitaur's heart. It's painful to drink.,
-  value: 5,
+  value: 25,
   texture_frame: 8,
   rarity: RARE,
   is_stackable: false,
@@ -118,7 +118,7 @@ Lava Wine: {
   id: CONSUMABLE,
   type: STATUS_EFFECT,
   description: It seemed like a good idea at the time!,
-  value: 5,
+  value: 25,
   texture_frame: 7,
   rarity: RARE,
   is_stackable: false,
@@ -132,7 +132,7 @@ Gorgon Tears: {
   id: CONSUMABLE,
   type: STATUS_EFFECT,
   description: "Have you ever seen a gorgon break-up? It's not pretty...",
-  value: 5,
+  value: 25,
   texture_frame: 6,
   rarity: RARE,
   is_stackable: false,
@@ -145,7 +145,7 @@ Gorgon Tears: {
 Dull Blade: {
   id: EQUIPMENT,
   description: A blade so dull butter could cut through it.,
-  value: 25,
+  value: 50,
   texture_frame: 1,
   rarity: COMMON,
   slot: WEAPON,
@@ -159,7 +159,7 @@ Dull Blade: {
 Spear: {
   id: EQUIPMENT,
   description: The pen is mightier than the sword and this is a very large pen indeed.,
-  value: 50,
+  value: 75,
   texture_frame: 2,
   rarity: UNCOMMON,
   slot: WEAPON,
@@ -197,7 +197,7 @@ The Floor is Lava Boots: {
   texture_frame: 13,
   rarity: LEGENDARY,
   slot: FEET,
-  damage_reduction: 0.05,
+  damage_reduction: 0.04,
   has_status_effects: false,
 }
 
@@ -219,7 +219,7 @@ Rusty Chestplate: {
   texture_frame: 10,
   rarity: COMMON,
   slot: BODY,
-  damage_reduction: 0.02,
+  damage_reduction: 0.04,
   has_status_effects: false,
 }
 
@@ -230,7 +230,7 @@ Copper Vambraces: {
   texture_frame: 11,
   rarity: EPIC,
   slot: ARMS,
-  damage_reduction: 0.02,
+  damage_reduction: 0.04,
   has_status_effects: false,
 }
 
@@ -263,7 +263,7 @@ Faux-leather Gloves: {
   texture_frame: 14,
   rarity: RARE,
   slot: GLOVES,
-  damage_reduction: 0.02,
+  damage_reduction: 0.04,
   has_status_effects: false,
 }
 
@@ -288,7 +288,7 @@ Portal: {
   id: PLACEABLE,
   placeable_type: PORTAL,
   description: Think With Portals!(TM),
-  value: 200,
+  value: 150,
   texture_frame: 26,
   is_stackable: true,
   rarity: LEGENDARY,
@@ -326,7 +326,7 @@ Poison-Tipped Spear: {
 Medusa's Bow: {
   id: EQUIPMENT,
   description: A bow with an endless supply of petrifying arrows.,
-  value: 150,
+  value: 200,
   texture_frame: 28,
   rarity: LEGENDARY,
   slot: WEAPON,
@@ -346,7 +346,7 @@ Medusa's Bow: {
 Triple-Shot Bow: {
   id: EQUIPMENT,
   description: Fires a volley of arrows at once.,
-  value: 100,
+  value: 150,
   texture_frame: 29,
   rarity: UNCOMMON,
   slot: WEAPON,
@@ -371,7 +371,7 @@ Zeus' Wrath: {
   rarity: LEGENDARY,
   slot: WEAPON,
   type: DIVINE,
-  delay: 0.5,
+  delay: 0.1,
   damage: 250.0,
   hurtbox_size: {x: 32.0, y: 32.0},
   has_projectiles: false
