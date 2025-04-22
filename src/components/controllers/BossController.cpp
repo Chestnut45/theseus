@@ -225,7 +225,7 @@ void BossController::Init()
         collider.AddColliderBox(glm::vec2(96.0f), glm::vec2(0.0f, 96.0f));
 
         // Add a light
-        LightComponent& light = GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.75f), 150.0f, true);
+        LightComponent& light = GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.1f, 0.75f), 200.0f, true);
         pillar.AddChild(*light.GetGameObject());
         light.Init();
         light.SetIgnoreWallTiles(true);
@@ -261,7 +261,7 @@ void BossController::Init()
     sprite.SetOriginToCenterOfTexture();
 
     // Add a light
-    m_pLight = &GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.75f), 200.0f, true);
+    m_pLight = &GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.75f), 225.0f, true);
     GetGameObject()->AddChild(*m_pLight->GetGameObject());
     m_pLight->Init();
     m_pLight->SetOn(false);

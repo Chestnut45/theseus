@@ -203,7 +203,7 @@ void PlayState::Enter()
 
     // Add a light to the player
     wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 150.0f, true);
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.65f, 0.48f, 0.26f, 0.75f), 200.0f, true);
     m_pPlayerObject->AddChild(*pLightGO);
     pLightComponent.Init();
     pLightComponent.SetIgnoreWallTiles(true);
@@ -935,7 +935,7 @@ void PlayState::Update(float delta)
         glm::ivec2 center = glm::ivec2(normPos * glm::vec2(m_fogMaskTexSize) / labyrinthSize);
 
         // Write player position and radius into mask
-        int revealRadius = 8;
+        int revealRadius = 50;
         for (int y = -revealRadius; y <= revealRadius; ++y)
         {
             for (int x = -revealRadius; x <= revealRadius; ++x)
@@ -1034,6 +1034,29 @@ void PlayState::BackgroundRender(float delta)
     // Blend the light FBO with the screen
     LightComponent::BlendFBOAndScreen();
 
+    // Render fluid systems
+    for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
+    {
+        if (system.IsIgnoreLighting()) system.Render(delta);
+    }
+
+    // Fog of war world rendering
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBindVertexArray(m_dummyVAO);
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
+    int w = m_pLabyrinthManager->GetWidth();
+    int h = m_pLabyrinthManager->GetHeight();
+    int scale = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    m_pFogWorldShader->SetUniform("time", (float)m_gameCompletionTime.Elapsed());
+    m_pFogWorldShader->SetUniform("labyrinthDimWorldScale", glm::vec4(w, h, scale, scale));
+    m_pFogWorldShader->SetUniform("viewport", glm::vec4(0, 0, m_pGameInstance->GetWidth(), m_pGameInstance->GetHeight()));
+    m_pFogWorldShader->Bind();
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
+    glDisable(GL_BLEND);
+
     // Build map of sprites to render by layer
     std::map<int, std::vector<std::pair<wolf::Sprite2D*, wolf::Transform2D*>>> sortedSprites;
     for (auto&&[_, sprite, transform] : m_pGameInstance->GetScene().Each<wolf::Sprite2D, wolf::Transform2D>())
@@ -1058,12 +1081,6 @@ void PlayState::BackgroundRender(float delta)
         {
             pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
         }
-    }
-
-    // Render fluid systems
-    for (auto&&[_, system] : m_pGameInstance->GetScene().Each<BoundedFluidSystem2D>())
-    {
-        if (system.IsIgnoreLighting()) system.Render(delta);
     }
 
     // Build map of animated sprites to render by layer
@@ -1092,18 +1109,15 @@ void PlayState::BackgroundRender(float delta)
         }
     }
 
-    // TODO: Render the fog mask into the game world
-    
+    // Render all particle components after the fog
+    for (auto&& [_, particleComponent] : m_pGameInstance->GetScene().Each<ParticleComponent>())
+    {
+        particleComponent.Render();
+    }
 
     if (m_pNavMeshComponent && m_pNavMeshComponent->IsDebugDrawEnabled())
     {
         m_pNavMeshComponent->DebugDraw();
-    }
-
-    // Render particle components
-    for (auto&& [_, particleComponent] : m_pGameInstance->GetScene().Each<ParticleComponent>())
-    {
-        particleComponent.Render();
     }
 
     // Queue all colliders for debug rendering
@@ -2306,9 +2320,6 @@ void PlayState::ResizeFogMaskTex(int x, int y)
     m_fogMaskTexels.clear();
     m_fogMaskTexels.reserve(m_fogMaskTexSize.x * m_fogMaskTexSize.y);
     m_fogMaskTexels.assign(m_fogMaskTexSize.x * m_fogMaskTexSize.y, 0);
-
-    // Write in the starting room border texels
-
 }
 
 void PlayState::RenderTextCentered(const std::string& text, float size)

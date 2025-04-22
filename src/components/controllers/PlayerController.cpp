@@ -2297,7 +2297,7 @@ void PlayerController::RenderDeathScreen(float delta) {
     if (m_runtimeFadeComplete || m_runtimeOpacity > 0.0f) {
         ImVec2 runtimePos((displaySize.x) * 0.5f, displaySize.y * 0.5f);
         ImGui::SetNextWindowPos(runtimePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-        ImGui::SetNextWindowSize(ImVec2(300, 100));
+        ImGui::SetNextWindowSize(ImVec2(340, 100));
         ImGui::Begin("##RuntimeInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
         ImGui::SetWindowFontScale(1.8f);
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, m_runtimeOpacity)); // White text

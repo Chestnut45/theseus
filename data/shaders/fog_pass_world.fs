@@ -1,10 +1,13 @@
-layout(binding = 6) uniform sampler2D fogMask;
+layout(std140, binding = 0) uniform cameraBuffer
+{
+    mat4 viewProj;
+};
 
-uniform vec4 mapPosSize;
-uniform float mapZoom;
-uniform vec3 playerPos;
 uniform float time;
+uniform vec4 viewport;
 uniform vec4 labyrinthDimWorldScale;
+
+layout(binding = 6) uniform sampler2D fogMask;
 
 in vec2 texCoords;
 out vec4 finalColor;
@@ -16,41 +19,23 @@ float noise(vec2 uv);
 float fbm(vec2 uv);
 
 // Fragment shader entrypoint
-// TODO: Convert to world space, render over entire scene
 void main()
 {
-    // Only render into the map circle
-    if (distance(gl_FragCoord.xy, mapPosSize.xy) > mapPosSize.z - 6)
-    {
-        discard;
-    }
-
-    // Transform fragment coordinates to map-local, then world scale map local,
-    // then world scale player relative, and finally scale to the entire labyrinth
-    vec2 offset = gl_FragCoord.xy - mapPosSize.xy;
-    offset /= mapZoom;
-    offset += playerPos.xy;
-
-    // TODO: Account for non-uniform labyrinth scales
-    vec2 labSize = labyrinthDimWorldScale.xy;
-    vec2 worldScale = labyrinthDimWorldScale.zw;
-    vec2 uv = offset / (labSize * worldScale);
-
-    // uv.x *= (labSize.x / labSize.y);
-    
-    // Sample the fog mask
-    vec2 clamped = clamp(uv, vec2(0.0), vec2(1.0));
-    float fogAlpha = 1.0 - texture(fogMask, clamped).r;
+    // Convert screen coordinates to world coordinates
+    vec4 clipSpacePos = vec4(texCoords * 2.0 - 1.0, 0.0, 1.0);
+    vec4 worldPos = inverse(viewProj) * clipSpacePos;
+    worldPos /= worldPos.w;
 
     // Grab initial coordinate and sample motion
-	vec2 motion = vec2(fbm(uv * 8 + vec2(time * -0.5, time * -0.3)));
-    vec2 coord = uv * 8 + motion;
+    vec2 fogUV = worldPos.xy / 2000;
+	vec2 motion = vec2(fbm(fogUV * 8 + vec2(time * -0.5, time * -0.3)));
+    vec2 coord = fogUV * 8 + motion;
 
     // Sample the fog noise
     float value = fbm(coord) * 2;
     vec3 fogColor = mix(vec3(0.0, 0.0, 0.0), vec3(0.42, 0.40, 0.47), value);
 
-    finalColor = vec4(fogColor, fogAlpha);
+    finalColor = vec4(fogColor, 0.32);
 }
 
 // Noise implementation
