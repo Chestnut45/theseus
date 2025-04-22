@@ -518,7 +518,7 @@ void PlayerController::HandlePlayerInput(float delta)
 
             // Play sfx with random offset
             static wolf::RNG rng(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-            wolf::Audio::Play("data/sounds/sfx_lightning.wav", 0.7f, rng.NextInt(-10000, 0));
+            wolf::Audio::Play("data/sounds/sfx_lightning.wav", 0.6f, rng.NextInt(-8000, 0));
 
             // Reset timer to ensure delay works
             m_attackTimer.Restart();
