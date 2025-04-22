@@ -1820,17 +1820,17 @@ void LabyrinthManager::GenerateChunks()
             {
                 for (int x = 0; x < CHUNK_SIZE; ++x)
                 {
-                    // Calculate world position
-                    glm::ivec2 worldPos = {x + xoffset, y + yoffset};
+                    // Calculate tile position
+                    glm::ivec2 tilePos = {x + xoffset, y + yoffset};
 
                     // Get the room for the given position
-                    auto room = GetRoom(worldPos);
+                    auto room = GetRoom(tilePos);
 
                     // Don't bother trying to place tiles that don't exist
-                    if (worldPos.x >= m_width || worldPos.y >= m_height) continue;
+                    if (tilePos.x >= m_width || tilePos.y >= m_height) continue;
 
                     // Get the logical tile at the current position
-                    const LogicalTile& logicalTile = m_labyrinthGrid.Get(worldPos.x, worldPos.y);
+                    const LogicalTile& logicalTile = m_labyrinthGrid.Get(tilePos.x, tilePos.y);
 
                     // Convert from logical tile to specific tile ID
                     int tile = wolf::TileMap::EMPTY_TILE;
@@ -1859,10 +1859,10 @@ void LabyrinthManager::GenerateChunks()
                             // tile = nonGoldFloors[m_rng.NextInt(0, sizeof(nonGoldFloors) / sizeof(int) - 1)];
 
                             // Grab values for adjacent perpendicular floors
-                            up = worldPos.y == m_height - 1 ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y + 1) == LogicalTile::Floor ? 1 : 0;
-                            down = worldPos.y == 0 ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y - 1) == LogicalTile::Floor ? 1 : 0;
-                            left = worldPos.x == 0 ? 0 : m_labyrinthGrid.Get(worldPos.x - 1, worldPos.y) == LogicalTile::Floor ? 1 : 0;
-                            right = worldPos.x == m_width - 1 ? 0 : m_labyrinthGrid.Get(worldPos.x + 1, worldPos.y) == LogicalTile::Floor ? 1 : 0;
+                            up = tilePos.y == m_height - 1 ? 0 : m_labyrinthGrid.Get(tilePos.x, tilePos.y + 1) == LogicalTile::Floor ? 1 : 0;
+                            down = tilePos.y == 0 ? 0 : m_labyrinthGrid.Get(tilePos.x, tilePos.y - 1) == LogicalTile::Floor ? 1 : 0;
+                            left = tilePos.x == 0 ? 0 : m_labyrinthGrid.Get(tilePos.x - 1, tilePos.y) == LogicalTile::Floor ? 1 : 0;
+                            right = tilePos.x == m_width - 1 ? 0 : m_labyrinthGrid.Get(tilePos.x + 1, tilePos.y) == LogicalTile::Floor ? 1 : 0;
 
                             // Combine and align into bitmasked index
                             mask = (up << 3) | (down << 2) | (left << 1) | right;
@@ -1873,7 +1873,7 @@ void LabyrinthManager::GenerateChunks()
                             // Add a spike trap to the tile if it is not a floor
                             if (!room.has_value())
                             {
-                                cd.m_hallwaySpikeTraps.push_back(worldPos);
+                                cd.m_hallwaySpikeTraps.push_back(tilePos);
                             }
 
                             break;
@@ -1885,25 +1885,32 @@ void LabyrinthManager::GenerateChunks()
                         case LogicalTile::Wall:
 
                             // Grab values for adjacent perpendicular walls
-                            up = worldPos.y == m_height - 1 ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y + 1) == LogicalTile::Wall ? 1 : 0;
-                            down = worldPos.y == 0 ? 0 : m_labyrinthGrid.Get(worldPos.x, worldPos.y - 1) == LogicalTile::Wall ? 1 : 0;
-                            left = worldPos.x == 0 ? 0 : m_labyrinthGrid.Get(worldPos.x - 1, worldPos.y) == LogicalTile::Wall ? 1 : 0;
-                            right = worldPos.x == m_width - 1 ? 0 : m_labyrinthGrid.Get(worldPos.x + 1, worldPos.y) == LogicalTile::Wall ? 1 : 0;
+                            up = tilePos.y == m_height - 1 ? 0 : m_labyrinthGrid.Get(tilePos.x, tilePos.y + 1) == LogicalTile::Wall ? 1 : 0;
+                            down = tilePos.y == 0 ? 0 : m_labyrinthGrid.Get(tilePos.x, tilePos.y - 1) == LogicalTile::Wall ? 1 : 0;
+                            left = tilePos.x == 0 ? 0 : m_labyrinthGrid.Get(tilePos.x - 1, tilePos.y) == LogicalTile::Wall ? 1 : 0;
+                            right = tilePos.x == m_width - 1 ? 0 : m_labyrinthGrid.Get(tilePos.x + 1, tilePos.y) == LogicalTile::Wall ? 1 : 0;
 
                             // Combine and align into bitmasked index
                             mask = (up << 3) | (down << 2) | (left << 1) | right;
 
                             // Lookup tile for configuration
                             tile = wallDirID[mask];
+                            
+                            // Special handling for single walls
+                            if (mask == 0)
+                            {
+                                collider.AddColliderBox(glm::vec2(TILE_SIZE * SCALE), glm::vec2(x * SCALE * TILE_SIZE, (y + 1) * SCALE * TILE_SIZE));
+                                break;
+                            }
 
                             // Must be a bottom edge tile
                             if (!down || y == 0)
                             {
                                 if (up)
                                 {
-                                    int numAdjacent = 1;
-                                    glm::ivec2 nextPos = worldPos + glm::ivec2(0, numAdjacent + 1);
-                                    while (nextPos.y - yoffset < CHUNK_SIZE)
+                                    int numAdjacent = 0;
+                                    glm::ivec2 nextPos = tilePos + glm::ivec2(0, 1);
+                                    while (nextPos.y < yoffset + CHUNK_SIZE && nextPos.y < m_height)
                                     {
                                         if (m_labyrinthGrid.Get(nextPos.x, nextPos.y) != LogicalTile::Wall) break;
                                         numAdjacent++;
@@ -1926,9 +1933,9 @@ void LabyrinthManager::GenerateChunks()
                             {
                                 if (right)
                                 {
-                                    int numAdjacent = 1;
-                                    glm::ivec2 nextPos = worldPos + glm::ivec2(numAdjacent + 1, 0);
-                                    while (nextPos.x - xoffset < CHUNK_SIZE)
+                                    int numAdjacent = 0;
+                                    glm::ivec2 nextPos = tilePos + glm::ivec2(1, 0);
+                                    while (nextPos.x < xoffset + CHUNK_SIZE && nextPos.x < m_width)
                                     {
                                         if (m_labyrinthGrid.Get(nextPos.x, nextPos.y) != LogicalTile::Wall) break;
                                         numAdjacent++;
