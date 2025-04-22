@@ -34,6 +34,8 @@ void main()
     vec2 labSize = labyrinthDimWorldScale.xy;
     vec2 worldScale = labyrinthDimWorldScale.zw;
     vec2 uv = offset / (labSize * worldScale);
+
+    // uv.x *= (labSize.x / labSize.y);
     
     // Sample the fog mask
     vec2 clamped = clamp(uv, vec2(0.0), vec2(1.0));

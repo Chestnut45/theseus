@@ -196,6 +196,12 @@ glm::vec2 PlayerController::GetLastFacingDirectionVector() const
     }
 }
 
+bool PlayerController::IsAlive() const
+{
+    auto* pHealth = GetGameObject()->GetComponent<HealthComponent>();
+    return pHealth && pHealth->GetHealth() > 0;
+}
+
 // Add and initialize animations for the player character
 void PlayerController::InitializeAnimations()
 {

@@ -107,6 +107,8 @@ public:
     void SetActive(bool value) { m_active = value; }
     bool IsActive() const { return m_active; }
 
+    bool IsAlive() const;
+
 private:
     // Initialization and animation management
     void InitializeAnimations();

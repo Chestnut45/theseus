@@ -349,7 +349,7 @@ void PlayState::Update(float delta)
         else
         {
             // Don't allow pausing when the credits start
-            if (m_gameCompletionTime.IsRunning())
+            if (m_gameCompletionTime.IsRunning() && pc->IsAlive())
             {
                 wolf::EventManager::TriggerEvent(PauseEvent(true));
                 m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
