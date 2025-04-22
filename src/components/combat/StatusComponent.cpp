@@ -196,13 +196,13 @@ void StatusComponent::StatusEffect::ApplyStatusEffect(float p_delta)
             break;
         }
 
-        // Heal 8 hp
+        // Heal 1 hp every 0.5s
         case StatusEffectType::HEALING:
         {        
             HealthComponent* health = this->m_OwnerComponent->GetGameObject()->GetComponent<HealthComponent>();
             if(health != nullptr)
             {
-                health->Heal(10.0f);
+                health->Heal(1.0f);
             }
             else
             {
