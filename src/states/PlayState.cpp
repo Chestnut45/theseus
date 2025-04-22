@@ -73,21 +73,9 @@ void PlayState::Enter()
     m_pFieldTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest, wolf::Texture::FilterMode::FM_Nearest);
     m_pFieldTexture->SetWrapMode(wolf::Texture::WrapMode::WM_Repeat, wolf::Texture::WrapMode::WM_Repeat);
 
+    // Fog shaders
     m_pFogMapShader = wolf::ProgramManager::CreateProgram("data/shaders/fullscreen_pass.vs", "data/shaders/fog_pass_map.fs");
     m_pFogWorldShader = wolf::ProgramManager::CreateProgram("data/shaders/fullscreen_pass.vs", "data/shaders/fog_pass_world.fs");
-
-    glGenTextures(1, &m_fogTraversalTex);
-    glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, FOG_TEX_SIZE, FOG_TEX_SIZE, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    // Init the fog map texels
-    m_fogMaskTexels.clear();
-    m_fogMaskTexels.reserve(FOG_TEX_FLAT_LENGTH);
-    m_fogMaskTexels.assign(FOG_TEX_FLAT_LENGTH, 0);
 
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
@@ -182,6 +170,10 @@ void PlayState::Enter()
             m_pLabyrinthManager->SetSeed(seed);
         }
     }
+
+    // Create the fog mask texture and update it based on the labyrinth size
+    glGenTextures(1, &m_fogTraversalTex);
+    ResizeFogMaskTex(m_pLabyrinthManager->GetWidth() * FOG_TEX_SCALE, m_pLabyrinthManager->GetHeight() * FOG_TEX_SCALE);
 
     // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();
@@ -934,17 +926,16 @@ void PlayState::Update(float delta)
     }
 
     // Update fog mask before rendering
-    // NOTE: We use ariadne to determine if the labyrinth is generated or not
-    if (m_pAriadne)
+    if (m_pLabyrinthManager->IsGenerated())
     {
         // Calculate offset player position
         const float tileWorldSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
         glm::vec2 normPos = playerPos / tileWorldSize;
         glm::vec2 labyrinthSize(m_pLabyrinthManager->GetWidth(), m_pLabyrinthManager->GetHeight());
-        glm::ivec2 center = glm::ivec2(normPos * (float)FOG_TEX_SIZE / labyrinthSize);
+        glm::ivec2 center = glm::ivec2(normPos * glm::vec2(m_fogMaskTexSize) / labyrinthSize);
 
         // Write player position and radius into mask
-        int revealRadius = 64;
+        int revealRadius = 8;
         for (int y = -revealRadius; y <= revealRadius; ++y)
         {
             for (int x = -revealRadius; x <= revealRadius; ++x)
@@ -953,17 +944,17 @@ void PlayState::Update(float delta)
                 int py = center.y + y;
 
                 // Ignore 1 pixel border to ensure map always clamps out to fog
-                if (px <= 0 || px >= FOG_TEX_SIZE - 1 || py <= 0 || py >= FOG_TEX_SIZE - 1) continue;
+                if (px <= 0 || px >= m_fogMaskTexSize.x - 1 || py <= 0 || py >= m_fogMaskTexSize.y - 1) continue;
                 if (x * x + y * y <= revealRadius * revealRadius)
                 {
-                    m_fogMaskTexels[py * FOG_TEX_SIZE + px] = 255;
+                    m_fogMaskTexels[py * m_fogMaskTexSize.x + px] = 255;
                 }
             }
         }
 
         // Upload data
         glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, FOG_TEX_SIZE, FOG_TEX_SIZE, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_fogMaskTexSize.x, m_fogMaskTexSize.y, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
     }
 
     // Dispatch events
@@ -1827,13 +1818,11 @@ void PlayState::OnRegenerateEvent(const LabyrinthRegenerateEvent& event)
     SpawnBossObjects();
 
     // Init the fog map again
-    m_fogMaskTexels.clear();
-    m_fogMaskTexels.reserve(FOG_TEX_FLAT_LENGTH);
-    m_fogMaskTexels.assign(FOG_TEX_FLAT_LENGTH, 0);
+    ResizeFogMaskTex(m_pLabyrinthManager->GetWidth() * FOG_TEX_SCALE, m_pLabyrinthManager->GetHeight() * FOG_TEX_SCALE);
 
     // Upload data
     glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, FOG_TEX_SIZE, FOG_TEX_SIZE, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_fogMaskTexSize.x, m_fogMaskTexSize.y, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
 
     // Reseed NPC builder
     NPCBuilder::DestroyInstance();
@@ -1846,7 +1835,6 @@ void PlayState::OnRegenerateEvent(const LabyrinthRegenerateEvent& event)
     ariadneNPCComp->QueueDialogue("hello");
     ariadneNPCComp->QueueDialogue("traps");
     ariadneNPCComp->QueueDialogue("survivors");
-    m_pLabyrinthManager->GetGameObject()->AddChild(ariadne);
 
     // Register entities
     for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())
@@ -1876,13 +1864,11 @@ void PlayState::OnDestroyEvent(const LabyrinthDestroyEvent& event)
     m_pAriadne = nullptr;
 
     // Init the fog map again
-    m_fogMaskTexels.clear();
-    m_fogMaskTexels.reserve(FOG_TEX_FLAT_LENGTH);
-    m_fogMaskTexels.assign(FOG_TEX_FLAT_LENGTH, 0);
+    ResizeFogMaskTex(m_pLabyrinthManager->GetWidth() * FOG_TEX_SCALE, m_pLabyrinthManager->GetHeight() * FOG_TEX_SCALE);
 
     // Upload data
     glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, FOG_TEX_SIZE, FOG_TEX_SIZE, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_fogMaskTexSize.x, m_fogMaskTexSize.y, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
 }
 
 void PlayState::ShowTooltip(const std::string& text)
@@ -2244,6 +2230,8 @@ wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
 
     m_pAriadne = &ariadne;
 
+    m_pLabyrinthManager->GetGameObject()->AddChild(ariadne);
+
     return ariadne;
 }
 
@@ -2300,7 +2288,28 @@ void PlayState::RenderFadeOverlay(float alpha)
     ImGui::PopStyleColor();
 }
 
+void PlayState::ResizeFogMaskTex(int x, int y)
+{
+    assert(x > 0 && y > 0 && "Fog mask texture size must be greater than 0 in both dimensions");
 
+    m_fogMaskTexSize.x = x;
+    m_fogMaskTexSize.y = y;
+
+    glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_fogMaskTexSize.x, m_fogMaskTexSize.y, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Init the fog map texels
+    m_fogMaskTexels.clear();
+    m_fogMaskTexels.reserve(m_fogMaskTexSize.x * m_fogMaskTexSize.y);
+    m_fogMaskTexels.assign(m_fogMaskTexSize.x * m_fogMaskTexSize.y, 0);
+
+    // Write in the starting room border texels
+
+}
 
 void PlayState::RenderTextCentered(const std::string& text, float size)
 {

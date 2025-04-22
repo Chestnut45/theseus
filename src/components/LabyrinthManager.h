@@ -81,7 +81,7 @@ public:
 
     // Generates the labyrinth and all of its game objects with the current config
     // NOTE: Adds all game objects as child objects to this component's object
-    void GenerateLabyrinth();
+    bool GenerateLabyrinth();
 
     // Deletes the labyrinth and all of its generated game objects
     // NOTE: Deletes all child objects of this component's object
@@ -174,6 +174,8 @@ public:
 
     // Gets the height of the labyrinth in tiles
     inline int GetHeight() const { return m_height; }
+
+    bool IsGenerated() const { return m_isGenerated; }
 
     bool IsBossfightStarted() const { return m_inBossfight; }
 

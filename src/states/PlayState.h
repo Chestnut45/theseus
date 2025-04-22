@@ -120,14 +120,14 @@ private:
     bool m_isMapExpanded = false;                  // Toggle for expanded map
 
     // Fog rendering data
-    static const int FOG_TEX_SIZE = 1024;
-    static const int FOG_TEX_FLAT_LENGTH = FOG_TEX_SIZE * FOG_TEX_SIZE;
+    glm::ivec2 m_fogMaskTexSize;
     glm::vec4 m_cachedMapPosAndSize{0.0f};
     float m_cachedMapZoom = 0.1f;
     wolf::Program* m_pFogMapShader = nullptr;
     wolf::Program* m_pFogWorldShader = nullptr;
     GLuint m_fogTraversalTex = 0;
     std::vector<uint8_t> m_fogMaskTexels;
+    static const int FOG_TEX_SCALE = 4;
     friend void FogCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd);
     
     // Navigation data
@@ -160,6 +160,8 @@ private:
     void RenderTextCentered(const std::string& text, float size);
     void RenderCredits(float delta);
     void RenderFadeOverlay(float alpha);
+
+    void ResizeFogMaskTex(int x, int y);
 
     // Helpers
     bool IsWallTile(int tileID);

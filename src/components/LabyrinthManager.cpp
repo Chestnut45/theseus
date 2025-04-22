@@ -325,20 +325,20 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
     chunk.active = false;
 }
 
-void LabyrinthManager::GenerateLabyrinth()
+bool LabyrinthManager::GenerateLabyrinth()
 {
     // Only bother if valid generation parameters
-    if (m_width <= 0 || m_height <= 0)
+    if (m_width <= 0 || m_height <= 0 || m_width > 250 || m_height > 250)
     {
         wolf::Error("Can't generate labyrinth, invalid width / height");
-        return;
+        return false;
     }
 
     auto* pObject = GetGameObject();
     if (!pObject)
     {
         wolf::Error("Labyrinth generator not attached to a GameObject");
-        return;
+        return false;
     }
 
     // Clear all data structures
@@ -430,6 +430,8 @@ void LabyrinthManager::GenerateLabyrinth()
         if (pCamera) pCamera->SetPosition(pTransform->GetLocalPosition());
         break;
     }
+
+    return true;
 }
 
 void LabyrinthManager::DestroyLabyrinth()
@@ -454,10 +456,10 @@ void LabyrinthManager::DestroyLabyrinth()
 void LabyrinthManager::Regenerate()
 {
     DestroyLabyrinth();
-    GenerateLabyrinth();
+    bool success = GenerateLabyrinth();
 
     // Notify so that listeners like the nav mesh may update
-    wolf::EventManager::TriggerEvent(LabyrinthRegenerateEvent(this));
+    if (success) wolf::EventManager::TriggerEvent(LabyrinthRegenerateEvent(this));
 }
 
 void LabyrinthManager::ShowGUI()
@@ -560,8 +562,13 @@ void LabyrinthManager::ShowGUI()
         ImGui::InputInt("Seed", &seed);
         if (prevSeed != seed) m_rng.SetSeed(seed);
     }
+
+    // Disable width and height sliders when the labyrinth is active
+    if (m_isGenerated) ImGui::BeginDisabled();
     ImGui::DragInt("Width", &m_width, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
     ImGui::DragInt("Height", &m_height, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
+    if (m_isGenerated) ImGui::EndDisabled();
+    
     ImGui::SliderFloat("Spike Ratio", &m_spikeTrapFloorRatio, 0.0f, 1.0f, "%.2f");
 
     ImGui::SeparatorText("Rooms");
@@ -1973,6 +1980,26 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
         }
     }
 
+    auto AddToChunk = [&](wolf::GameObject& obj, const glm::vec2& pos)
+    {
+        // Add as a child object of the correct chunk
+        auto chunkID = GetChunkID(pos);
+        auto* pChunk = GetChunk(chunkID);
+
+        if (!pChunk)
+        {
+            // Warn if chunk doesn't exist
+            wolf::Warning("Enemy spawned in non-existant chunk, pls fix!");
+
+            // Fall back on adding to main labyrinth object
+            pObject->AddChild(obj);
+        }
+        else
+        {
+            pChunk->AddChild(obj);
+        }
+    };
+
     // Place all entities in generated rooms
     for (const auto& room : placedRooms)
     {
@@ -2045,21 +2072,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Scale the minitaur
                         minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
 
-                        // Add as a child object of the correct chunk
-                        auto chunkID = GetChunkID(pos);
-                        auto* pChunk = GetChunk(chunkID);
-
-                        if (!pChunk)
-                        {
-                            // Warn if chunk doesn't exist
-                            wolf::Warning("Enemy spawned in non-existant chunk, pls fix!");
-
-                            // Fall back on adding to main labyrinth object
-                            pObject->AddChild(minitaur);
-                            break;
-                        }
-                        
-                        pChunk->AddChild(minitaur);
+                        AddToChunk(minitaur, pos);
                         break;
                     }
 
@@ -2071,21 +2084,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Scale the harpy
                         harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
 
-                        // Add as a child object of the correct chunk
-                        auto chunkID = GetChunkID(pos);
-                        auto* pChunk = GetChunk(chunkID);
-
-                        if (!pChunk)
-                        {
-                            // Warn if chunk doesn't exist
-                            wolf::Warning("Enemy spawned in non-existant chunk, pls fix!");
-
-                            // Fall back on adding to main labyrinth object
-                            pObject->AddChild(harpy);
-                            break;
-                        }
-                        
-                        pChunk->AddChild(harpy);
+                        AddToChunk(harpy, pos);
                         break;
                     }
 
@@ -2097,21 +2096,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Scale the gorgon
                         gorgon.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
 
-                        // Add as a child object of the correct chunk
-                        auto chunkID = GetChunkID(pos);
-                        auto* pChunk = GetChunk(chunkID);
-
-                        if (!pChunk)
-                        {
-                            // Warn if chunk doesn't exist
-                            wolf::Warning("Enemy spawned in non-existant chunk, pls fix!");
-
-                            // Fall back on adding to main labyrinth object
-                            pObject->AddChild(gorgon);
-                            break;
-                        }
-                        
-                        pChunk->AddChild(gorgon);
+                        AddToChunk(gorgon, pos);
                         break;
                     }
 
@@ -2184,8 +2169,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         chest.AddChild(light);
                         lightComp.Init();
 
-                        // Add chest as a child object of the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        AddToChunk(chest, pos);
                         break;
                     }
                     
@@ -2220,8 +2204,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         chest.AddChild(light);
                         lightComp.Init();
 
-                        // Add chest as a child object of the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        AddToChunk(chest, pos);
                         break;
                     }
 
@@ -2256,8 +2239,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         chest.AddChild(light);
                         lightComp.Init();
 
-                        // Add chest as a child object of the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        AddToChunk(chest, pos);
                         break;
                     }
 
@@ -2292,8 +2274,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         chest.AddChild(light);
                         lightComp.Init();
 
-                        // Add chest as a child object of the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        AddToChunk(chest, pos);
                         break;
                     }
 
@@ -2328,8 +2309,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         chest.AddChild(light);
                         lightComp.Init();
 
-                        // Add chest as a child object of the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(chest);
+                        AddToChunk(chest, pos);
                         break;
                     }
 
@@ -2382,8 +2362,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         dispensary.AddChild(light);
                         lightComp.Init();
 
-                        // Add dispensary as a child object of the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(dispensary);
+                        AddToChunk(dispensary, pos);
                         break;
                     }
 
@@ -2409,8 +2388,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Add the TriggerComponent
                         trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::SPIKE_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);
 
-                        // Add the object to the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(trap);
+                        AddToChunk(trap, pos);
                         break;
                     }
 
@@ -2439,8 +2417,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         transform.SetPosition(pos);
                         transform.SetScale(glm::vec2(SCALE));
 
-                        // Add them to the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(pNPC);
+                        AddToChunk(pNPC, pos);
                         break;
                     }
 
@@ -2454,8 +2431,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         transform.SetPosition(pos);
                         transform.SetScale(glm::vec2(SCALE));
 
-                        // Add them to the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(pNPC);
+                        AddToChunk(pNPC, pos);
                         break;
                     }
 
@@ -2551,8 +2527,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         // Add the TriggerComponent
                         trap.AddComponent<TriggerComponent>(m_pColliderManager, TriggerType::REUSABLE, TriggerPurpose::BOULDER_TRAP, EntityListenType::PLAYER_IGNORE_ROLLING | EntityListenType::MINITAUR | EntityListenType::GORGON);
 
-                        // Add the object to the correct chunk
-                        GetChunk(GetChunkID(pos))->AddChild(trap);
+                        AddToChunk(trap, pos);
                         break;
                     }
 
@@ -2593,7 +2568,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         MonsterSpawnerComponent* monsterSpawnerComp = &monsterSpawnerObj.AddComponent<MonsterSpawnerComponent>(msd);
                         monsterSpawnerComp->Init();
 
-                        GetChunk(GetChunkID(GetWorldPosition(roomOrigin)))->AddChild(monsterSpawnerObj);
+                        AddToChunk(monsterSpawnerObj, pos);
                         break;
                     }
 
@@ -2633,7 +2608,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         MonsterSpawnerComponent* monsterSpawnerComp = &monsterSpawnerObj.AddComponent<MonsterSpawnerComponent>(msd);
                         monsterSpawnerComp->Init();
 
-                        GetChunk(GetChunkID(GetWorldPosition(roomOrigin)))->AddChild(monsterSpawnerObj);
+                        AddToChunk(monsterSpawnerObj, pos);
                         break;
                     }
 
@@ -2673,7 +2648,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         MonsterSpawnerComponent* monsterSpawnerComp = &monsterSpawnerObj.AddComponent<MonsterSpawnerComponent>(msd);
                         monsterSpawnerComp->Init();
 
-                        GetChunk(GetChunkID(GetWorldPosition(roomOrigin)))->AddChild(monsterSpawnerObj);
+                        AddToChunk(monsterSpawnerObj, pos);
                         break;
                     }
 
@@ -2708,8 +2683,17 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add the objects to the correct chunk
                         auto pChunk = GetChunk(GetChunkID(pos));
-                        pChunk->AddChild(trap);
-                        pChunk->AddChild(*sprite.GetGameObject());
+                        if (!pChunk)
+                        {
+                            // Fallback
+                            pObject->AddChild(trap);
+                            pObject->AddChild(*sprite.GetGameObject());
+                        }
+                        else
+                        {
+                            pChunk->AddChild(trap);
+                            pChunk->AddChild(*sprite.GetGameObject());
+                        }
 
                         // Add some item drops to entice the player
                         std::vector<wolf::GameObject*> droppedItems = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/loot/fluid_trap_loot.yaml", pos, -1.0f);
@@ -2727,8 +2711,8 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                                 pItemCollider->SetActive(false);
                             }
 
-                            // Add the dropped item to the chunk
-                            pChunk->AddChild(*pItem);
+                            // Add the dropped item to the chunk or the labyrinth directly if chunk doesn't exist
+                            pChunk ? pChunk->AddChild(*pItem) : pObject->AddChild(*pItem);
                         }
                         break;
                     }

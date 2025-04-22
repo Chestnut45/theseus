@@ -194,7 +194,7 @@ void BossController::Init()
     for (const auto& tile : locations)
     {
         // Hack fix for throwables spawning on top of the pillars
-        if (!roomOptional->IsEmpty(tile))
+        if (roomOptional.has_value() && !roomOptional->IsEmpty(tile))
         {
             glm::vec2 tileWorldPos = m_pLabyrinthManager->GetWorldPosition(tile) + 48.0f;
             for (auto&&[_, obj, transform] : GetGameObject()->GetScene().Each<ThrowableObjectComponent, wolf::Transform2D>())

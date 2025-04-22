@@ -36,11 +36,6 @@ void main()
     vec2 worldScale = labyrinthDimWorldScale.zw;
     vec2 fogUV = offset / 9120;
     vec2 uv = offset / (labSize * worldScale);
-
-    // Calculate labyrinth aspect ratio corrected UVs
-    // TODO: Fix height scaling the fog sample...
-    // vec2 aspectCorrectedUV = uv;
-    // aspectCorrectedUV.x *= (labSize.x / labSize.y);
     
     // Sample the fog mask
     vec2 clamped = clamp(uv, vec2(0.0), vec2(1.0));
