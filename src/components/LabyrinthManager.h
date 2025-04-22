@@ -395,7 +395,7 @@ private:
     std::vector<glm::ivec2> m_chunkDeactivateQueue;
 
     // Cached ID of chunk player was in last frame
-    glm::ivec2 m_prevChunk = glm::ivec2(0);
+    glm::ivec2 m_prevChunk = glm::ivec2(-999);
 
     // Helper methods
 

@@ -406,6 +406,7 @@ bool LabyrinthManager::GenerateLabyrinth()
     // Deactivate all chunks
     for (auto& chunk : m_chunkMap)
     {
+        
         DeactivateChunk(chunk.first);
     }
 
@@ -428,6 +429,32 @@ bool LabyrinthManager::GenerateLabyrinth()
         // Update camera position
         auto* pCamera = pPlayer->GetChildren()[0]->GetComponent<wolf::Camera2D>();
         if (pCamera) pCamera->SetPosition(pTransform->GetLocalPosition());
+
+        // Grab global position of the player and get current chunk
+        auto worldPos = pTransform->GetGlobalPosition();
+        auto chunkID = GetChunkID(worldPos);
+
+        // Set initial chunks to load
+        glm::ivec2 chunksToLoad[] =
+        {
+            chunkID,
+            chunkID + glm::ivec2(0, 1),
+            chunkID + glm::ivec2(1, 0),
+            chunkID + glm::ivec2(1, 1),
+            chunkID + glm::ivec2(0, -1),
+            chunkID + glm::ivec2(-1, 0),
+            chunkID + glm::ivec2(-1, -1),
+            chunkID + glm::ivec2(1, -1),
+            chunkID + glm::ivec2(-1, 1),
+        };
+        
+        // Activate all chunks close to player
+        for (int i = 0; i < 9; ++i)
+        {
+            ActivateChunk(chunksToLoad[i]);
+        }
+
+        // Break since there's only one player
         break;
     }
 
