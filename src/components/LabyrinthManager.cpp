@@ -560,8 +560,8 @@ void LabyrinthManager::ShowGUI()
         ImGui::InputInt("Seed", &seed);
         if (prevSeed != seed) m_rng.SetSeed(seed);
     }
-    ImGui::SliderInt("Width", &m_width, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
-    ImGui::SliderInt("Height", &m_height, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
+    ImGui::DragInt("Width", &m_width, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
+    ImGui::DragInt("Height", &m_height, 1.0f, MIN_LABYRINTH_DIM, MAX_LABYRINTH_DIM);
     ImGui::SliderFloat("Spike Ratio", &m_spikeTrapFloorRatio, 0.0f, 1.0f, "%.2f");
 
     ImGui::SeparatorText("Rooms");

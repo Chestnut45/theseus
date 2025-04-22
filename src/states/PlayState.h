@@ -120,7 +120,7 @@ private:
     bool m_isMapExpanded = false;                  // Toggle for expanded map
 
     // Fog rendering data
-    static const int FOG_TEX_SIZE = 512;
+    static const int FOG_TEX_SIZE = 1024;
     static const int FOG_TEX_FLAT_LENGTH = FOG_TEX_SIZE * FOG_TEX_SIZE;
     glm::vec4 m_cachedMapPosAndSize{0.0f};
     float m_cachedMapZoom = 0.1f;

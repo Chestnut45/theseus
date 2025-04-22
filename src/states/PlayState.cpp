@@ -2003,6 +2003,7 @@ void FogCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
     state->m_pFogMapShader->SetUniform("playerPos", glm::vec3(state->m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 1.0f));
     state->m_pFogMapShader->SetUniform("time", (float)state->m_gameCompletionTime.Elapsed());
     state->m_pFogMapShader->SetUniform("labyrinthDimWorldScale", glm::vec4(w, h, scale, scale));
+    state->m_pFogMapShader->SetUniform("screenSize", glm::vec3(state->m_pGameInstance->GetWidth(), state->m_pGameInstance->GetHeight(), 1.0f));
     state->m_pFogMapShader->Bind();
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
