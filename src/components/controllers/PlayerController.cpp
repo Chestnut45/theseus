@@ -2309,7 +2309,7 @@ void PlayerController::RenderDeathScreen(float delta) {
         ImVec2 runtimePos((displaySize.x) * 0.5f, displaySize.y * 0.4f);
         ImGui::SetNextWindowPos(runtimePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::Begin("##RuntimeInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        ImGui::SetWindowFontScale(1.8f);
+        ImGui::SetWindowFontScale(2.0f);
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, m_runtimeOpacity));
         std::string time = FormatTimeString(m_deathRuntime);
         ImGui::Text("Run Time: %s", time.data());
