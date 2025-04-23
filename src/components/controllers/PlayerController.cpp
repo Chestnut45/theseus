@@ -1941,7 +1941,7 @@ void PlayerController::Render(float delta)
         float colorCoefficient = m_healthColorTimer.IsRunning() ? 1.0f - m_healthColorTimer.Elapsed() : 0.0f;
 
         // Update health color
-        ImVec4 healthColor = ImVec4(0.65f, colorCoefficient * 0.65f,  colorCoefficient * 0.65f, 1.0f);
+        ImVec4 healthColor = ImVec4(0.65f + colorCoefficient * 0.35, colorCoefficient, colorCoefficient, 1.0f);
 
         // Render previous health fraction underneath to indicate damage taken
         m_prevHealthFraction += (healthComponent->GetHealth() / healthComponent->GetMaxHealth() - m_prevHealthFraction) * delta * 4.0f;
