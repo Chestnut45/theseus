@@ -457,6 +457,12 @@ void PlayState::Update(float delta)
         pCamera->SetPosition(pCamera->GetPosition() + shakeOffset);
     }
 
+    // Display completion message for 5 seconds
+    if (m_completionMessageTimer.IsRunning() && m_completionMessageTimer.Elapsed() < 5.0f)
+    {
+        RenderTextCentered("--- Minotaur Defeated ---", 4.0f);
+    }
+
     // Handle fade to black over 3 seconds
     if (m_fadeToBlackTimer.Elapsed() < 3.0f)
     {
@@ -468,12 +474,6 @@ void PlayState::Update(float delta)
     {
         // If fade is fully elapsed, keep it completely black
         RenderFadeOverlay(1.0f);
-    }
-    
-    // Display completion message for 5 seconds
-    if (m_completionMessageTimer.IsRunning() && m_completionMessageTimer.Elapsed() < 5.0f)
-    {
-        RenderTextCentered("You have completed Theseus in " + std::format("{:.3f}", m_gameCompletionTime.Elapsed()), 4.0f);
     }
 
     // Show credits after message disappears
@@ -2257,6 +2257,20 @@ wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
 
 void PlayState::RenderFadeOverlay(float alpha)
 {
+    // Helper to convert a float representing seconds into a nicely formatted time
+    auto FormatTimeString = [](float seconds)
+    {
+        int minutes = static_cast<int>(seconds / 60);
+        float secondsRemaining = seconds - minutes * 60;
+        int secondsRemainingInteger = static_cast<int>(secondsRemaining);
+        int milliseconds = static_cast<int>((secondsRemaining - secondsRemainingInteger) * 1000);
+        std::stringstream out;
+        out << std::setfill('0') << std::setw(2) << minutes << ":"
+            << std::setw(2) << secondsRemainingInteger << "." 
+            << std::setw(3) << milliseconds;
+        return out.str();
+    };
+
     if (alpha >= 1.0f) alpha = 1.0f;
     if (alpha <= 0.0f) return;
 
@@ -2271,21 +2285,44 @@ void PlayState::RenderFadeOverlay(float alpha)
     {
         if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() >= 20.0f)
         {
-            // Style taken from PauseState
+            auto displaySize = ImGui::GetIO().DisplaySize;
+
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.75f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+            
+            // Render you win text
+            ImVec2 textPos(displaySize.x * 0.5f, displaySize.y * 0.4f);
+            ImGui::SetNextWindowPos(textPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+            ImGui::Begin("##YouWinMessage", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+            ImGui::SetWindowFontScale(2.8f);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+            ImGui::Text("You Win!");
+            ImGui::PopStyleColor(1);
+            ImGui::End();
 
-            ImGui::SetCursorPosY(ImGui::GetIO().DisplaySize.y * 0.6f); // Center 
-            ImGui::SetCursorPosX((ImGui::GetIO().DisplaySize.x - 200.0f) * 0.5f); // Center
+            // Render game completion time
+            ImVec2 runtimePos((displaySize.x) * 0.5f, displaySize.y * 0.5f);
+            ImGui::SetNextWindowPos(runtimePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+            ImGui::Begin("##RuntimeInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+            ImGui::SetWindowFontScale(1.8f);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            std::string time = FormatTimeString(m_gameCompletionTime.Elapsed());
+            ImGui::Text("Run Time: %s", time.data());
+            ImGui::PopStyleColor(1);
+            ImGui::End();
+
+            // Render main menu button
+            ImVec2 buttonPos((displaySize.x) * 0.5f, displaySize.y * 0.6f);
+            ImGui::SetNextWindowPos(buttonPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+            ImGui::Begin("##ReturnButton", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
             static bool hovered = false;
             static bool wasHovered = false;
-            if (ImGui::Button("Return to Main Menu", ImVec2(200.0f, 50.0f)))
+            if (ImGui::Button("Return to Main Menu", ImVec2(200.0f, 40.0f)))
             {
-                // Return to the main menu when clicked
                 wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
                 m_isExiting = true;
                 wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
@@ -2296,12 +2333,18 @@ void PlayState::RenderFadeOverlay(float alpha)
                 wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
             }
             wasHovered = hovered;
+            ImGui::End();
+
+            // End FadeOverlay window
+            ImGui::End();
 
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor(4);
         }
-
-        ImGui::End();
+        else
+        {
+            ImGui::End();
+        }
     }
 
     ImGui::PopStyleColor();
@@ -2330,17 +2373,23 @@ void PlayState::ResizeFogMaskTex(int x, int y)
 void PlayState::RenderTextCentered(const std::string& text, float size)
 {
     ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.4f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(0, 0));
     ImGui::SetNextWindowBgAlpha(0.0f);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20, 10));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f)); // white text
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 
-    ImGui::Begin("CenteredText", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs);
+    ImGui::Begin("CenteredText", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNavFocus);
     ImGui::SetWindowFontScale(size);
-    ImGui::Text("%s", text.c_str());
+
+    float textWidth = ImGui::CalcTextSize(text.data()).x;
+    float windowCenter = ImGui::GetWindowSize().x * 0.5f;
+    ImGui::SetCursorPosX(windowCenter - textWidth * 0.5f);
+    ImGui::TextUnformatted(text.data());
     ImGui::End();
 
-    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(2);
     ImGui::PopStyleColor();
 }
 
@@ -2348,24 +2397,22 @@ void PlayState::RenderCredits(float delta)
 {
     static const char* credits[] = {
         "Theseus Development Team",
-        "------------------------",
+        "-----------------------------",
         "",
         "Project Lead: Aurora Ryder",
         "",
         "Lead Programmer: D'Anyil Landry",
         "",
         "Programmers:",
-        "------------------------",
+        "-----------------------------",
         "Aurora Ryder",
         "D'Anyil Landry",
-        "Youssef Ashraf",
         "Nguyen Minh Nhat",
+        "Youssef Ashraf",
         "",
         "Lead Artist: Aurora Ryder",
         "",
         "Music / SFX Design: D'Anyil Landry",
-        "",
-        "lots of love, if you got here, ur an amazing person",
         "",
         "Thank you for playing!"
     };
@@ -2389,24 +2436,25 @@ void PlayState::RenderCredits(float delta)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 
-    if (ImGui::Begin("Credits", nullptr, 
+    // Ensure it's always on top of the fade overlay
+    ImGui::SetNextWindowFocus();
+    ImGui::Begin("Credits", nullptr, 
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | 
-        ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
-    {
+        ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+    
         // Increase font size for readability
-        ImGui::SetWindowFontScale(1.2f);
+    ImGui::SetWindowFontScale(1.2f);
 
-        // Center text
-        for (const char* line : credits)
-        {
-            float textWidth = ImGui::CalcTextSize(line).x;
-            float windowCenter = ImGui::GetWindowSize().x * 0.5f;
-            ImGui::SetCursorPosX(windowCenter - textWidth * 0.5f);
-            ImGui::TextUnformatted(line);
-        }
-
-        ImGui::End();
+    // Center text
+    for (const char* line : credits)
+    {
+        float textWidth = ImGui::CalcTextSize(line).x;
+        float windowCenter = ImGui::GetWindowSize().x * 0.5f;
+        ImGui::SetCursorPosX(windowCenter - textWidth * 0.5f);
+        ImGui::TextUnformatted(line);
     }
+
+    ImGui::End();
 
     // Restore styles
     ImGui::PopStyleVar(3);

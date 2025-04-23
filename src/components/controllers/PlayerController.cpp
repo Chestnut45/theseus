@@ -2261,8 +2261,7 @@ void PlayerController::RenderDeathScreen(float delta) {
         ImGui::Image(blackTextureID, overscaleSize, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 0.75f));
         ImGui::End();
     }
-
-    // Step 2: "You Died" message
+    
     if (m_fadeComplete && !m_messageFadeComplete) {
         m_messageOpacity += delta;
         if (m_messageOpacity >= 1.0f) {
@@ -2271,9 +2270,9 @@ void PlayerController::RenderDeathScreen(float delta) {
         }
     }
 
-    // Step 2: Enhanced "You Died" message
+    // You Died
     if (m_messageFadeComplete || m_messageOpacity > 0.0f) {
-        ImVec2 textPos(displaySize.x * 0.5f, displaySize.y * 0.4f);
+        ImVec2 textPos(displaySize.x * 0.5f, displaySize.y * 0.3f);
         ImGui::SetNextWindowPos(textPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::Begin("##GameOverMessage", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
         ImGui::SetWindowFontScale(2.8f);
@@ -2283,7 +2282,20 @@ void PlayerController::RenderDeathScreen(float delta) {
         ImGui::End();
     }
 
-    // Step 3: Runtime display
+    // Helper to convert a float representing seconds into a nicely formatted time
+    auto FormatTimeString = [](float seconds)
+    {
+        int minutes = static_cast<int>(seconds / 60);
+        float secondsRemaining = seconds - minutes * 60;
+        int secondsRemainingInteger = static_cast<int>(secondsRemaining);
+        int milliseconds = static_cast<int>((secondsRemaining - secondsRemainingInteger) * 1000);
+        std::stringstream out;
+        out << std::setfill('0') << std::setw(2) << minutes << ":"
+            << std::setw(2) << secondsRemainingInteger << "." 
+            << std::setw(3) << milliseconds;
+        return out.str();
+    };
+
     if (m_messageFadeComplete && !m_runtimeFadeComplete) {
         m_runtimeOpacity += delta;
         if (m_runtimeOpacity >= 1.0f) {
@@ -2292,14 +2304,15 @@ void PlayerController::RenderDeathScreen(float delta) {
         }
     }
 
-    // Step 3: Enhanced runtime display
+    // Display run time
     if (m_runtimeFadeComplete || m_runtimeOpacity > 0.0f) {
-        ImVec2 runtimePos((displaySize.x) * 0.5f, displaySize.y * 0.5f);
+        ImVec2 runtimePos((displaySize.x) * 0.5f, displaySize.y * 0.4f);
         ImGui::SetNextWindowPos(runtimePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::Begin("##RuntimeInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
         ImGui::SetWindowFontScale(1.8f);
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, m_runtimeOpacity)); // White text
-        ImGui::Text("Run Time: %.3f seconds", m_deathRuntime);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, m_runtimeOpacity));
+        std::string time = FormatTimeString(m_deathRuntime);
+        ImGui::Text("Run Time: %s", time.data());
         ImGui::PopStyleColor(1);
         ImGui::End();
     }
