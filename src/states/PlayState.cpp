@@ -2119,32 +2119,32 @@ void PlayState::RenderMap() {
     }
 
     // Helper lambda for rendering entities
-    auto renderEntity = [&](const glm::vec2& entityPos, ImU32 color) {
+    auto renderEntity = [&](const glm::vec2& entityPos, ImU32 color, float size = 6.5f) {
         glm::vec2 relativePos = ((entityPos + glm::vec2(-48.0f, -60.0f)) - playerPosition) * labyrinthScale;
         if (glm::length(relativePos) > mapRadius) return;
         relativePos.y = -relativePos.y; // Invert Y-axis
         const ImVec2 entityMarker(mapCenterX + relativePos.x, mapCenterY + relativePos.y);
-        drawList->AddCircle(entityMarker, 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f); // Outline
-        drawList->AddCircleFilled(entityMarker, 5.0f, color);                           // Marker
+        drawList->AddCircle(entityMarker, size, IM_COL32(255, 255, 255, 255), 0, 1.5f);
+        drawList->AddCircleFilled(entityMarker, size - 1.5f, color);
     };
 
     // Render entities by type
     // TODO: Double code these... color is not enough, can we draw shapes here?
     for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>()) {
         auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 0, 0, 255));
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(169, 0, 0, 255));
     }
     for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<HarpyController>()) {
         auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 0, 0, 255));
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(169, 0, 0, 255));
     }
     for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>()) {
         auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 0, 0, 255));
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(169, 0, 0, 255));
     }
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>()) {
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 255, 0, 255));
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 115, 230, 255));
     }
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<ChestInventoryComponent>()) {
         if (component.IsEmpty()) continue;
@@ -2157,7 +2157,7 @@ void PlayState::RenderMap() {
     }
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<BossController>()) {
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(169, 0, 0, 255)); // Dark Red
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(169, 0, 0, 255), 8.5f); // Dark Red
     }
     wolf::Transform2D* pSpawnDispensaryTransform = nullptr;
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent>()) {
