@@ -857,7 +857,7 @@ void GorgonController::HandleDeathState(float delta)
         if(m_lieDeadTimer >= m_timeToLieDead)
         {
             // Spawn some loot
-            std::vector<wolf::GameObject*> pItemDrops = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/loot/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
+            std::vector<wolf::GameObject*> pItemDrops = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/loot/gorgon_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
             
             // Harpies can be inside of the walls so we need to push the loot out. To do that,
             // we get the loot item's velocity component
