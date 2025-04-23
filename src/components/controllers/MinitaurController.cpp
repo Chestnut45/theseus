@@ -37,6 +37,9 @@ void MinitaurController::Init(const EnemyData& data)
     // Call base initialization
     EnemyController::Init();
 
+    // Seed rng randomly
+    m_RNG.SetSeed(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+
     // Assign enemy data
     m_meleeRange = data.meleeRange;
     m_meleeCooldown = data.attackCooldown;

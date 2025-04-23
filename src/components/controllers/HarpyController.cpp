@@ -37,8 +37,12 @@ void HarpyController::Init(const EnemyData& data)
         wolf::Error("LateInitialize failed: HarpyController not attached to GameObject!");
         return;
     }
+    
     // Call base initialization
     EnemyController::Init();
+
+    // Seed rng randomly
+    m_RNG.SetSeed(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 
     // Assign enemy data
     m_rangedRange = data.rangedRange;

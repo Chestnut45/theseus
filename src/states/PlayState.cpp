@@ -2144,15 +2144,20 @@ void PlayState::RenderMap() {
     }
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>()) {
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 0, 255, 255));
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 255, 0, 255));
     }
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<ChestInventoryComponent>()) {
+        if (component.IsEmpty()) continue;
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
         if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
     }
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<TrappedChestComponent>()) {
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
         if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
+    }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<BossController>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(169, 0, 0, 255)); // Dark Red
     }
     wolf::Transform2D* pSpawnDispensaryTransform = nullptr;
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent>()) {
@@ -2167,7 +2172,7 @@ void PlayState::RenderMap() {
             }
             else
             {
-                renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 255, 255, 255));
+                renderEntity(transform->GetGlobalPosition(), IM_COL32(175, 138, 120, 255));
             }
         }
     }
@@ -2193,16 +2198,16 @@ void PlayState::RenderMap() {
     // Render starting entities separately after fog and starting tiles, and only if they're found!
     if (pSpawnDispensaryTransform)
     {
-        renderEntity(pSpawnDispensaryTransform->GetGlobalPosition(), IM_COL32(0, 255, 255, 255));
+        renderEntity(pSpawnDispensaryTransform->GetGlobalPosition(), IM_COL32(175, 138, 120, 255));
     }
     if (m_pAriadne)
     {
         auto* transform = m_pAriadne->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 0, 255, 255));
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(245, 0, 155, 255));
     }
 
     // Render player position
-    drawList->AddCircleFilled(ImVec2(mapCenterX, mapCenterY), 5.0f, IM_COL32(0, 255, 0, 255));
+    drawList->AddCircleFilled(ImVec2(mapCenterX, mapCenterY), 5.0f, IM_COL32(0, 165, 90, 255));
     drawList->AddCircle(ImVec2(mapCenterX, mapCenterY), 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f);
 
     // Border

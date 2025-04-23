@@ -38,6 +38,10 @@ void GorgonController::Init(const EnemyData& data)
 
     // Call base initialization
     EnemyController::Init();
+
+    // Seed rng randomly
+    m_RNG.SetSeed(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+
     m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
 
     // Assign enemy data
