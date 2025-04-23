@@ -260,6 +260,10 @@ void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
         // Activate enemy controllers
         auto* pController = pObject->GetComponent<HarpyController>();
         if (pController) pController->SetActive(true);
+        auto* pController2 = pObject->GetComponent<MinitaurController>();
+        if (pController2) pController2->SetActive(true);
+        auto* pController3 = pObject->GetComponent<GorgonController>();
+        if (pController3) pController3->SetActive(true);
 
         // Activate NPC components
         auto* pNPCComp = pObject->GetComponent<NPCComponent>();
@@ -304,6 +308,10 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
         // Deactivate enemy controllers
         auto* pController = pObject->GetComponent<HarpyController>();
         if (pController) pController->SetActive(false);
+        auto* pController2 = pObject->GetComponent<MinitaurController>();
+        if (pController2) pController2->SetActive(false);
+        auto* pController3 = pObject->GetComponent<GorgonController>();
+        if (pController3) pController3->SetActive(false);
 
         // Deactivate NPC components
         auto* pNPCComp = pObject->GetComponent<NPCComponent>();

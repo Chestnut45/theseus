@@ -4,6 +4,7 @@ loot_table: [
   {name: Gold Pile, probability: 3},
   {name: Kilt, probability: 2},
   {name: Faux-leather Gloves, probability: 2},
+  {name: Golden Heart, probability: 2},
   {name: Rare Schematic, probability: 1},
   {name: Poison-Tipped Spear, probability: 1},
 ]

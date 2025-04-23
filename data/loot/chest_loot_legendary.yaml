@@ -1,10 +1,10 @@
 min_items: 2
 max_items: 4
 loot_table: [
-  {name: Gold Pile, probability: 3},
-  {name: Liquid Life, probability: 2},
-  {name: Legendary Schematic, probability: 1},
-  {name: Medusa's Bow, probability: 1},
+  {name: Gold Pile, probability: 10},
+  {name: Liquid Life, probability: 8},
+  {name: Legendary Schematic, probability: 6},
+  {name: Zeus' Wrath, probability: 1},
   {name: Juggin Juice, probability: 1},
 ]
 

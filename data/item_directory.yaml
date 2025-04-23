@@ -72,7 +72,20 @@ Healing Heart: {
   num_uses: 1,
   type: FLAT_AMT,
   attribute: HEALTH,
-  amount: 100.0,
+  amount: 50.0,
+}
+
+Golden Heart: {
+  id: CONSUMABLE,
+  description: This heart will heal you!,
+  value: 50,
+  texture_frame: 32,
+  rarity: RARE,
+  is_stackable: true,
+  num_uses: 1,
+  type: FLAT_AMT,
+  attribute: HEALTH,
+  amount: 150.0,
 }
 
 Liquid Life: {
