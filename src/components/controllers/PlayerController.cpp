@@ -2273,9 +2273,8 @@ void PlayerController::RenderDeathScreen(float delta) {
 
     // Step 2: Enhanced "You Died" message
     if (m_messageFadeComplete || m_messageOpacity > 0.0f) {
-        ImVec2 textPos((displaySize.x + 150.0f - (ImGui::CalcTextSize("You Died").x * 0.5f)) * 0.5f, displaySize.y * 0.4f);
+        ImVec2 textPos(displaySize.x * 0.5f, displaySize.y * 0.4f);
         ImGui::SetNextWindowPos(textPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-        ImGui::SetNextWindowSize(ImVec2(300, 100));
         ImGui::Begin("##GameOverMessage", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
         ImGui::SetWindowFontScale(2.8f);
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, m_messageOpacity)); // Bright red
@@ -2297,11 +2296,10 @@ void PlayerController::RenderDeathScreen(float delta) {
     if (m_runtimeFadeComplete || m_runtimeOpacity > 0.0f) {
         ImVec2 runtimePos((displaySize.x) * 0.5f, displaySize.y * 0.5f);
         ImGui::SetNextWindowPos(runtimePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-        ImGui::SetNextWindowSize(ImVec2(340, 100));
         ImGui::Begin("##RuntimeInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
         ImGui::SetWindowFontScale(1.8f);
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, m_runtimeOpacity)); // White text
-        ImGui::Text("Run Time: %.2f seconds", m_deathRuntime);
+        ImGui::Text("Run Time: %.3f seconds", m_deathRuntime);
         ImGui::PopStyleColor(1);
         ImGui::End();
     }
@@ -2315,30 +2313,27 @@ void PlayerController::RenderDeathScreen(float delta) {
     }
 
     if (m_optionsOpacity > 0.0f) {
-        ImVec2 optionsPos((displaySize.x + 60.0f) * 0.5f, displaySize.y * 0.64f);
+        ImVec2 optionsPos(displaySize.x * 0.5f, displaySize.y * 0.65f);
         ImGui::SetNextWindowPos(optionsPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-        ImGui::SetNextWindowSize(ImVec2(320, 160));
         ImGui::Begin("##DeathScreenOptions", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
 
         // Style adjustments for the buttons
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(16.0f, 10.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 15.0f));
-
-        // Button colors with gradient effect
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, m_optionsOpacity));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0.0f, 0.0f, 0.0f, 0.6f));
-
-        // Enable border and shadow for a polished look
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+        
 
         // "Return to Main Menu" button
         static bool hovered = false;
         static bool wasHovered = false;
-        if (ImGui::Button("Return to Main Menu", ImVec2(240, 40))) {
+        ImVec2 buttonPos = ImGui::GetCursorPos();
+        if (ImGui::Button("Return to Main Menu", ImVec2(200, 40))) {
             wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
             ResetDeathScreenState();
         }
@@ -2349,12 +2344,10 @@ void PlayerController::RenderDeathScreen(float delta) {
         }
         wasHovered = hovered;
 
-        ImGui::Spacing();
-
         // "Exit Game" button
         static bool hovered2 = false;
         static bool wasHovered2 = false;
-        if (ImGui::Button("Exit Game", ImVec2(240, 40))) {
+        if (ImGui::Button("Exit Game", ImVec2(200, 40))) {
             wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::EXIT));
             ResetDeathScreenState();
         }
