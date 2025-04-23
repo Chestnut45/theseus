@@ -260,7 +260,9 @@ void PlayState::Enter()
 
 void PlayState::Exit()
 {
-    wolf::Audio::Stop();
+    wolf::Audio::Stop("data/sounds/bgm_maze.wav");
+    wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
+    wolf::Audio::Stop("data/sounds/bgm_death.wav");
 
     // Delete objects / components from the scene
     m_pGameInstance->GetScene().Clear();
@@ -2334,6 +2336,12 @@ void PlayState::RenderFadeOverlay(float alpha)
             }
             wasHovered = hovered;
             ImGui::End();
+
+            // Debug information
+            ImGui::SetCursorPosX(12);
+            ImGui::SetCursorPosY(ImGui::GetWindowSize().y - 24);
+            std::string debugString = m_debugHotkeys ? "- Debug Mode " : "";
+            ImGui::Text("Theseus v1.2 %s- Seed: %d", debugString.data(), m_pLabyrinthManager->GetSeed());
 
             // End FadeOverlay window
             ImGui::End();

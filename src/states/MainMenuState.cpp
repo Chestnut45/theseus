@@ -13,14 +13,13 @@
 void MainMenuState::Enter()
 {
     // Initialize the main menu
-    wolf::Audio::Stop();
     wolf::Audio::Play("data/sounds/bgm_title_screen.wav", 1.3f, 0.0f, 0.0f, false, true, 3.31f);
 }
 
 void MainMenuState::Exit()
 {
     // Clean up the main menu
-    wolf::Audio::Stop();
+    wolf::Audio::Stop("data/sounds/bgm_title_screen.wav");
 }
 
 void MainMenuState::Update(float delta)
@@ -162,10 +161,12 @@ void MainMenuState::Update(float delta)
             ImGui::EndChild();
             ImGui::SetCursorPosX(startX - 47);
             ImGui::SetNextItemWidth(256);
+            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 32.0f);
             if (ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f, "%.2f"))
             {
                 wolf::Audio::SetGlobalVolume(volume * 1.2f);
             }
+            ImGui::PopStyleVar();
 
             ImGui::NewLine();
             ImGui::SetCursorPosX(startX + 16);

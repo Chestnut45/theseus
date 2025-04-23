@@ -2347,6 +2347,7 @@ void PlayerController::RenderDeathScreen(float delta) {
         static bool wasHovered = false;
         ImVec2 buttonPos = ImGui::GetCursorPos();
         if (ImGui::Button("Return to Main Menu", ImVec2(200, 40))) {
+            wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
             wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
             ResetDeathScreenState();
         }
