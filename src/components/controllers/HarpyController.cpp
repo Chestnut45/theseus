@@ -360,6 +360,13 @@ void HarpyController::HandleChasingState(float delta)
         if (tile >= Tile::WallBottomLeft && tile <= Tile::WallTop)
         {
             canAttack = false;
+            if (m_onValidTileTimer.IsRunning()) m_onValidTileTimer.Reset();
+        }
+        else
+        {
+            // On a floor tile
+            if (!m_onValidTileTimer.IsRunning()) m_onValidTileTimer.Restart();
+            canAttack = canAttack ? m_onValidTileTimer.Elapsed() > 0.25f : false;
         }
         break;
     }
@@ -374,6 +381,7 @@ void HarpyController::HandleChasingState(float delta)
         )
         {
             ChangeState(EnemyState::ATTACKING);
+            wolf::Audio::Play("data/sounds/sfx_harpy_screech.wav", 1.25f, m_RNG.NextInt(-5000, 5000));
         }
     }
 }
@@ -473,10 +481,12 @@ void HarpyController::HandleAttackingState(float delta)
 
         wolf::Audio::Play("data/sounds/sfx_fireball_shot.wav", 0.6f);
 
-        // Strike again
-        if(m_attackChain > 0)
+        // Strike again if chaining and we still have line of sight
+        bool canAttack = DDACalculator::GetInstance()->GetEndpoint(currentPosition, targetPosition) == targetPosition;
+        if(m_attackChain > 0 && canAttack)
         {
             ChangeState(EnemyState::ATTACKING);
+            wolf::Audio::Play("data/sounds/sfx_harpy_screech.wav", 1.25f, m_RNG.NextInt(-5000, 5000));
         }
         // Else, switch state
         else
@@ -613,7 +623,6 @@ void HarpyController::EnterAttackState()
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
     if(m_attackChain <= 0){
         m_attackChain = m_RNG.NextInt(1, 2);
-        wolf::Audio::Play("data/sounds/sfx_harpy_screech.wav", 1.35f, m_RNG.NextInt(-5000, 5000));
     }
 }
 

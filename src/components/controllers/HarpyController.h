@@ -100,4 +100,5 @@ private:
 
     // SFX Timer
     wolf::Timer m_wingFlapTimer;
+    wolf::Timer m_onValidTileTimer;
 };
