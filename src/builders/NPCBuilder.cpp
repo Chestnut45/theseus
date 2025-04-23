@@ -212,7 +212,7 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
 
     // Finally, attach a LightComponent
     wolf::GameObject* pLightGO = &m_pScene->CreateObject2D();
-    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 75.0f, true);
+    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.65f, 0.48f, 0.26f, 0.75f), 75.0f, true);
     pConstructedNPC->AddChild(*pLightGO);
     pLightComp->Init();
     pLightComp->SetIgnoreWallTiles(true);

@@ -38,7 +38,7 @@ wolf::GameObject& MinitaurBuilder::BuildMinitaur(const EnemyData& data, const gl
 
     // Add a light to the minitaur (added by Aurora)
     wolf::GameObject* pLightGO = &m_scene.CreateObject2D();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.8f, 0.6f, 0.55f, 0.5f), 65.0f, true);
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.8f, 0.6f, 0.55f, 0.75f), 65.0f, true);
     minitaurObject->AddChild(*pLightGO);
     pLightComponent.Init();
     pLightComponent.SetIgnoreWallTiles(true);

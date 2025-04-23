@@ -2148,31 +2148,31 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         {
                             lootTablePath = "data/loot/chest_loot_common.yaml";
                             frameName = "CommonClosed";
-                            color = {0.5f, 0.5f, 0.5f, 0.75f};
+                            color = {0.7f, 0.7f, 0.7f, 0.75f};
                         }
                         if (entity.m_type == Room::EntityType::UncommonChest)
                         {
                             lootTablePath = "data/loot/chest_loot_uncommon.yaml";
                             frameName = "UncommonClosed";
-                            color = {0.39f, 0.39f, 0.39f, 0.75f};
+                            color = {0.7f, 0.7f, 0.7f, 0.75f};
                         }
                         if (entity.m_type == Room::EntityType::RareChest)
                         {
                             lootTablePath = "data/loot/chest_loot_rare.yaml";
                             frameName = "RareClosed";
-                            color = {0.0f, 0.0f, 1.0f, 0.75f};
+                            color = {0.1f, 0.45f, 1.0f, 0.75f};
                         }
                         if (entity.m_type == Room::EntityType::EpicChest)
                         {
                             lootTablePath = "data/loot/chest_loot_epic.yaml";
                             frameName = "EpicClosed";
-                            color = {1.0f, 0.0f, 1.0f, 0.75f};
+                            color = {1.0f, 0.32f, 0.75f, 0.75f};
                         }
                         if (entity.m_type == Room::EntityType::LegendaryChest)
                         {
                             lootTablePath = "data/loot/chest_loot_legendary.yaml";
                             frameName = "LegendaryClosed";
-                            color = {1.0f, 0.64f, 0.0f, 0.75f};
+                            color = {1.0f, 0.64f, 0.1f, 0.75f};
                         }
 
                         // Create the chest object
@@ -2199,7 +2199,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a light to the chest (added by Aurora)
                         auto& light = pObject->GetScene().CreateObject2D();
-                        auto& lightComp = light.AddComponent<LightComponent>(color, 100.0f, true);
+                        auto& lightComp = light.AddComponent<LightComponent>(color, 125.0f, true);
                         chest.AddChild(light);
                         lightComp.Init();
 
@@ -2234,7 +2234,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a light to the chest (added by Aurora)
                         auto& light = pObject->GetScene().CreateObject2D();
-                        auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), 100.0f, true);
+                        auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.1f, 0.75f), 125.0f, true);
                         chest.AddChild(light);
                         lightComp.Init();
 
@@ -2269,7 +2269,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a light to the chest (added by Aurora)
                         auto& light = pObject->GetScene().CreateObject2D();
-                        auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(0.0f, 0.0f, 1.0f, 0.75f), 100.0f, true);
+                        auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(0.05f, 0.45f, 1.0f, 0.75f), 125.0f, true);
                         chest.AddChild(light);
                         lightComp.Init();
 
@@ -2304,7 +2304,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a light to the chest (added by Aurora)
                         auto& light = pObject->GetScene().CreateObject2D();
-                        auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(1.0f, 0.0f, 1.0f, 0.75f), 100.0f, true);
+                        auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(1.0f, 0.32f, 0.75f, 0.75f), 125.0f, true);
                         chest.AddChild(light);
                         lightComp.Init();
 
@@ -2339,7 +2339,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a light to the chest (added by Aurora)
                         auto& light = pObject->GetScene().CreateObject2D();
-                        auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(0.39f, 0.39f, 0.39f, 0.75f), 100.0f, true);
+                        auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(0.7f, 0.7f, 0.7f, 0.75f), 125.0f, true);
                         chest.AddChild(light);
                         lightComp.Init();
 
@@ -2392,7 +2392,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                         // Add a light to the dispensary (added by Aurora)
                         auto& light = pObject->GetScene().CreateObject2D();
-                        auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.75f), 100.0f, false);
+                        auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.75f), 125.0f, false);
                         dispensary.AddChild(light);
                         lightComp.Init();
 
@@ -2857,7 +2857,7 @@ void LabyrinthManager::GenerateEntrance()
 
     // Add a light to the dispensary (added by Aurora)
     auto& light = pObject->GetScene().CreateObject2D();
-    auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.75f), 100.0f, false);
+    auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.75f), 125.0f, false);
     dispensary.AddChild(light);
     lightComp.Init();
 }

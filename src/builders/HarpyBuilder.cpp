@@ -38,7 +38,7 @@ wolf::GameObject& HarpyBuilder::BuildHarpy(const EnemyData& data, const glm::vec
 
     // Add a light to the harpy
     wolf::GameObject* pLightGO = &m_scene.CreateObject2D();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.85f, 0.65f, 0.45f, 0.75f), 95.0f, true);
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.85f, 0.65f, 0.45f, 0.75f), 100.0f, true);
     harpyObject->AddChild(*pLightGO);
     pLightComponent.Init();
     pLightComponent.SetShadowsEnabled(false);
