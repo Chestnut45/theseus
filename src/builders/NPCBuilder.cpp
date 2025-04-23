@@ -38,8 +38,8 @@ void NPCBuilder::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
 
 // Destroys the NPCBuilder instance (provided one exists)
 void NPCBuilder::DestroyInstance() {
-    // If an instance exists
-    assert(m_pInstance != nullptr);
+    // Early out if no instance exists
+    if (!m_pInstance) return;
 
     // Delete it
     delete(m_pInstance);

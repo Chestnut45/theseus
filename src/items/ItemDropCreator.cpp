@@ -14,6 +14,7 @@
 
 ItemDropCreator* ItemDropCreator::m_pInstance = nullptr;
 wolf::Scene* ItemDropCreator::m_pScene = nullptr;
+LabyrinthManager* ItemDropCreator::m_pLabyrinthManager = nullptr;
 wolf::RNG* ItemDropCreator::m_pRNG = nullptr;
 
 int ItemDropCreator::m_iRNGSeed;
@@ -33,12 +34,18 @@ void ItemDropCreator::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
     m_pRNG = new wolf::RNG(p_iRNGSeed); // This seed value is completely arbitrary
     m_pScene = p_pScene;
     m_iRNGSeed = p_iRNGSeed;
+
+    for (auto&&[_, manager] : m_pScene->Each<LabyrinthManager>())
+    {
+        m_pLabyrinthManager = &manager;
+        break;
+    }
 }
 
 // Destroys the ItemDropCreator instance (provided one exists)
 void ItemDropCreator::DestroyInstance() {
-    // If an instance exists
-    assert(m_pInstance != nullptr);
+    // Early out if no instance exists
+    if (!m_pInstance) return;
 
     // Delete it
     delete(m_pInstance);
@@ -47,6 +54,7 @@ void ItemDropCreator::DestroyInstance() {
     m_pInstance = nullptr;
     m_pScene = nullptr;
     m_pRNG = nullptr;
+    m_pLabyrinthManager = nullptr;
 }
 
 // Returns a pointer to the ItemDropCreator instance (provided one exists)
@@ -70,6 +78,12 @@ void ItemDropCreator::SetScene(wolf::Scene* p_pScene) {
 wolf::GameObject* ItemDropCreator::CreateItemDropFromExistingItem(ItemBase* p_pItem, const glm::vec2& p_v2SpawnPos, float p_fLifespan) {
     // Create the item's gameobject
     wolf::GameObject* pItemDropGO = &m_pScene->CreateObject2D();
+
+    // Add the drop to the labyrinth so it gets deleted
+    if (m_pLabyrinthManager)
+    {
+        m_pLabyrinthManager->GetGameObject()->AddChild(*pItemDropGO);
+    }
 
     // Add the dropped item component and the sprite
     pItemDropGO->AddComponent<DroppedItemComponent>(p_pItem, p_fLifespan);
@@ -106,6 +120,12 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromDirectory(const std::string
     if (pItem) {
         // Create the item's gameobject
         wolf::GameObject* pItemDropGO = &m_pScene->CreateObject2D();
+
+        // Add the drop to the labyrinth so it gets deleted
+        if (m_pLabyrinthManager)
+        {
+            m_pLabyrinthManager->GetGameObject()->AddChild(*pItemDropGO);
+        }
 
         // Add the dropped item component and the sprite
         pItemDropGO->AddComponent<DroppedItemComponent>(pItem, p_fLifespan);
@@ -212,6 +232,12 @@ std::vector<wolf::GameObject*> ItemDropCreator::CreateItemDropFromLootTable(cons
             else {
                 // Create the item's gameobject
                 wolf::GameObject* pItemDropGO = &m_pScene->CreateObject2D();
+
+                // Add the drop to the labyrinth so it gets deleted
+                if (m_pLabyrinthManager)
+                {
+                    m_pLabyrinthManager->GetGameObject()->AddChild(*pItemDropGO);
+                }
 
                 // Add the dropped item component and the sprite
                 pItemDropGO->AddComponent<DroppedItemComponent>(pItem, p_fLifespan);

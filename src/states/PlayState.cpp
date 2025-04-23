@@ -1844,13 +1844,6 @@ void PlayState::OnRegenerateEvent(const LabyrinthRegenerateEvent& event)
     glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_fogMaskTexSize.x, m_fogMaskTexSize.y, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
 
-    // Reseed NPC builder
-    NPCBuilder::DestroyInstance();
-    NPCBuilder::CreateInstance(&m_pGameInstance->GetScene(), m_pLabyrinthManager->GetSeed());
-
-    ItemDropCreator::DestroyInstance();
-    ItemDropCreator::CreateInstance(&m_pGameInstance->GetScene(), m_pLabyrinthManager->GetSeed());
-
     // Create ariadne and setup dialogue
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
     wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);

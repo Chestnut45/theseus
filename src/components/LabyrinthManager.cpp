@@ -367,7 +367,13 @@ bool LabyrinthManager::GenerateLabyrinth()
     }
     m_rng.Reseed();
 
-    if (m_randomizeSeed) wolf::Log("RANDOMIZE SEED");
+    // Re-initialize NPC builder
+    NPCBuilder::DestroyInstance();
+    NPCBuilder::CreateInstance(&pObject->GetScene(), GetSeed());
+
+    // Re-initialize Item drop creator
+    ItemDropCreator::DestroyInstance();
+    ItemDropCreator::CreateInstance(&pObject->GetScene(), GetSeed());
 
     // Initialize global grid of logical tile data for entire labyrinth
     m_labyrinthGrid.Resize(m_width, m_height, LogicalTile::Unvisited);
