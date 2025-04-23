@@ -41,7 +41,7 @@ Uncommon Schematic: {
 Rare Schematic: {
   id: SCHEMATIC,
   description: One of Daedalus' old schematics. Can be traded at a dispensary for strong equipment.,
-  value: 75,
+  value: 100,
   texture_frame: 18,
   rarity: RARE
 }
@@ -49,7 +49,7 @@ Rare Schematic: {
 Epic Schematic: {
   id: SCHEMATIC,
   description: One of Daedalus' old schematics. Can be traded at a dispensary for powerful equipment.,
-  value: 100,
+  value: 150,
   texture_frame: 19,
   rarity: EPIC
 }
@@ -57,7 +57,7 @@ Epic Schematic: {
 Legendary Schematic: {
   id: SCHEMATIC,
   description: One of Daedalus' favourite schematics. Can be traded at a dispensary for impressive equipment.,
-  value: 125,
+  value: 250,
   texture_frame: 20,
   rarity: LEGENDARY
 }
@@ -65,7 +65,7 @@ Legendary Schematic: {
 Healing Heart: {
   id: CONSUMABLE,
   description: This heart will heal you!,
-  value: 50,
+  value: 25,
   texture_frame: 21,
   rarity: COMMON,
   is_stackable: true,
@@ -206,7 +206,7 @@ Old Bow: {
 The Floor is Lava Boots: {
   id: EQUIPMENT,
   description: Guaranteed to make you feel like you're walking in lava!,
-  value: 25,
+  value: 50,
   texture_frame: 13,
   rarity: EPIC,
   slot: FEET,
@@ -239,7 +239,7 @@ Rusty Chestplate: {
 Copper Vambraces: {
   id: EQUIPMENT,
   description: Protects your forearms!,
-  value: 10,
+  value: 20,
   texture_frame: 11,
   rarity: UNCOMMON,
   slot: ARMS,
@@ -250,7 +250,7 @@ Copper Vambraces: {
 Kilt: {
   id: EQUIPMENT,
   description: Rumoured to have originated from the ancient mythical realm of "Scotland".,
-  value: 10,
+  value: 35,
   texture_frame: 12,
   rarity: RARE,
   slot: LEGS,
@@ -261,7 +261,7 @@ Kilt: {
 Theezys: {
   id: EQUIPMENT,
   description: Produced by the finest Athenian sweatshops!,
-  value: 25,
+  value: 15,
   texture_frame: 13,
   rarity: UNCOMMON,
   slot: FEET,
@@ -272,7 +272,7 @@ Theezys: {
 Faux-leather Gloves: {
   id: EQUIPMENT,
   description: Faux-leather was developed after an incident involving Artemis' pet goat being made into a kitchen rug (long story).,
-  value: 15,
+  value: 25,
   texture_frame: 14,
   rarity: RARE,
   slot: GLOVES,
@@ -283,7 +283,7 @@ Faux-leather Gloves: {
 Lapis Lazuli Ring: {
   id: EQUIPMENT,
   description: Lapis Lazuli ores can be mined with a stone pickaxe or better and drops 4-9 lapis lazuli.,
-  value: 250,
+  value: 200,
   texture_frame: 24,
   rarity: LEGENDARY,
   slot: ACCESSORY,
@@ -341,11 +341,11 @@ Medusa's Bow: {
   description: A bow with an endless supply of petrifying arrows.,
   value: 200,
   texture_frame: 28,
-  rarity: LEGENDARY,
+  rarity: EPIC,
   slot: WEAPON,
   type: BOW,
   delay: 0.4,
-  damage: 200.0,
+  damage: 150.0,
   hurtbox_size: {x: 1.0, y: 1.0},
   has_projectiles: true,
   projectile: {
@@ -359,7 +359,7 @@ Medusa's Bow: {
 Triple-Shot Bow: {
   id: EQUIPMENT,
   description: Fires a volley of arrows at once.,
-  value: 150,
+  value: 100,
   texture_frame: 29,
   rarity: UNCOMMON,
   slot: WEAPON,

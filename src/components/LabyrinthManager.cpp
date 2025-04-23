@@ -73,6 +73,7 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["trapped_chest_harpy"] = Room::EntityType::TrappedChestHarpy;
     s_entityIDs["trapped_chest_minitaur"] = Room::EntityType::TrappedChestMinitaur;
     s_entityIDs["dispensary"] = Room::EntityType::DaedalusDispensary;
+    s_entityIDs["legendary_dispensary"] = Room::EntityType::LegendaryDaedalusDispensary;
     s_entityIDs["throwable_object"] = Room::EntityType::ThrowableObject;
     s_entityIDs["spike_trap"] = Room::EntityType::SpikeTrap;
     s_entityIDs["ariadne_npc"] = Room::EntityType::AriadneNPC;
@@ -596,7 +597,7 @@ void LabyrinthManager::ShowGUI()
     if (ImGui::Button("Regenerate", buttonSize))
     {
         regen = true;
-        SetSeed(m_rng.GetSeed());
+        m_rng.SetSeed(m_rng.GetSeed());
         Regenerate();
     }
 
@@ -2371,10 +2372,18 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
 
                     // !-- Aurora added this --!
                     case Room::EntityType::DaedalusDispensary:
+                    case Room::EntityType::LegendaryDaedalusDispensary:
                     {
-                        // ?-- It would be nice to choose the loot table randomly or based on where the dispensary is spawned
-                        //     could use an RNG to index an array or use numbered filenames e.g. "dispensary_loot_N.yaml" --?
-                        std::string strLootTablePath = "data/loot/dispensary_contents" + std::to_string(m_rng.NextInt(1, 4)) + ".yaml";
+                        std::string strLootTablePath;
+                        if (entity.m_type == Room::EntityType::LegendaryDaedalusDispensary)
+                        {
+                            strLootTablePath = "data/loot/dispensary_contents_legendary.yaml";
+                        }
+                        else
+                        {
+                            // Choose a random dispensary loot table
+                            strLootTablePath = "data/loot/dispensary_contents" + std::to_string(m_rng.NextInt(1, 3)) + ".yaml";
+                        }
 
                         // Create the dispensary object
                         auto& dispensary = pObject->GetScene().CreateObject2D();
@@ -2854,7 +2863,7 @@ void LabyrinthManager::GenerateEntrance()
 
     // Add the dispensary inventory
     auto& inventory = dispensary.AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(50, 300));
-    inventory.FillInventoryFromFile("data/loot/dispensary_contents1.yaml");
+    inventory.FillInventoryFromFile("data/loot/dispensary_contents_spawn.yaml");
 
     // Add the collider
     auto& dispensaryCollider = dispensary.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);

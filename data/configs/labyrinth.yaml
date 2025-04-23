@@ -38,11 +38,21 @@ rooms: [
 		]
 	},
 	{
-		name: Dispensary Rooms,
-		instances: 8,
+		name: Legendary Dispensary Room,
+		instances: 1,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
+		entities: [
+			{type: legendary_dispensary, amount: 1, placement: center},
+		]
+	},
+	{
+		name: Dispensary Rooms,
+		instances: 6,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: dispensary, amount: 1, placement: center},
 		]
@@ -52,7 +62,7 @@ rooms: [
 		instances: 12,
 		force: false,
 		position: {type: random},
-		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: minitaur, amount: 3, placement: random}
 		]
