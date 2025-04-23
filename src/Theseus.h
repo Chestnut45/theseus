@@ -30,6 +30,9 @@ public:
     // Gets a reference to the main scene of the game
     inline wolf::Scene& GetScene() { return m_scene; }
 
+    void ToggleDebugGUI() { m_showDebug = !m_showDebug; }
+    bool IsDebugEnabled() const { return m_showDebug; }
+
     SharedContext& GetSharedContext() { return m_sharedContext; }
 
 

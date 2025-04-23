@@ -267,6 +267,8 @@ void PlayState::Exit()
     // Delete objects / components from the scene
     m_pGameInstance->GetScene().Clear();
 
+    if (m_pGameInstance->IsDebugEnabled()) m_pGameInstance->ToggleDebugGUI();
+
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
     wolf::EventManager::RemoveListener<GameOverEvent, PlayState, &PlayState::OnGameOverEvent>(*this);
@@ -356,6 +358,8 @@ void PlayState::Update(float delta)
 
     if (m_debugHotkeys)
     {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_GRAVE_ACCENT)) m_pGameInstance->ToggleDebugGUI();
+
         // Show debug hitboxes with backslash
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_BACKSLASH))
         {

@@ -42,9 +42,6 @@ Theseus::~Theseus()
 
 void Theseus::Update(float delta)
 {
-    // TODO: Move to debug in play state
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_GRAVE_ACCENT)) m_showDebug = !m_showDebug;
-
     // Handle window resizing
     if (m_windowResized)
     {
