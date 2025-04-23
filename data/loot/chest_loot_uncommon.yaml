@@ -6,6 +6,7 @@ loot_table: [
   {name: Theezys, probability: 2},
   {name: Uncommon Schematic, probability: 1},
   {name: Spear, probability: 1},
+  {name: Triple-Shot Bow, probability: 1},
 ]
 
 guaranteed_items: [

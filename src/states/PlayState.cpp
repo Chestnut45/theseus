@@ -1848,6 +1848,9 @@ void PlayState::OnRegenerateEvent(const LabyrinthRegenerateEvent& event)
     NPCBuilder::DestroyInstance();
     NPCBuilder::CreateInstance(&m_pGameInstance->GetScene(), m_pLabyrinthManager->GetSeed());
 
+    ItemDropCreator::DestroyInstance();
+    ItemDropCreator::CreateInstance(&m_pGameInstance->GetScene(), m_pLabyrinthManager->GetSeed());
+
     // Create ariadne and setup dialogue
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
     wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);

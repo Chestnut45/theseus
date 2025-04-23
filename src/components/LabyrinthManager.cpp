@@ -367,6 +367,8 @@ bool LabyrinthManager::GenerateLabyrinth()
     }
     m_rng.Reseed();
 
+    if (m_randomizeSeed) wolf::Log("RANDOMIZE SEED");
+
     // Initialize global grid of logical tile data for entire labyrinth
     m_labyrinthGrid.Resize(m_width, m_height, LogicalTile::Unvisited);
 
@@ -576,7 +578,13 @@ void LabyrinthManager::ShowGUI()
     ImVec2 buttonSize(128, 24);
     if (ImGui::Button("Destroy", buttonSize)) DestroyLabyrinth();
     ImGui::SameLine();
-    if (ImGui::Button("Regenerate", buttonSize)) Regenerate();
+    bool regen = false;
+    if (ImGui::Button("Regenerate", buttonSize))
+    {
+        regen = true;
+        SetSeed(m_rng.GetSeed());
+        Regenerate();
+    }
 
     ImGui::SeparatorText("Labyrinth Properties");
 
@@ -584,10 +592,10 @@ void LabyrinthManager::ShowGUI()
     ImGui::Checkbox("Randomize Seed", &m_randomizeSeed);
     if (!m_randomizeSeed)
     {
-        int seed = (int)m_rng.GetSeed();
+        int seed = static_cast<int>(m_rng.GetSeed());
         int prevSeed = seed;
         ImGui::InputInt("Seed", &seed);
-        if (prevSeed != seed) m_rng.SetSeed(seed);
+        if (!regen && prevSeed != seed) m_rng.SetSeed(seed);
     }
 
     // Disable width and height sliders when the labyrinth is active

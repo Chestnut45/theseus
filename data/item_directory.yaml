@@ -197,7 +197,7 @@ The Floor is Lava Boots: {
   texture_frame: 13,
   rarity: EPIC,
   slot: FEET,
-  damage_reduction: 0.04,
+  damage_reduction: 0.05,
   has_status_effects: false,
 }
 
@@ -230,7 +230,7 @@ Copper Vambraces: {
   texture_frame: 11,
   rarity: UNCOMMON,
   slot: ARMS,
-  damage_reduction: 0.04,
+  damage_reduction: 0.03,
   has_status_effects: false,
 }
 
@@ -241,7 +241,7 @@ Kilt: {
   texture_frame: 12,
   rarity: RARE,
   slot: LEGS,
-  damage_reduction: 0.05,
+  damage_reduction: 0.04,
   has_status_effects: false,
 }
 
@@ -274,7 +274,7 @@ Lapis Lazuli Ring: {
   texture_frame: 24,
   rarity: LEGENDARY,
   slot: ACCESSORY,
-  damage_reduction: 0.02,
+  damage_reduction: 0.05,
   has_status_effects: true,
   status_effects: [
     {
