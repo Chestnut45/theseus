@@ -2042,7 +2042,7 @@ void PlayState::RenderMap() {
     const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
     const ImVec2 mapPosition = m_isMapExpanded
         ? ImVec2((displaySize.x - mapSize) * 0.5f, (displaySize.y - mapSize) * 0.5f) // Centered
-        : ImVec2(displaySize.x - mapSize - 20.0f, 20.0f); // Top-right corner
+        : ImVec2(displaySize.x - mapSize - 17.0f, 17.0f); // Top-right corner
 
     // Get player transform component and compute adjusted position
     const auto* playerTransform = m_pPlayerObject->GetComponent<wolf::Transform2D>();
@@ -2207,8 +2207,8 @@ void PlayState::RenderMap() {
 
     // Border
     drawList->PushClipRect(
-        ImVec2(center.x - mapRadius - 10.0f, center.y - mapRadius - 10.0f),
-        ImVec2(center.x + mapRadius + 10.0f, center.y + mapRadius + 10.0f),
+        ImVec2(center.x - mapRadius - 15.0f, center.y - mapRadius - 15.0f),
+        ImVec2(center.x + mapRadius + 15.0f, center.y + mapRadius + 15.0f),
         false
     );
     drawList->AddCircle(center, mapRadius + 2.0f, IM_COL32(32, 32, 32, 255), 64, 18.0f);

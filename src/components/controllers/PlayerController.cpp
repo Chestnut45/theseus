@@ -511,7 +511,7 @@ void PlayerController::HandlePlayerInput(float delta)
 
             // Add a light
             wolf::GameObject& lightObj = object.GetScene().CreateObject2D();
-            auto& light = lightObj.AddComponent<LightComponent>(glm::vec4(0.95f, 0.95f, 0.65f, 0.85f), 200.0f, true);
+            auto& light = lightObj.AddComponent<LightComponent>(glm::vec4(0.9f, 0.9f, 0.65f, 0.8f), 225.0f, true);
             object.AddChild(lightObj);
             light.Init();
             light.SetIgnoreWallTiles(true);

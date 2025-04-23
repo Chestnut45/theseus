@@ -374,7 +374,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
                 // The pop-up menu has different buttons based on what the item is and what "state" it's in
-                if (ImGui::BeginPopup(strIndex.c_str())) {
+                if (ImGui::BeginPopup(strIndex.c_str(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
                     if (pItem->GetID() == CONSUMABLE) { // If the item is Consumable
                         // We need to be able to "use" it
                         if (ImGui::Button("Use")) {
@@ -569,7 +569,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
                 
                 // The pop-up menu has different buttons based on what "state" the game is in
-                if (ImGui::BeginPopup(strPopUpID.c_str())) {
+                if (ImGui::BeginPopup(strPopUpID.c_str(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
                     // We can unequip items
                     if (ImGui::Button("Unequip")) {
                         this->UnequipItem(pEquipItem);

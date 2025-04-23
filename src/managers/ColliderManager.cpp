@@ -116,8 +116,8 @@ void ColliderManager::CheckCollisions(float p_delta)
             // Skip collisions between enemies to avoid them sticking
             if (isSolidEnemy1 && isSolidEnemy2) continue;
 
-            // Skip collisions between enemies and the player
-            if ((isPlayer1 && isSolidEnemy2) || (isPlayer2 && isSolidEnemy1)) continue;
+            // DEBUG: Skip collisions between enemies and the player
+            // if ((isPlayer1 && isSolidEnemy2) || (isPlayer2 && isSolidEnemy1)) continue;
 
             // Perform collision check
             if (this->IsCollidingInternalUse(collider1, collider2, p_delta))
@@ -503,8 +503,8 @@ void ColliderManager::CheckCornerCollision(float p_delta)
                 // Skip collisions between enemies to avoid them sticking
                 if (isSolidEnemy1 && isSolidEnemy2) continue;
 
-                // Skip collisions between enemies and the player
-                if ((isPlayer1 && isSolidEnemy2) || (isPlayer2 && isSolidEnemy1)) continue;
+                // DEBUG: Skip collisions between enemies and the player
+                // if ((isPlayer1 && isSolidEnemy2) || (isPlayer2 && isSolidEnemy1)) continue;
 
                 if (HandleCornerCollision(collider1, velocity1, corners1, collider2, scale1, translation1))
                 {
@@ -522,8 +522,8 @@ void ColliderManager::CheckCornerCollision(float p_delta)
                 // Skip collisions between enemies to avoid them sticking
                 if (isSolidEnemy1 && isSolidEnemy2) continue;
 
-                // Skip collisions between enemies and the player
-                if ((isPlayer1 && isSolidEnemy2) || (isPlayer2 && isSolidEnemy1)) continue;
+                // DEBUG: Skip collisions between enemies and the player
+                // if ((isPlayer1 && isSolidEnemy2) || (isPlayer2 && isSolidEnemy1)) continue;
 
                 if (HandleCornerCollision(collider1, velocity1, corners1, collider2, scale1, translation1))
                 {
