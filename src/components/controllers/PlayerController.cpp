@@ -305,8 +305,6 @@ void PlayerController::Update(float delta)
 
         HandlePlayerInput(delta);
 
-        
-
         // Check if player is petrified
         StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
         if
@@ -707,6 +705,9 @@ void PlayerController::HandlePlacing(float delta)
 
 void PlayerController::HandleDeath(float delta)
 {
+    m_stamina = 0.0f;
+    m_action = PlayerAction::DEAD;
+
     // Fall over
     if(m_fallDeadTimer <= m_timeToFallDead)
     {
@@ -1920,7 +1921,6 @@ void PlayerController::Render(float delta)
     if (!m_active || !m_pTransform) return;
     if (m_action == PlayerAction::DEAD) {
         RenderDeathScreen(delta);
-        return;
     }
 
     float barWidth = 258.0f;
