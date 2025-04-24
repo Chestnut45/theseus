@@ -6,6 +6,7 @@ layout(std140, binding = 0) uniform cameraBuffer
 uniform float time;
 uniform vec4 viewport;
 uniform vec4 labyrinthDimWorldScale;
+uniform vec4 fogColor;
 
 layout(binding = 6) uniform sampler2D fogMask;
 
@@ -33,9 +34,9 @@ void main()
 
     // Sample the fog noise
     float value = fbm(coord) * 2;
-    vec3 fogColor = mix(vec3(0.0, 0.0, 0.0), vec3(0.42, 0.40, 0.47), value);
+    vec3 mixedColor = mix(vec3(0.0, 0.0, 0.0), fogColor.rgb, value);
 
-    finalColor = vec4(fogColor, 0.32);
+    finalColor = vec4(mixedColor, fogColor.a);
 }
 
 // Noise implementation

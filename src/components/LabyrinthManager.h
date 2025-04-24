@@ -175,10 +175,9 @@ public:
     // Gets the height of the labyrinth in tiles
     inline int GetHeight() const { return m_height; }
 
+    const glm::vec4& GetFogColor() const { return m_fogColor; }
     bool IsGenerated() const { return m_isGenerated; }
-
     bool IsBossfightStarted() const { return m_inBossfight; }
-
     const wolf::Rectangle& GetSpawnPatchRect() const { return m_spawnPatchBounds; }
 
 // Implementation
@@ -202,6 +201,7 @@ private:
 
     // Shadow / fog parameters
     glm::vec4 m_shadowColor{0.0f, 0.0f, 0.0f, 0.64f};
+    glm::vec4 m_fogColor{0.42f, 0.4f, 0.47f, 0.32f};
 
     // Spawn area settings
     wolf::GameObject* m_pSpawnRoom = nullptr;
@@ -212,7 +212,7 @@ private:
     wolf::GameObjectID m_spawnDispensaryID = -1;
 
     // Flags
-    bool m_randomizeSeed = false;
+    bool m_randomizeSeed = true;
     bool m_isGenerated = false;
     bool m_inBossfight = false;
 

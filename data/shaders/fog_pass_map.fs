@@ -5,7 +5,7 @@ uniform float mapZoom;
 uniform vec3 playerPos;
 uniform float time;
 uniform vec4 labyrinthDimWorldScale;
-uniform vec3 screenSize;
+uniform vec4 fogColor;
 
 in vec2 texCoords;
 out vec4 finalColor;
@@ -47,9 +47,9 @@ void main()
 
     // Sample the fog noise
     float value = fbm(coord) * 2;
-    vec3 fogColor = mix(vec3(0.0, 0.0, 0.0), vec3(0.42, 0.40, 0.47), value);
+    vec3 mixedColor = mix(vec3(0.0, 0.0, 0.0), fogColor.rgb, value);
 
-    finalColor = vec4(fogColor, fogAlpha);
+    finalColor = vec4(mixedColor, fogAlpha);
 }
 
 // Noise implementation

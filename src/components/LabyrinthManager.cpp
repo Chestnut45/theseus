@@ -590,6 +590,7 @@ void LabyrinthManager::ShowGUI()
             if (ImGui::MenuItem(ICON_FA_FILE_CIRCLE_PLUS " New"))
             {
                 Reset();
+                Regenerate();
             }
 
             if (ImGui::MenuItem(ICON_FA_FILE " Load..."))
@@ -600,6 +601,7 @@ void LabyrinthManager::ShowGUI()
                     // Grab the generic portable version of the path
                     auto path = std::filesystem::path(file.result()[0]).generic_string();
                     LoadConfig(path);
+                    Regenerate();
                 }
             }
 
@@ -659,11 +661,14 @@ void LabyrinthManager::ShowGUI()
 
     // Update shadow color
     glm::vec4 prevCol = LightComponent::GetShadowColor();
-    ImGui::ColorEdit4("Shadow Color", &m_shadowColor.r, ImGuiColorEditFlags_Float);
+    ImGui::ColorEdit4("Shadow Color", &m_shadowColor.r);
     if (prevCol != m_shadowColor)
     {
         LightComponent::SetShadowColor(m_shadowColor);
     }
+
+    // Update world fog color
+    ImGui::ColorEdit4("Fog Color", &m_fogColor.r);
 
     ImGui::SeparatorText("Rooms");
 
@@ -885,6 +890,14 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
             m_shadowColor.a = col["a"] ? col["a"].as<float>() : m_shadowColor.a;
         }
 
+        if (auto col = node["fog_color"])
+        {
+            m_fogColor.r = col["r"] ? col["r"].as<float>() : m_fogColor.r;
+            m_fogColor.g = col["g"] ? col["g"].as<float>() : m_fogColor.g;
+            m_fogColor.b = col["b"] ? col["b"].as<float>() : m_fogColor.b;
+            m_fogColor.a = col["a"] ? col["a"].as<float>() : m_fogColor.a;
+        }
+
         // Load room data
         YAML::Node rooms = node["rooms"];
         for (int i = 0; i < rooms.size(); ++i)
@@ -998,13 +1011,19 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
     file << "height: " << std::to_string(m_height).c_str();
     file << "\n";
 
-    file << "spike_trap_ratio: " << std::to_string(m_spikeTrapFloorRatio).c_str() << "\n";
+    file << "spike_trap_ratio: " << std::to_string(m_spikeTrapFloorRatio).c_str() << "\n\n";
 
     file << "shadow_color: {r: "
         << std::to_string(m_shadowColor.r).c_str() << ", g: "
         << std::to_string(m_shadowColor.g).c_str() << ", b: "
         << std::to_string(m_shadowColor.b).c_str() << ", a: "
-        << std::to_string(m_shadowColor.a).c_str() << "}\n\n";
+        << std::to_string(m_shadowColor.a).c_str() << "}\n";
+    
+    file << "fog_color: {r: "
+        << std::to_string(m_fogColor.r).c_str() << ", g: "
+        << std::to_string(m_fogColor.g).c_str() << ", b: "
+        << std::to_string(m_fogColor.b).c_str() << ", a: "
+        << std::to_string(m_fogColor.a).c_str() << "}\n\n";
 
     file << "rooms: [\n";
 
@@ -1262,12 +1281,13 @@ void LabyrinthManager::SetTile(int x, int y, int tileID)
 void LabyrinthManager::Reset()
 {
     // Reset to default values
-    m_randomizeSeed = false;
-    m_rng.SetSeed(0);
+    m_randomizeSeed = true;
     m_width = 125;
     m_height = 125;
     m_rooms.clear();
     m_spawnDispensaryID = -1;
+    m_shadowColor = glm::vec4(0.0f, 0.0f, 0.0f, 0.64f);
+    m_fogColor = glm::vec4(0.42f, 0.4f, 0.47f, 0.32f);
 }
 
 wolf::GameObject* LabyrinthManager::GetPlayer() const
