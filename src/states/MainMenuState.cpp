@@ -13,14 +13,13 @@
 void MainMenuState::Enter()
 {
     // Initialize the main menu
-    wolf::Audio::Stop();
-    wolf::Audio::Play("data/sounds/bgm_title_screen.wav", 1.2f, 0.0f, 0.0f, false, true, 3.31f);
+    wolf::Audio::Play("data/sounds/bgm_title_screen.wav", 1.3f, 0.0f, 0.0f, false, true, 3.31f);
 }
 
 void MainMenuState::Exit()
 {
     // Clean up the main menu
-    wolf::Audio::Stop();
+    wolf::Audio::Stop("data/sounds/bgm_title_screen.wav");
 }
 
 void MainMenuState::Update(float delta)
@@ -162,10 +161,12 @@ void MainMenuState::Update(float delta)
             ImGui::EndChild();
             ImGui::SetCursorPosX(startX - 47);
             ImGui::SetNextItemWidth(256);
+            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 32.0f);
             if (ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f, "%.2f"))
             {
                 wolf::Audio::SetGlobalVolume(volume * 1.2f);
             }
+            ImGui::PopStyleVar();
 
             ImGui::NewLine();
             ImGui::SetCursorPosX(startX + 16);
@@ -210,7 +211,7 @@ void MainMenuState::Update(float delta)
             if (ImGui::Button("Enter the Labyrinth", {buttonWidth + 20, buttonHeight}))
             {
                 wolf::Audio::Stop();
-                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -8000.0f);
+                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, -8000.0f);
                 m_screen = Screen::FADE;
             }
             hovered4 = ImGui::IsItemHovered();
@@ -239,7 +240,7 @@ void MainMenuState::Update(float delta)
             wasHovered5 = hovered5;
             ImGui::SetCursorPosX(14);
             ImGui::SetCursorPosY(ImGui::GetWindowSize().y - 32);
-            ImGui::Checkbox("Debug Mode Enabled", &m_debugModeEnabled);
+            ImGui::Checkbox("Debug Mode", &m_debugModeEnabled);
 
             break;
         

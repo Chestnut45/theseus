@@ -37,8 +37,12 @@ void HarpyController::Init(const EnemyData& data)
         wolf::Error("LateInitialize failed: HarpyController not attached to GameObject!");
         return;
     }
+    
     // Call base initialization
     EnemyController::Init();
+
+    // Seed rng randomly
+    m_RNG.SetSeed(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 
     // Assign enemy data
     m_rangedRange = data.rangedRange;
@@ -276,15 +280,18 @@ void HarpyController::MoveTowardsTarget(float delta)
     if (!m_pTarget || !m_pVelocity || !m_pTransform) return;
 
     // Calculate the direction towards the player and move the Harpy
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    // Offset to avoid sticking to walls when chasing the player
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPosition.y -= 12.0f;
+    }
+
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
 
     // Calculate direction vector
     glm::vec2 direction = targetPosition - currentPosition;
-
-    // Log for debugging current position, target position, and distance
-    // printf("Harpy MoveTowardsTarget: Current Pos: (%f, %f), Target Pos: (%f, %f)\n", 
-    //        currentPosition.x, currentPosition.y, targetPosition.x, targetPosition.y);
 
     if (glm::length(direction) > 0.01f) {
         direction = glm::normalize(direction);
@@ -300,7 +307,14 @@ void HarpyController::MoveTowardsTarget(float delta)
 
 void HarpyController::HandleIdleState(float delta)
 {
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    // Offset to avoid sticking to walls when chasing the player
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPosition.y -= 12.0f;
+    }
+
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
     
@@ -316,9 +330,30 @@ void HarpyController::HandleChasingState(float delta)
 {
     MoveTowardsTarget(delta);
 
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    if (m_wingFlapTimer.Elapsed() > 0.52f)
+    {
+        m_wingFlapTimer.Restart();
+        wolf::Audio::Play("data/sounds/sfx_harpy_wing_flap.wav", 0.8f, m_RNG.NextInt(-10000, 10000));
+    }
+
+    glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    // Offset to avoid sticking to walls when chasing the player
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPosition.y -= 12.0f;
+    }
+
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     const float distanceToPlayer = glm::length(targetPosition - currentPosition);
+
+    if (distanceToPlayer >= m_detectionRange)
+    {
+        // Player is out of range, lose sight
+        ChangeState(EnemyState::IDLE);
+        SetEmote(EnemyEmote::QUESTION);
+        return;
+    }
 
     // Prevent shooting when on top of a wall tile or when line of sight is blocked
     bool canAttack = DDACalculator::GetInstance()->GetEndpoint(currentPosition, targetPosition) == targetPosition;
@@ -329,11 +364,18 @@ void HarpyController::HandleChasingState(float delta)
         if (tile >= Tile::WallBottomLeft && tile <= Tile::WallTop)
         {
             canAttack = false;
+            if (m_onValidTileTimer.IsRunning()) m_onValidTileTimer.Reset();
+        }
+        else
+        {
+            // On a floor tile
+            if (!m_onValidTileTimer.IsRunning()) m_onValidTileTimer.Restart();
+            canAttack = canAttack ? m_onValidTileTimer.Elapsed() > 0.25f : false;
         }
         break;
     }
 
-    if(distanceToPlayer <= m_rangedRange)
+    if (distanceToPlayer <= m_rangedRange)
     {
         if
         (
@@ -343,6 +385,7 @@ void HarpyController::HandleChasingState(float delta)
         )
         {
             ChangeState(EnemyState::ATTACKING);
+            wolf::Audio::Play("data/sounds/sfx_harpy_screech.wav", 1.25f, m_RNG.NextInt(-5000, 5000));
         }
     }
 }
@@ -372,7 +415,14 @@ void HarpyController::HandleAttackingState(float delta)
         m_pAnimComponent->SetTint(glm::vec3(1.0f)); // Reset windup tint
 
         // Retrieving & calculating data
-        const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+        // Offset to avoid sticking to walls when chasing the player
+        if (m_pTarget->HasAny<PlayerController>())
+        {
+            targetPosition.y -= 12.0f;
+        }
+
         const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
         const float distanceToPlayer = glm::length(targetPosition - currentPosition);
 
@@ -380,7 +430,7 @@ void HarpyController::HandleAttackingState(float delta)
         glm::vec2 hurtboxOffset = glm::vec2(-5.0f, 5.0f);
         glm::vec2 harpyDirection = targetPosition - currentPosition == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(targetPosition - currentPosition);
         glm::vec2 perpendicularVector = harpyDirection == glm::vec2(0.0f, 0.0f) ? glm::vec2(0.0f, 0.0f) : glm::normalize(glm::vec2(harpyDirection.y, -harpyDirection.x));
-        glm::vec2 projectileDefaultVelocity = harpyDirection * 168.0f;
+        glm::vec2 projectileDefaultVelocity = harpyDirection * 175.0f;
 
         auto& scene = this->GetGameObject()->GetScene();
 
@@ -433,12 +483,14 @@ void HarpyController::HandleAttackingState(float delta)
             pLightComponent.Init();
         }
 
-        wolf::Audio::Play("data/sounds/sfx_fireball_shot.wav", 0.7f, 0.0f, 0.0f, true);
+        wolf::Audio::Play("data/sounds/sfx_fireball_shot.wav", 0.6f);
 
-        // Strike again
-        if(m_attackChain > 0)
+        // Strike again if chaining and we still have line of sight
+        bool canAttack = DDACalculator::GetInstance()->GetEndpoint(currentPosition, targetPosition) == targetPosition;
+        if(m_attackChain > 0 && canAttack)
         {
             ChangeState(EnemyState::ATTACKING);
+            wolf::Audio::Play("data/sounds/sfx_harpy_screech.wav", 1.25f, m_RNG.NextInt(-5000, 5000));
         }
         // Else, switch state
         else
@@ -489,18 +541,22 @@ void HarpyController::UpdateAnimationBasedOnDirection()
         if (fabs(velocity.x) > fabs(velocity.y))
         {
             // Moving left or right
-            animationName = (velocity.x > 0.0f) ? "StandEast" : "StandWest";
+            animationName = (velocity.x > 0.0f) ? "FlyEast" : "FlyWest";
         }
         else
         {
             // Moving up or down
-            animationName = (velocity.y > 0.0f) ? "StandNorth" : "StandSouth";
+            animationName = (velocity.y > 0.0f) ? "FlyNorth" : "FlySouth";
         }
     }
     else
     {
         // If not moving, default to idle state based on the last direction
-        animationName = "StandSouth";  // Modify as needed
+        std::string name = m_pAnimComponent->GetCurrentAnimation()->m_strName;
+        if (name != "")
+        {
+            animationName = name.find("Fly") != std::string::npos ? name.replace(name.find("Fly"), 3, "Stand") : name;
+        }
     }
 
     // Check if the animation needs to be changed
@@ -545,7 +601,7 @@ void HarpyController::HandleDeathState(float delta)
         {
             // !-- Aurora added this --!
             // Spawn some loot
-            std::vector<wolf::GameObject*> pItemDrops = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/loot/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
+            std::vector<wolf::GameObject*> pItemDrops = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/loot/harpy_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
             
             // Harpies can be inside of the walls so we need to push the loot out. To do that,
             // we get the loot item's velocity component
@@ -556,12 +612,6 @@ void HarpyController::HandleDeathState(float delta)
                     // that caluclates which direction the item should ACTUALLY be pushed in to get it out of the
                     // wall
                     pItemVel->ApplyKnockback(glm::vec2(1.0f, 0.0f), 10.0f);
-                }
-                ColliderComponent* pItemCollider = pItem->GetComponent<ColliderComponent>();
-                if (pItemCollider)
-                {
-                    // Disable the collider after knockback
-                    pItemCollider->SetActive(false);
                 }
             }
 
@@ -584,6 +634,8 @@ void HarpyController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
+    m_wingFlapTimer.Restart();
+    wolf::Audio::Play("data/sounds/sfx_harpy_wing_flap.wav", 0.8f, m_RNG.NextInt(-10000, 10000));
 }
 void HarpyController::EnterPetrifiedState()
 {
@@ -597,12 +649,20 @@ void HarpyController::EnterIdleState()
 
 void HarpyController::EnterStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    }
 }
 
 void HarpyController::EnterDeathState()
 {
     SetEmote(EnemyEmote::NONE);
+    if (m_pAnimComponent)
+    {
+        m_pAnimComponent->SetAnimPaused(true);
+    }
 }
 
 void HarpyController::ExitAttackState()
@@ -621,6 +681,7 @@ void HarpyController::ExitChasingState()
     m_transitionTimer.Reset();
     m_transitionTimer.Stop();
     m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
+    m_wingFlapTimer.Reset();
 }
 
 void HarpyController::ExitIdleState()
@@ -629,13 +690,21 @@ void HarpyController::ExitIdleState()
 
 void HarpyController::ExitPetrifiedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_pAnimComponent->SetAnimPaused(false);
 }
 
 void HarpyController::ExitStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_stunnedTimer = 0.0f;
 }
 

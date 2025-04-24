@@ -23,6 +23,7 @@ class ColliderComponent;
 class HomingComponent;
 class PlayerController;
 class LabyrinthManager;
+class LightComponent;
 
 // NOTE: You can only forward declare from within the same namespace
 namespace wolf
@@ -67,6 +68,7 @@ public:
 
         // Special states
         TAUNT, // Could play an animation when the player dies
+        PETRIFIED,
         DEAD
     };
 
@@ -88,6 +90,11 @@ public:
     // Starts the bossfight (does not spawn first wave!)
     void StartBossfight();
 
+    // Helpful state
+    bool CanBePetrified() const;
+    bool IsAirborne() const;
+    bool IsAlive() const;
+
 private:
 
     // State information
@@ -103,6 +110,7 @@ private:
     StatusComponent* m_pStatus = nullptr;
     ColliderComponent* m_pCollider = nullptr;
     HomingComponent* m_pHoming = nullptr;   // Added by Nhật
+    LightComponent* m_pLight = nullptr;
 
     // Pointer to shadow sprite (only valid during phase 2!)
     wolf::GameObject* m_pShadowObject = nullptr;
@@ -143,7 +151,9 @@ private:
     float m_waveTransitionTimer;
     bool m_waveActive;
     std::unordered_set<int> m_enemyIDs;
-    
+
+    std::vector<glm::vec2> m_savedMinitaurSpawns;
+    std::vector<glm::vec2> m_savedHarpySpawns;
 
 
     // Phase 2 stats
@@ -156,10 +166,13 @@ private:
     bool m_strafeClockwise;
     bool m_axeSummoned;
     bool m_slamStun;
+    bool m_phase2Growled = false;
     float m_strafeSpeed;
     float m_chaseSpeed;
     float m_shadowDistance;
     float m_altitude;
+    float nextStrafeSwap = 1.0f;
+    float nextAttackTime = 2.0f;
     wolf::Timer m_whooshTimer;
     wolf::Timer m_dodgeTimer;
     wolf::Timer m_strafeSwapTimer;

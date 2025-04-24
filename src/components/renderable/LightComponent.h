@@ -40,12 +40,19 @@ class LightComponent : public wolf::BaseComponent {
         inline void SetColor(const glm::vec4& p_v4Color) {m_v4Color = p_v4Color;};
 
         inline glm::vec2 GetRadius() const {return m_v2CurRadius;};
+        void SetRadius(float p_fRadius);
 
         inline bool IsOn() const {return m_bIsOn;};
         inline void SetOn(bool p_bIsOn) {m_bIsOn = p_bIsOn;};
 
-        inline bool IsIgnoreWallTiles() const { return m_ignoreWallTiles; }
+        inline bool GetIgnoreWallTiles() const { return m_ignoreWallTiles; }
         inline void SetIgnoreWallTiles(bool value) { m_ignoreWallTiles = value; }
+
+        inline bool GetShadowsEnabled() const { return m_castShadows; }
+        inline void SetShadowsEnabled(bool value) { m_castShadows = value; }
+
+        inline bool GetFlickering() const { return m_flicker; }
+        inline void SetFlickering(bool value) { m_flicker = value; }
 
         void RenderLightToFBO();
         static void BlendFBOAndScreen();
@@ -53,6 +60,11 @@ class LightComponent : public wolf::BaseComponent {
         static void ResizeFBO(int p_iWidth, int p_iHeight);
         static void BindFBOAndBlendFunc();
         static void UnbindFBOAndBlendFunc();
+
+        // Set / Get the color used as a shadow overlay during ClearFBO()
+        // NOTE: This applies to ALL lights!
+        static void SetShadowColor(const glm::vec4& color) { s_shadowColor = color; }
+        static const glm::vec4& GetShadowColor() { return s_shadowColor; }
 
         static inline void SetDefaultFBOSize(const glm::vec2& p_v2Size) {s_v2DefaultFramebufferSize = p_v2Size;};
 
@@ -108,8 +120,10 @@ class LightComponent : public wolf::BaseComponent {
         // Toggle variable for turning the light on/off
         bool m_bIsOn;
 
-        // Flag for whether the light should ignore wall tiles
+        // Flags
+        bool m_castShadows = true;
         bool m_ignoreWallTiles = false;
+        bool m_flicker = false;
 
         // Pointer to the scene this light is in
         wolf::Scene* m_pScene = nullptr;
@@ -133,6 +147,7 @@ class LightComponent : public wolf::BaseComponent {
         static inline wolf::Program* s_pProgram = nullptr;
         static inline wolf::VertexBuffer* s_pVBO = nullptr;
         static inline wolf::VertexDeclaration* s_pVAO = nullptr;
+        static inline glm::vec4 s_shadowColor{0.0f, 0.0f, 0.0f, 0.64f};
         
         static inline GLuint s_uiFBO = 0;
         static inline GLuint s_uiTexture = 0;

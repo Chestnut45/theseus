@@ -1,5 +1,5 @@
 frame_size: {x: 64.0, y: 32.0}
-playback_speed: 12.0
+playback_speed: 4.0
 
 start_animation: {
   texture: data/textures/sheets/HarpyAlt-Sheet.png,
@@ -8,4 +8,5 @@ start_animation: {
 
 animation_sets: [
   data/animations/harpy_stand_anim_set.yaml,
+  data/animations/harpy_fly_anim_set.yaml
 ]

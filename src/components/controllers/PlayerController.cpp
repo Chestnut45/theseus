@@ -142,10 +142,6 @@ void PlayerController::SetAction(PlayerAction action)
     m_action = action;
 }
 
-void PlayerController::SetHoldingObject(bool isHolding) {
-    m_isHoldingObject = isHolding;
-}
-
 // Initialize components related to the player
 void PlayerController::LateInitialize()
 {
@@ -200,6 +196,12 @@ glm::vec2 PlayerController::GetLastFacingDirectionVector() const
     }
 }
 
+bool PlayerController::IsAlive() const
+{
+    auto* pHealth = GetGameObject()->GetComponent<HealthComponent>();
+    return pHealth && pHealth->GetHealth() > 0;
+}
+
 // Add and initialize animations for the player character
 void PlayerController::InitializeAnimations()
 {
@@ -230,7 +232,7 @@ void PlayerController::Update(float delta)
 
     // Retrieve the active camera through the game's scene using the game object
     auto* pCamera = pGameObject->GetScene().GetActiveCamera();
-    if (pCamera && m_debugHotkeys)
+    if (pCamera && m_debugHotkeys && !m_showLabyrinthManager)
     {
         float prevZoom = pCamera->GetZoom();
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_EQUAL)) pCamera->SetZoom(prevZoom * 2);
@@ -252,6 +254,16 @@ void PlayerController::Update(float delta)
     {
         m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITHURTBOXDR);
         m_invulnTimer.Reset();
+    }
+
+    // Update health/stamina color timer
+    if (m_healthColorTimer.Elapsed() > m_invulnSeconds)
+    {
+        m_healthColorTimer.Reset();
+    }
+    if (m_staminaColorTimer.Elapsed() > 1.0f)
+    {
+        m_staminaColorTimer.Reset();
     }
 
     auto* pInventory = pGameObject->GetComponent<PlayerInventoryComponent>();
@@ -373,24 +385,24 @@ void PlayerController::HandlePlayerInput(float delta)
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_UP))
         {
             StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::HEALING, 5.0f);
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::HEALING, 3.0f);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_DOWN))
         {
             StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3.0f);
         }
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_LEFT))
         {
             StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 5.0f);
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::BURNING, 3.0f);
         }
 
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT))
         {
             StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
-            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 5.0f);
+            statusComponent->AddStatusEffect(StatusComponent::StatusEffectType::POISONED, 3.0f);
         }
 
         // Super speed hotkey
@@ -442,7 +454,7 @@ void PlayerController::HandlePlayerInput(float delta)
 
     // Only start roll if the following conditions are met
     bool attackingCondition = m_action != PlayerAction::ATTACKING || m_pCurrentWeapon->GetWeaponType() == WeaponType::BOW;
-    if (
+    if (!m_showLabyrinthManager &&
         wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE)  && 
         m_action != PlayerAction::ROLLING           && 
         attackingCondition                          && 
@@ -458,7 +470,8 @@ void PlayerController::HandlePlayerInput(float delta)
     // Start the attack if the following conditions are met
     // !-- Aurora added a m_pCurrentWeapon != nullptr check here --!
     if (
-        wolf::Input::IsLMBJustDown()                            && 
+        wolf::Input::IsLMBJustDown()                            &&
+        !m_showLabyrinthManager                                 &&
         m_pCurrentWeapon                                        && 
         m_action != PlayerAction::ATTACKING                     &&
         m_action != PlayerAction::PLACING                       &&
@@ -468,15 +481,64 @@ void PlayerController::HandlePlayerInput(float delta)
         !m_inventoryHovered                                     &&
         !m_isHoldingObject)
     {
-        SetAction(PlayerAction::ATTACKING);
+        if (m_pCurrentWeapon->GetName() == "Zeus' Wrath")
+        {
+            auto& object = GetGameObject()->GetScene().CreateObject2D();
+            if (auto* pTransform = object.GetComponent<wolf::Transform2D>())
+            {
+                // Set location to cursor location
+                pTransform->SetPosition(CalculateCursorWorldPosition());
+                pTransform->SetScale(glm::vec2(LabyrinthManager::SCALE));
+            }
+
+            // Spawn the animation
+            auto& anim = object.AddComponent<AnimatedSprite2D>("data/animations/lightning_anim_init.yaml");
+            anim.SetLightingEnabled(false);
+            anim.SetLayer(500);
+            
+            // Add attack damage component
+            float damage = m_pCurrentWeapon->GetDamage();
+            auto& adc = object.GetScene().CreateObject2D().AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 2400.0f);
+            adc.SetDelay(0.2f);
+            object.AddChild(*adc.GetGameObject());
+
+            // Add collider component
+            auto& collider = adc.GetGameObject()->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, false, true);
+            collider.AddColliderBox(glm::vec2(24.0f, 24.0f), glm::vec2(-12.0f, 12.0f));
+            collider.SetIgnoreTag(GetGameObject()->GetID());
+
+            // Add a timed destroyer
+            object.AddComponent<TimedDestroyerComponent>(1.0f);
+
+            // Add a light
+            wolf::GameObject& lightObj = object.GetScene().CreateObject2D();
+            auto& light = lightObj.AddComponent<LightComponent>(glm::vec4(0.9f, 0.9f, 0.65f, 0.8f), 225.0f, true);
+            object.AddChild(lightObj);
+            light.Init();
+            light.SetIgnoreWallTiles(true);
+
+            // Play sfx with random offset
+            static wolf::RNG rng(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+            wolf::Audio::Play("data/sounds/sfx_lightning.wav", 0.5f, rng.NextInt(-8000, 0));
+
+            // Reset timer to ensure delay works
+            m_attackTimer.Restart();
+        }
+        else
+        {
+            SetAction(PlayerAction::ATTACKING);
+        }
     }
     
     // Handle pick up and drop actions
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
-        PickUpObject();
-    }
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
-        DropObject();
+    if (!m_showLabyrinthManager)
+    {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+            PickUpObject();
+        }
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
+            DropObject();
+        }
     }
 }
 
@@ -573,6 +635,21 @@ void PlayerController::HandlePlacing(float delta)
             isOutOfRange = true;
         }
 
+        // When the bossfight has started, treat everything except the boss room as out of range
+        if (lbmg.IsBossfightStarted())
+        {
+            const auto& rooms = lbmg.GetRooms();
+            for (const auto& room : rooms)
+            {
+                if (room.m_name != "Minotaur's Chamber") continue;
+                if (!room.m_bounds.Intersects(cursorTilePos))
+                {
+                    isOutOfRange = true;
+                    break;
+                }
+            }
+        }
+
         // Check if the cursor is hovering over a wall
         int tileId = lbmg.GetTile(cursorTilePos.x, cursorTilePos.y);
         if((tileId >= Tile::WallBottomLeft) && (tileId <= Tile::WallTop))
@@ -638,12 +715,6 @@ void PlayerController::HandleDeath(float delta)
             if (m_pVelocity)
             {
                 m_pVelocity->SetVelocity(glm::vec2(0.0f));
-            }
-
-            ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
-            if(collider != nullptr)
-            {
-                collider->SetColliderType(ColliderComponent::ColliderType::NONE);
             }
             
             m_pAnimComponent->SetTint(glm::vec3(1,0,0));
@@ -722,43 +793,123 @@ void PlayerController::HandleBowAttack(float delta)
             glm::vec2 projectileDimensions = projprop.v2HurtboxSize;
             glm::vec2 hurtboxOffset = glm::vec2(-projectileDimensions.x, projectileDimensions.y) * 0.5f;
 
-            // Spawn projectile object & add components
-            auto& scene = player->GetScene();
-            auto& projectile = scene.CreateObject2D();
+            if (m_pCurrentWeapon->GetName() == "Triple-Shot Bow")
+            {
+                float offsetAngle = glm::radians(15.0f);
+                for (int i = 0; i < 3; ++i)
+                {
+                    // Spawn projectile object & add components
+                    auto& scene = player->GetScene();
+                    auto& projectile = scene.CreateObject2D();
 
-            // Add sprite component
-            auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>(projprop.strPathToSprite);
-            projectileSprite.SetOriginToCenterOfTexture();
-            
-            // Add collider component
-            auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
-            projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
-            projectileCollider.SetIgnoreTag(player->GetID());
-            
-            // Add attack damage component
-            float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.01f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
-            auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 200);
+                    // Add sprite component
+                    auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>(projprop.strPathToSprite);
+                    projectileSprite.SetOriginToCenterOfTexture();
+                    projectileSprite.SetLightingEnabled(false);
+                    
+                    // Add collider component
+                    auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+                    projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+                    projectileCollider.SetIgnoreTag(player->GetID());
+                    
+                    // Add attack damage component
+                    float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.01f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
+                    auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 500.0f * m_bowChargeScale);
 
-            // Calculate spawn offset
-            glm::vec2 spawnOffset = m_attackDir * 32.0f;
-            projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
-            
-            // Calculate projectile velocity
-            float arrowSpeed = glm::max(glm::length(projprop.v2Velocity) * 0.4f, glm::length(projprop.v2Velocity) * m_bowChargeScale);
-            auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
-            projectileVelocity.SetVelocity(m_attackDir * arrowSpeed);
+                    // Add a light
+                    wolf::GameObject* pLightGO = &scene.CreateObject2D();
+                    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 50.0f, true);
+                    projectile.AddChild(*pLightGO);
+                    pLightComponent.Init();
+                    pLightComponent.SetIgnoreWallTiles(true);
 
-            // Add timed destroyer component
-            float time = m_arrowRange / arrowSpeed + 0.5f;
-            auto& projectileTDComponent = projectile.AddComponent<TimedDestroyerComponent>(time);
+                    // Calculate actual direction
+                    glm::vec2 shotDir = glm::rotate(m_attackDir, offsetAngle - (offsetAngle * i));
 
-            // Calculate how to rotate arrow sprite
-            glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);
-            float angle = std::acos(glm::dot(baseVector, m_attackDir) / (glm::length(baseVector) * glm::length(m_attackDir)));
-            if(m_attackDir.y < 0.0f) angle *= -1;
-            projectile.GetComponent<wolf::Transform2D>()->SetRotation(angle);
+                    // Calculate spawn offset
+                    glm::vec2 spawnOffset = shotDir * 32.0f;
+                    projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
+                    
+                    // Calculate projectile velocity
+                    float arrowSpeed = glm::max(glm::length(projprop.v2Velocity) * 0.4f, glm::length(projprop.v2Velocity) * m_bowChargeScale);
+                    auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+                    projectileVelocity.SetVelocity(shotDir * arrowSpeed);
 
-            projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+                    // Add timed destroyer component
+                    float time = m_arrowRange / arrowSpeed + 0.5f;
+                    auto& projectileTDComponent = projectile.AddComponent<TimedDestroyerComponent>(time);
+
+                    // Calculate how to rotate arrow sprite
+                    glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);
+                    float angle = std::acos(glm::dot(baseVector, shotDir) / (glm::length(baseVector) * glm::length(shotDir)));
+                    if(shotDir.y < 0.0f) angle *= -1;
+                    projectile.GetComponent<wolf::Transform2D>()->SetRotation(angle);
+                    projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+                }
+            }
+            else
+            {
+                // Spawn projectile object & add components
+                auto& scene = player->GetScene();
+                auto& projectile = scene.CreateObject2D();
+
+                // Add sprite component
+                auto& projectileSprite = projectile.AddComponent<wolf::Sprite2D>(projprop.strPathToSprite);
+                projectileSprite.SetOriginToCenterOfTexture();
+                projectileSprite.SetLightingEnabled(false);
+                
+                // Add collider component
+                auto& projectileCollider = projectile.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, 1, 1);
+                projectileCollider.AddColliderBox(projectileDimensions, hurtboxOffset);
+                projectileCollider.SetIgnoreTag(player->GetID());
+                
+                // Add attack damage component
+                float damage = glm::max(m_pCurrentWeapon->GetDamage() * 0.01f, m_pCurrentWeapon->GetDamage() * m_bowChargeScale);
+                if (m_pCurrentWeapon->GetName() == "Medusa's Bow")
+                {
+                    std::vector<std::pair<StatusComponent::StatusEffectType, float>> effects;
+                    effects.push_back(std::make_pair(StatusComponent::StatusEffectType::PETRIFIED, 5.0f));
+                    auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 500.0f * m_bowChargeScale, effects);
+
+                    // Add a light
+                    wolf::GameObject* pLightGO = &scene.CreateObject2D();
+                    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.57f, 0.93f, 0.57f, 0.75f), 50.0f, true);
+                    projectile.AddChild(*pLightGO);
+                    pLightComponent.Init();
+                    pLightComponent.SetIgnoreWallTiles(true);
+                }
+                else
+                {
+                    auto& projectileADComponent = projectile.AddComponent<AttackDamageComponent>(damage, m_pColliderManager, 500.0f * m_bowChargeScale);
+
+                    // Add a light
+                    wolf::GameObject* pLightGO = &scene.CreateObject2D();
+                    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 50.0f, true);
+                    projectile.AddChild(*pLightGO);
+                    pLightComponent.Init();
+                    pLightComponent.SetIgnoreWallTiles(true);
+                }
+
+                // Calculate spawn offset
+                glm::vec2 spawnOffset = m_attackDir * 32.0f;
+                projectile.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition() + spawnOffset);
+                
+                // Calculate projectile velocity
+                float arrowSpeed = glm::max(glm::length(projprop.v2Velocity) * 0.4f, glm::length(projprop.v2Velocity) * m_bowChargeScale);
+                auto& projectileVelocity = projectile.AddComponent<VelocityComponent>();
+                projectileVelocity.SetVelocity(m_attackDir * arrowSpeed);
+
+                // Add timed destroyer component
+                float time = m_arrowRange / arrowSpeed + 0.5f;
+                auto& projectileTDComponent = projectile.AddComponent<TimedDestroyerComponent>(time);
+
+                // Calculate how to rotate arrow sprite
+                glm::vec2 baseVector = glm::vec2(1.0f, 0.0f);
+                float angle = std::acos(glm::dot(baseVector, m_attackDir) / (glm::length(baseVector) * glm::length(m_attackDir)));
+                if(m_attackDir.y < 0.0f) angle *= -1;
+                projectile.GetComponent<wolf::Transform2D>()->SetRotation(angle);
+                projectile.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
+            }
 
             // Play sfx
             wolf::Audio::Play("data/sounds/sfx_arrow_shot.wav", 0.5f);
@@ -823,7 +974,36 @@ void PlayerController::HandleSpearAttack(float delta)
         meleeCollider.AddColliderBox(meleeDimensions * playerScale, offset);
         meleeCollider.SetIgnoreTag(player->GetID());
 
-        auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f);
+        if (m_pCurrentWeapon->GetName() == "Poison-Tipped Spear")
+        {
+            // Apply poison status from poison spear
+            std::vector<std::pair<StatusComponent::StatusEffectType, float>> effects;
+            effects.push_back(std::make_pair(StatusComponent::StatusEffectType::POISONED, 5.0f));
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f, effects);
+
+            // Spew particles
+            auto& particleObject = scene.CreateObject2D();
+            particleObject.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition());
+            auto& particleComponent = particleObject.AddComponent<ParticleComponent>(32);
+            particleComponent.SetAutoDestroy(true);
+            particleComponent.SetCleanupGracePeriod(0.5f);
+            particleComponent.LoadConfigFromYAML("data/particles/poison_spray.yaml");
+            glm::vec2 faceDir = GetVectorFromDirection(m_lastFaceDirectionEnum);
+            particleComponent.EmitBurst(
+                m_pTransform->GetGlobalPosition() + faceDir * glm::vec2(45.0f),
+                faceDir * glm::vec2(100.0f),
+                glm::vec4(1.0f),
+                8.0f,
+                0.5f,
+                32,
+                90.0f,
+                wolf::TextureManager::CreateTexture("data/textures/poison_particle.png")
+            );
+        }
+        else
+        {
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f);
+        }
         
         melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
         melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
@@ -892,7 +1072,36 @@ void PlayerController::HandleSwordAttack(float delta)
         meleeCollider.AddColliderBox(meleeDimensions * playerScale, offset);
         meleeCollider.SetIgnoreTag(player->GetID());
 
-        auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 2000.0f);
+        if (m_pCurrentWeapon->GetName() == "Burning Blade")
+        {
+            // Apply burn status from burning blade
+            std::vector<std::pair<StatusComponent::StatusEffectType, float>> effects;
+            effects.push_back(std::make_pair(StatusComponent::StatusEffectType::BURNING, 5.0f));
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 1500.0f, effects);
+
+            // Spew particles
+            auto& particleObject = scene.CreateObject2D();
+            particleObject.GetComponent<wolf::Transform2D>()->SetPosition(m_pTransform->GetGlobalPosition());
+            auto& particleComponent = particleObject.AddComponent<ParticleComponent>(32);
+            particleComponent.SetAutoDestroy(true);
+            particleComponent.SetCleanupGracePeriod(0.5f);
+            particleComponent.LoadConfigFromYAML("data/particles/fire_sparks.yaml");
+            glm::vec2 faceDir = GetVectorFromDirection(m_lastFaceDirectionEnum);
+            particleComponent.EmitBurst(
+                m_pTransform->GetGlobalPosition() + faceDir * glm::vec2(45.0f),
+                faceDir * glm::vec2(100.0f),
+                glm::vec4(1.0f),
+                8.0f,
+                0.5f,
+                32,
+                90.0f,
+                wolf::TextureManager::CreateTexture("data/textures/fire_particle.png")
+            );
+        }
+        else
+        {
+            auto& meleeADcomponent = melee.AddComponent<AttackDamageComponent>(m_pCurrentWeapon->GetDamage(), m_pColliderManager, 1500.0f);
+        }
         
         melee.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(playerScale));
         melee.GetComponent<wolf::Transform2D>()->SetPosition(player->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
@@ -942,6 +1151,16 @@ void PlayerController::HandleBowAttackAnimation()
                 m_currentBowAnim = 1;
 
                 std::string sheet = "BowFire";
+
+                if (m_pCurrentWeapon->GetName() == "Medusa's Bow")
+                {
+                    sheet = "MedusaBowFire";
+                }
+                else if (m_pCurrentWeapon->GetName() == "Triple-Shot Bow")
+                {
+                    sheet = "TripleBowFire";
+                }
+                
                 
                 switch (m_lastFaceDirectionEnum)
                 {
@@ -1002,7 +1221,16 @@ void PlayerController::HandleBowAttackAnimation()
         else
         {
             std::string sheet = "BowFire";
-                
+
+            if (m_pCurrentWeapon->GetName() == "Medusa's Bow")
+            {
+                sheet = "MedusaBowFire";
+            }
+            else if (m_pCurrentWeapon->GetName() == "Triple-Shot Bow")
+            {
+                sheet = "TripleBowFire";
+            }
+            
             switch (m_lastFaceDirectionEnum)
             {
                 case PlayerDirection::SOUTH:       { sheet += "South"; break; }
@@ -1023,7 +1251,7 @@ void PlayerController::HandleBowAttackAnimation()
 void PlayerController::HandleBowRangeIndicator(float delta)
 {
     glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    glm::vec2 endpoint = playerPos + m_attackDir * m_arrowRange;   // m_attackDir is already normalised
+    glm::vec2 endpoint = playerPos + m_attackDir * 1000.0f;   // m_attackDir is already normalised
     glm::vec2 trueEndpoint = DDACalculator::GetInstance()->GetEndpoint(playerPos, endpoint, false);
 
     glm::vec4 colour = m_bowRangeIndicatorColour;
@@ -1061,12 +1289,12 @@ void PlayerController::RenderBowPowerBar()
     screenPos.x = (barPos.x - (cameraPos.x - viewSizeHalf.x));
     screenPos.y = (barPos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
 
-    // Push ImGui styles for a more vibrant look with background, rounded frame, and padding
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);           // Rounded corners for the frame
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.0f);          // Rounded corners for the window
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3.0f, 2.0f)); // Padding inside the bar for a thicker look
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f)); // Semi-transparent black background
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 1.0f, 1.0f, 0.5f));   // Soft white border
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.24f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
     // Render background bar with a slightly larger size for a frame effect
     ImGui::SetNextWindowPos(ImVec2(screenPos.x - 5.0f, screenPos.y - 5.0f));
@@ -1080,20 +1308,20 @@ void PlayerController::RenderBowPowerBar()
     ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
     ImVec4 barColor = ImVec4(1.0f - (m_bowChargeScale / m_bowMaxChargeScale), (m_bowChargeScale / m_bowMaxChargeScale), 0.0f, 1.0f); // Gradient from red to green
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
-    ImGui::ProgressBar(m_bowChargeScale / m_bowMaxChargeScale, ImVec2(-1, 10.0f));
+    ImGui::ProgressBar(m_bowChargeScale / m_bowMaxChargeScale, ImVec2(-1, 10.0f), "");
     ImGui::PopStyleColor();
     ImGui::End();
 
     // Render label "Power" below the bar
-    ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y - 20.0f));
+    ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y - 26.0f));
     ImGui::SetNextWindowSize(ImVec2(100.0f, 10.0f));
     ImGui::Begin("##PowerLabel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
-    ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Power");
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Power");
     ImGui::End();
 
     // Pop all the style vars and colors
-    ImGui::PopStyleVar(3);
-    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(4);
 }
 
 
@@ -1136,11 +1364,12 @@ glm::vec2 PlayerController::CalculateCursorWorldPosition() const
     glm::vec2 viewSize = camera->GetViewSize();
     glm::vec2 worldPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     
+    float zoom = camera->GetZoom();
     glm::vec2 cursorScreenPos = wolf::Input::GetMousePos();
     glm::vec2 cursorWorldPos = glm::vec2
     (
-        cameraPos.x + (cursorScreenPos.x - viewSize.x * 0.5f),
-        cameraPos.y + (viewSize.y * 0.5f - cursorScreenPos.y)
+        cameraPos.x + (cursorScreenPos.x - viewSize.x * 0.5f) / zoom,
+        cameraPos.y + (viewSize.y * 0.5f - cursorScreenPos.y) / zoom
     );
     return cursorWorldPos;
 }
@@ -1216,8 +1445,12 @@ void PlayerController::ThrowHeldObject() {
     // Set the object's velocity based on throw direction, throw power, and player's velocity
     auto* throwableVelocity = m_pHeldObject->GetGameObject()->GetComponent<VelocityComponent>();
     if (!throwableVelocity) throwableVelocity = &m_pHeldObject->GetGameObject()->AddComponent<VelocityComponent>();
+
+    // Center the transform so the throw is always consistent and aim is correct
+    auto* t = m_pHeldObject->GetGameObject()->GetComponent<wolf::Transform2D>();
+    t->SetPosition(m_pTransform->GetGlobalPosition());
     
-    glm::vec2 finalVelocity = throwDirection * m_throwPower * 3.0f;
+    glm::vec2 finalVelocity = throwDirection * m_throwPower * m_throwSpeed;
     throwableVelocity->SetVelocity(finalVelocity);
 
     // Set the state of the held object to THROWN and reset holding variables
@@ -1231,7 +1464,8 @@ void PlayerController::ThrowHeldObject() {
 // Handle player movement based on input
 void PlayerController::HandleMovement(float delta)
 {
-    if (m_action == PlayerAction::ROLLING) return;  // Skip movement if rolling
+    // Skip movement if rolling or the editor is open
+    if (m_action == PlayerAction::ROLLING || m_showLabyrinthManager) return;
     
     // stop moving if the player is attacking with a bow
     if (m_action == PlayerAction::ATTACKING && m_pCurrentWeapon->GetWeaponType() == WeaponType::BOW)
@@ -1306,6 +1540,8 @@ void PlayerController::HandleAttacking(float delta)
             HandleSwordAttack(delta);
             break;
         }
+        default:
+            break;
     }
 
 }
@@ -1342,7 +1578,7 @@ void PlayerController::SetAnimationBasedOnState()
     {
         return;
     }
-    
+
 
     std::string animationName;
 
@@ -1481,18 +1717,42 @@ std::string PlayerController::GetAttackAnimationForDirection(PlayerDirection dir
     if(type == WeaponType::BOW) 
     {
         weaponType = "Bow";
+        if (m_pCurrentWeapon->GetName() == "Medusa's Bow")
+        {
+            weaponType = "MedusaBow";
+        }
+        else if (m_pCurrentWeapon->GetName() == "Triple-Shot Bow")
+        {
+            weaponType = "TripleBow";
+        }
         startingSheet = "Load";
     }
     
     else if(type == WeaponType::SPEAR)
     {
-        weaponType = "Spear";
-        startingSheet = "Attack";
+        if (m_pCurrentWeapon->GetName() == "Poison-Tipped Spear")
+        {
+            weaponType = "PoisonSpear";
+            startingSheet = "Attack";
+        }
+        else
+        {
+            weaponType = "Spear";
+            startingSheet = "Attack";
+        }
     }
     else if(type == WeaponType::SWORD) 
     {
-        weaponType = "Sword";
-        startingSheet = "Attack";
+        if (m_pCurrentWeapon->GetName() == "Burning Blade")
+        {
+            weaponType = "BurningBlade";
+            startingSheet = "Attack";
+        }
+        else
+        {
+            weaponType = "Sword";
+            startingSheet = "Attack";
+        }
     }
 
     switch (direction)
@@ -1515,6 +1775,10 @@ void PlayerController::RegenerateStamina(float delta)
     {
         m_stamina += m_staminaRegenRate * delta;
         m_stamina = std::min(m_stamina, m_maxStamina); // Clamp stamina to max limit
+        if (m_stamina == m_maxStamina)
+        {
+            m_staminaRegenTimer.Reset();
+        }
     }
 }
 
@@ -1551,9 +1815,6 @@ void PlayerController::StartPetrified()
         DropObject();
     }
     
-    // Values hardcoded based on 5s petrification attack from GorgonController, perhaps more sensible to centralise & handle effects in StatusComponent
-    // TODO: Move SetSpecialEffects() calls involving petrification from PlayerController & all EnemyControllers to StatusComponent
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED, 0.1f, 4.8f, 0.1f);
     m_pAnimComponent->SetAnimPaused(true);
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
 }
@@ -1583,6 +1844,7 @@ void PlayerController::StartRoll()
     {
         m_stamina -= 10.0f;
         m_staminaRegenTimer.Restart();
+        m_staminaColorTimer.Restart();
     }
 
     // Compass direction animation names
@@ -1661,7 +1923,7 @@ void PlayerController::Render(float delta)
         return;
     }
 
-    float barWidth = 256.0f;
+    float barWidth = 258.0f;
     float barHeight = 18.0f;
     float verticalOffset = 20.0f;  // Offset between health and stamina bars
 
@@ -1671,7 +1933,7 @@ void PlayerController::Render(float delta)
 
     // Push ImGui style variables for a more polished and "arty" look
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);          // Rounded corners
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);           // Rounded frame corners
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 2.0f)); // Inner padding
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.8f)); // Semi-transparent background
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));   // Border color
@@ -1681,28 +1943,28 @@ void PlayerController::Render(float delta)
     auto* healthComponent = GetGameObject()->GetComponent<HealthComponent>();
     if (healthComponent)
     {
-        float colorCoefficient = m_invulnTimer.IsRunning() ? 1.0f - m_invulnTimer.Elapsed() : 0.0f;
+        float colorCoefficient = m_healthColorTimer.IsRunning() ? 1.0f - m_healthColorTimer.Elapsed() : 0.0f;
 
         // Update health color
-        ImVec4 healthColor = ImVec4(1.0f, colorCoefficient,  colorCoefficient, 1.0f);
+        ImVec4 healthColor = ImVec4(0.65f + colorCoefficient * 0.35, colorCoefficient, colorCoefficient, 1.0f);
 
         // Render previous health fraction underneath to indicate damage taken
         m_prevHealthFraction += (healthComponent->GetHealth() / healthComponent->GetMaxHealth() - m_prevHealthFraction) * delta * 4.0f;
 
-        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for health bar
+        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y));
         ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
         ImGui::Begin("##HealthBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor); // Deep red health color
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor);
         ImGui::ProgressBar(healthComponent->GetHealth() / healthComponent->GetMaxHealth(), ImVec2(-1, barHeight), "");
-        ImGui::PopStyleColor(); // Pop color for health bar
+        ImGui::PopStyleColor();
         ImGui::End();
 
-        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for health bar
+        ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y));
         ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
         ImGui::Begin("##HealthBar2", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
         ImGui::PushStyleColor(ImGuiCol_PlotHistogram, healthColor);
         ImGui::ProgressBar(m_prevHealthFraction, ImVec2(-1.0f, barHeight));
-        ImGui::PopStyleColor(); // Pop color for health bar
+        ImGui::PopStyleColor();
         ImGui::End();  
     }
 
@@ -1715,7 +1977,7 @@ void PlayerController::Render(float delta)
     }
 
     // Render the health bar frame on top of the actual bar
-    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pHealthBarTexture->GetWidth() - 9.0f, basePos.y - barHeight});
+    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pHealthBarTexture->GetWidth() - 9.0f, basePos.y - barHeight - 1.0f});
     ImGui::SetNextWindowSize({0,0});
     ImGui::Begin("HealthBarFrame", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
     ImGui::Image(healthBarTextureID, ImVec2(pHealthBarTexture->GetWidth(), pHealthBarTexture->GetHeight()), ImVec2(0, 0), ImVec2(1, 1));
@@ -1727,14 +1989,29 @@ void PlayerController::Render(float delta)
     // Change the stamina bar height to be slightly smaller
     barHeight = 15.0f;
 
-    // Render the stamina bar below the health bar
-    ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y)); // Position for stamina bar
+    float colorCoefficient = m_staminaColorTimer.IsRunning() ? 1.0f - m_staminaColorTimer.Elapsed() : 0.0f;
+
+    // Update stamina color
+    ImVec4 color = ImVec4(0.65f * colorCoefficient, 0.45f + 0.65f * colorCoefficient,  0.24f + 0.65f * colorCoefficient, 1.0f);
+
+    // Render previous stamina fraction underneath to indicate usage
+    m_prevStaminaFraction += (m_stamina / m_maxStamina - m_prevStaminaFraction) * delta * 4.0f;
+
+    ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y));
     ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
     ImGui::Begin("##StaminaBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.0f, 1.0f, 0.0f, 1.0f)); // Green stamina color
-    ImGui::ProgressBar(m_stamina / m_maxStamina, ImVec2(-1, barHeight)); // Full width, defined height
-    ImGui::PopStyleColor(); // Pop color for stamina bar
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, color);
+    ImGui::ProgressBar(m_stamina / m_maxStamina, ImVec2(-1, barHeight), "");
+    ImGui::PopStyleColor();
     ImGui::End();
+
+    ImGui::SetNextWindowPos(ImVec2(basePos.x, basePos.y));
+    ImGui::SetNextWindowSize(ImVec2(barWidth, barHeight));
+    ImGui::Begin("##StaminaBar2", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, color);
+    ImGui::ProgressBar(m_prevStaminaFraction, ImVec2(-1.0f, barHeight));
+    ImGui::PopStyleColor();
+    ImGui::End();  
 
     // Load the stamina bar frame image once
     static ImTextureID staminaBarTextureID = nullptr;
@@ -1745,7 +2022,7 @@ void PlayerController::Render(float delta)
     }
 
     // Render the stamina bar frame on top of the actual bar
-    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pStaminaBarTexture->GetWidth() - 9.0f, basePos.y - barHeight - (barHeight / 2.0f)});
+    ImGui::SetNextWindowPos({(basePos.x + barWidth) - pStaminaBarTexture->GetWidth() - 9.0f, basePos.y - barHeight - (barHeight / 2.0f) + 1.0f});
     ImGui::SetNextWindowSize({0,0});
     ImGui::Begin("StaminaBarFrame", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
     ImGui::Image(staminaBarTextureID, ImVec2(pStaminaBarTexture->GetWidth(), pStaminaBarTexture->GetHeight()), ImVec2(0, 0), ImVec2(1, 1));
@@ -1847,9 +2124,16 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     // Player specific handling (invulnerability timer and oof sfx)
     if (event.m_pDamagedObject == GetGameObject())
     {
-        m_invulnTimer.Restart();
-        m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
-        wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f, -5000.0f, 0.0f, true);
+        m_healthColorTimer.Restart();
+
+        // NOTE: All status effects pierce, so this means fire and poison no longer cause invuln >:)
+        // This also means you don't constantly "oof" when on fire. Win-win
+        if (!event.m_pierce)
+        {
+            m_invulnTimer.Restart();
+            m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
+            wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f, -5000.0f);
+        }
     }
     
     // Boss specific handling
@@ -1863,61 +2147,61 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
     else
     {  
         // All non-boss enemies and the player get here
-        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.75f, 8000, 0.0f, true);
+        wolf::Audio::Play("data/sounds/sfx_hit_boss.wav", 0.75f, 8000);
         EmitBloodParticles(event, 1.2f);
     }
 }
 
 void PlayerController::RenderThrowPowerBar() {
-        // Get positions
-        wolf::Scene* scene = &this->GetGameObject()->GetScene();
-        wolf::Camera2D* camera = scene->GetActiveCamera();
-        glm::vec2 cameraPos = camera->GetPosition();
-        glm::vec2 viewSize = camera->GetViewSize();
-        glm::vec2 viewSizeHalf = glm::vec2(viewSize.x * 0.5f, viewSize.y * 0.5f);
-        glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-    
-        // Calculate position of power bar in world space
-        glm::vec2 barPos = playerPos - glm::vec2(BOW_POWER_BAR_SIZE.x, BOW_POWER_BAR_SIZE.y) * 0.5f;
-        barPos.y += 32.0f * LabyrinthManager::SCALE;
-    
-        glm::vec2 screenPos;
-        screenPos.x = (barPos.x - (cameraPos.x - viewSizeHalf.x));
-        screenPos.y = (barPos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
+    // Get positions
+    wolf::Scene* scene = &this->GetGameObject()->GetScene();
+    wolf::Camera2D* camera = scene->GetActiveCamera();
+    glm::vec2 cameraPos = camera->GetPosition();
+    glm::vec2 viewSize = camera->GetViewSize();
+    glm::vec2 viewSizeHalf = glm::vec2(viewSize.x * 0.5f, viewSize.y * 0.5f);
+    glm::vec2 playerPos = this->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
 
-    // Push ImGui styles for a more vibrant look with background, rounded frame, and padding
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);           // Rounded corners for the frame
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.0f);          // Rounded corners for the window
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3.0f, 2.0f)); // Padding inside the bar for a thicker look
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.5f)); // Semi-transparent black background
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 1.0f, 1.0f, 0.5f));   // Soft white border
+    // Calculate position of power bar in world space
+    glm::vec2 barPos = playerPos - glm::vec2(THROW_POWER_BAR_SIZE.x, THROW_POWER_BAR_SIZE.y) * 0.5f;
+    barPos.y += 32.0f * LabyrinthManager::SCALE;
+
+    glm::vec2 screenPos;
+    screenPos.x = (barPos.x - (cameraPos.x - viewSizeHalf.x));
+    screenPos.y = (barPos.y - (cameraPos.y - viewSizeHalf.y)) * (-1) + viewSize.y;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.24f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
     // Render background bar with a slightly larger size for a frame effect
     ImGui::SetNextWindowPos(ImVec2(screenPos.x - 5.0f, screenPos.y - 5.0f));
     ImGui::SetNextWindowSize(ImVec2(THROW_POWER_BAR_SIZE.x + 10.0f, THROW_POWER_BAR_SIZE.y + 3.0f));
-    ImGui::Begin("##PowerBarBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+    ImGui::Begin("##PowerBarBackground", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
     ImGui::End();
 
-    // Render the throw power bar
+    // Render the bow power bar
     ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y));
-    ImGui::SetNextWindowSize(THROW_POWER_BAR_SIZE);
-    ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-    ImVec4 barColor = ImVec4(1.0f - (m_throwPower / m_maxThrowPower), (m_throwPower / m_maxThrowPower), 0.0f, 1.0f); // Gradient from red to green
+    ImGui::SetNextWindowSize(BOW_POWER_BAR_SIZE);
+    ImGui::Begin("##PowerBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
+    ImVec4 barColor = ImVec4(1.0f - (m_throwPower / m_maxThrowPower), (m_throwPower / m_maxThrowPower), 0.0f, 1.0f);
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
-    ImGui::ProgressBar(m_throwPower / m_maxThrowPower, ImVec2(-1, 10.0f));
+    ImGui::ProgressBar(m_throwPower / m_maxThrowPower, ImVec2(-1, 10.0f), "");
     ImGui::PopStyleColor();
     ImGui::End();
 
     // Render label "Power" below the bar
-    ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y - 20.0f));
+    ImGui::SetNextWindowPos(ImVec2(screenPos.x, screenPos.y - 26.0f));
     ImGui::SetNextWindowSize(ImVec2(100.0f, 10.0f));
-    ImGui::Begin("##PowerLabel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-    ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Power");
+    ImGui::Begin("##PowerLabel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing);
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Power");
     ImGui::End();
 
     // Pop all the style vars and colors
-    ImGui::PopStyleVar(3);
-    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(4);
 }
 
 void PlayerController::CheckHealth() {
@@ -1947,7 +2231,7 @@ void PlayerController::StartDeath() {
     // Stop background music and play death music
     wolf::Audio::Stop("data/sounds/bgm_maze.wav");
     wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
-    wolf::Audio::Play("data/sounds/bgm_death.wav", 0.75f, 0.0f, 0.0f, false, true, 27.428f);
+    wolf::Audio::Play("data/sounds/bgm_death.wav", 0.85f, 0.0f, 0.0f, false, true, 27.428f);
 }
 
 void PlayerController::RenderDeathScreen(float delta) {
@@ -1982,8 +2266,7 @@ void PlayerController::RenderDeathScreen(float delta) {
         ImGui::Image(blackTextureID, overscaleSize, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 0.75f));
         ImGui::End();
     }
-
-    // Step 2: "You Died" message
+    
     if (m_fadeComplete && !m_messageFadeComplete) {
         m_messageOpacity += delta;
         if (m_messageOpacity >= 1.0f) {
@@ -1992,11 +2275,10 @@ void PlayerController::RenderDeathScreen(float delta) {
         }
     }
 
-    // Step 2: Enhanced "You Died" message
+    // You Died
     if (m_messageFadeComplete || m_messageOpacity > 0.0f) {
-        ImVec2 textPos((displaySize.x + 150.0f - (ImGui::CalcTextSize("You Died").x * 0.5f)) * 0.5f, displaySize.y * 0.4f);
+        ImVec2 textPos(displaySize.x * 0.5f, displaySize.y * 0.3f);
         ImGui::SetNextWindowPos(textPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-        ImGui::SetNextWindowSize(ImVec2(300, 100));
         ImGui::Begin("##GameOverMessage", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
         ImGui::SetWindowFontScale(2.8f);
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, m_messageOpacity)); // Bright red
@@ -2005,7 +2287,20 @@ void PlayerController::RenderDeathScreen(float delta) {
         ImGui::End();
     }
 
-    // Step 3: Runtime display
+    // Helper to convert a float representing seconds into a nicely formatted time
+    auto FormatTimeString = [](float seconds)
+    {
+        int minutes = static_cast<int>(seconds / 60);
+        float secondsRemaining = seconds - minutes * 60;
+        int secondsRemainingInteger = static_cast<int>(secondsRemaining);
+        int milliseconds = static_cast<int>((secondsRemaining - secondsRemainingInteger) * 1000);
+        std::stringstream out;
+        out << std::setfill('0') << std::setw(2) << minutes << ":"
+            << std::setw(2) << secondsRemainingInteger << "." 
+            << std::setw(3) << milliseconds;
+        return out.str();
+    };
+
     if (m_messageFadeComplete && !m_runtimeFadeComplete) {
         m_runtimeOpacity += delta;
         if (m_runtimeOpacity >= 1.0f) {
@@ -2014,15 +2309,15 @@ void PlayerController::RenderDeathScreen(float delta) {
         }
     }
 
-    // Step 3: Enhanced runtime display
+    // Display run time
     if (m_runtimeFadeComplete || m_runtimeOpacity > 0.0f) {
-        ImVec2 runtimePos((displaySize.x) * 0.5f, displaySize.y * 0.5f);
+        ImVec2 runtimePos((displaySize.x) * 0.5f, displaySize.y * 0.4f);
         ImGui::SetNextWindowPos(runtimePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-        ImGui::SetNextWindowSize(ImVec2(300, 100));
         ImGui::Begin("##RuntimeInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
-        ImGui::SetWindowFontScale(1.8f);
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, m_runtimeOpacity)); // White text
-        ImGui::Text("Run Time: %.2f seconds", m_deathRuntime);
+        ImGui::SetWindowFontScale(2.0f);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, m_runtimeOpacity));
+        std::string time = FormatTimeString(m_deathRuntime);
+        ImGui::Text("Run Time: %s", time.data());
         ImGui::PopStyleColor(1);
         ImGui::End();
     }
@@ -2036,39 +2331,51 @@ void PlayerController::RenderDeathScreen(float delta) {
     }
 
     if (m_optionsOpacity > 0.0f) {
-        ImVec2 optionsPos((displaySize.x + 60.0f) * 0.5f, displaySize.y * 0.64f);
+        ImVec2 optionsPos(displaySize.x * 0.5f, displaySize.y * 0.65f);
         ImGui::SetNextWindowPos(optionsPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-        ImGui::SetNextWindowSize(ImVec2(320, 160));
         ImGui::Begin("##DeathScreenOptions", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
 
         // Style adjustments for the buttons
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(16.0f, 10.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 15.0f));
-
-        // Button colors with gradient effect
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, m_optionsOpacity));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0.0f, 0.0f, 0.0f, 0.6f));
-
-        // Enable border and shadow for a polished look
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+        
 
         // "Return to Main Menu" button
-        if (ImGui::Button("Return to Main Menu", ImVec2(240, 40))) {
+        static bool hovered = false;
+        static bool wasHovered = false;
+        ImVec2 buttonPos = ImGui::GetCursorPos();
+        if (ImGui::Button("Return to Main Menu", ImVec2(200, 40))) {
+            wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
             wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
             ResetDeathScreenState();
         }
-
-        ImGui::Spacing();
+        hovered = ImGui::IsItemHovered();
+        if (hovered && !wasHovered)
+        {
+            wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+        }
+        wasHovered = hovered;
 
         // "Exit Game" button
-        if (ImGui::Button("Exit Game", ImVec2(240, 40))) {
+        static bool hovered2 = false;
+        static bool wasHovered2 = false;
+        if (ImGui::Button("Exit Game", ImVec2(200, 40))) {
             wolf::EventManager::TriggerEvent(GameOverEvent(GameOverType::EXIT));
             ResetDeathScreenState();
         }
+        hovered2 = ImGui::IsItemHovered();
+        if (hovered2 && !wasHovered2)
+        {
+            wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+        }
+        wasHovered2 = hovered2;
 
         // Pop all style changes
         ImGui::PopStyleVar(4); // Pop FrameRounding, FramePadding, ItemSpacing, and FrameBorderSize

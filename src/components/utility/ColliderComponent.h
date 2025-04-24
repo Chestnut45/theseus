@@ -29,6 +29,7 @@ public:
         HURTBOXDR,
         HITHURTBOXDD,
         HITHURTBOXDR,
+        OCCLUDER,
         NONE
     };
 
@@ -47,10 +48,13 @@ public:
     void AddColliderBox(glm::vec2 p_dimensions);
     void AddColliderBox(glm::vec2 p_dimensions, glm::vec2 p_offset);
 
+    void ClearColliderBoxes();
+
     std::vector<wolf::Rectangle> GetColliderBoxes() const;
 
     bool IsHitbox() const;
     bool IsHurtbox() const;
+    bool IsOccluder() const;
     bool IsHurtboxDamageDealer() const;
     bool IsHurtboxDamageReceiver() const;
     bool IsDestroyedOnCollision() const;

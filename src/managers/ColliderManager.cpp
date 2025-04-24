@@ -11,6 +11,10 @@
 
 #include "ColliderManager.h"
 
+#include <MinitaurController.h>
+#include <GorgonController.h>
+#include <PlayerController.h>
+
 #include <ThrowableObjectComponent.h>
 #include <W_Audio.h>
 
@@ -52,7 +56,7 @@ void ColliderManager::RemoveFlagged()
             if (pAnim->GetCurrentAnimation()->m_strName == "burn")
             {
                 // Ensure falloff for potentially stacked sounds
-                wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.55f, 0.0f, 0.0f, true);
+                wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.6f);
             }
         }
 
@@ -76,9 +80,14 @@ void ColliderManager::CheckCollisions(float p_delta)
         // Skip inactive or flagged colliders
         if (!collider1.IsActive()) continue;
 
+        // Skip occluders
+        if (collider1.IsOccluder()) continue;
+
         // Cache properties for collider1
         const bool isHitbox1 = collider1.IsHitbox();
         const bool isDestroyedOnCollision1 = collider1.IsDestroyedOnCollision();
+        const bool isSolidEnemy1 = collider1.GetGameObject()->HasAny<MinitaurController, GorgonController>();
+        const bool isPlayer1 = collider1.GetGameObject()->HasAny<PlayerController>();
 
         // Iterate through remaining colliders after i
         for (auto&& [id2, collider2] : this->m_scene->Each<ColliderComponent>() | std::views::drop(i))
@@ -87,9 +96,14 @@ void ColliderManager::CheckCollisions(float p_delta)
             // Skip inactive or flagged colliders
             if (!collider2.IsActive()) continue;
 
+            // Skip occluders
+            if (collider2.IsOccluder()) continue;
+
             // Cache properties for collider2
             const bool isHitbox2 = collider2.IsHitbox();
             const bool isDestroyedOnCollision2 = collider2.IsDestroyedOnCollision();
+            const bool isSolidEnemy2 = collider2.GetGameObject()->HasAny<MinitaurController, GorgonController>();
+            const bool isPlayer2 = collider2.GetGameObject()->HasAny<PlayerController>();
 
             // Collision check conditions
             bool isCollisionCheckRequired =
@@ -98,6 +112,12 @@ void ColliderManager::CheckCollisions(float p_delta)
                 (isDestroyedOnCollision2 && isHitbox1);
 
             if (!isCollisionCheckRequired) continue;
+
+            // Skip collisions between enemies to avoid them sticking
+            if (isSolidEnemy1 && isSolidEnemy2) continue;
+
+            // DEBUG: Skip collisions between enemies and the player
+            // if ((isPlayer1 && isSolidEnemy2) || (isPlayer2 && isSolidEnemy1)) continue;
 
             // Perform collision check
             if (this->IsCollidingInternalUse(collider1, collider2, p_delta))
@@ -465,6 +485,9 @@ void ColliderManager::CheckCornerCollision(float p_delta)
         glm::vec2 translation1 = collider1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
         glm::vec2 scale1 = collider1->IsRelative() ? collider1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale() : glm::vec2(1.0f);
 
+        const bool isSolidEnemy1 = collider1->GetGameObject()->HasAny<MinitaurController, GorgonController>();
+        const bool isPlayer1 = collider1->GetGameObject()->HasAny<PlayerController>();
+
         for (wolf::Rectangle box1 : collider1->GetColliderBoxes())
         {
             auto corners1 = box1.GetCorners();
@@ -473,6 +496,15 @@ void ColliderManager::CheckCornerCollision(float p_delta)
             for (auto& [collider2, velocity2] : movingColliders)
             {
                 if (collider1 == collider2) continue;
+                
+                const bool isSolidEnemy2 = collider2->GetGameObject()->HasAny<MinitaurController, GorgonController>();
+                const bool isPlayer2 = collider2->GetGameObject()->HasAny<PlayerController>();
+
+                // Skip collisions between enemies to avoid them sticking
+                if (isSolidEnemy1 && isSolidEnemy2) continue;
+
+                // DEBUG: Skip collisions between enemies and the player
+                // if ((isPlayer1 && isSolidEnemy2) || (isPlayer2 && isSolidEnemy1)) continue;
 
                 if (HandleCornerCollision(collider1, velocity1, corners1, collider2, scale1, translation1))
                 {
@@ -482,6 +514,17 @@ void ColliderManager::CheckCornerCollision(float p_delta)
             // Compare with static colliders
             for (auto* collider2 : staticColliders)
             {
+                if (collider1 == collider2) continue;
+
+                const bool isSolidEnemy2 = collider2->GetGameObject()->HasAny<MinitaurController, GorgonController>();
+                const bool isPlayer2 = collider2->GetGameObject()->HasAny<PlayerController>();
+
+                // Skip collisions between enemies to avoid them sticking
+                if (isSolidEnemy1 && isSolidEnemy2) continue;
+
+                // DEBUG: Skip collisions between enemies and the player
+                // if ((isPlayer1 && isSolidEnemy2) || (isPlayer2 && isSolidEnemy1)) continue;
+
                 if (HandleCornerCollision(collider1, velocity1, corners1, collider2, scale1, translation1))
                 {
                 }

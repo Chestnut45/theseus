@@ -91,6 +91,7 @@ public:
     void SetUserData(void* data) { m_userData = data; }
     void* GetUserData() const { return m_userData; }
 
+    bool IsAdditive() const { return m_additiveBlend; }
 
 private:
     std::vector<Particle> m_particles;

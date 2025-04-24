@@ -73,6 +73,10 @@ void PlayState::Enter()
     m_pFieldTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest, wolf::Texture::FilterMode::FM_Nearest);
     m_pFieldTexture->SetWrapMode(wolf::Texture::WrapMode::WM_Repeat, wolf::Texture::WrapMode::WM_Repeat);
 
+    // Fog shaders
+    m_pFogMapShader = wolf::ProgramManager::CreateProgram("data/shaders/fullscreen_pass.vs", "data/shaders/fog_pass_map.fs");
+    m_pFogWorldShader = wolf::ProgramManager::CreateProgram("data/shaders/fullscreen_pass.vs", "data/shaders/fog_pass_world.fs");
+
     // Grab a reference to the main scene
     auto& scene = m_pGameInstance->GetScene();
 
@@ -86,6 +90,10 @@ void PlayState::Enter()
  
     this->m_pColliderManager = new ColliderManager(&scene);
 
+    // Create the labyrinth manager
+    m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
+    m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
+
     // Initialize the player object
     CreatePlayer();
 
@@ -93,7 +101,6 @@ void PlayState::Enter()
     auto& cameraObj = scene.CreateObject2D();
     auto& camera = cameraObj.AddComponent<wolf::Camera2D>(m_pGameInstance->GetWidth(), m_pGameInstance->GetHeight());
     m_pPlayerObject->AddChild(cameraObj);
-    camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
 
@@ -104,24 +111,26 @@ void PlayState::Enter()
     glm::vec2 viewSize = camera.GetViewSize();
     m_pFBO = wolf::BufferManager::CreateFrameBuffer(viewSize.x, viewSize.y, viewSize.x, viewSize.y);
 
-    // Add the labyrinth manager and load the default config
-    m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
-    m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
-
-    // Seed logic from main menu
-    bool specialSeed = false;
-    if (m_seedText.length() > 0)
+    // Determine the seed to use and load the appropriate config
+    bool usedSecretSeed = false;
+    if (m_seedText.length() == 0)
     {
+        // Load the default config with a random seed
+        m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
+    }
+    else
+    {
+        // TODO: Cleanup seed code
         // Check for special configs
         if (m_seedText == "goodluck")
         {
             m_pLabyrinthManager->LoadConfig("data/configs/secret/goodluck.yaml");
-            specialSeed = true;
+            usedSecretSeed = true;
         }
         else if (m_seedText == "gottagofast")
         {
             m_pLabyrinthManager->LoadConfig("data/configs/secret/gottagofast.yaml");
-            specialSeed = true;
+            usedSecretSeed = true;
             auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
             if (playerController)
             {
@@ -134,12 +143,12 @@ void PlayState::Enter()
         else if (m_seedText == "thefloorislava")
         {
             m_pLabyrinthManager->LoadConfig("data/configs/secret/thefloorislava.yaml");
-            specialSeed = true;
+            usedSecretSeed = true;
         }
         else if (m_seedText == "minitaurmania")
         {
             m_pLabyrinthManager->LoadConfig("data/configs/secret/minitaurmania.yaml");
-            specialSeed = true;
+            usedSecretSeed = true;
         }
         else
         {
@@ -162,11 +171,10 @@ void PlayState::Enter()
             m_pLabyrinthManager->SetSeed(seed);
         }
     }
-    else
-    {
-        // Load the default config with a random seed
-        m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
-    }
+
+    // Create the fog mask texture and update it based on the labyrinth size
+    glGenTextures(1, &m_fogTraversalTex);
+    ResizeFogMaskTex(m_pLabyrinthManager->GetWidth() * FOG_TEX_SCALE, m_pLabyrinthManager->GetHeight() * FOG_TEX_SCALE);
 
     // Initialize managers that require the labyrinth manager seed
     auto& pathfindingManagerObject = scene.CreateObject2D();
@@ -179,6 +187,9 @@ void PlayState::Enter()
 
     // Actually generate the labyrinth from the given seed
     m_pLabyrinthManager->GenerateLabyrinth();
+
+    // Reposition the camera to the spawn location
+    camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
 
     GLShapesRenderer::CreateInstance();
     DDACalculator::CreateInstance(&scene);
@@ -193,22 +204,20 @@ void PlayState::Enter()
     SpawnBossObjects();
 
     RegisterClosestMinitaur();
-
-    // Add a light to the player
-    wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 125.0f, true);
-    m_pPlayerObject->AddChild(*pLightGO);
-    pLightComponent.Init();
-    pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
     
-    m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
+    auto dispensaryID = m_pLabyrinthManager->GetSpawnDispensaryID();
+    if (dispensaryID != -1)
+    {
+        m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", dispensaryID);
+    }
 
     // Create ariadne and queue dialogue
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
     wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
 
-    if (!specialSeed)
+    if (!usedSecretSeed && dispensaryID != -1)
     {
+        // Don't trigger the cutscene in debug mode
         if (!m_debugHotkeys) wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
         // Queue up all of Ariadne's dialogue
@@ -219,6 +228,7 @@ void PlayState::Enter()
     }
     else
     {
+        // Fallback to special intro sequence if a secret seed was used OR if there's no starting dispensary
         if (!m_debugHotkeys) wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("special_intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
         // Queue up all of Ariadne's dialogue
@@ -227,7 +237,7 @@ void PlayState::Enter()
         ariadneNPCComp->QueueDialogue("traps");
     }
 
-    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.65f, 0.0f, 0.0f, false, true, 13.714f);
+    wolf::Audio::Play("data/sounds/bgm_maze.wav", 0.75f, 0.0f, 0.0f, false, true, 13.714f);
 
     // Now it's safe to register entities
     for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())
@@ -252,10 +262,14 @@ void PlayState::Enter()
 
 void PlayState::Exit()
 {
-    wolf::Audio::Stop();
+    wolf::Audio::Stop("data/sounds/bgm_maze.wav");
+    wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
+    wolf::Audio::Stop("data/sounds/bgm_death.wav");
 
     // Delete objects / components from the scene
     m_pGameInstance->GetScene().Clear();
+
+    if (m_pGameInstance->IsDebugEnabled()) m_pGameInstance->ToggleDebugGUI();
 
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
@@ -291,6 +305,10 @@ void PlayState::Exit()
     wolf::ProgramManager::DestroyProgram(m_pBackgroundShader);
     wolf::TextureManager::DestroyTexture(m_pFieldTexture);
     glDeleteVertexArrays(1, &m_dummyVAO);
+
+    wolf::ProgramManager::DestroyProgram(m_pFogMapShader);
+    wolf::ProgramManager::DestroyProgram(m_pFogWorldShader);
+    glDeleteTextures(1, &m_fogTraversalTex);
 }
 
 void PlayState::Pause()
@@ -332,7 +350,7 @@ void PlayState::Update(float delta)
         else
         {
             // Don't allow pausing when the credits start
-            if (m_gameCompletionTime.IsRunning())
+            if (m_gameCompletionTime.IsRunning() && pc->IsAlive())
             {
                 wolf::EventManager::TriggerEvent(PauseEvent(true));
                 m_pStateManager->PushState(new PauseState(m_pStateManager, m_pGameInstance));
@@ -340,23 +358,32 @@ void PlayState::Update(float delta)
         }
     }
 
+    // Don't allow debug hotkeys when typing into Daedalus' Terminal
     if (m_debugHotkeys)
     {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_GRAVE_ACCENT)) m_pGameInstance->ToggleDebugGUI();
+
         // Show debug hitboxes with backslash
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_BACKSLASH))
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_BACKSLASH) && !m_showLabyrinthManager)
         {
             m_renderDebugColliders = !m_renderDebugColliders;
         }
 
         // Toggle Labyrinth Manager GUI with the semicolon key
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) 
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON))
+        {
             m_showLabyrinthManager = !m_showLabyrinthManager;
+            if (auto* pPlayer = m_pPlayerObject->GetComponent<PlayerController>())
+            {
+                pPlayer->m_showLabyrinthManager = m_showLabyrinthManager;
+            }
+        }
         
         // DEBUG: Teleport to bossfight
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT))
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT) && !m_showLabyrinthManager)
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
             
-        if(wolf::Input::IsKeyJustDown(GLFW_KEY_F))
+        if(wolf::Input::IsKeyJustDown(GLFW_KEY_F) && !m_showLabyrinthManager)
         {
             glm::ivec2 playerTilePos = m_pLabyrinthManager->GetTilePosition(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
             TileFireManager::GetInstance()->AddFireTile(playerTilePos);
@@ -366,7 +393,8 @@ void PlayState::Update(float delta)
         if (m_showLabyrinthManager) 
             m_pLabyrinthManager->ShowGUI();
         
-        if (m_pNavMeshComponent)
+        // Only update the nav mesh debug view if the terminal is not active
+        if (m_pNavMeshComponent && !m_showLabyrinthManager)
             m_pNavMeshComponent->Update(delta);
 
         // if (m_pParticleEditor)
@@ -445,6 +473,12 @@ void PlayState::Update(float delta)
         pCamera->SetPosition(pCamera->GetPosition() + shakeOffset);
     }
 
+    // Display completion message for 5 seconds
+    if (m_completionMessageTimer.IsRunning() && m_completionMessageTimer.Elapsed() < 5.0f)
+    {
+        RenderTextCentered("--- Minotaur Defeated ---", 4.0f);
+    }
+
     // Handle fade to black over 3 seconds
     if (m_fadeToBlackTimer.Elapsed() < 3.0f)
     {
@@ -456,12 +490,6 @@ void PlayState::Update(float delta)
     {
         // If fade is fully elapsed, keep it completely black
         RenderFadeOverlay(1.0f);
-    }
-    
-    // Display completion message for 5 seconds
-    if (m_completionMessageTimer.IsRunning() && m_completionMessageTimer.Elapsed() < 5.0f)
-    {
-        RenderTextCentered("You have completed Theseus in " + std::format("{:.3f}", m_gameCompletionTime.Elapsed()), 4.0f);
     }
 
     // Show credits after message disappears
@@ -485,22 +513,25 @@ void PlayState::Update(float delta)
         // INVENTORY TESTING
         auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
         if (playerInventory) {
-            if (m_debugHotkeys)
+            if (m_debugHotkeys && !m_showLabyrinthManager)
             {   
                 // DEBUG: Fill the inventory with loot
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_1))
                 {
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dull Blade"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Old Bow"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Burning Blade"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Spear"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Healing Heart"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Poison-Tipped Spear"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Old Bow"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Triple-Shot Bow"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Medusa's Bow"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Zeus' Wrath"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Juggin Juice"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Liquid Life"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Gorgon Tears"));
+                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lava Wine"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Dented Helmet"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Rusty Chestplate"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Copper Vambraces"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Kilt"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Theezys"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Faux-leather Gloves"));
-                    playerInventory->AddItemOrDelete(ItemCreator::CreateItem("The Floor is Lava Boots"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Lapis Lazuli Ring"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
                     playerInventory->AddItemOrDelete(ItemCreator::CreateItem("Portal"));
@@ -520,7 +551,7 @@ void PlayState::Update(float delta)
         }
 
         // DEBUG: Noclip hotkey
-        if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_SLASH))
+        if (m_debugHotkeys && !m_showLabyrinthManager && wolf::Input::IsKeyJustDown(GLFW_KEY_SLASH))
         {
             auto* pCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
             if (pCollider)
@@ -609,10 +640,43 @@ void PlayState::Update(float delta)
             npc.Update(delta);
         }
 
-        // Inflict status effects upon the player
+        // Update all status components
+        const glm::vec3 fireTintColor = glm::vec3(1.2f, 0.75f, 0.0f);
+        const glm::vec3 poisonTintColor = glm::vec3(0.0f, 0.64f, 0.24f);
+        const glm::vec3 bothTintColor = fireTintColor + poisonTintColor;
         for (auto&& [_, status] : m_pGameInstance->GetScene().Each<StatusComponent>())
         {
             status.Update(delta);
+
+            // Update sprite tints if status is active
+            if (auto* pAnim = status.GetGameObject()->GetComponent<AnimatedSprite2D>())
+            {
+                bool fire = status.IsStatusEffectActive(StatusComponent::StatusEffectType::BURNING);
+                bool poison = status.IsStatusEffectActive(StatusComponent::StatusEffectType::POISONED);
+                if (fire && poison)
+                {
+                    pAnim->SetTint(bothTintColor);
+                }
+                else
+                {
+                    if (fire)
+                    {
+                        pAnim->SetTint(fireTintColor);
+                    }
+                    else if (poison)
+                    {
+                        pAnim->SetTint(poisonTintColor);
+                    }
+                    else
+                    {
+                        const glm::vec3 tint = pAnim->GetTint();
+                        if (tint == fireTintColor || tint == poisonTintColor || tint == bothTintColor)
+                        {
+                            pAnim->SetTint(glm::vec3(1.0f));
+                        }
+                    }
+                }
+            }
         }
 
         // Don't pickup items or interact with things if we're dead!
@@ -632,7 +696,7 @@ void PlayState::Update(float delta)
                     std::string tooltip = chestInventory.IsOpen() ? "Press E to Close Chest" : "Press E to Open Chest";
                     ShowTooltip(tooltip);
 
-                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E) && !m_showLabyrinthManager)
                     {
                         auto name = sprite.GetCurrentAnimation()->m_strName;
                         if (chestInventory.IsOpen()) {
@@ -673,7 +737,7 @@ void PlayState::Update(float delta)
                     {
                         std::string tooltip = "Press E to Open Chest";
                         ShowTooltip(tooltip);
-                        if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                        if (wolf::Input::IsKeyJustDown(GLFW_KEY_E) && !m_showLabyrinthManager)
                         {
                             auto name = sprite.GetCurrentAnimation()->m_strName;
                             sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
@@ -700,7 +764,7 @@ void PlayState::Update(float delta)
                     ShowTooltip(tooltip);
 
                     // When you interact with the dispensary
-                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E) && !m_showLabyrinthManager)
                     {
                         // Either open or close it
                         dispensaryInventory.ToggleOpen();
@@ -766,7 +830,7 @@ void PlayState::Update(float delta)
                     std::string tooltip = "Press E to pickup";
                     ShowTooltip(tooltip);
 
-                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E) && !m_showLabyrinthManager)
                     {
                         droppedItem.PickUpItem();
                         break;
@@ -776,13 +840,14 @@ void PlayState::Update(float delta)
 
             for (auto&&[_, npc, transform] : m_pGameInstance->GetScene().Each<NPCComponent, wolf::Transform2D>()) {
                 // Distance check
-                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f) {
+                if (glm::distance(transform.GetGlobalPosition(), playerPos) < 128.0f &&
+                    npc.GetState() != NPCComponent::PETRIFIED) {
                     // Player is in range of the NPC so we display the tooltip
                     std::string tooltip = "Press E to talk to " + npc.GetName();
                     ShowTooltip(tooltip);
 
                     // And if the player interacts with the NPC we play their next dialogue/cutscene
-                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E) && !m_showLabyrinthManager) {
                         npc.PlayNextDialogue();
                         break;
                     }
@@ -808,14 +873,24 @@ void PlayState::Update(float delta)
             }
         }
 
-        // Trigger CutsceneDialogueEvent when pressing 9
-        if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_9))
-        {
-            // Trigger both cutscene and dialogue with IDs
-            wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
-        }
-
         this->m_pPathfindingManager->UpdateEntities(delta);
+
+        if (m_pNavMeshComponent)
+        {
+            m_navMeshObstacles.clear();
+            m_navMeshObstacles.push_back(m_pPlayerObject);
+
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
+            m_navMeshObstacles.push_back(controller.GetGameObject());
+
+            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>())
+            m_navMeshObstacles.push_back(controller.GetGameObject());
+            
+            for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>())
+            m_navMeshObstacles.push_back(component.GetGameObject());
+
+            m_pNavMeshComponent->UpdateDynamicObstacles(m_navMeshObstacles);
+        }
 
         // Update velocity components to apply friction and decelerate objects
         for (auto&& [_, velocity] : m_pGameInstance->GetScene().Each<VelocityComponent>()) {
@@ -839,7 +914,7 @@ void PlayState::Update(float delta)
         }
 
         // Toggle expanded map view
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_M)) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_M) && !m_showLabyrinthManager) {
             m_isMapExpanded = !m_isMapExpanded;
         }
         
@@ -864,24 +939,38 @@ void PlayState::Update(float delta)
         {
             particleComponent.Update(delta);
         }
+    }
 
-        if (m_pNavMeshComponent)
+    // Update fog mask before rendering
+    if (m_pLabyrinthManager->IsGenerated())
+    {
+        // Calculate offset player position
+        const float tileWorldSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+        glm::vec2 normPos = playerPos / tileWorldSize;
+        glm::vec2 labyrinthSize(m_pLabyrinthManager->GetWidth(), m_pLabyrinthManager->GetHeight());
+        glm::ivec2 center = glm::ivec2(normPos * glm::vec2(m_fogMaskTexSize) / labyrinthSize);
+
+        // Write player position and radius into mask
+        int revealRadius = 50;
+        for (int y = -revealRadius; y <= revealRadius; ++y)
         {
-            m_navMeshObstacles.clear();
-            m_navMeshObstacles.push_back(m_pPlayerObject);
+            for (int x = -revealRadius; x <= revealRadius; ++x)
+            {
+                int px = center.x + x;
+                int py = center.y + y;
 
-            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>())
-            m_navMeshObstacles.push_back(controller.GetGameObject());
-
-            for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>())
-            m_navMeshObstacles.push_back(controller.GetGameObject());
-            
-            for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>())
-            m_navMeshObstacles.push_back(component.GetGameObject());
-
-            m_pNavMeshComponent->UpdateDynamicObstacles(m_navMeshObstacles);
+                // Ignore 1 pixel border to ensure map always clamps out to fog
+                if (px <= 0 || px >= m_fogMaskTexSize.x - 1 || py <= 0 || py >= m_fogMaskTexSize.y - 1) continue;
+                if (x * x + y * y <= revealRadius * revealRadius)
+                {
+                    m_fogMaskTexels[py * m_fogMaskTexSize.x + px] = 255;
+                }
+            }
         }
-        
+
+        // Upload data
+        glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_fogMaskTexSize.x, m_fogMaskTexSize.y, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
     }
 
     // Dispatch events
@@ -914,10 +1003,7 @@ void PlayState::Render(float delta)
 
 
 void PlayState::BackgroundUpdate(float delta)
-{
-    if (m_showLabyrinthManager) 
-        m_pLabyrinthManager->ShowGUI();
-    
+{   
     // Update the lights in the scene
     for (auto&& [_, LightComponent] : m_pGameInstance->GetScene().Each<LightComponent>()) {
         LightComponent.Update(delta);
@@ -970,6 +1056,50 @@ void PlayState::BackgroundRender(float delta)
         if (system.IsIgnoreLighting()) system.Render(delta);
     }
 
+    // Fog of war world rendering
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBindVertexArray(m_dummyVAO);
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
+    int w = m_pLabyrinthManager->GetWidth();
+    int h = m_pLabyrinthManager->GetHeight();
+    int scale = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    m_pFogWorldShader->SetUniform("time", (float)m_gameCompletionTime.Elapsed());
+    m_pFogWorldShader->SetUniform("labyrinthDimWorldScale", glm::vec4(w, h, scale, scale));
+    m_pFogWorldShader->SetUniform("viewport", glm::vec4(0, 0, m_pGameInstance->GetWidth(), m_pGameInstance->GetHeight()));
+    m_pFogWorldShader->SetUniform("fogColor", m_pLabyrinthManager->GetFogColor());
+    m_pFogWorldShader->Bind();
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
+    glDisable(GL_BLEND);
+
+    // Build map of sprites to render by layer
+    std::map<int, std::vector<std::pair<wolf::Sprite2D*, wolf::Transform2D*>>> sortedSprites;
+    for (auto&&[_, sprite, transform] : m_pGameInstance->GetScene().Each<wolf::Sprite2D, wolf::Transform2D>())
+    {
+        // Ignore sprites that were rendered during the lighting (scene) pass
+        if (sprite.IsLightingEnabled()) continue;
+        
+        int layer = sprite.GetLayer();
+
+        // Add new spritebatch if it doesn't exist
+        if (!sortedSprites.contains(layer)) sortedSprites[layer] = {};
+
+        // Push back the next sprite
+        sortedSprites[layer].push_back(std::make_pair<wolf::Sprite2D*, wolf::Transform2D*>(&sprite, &transform));
+    }
+
+    // Render all sprites in order
+    for (auto iter = sortedSprites.begin(); iter != sortedSprites.end(); ++iter)
+    {
+        auto& batch = iter->second;
+        for (auto& pair : batch)
+        {
+            pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
+        }
+    }
+
     // Build map of animated sprites to render by layer
     std::map<int, std::vector<std::pair<AnimatedSprite2D*, wolf::Transform2D*>>> sortedAnimatedSprites;
     for (auto&&[_, sprite, transform] : m_pGameInstance->GetScene().Each<AnimatedSprite2D, wolf::Transform2D>())
@@ -996,15 +1126,15 @@ void PlayState::BackgroundRender(float delta)
         }
     }
 
-    if (m_pNavMeshComponent && m_pNavMeshComponent->IsDebugDrawEnabled())
-    {
-        m_pNavMeshComponent->DebugDraw();
-    }
-
-    // Render particle components
+    // Render all particle components after the fog
     for (auto&& [_, particleComponent] : m_pGameInstance->GetScene().Each<ParticleComponent>())
     {
         particleComponent.Render();
+    }
+
+    if (m_pNavMeshComponent && m_pNavMeshComponent->IsDebugDrawEnabled())
+    {
+        m_pNavMeshComponent->DebugDraw();
     }
 
     // Queue all colliders for debug rendering
@@ -1079,10 +1209,10 @@ void PlayState::CreatePlayer()
     auto& inventory = m_pPlayerObject->AddComponent<PlayerInventoryComponent>(16, 4, ImVec2(50, 50));
 
     auto& collider = m_pPlayerObject->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HITHURTBOXDR, 0, 1);
-    collider.AddColliderBox(glm::vec2(7.0f, 10.0f), glm::vec2(-4.0f, -3.0f));
+    collider.AddColliderBox(glm::vec2(7.0f, 9.0f), glm::vec2(-4.0f, -4.0f));
 
     // Add health
-    auto& health = m_pPlayerObject->AddComponent<HealthComponent>(800);
+    auto& health = m_pPlayerObject->AddComponent<HealthComponent>(500);
 
     // Add status component and status effect
     auto& status = m_pPlayerObject->AddComponent<StatusComponent>();
@@ -1092,10 +1222,20 @@ void PlayState::CreatePlayer()
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
     playerController.m_debugHotkeys = m_debugHotkeys;
+    playerController.m_showLabyrinthManager = m_showLabyrinthManager;
 
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));
+
+    // Add a light to the player
+    // NOTE: The labyrinth config can overwrite the light's color and radius values!
+    wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.65f, 0.48f, 0.26f, 0.75f), 200.0f, true);
+    m_pPlayerObject->AddChild(*pLightGO);
+    pLightComponent.Init();
+    pLightComponent.SetIgnoreWallTiles(true);
+    pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
 }
 
 void PlayState::SpawnBossObjects()
@@ -1718,6 +1858,13 @@ void PlayState::OnRegenerateEvent(const LabyrinthRegenerateEvent& event)
     m_pPathfindingManager->ClearEntities();
     SpawnBossObjects();
 
+    // Init the fog map again
+    ResizeFogMaskTex(m_pLabyrinthManager->GetWidth() * FOG_TEX_SCALE, m_pLabyrinthManager->GetHeight() * FOG_TEX_SCALE);
+
+    // Upload data
+    glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_fogMaskTexSize.x, m_fogMaskTexSize.y, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
+
     // Create ariadne and setup dialogue
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
     wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
@@ -1725,8 +1872,13 @@ void PlayState::OnRegenerateEvent(const LabyrinthRegenerateEvent& event)
     ariadneNPCComp->QueueDialogue("hello");
     ariadneNPCComp->QueueDialogue("traps");
     ariadneNPCComp->QueueDialogue("survivors");
-    m_pLabyrinthManager->GetGameObject()->AddChild(ariadne);
 
+    m_pGameInstance->GetSharedContext().RemoveEntity("Dispensary");
+    auto id = m_pLabyrinthManager->GetSpawnDispensaryID();
+    if (id != -1)
+    {
+        m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", id);
+    }
 
     // Register entities
     for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())
@@ -1753,6 +1905,15 @@ void PlayState::OnDestroyEvent(const LabyrinthDestroyEvent& event)
     DestroyBossObjects();
     m_pPathfindingManager->ClearEntities();
     m_pGameInstance->GetSharedContext().RemoveEntity("Ariadne");
+    m_pGameInstance->GetSharedContext().RemoveEntity("Dispensary");
+    m_pAriadne = nullptr;
+
+    // Init the fog map again
+    ResizeFogMaskTex(m_pLabyrinthManager->GetWidth() * FOG_TEX_SCALE, m_pLabyrinthManager->GetHeight() * FOG_TEX_SCALE);
+
+    // Upload data
+    glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_fogMaskTexSize.x, m_fogMaskTexSize.y, GL_RED, GL_UNSIGNED_BYTE, m_fogMaskTexels.data());
 }
 
 void PlayState::ShowTooltip(const std::string& text)
@@ -1837,14 +1998,63 @@ ImU32 GetTileColor(int tileID) {
     }
 }
 
+// Fog of war render callback for inserting into imgui window
+void FogCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd)
+{
+    // Grab the play state
+    PlayState* state = static_cast<PlayState*>(cmd->UserCallbackData);
+
+    // Query previous gl state
+    GLint previousVAO = 0;
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
+    GLint previousShader;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &previousShader);
+    GLboolean previousBlend;
+    glGetBooleanv(GL_BLEND, &previousBlend);
+    GLint previousBlendSrcRGB; glGetIntegerv(GL_BLEND_SRC_RGB, &previousBlendSrcRGB);
+    GLint previousBlendDstRGB; glGetIntegerv(GL_BLEND_DST_RGB, &previousBlendDstRGB);
+    GLint previousBlendSrcAlpha; glGetIntegerv(GL_BLEND_SRC_ALPHA, &previousBlendSrcAlpha);
+    GLint previousBlendDstAlpha; glGetIntegerv(GL_BLEND_DST_ALPHA, &previousBlendDstAlpha);
+    GLint previousUnit = 0;
+    glGetIntegerv(GL_ACTIVE_TEXTURE, &previousUnit);
+    glActiveTexture(GL_TEXTURE6);
+    GLint previousTex;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
+
+    // Fog of war rendering
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBindVertexArray(state->m_dummyVAO);
+    glBindTexture(GL_TEXTURE_2D, state->m_fogTraversalTex);
+    int w = state->m_pLabyrinthManager->GetWidth();
+    int h = state->m_pLabyrinthManager->GetHeight();
+    int scale = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
+    state->m_pFogMapShader->SetUniform("mapPosSize", state->m_cachedMapPosAndSize);
+    state->m_pFogMapShader->SetUniform("mapZoom", state->m_cachedMapZoom);
+    state->m_pFogMapShader->SetUniform("playerPos", glm::vec3(state->m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition(), 1.0f));
+    state->m_pFogMapShader->SetUniform("time", (float)state->m_gameCompletionTime.Elapsed());
+    state->m_pFogMapShader->SetUniform("labyrinthDimWorldScale", glm::vec4(w, h, scale, scale));
+    state->m_pFogMapShader->SetUniform("fogColor", state->m_pLabyrinthManager->GetFogColor());
+    state->m_pFogMapShader->Bind();
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    // Restore previous state
+    glBindTexture(GL_TEXTURE_2D, previousTex);
+    glActiveTexture(previousUnit);
+    glBindVertexArray(previousVAO);
+    glUseProgram(previousShader);
+    previousBlend ? glEnable(GL_BLEND) : glDisable(GL_BLEND);
+    glBlendFuncSeparate(previousBlendSrcRGB, previousBlendDstRGB, previousBlendSrcAlpha, previousBlendDstAlpha);
+}
+
 void PlayState::RenderMap() {
-    static float defaultZoomScale = 0.15f; // Default zoom level when not expanded
-    static float expandedZoomScale = 0.15f; // Persisted zoom level for expanded map
-    static bool isExpandedPrev = false; // Tracks if the map was expanded in the previous frame
+    static float defaultZoomScale = 0.1f;
+    static float expandedZoomScale = 0.1f;
+    static bool isExpandedPrev = false;
 
     // Update the zoom scale and reset if switching between states
     if (!m_isMapExpanded && isExpandedPrev) {
-        defaultZoomScale = glm::clamp(expandedZoomScale * 0.333333f, 0.1f, 1.0f); // Adjust default zoom to see more
+        defaultZoomScale = expandedZoomScale;
     }
     float zoomScale = m_isMapExpanded ? expandedZoomScale : defaultZoomScale;
     isExpandedPrev = m_isMapExpanded;
@@ -1852,7 +2062,7 @@ void PlayState::RenderMap() {
     // Determine the zoom level based on whether the map is expanded
     if (m_isMapExpanded) {
         float scrollDelta = ImGui::GetIO().MouseWheel;
-        expandedZoomScale = glm::clamp(expandedZoomScale + scrollDelta * 0.1f, 0.1f, 1.0f); // Adjust expanded zoom
+        expandedZoomScale = glm::clamp(expandedZoomScale + glm::sign(scrollDelta) * 0.01f, 0.05f, 0.15f); // Adjust expanded zoom
     }
 
     // Define map dimensions and scaling
@@ -1863,7 +2073,7 @@ void PlayState::RenderMap() {
     const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
     const ImVec2 mapPosition = m_isMapExpanded
         ? ImVec2((displaySize.x - mapSize) * 0.5f, (displaySize.y - mapSize) * 0.5f) // Centered
-        : ImVec2(displaySize.x - mapSize - 20.0f, 20.0f); // Top-right corner
+        : ImVec2(displaySize.x - mapSize - 17.0f, 17.0f); // Top-right corner
 
     // Get player transform component and compute adjusted position
     const auto* playerTransform = m_pPlayerObject->GetComponent<wolf::Transform2D>();
@@ -1879,24 +2089,38 @@ void PlayState::RenderMap() {
 
     // Thick stylish golden border
     // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 255)); // Black background
 
     ImGui::SetNextWindowSize(ImVec2(mapSize, mapSize));
     ImGui::SetNextWindowPos(mapPosition);
     ImGui::Begin("ChunkMap###AlwaysVisible", nullptr,
                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove |
-                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs);
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoInputs |
+                 ImGuiWindowFlags_NoBackground);
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     // Get window min/max for border placement
     ImVec2 windowMin = ImGui::GetWindowPos();
     ImVec2 windowMax = ImVec2(windowMin.x + mapSize, windowMin.y + mapSize);
+    ImVec2 windowPos = ImGui::GetWindowPos();
+    const float mapRadius = mapSize / 2.0f;
+    ImVec2 center = ImVec2(windowPos.x + mapRadius, windowPos.y + mapRadius);
+
+    // Update cached values
+    m_cachedMapPosAndSize.x = mapCenterX;
+    m_cachedMapPosAndSize.y = displaySize.y - mapCenterY;
+    m_cachedMapPosAndSize.z = mapRadius;
+    m_cachedMapPosAndSize.w = mapRadius;
+    m_cachedMapZoom = m_isMapExpanded ? expandedZoomScale : defaultZoomScale;
+
+    // Background
+    drawList->AddCircleFilled(center, mapRadius, IM_COL32(30, 30, 30, 220));
     
     // Helper lambda for rendering tiles
     auto renderTile = [&](const glm::vec2& worldPos, ImU32 color) {
         glm::vec2 relativePos = (worldPos - playerPosition) * labyrinthScale;
+        if (glm::length(relativePos) > mapRadius) return;
         relativePos.y = -relativePos.y; // Invert Y-axis for rendering
         const ImVec2 min(mapCenterX + relativePos.x - halfTileSizeScaled, 
                          mapCenterY + relativePos.y - halfTileSizeScaled);
@@ -1907,7 +2131,7 @@ void PlayState::RenderMap() {
     };
 
     // Render chunks and tiles
-    const int chunkRenderRadius = 1; // Render surrounding chunks within 1 chunk radius
+    const int chunkRenderRadius = m_isMapExpanded ? 8 : 2;
     for (int cx = -chunkRenderRadius; cx <= chunkRenderRadius; ++cx) {
         for (int cy = -chunkRenderRadius; cy <= chunkRenderRadius; ++cy) {
             glm::ivec2 chunkID = playerChunk + glm::ivec2(cx, cy);
@@ -1925,41 +2149,36 @@ void PlayState::RenderMap() {
         }
     }
 
-    // Render player position
-    drawList->AddCircleFilled(ImVec2(mapCenterX, mapCenterY), 5.0f, IM_COL32(0, 255, 0, 255));
-    drawList->AddCircle(ImVec2(mapCenterX, mapCenterY), 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f);
-
     // Helper lambda for rendering entities
-    auto renderEntity = [&](const glm::vec2& entityPos, ImU32 color) {
+    auto renderEntity = [&](const glm::vec2& entityPos, ImU32 color, float size = 6.5f) {
         glm::vec2 relativePos = ((entityPos + glm::vec2(-48.0f, -60.0f)) - playerPosition) * labyrinthScale;
+        if (glm::length(relativePos) > mapRadius) return;
         relativePos.y = -relativePos.y; // Invert Y-axis
         const ImVec2 entityMarker(mapCenterX + relativePos.x, mapCenterY + relativePos.y);
-        drawList->AddCircle(entityMarker, 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f); // Outline
-        drawList->AddCircleFilled(entityMarker, 5.0f, color);                           // Marker
+        drawList->AddCircle(entityMarker, size, IM_COL32(255, 255, 255, 255), 0, 1.5f);
+        drawList->AddCircleFilled(entityMarker, size - 1.5f, color);
     };
 
     // Render entities by type
+    // TODO: Double code these... color is not enough, can we draw shapes here?
     for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<MinitaurController>()) {
         auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 0, 0, 255));
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(169, 0, 0, 255));
     }
     for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<HarpyController>()) {
         auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 255, 0, 255));
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(169, 0, 0, 255));
     }
     for (auto&& [_, controller] : m_pGameInstance->GetScene().Each<GorgonController>()) {
         auto* transform = controller.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(128, 0, 128, 255));
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(169, 0, 0, 255));
     }
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<NPCComponent>()) {
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 0, 255, 255));
-    }
-    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<DroppedItemComponent>()) {
-        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
-        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 255, 255, 255));
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(0, 115, 230, 255));
     }
     for (auto&& [_, component] : m_pGameInstance->GetScene().Each<ChestInventoryComponent>()) {
+        if (component.IsEmpty()) continue;
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
         if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
     }
@@ -1967,16 +2186,74 @@ void PlayState::RenderMap() {
         auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
         if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(255, 165, 0, 255)); // Orange
     }
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<BossController>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(169, 0, 0, 255), 8.5f); // Dark Red
+    }
+    wolf::Transform2D* pSpawnDispensaryTransform = nullptr;
+    for (auto&& [_, component] : m_pGameInstance->GetScene().Each<DispensaryInventoryComponent>()) {
+        auto* transform = component.GetGameObject()->GetComponent<wolf::Transform2D>();
+        if (transform)
+        {
+            glm::vec2 pos = transform->GetGlobalPosition();
+            if (pos.y < 0.0f)
+            {
+                // Grab the starting dispensary to render after the fog callback
+                pSpawnDispensaryTransform = transform;
+            }
+            else
+            {
+                renderEntity(transform->GetGlobalPosition(), IM_COL32(175, 138, 120, 255));
+            }
+        }
+    }
 
+    drawList->AddCallback(FogCallback, (void*)this);
+
+    // Render the starting room tiles as well
+    const auto& spawnRect = m_pLabyrinthManager->GetSpawnPatchRect();
+    for (int x = spawnRect.m_left; x < spawnRect.m_right; x += tileWorldSize)
+    {
+        for (int y = spawnRect.m_bottom; y < spawnRect.m_top; y += tileWorldSize)
+        {
+            glm::vec2 worldPos = glm::vec2(x, y);
+            glm::ivec2 tilePos = m_pLabyrinthManager->GetTilePosition(worldPos);
+            int tileID = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+            
+            if (tileID > 0 && tileID != Tile::Empty) {
+                renderTile(glm::vec2(tilePos) * tileWorldSize, GetTileColor(tileID));
+            }
+        }
+    }
+
+    // Render starting entities separately after fog and starting tiles, and only if they're found!
+    if (pSpawnDispensaryTransform)
+    {
+        renderEntity(pSpawnDispensaryTransform->GetGlobalPosition(), IM_COL32(175, 138, 120, 255));
+    }
+    if (m_pAriadne)
+    {
+        auto* transform = m_pAriadne->GetComponent<wolf::Transform2D>();
+        if (transform) renderEntity(transform->GetGlobalPosition(), IM_COL32(245, 0, 155, 255));
+    }
+
+    // Render player position
+    drawList->AddCircleFilled(ImVec2(mapCenterX, mapCenterY), 5.0f, IM_COL32(0, 165, 90, 255));
+    drawList->AddCircle(ImVec2(mapCenterX, mapCenterY), 6.5f, IM_COL32(255, 255, 255, 255), 0, 1.5f);
+
+    // Border
+    drawList->PushClipRect(
+        ImVec2(center.x - mapRadius - 15.0f, center.y - mapRadius - 15.0f),
+        ImVec2(center.x + mapRadius + 15.0f, center.y + mapRadius + 15.0f),
+        false
+    );
+    drawList->AddCircle(center, mapRadius + 2.0f, IM_COL32(32, 32, 32, 255), 64, 18.0f);
+    drawList->AddCircle(center, mapRadius + 2.0f, IM_COL32(255, 168, 0, 255), 64, 9.0f);
+    drawList->PopClipRect();
 
     ImGui::End();
-    ImVec2 borderMin(windowMin.x - 2, windowMin.y - 2);
-    ImVec2 borderMax(windowMax.x + 2, windowMax.y + 2);
-    // --- Draw the border AFTER the minimap rendering ---
-    drawList->AddRect(borderMin, borderMax, IM_COL32(255, 169, 0, 255), 10.0f, 0, 4.0f); // Thick gold border
-    drawList->AddRect(borderMin, borderMax, IM_COL32(255, 169, 0, 128), 10.0f, 0, 3.0f); // Outer glow
     ImGui::PopStyleVar(2);
-    ImGui::PopStyleColor(2);
+    ImGui::PopStyleColor(1);
 }
 
 wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
@@ -2001,12 +2278,30 @@ wolf::GameObject& PlayState::CreateAriadneAndReturn(glm::vec2 playerPosition)
     // Make Ariadne's light pink because I can (Aurora)
     ariadne.GetChildren().front()->GetComponent<LightComponent>()->SetColor(glm::vec4(1.0f, 0.41f, 0.70f, 0.75f));
 
+    m_pAriadne = &ariadne;
+
+    m_pLabyrinthManager->GetGameObject()->AddChild(ariadne);
+
     return ariadne;
 }
 
 
 void PlayState::RenderFadeOverlay(float alpha)
 {
+    // Helper to convert a float representing seconds into a nicely formatted time
+    auto FormatTimeString = [](float seconds)
+    {
+        int minutes = static_cast<int>(seconds / 60);
+        float secondsRemaining = seconds - minutes * 60;
+        int secondsRemainingInteger = static_cast<int>(secondsRemaining);
+        int milliseconds = static_cast<int>((secondsRemaining - secondsRemainingInteger) * 1000);
+        std::stringstream out;
+        out << std::setfill('0') << std::setw(2) << minutes << ":"
+            << std::setw(2) << secondsRemainingInteger << "." 
+            << std::setw(3) << milliseconds;
+        return out.str();
+    };
+
     if (alpha >= 1.0f) alpha = 1.0f;
     if (alpha <= 0.0f) return;
 
@@ -2021,49 +2316,117 @@ void PlayState::RenderFadeOverlay(float alpha)
     {
         if (m_showCreditsTimer.IsRunning() && m_showCreditsTimer.Elapsed() >= 20.0f)
         {
-            // Style taken from PauseState
+            auto displaySize = ImGui::GetIO().DisplaySize;
+
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.75f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.17f, 0.17f, 0.17f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
+            
+            // Render you win text
+            ImVec2 textPos(displaySize.x * 0.5f, displaySize.y * 0.4f);
+            ImGui::SetNextWindowPos(textPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+            ImGui::Begin("##YouWinMessage", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+            ImGui::SetWindowFontScale(2.8f);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+            ImGui::Text("You Win!");
+            ImGui::PopStyleColor(1);
+            ImGui::End();
 
-            ImGui::SetCursorPosY(ImGui::GetIO().DisplaySize.y * 0.6f); // Center 
-            ImGui::SetCursorPosX((ImGui::GetIO().DisplaySize.x - 200.0f) * 0.5f); // Center
-            if (ImGui::Button("Return to Main Menu", ImVec2(200.0f, 50.0f)))
+            // Render game completion time
+            ImVec2 runtimePos((displaySize.x) * 0.5f, displaySize.y * 0.5f);
+            ImGui::SetNextWindowPos(runtimePos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+            ImGui::Begin("##RuntimeInfo", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+            ImGui::SetWindowFontScale(2.0f);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            std::string time = FormatTimeString(m_gameCompletionTime.Elapsed());
+            ImGui::Text("Run Time: %s", time.data());
+            ImGui::PopStyleColor(1);
+            ImGui::End();
+
+            // Render main menu button
+            ImVec2 buttonPos((displaySize.x) * 0.5f, displaySize.y * 0.6f);
+            ImGui::SetNextWindowPos(buttonPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+            ImGui::Begin("##ReturnButton", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
+            static bool hovered = false;
+            static bool wasHovered = false;
+            if (ImGui::Button("Return to Main Menu", ImVec2(200.0f, 40.0f)))
             {
-                // Return to the main menu when clicked
                 wolf::EventManager::EnqueueEvent(GameOverEvent(GameOverType::MAIN_MENU));
                 m_isExiting = true;
+                wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
             }
+            hovered = ImGui::IsItemHovered();
+            if (hovered && !wasHovered && !m_isExiting)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            wasHovered = hovered;
+            ImGui::End();
+
+            // Debug information
+            ImGui::SetCursorPosX(12);
+            ImGui::SetCursorPosY(ImGui::GetWindowSize().y - 24);
+            std::string debugString = m_debugHotkeys ? "- Debug Mode " : "";
+            ImGui::Text("Theseus v1.2 %s- Seed: %d", debugString.data(), m_pLabyrinthManager->GetSeed());
+
+            // End FadeOverlay window
+            ImGui::End();
 
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor(4);
         }
-
-        ImGui::End();
+        else
+        {
+            ImGui::End();
+        }
     }
 
     ImGui::PopStyleColor();
 }
 
+void PlayState::ResizeFogMaskTex(int x, int y)
+{
+    assert(x > 0 && y > 0 && "Fog mask texture size must be greater than 0 in both dimensions");
 
+    m_fogMaskTexSize.x = x;
+    m_fogMaskTexSize.y = y;
+
+    glBindTexture(GL_TEXTURE_2D, m_fogTraversalTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_fogMaskTexSize.x, m_fogMaskTexSize.y, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Init the fog map texels
+    m_fogMaskTexels.clear();
+    m_fogMaskTexels.reserve(m_fogMaskTexSize.x * m_fogMaskTexSize.y);
+    m_fogMaskTexels.assign(m_fogMaskTexSize.x * m_fogMaskTexSize.y, 0);
+}
 
 void PlayState::RenderTextCentered(const std::string& text, float size)
 {
     ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.4f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(0, 0));
     ImGui::SetNextWindowBgAlpha(0.0f);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20, 10));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f)); // white text
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 
-    ImGui::Begin("CenteredText", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs);
+    ImGui::Begin("CenteredText", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNavFocus);
     ImGui::SetWindowFontScale(size);
-    ImGui::Text("%s", text.c_str());
+
+    float textWidth = ImGui::CalcTextSize(text.data()).x;
+    float windowCenter = ImGui::GetWindowSize().x * 0.5f;
+    ImGui::SetCursorPosX(windowCenter - textWidth * 0.5f);
+    ImGui::TextUnformatted(text.data());
     ImGui::End();
 
-    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(2);
     ImGui::PopStyleColor();
 }
 
@@ -2071,24 +2434,22 @@ void PlayState::RenderCredits(float delta)
 {
     static const char* credits[] = {
         "Theseus Development Team",
-        "------------------------",
+        "-----------------------------",
         "",
         "Project Lead: Aurora Ryder",
         "",
         "Lead Programmer: D'Anyil Landry",
         "",
         "Programmers:",
-        "------------------------",
+        "-----------------------------",
         "Aurora Ryder",
         "D'Anyil Landry",
-        "Youssef Ashraf",
         "Nguyen Minh Nhat",
+        "Youssef Ashraf",
         "",
         "Lead Artist: Aurora Ryder",
         "",
         "Music / SFX Design: D'Anyil Landry",
-        "",
-        "lots of love, if you got here, ur an amazing person",
         "",
         "Thank you for playing!"
     };
@@ -2112,24 +2473,25 @@ void PlayState::RenderCredits(float delta)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 
-    if (ImGui::Begin("Credits", nullptr, 
+    // Ensure it's always on top of the fade overlay
+    ImGui::SetNextWindowFocus();
+    ImGui::Begin("Credits", nullptr, 
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | 
-        ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
-    {
+        ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+    
         // Increase font size for readability
-        ImGui::SetWindowFontScale(1.2f);
+    ImGui::SetWindowFontScale(1.2f);
 
-        // Center text
-        for (const char* line : credits)
-        {
-            float textWidth = ImGui::CalcTextSize(line).x;
-            float windowCenter = ImGui::GetWindowSize().x * 0.5f;
-            ImGui::SetCursorPosX(windowCenter - textWidth * 0.5f);
-            ImGui::TextUnformatted(line);
-        }
-
-        ImGui::End();
+    // Center text
+    for (const char* line : credits)
+    {
+        float textWidth = ImGui::CalcTextSize(line).x;
+        float windowCenter = ImGui::GetWindowSize().x * 0.5f;
+        ImGui::SetCursorPosX(windowCenter - textWidth * 0.5f);
+        ImGui::TextUnformatted(line);
     }
+
+    ImGui::End();
 
     // Restore styles
     ImGui::PopStyleVar(3);

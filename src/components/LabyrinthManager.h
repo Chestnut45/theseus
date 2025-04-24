@@ -48,6 +48,15 @@ public:
         // Labyrinth-space tile positions for each doorway tile
         // connecting this room to another part of the labyrinth
         std::vector<glm::ivec2> m_doors;
+
+        // Labyrinth-space tiles that do not contain a spawned entity
+        std::vector<glm::ivec2> m_emptyTiles;
+
+        // Helper methods
+        bool IsEmpty(const glm::ivec2& tile)
+        {
+            return std::find(m_emptyTiles.begin(), m_emptyTiles.end(), tile) != m_emptyTiles.end();
+        }
     };
 
 // Public interface
@@ -68,11 +77,9 @@ public:
     // Updates the labyrinth and manages loaded chunks based on the currently active camera
     void Update(float delta);
 
-    // TODO: Accessors and mutators for procedural generation config properties
-
     // Generates the labyrinth and all of its game objects with the current config
     // NOTE: Adds all game objects as child objects to this component's object
-    void GenerateLabyrinth();
+    bool GenerateLabyrinth();
 
     // Deletes the labyrinth and all of its generated game objects
     // NOTE: Deletes all child objects of this component's object
@@ -149,22 +156,29 @@ public:
     //return a random valid spawn position within the room’s bounds
     glm::ivec2 GetRandomRoomSpawnPosition(const RoomData& roomData);
 
-    wolf::GameObjectID GetTheDispensaryObject() {
-        return TheIdOfTheDispensaryObject;
-    }
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 250;
     static const inline int TILE_SIZE = 32;
-    static const inline int CHUNK_SIZE = 8;
+    static const inline int CHUNK_SIZE = 12;
     static const inline int SCALE = 3;
-    wolf::GameObjectID TheIdOfTheDispensaryObject;
+
+    // Helpful accessors
+
+    // The game object ID of the spawn dispensary, or -1 if it does not exist
+    // NOTE: GameObjectID is a uint32_t so -1 wraps!
+    wolf::GameObjectID GetSpawnDispensaryID() { return m_spawnDispensaryID; }
 
     // Gets the width of the labyrinth in tiles
     inline int GetWidth() const { return m_width; }
 
     // Gets the height of the labyrinth in tiles
     inline int GetHeight() const { return m_height; }
+
+    const glm::vec4& GetFogColor() const { return m_fogColor; }
+    bool IsGenerated() const { return m_isGenerated; }
+    bool IsBossfightStarted() const { return m_inBossfight; }
+    const wolf::Rectangle& GetSpawnPatchRect() const { return m_spawnPatchBounds; }
 
 // Implementation
 private:
@@ -185,12 +199,26 @@ private:
     // NOTE: Doesn't apply to rooms
     float m_spikeTrapFloorRatio = 0.0f;
 
+    // Atmosphere parameters
+    glm::vec4 m_shadowColor{0.0f, 0.0f, 0.0f, 0.64f};
+    glm::vec4 m_fogColor{0.42f, 0.4f, 0.47f, 0.32f};
+    glm::vec4 m_playerLightCol{0.65f, 0.48f, 0.26f, 0.75f};
+    float m_playerLightRadius = 200.0f;
+
     // Spawn area settings
+    wolf::GameObject* m_pSpawnRoom = nullptr;
     glm::ivec2 m_spawnPatchSize = glm::ivec2(25);
     glm::ivec2 m_spawnRoomSize = glm::ivec2(5);
+    wolf::Rectangle m_spawnPatchBounds = wolf::Rectangle();
+    glm::ivec2 m_spawnPatchOriginTile = glm::ivec2(0);
+    wolf::GameObjectID m_spawnDispensaryID = -1;
+
+    // List of items to give the player when starting a run
+    std::vector<std::string> m_startingItems;
 
     // Flags
-    bool m_randomizeSeed = false;
+    bool m_randomizeSeed = true;
+    bool m_spawnDispensary = true;
     bool m_isGenerated = false;
     bool m_inBossfight = false;
 
@@ -202,7 +230,6 @@ private:
         Unvisited,
         Door,
         Floor,
-        OccupiedFloor,
         Grass,
         Wall,
     };
@@ -263,6 +290,8 @@ private:
         glm::ivec2 m_minSize{3, 3};
         glm::ivec2 m_maxSize{9, 9};
 
+        // Entity Data
+
         // Entity types
         enum class EntityType
         {
@@ -279,6 +308,7 @@ private:
             TrappedChestHarpy,      //-------Added By Nhat-------//
             TrappedChestMinitaur,   //-------Added By Nhat-------//
             DaedalusDispensary, // !-- Aurora added this --!
+            LegendaryDaedalusDispensary,
             ThrowableObject,
             SpikeTrap,
             DaedalusNPC,
@@ -295,7 +325,7 @@ private:
             // CONSTANT, LEAVE AT END
             ENTITY_COUNT
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Vasilios NPC", "Random NPC", "Boulder Trap", "Gorgon Spawner", "Harpy Spawner", "Minitaur Spawner", "Poison Trap", "Lava Trap"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Legendary Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Vasilios NPC", "Random NPC", "Boulder Trap", "Gorgon Spawner", "Harpy Spawner", "Minitaur Spawner", "Poison Trap", "Lava Trap"};
 
         enum class SpawnPosType
         {
@@ -377,7 +407,7 @@ private:
     std::vector<glm::ivec2> m_chunkDeactivateQueue;
 
     // Cached ID of chunk player was in last frame
-    glm::ivec2 m_prevChunk = glm::ivec2(0);
+    glm::ivec2 m_prevChunk = glm::ivec2(-999);
 
     // Helper methods
 

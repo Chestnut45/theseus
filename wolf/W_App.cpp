@@ -89,6 +89,10 @@ App::App(const std::string& name, int width, int height)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
+
+    // Disable imgui.ini
+    io.IniFilename = nullptr;
+    io.LogFilename = nullptr;
     
     // Enable docking
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;

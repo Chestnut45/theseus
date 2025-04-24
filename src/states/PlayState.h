@@ -72,6 +72,8 @@ private:
 
     wolf::GameObject* m_pPlayerObject = nullptr;
 
+    wolf::GameObject* m_pAriadne = nullptr;
+
     // Managers
     LabyrinthManager* m_pLabyrinthManager = nullptr;
     ColliderManager* m_pColliderManager = nullptr;
@@ -116,6 +118,17 @@ private:
     std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
     std::unordered_set<glm::ivec2> m_visitedChunks; // Track visited chunks
     bool m_isMapExpanded = false;                  // Toggle for expanded map
+
+    // Fog rendering data
+    glm::ivec2 m_fogMaskTexSize;
+    glm::vec4 m_cachedMapPosAndSize{0.0f};
+    float m_cachedMapZoom = 0.1f;
+    wolf::Program* m_pFogMapShader = nullptr;
+    wolf::Program* m_pFogWorldShader = nullptr;
+    GLuint m_fogTraversalTex = 0;
+    std::vector<uint8_t> m_fogMaskTexels;
+    static const int FOG_TEX_SCALE = 4;
+    friend void FogCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd);
     
     // Navigation data
     NavMeshComponent* m_pNavMeshComponent = nullptr;
@@ -147,6 +160,8 @@ private:
     void RenderTextCentered(const std::string& text, float size);
     void RenderCredits(float delta);
     void RenderFadeOverlay(float alpha);
+
+    void ResizeFogMaskTex(int x, int y);
 
     // Helpers
     bool IsWallTile(int tileID);

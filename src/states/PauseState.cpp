@@ -178,8 +178,8 @@ void PauseState::Update(float delta)
     // Debug information
     ImGui::SetCursorPosX(12);
     ImGui::SetCursorPosY(ImGui::GetWindowSize().y - 24);
-    std::string debugString = debugEnabled ? "- Debug Mode Enabled " : "";
-    ImGui::Text("Theseus v1.1 %s- Seed: %d", debugString.data(), seed);
+    std::string debugString = debugEnabled ? "- Debug Mode " : "";
+    ImGui::Text("Theseus v1.2 %s- Seed: %d", debugString.data(), seed);
 
     // Close window and pop vars
     ImGui::End();

@@ -130,4 +130,8 @@ private:
     glm::vec2 m_lastPosition = glm::vec2(0.0f);
     float m_stuckTimer = 0.0f;
     bool m_useNavMesh = true;
+
+    // SFX timer
+    wolf::Timer m_oinkTimer;
+    float m_nextOinkTime = 0.25f;
 };

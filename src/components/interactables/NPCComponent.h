@@ -60,6 +60,7 @@ class NPCComponent : public wolf::BaseComponent {
             IDLE,
             ROAM,
             STUNNED,
+            PETRIFIED,
             DEAD
         };
 
@@ -79,6 +80,8 @@ class NPCComponent : public wolf::BaseComponent {
         void Init();
         void Update(float p_fDelta);
         void HandleDeadState(float p_fDelta);
+
+        State GetState() const { return m_state; }
 
         inline const std::string& GetName() const {return m_strName;};
         inline void SetName(const std::string& p_strName) {m_strName = p_strName;};

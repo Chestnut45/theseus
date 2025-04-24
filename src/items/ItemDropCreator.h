@@ -21,6 +21,7 @@
 
 #include <DroppedItemComponent.h>
 #include <AnimatedSprite2D.h>
+#include <LabyrinthManager.h>
 
 class ItemDropCreator {
     public:
@@ -50,6 +51,7 @@ class ItemDropCreator {
 
         static ItemDropCreator* m_pInstance;
         static wolf::Scene* m_pScene;
+        static LabyrinthManager* m_pLabyrinthManager;
         static wolf::RNG* m_pRNG;
 
         static int m_iRNGSeed;

@@ -308,7 +308,7 @@ void DispensaryInventoryComponent::ShowInventoryGUI() {
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
                 // The pop-up menu has different buttons based on what the item is and what "state" it's in
-                if (ImGui::BeginPopup(strIndex.c_str())) {
+                if (ImGui::BeginPopup(strIndex.c_str(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
                     if (ImGui::Button("Trade")) {
                         DispenseItem(index);
                         ImGui::CloseCurrentPopup();

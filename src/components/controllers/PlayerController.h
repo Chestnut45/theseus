@@ -98,9 +98,6 @@ public:
 
     //set player action
     void SetAction(PlayerAction action);
-
-    // setting the holding object bool variable
-    void SetHoldingObject(bool isHolding);
  
     // This getter simply returns the current value of m_lastFaceDirectionEnum, allowing ThrowableObjectComponent to access it.
     PlayerDirection GetLastFacingDirection() const { return m_lastFaceDirectionEnum; }
@@ -109,6 +106,8 @@ public:
     // Activate / deactivate the player controller
     void SetActive(bool value) { m_active = value; }
     bool IsActive() const { return m_active; }
+
+    bool IsAlive() const;
 
 private:
     // Initialization and animation management
@@ -212,18 +211,20 @@ private:
 
     // DEBUG: Godmode flags
     bool m_debugHotkeys = false;
+    bool m_showLabyrinthManager = false;
     bool m_godmode = false;
     bool m_superSpeed = false;
 
     // Stamina management
-    float m_rollSpeed = 400.0f;
+    float m_rollSpeed = 420.0f;
     float m_rollTimer = 0.0f;
     float m_rollDuration = 0.5f;
     float m_stamina = 100.0f;
     const float m_maxStamina = 100.0f;
     const float m_staminaRegenRate = 22.0f;
-    const float m_staminaRegenDelay = 0.35f;
+    const float m_staminaRegenDelay = 0.45f;
     wolf::Timer m_staminaRegenTimer;
+    wolf::Timer m_staminaColorTimer;
 
     // Jumping management
     bool m_isJumping = false;
@@ -254,13 +255,15 @@ private:
 
     // Invulnerability after taking damage
     float m_prevHealthFraction = 1.0f;
+    float m_prevStaminaFraction = 1.0f;
     float m_invulnSeconds = 1.0f;
     wolf::Timer m_invulnTimer;
+    wolf::Timer m_healthColorTimer;
 
     //picking up management
     bool m_isHoldingObject = false;
     float m_chargeTime = 0.0f;  // New variable to store charge time for throws
-    float m_throwSpeed = 300.0f;  // Speed multiplier for the throw
+    float m_throwSpeed = 5.0f;  // Speed multiplier for the throw
     float m_throwPower = 0.0f;       // Power for the throw
     const float m_maxThrowPower = 125.0f; // Max limit for the throw power
     const float m_powerChargeRate = 150.0f; // Rate at which power increases
