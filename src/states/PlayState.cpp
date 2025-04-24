@@ -209,13 +209,17 @@ void PlayState::Enter()
     pLightComponent.SetIgnoreWallTiles(true);
     pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
     
-    m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetSpawnDispensaryID());
+    auto dispensaryID = m_pLabyrinthManager->GetSpawnDispensaryID();
+    if (dispensaryID != -1)
+    {
+        m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", dispensaryID);
+    }
 
     // Create ariadne and queue dialogue
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
     wolf::GameObject& ariadne = CreateAriadneAndReturn(playerPosition);
 
-    if (!usedSecretSeed)
+    if (!usedSecretSeed && dispensaryID != -1)
     {
         if (!m_debugHotkeys) wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
@@ -227,6 +231,7 @@ void PlayState::Enter()
     }
     else
     {
+        // Fallback to special intro sequence if a secret seed was used OR if there's no starting dispensary
         if (!m_debugHotkeys) wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("special_intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
         // Queue up all of Ariadne's dialogue
@@ -1852,6 +1857,13 @@ void PlayState::OnRegenerateEvent(const LabyrinthRegenerateEvent& event)
     ariadneNPCComp->QueueDialogue("hello");
     ariadneNPCComp->QueueDialogue("traps");
     ariadneNPCComp->QueueDialogue("survivors");
+
+    m_pGameInstance->GetSharedContext().RemoveEntity("Dispensary");
+    auto id = m_pLabyrinthManager->GetSpawnDispensaryID();
+    if (id != -1)
+    {
+        m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", id);
+    }
 
     // Register entities
     for (auto&& [_, minitaur] : m_pGameInstance->GetScene().Each<MinitaurController>())

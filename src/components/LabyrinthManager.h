@@ -209,6 +209,7 @@ private:
     glm::ivec2 m_spawnRoomSize = glm::ivec2(5);
     wolf::Rectangle m_spawnPatchBounds = wolf::Rectangle();
     glm::ivec2 m_spawnPatchOriginTile = glm::ivec2(0);
+    bool m_spawnDispensary = true;
     wolf::GameObjectID m_spawnDispensaryID = -1;
 
     // Flags

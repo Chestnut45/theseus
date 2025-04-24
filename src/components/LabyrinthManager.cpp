@@ -659,6 +659,8 @@ void LabyrinthManager::ShowGUI()
     
     ImGui::SliderFloat("Spike Ratio", &m_spikeTrapFloorRatio, 0.0f, 1.0f, "%.2f");
 
+    ImGui::Checkbox("Spawn Dispensary", &m_spawnDispensary);
+
     // Update shadow color
     glm::vec4 prevCol = LightComponent::GetShadowColor();
     ImGui::ColorEdit4("Shadow Color", &m_shadowColor.r);
@@ -881,6 +883,7 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
         m_width = node["width"] ? node["width"].as<int>() : m_width;
         m_height = node["height"] ? node["height"].as<int>() : m_height;
         m_spikeTrapFloorRatio = node["spike_trap_ratio"] ? node["spike_trap_ratio"].as<float>() : m_spikeTrapFloorRatio;
+        m_spawnDispensary = node["spawn_dispensary"] ? node["spawn_dispensary"].as<bool>() : m_spawnDispensary;
 
         if (auto col = node["shadow_color"])
         {
@@ -1001,9 +1004,12 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
     if (m_randomizeSeed) file << "true\n";
     else file << "false\n";
 
-    file << "seed: ";
-    file << std::to_string(m_rng.GetSeed()).c_str();
-    file << "\n";
+    if (!m_randomizeSeed)
+    {
+        file << "seed: ";
+        file << std::to_string(m_rng.GetSeed()).c_str();
+        file << "\n";
+    }
 
     file << "width: " << std::to_string(m_width).c_str();
     file << "\n";
@@ -1011,7 +1017,11 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
     file << "height: " << std::to_string(m_height).c_str();
     file << "\n";
 
-    file << "spike_trap_ratio: " << std::to_string(m_spikeTrapFloorRatio).c_str() << "\n\n";
+    file << "spike_trap_ratio: " << std::to_string(m_spikeTrapFloorRatio).c_str() << "\n";
+
+    file << "spawn_dispensary: ";
+    if (m_spawnDispensary) file << "true\n";
+    else file << "false\n\n";
 
     file << "shadow_color: {r: "
         << std::to_string(m_shadowColor.r).c_str() << ", g: "
@@ -1284,6 +1294,7 @@ void LabyrinthManager::Reset()
     m_randomizeSeed = true;
     m_width = 125;
     m_height = 125;
+    m_spawnDispensary = true;
     m_rooms.clear();
     m_spawnDispensaryID = -1;
     m_shadowColor = glm::vec4(0.0f, 0.0f, 0.0f, 0.64f);
@@ -2927,49 +2938,54 @@ void LabyrinthManager::GenerateEntrance()
 
     // Place starting dispensary
 
-    // Create the dispensary object
-    auto& dispensary = pObject->GetScene().CreateObject2D();
-    pObject->AddChild(dispensary);
+    if (m_spawnDispensary)
+    {
+        // Create the dispensary object
+        auto& dispensary = pObject->GetScene().CreateObject2D();
+        pObject->AddChild(dispensary);
 
-    // Place and scale the dispensary
-    auto& dispensaryTransform = *dispensary.GetComponent<wolf::Transform2D>();
-    dispensaryTransform.SetPosition(GetSpawnLocation() + glm::vec2(96, 0));
-    dispensaryTransform.SetScale(glm::vec2(SCALE));
+        // Place and scale the dispensary
+        auto& dispensaryTransform = *dispensary.GetComponent<wolf::Transform2D>();
+        dispensaryTransform.SetPosition(GetSpawnLocation() + glm::vec2(96, 0));
+        dispensaryTransform.SetScale(glm::vec2(SCALE));
 
-    // Set up the animated sprite
-    auto& animSprite = dispensary.AddComponent<AnimatedSprite2D>("data/animations/dispensary_anim_init.yaml");
-    animSprite.SetLightingEnabled(false);
+        // Set up the animated sprite
+        auto& animSprite = dispensary.AddComponent<AnimatedSprite2D>("data/animations/dispensary_anim_init.yaml");
+        animSprite.SetLightingEnabled(false);
 
-    // Add the dispensary inventory
-    auto& inventory = dispensary.AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(50, 300));
-    inventory.FillInventoryFromFile("data/loot/dispensary_contents_spawn.yaml");
+        // Add the dispensary inventory
+        auto& inventory = dispensary.AddComponent<DispensaryInventoryComponent>(16, 4, ImVec2(50, 300));
+        inventory.FillInventoryFromFile("data/loot/dispensary_contents_spawn.yaml");
 
-    // Add the collider
-    auto& dispensaryCollider = dispensary.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
-    dispensaryCollider.AddColliderBox(glm::vec2(22.0f, 29.0f), glm::vec2(-11.0f, 16.0f));
-    m_spawnDispensaryID = dispensary.GetID();
+        // Add the collider
+        auto& dispensaryCollider = dispensary.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
+        dispensaryCollider.AddColliderBox(glm::vec2(22.0f, 29.0f), glm::vec2(-11.0f, 16.0f));
 
-    // Create the icon
-    auto& icon = pObject->GetScene().CreateObject2D();
-    
-    // Set up the icon's animated sprite
-    auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/animations/item_icons_anim_init.yaml");
-    iconSprite.SetLayer(9);
-    iconSprite.SetLightingEnabled(false);
-    
-    // Add the icon as a child object of the dispensary
-    dispensary.AddChild(icon);
-    
-    // Position the child
-    auto& iconTransform = *icon.GetComponent<wolf::Transform2D>();
-    iconTransform.SetPosition(glm::vec2(0.0f, 25.0f));
-    iconTransform.SetScale(glm::vec2(0.5f, 0.5f));
+        // Cache the ID
+        m_spawnDispensaryID = dispensary.GetID();
 
-    // Add a light to the dispensary (added by Aurora)
-    auto& light = pObject->GetScene().CreateObject2D();
-    auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.75f), 125.0f, false);
-    dispensary.AddChild(light);
-    lightComp.Init();
+        // Create the icon
+        auto& icon = pObject->GetScene().CreateObject2D();
+        
+        // Set up the icon's animated sprite
+        auto& iconSprite = icon.AddComponent<AnimatedSprite2D>("data/animations/item_icons_anim_init.yaml");
+        iconSprite.SetLayer(9);
+        iconSprite.SetLightingEnabled(false);
+        
+        // Add the icon as a child object of the dispensary
+        dispensary.AddChild(icon);
+        
+        // Position the child
+        auto& iconTransform = *icon.GetComponent<wolf::Transform2D>();
+        iconTransform.SetPosition(glm::vec2(0.0f, 25.0f));
+        iconTransform.SetScale(glm::vec2(0.5f, 0.5f));
+
+        // Add a light to the dispensary (added by Aurora)
+        auto& light = pObject->GetScene().CreateObject2D();
+        auto& lightComp = light.AddComponent<LightComponent>(glm::vec4(1.0f, 1.0f, 1.0f, 0.75f), 125.0f, false);
+        dispensary.AddChild(light);
+        lightComp.Init();
+    }
 }
 
 glm::ivec2 LabyrinthManager::GetRandomRoomSpawnPosition(const RoomData& roomData)
