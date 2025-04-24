@@ -827,9 +827,9 @@ void LightComponent::ClearFBO() {
     GLint iCurrentFBO;
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &iCurrentFBO);
 
-    // Bind the lighting FBO and clear it to black
+    // Bind the lighting FBO and clear it with the shadow color
     glBindFramebuffer(GL_FRAMEBUFFER, s_uiFBO);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.64f);
+    glClearColor(s_shadowColor.r, s_shadowColor.g, s_shadowColor.b, s_shadowColor.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Then rebind the original FBO
@@ -841,7 +841,7 @@ void LightComponent::ResizeFBO(int p_iWidth, int p_iHeight) {
     // Ensure valid input
     assert(p_iWidth > 0 && p_iHeight > 0);
 
-    // Don't bother if no fluid system components exist
+    // Don't bother if no light components exist
     if (s_iRefCount < 1) return;
 
     // Create new texture

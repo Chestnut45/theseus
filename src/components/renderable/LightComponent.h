@@ -60,6 +60,11 @@ class LightComponent : public wolf::BaseComponent {
         static void BindFBOAndBlendFunc();
         static void UnbindFBOAndBlendFunc();
 
+        // Set / Get the color used as a shadow overlay during ClearFBO()
+        // NOTE: This applies to ALL lights!
+        static void SetShadowColor(const glm::vec4& color) { s_shadowColor = color; }
+        static const glm::vec4& GetShadowColor() { return s_shadowColor; }
+
         static inline void SetDefaultFBOSize(const glm::vec2& p_v2Size) {s_v2DefaultFramebufferSize = p_v2Size;};
 
     private:
@@ -141,6 +146,7 @@ class LightComponent : public wolf::BaseComponent {
         static inline wolf::Program* s_pProgram = nullptr;
         static inline wolf::VertexBuffer* s_pVBO = nullptr;
         static inline wolf::VertexDeclaration* s_pVAO = nullptr;
+        static inline glm::vec4 s_shadowColor{0.0f, 0.0f, 0.0f, 0.64f};
         
         static inline GLuint s_uiFBO = 0;
         static inline GLuint s_uiTexture = 0;

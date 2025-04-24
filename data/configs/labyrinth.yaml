@@ -2,6 +2,7 @@ random_seed: true
 width: 125
 height: 125
 spike_trap_ratio: 0.020000
+shadow_color: {r: 0, g: 0, b: 0, a: 0.64}
 
 rooms: [
 	{

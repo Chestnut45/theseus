@@ -200,6 +200,9 @@ private:
     // NOTE: Doesn't apply to rooms
     float m_spikeTrapFloorRatio = 0.0f;
 
+    // Shadow / fog parameters
+    glm::vec4 m_shadowColor{0.0f, 0.0f, 0.0f, 0.64f};
+
     // Spawn area settings
     wolf::GameObject* m_pSpawnRoom = nullptr;
     glm::ivec2 m_spawnPatchSize = glm::ivec2(25);

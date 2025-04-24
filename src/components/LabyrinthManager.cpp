@@ -320,7 +320,7 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
         // The increase in computation for the collider system by chunks covering more walls generally offsets any
         // gains from not rendering the sprites, but it may be useful if the collision system is optimized further
 
-        // Deactivate tilemaps
+        // // Deactivate tilemaps
         // auto* pTilemap = pObject->GetComponent<wolf::TileMap>();
         // if (pTilemap) pTilemap->SetVisibility(false);
 
@@ -413,6 +413,9 @@ bool LabyrinthManager::GenerateLabyrinth()
     // Re-initialize Item drop creator
     ItemDropCreator::DestroyInstance();
     ItemDropCreator::CreateInstance(&pObject->GetScene(), GetSeed());
+
+    // Set light component shadow color
+    LightComponent::SetShadowColor(m_shadowColor);
 
     // Initialize global grid of logical tile data for entire labyrinth
     m_labyrinthGrid.Resize(m_width, m_height, LogicalTile::Unvisited);
@@ -654,6 +657,14 @@ void LabyrinthManager::ShowGUI()
     
     ImGui::SliderFloat("Spike Ratio", &m_spikeTrapFloorRatio, 0.0f, 1.0f, "%.2f");
 
+    // Update shadow color
+    glm::vec4 prevCol = LightComponent::GetShadowColor();
+    ImGui::ColorEdit4("Shadow Color", &m_shadowColor.r, ImGuiColorEditFlags_Float);
+    if (prevCol != m_shadowColor)
+    {
+        LightComponent::SetShadowColor(m_shadowColor);
+    }
+
     ImGui::SeparatorText("Rooms");
 
     // TODO: Separate procedural room parameters and custom rooms
@@ -866,6 +877,14 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
         m_height = node["height"] ? node["height"].as<int>() : m_height;
         m_spikeTrapFloorRatio = node["spike_trap_ratio"] ? node["spike_trap_ratio"].as<float>() : m_spikeTrapFloorRatio;
 
+        if (auto col = node["shadow_color"])
+        {
+            m_shadowColor.r = col["r"] ? col["r"].as<float>() : m_shadowColor.r;
+            m_shadowColor.g = col["g"] ? col["g"].as<float>() : m_shadowColor.g;
+            m_shadowColor.b = col["b"] ? col["b"].as<float>() : m_shadowColor.b;
+            m_shadowColor.a = col["a"] ? col["a"].as<float>() : m_shadowColor.a;
+        }
+
         // Load room data
         YAML::Node rooms = node["rooms"];
         for (int i = 0; i < rooms.size(); ++i)
@@ -979,7 +998,13 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
     file << "height: " << std::to_string(m_height).c_str();
     file << "\n";
 
-    file << "spike_trap_ratio: " << std::to_string(m_spikeTrapFloorRatio).c_str() << "\n\n";
+    file << "spike_trap_ratio: " << std::to_string(m_spikeTrapFloorRatio).c_str() << "\n";
+
+    file << "shadow_color: {r: "
+        << std::to_string(m_shadowColor.r).c_str() << ", g: "
+        << std::to_string(m_shadowColor.g).c_str() << ", b: "
+        << std::to_string(m_shadowColor.b).c_str() << ", a: "
+        << std::to_string(m_shadowColor.a).c_str() << "}\n\n";
 
     file << "rooms: [\n";
 
