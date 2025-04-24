@@ -77,8 +77,6 @@ public:
     // Updates the labyrinth and manages loaded chunks based on the currently active camera
     void Update(float delta);
 
-    // TODO: Accessors and mutators for procedural generation config properties
-
     // Generates the labyrinth and all of its game objects with the current config
     // NOTE: Adds all game objects as child objects to this component's object
     bool GenerateLabyrinth();
@@ -158,16 +156,18 @@ public:
     //return a random valid spawn position within the room’s bounds
     glm::ivec2 GetRandomRoomSpawnPosition(const RoomData& roomData);
 
-    wolf::GameObjectID GetTheDispensaryObject() {
-        return TheIdOfTheDispensaryObject;
-    }
     // Constants
     static const inline int MIN_LABYRINTH_DIM = 5;
     static const inline int MAX_LABYRINTH_DIM = 250;
     static const inline int TILE_SIZE = 32;
     static const inline int CHUNK_SIZE = 12;
     static const inline int SCALE = 3;
-    wolf::GameObjectID TheIdOfTheDispensaryObject;
+
+    // Helpful accessors
+
+    // The game object ID of the spawn dispensary, or -1 if it does not exist
+    // NOTE: GameObjectID is a uint32_t so -1 wraps!
+    wolf::GameObjectID GetSpawnDispensaryID() { return m_spawnDispensaryID; }
 
     // Gets the width of the labyrinth in tiles
     inline int GetWidth() const { return m_width; }
@@ -206,6 +206,7 @@ private:
     glm::ivec2 m_spawnRoomSize = glm::ivec2(5);
     wolf::Rectangle m_spawnPatchBounds = wolf::Rectangle();
     glm::ivec2 m_spawnPatchOriginTile = glm::ivec2(0);
+    wolf::GameObjectID m_spawnDispensaryID = -1;
 
     // Flags
     bool m_randomizeSeed = false;
@@ -220,7 +221,6 @@ private:
         Unvisited,
         Door,
         Floor,
-        OccupiedFloor,
         Grass,
         Wall,
     };
@@ -280,6 +280,8 @@ private:
         SizeType m_sizeType = SizeType::RandomMinMax;
         glm::ivec2 m_minSize{3, 3};
         glm::ivec2 m_maxSize{9, 9};
+
+        // Entity Data
 
         // Entity types
         enum class EntityType

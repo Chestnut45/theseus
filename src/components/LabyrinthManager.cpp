@@ -250,9 +250,22 @@ void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
     std::function<void(wolf::GameObject*)> Activate = [&](wolf::GameObject* pObject) -> void
     {
         // Activate collider
-        // TODO: Only do this for walls? Or Move enemies to different chunks...
         auto* pCollider = pObject->GetComponent<ColliderComponent>();
         if (pCollider) pCollider->SetActive(true);
+
+        // DEBUG: Uncomment to enable waking of tilemaps, sprites, and animated sprites when chunks activate
+
+        // // Activate tilemaps
+        // auto* pTilemap = pObject->GetComponent<wolf::TileMap>();
+        // if (pTilemap) pTilemap->SetVisibility(true);
+
+        // // Activate animated sprites
+        // auto* pAnim = pObject->GetComponent<AnimatedSprite2D>();
+        // if (pAnim) pAnim->SetVisibility(true);
+
+        // // Activate sprites
+        // auto* pSprite = pObject->GetComponent<wolf::Sprite2D>();
+        // if (pSprite) pSprite->SetVisibility(true);
 
         // Activate triggers
         auto* pTrigger = pObject->GetComponent<TriggerComponent>();
@@ -298,9 +311,26 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
     std::function<void(wolf::GameObject*)> Deactivate = [&](wolf::GameObject* pObject) -> void
     {
         // Deactivate collider
-        // TODO: Only do this for walls? Or Move enemies to different chunks...
         auto* pCollider = pObject->GetComponent<ColliderComponent>();
         if (pCollider) pCollider->SetActive(false);
+
+        // DEBUG: Uncomment to enable culling of tilemaps, sprites, and animated sprites when chunks deactivate
+        // NOTE: Doing this can make the labyrinth and enemies pop in/out at the edge
+        // of the screen if the chunk size is not increased to at least 18 (for 1920x1080).
+        // The increase in computation for the collider system by chunks covering more walls generally offsets any
+        // gains from not rendering the sprites, but it may be useful if the collision system is optimized further
+
+        // Deactivate tilemaps
+        // auto* pTilemap = pObject->GetComponent<wolf::TileMap>();
+        // if (pTilemap) pTilemap->SetVisibility(false);
+
+        // // Deactivate animated sprites
+        // auto* pAnim = pObject->GetComponent<AnimatedSprite2D>();
+        // if (pAnim) pAnim->SetVisibility(false);
+
+        // // Deactivate sprites
+        // auto* pSprite = pObject->GetComponent<wolf::Sprite2D>();
+        // if (pSprite) pSprite->SetVisibility(false);
 
         // Deactivate triggers
         auto* pTrigger = pObject->GetComponent<TriggerComponent>();
@@ -492,6 +522,9 @@ void LabyrinthManager::DestroyLabyrinth()
 
     // Update flag
     m_isGenerated = false;
+
+    // Update dispensary ID
+    m_spawnDispensaryID = -1;
 
     // Notify so that listeners like the nav mesh may update
     wolf::EventManager::TriggerEvent(LabyrinthDestroyEvent(this));
@@ -1209,6 +1242,7 @@ void LabyrinthManager::Reset()
     m_width = 125;
     m_height = 125;
     m_rooms.clear();
+    m_spawnDispensaryID = -1;
 }
 
 wolf::GameObject* LabyrinthManager::GetPlayer() const
@@ -2868,7 +2902,7 @@ void LabyrinthManager::GenerateEntrance()
     // Add the collider
     auto& dispensaryCollider = dispensary.AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true);
     dispensaryCollider.AddColliderBox(glm::vec2(22.0f, 29.0f), glm::vec2(-11.0f, 16.0f));
-    TheIdOfTheDispensaryObject = dispensary.GetID();
+    m_spawnDispensaryID = dispensary.GetID();
 
     // Create the icon
     auto& icon = pObject->GetScene().CreateObject2D();

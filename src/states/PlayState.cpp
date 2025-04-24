@@ -209,7 +209,7 @@ void PlayState::Enter()
     pLightComponent.SetIgnoreWallTiles(true);
     pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
     
-    m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetTheDispensaryObject());
+    m_pGameInstance->GetSharedContext().RegisterEntity("Dispensary", m_pLabyrinthManager->GetSpawnDispensaryID());
 
     // Create ariadne and queue dialogue
     glm::vec2 playerPosition = m_pLabyrinthManager->GetSpawnLocation();
@@ -1877,6 +1877,7 @@ void PlayState::OnDestroyEvent(const LabyrinthDestroyEvent& event)
     DestroyBossObjects();
     m_pPathfindingManager->ClearEntities();
     m_pGameInstance->GetSharedContext().RemoveEntity("Ariadne");
+    m_pGameInstance->GetSharedContext().RemoveEntity("Dispensary");
     m_pAriadne = nullptr;
 
     // Init the fog map again
