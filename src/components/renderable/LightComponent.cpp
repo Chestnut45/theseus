@@ -164,6 +164,19 @@ void LightComponent::Init() {
     m_pParentGO = this->GetGameObject()->GetParent();
 }
 
+void LightComponent::SetRadius(float p_fRadius)
+{
+    // Don't bother trying if we aren't initialized yet!
+    if (!m_pTransform) return;
+
+    m_v2InitRadius = glm::vec2(p_fRadius, p_fRadius);
+    m_v2CurRadius = m_v2InitRadius;
+
+    // Update the collider box
+    m_pCollider->ClearColliderBoxes();
+    m_pCollider->AddColliderBox(m_v2CurRadius, glm::vec2(-m_v2CurRadius.x / 2.0f, m_v2CurRadius.y / 2.0f));
+}
+
 // ------------------------------------------------------------------------------------------------------------
 //                                         Begin Lighting Pass
 // ------------------------------------------------------------------------------------------------------------

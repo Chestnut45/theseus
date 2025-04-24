@@ -40,6 +40,7 @@ class LightComponent : public wolf::BaseComponent {
         inline void SetColor(const glm::vec4& p_v4Color) {m_v4Color = p_v4Color;};
 
         inline glm::vec2 GetRadius() const {return m_v2CurRadius;};
+        void SetRadius(float p_fRadius);
 
         inline bool IsOn() const {return m_bIsOn;};
         inline void SetOn(bool p_bIsOn) {m_bIsOn = p_bIsOn;};

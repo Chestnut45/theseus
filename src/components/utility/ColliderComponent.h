@@ -48,6 +48,8 @@ public:
     void AddColliderBox(glm::vec2 p_dimensions);
     void AddColliderBox(glm::vec2 p_dimensions, glm::vec2 p_offset);
 
+    void ClearColliderBoxes();
+
     std::vector<wolf::Rectangle> GetColliderBoxes() const;
 
     bool IsHitbox() const;

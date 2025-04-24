@@ -497,6 +497,13 @@ bool LabyrinthManager::GenerateLabyrinth()
                 }
             }
         }
+        
+        // Update the player's light from the config
+        if (auto* pLight = pPlayer->FindChildComponent<LightComponent>())
+        {
+            pLight->SetColor(m_playerLightCol);
+            pLight->SetRadius(m_playerLightRadius);
+        }
 
         // Update camera position
         auto* pCamera = pPlayer->GetChildren()[0]->GetComponent<wolf::Camera2D>();
@@ -742,8 +749,23 @@ void LabyrinthManager::ShowGUI()
         LightComponent::SetShadowColor(m_shadowColor);
     }
 
-    // Update world fog color
     ImGui::ColorEdit4("Fog Color", &m_fogColor.r);
+    bool colChanged = ImGui::ColorEdit4("Light Color", &m_playerLightCol.r);
+    bool radChanged = ImGui::DragFloat("Light Radius", &m_playerLightRadius, 1.0f, 1.0f, 500.0f, "%.1f");
+    bool lightChanged = colChanged || radChanged;
+
+    // Update the player's light immediately
+    if (lightChanged)
+    {
+        if (auto* pPlayer = GetPlayer())
+        {
+            if (auto* pLight = pPlayer->FindChildComponent<LightComponent>())
+            {
+                pLight->SetColor(m_playerLightCol);
+                pLight->SetRadius(m_playerLightRadius);
+            }
+        }
+    }
 
     ImGui::SeparatorText("Rooms");
 
@@ -983,6 +1005,16 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
             m_fogColor.a = col["a"] ? col["a"].as<float>() : m_fogColor.a;
         }
 
+        if (auto col = node["player_light_color"])
+        {
+            m_playerLightCol.r = col["r"] ? col["r"].as<float>() : m_playerLightCol.r;
+            m_playerLightCol.g = col["g"] ? col["g"].as<float>() : m_playerLightCol.g;
+            m_playerLightCol.b = col["b"] ? col["b"].as<float>() : m_playerLightCol.b;
+            m_playerLightCol.a = col["a"] ? col["a"].as<float>() : m_playerLightCol.a;
+        }
+
+        m_playerLightRadius = node["player_light_radius"] ? node["player_light_radius"].as<float>() : m_playerLightRadius;
+
         // Load room data
         YAML::Node rooms = node["rooms"];
         for (int i = 0; i < rooms.size(); ++i)
@@ -1131,7 +1163,15 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
         << std::to_string(m_fogColor.r).c_str() << ", g: "
         << std::to_string(m_fogColor.g).c_str() << ", b: "
         << std::to_string(m_fogColor.b).c_str() << ", a: "
-        << std::to_string(m_fogColor.a).c_str() << "}\n\n";
+        << std::to_string(m_fogColor.a).c_str() << "}\n";
+    
+    file << "player_light_color: {r: "
+        << std::to_string(m_playerLightCol.r).c_str() << ", g: "
+        << std::to_string(m_playerLightCol.g).c_str() << ", b: "
+        << std::to_string(m_playerLightCol.b).c_str() << ", a: "
+        << std::to_string(m_playerLightCol.a).c_str() << "}\n";
+    
+    file << "player_light_radius: " << std::to_string(m_playerLightRadius) << "\n\n";
 
     file << "rooms: [\n";
 
@@ -1397,6 +1437,8 @@ void LabyrinthManager::Reset()
     m_spawnDispensaryID = -1;
     m_shadowColor = glm::vec4(0.0f, 0.0f, 0.0f, 0.64f);
     m_fogColor = glm::vec4(0.42f, 0.4f, 0.47f, 0.32f);
+    m_playerLightCol = glm::vec4(0.65f, 0.48f, 0.26f, 0.75f);
+    m_playerLightRadius = 200.0f;
     m_startingItems.clear();
     m_configPath = "";
 }

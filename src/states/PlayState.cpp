@@ -90,6 +90,10 @@ void PlayState::Enter()
  
     this->m_pColliderManager = new ColliderManager(&scene);
 
+    // Create the labyrinth manager
+    m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
+    m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
+
     // Initialize the player object
     CreatePlayer();
 
@@ -97,7 +101,6 @@ void PlayState::Enter()
     auto& cameraObj = scene.CreateObject2D();
     auto& camera = cameraObj.AddComponent<wolf::Camera2D>(m_pGameInstance->GetWidth(), m_pGameInstance->GetHeight());
     m_pPlayerObject->AddChild(cameraObj);
-    camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
 
@@ -108,9 +111,7 @@ void PlayState::Enter()
     glm::vec2 viewSize = camera.GetViewSize();
     m_pFBO = wolf::BufferManager::CreateFrameBuffer(viewSize.x, viewSize.y, viewSize.x, viewSize.y);
 
-    // Add the labyrinth manager and determine the config to load
-    m_pLabyrinthManager = &scene.CreateObject2D().AddComponent<LabyrinthManager>();
-    m_pLabyrinthManager->m_pColliderManager = m_pColliderManager;
+    // Determine the seed to use and load the appropriate config
     bool usedSecretSeed = false;
     if (m_seedText.length() == 0)
     {
@@ -187,6 +188,9 @@ void PlayState::Enter()
     // Actually generate the labyrinth from the given seed
     m_pLabyrinthManager->GenerateLabyrinth();
 
+    // Reposition the camera to the spawn location
+    camera.SetPosition(cameraObj.GetComponent<wolf::Transform2D>()->GetGlobalPosition());
+
     GLShapesRenderer::CreateInstance();
     DDACalculator::CreateInstance(&scene);
 
@@ -200,14 +204,6 @@ void PlayState::Enter()
     SpawnBossObjects();
 
     RegisterClosestMinitaur();
-
-    // Add a light to the player
-    wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.65f, 0.48f, 0.26f, 0.75f), 200.0f, true);
-    m_pPlayerObject->AddChild(*pLightGO);
-    pLightComponent.Init();
-    pLightComponent.SetIgnoreWallTiles(true);
-    pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
     
     auto dispensaryID = m_pLabyrinthManager->GetSpawnDispensaryID();
     if (dispensaryID != -1)
@@ -1231,6 +1227,15 @@ void PlayState::CreatePlayer()
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
     transform.SetScale(glm::vec2(3));
+
+    // Add a light to the player
+    // NOTE: The labyrinth config can overwrite the light's color and radius values!
+    wolf::GameObject* pLightGO = &m_pGameInstance->GetScene().CreateObject2D();
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.65f, 0.48f, 0.26f, 0.75f), 200.0f, true);
+    m_pPlayerObject->AddChild(*pLightGO);
+    pLightComponent.Init();
+    pLightComponent.SetIgnoreWallTiles(true);
+    pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
 }
 
 void PlayState::SpawnBossObjects()
