@@ -51,6 +51,16 @@ class PlayerInventoryComponent : public InventoryComponent {
         void AddSchematic(Rarity p_enRarity);
         int GetNumSchematics();
 
+        // Override the base inventory empty to also empty schematics
+        void EmptyInventory() override
+        {
+            InventoryComponent::EmptyInventory();
+            for (int i = 0; i < END_OF_RARITIES; ++i)
+            {
+                m_iSchematics[i] = 0;
+            }
+        }
+
         inline bool IsToggleButtonHovered() { return m_bToggleButtonHovered; }
 
         inline int GetNumSchematicsOfRarity(Rarity p_enRarity) const {return m_iSchematics[p_enRarity];};
@@ -88,7 +98,7 @@ class PlayerInventoryComponent : public InventoryComponent {
 
         const int MAX_SCHEMATICS_PER_RARITY = 99;
 
-        const int MAX_GOLD = 999;
+        const int MAX_GOLD = 9999;
         int m_iGold = 0;
 
         int m_iToggleButtonIndex;

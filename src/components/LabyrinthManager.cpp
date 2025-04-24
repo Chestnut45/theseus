@@ -468,20 +468,42 @@ bool LabyrinthManager::GenerateLabyrinth()
     GenerateEntrance();
 
     // Place the player at the spawn location of the labyrinth
-    wolf::GameObject* pPlayer = nullptr;
-    for (auto&&[_, playerController] : GetGameObject()->GetScene().Each<PlayerController>())
+    wolf::GameObject* pPlayer = GetPlayer();
+    if (auto* pPlayer = GetPlayer())
     {
-        // Position player at spawn
-        pPlayer = playerController.GetGameObject();
-        pTransform = pPlayer->GetComponent<wolf::Transform2D>();
-        pTransform->SetPosition(GetSpawnLocation());
+        // Move player to spawn location
+        auto* pPlayerTransform = pPlayer->GetComponent<wolf::Transform2D>();
+        pPlayerTransform->SetPosition(GetSpawnLocation());
+
+        // Reset inventory and add spawn items
+        auto* pPlayerInventory = pPlayer->GetComponent<PlayerInventoryComponent>();
+        if (pPlayerInventory)
+        {
+            pPlayerInventory->EmptyInventory();
+            for (int i = 0; i < m_startingItems.size(); ++i)
+            {
+                const std::string& itemName = m_startingItems[i];
+
+                // Add schematics through the proper API
+                if (itemName == "Common Schematic") pPlayerInventory->AddSchematic(Rarity::COMMON);
+                else if (itemName == "Uncommon Schematic") pPlayerInventory->AddSchematic(Rarity::UNCOMMON);
+                else if (itemName == "Rare Schematic") pPlayerInventory->AddSchematic(Rarity::RARE);
+                else if (itemName == "Epic Schematic") pPlayerInventory->AddSchematic(Rarity::EPIC);
+                else if (itemName == "Legendary Schematic") pPlayerInventory->AddSchematic(Rarity::LEGENDARY);
+                else
+                {
+                    // If the item is not a schematic, create and add directly
+                    pPlayerInventory->AddItemOrDelete(ItemCreator::CreateItem(itemName));
+                }
+            }
+        }
 
         // Update camera position
         auto* pCamera = pPlayer->GetChildren()[0]->GetComponent<wolf::Camera2D>();
-        if (pCamera) pCamera->SetPosition(pTransform->GetLocalPosition());
+        if (pCamera) pCamera->SetPosition(pPlayerTransform->GetLocalPosition());
 
         // Grab global position of the player and get current chunk
-        auto worldPos = pTransform->GetGlobalPosition();
+        auto worldPos = pPlayerTransform->GetGlobalPosition();
         auto chunkID = GetChunkID(worldPos);
 
         // Set initial chunks to load
@@ -503,9 +525,6 @@ bool LabyrinthManager::GenerateLabyrinth()
         {
             ActivateChunk(chunksToLoad[i]);
         }
-
-        // Break since there's only one player
-        break;
     }
 
     return true;
@@ -528,6 +547,27 @@ void LabyrinthManager::DestroyLabyrinth()
 
     // Update dispensary ID
     m_spawnDispensaryID = -1;
+
+    // Clear the player's inventory and reset stats
+    if (auto* pPlayer = GetPlayer())
+    {
+        if (auto* pInv = pPlayer->GetComponent<PlayerInventoryComponent>())
+        {
+            pInv->EmptyInventory();
+        }
+
+        if (auto* pHealth = pPlayer->GetComponent<HealthComponent>())
+        {
+            pHealth->Heal(pHealth->GetMaxHealth());
+        }
+
+        if (auto* pStatus = pPlayer->GetComponent<StatusComponent>())
+        {
+            pStatus->RemoveStatusEffect(StatusComponent::StatusEffectType::BURNING);
+            pStatus->RemoveStatusEffect(StatusComponent::StatusEffectType::PETRIFIED);
+            pStatus->RemoveStatusEffect(StatusComponent::StatusEffectType::POISONED);
+        }
+    }
 
     // Notify so that listeners like the nav mesh may update
     wolf::EventManager::TriggerEvent(LabyrinthDestroyEvent(this));
@@ -659,7 +699,40 @@ void LabyrinthManager::ShowGUI()
     
     ImGui::SliderFloat("Spike Ratio", &m_spikeTrapFloorRatio, 0.0f, 1.0f, "%.2f");
 
+    ImGui::SeparatorText("Spawn Properties");
     ImGui::Checkbox("Spawn Dispensary", &m_spawnDispensary);
+    bool spawnItems = m_startingItems.size() > 0;
+    ImGui::Checkbox("Starting Items", &spawnItems);
+    if (spawnItems)
+    {
+        // Ensure there's at least one valid item
+        if (m_startingItems.size() == 0) m_startingItems.push_back(std::string("Common Schematic"));
+
+        if (ImGui::Button("Add Item", ImVec2(96, 24)))
+        {
+            m_startingItems.push_back(std::string(""));
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Clear", ImVec2(96, 24)))
+        {
+            m_startingItems.clear();
+            m_startingItems.push_back(std::string(""));
+        }
+        
+        // Show text input for each item
+        for (int i = 0; i < m_startingItems.size(); ++i)
+        {
+            ImGui::InputText((std::string("Item ") + std::to_string(i + 1)).c_str(), &m_startingItems[i]);
+        }
+    }
+    else
+    {
+        m_startingItems.clear();
+    }
+
+    ImGui::SeparatorText("Atmosphere");
 
     // Update shadow color
     glm::vec4 prevCol = LightComponent::GetShadowColor();
@@ -884,6 +957,15 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
         m_height = node["height"] ? node["height"].as<int>() : m_height;
         m_spikeTrapFloorRatio = node["spike_trap_ratio"] ? node["spike_trap_ratio"].as<float>() : m_spikeTrapFloorRatio;
         m_spawnDispensary = node["spawn_dispensary"] ? node["spawn_dispensary"].as<bool>() : m_spawnDispensary;
+        
+        // Add all starting item names to the list
+        if (auto items = node["starting_items"])
+        {
+            for (int i = 0; i < items.size(); ++i)
+            {
+                m_startingItems.push_back(items[i].as<std::string>());
+            }
+        }
 
         if (auto col = node["shadow_color"])
         {
@@ -1000,6 +1082,8 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
 {
     std::ofstream file(filepath, std::ios::binary);
 
+    m_configPath = filepath;
+
     file << "random_seed: ";
     if (m_randomizeSeed) file << "true\n";
     else file << "false\n";
@@ -1017,11 +1101,25 @@ void LabyrinthManager::SaveConfig(const std::string& filepath)
     file << "height: " << std::to_string(m_height).c_str();
     file << "\n";
 
-    file << "spike_trap_ratio: " << std::to_string(m_spikeTrapFloorRatio).c_str() << "\n";
+    file << "spike_trap_ratio: " << std::to_string(m_spikeTrapFloorRatio).c_str() << "\n\n";
 
     file << "spawn_dispensary: ";
     if (m_spawnDispensary) file << "true\n";
-    else file << "false\n\n";
+    else file << "false\n";
+
+    if (m_startingItems.size() > 0)
+    {
+        file << "starting_items: [\n";
+        for (int i = 0; i < m_startingItems.size(); ++i)
+        {
+            file << "\t" << m_startingItems[i].c_str() << ",\n";
+        }
+        file << "]\n\n";
+    }
+    else
+    {
+        file << "\n";
+    }
 
     file << "shadow_color: {r: "
         << std::to_string(m_shadowColor.r).c_str() << ", g: "
@@ -1299,6 +1397,8 @@ void LabyrinthManager::Reset()
     m_spawnDispensaryID = -1;
     m_shadowColor = glm::vec4(0.0f, 0.0f, 0.0f, 0.64f);
     m_fogColor = glm::vec4(0.42f, 0.4f, 0.47f, 0.32f);
+    m_startingItems.clear();
+    m_configPath = "";
 }
 
 wolf::GameObject* LabyrinthManager::GetPlayer() const

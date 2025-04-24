@@ -201,6 +201,10 @@ ItemBase* InventoryComponent::GetItem(int p_iItemIndex) {
 // inventory and false, otherwise.
 // > p_pItem: pointer to the item to be added
 bool InventoryComponent::AddItem(ItemBase* p_pItem) {
+    
+    // Ignore null items
+    if (!p_pItem) return false;
+
     // If we're not using any of the slots then we can just insert the item
     if (m_iSlotsInUse == 0) {
         m_vvpContents[m_iSlotsInUse].push(p_pItem);
@@ -370,7 +374,7 @@ bool InventoryComponent::RemoveItem(int p_iItemIndex) {
 }
 
 // Removes all items from the inventory
-// (note that this DOES NOT DELETE the items)
+// NOTE: This method does delete the items as well
 void InventoryComponent::EmptyInventory() {
     // Go through the contents vector
     for (std::vector<std::stack<ItemBase*>>::iterator it = m_vvpContents.begin(); it != m_vvpContents.end(); ++it) {

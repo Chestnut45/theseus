@@ -232,7 +232,7 @@ void PlayerController::Update(float delta)
 
     // Retrieve the active camera through the game's scene using the game object
     auto* pCamera = pGameObject->GetScene().GetActiveCamera();
-    if (pCamera && m_debugHotkeys)
+    if (pCamera && m_debugHotkeys && !m_showLabyrinthManager)
     {
         float prevZoom = pCamera->GetZoom();
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_EQUAL)) pCamera->SetZoom(prevZoom * 2);
@@ -454,7 +454,7 @@ void PlayerController::HandlePlayerInput(float delta)
 
     // Only start roll if the following conditions are met
     bool attackingCondition = m_action != PlayerAction::ATTACKING || m_pCurrentWeapon->GetWeaponType() == WeaponType::BOW;
-    if (
+    if (!m_showLabyrinthManager &&
         wolf::Input::IsKeyJustDown(GLFW_KEY_SPACE)  && 
         m_action != PlayerAction::ROLLING           && 
         attackingCondition                          && 
@@ -470,7 +470,8 @@ void PlayerController::HandlePlayerInput(float delta)
     // Start the attack if the following conditions are met
     // !-- Aurora added a m_pCurrentWeapon != nullptr check here --!
     if (
-        wolf::Input::IsLMBJustDown()                            && 
+        wolf::Input::IsLMBJustDown()                            &&
+        !m_showLabyrinthManager                                 &&
         m_pCurrentWeapon                                        && 
         m_action != PlayerAction::ATTACKING                     &&
         m_action != PlayerAction::PLACING                       &&
@@ -530,11 +531,14 @@ void PlayerController::HandlePlayerInput(float delta)
     }
     
     // Handle pick up and drop actions
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
-        PickUpObject();
-    }
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
-        DropObject();
+    if (!m_showLabyrinthManager)
+    {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+            PickUpObject();
+        }
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_Q)) {
+            DropObject();
+        }
     }
 }
 
@@ -1460,7 +1464,8 @@ void PlayerController::ThrowHeldObject() {
 // Handle player movement based on input
 void PlayerController::HandleMovement(float delta)
 {
-    if (m_action == PlayerAction::ROLLING) return;  // Skip movement if rolling
+    // Skip movement if rolling or the editor is open
+    if (m_action == PlayerAction::ROLLING || m_showLabyrinthManager) return;
     
     // stop moving if the player is attacking with a bow
     if (m_action == PlayerAction::ATTACKING && m_pCurrentWeapon->GetWeaponType() == WeaponType::BOW)

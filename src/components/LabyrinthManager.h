@@ -209,11 +209,14 @@ private:
     glm::ivec2 m_spawnRoomSize = glm::ivec2(5);
     wolf::Rectangle m_spawnPatchBounds = wolf::Rectangle();
     glm::ivec2 m_spawnPatchOriginTile = glm::ivec2(0);
-    bool m_spawnDispensary = true;
     wolf::GameObjectID m_spawnDispensaryID = -1;
+
+    // List of items to give the player when starting a run
+    std::vector<std::string> m_startingItems;
 
     // Flags
     bool m_randomizeSeed = true;
+    bool m_spawnDispensary = true;
     bool m_isGenerated = false;
     bool m_inBossfight = false;
 

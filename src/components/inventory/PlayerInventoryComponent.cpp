@@ -100,9 +100,6 @@ PlayerInventoryComponent::PlayerInventoryComponent(int p_iSize, int p_iSlotsPerR
         m_iSchematics[j] = 0;
     }
 
-    // Start with exactly one common schematic
-    m_iSchematics[0] = 1;
-
     // We also need to register for events related to the player's inventory
     wolf::EventManager::AddListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
     wolf::EventManager::AddListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);

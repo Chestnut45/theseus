@@ -211,6 +211,7 @@ private:
 
     // DEBUG: Godmode flags
     bool m_debugHotkeys = false;
+    bool m_showLabyrinthManager = false;
     bool m_godmode = false;
     bool m_superSpeed = false;
 

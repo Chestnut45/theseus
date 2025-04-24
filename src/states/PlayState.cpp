@@ -221,6 +221,7 @@ void PlayState::Enter()
 
     if (!usedSecretSeed && dispensaryID != -1)
     {
+        // Don't trigger the cutscene in debug mode
         if (!m_debugHotkeys) wolf::EventManager::TriggerEvent(DialogueAndCutsceneEvent("intro_sequence", "data/cutscenes/DialogueAndCutscenes.yaml"));
 
         // Queue up all of Ariadne's dialogue
@@ -361,25 +362,32 @@ void PlayState::Update(float delta)
         }
     }
 
+    // Don't allow debug hotkeys when typing into Daedalus' Terminal
     if (m_debugHotkeys)
     {
         if (wolf::Input::IsKeyJustDown(GLFW_KEY_GRAVE_ACCENT)) m_pGameInstance->ToggleDebugGUI();
 
         // Show debug hitboxes with backslash
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_BACKSLASH))
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_BACKSLASH) && !m_showLabyrinthManager)
         {
             m_renderDebugColliders = !m_renderDebugColliders;
         }
 
         // Toggle Labyrinth Manager GUI with the semicolon key
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON)) 
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_SEMICOLON))
+        {
             m_showLabyrinthManager = !m_showLabyrinthManager;
+            if (auto* pPlayer = m_pPlayerObject->GetComponent<PlayerController>())
+            {
+                pPlayer->m_showLabyrinthManager = m_showLabyrinthManager;
+            }
+        }
         
         // DEBUG: Teleport to bossfight
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT))
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_RIGHT_SHIFT) && !m_showLabyrinthManager)
             m_pPlayerObject->GetComponent<wolf::Transform2D>()->SetPosition(m_bossfightPlayerPos);
             
-        if(wolf::Input::IsKeyJustDown(GLFW_KEY_F))
+        if(wolf::Input::IsKeyJustDown(GLFW_KEY_F) && !m_showLabyrinthManager)
         {
             glm::ivec2 playerTilePos = m_pLabyrinthManager->GetTilePosition(m_pPlayerObject->GetComponent<wolf::Transform2D>()->GetGlobalPosition());
             TileFireManager::GetInstance()->AddFireTile(playerTilePos);
@@ -389,7 +397,8 @@ void PlayState::Update(float delta)
         if (m_showLabyrinthManager) 
             m_pLabyrinthManager->ShowGUI();
         
-        if (m_pNavMeshComponent)
+        // Only update the nav mesh debug view if the terminal is not active
+        if (m_pNavMeshComponent && !m_showLabyrinthManager)
             m_pNavMeshComponent->Update(delta);
 
         // if (m_pParticleEditor)
@@ -508,7 +517,7 @@ void PlayState::Update(float delta)
         // INVENTORY TESTING
         auto* playerInventory = m_pPlayerObject->GetComponent<PlayerInventoryComponent>();
         if (playerInventory) {
-            if (m_debugHotkeys)
+            if (m_debugHotkeys && !m_showLabyrinthManager)
             {   
                 // DEBUG: Fill the inventory with loot
                 if (wolf::Input::IsKeyJustDown(GLFW_KEY_1))
@@ -546,7 +555,7 @@ void PlayState::Update(float delta)
         }
 
         // DEBUG: Noclip hotkey
-        if (m_debugHotkeys && wolf::Input::IsKeyJustDown(GLFW_KEY_SLASH))
+        if (m_debugHotkeys && !m_showLabyrinthManager && wolf::Input::IsKeyJustDown(GLFW_KEY_SLASH))
         {
             auto* pCollider = m_pPlayerObject->GetComponent<ColliderComponent>();
             if (pCollider)
@@ -691,7 +700,7 @@ void PlayState::Update(float delta)
                     std::string tooltip = chestInventory.IsOpen() ? "Press E to Close Chest" : "Press E to Open Chest";
                     ShowTooltip(tooltip);
 
-                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E) && !m_showLabyrinthManager)
                     {
                         auto name = sprite.GetCurrentAnimation()->m_strName;
                         if (chestInventory.IsOpen()) {
@@ -732,7 +741,7 @@ void PlayState::Update(float delta)
                     {
                         std::string tooltip = "Press E to Open Chest";
                         ShowTooltip(tooltip);
-                        if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                        if (wolf::Input::IsKeyJustDown(GLFW_KEY_E) && !m_showLabyrinthManager)
                         {
                             auto name = sprite.GetCurrentAnimation()->m_strName;
                             sprite.SetAnimation(name.find("Closed") != std::string::npos ? name.replace(name.find("Closed"), 6, "Open") : name);
@@ -759,7 +768,7 @@ void PlayState::Update(float delta)
                     ShowTooltip(tooltip);
 
                     // When you interact with the dispensary
-                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E) && !m_showLabyrinthManager)
                     {
                         // Either open or close it
                         dispensaryInventory.ToggleOpen();
@@ -825,7 +834,7 @@ void PlayState::Update(float delta)
                     std::string tooltip = "Press E to pickup";
                     ShowTooltip(tooltip);
 
-                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E))
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E) && !m_showLabyrinthManager)
                     {
                         droppedItem.PickUpItem();
                         break;
@@ -842,7 +851,7 @@ void PlayState::Update(float delta)
                     ShowTooltip(tooltip);
 
                     // And if the player interacts with the NPC we play their next dialogue/cutscene
-                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E)) {
+                    if (wolf::Input::IsKeyJustDown(GLFW_KEY_E) && !m_showLabyrinthManager) {
                         npc.PlayNextDialogue();
                         break;
                     }
@@ -909,7 +918,7 @@ void PlayState::Update(float delta)
         }
 
         // Toggle expanded map view
-        if (wolf::Input::IsKeyJustDown(GLFW_KEY_M)) {
+        if (wolf::Input::IsKeyJustDown(GLFW_KEY_M) && !m_showLabyrinthManager) {
             m_isMapExpanded = !m_isMapExpanded;
         }
         
@@ -1217,6 +1226,7 @@ void PlayState::CreatePlayer()
     auto& playerController = m_pPlayerObject->AddComponent<PlayerController>();
     playerController.LateInitialize();
     playerController.m_debugHotkeys = m_debugHotkeys;
+    playerController.m_showLabyrinthManager = m_showLabyrinthManager;
 
     // Start player at the labyrinth spawn location and scale appropriately
     auto& transform = *m_pPlayerObject->GetComponent<wolf::Transform2D>();
