@@ -1683,7 +1683,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             event.m_pTriggerObject->GetComponent<TriggerComponent>()->ReactivateDelayed(20);
 
             wolf::Audio::Play("data/sounds/sfx_liquid_flow.wav", 0.5f);
-            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.4f);
+            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.3f);
 
             break;
         }
@@ -1738,7 +1738,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             event.m_pTriggerObject->GetComponent<TriggerComponent>()->ReactivateDelayed(20);
 
             wolf::Audio::Play("data/sounds/sfx_liquid_flow.wav", 0.5f);
-            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.4f);
+            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.3f);
 
             break;
         }
