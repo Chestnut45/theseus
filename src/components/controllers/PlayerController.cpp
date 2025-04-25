@@ -2106,7 +2106,9 @@ void PlayerController::OnDamageEvent(const DamageEvent& event)
         {
             m_invulnTimer.Restart();
             m_pCollider->SetColliderType(ColliderComponent::ColliderType::HITBOX);
-            wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f, -5000.0f);
+            
+            // Only oof if still alive
+            if (IsAlive()) wolf::Audio::Play("data/sounds/sfx_oof.wav", 0.35f, -5000.0f);
         }
     }
     

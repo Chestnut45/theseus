@@ -58,7 +58,7 @@ rooms: [
 	},
 	{
 		name: Epic Chest Room,
-		instances: 3,
+		instances: 4,
 		force: false,
 		position: {type: random_radius, position: {x: 63, y: 63}, radius: 32},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
@@ -70,7 +70,7 @@ rooms: [
 	},
 	{
 		name: Elite Rooms,
-		instances: 5,
+		instances: 6,
 		force: false,
 		position: {type: random_radius, position: {x: 63, y: 63}, radius: 32},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 7, y: 7}},
@@ -83,7 +83,7 @@ rooms: [
 	},
 	{
 		name: Uncommon Chest Room,
-		instances: 7,
+		instances: 4,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
@@ -93,13 +93,48 @@ rooms: [
 		]
 	},
 	{
-		name: Common Chest Room,
-		instances: 10,
+		name: Uncommon Chest Room Alt,
+		instances: 4,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
-			{type: common_chest, amount: 1, placement: center}
+			{type: uncommon_chest, amount: 1, placement: center},
+			{type: snake, amount: 2, placement: random},
+			{type: spike_trap, amount: 1, placement: random}
+		]
+	},
+	{
+		name: Common Chest Room,
+		instances: 3,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: common_chest, amount: 1, placement: center},
+			{type: throwable_object, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Common Chest Room Alt,
+		instances: 2,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: common_chest, amount: 1, placement: center},
+			{type: snake, amount: 1, placement: random}
+		]
+	},
+	{
+		name: Common Chest Room Alt 2,
+		instances: 5,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: common_chest, amount: 1, placement: center},
+			{type: minitaur, amount: 1, placement: random}
 		]
 	},
 	{
@@ -124,7 +159,7 @@ rooms: [
 	},
 	{
 		name: Basic Fight Rooms,
-		instances: 16,
+		instances: 10,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
@@ -141,9 +176,23 @@ rooms: [
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: minitaur, amount: 1, placement: random},
-			{type: gorgon, amount: 1, placement: random},
+			{type: snake, amount: 2, placement: random},
 			{type: throwable_object, amount: 2, placement: random},
 			{type: spike_trap, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Challenging Fight Rooms,
+		instances: 6,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 5, y: 5}},
+		entities: [
+			{type: minitaur, amount: 2, placement: random},
+			{type: harpy, amount: 1, placement: random},
+			{type: snake, amount: 2, placement: random},
+			{type: throwable_object, amount: 2, placement: random},
+			{type: boulder_trap, amount: 1, placement: random}
 		]
 	},
 	{

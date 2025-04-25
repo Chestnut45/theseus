@@ -2630,7 +2630,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         else
                         {
                             // Choose a random dispensary loot table
-                            strLootTablePath = "data/loot/dispensary_contents" + std::to_string(m_rng.NextInt(1, 3)) + ".yaml";
+                            strLootTablePath = "data/loot/dispensary_contents" + std::to_string(m_rng.NextInt(1, 4)) + ".yaml";
                         }
 
                         // Create the dispensary object
