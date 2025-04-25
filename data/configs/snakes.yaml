@@ -1,0 +1,24 @@
+random_seed: true
+width: 125
+height: 125
+spike_trap_ratio: 0.020000
+
+spawn_dispensary: true
+
+shadow_color: {r: 0.000000, g: 0.000000, b: 0.000000, a: 0.640000}
+fog_color: {r: 0.420000, g: 0.400000, b: 0.470000, a: 0.320000}
+player_light_color: {r: 0.650000, g: 0.480000, b: 0.260000, a: 0.750000}
+player_light_radius: 200.000000
+
+rooms: [
+	{
+		name: Snake Rooms,
+		instances: 64,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		entities: [
+			{type: snake, amount: 5, placement: random},
+		]
+	}
+]

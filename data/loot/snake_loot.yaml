@@ -1,0 +1,7 @@
+min_items: 0
+max_items: 2
+loot_table: [
+  {name: Gold Coin, probability: 5},
+  {name: Gold Handful, probability: 2},
+  {name: Healing Heart, probability: 1},
+]
