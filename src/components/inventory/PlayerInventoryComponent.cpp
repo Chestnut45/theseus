@@ -142,6 +142,8 @@ void PlayerInventoryComponent::Close() {
     // Let anyone interested know which specific chest was closed
     wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
     m_bIsOpen = false;
+    m_iOpenChestIdNum = -1;
+    m_iOpenMerchantIdNum = -1;
 }
 
 // Overloads InventoryComponent::ToggleOpen
