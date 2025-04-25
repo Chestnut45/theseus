@@ -1413,7 +1413,11 @@ glm::vec2 PlayerController::ClampDirection(const glm::vec2& direction) const
 
 void PlayerController::EndPetrified()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_pAnimComponent->SetAnimPaused(false);
 }
 
@@ -2226,7 +2230,11 @@ void PlayerController::StartDeath() {
     m_deathRuntime = m_runtimeTimer.Elapsed(); // Capture elapsed time once
     m_pAnimComponent->SetAnimation("Dead");
     m_pAnimComponent->SetAnimPaused(true);
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     
     // Stop background music and play death music
     wolf::Audio::Stop("data/sounds/bgm_maze.wav");

@@ -763,6 +763,12 @@ void SnakeController::HandleDeathState(float delta)
 {
     m_pAnimComponent->SetAnimPaused(true);
 
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
+
     // Fall over
     if(m_fallDeadTimer <= m_timeToFallDead)
     {
@@ -857,7 +863,11 @@ void SnakeController::EnterProspectState()
 
 void SnakeController::EnterStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    }
 }
 void SnakeController::EnterDeathState()
 {

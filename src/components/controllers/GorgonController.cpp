@@ -716,7 +716,6 @@ void GorgonController::HandleStunnedState(float delta)
     }
     else
     {
-        //m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
         m_stunnedTimer += delta;
     }
 }
@@ -829,6 +828,12 @@ void GorgonController::UpdateAnimationBasedOnDirection()
 
 void GorgonController::HandleDeathState(float delta)
 {
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
+    
     // Fall over
     if(m_fallDeadTimer <= m_timeToFallDead)
     {
@@ -908,7 +913,6 @@ void GorgonController::EnterIdleState()
 
 void GorgonController::EnterPetrifiedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED);
 }
 
 void GorgonController::EnterProspectState()
@@ -917,7 +921,11 @@ void GorgonController::EnterProspectState()
 
 void GorgonController::EnterStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    }
 }
 
 void GorgonController::EnterDeathState()
@@ -971,7 +979,11 @@ void GorgonController::ExitProspectState()
 
 void GorgonController::ExitStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_stunnedTimer = 0.0f;
 }
 

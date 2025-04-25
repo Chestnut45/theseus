@@ -687,7 +687,6 @@ void MinitaurController::HandleStunnedState(float delta)
     }
     else
     {
-        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
         m_stunnedTimer += delta;
     }
 }
@@ -732,6 +731,12 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
 
     void MinitaurController::HandleDeathState(float delta)
     {
+        if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+        {
+            // Only reset effects if not petrified
+            if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+        }
+        
         // Fall over
         if(m_fallDeadTimer <= m_timeToFallDead)
         {
@@ -804,7 +809,6 @@ void MinitaurController::EnterIdleState()
 }
 void MinitaurController::EnterPetrifiedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED);
 }
 
 void MinitaurController::EnterProspectState()
@@ -813,7 +817,11 @@ void MinitaurController::EnterProspectState()
 
 void MinitaurController::EnterStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    }
 }
 void MinitaurController::EnterDeathState()
 {

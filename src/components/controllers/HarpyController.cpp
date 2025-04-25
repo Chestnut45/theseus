@@ -520,7 +520,6 @@ void HarpyController::HandleStunnedState(float delta)
     }
     else
     {
-        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
         m_stunnedTimer += delta;
     }
 }
@@ -569,6 +568,12 @@ void HarpyController::UpdateAnimationBasedOnDirection()
 
 void HarpyController::HandleDeathState(float delta)
 {
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
+    
     // Fall over
     if(m_fallDeadTimer <= m_timeToFallDead)
     {
