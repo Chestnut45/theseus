@@ -44,7 +44,7 @@ void SnakeController::Init(const EnemyData& data)
     // Assign enemy data
     m_lungeRange = data.rangedRange;
     m_meleeRange = data.meleeRange;
-    m_meleeCooldown = data.attackCooldown;
+    m_meleeCooldown = data.meleeCooldown;
     m_meleeWindupTime = data.meleeWindup;
     m_detectionRange = data.detectionRange;
     m_baseDamage = data.baseDamage;
@@ -730,8 +730,8 @@ void SnakeController::UpdateAnimationBasedOnDirection()
             {
                 animationName = (vectorToTarget.y > 0.0f) ? "AttackNorth" : "AttackSouth";
             }
+            break;
         }
-        default:
         case EnemyState::IDLE:
         case EnemyState::PROSPECT:
         case EnemyState::CHASING:
@@ -749,10 +749,12 @@ void SnakeController::UpdateAnimationBasedOnDirection()
             }
             break;
         }
+        default:
+            break;
     }
 
     // Check if the animation needs to be changed
-    if (m_pAnimComponent->GetCurrentAnimation()->m_strName != animationName)
+    if (animationName != "" && m_pAnimComponent->GetCurrentAnimation()->m_strName != animationName)
     {
         m_pAnimComponent->SetAnimation(animationName);
         m_pAnimComponent->SetOriginToCenterOfFrame();
@@ -844,9 +846,9 @@ void SnakeController::EnterAttackState()
 
 void SnakeController::EnterChasingState()
 {
-    m_transitionTimer.Reset();
-    m_transitionTimer.Start();
+    m_transitionTimer.Restart();
     m_slitherTimer.Restart();
+    m_nextSFXTime = 0.0f;
 }
 
 void SnakeController::EnterIdleState()
@@ -893,7 +895,6 @@ void SnakeController::ExitAttackState()
 void SnakeController::ExitChasingState()
 {
     m_transitionTimer.Reset();
-    m_transitionTimer.Stop();
     m_transitionDelay = 0.0f;
     m_slitherTimer.Reset();
 }

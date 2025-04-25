@@ -37,7 +37,7 @@ enemies:
     armour: 1
     ranged_range: 125
     melee_range: 85
-    melee_cooldown: 0.5
+    melee_cooldown: 1.0
     melee_windup: 0.2
     detection_range: 400
     base_damage: 25.0
