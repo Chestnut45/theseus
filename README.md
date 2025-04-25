@@ -1,5 +1,7 @@
 # Theseus
 
+![title.png](https://github.com/Chestnut45/theseus/blob/main/screenshots/title.png)
+
 ## Overview
 
 Theseus is an action roguelike PC game where you must take on the role of Theseus and find your way to the center of the ever-changing Labyrinth to defeat the Minotaur within. You must explore the labyrinth while fighting off monsters, collecting treasure, finding schematics, and trading them at dispensaries for armor and weapons to prepare for the final battle.
