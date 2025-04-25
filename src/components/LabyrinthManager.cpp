@@ -44,6 +44,7 @@
 #include <MinitaurBuilder.h>
 #include <HarpyBuilder.h>
 #include <GorgonBuilder.h>
+#include <SnakeBuilder.h>
 #include <PlayerController.h>
 #include <TriggerComponent.h>
 #include <TrappedChestComponent.h>
@@ -63,6 +64,7 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["minitaur"] = Room::EntityType::Minitaur;
     s_entityIDs["harpy"] = Room::EntityType::Harpy;
     s_entityIDs["gorgon"] = Room::EntityType::Gorgon;
+    s_entityIDs["snake"] = Room::EntityType::Snake;
     s_entityIDs["common_chest"] = Room::EntityType::CommonChest;
     s_entityIDs["uncommon_chest"] = Room::EntityType::UncommonChest;
     s_entityIDs["rare_chest"] = Room::EntityType::RareChest;
@@ -2230,10 +2232,12 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
     EnemyData minitaurData = EnemyDataLoader::LoadEnemyData("minitaur");
     EnemyData harpyData = EnemyDataLoader::LoadEnemyData("harpy");
     EnemyData gorgonData = EnemyDataLoader::LoadEnemyData("gorgon");
+    EnemyData snakeData = EnemyDataLoader::LoadEnemyData("snake");
 
     MinitaurBuilder minitaurBuilder(pObject->GetScene());
     HarpyBuilder harpyBuilder(pObject->GetScene());
     GorgonBuilder gorgonBuilder(pObject->GetScene());
+    SnakeBuilder snakeBuilder(pObject->GetScene());
 
     // Place all entities in hallways
     for (const auto& entry : m_chunkMap)
@@ -2386,6 +2390,18 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         gorgon.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
 
                         AddToChunk(gorgon, pos);
+                        break;
+                    }
+
+                    case Room::EntityType::Snake:
+                    {
+                        // Build snake at the given position
+                        wolf::GameObject& snake = snakeBuilder.BuildSnake(snakeData, pos);
+
+                        // Scale the snake
+                        snake.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
+
+                        AddToChunk(snake, pos);
                         break;
                     }
 

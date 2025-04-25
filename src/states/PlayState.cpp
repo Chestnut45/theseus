@@ -50,6 +50,7 @@
 #include <glm/gtc/random.hpp>
 #include <LightEvents.h>
 #include <BoundedFluidSystem2D.h>
+#include <SnakeController.h>
 
 #include <W_BufferManager.h>
 
@@ -596,6 +597,10 @@ void PlayState::Update(float delta)
         for (auto&& [_, gorgonController] : m_pGameInstance->GetScene().Each<GorgonController>())
         {
             gorgonController.Update(delta);  // Update logic for Harpies
+        }
+        for (auto&&[_, snakeController] : m_pGameInstance->GetScene().Each<SnakeController>())
+        {
+            snakeController.Update(delta);
         }
         for (auto&& [_, trigger] : m_pGameInstance->GetScene().Each<TriggerComponent>()) {
             trigger.Update(delta);

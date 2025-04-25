@@ -153,8 +153,11 @@ void GorgonController::Update(float delta)
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
     if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
-        ChangeState(EnemyState::PETRIFIED);
-        return;
+        if (m_state != EnemyState::PETRIFIED && m_state != EnemyState::DEATH)
+        {
+            ChangeState(EnemyState::PETRIFIED);
+            return;
+        }
     }
     else 
     {
@@ -951,7 +954,11 @@ void GorgonController::ExitIdleState()
 
 void GorgonController::ExitPetrifiedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_pAnimComponent->SetAnimPaused(false);
 }
 

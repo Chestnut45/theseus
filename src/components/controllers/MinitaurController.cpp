@@ -141,7 +141,11 @@ void MinitaurController::Update(float delta)
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
     if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
-        ChangeState(EnemyState::PETRIFIED);
+        if (m_state != EnemyState::PETRIFIED && m_state != EnemyState::DEATH)
+        {
+            ChangeState(EnemyState::PETRIFIED);
+            return;
+        }
     }
     else 
     {
@@ -157,7 +161,6 @@ void MinitaurController::Update(float delta)
     {
         // Switch to the DEATH state if the health is depleted
         ChangeState(EnemyState::DEATH);
-        
         return;
     }
 
@@ -314,11 +317,6 @@ void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
     m_pAnimComponent->SetLayer(9);
     m_pAnimComponent->SetLightingEnabled(false);
-}
-
-void MinitaurController::RenderDebugPath()
-{
-
 }
 
 void MinitaurController::MoveTowardsTarget(float delta)
