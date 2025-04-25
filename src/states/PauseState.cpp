@@ -160,7 +160,7 @@ void PauseState::Update(float delta)
     ImGui::Text("Spacebar - Roll");
 
     ImGui::SetCursorPosX(controlsPosX);
-    ImGui::Text("E - Pickup / Interact");
+    ImGui::Text("E - Interact / Pickup");
 
     ImGui::SetCursorPosX(controlsPosX);
     ImGui::Text("M - Open / Close Minimap");

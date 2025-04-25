@@ -11,13 +11,14 @@ Theseus is an action roguelike PC game where you must take on the role of Theseu
 To play the game, extract the appropriate .zip file to your computer from the releases page, and then double-click the `theseus` executable inside.
 
 ### Controls:
-- WASD:            Movement
-- Left-click:      Attack (hold down for power) / Interact with GUI
-- Space:           Roll
-- E:               Interact
 - ESC:             Pause
-- Left Alt (hold): Open Inventory
-- M:               Toggle Map
+- WASD:            Move
+- Space:           Roll
+- E:               Interact / Pickup
+- M:               Open / Close Minimap
+- Left Alt:        Quick Inventory
+- Left-Click:      Attack / Select / Charge / Throw
+
 
 ### Debug Mode Hotkeys:
 - `:               Toggle Performance Window
