@@ -55,6 +55,7 @@
 #include <NPCComponent.h>
 #include <MonsterSpawnerComponent.h>
 #include <LightComponent.h>
+#include <SnakeController.h>
 
 std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
 std::string LabyrinthManager::s_entityNames[(int)LabyrinthManager::Room::EntityType::ENTITY_COUNT];
@@ -280,6 +281,8 @@ void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
         if (pController2) pController2->SetActive(true);
         auto* pController3 = pObject->GetComponent<GorgonController>();
         if (pController3) pController3->SetActive(true);
+        auto* pController4 = pObject->GetComponent<SnakeController>();
+        if (pController4) pController4->SetActive(true);
 
         // Activate NPC components
         auto* pNPCComp = pObject->GetComponent<NPCComponent>();
@@ -345,6 +348,8 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
         if (pController2) pController2->SetActive(false);
         auto* pController3 = pObject->GetComponent<GorgonController>();
         if (pController3) pController3->SetActive(false);
+        auto* pController4 = pObject->GetComponent<SnakeController>();
+        if (pController4) pController4->SetActive(false);
 
         // Deactivate NPC components
         auto* pNPCComp = pObject->GetComponent<NPCComponent>();
@@ -2359,6 +2364,9 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                 // Build entity based on type
                 switch (entity.m_type)
                 {
+                    default:
+                        break;
+                        
                     case Room::EntityType::Minitaur:
                     {
                         // Build Minitaur at the given position
