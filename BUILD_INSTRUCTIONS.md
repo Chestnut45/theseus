@@ -26,6 +26,7 @@
 ### Known Issues
 1) Debugging is currently only configured for use with GDB, if you want to use MSVC with debugging you'll need to setup vsdbg.exe from the C/C++ VS Code extension, or use the visual studio builtin debugger
 2) If build succeeds but the app immediately closes before displaying the window, you may need to copy glew32d.dll from /build/bin to C:/Windows/System32
+3) On Windows, VSCode may try to attach gdb even to release builds, causing terrible lag spikes. Launch the app manually after build if this happens
 
 ## Linux
 
@@ -47,4 +48,4 @@
 4) Ctrl+Shift+P then type/choose CMake: Build
 5) Hit F5 to run in debugger if all compiled well
 6) You may need to choose your build target (theseus) from the dropdown the first time
-7) If you see errors about including "GL/glu.h", you may also need libglu1 development libraries (apt-get install libglu1-mesa libglu1-mesa-dev)
+7) If you get include errors for "GL/glu.h", you may also need libglu1 development libraries (apt-get install libglu1-mesa libglu1-mesa-dev)

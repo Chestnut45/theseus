@@ -1,13 +1,8 @@
 # Theseus
 
-TODO: Finish README
-- Overview
-- Gameplay
-- Controls
-- Debug Mode
-- Screenshots
+## Overview
 
-
+## Gameplay
 
 ### Controls:
 - WASD:            Movement

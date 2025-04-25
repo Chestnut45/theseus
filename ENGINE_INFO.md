@@ -1,6 +1,6 @@
 # Wolf
 
-This engine is built on top of Wolf, an OpenGL abstraction we used in the computer graphics programming course at UPEI. Many extensions and modifications have been made, most of which are detailed below.
+This engine is built on top of Wolf, an OpenGL abstraction we used in the computer graphics programming course at UPEI made by Gordon Wood. Many extensions and modifications have been made, most of which are detailed below.
 
 ## App
 
@@ -341,7 +341,7 @@ finger.GetParent(); // nullptr
 const auto& children = object1.GetChildren();
 ```
 
-To create a custom system that updates game objects or components, you can use the Scene::Each<T...> method along with structured bindings for very efficient iteration. The first variable bound to the structured binding will be the ID of the game object containing the components, and the subsequent variables will get references to the components themselves, in the same order that you pass the component types as template arguments.
+To create a custom system that updates game objects or components, you can use the Scene::Each<T...> method along with structured bindings for very efficient iteration of views into the Scene's storage. The first variable bound to the structured binding will be the ID of the game object containing the components, and the subsequent variables will get references to the components themselves, in the same order that you pass the component types as template arguments.
 
 ```C++
 // Iterate all Sprite2D components
@@ -350,7 +350,7 @@ for (auto&&[id, sprite] : scene.Each<Sprite2D>())
     // sprite.Render(...) or something
 }
 
-// Iterate all objects with at least both a Hitbox2D and Transform2D
+// Iterate all objects with both Hitbox2D and Transform2D components
 for (auto&&[id, hitbox, transform] : scene.Each<Hitbox2D, Transform2D>())
 {
     // ...
