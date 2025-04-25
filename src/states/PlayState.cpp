@@ -104,12 +104,13 @@ void PlayState::Enter()
     m_pPlayerObject->AddChild(cameraObj);
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
+    glm::vec2 viewSize = camera.GetViewSize();
 
     // Set the light's default FBO size to be the camera viewport size
-    LightComponent::SetDefaultFBOSize(camera.GetViewSize());
+    LightComponent::SetDefaultFBOSize(viewSize);
+    LightComponent::ResizeFBO(viewSize.x, viewSize.y);
 
     // Create framebuffer & scene texture
-    glm::vec2 viewSize = camera.GetViewSize();
     m_pFBO = wolf::BufferManager::CreateFrameBuffer(viewSize.x, viewSize.y, viewSize.x, viewSize.y);
 
     // Determine the seed to use and load the appropriate config

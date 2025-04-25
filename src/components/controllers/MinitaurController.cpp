@@ -562,7 +562,7 @@ void MinitaurController::HandleChasingState(float delta)
     {
         m_nextOinkTime = m_RNG.NextFloat(0.2f, 0.65f);
         m_oinkTimer.Restart();
-        wolf::Audio::Play("data/sounds/sfx_minitaur_oink.wav", 1.2f, m_RNG.NextInt(-10000, 0));
+        wolf::Audio::Play("data/sounds/sfx_minitaur_oink.wav", 1.45f, m_RNG.NextInt(-10000, 0));
     }
 
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -796,7 +796,7 @@ void MinitaurController::EnterAttackState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
     m_meleeWindupTimer = m_meleeWindupTime;
-    wolf::Audio::Play("data/sounds/sfx_minitaur_attack.wav", 0.7f, m_RNG.NextInt(-15000, -5000));
+    wolf::Audio::Play("data/sounds/sfx_minitaur_attack.wav", 0.55f, m_RNG.NextInt(-15000, -5000));
 }
 
 void MinitaurController::EnterChasingState()

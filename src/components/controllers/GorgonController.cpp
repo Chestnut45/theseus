@@ -898,7 +898,7 @@ void GorgonController::EnterAttackState()
 
     if (m_pAnimComponent) m_pAnimComponent->SetTint(glm::vec3(1.0f));
 
-    wolf::Audio::Play("data/sounds/sfx_gorgon_screech.wav", 0.45f, m_RNG.NextInt(-5000, 5000));
+    wolf::Audio::Play("data/sounds/sfx_gorgon_screech.wav", 0.36f, m_RNG.NextInt(-5000, 5000));
 }
 
 void GorgonController::EnterChasingState()
@@ -906,7 +906,7 @@ void GorgonController::EnterChasingState()
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
 
-    wolf::Audio::Play("data/sounds/sfx_gorgon_rattle.wav", 1.5f, m_RNG.NextInt(-5000, 5000));
+    wolf::Audio::Play("data/sounds/sfx_gorgon_rattle.wav", 1.0f, m_RNG.NextInt(-5000, 5000));
 }
 
 void GorgonController::EnterIdleState()
