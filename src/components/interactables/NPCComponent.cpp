@@ -127,7 +127,7 @@ void NPCComponent::Update(float p_fDelta) {
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
     if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
-        m_state = State::PETRIFIED;
+        if (m_state != State::DEAD) m_state = State::PETRIFIED;
     }
     else
     {
@@ -195,6 +195,13 @@ void NPCComponent::Init() {
 
 void NPCComponent::HandleDeadState(float p_fDelta) {
     // *** This method is taken directly from Nhat's HandleDeathState() in the PlayerController ***
+
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimSpriteComp->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
+
     // Fall over
     if(m_fFallDeadTimer <= m_fTimeToFallDead)
     {
