@@ -2,7 +2,11 @@
 
 ## Overview
 
-## Gameplay
+Theseus is an action roguelike PC game where you must take on the role of Theseus and find your way to the center of the ever-changing Labyrinth to defeat the Minotaur within. You must explore the labyrinth while fighting off monsters, collecting treasure, finding schematics, and trading them at dispensaries for armor and weapons to prepare for the final battle.
+
+## Instructions
+
+To play the game, extract the appropriate .zip file to your computer from the releases page, and then double-click the `theseus` executable inside.
 
 ### Controls:
 - WASD:            Movement
