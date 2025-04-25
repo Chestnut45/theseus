@@ -248,7 +248,7 @@ int TileMap::GetTile(int x, int y) const
     if (x < 0 || x >= m_tileGrid.GetWidth() ||
         y < 0 || y >= m_tileGrid.GetHeight())
     {
-        wolf::Error("Out of bounds call to TileMap::GetTile()");
+        // wolf::Error("Out of bounds call to TileMap::GetTile()");
         return EMPTY_TILE;
     }
 

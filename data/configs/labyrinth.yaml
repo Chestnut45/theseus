@@ -9,7 +9,7 @@ starting_items: [
 ]
 
 shadow_color: {r: 0, g: 0, b: 0, a: 0.64}
-fog_color: {r: 0.42, g: 0.40, b: 0.47, a: 0.32}
+fog_color: {r: 0.42, g: 0.40, b: 0.47, a: 0.482}
 player_light_color: {r: 0.65, g: 0.48, b: 0.26, a: 0.75}
 player_light_radius: 200.0
 
@@ -17,7 +17,7 @@ rooms: [
 	{
 		name: Minotaur's Chamber,
 		instances: 1,
-		force: false,
+		force: true,
 		position: {type: manual, origin: {x: 51, y: 51}},
 		size: {type: manual, value: {x: 23, y: 23}},
 		entities: [

@@ -137,6 +137,9 @@ private:
     ParticleEditor* m_pParticleEditor = nullptr;
     wolf::FrameBuffer* m_pFBO = nullptr;
 
+    // Map from seed text to the path to the config to load
+    std::unordered_map<std::string, std::string> m_secretSeedConfigMap;
+
     // Private helper methods
     void ConvertPlayerTileToGold();
     void RegisterClosestMinitaur();

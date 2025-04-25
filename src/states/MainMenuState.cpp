@@ -244,9 +244,8 @@ void MainMenuState::Update(float delta)
             ImGui::SetCursorPosX(dimensions.x / 2 - 128);
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8);
             ImGui::SetNextItemWidth(256);
-            // if (!m_customSeed) ImGui::BeginDisabled();
             if (m_customSeed) ImGui::InputText("Seed", &m_seedText, ImGuiInputTextFlags_CharsNoBlank);
-            // if (!m_customSeed) ImGui::EndDisabled();
+            
             ImGui::SetCursorPosX(startX - 10);
             ImGui::SetCursorPosY(buttonY);
             static bool hovered4 = false;

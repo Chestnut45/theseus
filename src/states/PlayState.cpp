@@ -66,6 +66,11 @@ void PlayState::Enter()
     // Preload both enemy configs from disk
     EnemyDataLoader::LoadAllEnemyData("data/enemies_bossfight.yaml");
     EnemyDataLoader::LoadAllEnemyData("data/enemies.yaml");
+
+    // Set secret seed config mappings
+    m_secretSeedConfigMap["goodluck"] = "data/configs/secret/goodluck.yaml";
+    m_secretSeedConfigMap["gottagofast"] = "data/configs/labyrinth.yaml";
+    m_secretSeedConfigMap["minitaurmania"] = "data/configs/secret/minitaurmania.yaml";
     
     // Setup background rendering resources
     glGenVertexArrays(1, &m_dummyVAO);
@@ -122,39 +127,28 @@ void PlayState::Enter()
     }
     else
     {
-        // TODO: Cleanup seed code
-        // Check for special configs
-        if (m_seedText == "goodluck")
+        if (m_secretSeedConfigMap.contains(m_seedText))
         {
-            m_pLabyrinthManager->LoadConfig("data/configs/secret/goodluck.yaml");
+            // Load secret config
+            m_pLabyrinthManager->LoadConfig(m_secretSeedConfigMap[m_seedText]);
             usedSecretSeed = true;
-        }
-        else if (m_seedText == "gottagofast")
-        {
-            m_pLabyrinthManager->LoadConfig("data/configs/secret/gottagofast.yaml");
-            usedSecretSeed = true;
-            auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
-            if (playerController)
+
+            // Special modifiers
+            if (m_seedText == "gottagofast")
             {
-                playerController->m_currentMoveSpeed = 800.0f;
-                playerController->m_normalMoveSpeed = 800.0f;
-                playerController->m_rollSpeed = 1600.0f;
-                playerController->m_inventoryMoveSpeed = 400.0f;
+                auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
+                if (playerController)
+                {
+                    playerController->m_currentMoveSpeed = 800.0f;
+                    playerController->m_normalMoveSpeed = 800.0f;
+                    playerController->m_rollSpeed = 1600.0f;
+                    playerController->m_inventoryMoveSpeed = 400.0f;
+                }
             }
-        }
-        else if (m_seedText == "thefloorislava")
-        {
-            m_pLabyrinthManager->LoadConfig("data/configs/secret/thefloorislava.yaml");
-            usedSecretSeed = true;
-        }
-        else if (m_seedText == "minitaurmania")
-        {
-            m_pLabyrinthManager->LoadConfig("data/configs/secret/minitaurmania.yaml");
-            usedSecretSeed = true;
         }
         else
         {
-            // If not a special seed, load the default config
+            // Load the default config with a set seed
             m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
             
             // Default is hashed seed from main menu text
@@ -267,6 +261,8 @@ void PlayState::Exit()
     wolf::Audio::Stop("data/sounds/bgm_maze.wav");
     wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
     wolf::Audio::Stop("data/sounds/bgm_death.wav");
+
+    m_secretSeedConfigMap.clear();
 
     // Delete objects / components from the scene
     m_pGameInstance->GetScene().Clear();
