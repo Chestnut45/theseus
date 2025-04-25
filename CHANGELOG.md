@@ -6,8 +6,6 @@
 
 ![fog.png](https://github.com/Chestnut45/theseus/blob/main-config-polish/screenshots/fog.png)
 
-![minimap.png](https://github.com/Chestnut45/theseus/blob/main-config-polish/screenshots/minimap.png)
-
 A dense fog now covers the labyrinth and obscures the minimap until explored.
 
 ### New Enemy: Snake
@@ -27,6 +25,12 @@ Venomous snakes now slither around the labyrinth, beware!
 - Triple-Shot Bow
 - Medusa's Bow
 - Zeus' Wrath
+
+### Minimap
+
+![minimap.png](https://github.com/Chestnut45/theseus/blob/main-config-polish/screenshots/minimap.png)
+
+The minimap is now round, and icons have been reworked.
 
 ### Daedalus' Terminal v1.0
 
@@ -112,6 +116,8 @@ Venomous snakes now slither around the labyrinth, beware!
 
 
 ## Secrets
+
+![secret.png](https://github.com/Chestnut45/theseus/blob/main-config-polish/screenshots/secret.png)
 
 Secret challenges await...
 
