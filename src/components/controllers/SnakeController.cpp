@@ -559,7 +559,7 @@ void SnakeController::HandleChasingState(float delta)
     {
         m_nextSFXTime = m_RNG.NextFloat(1.5f, 3.5f);
         m_slitherTimer.Restart();
-        wolf::Audio::Play("data/sounds/sfx_snake_move.wav", 0.45f, m_RNG.NextInt(-10000, -5000));
+        wolf::Audio::Play("data/sounds/sfx_snake_move.wav", 0.4f, m_RNG.NextInt(-10000, -5000));
     }
 
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();

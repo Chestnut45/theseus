@@ -349,7 +349,7 @@ void PlayerController::Update(float delta)
             HandleRolling(delta);
             break;
         case PlayerAction::THROWING:
-            HandleThrowing(delta);  // Handle throw logic
+            HandleThrowing(delta);
             HandleMovement(delta);
             break;
         case PlayerAction::PETRIFIED:
@@ -363,7 +363,6 @@ void PlayerController::Update(float delta)
             HandleDeath(delta);
             break;
         default:
-            HandleJumping(delta);
             HandleMovement(delta);
             break;
     }
@@ -517,7 +516,7 @@ void PlayerController::HandlePlayerInput(float delta)
 
             // Play sfx with random offset
             static wolf::RNG rng(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-            wolf::Audio::Play("data/sounds/sfx_lightning.wav", 0.5f, rng.NextInt(-8000, 0));
+            wolf::Audio::Play("data/sounds/sfx_lightning.wav", 0.75f, rng.NextInt(-8000, 0));
 
             // Reset timer to ensure delay works
             m_attackTimer.Restart();
@@ -1512,7 +1511,7 @@ void PlayerController::HandleMovement(float delta)
     }
     m_pVelocity->SetVelocity(direction * m_currentMoveSpeed);
 
-    if (m_action != PlayerAction::ATTACKING && m_action != PlayerAction::PLACING && m_action != PlayerAction::ROLLING && !m_isJumping) SetAction(PlayerAction::WALKING);
+    if (m_action != PlayerAction::ATTACKING && m_action != PlayerAction::PLACING && m_action != PlayerAction::ROLLING) SetAction(PlayerAction::WALKING);
 }
 
 // Manage attack state and animation transitions
@@ -1559,27 +1558,12 @@ void PlayerController::HandleRolling(float delta)
     if (m_rollTimer <= 0.0f) SetAction(PlayerAction::NONE);
     return;
 }
-
-// Manage jumping state transitions
-void PlayerController::HandleJumping(float delta)
-{
-    if (m_isJumping)
-    {
-        m_jumpTimer -= delta;
-        if (m_jumpTimer <= 0.0f) EndJump();
-    }
-    else if (wolf::Input::IsKeyJustDown(GLFW_KEY_J))
-    {
-        StartJump();
-    }
-}
-
 // Set appropriate animation based on player state and direction
 
 void PlayerController::SetAnimationBasedOnState()
 {
-    // Skip if the player is performing an action that overrides animations like attacking, rolling, jumping, or inventory management.
-    if (m_action == PlayerAction::ATTACKING || m_action == PlayerAction::ROLLING || m_isJumping || m_action == PlayerAction::IN_INVENTORY) 
+    // Skip if the player is performing an action that overrides animations like attacking, rolling, or inventory management.
+    if (m_action == PlayerAction::ATTACKING || m_action == PlayerAction::ROLLING || m_action == PlayerAction::IN_INVENTORY) 
     {
         return;
     }
@@ -1793,8 +1777,6 @@ void PlayerController::StartAttack()
     glm::vec2 lastDir = ClampDirection(m_attackDir);
     m_lastFaceDirectionEnum = GetDirectionFromVector(lastDir);
 
-    m_hasAppliedDamage = false;
-
     // Set the player action to attacking and reset attack-related timers.
     m_attackTimer.Restart();
 
@@ -1882,24 +1864,8 @@ void PlayerController::EndRoll()
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 }
 
-void PlayerController::StartJump()
-{
-    m_isJumping = true;
-    m_jumpTimer = m_jumpHeight / m_jumpSpeed;
-    SetAction(PlayerAction::JUMPING);
-    m_pVelocity->SetVelocity(glm::vec2(0, m_jumpSpeed));
-}
-
 void PlayerController::EndAttacking()
 {
-    m_hasAppliedDamage = false;
-}
-
-void PlayerController::EndJump()
-{
-    m_isJumping = false;
-    m_pVelocity->SetVelocity(glm::vec2(0.0f));
-    SetAction(PlayerAction::NONE);
 }
 
 std::ostream& operator<<(std::ostream& os, const PlayerController::PlayerDirection& direction)
@@ -2064,6 +2030,8 @@ void PlayerController::HandleWeaponUnequippedEvent(const WeaponUnequippedEvent& 
 void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_event) {
     printf("The player equipped %s!\n", p_event.pArmour->GetName().c_str());
 
+    wolf::Audio::Play("data/sounds/sfx_equip.wav", 0.8f);
+
     //-----------------//
     //                 //
     //  Added by Nhat  //
@@ -2089,6 +2057,8 @@ void PlayerController::HandleArmourEquippedEvent(const ArmourEquippedEvent& p_ev
 
 void PlayerController::HandleArmourUnequippedEvent(const ArmourUnequippedEvent& p_event)
 {
+    wolf::Audio::Play("data/sounds/sfx_equip.wav", 0.8f);
+    
     //-----------------//
     //                 //
     //  Added by Nhat  //
