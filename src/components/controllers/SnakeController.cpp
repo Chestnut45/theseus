@@ -711,31 +711,28 @@ void SnakeController::UpdateAnimationBasedOnDirection()
     {
         case EnemyState::ATTACKING:
         {
-            if(m_state == EnemyState::ATTACKING)
+            glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+            const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+
+            if (m_pTarget->HasAny<PlayerController>())
             {
-                glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-                const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+                targetPosition.y -= 16.0f;
+            }
 
-                if (m_pTarget->HasAny<PlayerController>())
-                {
-                    targetPosition.y -= 16.0f;
-                }
+            const glm::vec2 vectorToTarget = targetPosition - currentPosition;
+            const float distanceToTarget = glm::length(vectorToTarget);
 
-                const glm::vec2 vectorToTarget = targetPosition - currentPosition;
-                const float distanceToTarget = glm::length(vectorToTarget);
-
-                if (fabs(vectorToTarget.x) > fabs(vectorToTarget.y))
-                {
-                    animationName = (vectorToTarget.x > 0.0f) ? "AttackEast" : "AttackWest";
-                }
-                else
-                {
-                    animationName = (vectorToTarget.y > 0.0f) ? "AttackNorth" : "AttackSouth";
-                }
+            if (fabs(vectorToTarget.x) > fabs(vectorToTarget.y))
+            {
+                animationName = (vectorToTarget.x > 0.0f) ? "AttackEast" : "AttackWest";
+            }
+            else
+            {
+                animationName = (vectorToTarget.y > 0.0f) ? "AttackNorth" : "AttackSouth";
             }
         }
-
         default:
+        case EnemyState::IDLE:
         case EnemyState::PROSPECT:
         case EnemyState::CHASING:
         {
@@ -839,7 +836,7 @@ void SnakeController::EnterAttackState()
     if (glm::length(lungeDir) > 0.01f)
     {
         m_pVelocity->ApplyKnockback(glm::normalize(lungeDir), 1300.0f);
-    }
+    }    
 
     m_meleeWindupTimer = m_meleeWindupTime;
     wolf::Audio::Play("data/sounds/sfx_snake_hiss.wav", 0.32f, m_RNG.NextInt(-10000, 0));
