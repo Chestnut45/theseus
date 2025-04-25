@@ -117,6 +117,9 @@ void SnakeController::Init(const EnemyData& data)
     {
         wolf::Warning("SnakeController: No navmesh found in the scene!");
     }
+
+    // Initialize first state
+    ChangeState(EnemyState::IDLE);
 }
 
 
@@ -852,6 +855,11 @@ void SnakeController::EnterChasingState()
 void SnakeController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+    // Idle in a random direction
+    static const char* dirs[] = {"North", "East", "South", "West"};
+    static wolf::RNG idleRNG(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    m_pAnimComponent->SetAnimation(std::string(dirs[idleRNG.NextInt(0, 3)]));
 }
 void SnakeController::EnterPetrifiedState()
 {
