@@ -1,6 +1,6 @@
 # Theseus
 
-![title.png](https://github.com/Chestnut45/theseus/blob/main/screenshots/title.png)
+![title.png](https://github.com/Chestnut45/theseus/blob/main-config-polish/screenshots/title.png)
 
 ## Overview
 
