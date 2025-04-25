@@ -92,7 +92,7 @@ public:
     void ShowGUI();
 
     // Loads a labyrinth config from a YAML file
-    void LoadConfig(const std::string& filepath);
+    bool LoadConfig(const std::string& filepath);
 
     // Saves the current config to a YAML file
     void SaveConfig(const std::string& filepath);

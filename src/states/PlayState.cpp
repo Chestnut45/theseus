@@ -71,6 +71,8 @@ void PlayState::Enter()
     m_secretSeedConfigMap["goodluck"] = "data/configs/secret/goodluck.yaml";
     m_secretSeedConfigMap["gottagofast"] = "data/configs/labyrinth.yaml";
     m_secretSeedConfigMap["minitaurmania"] = "data/configs/secret/minitaurmania.yaml";
+    m_secretSeedConfigMap["portalcombat"] = "data/configs/secret/portalcombat.yaml";
+    m_secretSeedConfigMap["gazedandconfused"] = "data/configs/secret/gazedandconfused.yaml";
     
     // Setup background rendering resources
     glGenVertexArrays(1, &m_dummyVAO);
@@ -120,17 +122,18 @@ void PlayState::Enter()
 
     // Determine the seed to use and load the appropriate config
     bool usedSecretSeed = false;
+    bool success = false;
     if (m_seedText.length() == 0)
     {
         // Load the default config with a random seed
-        m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
+        success = m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
     }
     else
     {
         if (m_secretSeedConfigMap.contains(m_seedText))
         {
             // Load secret config
-            m_pLabyrinthManager->LoadConfig(m_secretSeedConfigMap[m_seedText]);
+            success = m_pLabyrinthManager->LoadConfig(m_secretSeedConfigMap[m_seedText]);
             usedSecretSeed = true;
 
             // Special modifiers
@@ -149,7 +152,7 @@ void PlayState::Enter()
         else
         {
             // Load the default config with a set seed
-            m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
+            success = m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
             
             // Default is hashed seed from main menu text
             int seed = static_cast<int>(std::hash<std::string>{}(m_seedText));
@@ -166,6 +169,13 @@ void PlayState::Enter()
             
             m_pLabyrinthManager->SetSeed(seed);
         }
+    }
+
+    // If there's an error loading the config, go back to the main menu
+    if (!success)
+    {
+        m_pStateManager->ClearAndPushState(new MainMenuState(m_pStateManager, m_pGameInstance));
+        return;
     }
 
     // Create the fog mask texture and update it based on the labyrinth size

@@ -1,8 +1,8 @@
 min_items: 2
 max_items: 4
 loot_table: [
-  {name: Gold Pile, probability: 10},
-  {name: Golden Heart, probability: 6},
+  {name: Gold Pile, probability: 20},
+  {name: Golden Heart, probability: 10},
   {name: Rare Schematic, probability: 5},
   {name: Kilt, probability: 1},
   {name: Faux-leather Gloves, probability: 1},

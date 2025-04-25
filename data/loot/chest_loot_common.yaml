@@ -1,9 +1,9 @@
 min_items: 2
 max_items: 4
 loot_table: [
-  {name: Gold Coin, probability: 10},
-  {name: Common Schematic, probability: 5},
-  {name: Healing Heart, probability: 3},
+  {name: Gold Coin, probability: 20},
+  {name: Healing Heart, probability: 6},
+  {name: Common Schematic, probability: 3},
   {name: Rusty Chestplate, probability: 1},
   {name: Dented Helmet, probability: 1},
 ]

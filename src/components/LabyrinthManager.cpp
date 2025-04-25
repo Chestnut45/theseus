@@ -966,7 +966,7 @@ void LabyrinthManager::ShowGUI()
     ImGui::PopStyleColor(19);
 }
 
-void LabyrinthManager::LoadConfig(const std::string& filepath)
+bool LabyrinthManager::LoadConfig(const std::string& filepath)
 {
     Reset();
     try
@@ -1105,11 +1105,13 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
         }
 
         m_configPath = filepath;
+        return true;
     }
-    catch (YAML::Exception& e)
+    catch (const YAML::Exception& e)
     {
         wolf::Error("Error parsing file '", filepath.c_str(), "': ", e.what());
     }
+    return false;
 }
 
 void LabyrinthManager::SaveConfig(const std::string& filepath)
