@@ -267,7 +267,7 @@ void PlayState::Exit()
     // Delete objects / components from the scene
     m_pGameInstance->GetScene().Clear();
 
-    if (m_pGameInstance->IsDebugEnabled()) m_pGameInstance->ToggleDebugGUI();
+    if (m_pGameInstance->IsDebugGUIEnabled()) m_pGameInstance->ToggleDebugGUI();
 
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);

@@ -60,7 +60,7 @@ void Theseus::Update(float delta)
     // Update the current game state (whether MainMenu, Play, etc.)
     m_pStateManager->Update(delta);
     
-    if (m_showDebug) ShowDebug();
+    if (m_showDebugGUI) ShowDebug();
 }
 
 void Theseus::Render(float delta)

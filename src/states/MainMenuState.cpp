@@ -255,6 +255,7 @@ void MainMenuState::Update(float delta)
                 wolf::Audio::Stop();
                 wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, -8000.0f);
                 m_screen = Screen::FADE;
+                m_pGameInstance->SetDebugMode(m_debugModeEnabled);
             }
             hovered4 = ImGui::IsItemHovered();
             if (hovered4 && !wasHovered4)

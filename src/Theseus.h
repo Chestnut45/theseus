@@ -30,8 +30,11 @@ public:
     // Gets a reference to the main scene of the game
     inline wolf::Scene& GetScene() { return m_scene; }
 
-    void ToggleDebugGUI() { m_showDebug = !m_showDebug; }
-    bool IsDebugEnabled() const { return m_showDebug; }
+    void ToggleDebugGUI() { m_showDebugGUI = !m_showDebugGUI; }
+    bool IsDebugGUIEnabled() const { return m_showDebugGUI; }
+
+    void SetDebugMode(bool value) { m_debugMode = value; }
+    bool IsDebugMode() const { return m_debugMode; }
 
     SharedContext& GetSharedContext() { return m_sharedContext; }
 
@@ -45,7 +48,9 @@ private:
     GameStateManager* m_pStateManager = nullptr;
 
     // Flags
-    bool m_showDebug = false;
+    bool m_showDebugGUI = false;
+    bool m_debugMode = false;
+
 
     SharedContext m_sharedContext;
 };

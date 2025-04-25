@@ -20,19 +20,20 @@ TODO: Finish README
 
 ### Debug Mode Hotkeys:
 - `:               Toggle Performance Window
-- 0:               Toggle Inventory
-- 9:               Play Intro Cutscene
+- ;:               Toggle Daedalus' Terminal (Labyrinth Editor)
+- /:               Toggle Noclip
+- \\:              Toggle Collider Debug View
+- \-:              Zoom out
+- +:               Zoom in
 - 1:               Fill Inventory
-- /:               Toggle Theseus' Collider
-- \\:              Toggle Collider Visualizations
+- 2:               Give Gold
+- 3:               Take Gold
+- 7:               Toggle Nav Mesh Debug View
 - Up Arrow:        Apply Regen Status
 - Down Arrow:      Apply Paralyzed Status
 - Left Arrow:      Apply Burning Status
 - Right Arrow:     Apply Poisoned Status
-- Page Up:         Superspeed
-- Page Down:       God Mode
 - Home:            Teleport to Spawn
 - Right Shift:     Teleport to Minotaur's Chamber
-- \-:              Zoom out
-- +:               Zoom in
-- ;:               Toggle Daedalus' Terminal (Labyrinth Editor)
+- Page Up:         Superspeed
+- Page Down:       God Mode
