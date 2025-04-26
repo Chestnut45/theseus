@@ -92,7 +92,7 @@ public:
     void ShowGUI();
 
     // Loads a labyrinth config from a YAML file
-    void LoadConfig(const std::string& filepath);
+    bool LoadConfig(const std::string& filepath);
 
     // Saves the current config to a YAML file
     void SaveConfig(const std::string& filepath);
@@ -298,6 +298,7 @@ private:
             Minitaur = 0,
             Harpy,
             Gorgon,
+            Snake,
             CommonChest,
             UncommonChest,
             RareChest,
@@ -325,7 +326,7 @@ private:
             // CONSTANT, LEAVE AT END
             ENTITY_COUNT
         };
-        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Legendary Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Vasilios NPC", "Random NPC", "Boulder Trap", "Gorgon Spawner", "Harpy Spawner", "Minitaur Spawner", "Poison Trap", "Lava Trap"};
+        static const inline char* s_entityTypeNames[] = {"Minitaur", "Harpy", "Gorgon", "Snake", "Common Chest", "Uncommon Chest", "Rare Chest", "Epic Chest", "Legendary Chest", "Trapped Chest - Explode", "Trapped Chest - Gorgon", "Trapped Chest - Harpy", "Trapped Chest - Minitaur", "Daedalus Dispensary", "Legendary Daedalus Dispensary", "Throwable Object", "Spike Trap", "Daedalus NPC", "Ariadne NPC", "Vasilios NPC", "Random NPC", "Boulder Trap", "Gorgon Spawner", "Harpy Spawner", "Minitaur Spawner", "Poison Trap", "Lava Trap"};
 
         enum class SpawnPosType
         {

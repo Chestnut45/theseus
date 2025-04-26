@@ -9,7 +9,7 @@ starting_items: [
 ]
 
 shadow_color: {r: 0, g: 0, b: 0, a: 0.64}
-fog_color: {r: 0.42, g: 0.40, b: 0.47, a: 0.32}
+fog_color: {r: 0.42, g: 0.40, b: 0.47, a: 0.482}
 player_light_color: {r: 0.65, g: 0.48, b: 0.26, a: 0.75}
 player_light_radius: 200.0
 
@@ -17,7 +17,7 @@ rooms: [
 	{
 		name: Minotaur's Chamber,
 		instances: 1,
-		force: false,
+		force: true,
 		position: {type: manual, origin: {x: 51, y: 51}},
 		size: {type: manual, value: {x: 23, y: 23}},
 		entities: [
@@ -58,7 +58,7 @@ rooms: [
 	},
 	{
 		name: Epic Chest Room,
-		instances: 3,
+		instances: 4,
 		force: false,
 		position: {type: random_radius, position: {x: 63, y: 63}, radius: 32},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
@@ -70,7 +70,7 @@ rooms: [
 	},
 	{
 		name: Elite Rooms,
-		instances: 5,
+		instances: 6,
 		force: false,
 		position: {type: random_radius, position: {x: 63, y: 63}, radius: 32},
 		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 7, y: 7}},
@@ -78,12 +78,13 @@ rooms: [
 			{type: rare_chest, amount: 1, placement: center},
 			{type: harpy, amount: 1, placement: random},
 			{type: gorgon, amount: 2, placement: random},
+			{type: snake, amount: 2, placement: random},
 			{type: spike_trap, amount: 2, placement: random},
 		]
 	},
 	{
 		name: Uncommon Chest Room,
-		instances: 7,
+		instances: 4,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
@@ -93,13 +94,49 @@ rooms: [
 		]
 	},
 	{
-		name: Common Chest Room,
-		instances: 10,
+		name: Uncommon Chest Room Alt,
+		instances: 4,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
-			{type: common_chest, amount: 1, placement: center}
+			{type: uncommon_chest, amount: 1, placement: center},
+			{type: snake, amount: 1, placement: random},
+			{type: minitaur, amount: 1, placement: random},
+			{type: spike_trap, amount: 1, placement: random}
+		]
+	},
+	{
+		name: Common Chest Room,
+		instances: 3,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: common_chest, amount: 1, placement: center},
+			{type: throwable_object, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Common Chest Room Alt,
+		instances: 3,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: common_chest, amount: 1, placement: center},
+			{type: snake, amount: 1, placement: random}
+		]
+	},
+	{
+		name: Common Chest Room Alt 2,
+		instances: 5,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: common_chest, amount: 1, placement: center},
+			{type: minitaur, amount: 1, placement: random}
 		]
 	},
 	{
@@ -124,13 +161,25 @@ rooms: [
 	},
 	{
 		name: Basic Fight Rooms,
-		instances: 16,
+		instances: 6,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: minitaur, amount: 3, placement: random},
 			{type: throwable_object, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Basic Fight Rooms Alt,
+		instances: 6,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: minitaur, amount: 2, placement: random},
+			{type: gorgon, amount: 1, placement: random},
+			{type: spike_trap, amount: 2, placement: random},
 		]
 	},
 	{
@@ -141,9 +190,23 @@ rooms: [
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: minitaur, amount: 1, placement: random},
-			{type: gorgon, amount: 1, placement: random},
+			{type: snake, amount: 1, placement: random},
 			{type: throwable_object, amount: 2, placement: random},
 			{type: spike_trap, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Challenging Fight Rooms,
+		instances: 6,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 5, y: 5}},
+		entities: [
+			{type: minitaur, amount: 2, placement: random},
+			{type: harpy, amount: 1, placement: random},
+			{type: snake, amount: 2, placement: random},
+			{type: throwable_object, amount: 2, placement: random},
+			{type: boulder_trap, amount: 1, placement: random}
 		]
 	},
 	{
@@ -154,7 +217,7 @@ rooms: [
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
 		entities: [
 			{type: poison_trap, amount: 1, placement: center},
-			{type: throwable_object, amount: 2, placement: random}
+			{type: snake, amount: 2, placement: random}
 		]
 	},
 	{
@@ -180,7 +243,7 @@ rooms: [
 	},
 	{
 		name: Boulder Trap Room,
-		instances: 4,
+		instances: 5,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
@@ -188,18 +251,20 @@ rooms: [
 			{type: boulder_trap, amount: 1, placement: random},
 			{type: minitaur, amount: 2, placement: random},
 			{type: gorgon, amount: 1, placement: random},
+			{type: snake, amount: 1, placmeent: random},
 			{type: spike_trap, amount: 1, placement: random}
 		]
 	},
 	{
 		name: Explode Trapped Chest Rooms,
-		instances: 1,
+		instances: 2,
 		force: false,
 		position: {type: random},
 		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
 		entities: [
 			{type: trapped_chest_explode, amount: 1, placement: center},
 			{type: throwable_object, amount: 3, placement: random},
+			{type: snake, amount: 2, placement: random},
 		]
 	},
 	{

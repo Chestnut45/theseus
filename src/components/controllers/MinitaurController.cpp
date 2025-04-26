@@ -115,6 +115,9 @@ void MinitaurController::Init(const EnemyData& data)
     {
         wolf::Warning("MinitaurController: No navmesh found in the scene!");
     }
+
+    // Initialize first state
+    ChangeState(EnemyState::IDLE);
 }
 
 
@@ -141,7 +144,11 @@ void MinitaurController::Update(float delta)
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
     if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
-        ChangeState(EnemyState::PETRIFIED);
+        if (m_state != EnemyState::PETRIFIED && m_state != EnemyState::DEATH)
+        {
+            ChangeState(EnemyState::PETRIFIED);
+            return;
+        }
     }
     else 
     {
@@ -157,7 +164,6 @@ void MinitaurController::Update(float delta)
     {
         // Switch to the DEATH state if the health is depleted
         ChangeState(EnemyState::DEATH);
-        
         return;
     }
 
@@ -314,11 +320,6 @@ void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
     m_pAnimComponent = &GetGameObject()->AddComponent<AnimatedSprite2D>(animationInitPath);
     m_pAnimComponent->SetLayer(9);
     m_pAnimComponent->SetLightingEnabled(false);
-}
-
-void MinitaurController::RenderDebugPath()
-{
-
 }
 
 void MinitaurController::MoveTowardsTarget(float delta)
@@ -561,7 +562,7 @@ void MinitaurController::HandleChasingState(float delta)
     {
         m_nextOinkTime = m_RNG.NextFloat(0.2f, 0.65f);
         m_oinkTimer.Restart();
-        wolf::Audio::Play("data/sounds/sfx_minitaur_oink.wav", 1.2f, m_RNG.NextInt(-10000, 0));
+        wolf::Audio::Play("data/sounds/sfx_minitaur_oink.wav", 1.45f, m_RNG.NextInt(-10000, 0));
     }
 
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
@@ -689,7 +690,6 @@ void MinitaurController::HandleStunnedState(float delta)
     }
     else
     {
-        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
         m_stunnedTimer += delta;
     }
 }
@@ -734,6 +734,12 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
 
     void MinitaurController::HandleDeathState(float delta)
     {
+        if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+        {
+            // Only reset effects if not petrified
+            if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+        }
+
         // Fall over
         if(m_fallDeadTimer <= m_timeToFallDead)
         {
@@ -790,7 +796,7 @@ void MinitaurController::EnterAttackState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
     m_meleeWindupTimer = m_meleeWindupTime;
-    wolf::Audio::Play("data/sounds/sfx_minitaur_attack.wav", 0.7f, m_RNG.NextInt(-15000, -5000));
+    wolf::Audio::Play("data/sounds/sfx_minitaur_attack.wav", 0.55f, m_RNG.NextInt(-15000, -5000));
 }
 
 void MinitaurController::EnterChasingState()
@@ -803,10 +809,14 @@ void MinitaurController::EnterChasingState()
 void MinitaurController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+    // Idle in a random direction
+    static const char* dirs[] = {"StandNorth", "StandEast", "StandSouth", "StandWest"};
+    static wolf::RNG idleRNG(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    m_pAnimComponent->SetAnimation(std::string(dirs[idleRNG.NextInt(0, 3)]));
 }
 void MinitaurController::EnterPetrifiedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED);
 }
 
 void MinitaurController::EnterProspectState()
@@ -815,7 +825,11 @@ void MinitaurController::EnterProspectState()
 
 void MinitaurController::EnterStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    }
 }
 void MinitaurController::EnterDeathState()
 {

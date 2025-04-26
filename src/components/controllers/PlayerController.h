@@ -114,13 +114,12 @@ private:
     void InitializeAnimations();
     void SetAnimationBasedOnState();
 
-    void HandlePlayerInput(float delta); // Declaration for the missing function
-    void HandleMovement(float delta);    // Declaration for HandleMovement
-    void HandleRolling(float delta);     // Declaration for HandleRolling
-    void HandleJumping(float delta);     // Declaration for HandleJumping
-    void HandleAttacking(float delta);   // Declaration for HandleAttacking
-    void HandleThrowing(float delta);  // Method to handle throwing
-    void HandlePetrified(float delta);  // Method to handle being petrified
+    void HandlePlayerInput(float delta);
+    void HandleMovement(float delta);
+    void HandleRolling(float delta);
+    void HandleAttacking(float delta);
+    void HandleThrowing(float delta);
+    void HandlePetrified(float delta);
     void HandlePlacing(float delta);  // Method to handle placing placeable items
     void HandleDeath(float delta);  // New method to handle the existential fear of death
 
@@ -152,26 +151,24 @@ private:
     // Manage and transition different player states
     void StartAttack();
     void StartPetrified();
-    void StartJump();       // Starts a jumping action
-    void StartRoll();       // Starts a rolling action
+    void StartRoll();
     void StartDeath();
     
     void EndAttacking();
-    void EndJump();         // Ends a jumping action
     void EndPetrified();
     void EndPlacing();
-    void EndRoll();         // Ends a rolling action
+    void EndRoll();
     
     void ThrowHeldObject();
     void PickUpObject();
     void DropObject();
 
     // Utility functions
-    void RegenerateStamina(float delta); // Regenerates stamina over time
+    void RegenerateStamina(float delta);
     void CheckHealth();
-    void RenderThrowPowerBar(); // rendering for the power bar
+    void RenderThrowPowerBar();
     void RenderDeathScreen(float delta);
-    void ResetDeathScreenState(); // cool function to reset vars
+    void ResetDeathScreenState();
 
     // Helper method to create blood particles on damage
     void EmitBloodParticles(const DamageEvent& event, float intensity = 1.0f);
@@ -226,17 +223,7 @@ private:
     wolf::Timer m_staminaRegenTimer;
     wolf::Timer m_staminaColorTimer;
 
-    // Jumping management
-    bool m_isJumping = false;
-    float m_jumpHeight = 10.0f;
-    float m_jumpSpeed = 300.0f;
-    float m_jumpTimer = 0.0f;
-
     // Attacking management
-    bool m_hasAppliedDamage = false;
-    float m_attackCooldown = 0.5f;
-    float m_attackDamage = 50.0f;
-    float m_attackRange = 100.0f;
     glm::vec2 m_attackDir = glm::vec2(0.0f, 0.0f);
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;

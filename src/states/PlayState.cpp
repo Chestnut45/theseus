@@ -50,6 +50,7 @@
 #include <glm/gtc/random.hpp>
 #include <LightEvents.h>
 #include <BoundedFluidSystem2D.h>
+#include <SnakeController.h>
 
 #include <W_BufferManager.h>
 
@@ -65,6 +66,13 @@ void PlayState::Enter()
     // Preload both enemy configs from disk
     EnemyDataLoader::LoadAllEnemyData("data/enemies_bossfight.yaml");
     EnemyDataLoader::LoadAllEnemyData("data/enemies.yaml");
+
+    // Set secret seed config mappings
+    m_secretSeedConfigMap["goodluck"] = "data/configs/secret/goodluck.yaml";
+    m_secretSeedConfigMap["gottagofast"] = "data/configs/labyrinth.yaml";
+    m_secretSeedConfigMap["minitaurmania"] = "data/configs/secret/minitaurmania.yaml";
+    m_secretSeedConfigMap["portalcombat"] = "data/configs/secret/portalcombat.yaml";
+    m_secretSeedConfigMap["gazedandconfused"] = "data/configs/secret/gazedandconfused.yaml";
     
     // Setup background rendering resources
     glGenVertexArrays(1, &m_dummyVAO);
@@ -103,57 +111,48 @@ void PlayState::Enter()
     m_pPlayerObject->AddChild(cameraObj);
     camera.SetFollowSpeed(2.0f);
     scene.SetActiveCamera(camera);
+    glm::vec2 viewSize = camera.GetViewSize();
 
     // Set the light's default FBO size to be the camera viewport size
-    LightComponent::SetDefaultFBOSize(camera.GetViewSize());
+    LightComponent::SetDefaultFBOSize(viewSize);
+    LightComponent::ResizeFBO(viewSize.x, viewSize.y);
 
     // Create framebuffer & scene texture
-    glm::vec2 viewSize = camera.GetViewSize();
     m_pFBO = wolf::BufferManager::CreateFrameBuffer(viewSize.x, viewSize.y, viewSize.x, viewSize.y);
 
     // Determine the seed to use and load the appropriate config
     bool usedSecretSeed = false;
+    bool success = false;
     if (m_seedText.length() == 0)
     {
         // Load the default config with a random seed
-        m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
+        success = m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
     }
     else
     {
-        // TODO: Cleanup seed code
-        // Check for special configs
-        if (m_seedText == "goodluck")
+        if (m_secretSeedConfigMap.contains(m_seedText))
         {
-            m_pLabyrinthManager->LoadConfig("data/configs/secret/goodluck.yaml");
+            // Load secret config
+            success = m_pLabyrinthManager->LoadConfig(m_secretSeedConfigMap[m_seedText]);
             usedSecretSeed = true;
-        }
-        else if (m_seedText == "gottagofast")
-        {
-            m_pLabyrinthManager->LoadConfig("data/configs/secret/gottagofast.yaml");
-            usedSecretSeed = true;
-            auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
-            if (playerController)
+
+            // Special modifiers
+            if (m_seedText == "gottagofast")
             {
-                playerController->m_currentMoveSpeed = 800.0f;
-                playerController->m_normalMoveSpeed = 800.0f;
-                playerController->m_rollSpeed = 1600.0f;
-                playerController->m_inventoryMoveSpeed = 400.0f;
+                auto* playerController = m_pPlayerObject->GetComponent<PlayerController>();
+                if (playerController)
+                {
+                    playerController->m_currentMoveSpeed = 800.0f;
+                    playerController->m_normalMoveSpeed = 800.0f;
+                    playerController->m_rollSpeed = 1600.0f;
+                    playerController->m_inventoryMoveSpeed = 400.0f;
+                }
             }
-        }
-        else if (m_seedText == "thefloorislava")
-        {
-            m_pLabyrinthManager->LoadConfig("data/configs/secret/thefloorislava.yaml");
-            usedSecretSeed = true;
-        }
-        else if (m_seedText == "minitaurmania")
-        {
-            m_pLabyrinthManager->LoadConfig("data/configs/secret/minitaurmania.yaml");
-            usedSecretSeed = true;
         }
         else
         {
-            // If not a special seed, load the default config
-            m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
+            // Load the default config with a set seed
+            success = m_pLabyrinthManager->LoadConfig("data/configs/labyrinth.yaml");
             
             // Default is hashed seed from main menu text
             int seed = static_cast<int>(std::hash<std::string>{}(m_seedText));
@@ -170,6 +169,13 @@ void PlayState::Enter()
             
             m_pLabyrinthManager->SetSeed(seed);
         }
+    }
+
+    // If there's an error loading the config, go back to the main menu
+    if (!success)
+    {
+        m_pStateManager->ClearAndPushState(new MainMenuState(m_pStateManager, m_pGameInstance));
+        return;
     }
 
     // Create the fog mask texture and update it based on the labyrinth size
@@ -266,10 +272,12 @@ void PlayState::Exit()
     wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
     wolf::Audio::Stop("data/sounds/bgm_death.wav");
 
+    m_secretSeedConfigMap.clear();
+
     // Delete objects / components from the scene
     m_pGameInstance->GetScene().Clear();
 
-    if (m_pGameInstance->IsDebugEnabled()) m_pGameInstance->ToggleDebugGUI();
+    if (m_pGameInstance->IsDebugGUIEnabled()) m_pGameInstance->ToggleDebugGUI();
 
     wolf::EventManager::RemoveListener<DialogueAndCutsceneEvent, PlayState, &PlayState::OnDialogueAndCutsceneTriggered>(*this);
     wolf::EventManager::RemoveListener<TriggerEvent, PlayState, &PlayState::OnTriggerEvent>(*this);
@@ -596,6 +604,10 @@ void PlayState::Update(float delta)
         for (auto&& [_, gorgonController] : m_pGameInstance->GetScene().Each<GorgonController>())
         {
             gorgonController.Update(delta);  // Update logic for Harpies
+        }
+        for (auto&&[_, snakeController] : m_pGameInstance->GetScene().Each<SnakeController>())
+        {
+            snakeController.Update(delta);
         }
         for (auto&& [_, trigger] : m_pGameInstance->GetScene().Each<TriggerComponent>()) {
             trigger.Update(delta);
@@ -1683,7 +1695,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             event.m_pTriggerObject->GetComponent<TriggerComponent>()->ReactivateDelayed(20);
 
             wolf::Audio::Play("data/sounds/sfx_liquid_flow.wav", 0.5f);
-            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.4f);
+            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.3f);
 
             break;
         }
@@ -1738,7 +1750,7 @@ void PlayState::OnTriggerEvent(const TriggerEvent& event) {
             event.m_pTriggerObject->GetComponent<TriggerComponent>()->ReactivateDelayed(20);
 
             wolf::Audio::Play("data/sounds/sfx_liquid_flow.wav", 0.5f);
-            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.4f);
+            wolf::Audio::Play("data/sounds/sfx_liquid_bubbling.wav", 0.3f);
 
             break;
         }

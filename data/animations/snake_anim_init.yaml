@@ -1,0 +1,11 @@
+frame_size: {x: 32.0, y: 32.0}
+playback_speed: 4.5
+
+start_animation: {
+  texture: data/textures/sheets/snake_sheet.png,
+  name: South
+}
+
+animation_sets: [
+  data/animations/snake_anim_set.yaml,
+]

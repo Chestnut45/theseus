@@ -5,5 +5,5 @@ loot_table: [
   {name: Gold Handful, probability: 50},
   {name: Healing Heart, probability: 25},
   {name: Gorgon Tears, probability: 10},
-  {name: Poison-Tipped Spear, probability: 1},
+  {name: Medusa's Bow, probability: 1},
 ]

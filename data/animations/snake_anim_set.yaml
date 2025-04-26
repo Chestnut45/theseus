@@ -1,0 +1,61 @@
+texture: data/textures/sheets/snake_sheet.png
+frame_size: {x: 32.0, y: 32.0}
+
+animations: [
+  {
+    name: West,
+    start_frame: 1,
+    end_frame: 2,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: South,
+    start_frame: 3,
+    end_frame: 4,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: East,
+    start_frame: 5,
+    end_frame: 6,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: North,
+    start_frame: 7,
+    end_frame: 8,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: AttackWest,
+    start_frame: 9,
+    end_frame: 10,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: AttackSouth,
+    start_frame: 11,
+    end_frame: 12,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: AttackEast,
+    start_frame: 13,
+    end_frame: 14,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  },
+  {
+    name: AttackNorth,
+    start_frame: 15,
+    end_frame: 16,
+    origin: {x: 16.0, y: 16.0},
+    loops: true
+  }
+]

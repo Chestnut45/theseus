@@ -1,12 +1,10 @@
 min_items: 2
 max_items: 4
 loot_table: [
-  {name: Gold Handful, probability: 3},
-  {name: Copper Vambraces, probability: 2},
-  {name: Theezys, probability: 2},
-  {name: Uncommon Schematic, probability: 1},
-  {name: Spear, probability: 1},
-  {name: Triple-Shot Bow, probability: 1},
+  {name: Gold Handful, probability: 20},
+  {name: Uncommon Schematic, probability: 5},
+  {name: Copper Vambraces, probability: 1},
+  {name: Theezys, probability: 1},
 ]
 
 guaranteed_items: [

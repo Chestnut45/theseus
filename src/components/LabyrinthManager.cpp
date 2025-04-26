@@ -44,6 +44,7 @@
 #include <MinitaurBuilder.h>
 #include <HarpyBuilder.h>
 #include <GorgonBuilder.h>
+#include <SnakeBuilder.h>
 #include <PlayerController.h>
 #include <TriggerComponent.h>
 #include <TrappedChestComponent.h>
@@ -54,6 +55,7 @@
 #include <NPCComponent.h>
 #include <MonsterSpawnerComponent.h>
 #include <LightComponent.h>
+#include <SnakeController.h>
 
 std::unordered_map<std::string, LabyrinthManager::Room::EntityType> LabyrinthManager::s_entityIDs;
 std::string LabyrinthManager::s_entityNames[(int)LabyrinthManager::Room::EntityType::ENTITY_COUNT];
@@ -63,6 +65,7 @@ LabyrinthManager::LabyrinthManager()
     s_entityIDs["minitaur"] = Room::EntityType::Minitaur;
     s_entityIDs["harpy"] = Room::EntityType::Harpy;
     s_entityIDs["gorgon"] = Room::EntityType::Gorgon;
+    s_entityIDs["snake"] = Room::EntityType::Snake;
     s_entityIDs["common_chest"] = Room::EntityType::CommonChest;
     s_entityIDs["uncommon_chest"] = Room::EntityType::UncommonChest;
     s_entityIDs["rare_chest"] = Room::EntityType::RareChest;
@@ -278,6 +281,8 @@ void LabyrinthManager::ActivateChunk(const glm::ivec2& chunkID)
         if (pController2) pController2->SetActive(true);
         auto* pController3 = pObject->GetComponent<GorgonController>();
         if (pController3) pController3->SetActive(true);
+        auto* pController4 = pObject->GetComponent<SnakeController>();
+        if (pController4) pController4->SetActive(true);
 
         // Activate NPC components
         auto* pNPCComp = pObject->GetComponent<NPCComponent>();
@@ -343,6 +348,8 @@ void LabyrinthManager::DeactivateChunk(const glm::ivec2& chunkID)
         if (pController2) pController2->SetActive(false);
         auto* pController3 = pObject->GetComponent<GorgonController>();
         if (pController3) pController3->SetActive(false);
+        auto* pController4 = pObject->GetComponent<SnakeController>();
+        if (pController4) pController4->SetActive(false);
 
         // Deactivate NPC components
         auto* pNPCComp = pObject->GetComponent<NPCComponent>();
@@ -964,7 +971,7 @@ void LabyrinthManager::ShowGUI()
     ImGui::PopStyleColor(19);
 }
 
-void LabyrinthManager::LoadConfig(const std::string& filepath)
+bool LabyrinthManager::LoadConfig(const std::string& filepath)
 {
     Reset();
     try
@@ -1103,11 +1110,13 @@ void LabyrinthManager::LoadConfig(const std::string& filepath)
         }
 
         m_configPath = filepath;
+        return true;
     }
-    catch (YAML::Exception& e)
+    catch (const YAML::Exception& e)
     {
         wolf::Error("Error parsing file '", filepath.c_str(), "': ", e.what());
     }
+    return false;
 }
 
 void LabyrinthManager::SaveConfig(const std::string& filepath)
@@ -2230,10 +2239,12 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
     EnemyData minitaurData = EnemyDataLoader::LoadEnemyData("minitaur");
     EnemyData harpyData = EnemyDataLoader::LoadEnemyData("harpy");
     EnemyData gorgonData = EnemyDataLoader::LoadEnemyData("gorgon");
+    EnemyData snakeData = EnemyDataLoader::LoadEnemyData("snake");
 
     MinitaurBuilder minitaurBuilder(pObject->GetScene());
     HarpyBuilder harpyBuilder(pObject->GetScene());
     GorgonBuilder gorgonBuilder(pObject->GetScene());
+    SnakeBuilder snakeBuilder(pObject->GetScene());
 
     // Place all entities in hallways
     for (const auto& entry : m_chunkMap)
@@ -2353,6 +2364,9 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                 // Build entity based on type
                 switch (entity.m_type)
                 {
+                    default:
+                        break;
+                        
                     case Room::EntityType::Minitaur:
                     {
                         // Build Minitaur at the given position
@@ -2386,6 +2400,18 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         gorgon.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
 
                         AddToChunk(gorgon, pos);
+                        break;
+                    }
+
+                    case Room::EntityType::Snake:
+                    {
+                        // Build snake at the given position
+                        wolf::GameObject& snake = snakeBuilder.BuildSnake(snakeData, pos);
+
+                        // Scale the snake
+                        snake.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(SCALE));
+
+                        AddToChunk(snake, pos);
                         break;
                     }
 
@@ -2614,7 +2640,7 @@ void LabyrinthManager::PopulateEntities(const std::vector<LabyrinthManager::Room
                         else
                         {
                             // Choose a random dispensary loot table
-                            strLootTablePath = "data/loot/dispensary_contents" + std::to_string(m_rng.NextInt(1, 3)) + ".yaml";
+                            strLootTablePath = "data/loot/dispensary_contents" + std::to_string(m_rng.NextInt(1, 4)) + ".yaml";
                         }
 
                         // Create the dispensary object

@@ -88,9 +88,6 @@ private:
     std::vector<glm::ivec2> m_path;               // Current path to the player
     size_t m_currentPathIndex = 0;                // Index of the current tile in the path
     PathfindingManager* m_pPathfindingManager = nullptr;  // Pointer to the pathfinding manager
-    glm::ivec2 m_lastTargetTile; // Tracks the last target tile
-    glm::ivec2 m_lastStartTile;  // Tracks the last start tile
-    void RenderDebugPath();
         
 
     //-----------------//

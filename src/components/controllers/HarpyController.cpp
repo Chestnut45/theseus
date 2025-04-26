@@ -94,6 +94,9 @@ void HarpyController::Init(const EnemyData& data)
 
     // Initialise emotes-related variables
     m_fEmoteTimer = EMOTE_TIME;
+
+    // Initialize first state
+    ChangeState(EnemyState::IDLE);
 }
 
 
@@ -520,7 +523,6 @@ void HarpyController::HandleStunnedState(float delta)
     }
     else
     {
-        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
         m_stunnedTimer += delta;
     }
 }
@@ -569,6 +571,12 @@ void HarpyController::UpdateAnimationBasedOnDirection()
 
 void HarpyController::HandleDeathState(float delta)
 {
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
+
     // Fall over
     if(m_fallDeadTimer <= m_timeToFallDead)
     {
@@ -645,6 +653,11 @@ void HarpyController::EnterPetrifiedState()
 void HarpyController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+    // Idle in a random direction
+    static const char* dirs[] = {"StandNorth", "StandEast", "StandSouth", "StandWest"};
+    static wolf::RNG idleRNG(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    m_pAnimComponent->SetAnimation(std::string(dirs[idleRNG.NextInt(0, 3)]));
 }
 
 void HarpyController::EnterStunnedState()

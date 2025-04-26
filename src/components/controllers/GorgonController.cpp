@@ -126,6 +126,9 @@ void GorgonController::Init(const EnemyData& data)
     {
         wolf::Warning("MinitaurController: No navmesh found in the scene!");
     }
+
+    // Initialize first state
+    ChangeState(EnemyState::IDLE);
 }
 
 
@@ -153,8 +156,11 @@ void GorgonController::Update(float delta)
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
     if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
-        ChangeState(EnemyState::PETRIFIED);
-        return;
+        if (m_state != EnemyState::PETRIFIED && m_state != EnemyState::DEATH)
+        {
+            ChangeState(EnemyState::PETRIFIED);
+            return;
+        }
     }
     else 
     {
@@ -713,7 +719,6 @@ void GorgonController::HandleStunnedState(float delta)
     }
     else
     {
-        //m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
         m_stunnedTimer += delta;
     }
 }
@@ -826,6 +831,12 @@ void GorgonController::UpdateAnimationBasedOnDirection()
 
 void GorgonController::HandleDeathState(float delta)
 {
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
+
     // Fall over
     if(m_fallDeadTimer <= m_timeToFallDead)
     {
@@ -887,7 +898,7 @@ void GorgonController::EnterAttackState()
 
     if (m_pAnimComponent) m_pAnimComponent->SetTint(glm::vec3(1.0f));
 
-    wolf::Audio::Play("data/sounds/sfx_gorgon_screech.wav", 0.45f, m_RNG.NextInt(-5000, 5000));
+    wolf::Audio::Play("data/sounds/sfx_gorgon_screech.wav", 0.36f, m_RNG.NextInt(-5000, 5000));
 }
 
 void GorgonController::EnterChasingState()
@@ -895,17 +906,21 @@ void GorgonController::EnterChasingState()
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
 
-    wolf::Audio::Play("data/sounds/sfx_gorgon_rattle.wav", 1.5f, m_RNG.NextInt(-5000, 5000));
+    wolf::Audio::Play("data/sounds/sfx_gorgon_rattle.wav", 1.0f, m_RNG.NextInt(-5000, 5000));
 }
 
 void GorgonController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+    // Idle in a random direction
+    static const char* dirs[] = {"StandNorth", "StandEast", "StandSouth", "StandWest"};
+    static wolf::RNG idleRNG(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    m_pAnimComponent->SetAnimation(std::string(dirs[idleRNG.NextInt(0, 3)]));
 }
 
 void GorgonController::EnterPetrifiedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED);
 }
 
 void GorgonController::EnterProspectState()
@@ -914,7 +929,11 @@ void GorgonController::EnterProspectState()
 
 void GorgonController::EnterStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    }
 }
 
 void GorgonController::EnterDeathState()
@@ -951,7 +970,11 @@ void GorgonController::ExitIdleState()
 
 void GorgonController::ExitPetrifiedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_pAnimComponent->SetAnimPaused(false);
 }
 
@@ -964,7 +987,11 @@ void GorgonController::ExitProspectState()
 
 void GorgonController::ExitStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_stunnedTimer = 0.0f;
 }
 

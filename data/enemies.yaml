@@ -32,3 +32,14 @@ enemies:
     chase_speed: 120
     animation_init_file: "data/animations/gorgon_anim_init.yaml"
 
+  - type: snake
+    health: 75
+    armour: 1
+    ranged_range: 125
+    melee_range: 85
+    melee_cooldown: 1.0
+    melee_windup: 0.2
+    detection_range: 400
+    base_damage: 25.0
+    chase_speed: 95.0
+    animation_init_file: "data/animations/snake_anim_init.yaml"
