@@ -79,6 +79,11 @@ add_executable(theseus
     ${HEADER_FILES}
     )
 
+# Remove console from windows builds
+set(SUBSYSTEM_LINKER_OPTIONS "-mwindows")
+
+target_link_options(theseus PRIVATE ${SUBSYSTEM_LINKER_OPTIONS})
+
 target_link_libraries(theseus glfw glew yaml-cpp ${OPENGL_LIBRARIES} ${GLFW_LIBRARIES})
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

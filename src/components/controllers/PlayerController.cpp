@@ -472,8 +472,7 @@ void PlayerController::HandlePlayerInput(float delta)
         m_pCurrentWeapon                                        && 
         m_action != PlayerAction::ATTACKING                     &&
         m_action != PlayerAction::PLACING                       &&
-        m_action != PlayerAction::PETRIFIED                     &&
-        m_attackTimer.Elapsed() >= m_pCurrentWeapon->GetDelay() && 
+        m_action != PlayerAction::PETRIFIED                     && 
         !m_inventoryOpen                                        && 
         !m_inventoryHovered                                     &&
         !m_isHoldingObject)
