@@ -15,6 +15,7 @@
 #include "NPCComponent.h"
 #include "InfightingEvent.h"
 #include "ThrowableObjectComponent.h"
+#include "BossController.h"
 
 
 AttackDamageComponent::AttackDamageComponent(float p_damage, ColliderManager* p_collider_manager, float knockbackMagnitude, std::vector<std::pair<StatusComponent::StatusEffectType, float>> p_status_effects, wolf::GameObject* owner)
@@ -59,7 +60,15 @@ void AttackDamageComponent::Update(float p_dt)
     ColliderComponent* thisCollider = thisObject->GetComponent<ColliderComponent>();
     wolf::Transform2D* thisTransform = thisObject->GetComponent<wolf::Transform2D>();
 
-
+    
+    if (m_delay > 0.0f)
+    {
+        m_delay -= p_dt;
+        return;
+    }
+    
+    m_delay = 0.0f;
+    
     // If collider of this object is HurtboxDD
     if (thisCollider != nullptr && thisCollider->IsHurtboxDamageDealer())
     {
@@ -88,16 +97,17 @@ void AttackDamageComponent::Update(float p_dt)
                     
                     if (thisObject->HasAll<ThrowableObjectComponent>())
                     {
-                        wolf::Audio::Play("data/sounds/sfx_throwable_break.wav", 0.32f);
+                        wolf::Audio::Play("data/sounds/sfx_throwable_break.wav", 0.45f);
                     }
 
                     // Detect when fireballs are destroyed and fire off sfx
+                    bool burnSFXPlayed = false;
                     if (auto* pAnim = thisObject->GetComponent<AnimatedSprite2D>())
                     {
                         if (pAnim->GetCurrentAnimation()->m_strName == "burn")
                         {
-                            // Ensure falloff for potentially stacked sounds
-                            wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.55f, 0.0f, 0.0f, true);
+                            wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.4f);
+                            burnSFXPlayed = true;
                         }
                     }
 
@@ -112,6 +122,31 @@ void AttackDamageComponent::Update(float p_dt)
                             {
                                 StatusComponent::StatusEffectType seType = static_cast<StatusComponent::StatusEffectType>(i);
                                 thatStatus->AddStatusEffect(seType, lifespan);
+
+                                if (seType == StatusComponent::StatusEffectType::PETRIFIED)
+                                {
+                                    if (auto* pBoss = thatObject->GetComponent<BossController>())
+                                    {
+                                        if (!pBoss->CanBePetrified())
+                                        {
+                                            // Skip during crucial phase of fight
+                                            continue;
+                                        }
+                                    }
+                                    thatHealth.Pierce(20.0f);
+
+                                    if (auto* pSprite = thatObject->GetComponent<AnimatedSprite2D>())
+                                    {
+                                        pSprite->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED, 0.25f, lifespan - 0.5f, 0.25f);
+                                    }
+
+                                    wolf::Audio::Play("data/sounds/sfx_petrification.wav", 0.45f);
+                                }
+
+                                if (seType == StatusComponent::StatusEffectType::BURNING && !burnSFXPlayed)
+                                {
+                                    wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.4f);
+                                }
                             }
 
                         }

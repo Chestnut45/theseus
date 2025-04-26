@@ -1,0 +1,306 @@
+random_seed: true
+width: 125
+height: 125
+spike_trap_ratio: 0.020000
+
+spawn_dispensary: true
+starting_items: [
+	Common Schematic,
+]
+
+shadow_color: {r: 0, g: 0, b: 0, a: 0.64}
+fog_color: {r: 0.42, g: 0.40, b: 0.47, a: 0.482}
+player_light_color: {r: 0.65, g: 0.48, b: 0.26, a: 0.75}
+player_light_radius: 200.0
+
+rooms: [
+	{
+		name: Minotaur's Chamber,
+		instances: 1,
+		force: true,
+		position: {type: manual, origin: {x: 51, y: 51}},
+		size: {type: manual, value: {x: 23, y: 23}},
+		entities: [
+			{type: throwable_object, amount: 32, placement: random},
+		]
+	},
+	{
+		name: Daedalus Workshop,
+		instances: 1,
+		force: false,
+		position: {type: random_radius, position: {x: 63, y: 63}, radius: 30},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: daedalus_npc, amount: 1, placement: center}
+		]
+	},
+	{
+		name: Legendary Chest Room,
+		instances: 1,
+		force: false,
+		position: {type: random_radius, position: {x: 63, y: 63}, radius: 30},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 7, y: 7}},
+		entities: [
+			{type: legendary_chest, amount: 1, placement: center},
+			{type: gorgon, amount: 1, placement: random},
+			{type: minitaur, amount: 3, placement: random}
+		]
+	},
+	{
+		name: Legendary Dispensary Room,
+		instances: 1,
+		force: false,
+		position: {type: random_radius, position: {x: 63, y: 63}, radius: 30},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 7, y: 7}},
+		entities: [
+			{type: legendary_dispensary, amount: 1, placement: center},
+		]
+	},
+	{
+		name: Epic Chest Room,
+		instances: 4,
+		force: false,
+		position: {type: random_radius, position: {x: 63, y: 63}, radius: 32},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
+		entities: [
+			{type: epic_chest, amount: 1, placement: center},
+			{type: harpy, amount: 2, placement: random},
+			{type: spike_trap, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Elite Rooms,
+		instances: 6,
+		force: false,
+		position: {type: random_radius, position: {x: 63, y: 63}, radius: 32},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 7, y: 7}},
+		entities: [
+			{type: rare_chest, amount: 1, placement: center},
+			{type: harpy, amount: 1, placement: random},
+			{type: gorgon, amount: 2, placement: random},
+			{type: snake, amount: 2, placement: random},
+			{type: spike_trap, amount: 2, placement: random},
+		]
+	},
+	{
+		name: Uncommon Chest Room,
+		instances: 4,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: uncommon_chest, amount: 1, placement: center},
+			{type: minitaur, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Uncommon Chest Room Alt,
+		instances: 4,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: uncommon_chest, amount: 1, placement: center},
+			{type: snake, amount: 1, placement: random},
+			{type: minitaur, amount: 1, placement: random},
+			{type: spike_trap, amount: 1, placement: random}
+		]
+	},
+	{
+		name: Common Chest Room,
+		instances: 3,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: common_chest, amount: 1, placement: center},
+			{type: throwable_object, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Common Chest Room Alt,
+		instances: 3,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: common_chest, amount: 1, placement: center},
+			{type: snake, amount: 1, placement: random}
+		]
+	},
+	{
+		name: Common Chest Room Alt 2,
+		instances: 5,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: common_chest, amount: 1, placement: center},
+			{type: minitaur, amount: 1, placement: random}
+		]
+	},
+	{
+		name: Dispensary Rooms,
+		instances: 8,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: dispensary, amount: 1, placement: center},
+		]
+	},
+	{
+		name: Merchant Room,
+		instances: 1,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: vasilios_npc, amount: 1, placement: random},
+		]
+	},
+	{
+		name: Basic Fight Rooms,
+		instances: 6,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: minitaur, amount: 3, placement: random},
+			{type: throwable_object, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Basic Fight Rooms Alt,
+		instances: 6,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: minitaur, amount: 2, placement: random},
+			{type: gorgon, amount: 1, placement: random},
+			{type: spike_trap, amount: 2, placement: random},
+		]
+	},
+	{
+		name: Intermediate Fight Rooms,
+		instances: 8,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: minitaur, amount: 1, placement: random},
+			{type: snake, amount: 1, placement: random},
+			{type: throwable_object, amount: 2, placement: random},
+			{type: spike_trap, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Challenging Fight Rooms,
+		instances: 6,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 5, y: 5}},
+		entities: [
+			{type: minitaur, amount: 2, placement: random},
+			{type: harpy, amount: 1, placement: random},
+			{type: snake, amount: 2, placement: random},
+			{type: throwable_object, amount: 2, placement: random},
+			{type: boulder_trap, amount: 1, placement: random}
+		]
+	},
+	{
+		name: Poison Trap Rooms,
+		instances: 5,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: poison_trap, amount: 1, placement: center},
+			{type: snake, amount: 2, placement: random}
+		]
+	},
+	{
+		name: Lava Trap Rooms,
+		instances: 5,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: lava_trap, amount: 1, placement: center},
+			{type: throwable_object, amount: 2, placement: random}
+		]
+	},
+	{
+		name: NPC Room,
+		instances: 5,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 5, y: 5}},
+		entities: [
+			{type: random_npc, amount: 1, placement: random},
+		]
+	},
+	{
+		name: Boulder Trap Room,
+		instances: 5,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
+		entities: [
+			{type: boulder_trap, amount: 1, placement: random},
+			{type: minitaur, amount: 2, placement: random},
+			{type: gorgon, amount: 1, placement: random},
+			{type: snake, amount: 1, placmeent: random},
+			{type: spike_trap, amount: 1, placement: random}
+		]
+	},
+	{
+		name: Explode Trapped Chest Rooms,
+		instances: 2,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 3, y: 3}, max: {x: 7, y: 7}},
+		entities: [
+			{type: trapped_chest_explode, amount: 1, placement: center},
+			{type: throwable_object, amount: 3, placement: random},
+			{type: snake, amount: 2, placement: random},
+		]
+	},
+	{
+		name: Gorgon Trapped Chest Rooms,
+		instances: 2,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		entities: [
+			{type: trapped_chest_gorgon, amount: 1, placement: center},
+			{type: gorgon_spawner, amount: 1, placement: center},
+			{type: throwable_object, amount: 2, placement: random},
+		]
+	},
+	{
+		name: Harpy Trapped Chest Rooms,
+		instances: 2,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		entities: [
+			{type: trapped_chest_harpy, amount: 1, placement: center},
+			{type: harpy_spawner, amount: 1, placement: center},
+			{type: throwable_object, amount: 2, placement: random},
+		]
+	},
+	{
+		name: Minitaur Trapped Chest Rooms,
+		instances: 3,
+		force: false,
+		position: {type: random},
+		size: {type: random_min_max, min: {x: 5, y: 5}, max: {x: 9, y: 9}},
+		entities: [
+			{type: trapped_chest_minitaur, amount: 1, placement: center},
+			{type: minitaur_spawner, amount: 1, placement: center},
+			{type: throwable_object, amount: 3, placement: random},
+		]
+	}
+]

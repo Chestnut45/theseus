@@ -78,6 +78,11 @@ void ColliderComponent::AddColliderBox(glm::vec2 p_dimensions, glm::vec2 p_offse
     this->m_vColliderBoxes.push_back(wolf::Rectangle(p_offset, p_dimensions));
 }
 
+void ColliderComponent::ClearColliderBoxes()
+{
+    m_vColliderBoxes.clear();
+}
+
 // Get vector of collider boxes
 std::vector<wolf::Rectangle> ColliderComponent::GetColliderBoxes() const
 {
@@ -92,6 +97,12 @@ bool ColliderComponent::IsHitbox() const
     }
     return false;
 }
+
+bool ColliderComponent::IsOccluder() const
+{
+    return m_eColliderType == ColliderType::OCCLUDER;
+}
+
 
 bool ColliderComponent::IsHurtbox() const
 {

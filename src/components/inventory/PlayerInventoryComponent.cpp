@@ -100,9 +100,6 @@ PlayerInventoryComponent::PlayerInventoryComponent(int p_iSize, int p_iSlotsPerR
         m_iSchematics[j] = 0;
     }
 
-    // Start with exactly one common schematic
-    m_iSchematics[0] = 1;
-
     // We also need to register for events related to the player's inventory
     wolf::EventManager::AddListener<OpenInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleOpenInventoryEvent>(*this);
     wolf::EventManager::AddListener<CloseInventoryEvent, PlayerInventoryComponent, &PlayerInventoryComponent::HandleCloseInventoryEvent>(*this);
@@ -145,6 +142,8 @@ void PlayerInventoryComponent::Close() {
     // Let anyone interested know which specific chest was closed
     wolf::EventManager::TriggerEvent(CloseInventoryEvent(m_enType, m_iIdNum));
     m_bIsOpen = false;
+    m_iOpenChestIdNum = -1;
+    m_iOpenMerchantIdNum = -1;
 }
 
 // Overloads InventoryComponent::ToggleOpen
@@ -374,7 +373,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
 
                 // The pop-up menu has different buttons based on what the item is and what "state" it's in
-                if (ImGui::BeginPopup(strIndex.c_str())) {
+                if (ImGui::BeginPopup(strIndex.c_str(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
                     if (pItem->GetID() == CONSUMABLE) { // If the item is Consumable
                         // We need to be able to "use" it
                         if (ImGui::Button("Use")) {
@@ -426,7 +425,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     if (ImGui::Button("Drop")) {
                         wolf::Transform2D* pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
                         if (pTransform) {
-                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pItem, pTransform->GetGlobalPosition(), 5.0f);
+                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pItem, pTransform->GetGlobalPosition(), -1.0f);
                         }
                         this->RemoveItem(k);
                         ImGui::CloseCurrentPopup();
@@ -526,6 +525,10 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 ImGui::PopStyleVar(2);
                 ImGui::PopStyleColor(3);
 
+                // Push the tooltip style vars and colors
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
+
                 // Same as a regular item, when we hover over an equipment slot we display the item's details in a tooltip
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                     // We display the details string that we constructed earlier
@@ -542,6 +545,9 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
 
                     ImGui::EndTooltip();
                 }
+
+                ImGui::PopStyleVar(1);
+                ImGui::PopStyleColor(1);
 
                 // We need a way for ImGui to differientiate between equipment slots so we make an id string
                 std::string strPopUpID = "E:" + std::to_string(t);
@@ -562,7 +568,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3725f, 0.3725f, 0.3725f, 1.0f));
                 
                 // The pop-up menu has different buttons based on what "state" the game is in
-                if (ImGui::BeginPopup(strPopUpID.c_str())) {
+                if (ImGui::BeginPopup(strPopUpID.c_str(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
                     // We can unequip items
                     if (ImGui::Button("Unequip")) {
                         this->UnequipItem(pEquipItem);
@@ -597,7 +603,7 @@ void PlayerInventoryComponent::ShowInventoryGUI() {
                     if (ImGui::Button("Drop")) {
                         wolf::Transform2D* pTransform = this->GetGameObject()->GetComponent<wolf::Transform2D>();
                         if (pTransform) {
-                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pEquipItem, pTransform->GetGlobalPosition(), 5.0f);
+                            ItemDropCreator::Instance()->CreateItemDropFromExistingItem(pEquipItem, pTransform->GetGlobalPosition(), -1.0f);
                         }
                         this->RemoveEquippedItem(pEquipItem->GetEquipmentSlot());
                         ImGui::CloseCurrentPopup();

@@ -16,7 +16,8 @@
 enum class WeaponType {
     SWORD,
     SPEAR,
-    BOW
+    BOW,
+    DIVINE
 };
 
 // Struct to hold the properties of a projectile that a weapon can shoot

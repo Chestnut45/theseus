@@ -26,7 +26,7 @@ wolf::GameObject& GorgonBuilder::BuildGorgon(const EnemyData& data, const glm::v
     gorgonObject->AddComponent<HealthComponent>(data.health);
     gorgonObject->AddComponent<VelocityComponent>();
     auto& collider = gorgonObject->AddComponent<ColliderComponent>(ColliderComponent::HITHURTBOXDR, false, true);
-    collider.AddColliderBox(glm::vec2(13.0f, 26.0f), glm::vec2(-7.0f, 11.0f));
+    collider.AddColliderBox(glm::vec2(10.0f, 22.0f), glm::vec2(-4.0f, 7.0f));
 
     // Add status component
     auto& statusComponent = gorgonObject->AddComponent<StatusComponent>();
@@ -38,10 +38,10 @@ wolf::GameObject& GorgonBuilder::BuildGorgon(const EnemyData& data, const glm::v
 
     // Add a light to the gorgon (added by Aurora)
     wolf::GameObject* pLightGO = &m_scene.CreateObject2D();
-    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.57f, 0.93f, 0.57f, 0.75f), 50.0f, true);
+    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.57f, 0.93f, 0.57f, 0.75f), 75.0f, true);
     gorgonObject->AddChild(*pLightGO);
     pLightComponent.Init();
-    pLightComponent.SetOn(false);
+    pLightComponent.SetIgnoreWallTiles(true);
 
     return *gorgonObject;
 }

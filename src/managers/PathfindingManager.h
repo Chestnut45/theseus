@@ -27,6 +27,8 @@ public:
     // Updates all registered entities' movement based on pathfinding
     void UpdateEntities(float delta);
 
+    void ClearEntities();
+
     // Finds the optimal path from start to goal
     std::vector<glm::ivec2> FindPath(const glm::ivec2& start, const glm::ivec2& goal);
 
@@ -40,8 +42,8 @@ public:
     struct EntityPathData
     {
         wolf::GameObject* entity = nullptr;
-        glm::ivec2 currentTile;
-        glm::ivec2 targetTile;
+        glm::ivec2 currentTile{0};
+        glm::ivec2 targetTile{0};
         std::vector<glm::ivec2> path;
     };
     // Returns the path data for a registered entity

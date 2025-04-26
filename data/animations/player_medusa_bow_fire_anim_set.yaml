@@ -1,0 +1,33 @@
+texture: data/textures/sheets/TheseusMedusaBowFireSheet.png
+frame_size: {x: 32.0, y: 32.0}
+
+animations: [
+  {
+    name: MedusaBowFireSouth,
+    start_frame: 1,
+    end_frame: 3,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: MedusaBowFireEast,
+    start_frame: 4,
+    end_frame: 6,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: MedusaBowFireNorth,
+    start_frame: 7,
+    end_frame: 9,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: MedusaBowFireWest,
+    start_frame: 10,
+    end_frame: 12,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  }
+]

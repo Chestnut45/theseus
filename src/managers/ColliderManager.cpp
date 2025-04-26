@@ -11,6 +11,11 @@
 
 #include "ColliderManager.h"
 
+#include <MinitaurController.h>
+#include <GorgonController.h>
+#include <SnakeController.h>
+#include <PlayerController.h>
+
 #include <ThrowableObjectComponent.h>
 #include <W_Audio.h>
 
@@ -52,7 +57,7 @@ void ColliderManager::RemoveFlagged()
             if (pAnim->GetCurrentAnimation()->m_strName == "burn")
             {
                 // Ensure falloff for potentially stacked sounds
-                wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.55f, 0.0f, 0.0f, true);
+                wolf::Audio::Play("data/sounds/sfx_fireball_extinguish.wav", 0.4f);
             }
         }
 
@@ -69,27 +74,39 @@ void ColliderManager::CheckCollisions(float p_delta)
 
     // Iterate through all collider components
     int i = 0;
-    for (auto&& [id1, collider1] : this->m_scene->Each<ColliderComponent>())
+    for (auto&& [id1, collider1, object1] : this->m_scene->Each<ColliderComponent, wolf::GameObject>())
     {
         i++;
 
         // Skip inactive or flagged colliders
         if (!collider1.IsActive()) continue;
 
+        // Skip occluders
+        if (collider1.IsOccluder()) continue;
+
         // Cache properties for collider1
         const bool isHitbox1 = collider1.IsHitbox();
         const bool isDestroyedOnCollision1 = collider1.IsDestroyedOnCollision();
+        const bool isSolidEnemy1 = object1.HasAny<MinitaurController, GorgonController>();
+        const bool isPlayer1 = object1.HasAny<PlayerController>();
+        const bool isSnake1 = object1.HasAny<SnakeController>();
 
         // Iterate through remaining colliders after i
-        for (auto&& [id2, collider2] : this->m_scene->Each<ColliderComponent>() | std::views::drop(i))
+        for (auto&& [id2, collider2, object2] : this->m_scene->Each<ColliderComponent, wolf::GameObject>() | std::views::drop(i))
         {
 
             // Skip inactive or flagged colliders
             if (!collider2.IsActive()) continue;
 
+            // Skip occluders
+            if (collider2.IsOccluder()) continue;
+
             // Cache properties for collider2
             const bool isHitbox2 = collider2.IsHitbox();
             const bool isDestroyedOnCollision2 = collider2.IsDestroyedOnCollision();
+            const bool isSolidEnemy2 = object2.HasAny<MinitaurController, GorgonController>();
+            const bool isPlayer2 = object2.HasAny<PlayerController>();
+            const bool isSnake2 = object2.HasAny<SnakeController>();
 
             // Collision check conditions
             bool isCollisionCheckRequired =
@@ -98,6 +115,13 @@ void ColliderManager::CheckCollisions(float p_delta)
                 (isDestroyedOnCollision2 && isHitbox1);
 
             if (!isCollisionCheckRequired) continue;
+
+            // Skip collisions between enemies to avoid them sticking
+            if ((isSolidEnemy1 && isSolidEnemy2) || (isSnake1 && isSnake2)) continue;
+
+            // Skip collisions between snakes and anything that isn't a wall
+            if ((isSnake1 && isPlayer2) || (isSnake2 && isPlayer1)) continue;
+            if ((isSnake1 && isSolidEnemy2) || (isSnake2 && isSolidEnemy1)) continue;
 
             // Perform collision check
             if (this->IsCollidingInternalUse(collider1, collider2, p_delta))
@@ -461,9 +485,15 @@ void ColliderManager::CheckCornerCollision(float p_delta)
     // Compare moving colliders with each other and with static colliders
     for (auto& [collider1, velocity1] : movingColliders)
     {
+        auto* pObject1 = collider1->GetGameObject();
+
         // Get transform and scale of first collider
-        glm::vec2 translation1 = collider1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-        glm::vec2 scale1 = collider1->IsRelative() ? collider1->GetGameObject()->GetComponent<wolf::Transform2D>()->GetGlobalScale() : glm::vec2(1.0f);
+        glm::vec2 translation1 = pObject1->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        glm::vec2 scale1 = collider1->IsRelative() ? pObject1->GetComponent<wolf::Transform2D>()->GetGlobalScale() : glm::vec2(1.0f);
+
+        const bool isSolidEnemy1 = pObject1->HasAny<MinitaurController, GorgonController>();
+        const bool isPlayer1 = pObject1->HasAny<PlayerController>();
+        const bool isSnake1 = pObject1->HasAny<SnakeController>();
 
         for (wolf::Rectangle box1 : collider1->GetColliderBoxes())
         {
@@ -474,6 +504,20 @@ void ColliderManager::CheckCornerCollision(float p_delta)
             {
                 if (collider1 == collider2) continue;
 
+                auto* pObject2 = collider2->GetGameObject();
+                
+                
+                const bool isSolidEnemy2 = pObject2->HasAny<MinitaurController, GorgonController>();
+                const bool isPlayer2 = pObject2->HasAny<PlayerController>();
+                const bool isSnake2 = pObject2->HasAny<SnakeController>();
+
+                // Skip collisions between enemies to avoid them sticking
+                if ((isSolidEnemy1 && isSolidEnemy2) || (isSnake1 && isSnake2)) continue;
+
+                // Skip collisions between snakes and anything that isn't a wall
+                if ((isSnake1 && isPlayer2) || (isSnake2 && isPlayer1)) continue;
+                if ((isSnake1 && isSolidEnemy2) || (isSnake2 && isSolidEnemy1)) continue;
+
                 if (HandleCornerCollision(collider1, velocity1, corners1, collider2, scale1, translation1))
                 {
                 }
@@ -482,6 +526,21 @@ void ColliderManager::CheckCornerCollision(float p_delta)
             // Compare with static colliders
             for (auto* collider2 : staticColliders)
             {
+                if (collider1 == collider2) continue;
+
+                auto* pObject2 = collider2->GetGameObject();
+
+                const bool isSolidEnemy2 = pObject2->HasAny<MinitaurController, GorgonController>();
+                const bool isPlayer2 = pObject2->HasAny<PlayerController>();
+                const bool isSnake2 = pObject2->HasAny<SnakeController>();
+
+                // Skip collisions between enemies to avoid them sticking
+                if ((isSolidEnemy1 && isSolidEnemy2) || (isSnake1 && isSnake2)) continue;
+
+                // Skip collisions between snakes and anything that isn't a wall
+                if ((isSnake1 && isPlayer2) || (isSnake2 && isPlayer1)) continue;
+                if ((isSnake1 && isSolidEnemy2) || (isSnake2 && isSolidEnemy1)) continue;
+
                 if (HandleCornerCollision(collider1, velocity1, corners1, collider2, scale1, translation1))
                 {
                 }

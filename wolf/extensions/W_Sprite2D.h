@@ -69,6 +69,10 @@ public:
     bool IsVisible() const { return m_visible; }
     void SetVisibility(bool visible) { m_visible = visible; }
 
+    // Whether or not this sprite should have lighting applied when rendered
+    bool IsLightingEnabled() const { return m_lightingEnabled; }
+    void SetLightingEnabled(bool value) { m_lightingEnabled = value; }
+
     // Draw the sprite at the given position, rotation, and scale in world space
     // Multiplies final pixel color by provided tint color
     // NOTE: Requires a Camera2D to be bound to slot 0 before drawing.
@@ -96,6 +100,7 @@ private:
     int m_layer = 0;
 
     bool m_visible = true;
+    bool m_lightingEnabled = true;
 
     // Static resources shared by all sprites
     static inline wolf::Program* s_pProgram = nullptr;

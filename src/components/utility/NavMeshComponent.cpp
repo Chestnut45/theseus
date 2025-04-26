@@ -553,6 +553,9 @@ void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject
         
         glm::vec2 pos = transform->GetGlobalPosition();
         bool isPlayer = (obj == player);
+
+        // Offset to fix tile position when hugging top wall
+        if (isPlayer) pos.y -= 16.0f;
         
         // Calculate bounds for spatial lookup
         int cellX = static_cast<int>(pos.x / SPATIAL_CELL_SIZE);
@@ -566,7 +569,7 @@ void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject
                 auto it = m_spatialHash.find({cellX + dx, cellY + dy});
                 if (it == m_spatialHash.end()) continue;
                 
-                for (int polyId : it->second) 
+                for (int polyId : it->second)
                 {
                     // Skip if already processed
                     if (newlyAffected.count(polyId) > 0)
@@ -603,6 +606,16 @@ void NavMeshComponent::UpdateDynamicObstacles(const std::vector<wolf::GameObject
     }
     
     m_obstacleAffectedPolygons.assign(newlyAffected.begin(), newlyAffected.end());
+}
+
+void NavMeshComponent::Clear()
+{
+    m_obstacles.clear();
+    m_polygons.clear();
+    m_edges.clear();
+    m_spatialHash.clear();
+    m_obstacleAffectedPolygons.clear();
+    m_originalVisibility.clear();
 }
 
 void NavMeshComponent::ProcessAffectedPolygon(int polyId, bool isPlayer, std::unordered_set<int>& affected)
@@ -650,7 +663,7 @@ void NavMeshComponent::DebugDraw() const
             );
         }
     }
-    renderer->RenderAndDeleteTriangles();
+    // renderer->RenderAndDeleteTriangles();
     
     // Draw edges
     for (const auto& edge : m_edges) 
@@ -661,7 +674,7 @@ void NavMeshComponent::DebugDraw() const
             {edge.end.x, edge.end.y, color.r, color.g, color.b, color.a}
         );
     }
-    renderer->RenderAndDeleteLines();
+    // renderer->RenderAndDeleteLines();
 }
 
 bool NavMeshComponent::IsPathValid(const std::vector<glm::vec2>& path) const

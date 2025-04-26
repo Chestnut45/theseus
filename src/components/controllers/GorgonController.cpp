@@ -38,6 +38,10 @@ void GorgonController::Init(const EnemyData& data)
 
     // Call base initialization
     EnemyController::Init();
+
+    // Seed rng randomly
+    m_RNG.SetSeed(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+
     m_transitionDelay = m_RNG.NextFloat(0.8f, 1.6f);
 
     // Assign enemy data
@@ -110,6 +114,21 @@ void GorgonController::Init(const EnemyData& data)
     {
         wolf::Warning("MinitaurController: No PathfindingManager found in the scene!");
     }
+
+    bool navmeshfound = false;
+    for (auto&& [entity, navmesh] : GetGameObject()->GetScene().Each<NavMeshComponent>())
+    {
+        m_pNavMeshComponent = &navmesh;
+        navmeshfound = true;
+        break; // there's only one PathfindingManager in the scene
+    }
+    if (!navmeshfound)
+    {
+        wolf::Warning("MinitaurController: No navmesh found in the scene!");
+    }
+
+    // Initialize first state
+    ChangeState(EnemyState::IDLE);
 }
 
 
@@ -137,8 +156,11 @@ void GorgonController::Update(float delta)
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
     if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
-        ChangeState(EnemyState::PETRIFIED);
-        return;
+        if (m_state != EnemyState::PETRIFIED && m_state != EnemyState::DEATH)
+        {
+            ChangeState(EnemyState::PETRIFIED);
+            return;
+        }
     }
     else 
     {
@@ -317,29 +339,120 @@ void GorgonController::MoveTowardsTarget(float delta)
     if (!m_pTarget || !m_pVelocity || !m_pTransform || !m_pPathfindingManager)
         return;
 
-    auto& pathData = m_pPathfindingManager->GetPathData(GetGameObject());
-
-    if (pathData.path.empty())
-    {
-        FallbackToDirectMovement(delta);
-        return;
-    }
-
-    glm::ivec2 nextTile = pathData.path.front();
-    glm::vec2 nextTileWorldPos = m_pPathfindingManager->GetLabyrinthManager()->GetWorldPosition(nextTile) + glm::vec2(48.0f, 48.0f);
     glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
-    glm::vec2 direction = nextTileWorldPos - currentPosition;
+    glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
 
-    if (glm::length(direction) > 0.5f)
+    if (m_pTarget->HasAny<PlayerController>())
     {
-        direction = glm::normalize(direction);
-        m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+        targetPosition.y -= 16.0f;
     }
-    else
+
+    // Reset flag to always attempt using the navmesh first
+    m_useNavMesh = true;
+    
+    // STEP 1: Try NavMesh pathfinding first
+    if (m_pNavMeshComponent && m_useNavMesh)
     {
-        // Advance to the next tile
-        pathData.path.erase(pathData.path.begin());
+        // Update path periodically
+        if (m_navMeshPath.empty() || m_navMeshPathUpdateTimer <= 0.0f)
+        {
+            // Try full NavMesh pathfinding first
+            m_navMeshPath = m_pNavMeshComponent->FindPath(currentPosition, targetPosition);
+            
+            // Validate the path
+            if (m_navMeshPath.size() >= 2 && !m_pNavMeshComponent->IsPathValid(m_navMeshPath))
+            {
+                m_navMeshPath = m_pNavMeshComponent->CreateGridBasedPath(currentPosition, targetPosition);
+                
+                if (m_navMeshPath.size() < 2)
+                {
+                    m_useNavMesh = false;
+                }
+            }
+            else if (m_navMeshPath.size() < 2)
+            {
+                m_useNavMesh = false;
+            }
+            
+            // Add random variation so they don't stick on top of each other as much
+            static wolf::RNG navRNG(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+            m_navMeshPathUpdateTimer = navRNG.NextFloat(0.1f, 0.6f);
+        }
+        else
+        {
+            m_navMeshPathUpdateTimer -= delta;
+        }
+        
+        // Follow NavMesh path if valid
+        if (m_navMeshPath.size() >= 2)
+        {
+            glm::vec2 nextPoint = m_navMeshPath[1];
+            glm::vec2 direction = nextPoint - currentPosition;
+            float distance = glm::length(direction);
+            
+            // More generous tolerance for waypoint arrival
+            if (distance <= 48.0f)
+            {
+                m_navMeshPath.erase(m_navMeshPath.begin());
+            }
+            else
+            {
+                direction = glm::normalize(direction);
+                m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+                return; // Successfully using NavMesh
+            }
+        }
     }
+    
+    // STEP 2: Fall back to grid-based pathfinding
+    if (m_pPathfindingManager)
+    {
+        auto& pathData = m_pPathfindingManager->GetPathData(GetGameObject());
+        
+        // If we need a new grid path
+        if (pathData.path.empty() || pathData.targetTile != glm::ivec2(targetPosition) / 
+                                     (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE))
+        {
+            glm::ivec2 currentTile = glm::ivec2(currentPosition) / 
+                                    (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+            glm::ivec2 targetTile = glm::ivec2(targetPosition) / 
+                                   (LabyrinthManager::SCALE * LabyrinthManager::TILE_SIZE);
+            
+            
+            // Explicitly request a new path
+            std::vector<glm::ivec2> newPath = m_pPathfindingManager->FindPath(currentTile, targetTile);
+            
+            if (!newPath.empty())
+            {
+                pathData.path = newPath;
+                pathData.targetTile = targetTile;
+            }
+        }
+        
+        if (!pathData.path.empty())
+        {
+            glm::ivec2 nextTile = pathData.path.front();
+            glm::vec2 nextTileWorldPos = m_pPathfindingManager->GetLabyrinthManager()->GetWorldPosition(nextTile) + 
+                                       glm::vec2(48.0f, 48.0f);
+            glm::vec2 direction = nextTileWorldPos - currentPosition;
+            float distance = glm::length(direction);
+            
+            if (distance > 48.0f)
+            {
+                direction = glm::normalize(direction);
+                m_pVelocity->SetVelocity(direction * m_chaseSpeed);
+                return; // Successfully using grid pathfinding
+            }
+            else
+            {
+                // Advance to the next waypoint
+                pathData.path.erase(pathData.path.begin());
+                return;
+            }
+        }
+    }
+
+    FallbackToDirectMovement(delta);
 }
 
 // Fallback to direct movement if pathfinding fails
@@ -348,8 +461,13 @@ void GorgonController::FallbackToDirectMovement(float delta)
     if (!m_pTarget || !m_pVelocity || !m_pTransform) return;
 
     // Calculate the direction towards the player and move the Gorgon
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPosition.y -= 16.0f;
+    }
 
     // Calculate direction vector
     glm::vec2 direction = targetPosition - currentPosition;
@@ -453,8 +571,14 @@ void GorgonController::HandleChasingState(float delta)
     // glm::vec2 currentVelocity = m_pVelocity->GetVelocity();
     // printf("After MoveTowardsTarget - Velocity: (%f, %f)\n", currentVelocity.x, currentVelocity.y);
 
-    const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPosition.y -= 16.0f;
+    }
+
     const float distanceToTarget = glm::length(targetPosition - currentPosition);
 
     // If player is out of detection range
@@ -502,7 +626,6 @@ void GorgonController::HandleChasingState(float delta)
             IsTargetInLOS()                                                                                     // If target in line of sight
         )
         {
-            wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), true));
             ChangeState(EnemyState::ATTACKING);
             return;
         }
@@ -521,13 +644,12 @@ void GorgonController::HandleAttackingState(float delta)
     if(m_rangedWindupTimer > 0.0f)
     {
         m_rangedWindupTimer -= delta;
+        if (m_rangedWindupTimer <= 0.0f) m_rangedWindupTimer = 0.0f;
         
         // Brighten sprite to indicate attack
-        if(m_pAnimComponent != nullptr)
+        if(m_pAnimComponent)
         {
-            glm::vec3 currentTint = m_pAnimComponent->GetTint();
-            glm::vec3 nextTint = currentTint + glm::vec3(delta / (m_rangedWindupTime * 0.5f));
-            m_pAnimComponent->SetTint(nextTint);
+            m_pAnimComponent->SetTint(glm::vec3(1.0f) * glm::mix(1.0f, 2.0f, (m_rangedWindupTime - m_rangedWindupTimer) / m_rangedWindupTime));
         }
     }
     
@@ -538,15 +660,26 @@ void GorgonController::HandleAttackingState(float delta)
 
         // Determine if target's collider is active and a hurtbox
         auto* pCollider = m_pTarget->GetComponent<ColliderComponent>();
-        const bool active = pCollider ? (pCollider->IsActive() && pCollider->IsHurtbox()) : false;
+        const bool active = pCollider ? (pCollider->IsActive()) : false;
 
         // If target is in line of sight, petrify target and switch to prospect
         if(active && m_pTargetStatusComponent && IsTargetInLOS())
         {
-            m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 5.0f);
+            m_pTargetStatusComponent->AddStatusEffect(StatusComponent::StatusEffectType::PETRIFIED, 3.0f);
+            
+            if (auto* pHealth = m_pTarget->GetComponent<HealthComponent>())
+            {
+                pHealth->Pierce(20.0f);
+            }
+
+            if (auto* pSprite = m_pTarget->GetComponent<AnimatedSprite2D>())
+            {
+                pSprite->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED, 0.25f, 2.5f, 0.25f);
+            }
+
+            wolf::Audio::Play("data/sounds/sfx_petrification.wav", 0.45f);
         }
         
-        wolf::EventManager::TriggerEvent(LightToggleEvent(this->GetGameObject()->GetID(), false));
         ChangeState(EnemyState::CHASING);
         return;
     }
@@ -586,7 +719,6 @@ void GorgonController::HandleStunnedState(float delta)
     }
     else
     {
-        //m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
         m_stunnedTimer += delta;
     }
 }
@@ -607,20 +739,26 @@ void GorgonController::UpdateAnimationBasedOnDirection()
         {
             if(m_state == EnemyState::ATTACKING)
             {
-                const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+                glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
                 const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
+
+                if (m_pTarget->HasAny<PlayerController>())
+                {
+                    targetPosition.y -= 16.0f;
+                }
+
                 const glm::vec2 vectorToTarget = targetPosition - currentPosition;
                 const float distanceToTarget = glm::length(vectorToTarget);
 
                 if (fabs(vectorToTarget.x) > fabs(vectorToTarget.y))
                 {
                     // Moving left or right
-                    animationName = (vectorToTarget.x > 0.0f) ? "StandEast" : "StandWest";
+                    animationName = (vectorToTarget.x > 0.0f) ? "AttackEast" : "AttackWest";
                 }
                 else
                 {
                     // Moving up or down
-                    animationName = (vectorToTarget.y > 0.0f) ? "StandNorth" : "StandSouth";
+                    animationName = (vectorToTarget.y > 0.0f) ? "AttackNorth" : "AttackSouth";
                 }
             }
         }
@@ -693,6 +831,12 @@ void GorgonController::UpdateAnimationBasedOnDirection()
 
 void GorgonController::HandleDeathState(float delta)
 {
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
+
     // Fall over
     if(m_fallDeadTimer <= m_timeToFallDead)
     {
@@ -724,7 +868,7 @@ void GorgonController::HandleDeathState(float delta)
         if(m_lieDeadTimer >= m_timeToLieDead)
         {
             // Spawn some loot
-            std::vector<wolf::GameObject*> pItemDrops = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/loot/minitaur_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
+            std::vector<wolf::GameObject*> pItemDrops = ItemDropCreator::Instance()->CreateItemDropFromLootTable("data/loot/gorgon_loot.yaml", m_pTransform->GetGlobalPosition(), -1.0f);
             
             // Harpies can be inside of the walls so we need to push the loot out. To do that,
             // we get the loot item's velocity component
@@ -735,12 +879,6 @@ void GorgonController::HandleDeathState(float delta)
                     // that caluclates which direction the item should ACTUALLY be pushed in to get it out of the
                     // wall
                     pItemVel->ApplyKnockback(glm::vec2(1.0f, 0.0f), 10.0f);
-                }
-                ColliderComponent* pItemCollider = pItem->GetComponent<ColliderComponent>();
-                if (pItemCollider)
-                {
-                    // Disable the collider after knockback
-                    pItemCollider->SetActive(false);
                 }
             }
             GetGameObject()->Delete();
@@ -757,22 +895,32 @@ void GorgonController::EnterAttackState()
         m_RNG.NextFloat(-4.0f, 4.0f)
         );
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+    if (m_pAnimComponent) m_pAnimComponent->SetTint(glm::vec3(1.0f));
+
+    wolf::Audio::Play("data/sounds/sfx_gorgon_screech.wav", 0.36f, m_RNG.NextInt(-5000, 5000));
 }
 
 void GorgonController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
+
+    wolf::Audio::Play("data/sounds/sfx_gorgon_rattle.wav", 1.0f, m_RNG.NextInt(-5000, 5000));
 }
 
 void GorgonController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+    // Idle in a random direction
+    static const char* dirs[] = {"StandNorth", "StandEast", "StandSouth", "StandWest"};
+    static wolf::RNG idleRNG(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    m_pAnimComponent->SetAnimation(std::string(dirs[idleRNG.NextInt(0, 3)]));
 }
 
 void GorgonController::EnterPetrifiedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED);
 }
 
 void GorgonController::EnterProspectState()
@@ -781,23 +929,28 @@ void GorgonController::EnterProspectState()
 
 void GorgonController::EnterStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    }
 }
 
 void GorgonController::EnterDeathState()
 {
     m_IsRenderingAttackIndicator = false;
     SetEmote(EnemyEmote::NONE);
+    if (m_pAnimComponent)
+    {
+        m_pAnimComponent->SetAnimPaused(true);
+    }
 }
 
 void GorgonController::ExitAttackState()
 {   
     m_curentCrosshairColour = CROSSHAIR_COLOUR;
 
-    if(m_pAnimComponent != nullptr)
-    {
-        m_pAnimComponent->SetTint(glm::vec3(1.0f, 1.0f, 1.0f));
-    }
+    if (m_pAnimComponent) m_pAnimComponent->SetTint(glm::vec3(1.0f));
 
     m_rangedTimer = m_rangedCooldown;
     m_rangedWindupTimer = m_rangedWindupTime;
@@ -817,7 +970,11 @@ void GorgonController::ExitIdleState()
 
 void GorgonController::ExitPetrifiedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_pAnimComponent->SetAnimPaused(false);
 }
 
@@ -830,7 +987,11 @@ void GorgonController::ExitProspectState()
 
 void GorgonController::ExitStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_stunnedTimer = 0.0f;
 }
 
@@ -878,8 +1039,15 @@ bool GorgonController::IsTargetDetected()
 
 bool GorgonController::IsTargetInLOS()
 {
+    if (!m_pTarget) return false;
+
     glm::vec2 thisPos = m_pTransform->GetGlobalPosition();
     glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPos.y -= 16.0f;
+    }
 
     if(DDACalculator::GetInstance()->GetEndpoint(thisPos, targetPos) == targetPos)
     {
@@ -894,6 +1062,12 @@ void GorgonController::RenderIndicator()
 {
     glm::vec2 thisPos = m_pTransform->GetGlobalPosition();
     glm::vec2 targetPos = this->m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPos.y -= 16.0f;
+    }
+    
     glm::vec2 endPos = DDACalculator::GetInstance()->GetEndpoint(thisPos, targetPos);
     glm::vec4 colour = this->m_curentCrosshairColour;
     

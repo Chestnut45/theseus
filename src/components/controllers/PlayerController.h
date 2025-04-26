@@ -98,9 +98,6 @@ public:
 
     //set player action
     void SetAction(PlayerAction action);
-
-    // setting the holding object bool variable
-    void SetHoldingObject(bool isHolding);
  
     // This getter simply returns the current value of m_lastFaceDirectionEnum, allowing ThrowableObjectComponent to access it.
     PlayerDirection GetLastFacingDirection() const { return m_lastFaceDirectionEnum; }
@@ -110,18 +107,19 @@ public:
     void SetActive(bool value) { m_active = value; }
     bool IsActive() const { return m_active; }
 
+    bool IsAlive() const;
+
 private:
     // Initialization and animation management
     void InitializeAnimations();
     void SetAnimationBasedOnState();
 
-    void HandlePlayerInput(float delta); // Declaration for the missing function
-    void HandleMovement(float delta);    // Declaration for HandleMovement
-    void HandleRolling(float delta);     // Declaration for HandleRolling
-    void HandleJumping(float delta);     // Declaration for HandleJumping
-    void HandleAttacking(float delta);   // Declaration for HandleAttacking
-    void HandleThrowing(float delta);  // Method to handle throwing
-    void HandlePetrified(float delta);  // Method to handle being petrified
+    void HandlePlayerInput(float delta);
+    void HandleMovement(float delta);
+    void HandleRolling(float delta);
+    void HandleAttacking(float delta);
+    void HandleThrowing(float delta);
+    void HandlePetrified(float delta);
     void HandlePlacing(float delta);  // Method to handle placing placeable items
     void HandleDeath(float delta);  // New method to handle the existential fear of death
 
@@ -153,26 +151,24 @@ private:
     // Manage and transition different player states
     void StartAttack();
     void StartPetrified();
-    void StartJump();       // Starts a jumping action
-    void StartRoll();       // Starts a rolling action
+    void StartRoll();
     void StartDeath();
     
     void EndAttacking();
-    void EndJump();         // Ends a jumping action
     void EndPetrified();
     void EndPlacing();
-    void EndRoll();         // Ends a rolling action
+    void EndRoll();
     
     void ThrowHeldObject();
     void PickUpObject();
     void DropObject();
 
     // Utility functions
-    void RegenerateStamina(float delta); // Regenerates stamina over time
+    void RegenerateStamina(float delta);
     void CheckHealth();
-    void RenderThrowPowerBar(); // rendering for the power bar
+    void RenderThrowPowerBar();
     void RenderDeathScreen(float delta);
-    void ResetDeathScreenState(); // cool function to reset vars
+    void ResetDeathScreenState();
 
     // Helper method to create blood particles on damage
     void EmitBloodParticles(const DamageEvent& event, float intensity = 1.0f);
@@ -212,30 +208,22 @@ private:
 
     // DEBUG: Godmode flags
     bool m_debugHotkeys = false;
+    bool m_showLabyrinthManager = false;
     bool m_godmode = false;
     bool m_superSpeed = false;
 
     // Stamina management
-    float m_rollSpeed = 400.0f;
+    float m_rollSpeed = 420.0f;
     float m_rollTimer = 0.0f;
     float m_rollDuration = 0.5f;
     float m_stamina = 100.0f;
     const float m_maxStamina = 100.0f;
     const float m_staminaRegenRate = 22.0f;
-    const float m_staminaRegenDelay = 0.35f;
+    const float m_staminaRegenDelay = 0.45f;
     wolf::Timer m_staminaRegenTimer;
-
-    // Jumping management
-    bool m_isJumping = false;
-    float m_jumpHeight = 10.0f;
-    float m_jumpSpeed = 300.0f;
-    float m_jumpTimer = 0.0f;
+    wolf::Timer m_staminaColorTimer;
 
     // Attacking management
-    bool m_hasAppliedDamage = false;
-    float m_attackCooldown = 0.5f;
-    float m_attackDamage = 50.0f;
-    float m_attackRange = 100.0f;
     glm::vec2 m_attackDir = glm::vec2(0.0f, 0.0f);
     wolf::Timer m_attackCooldownTimer;
     wolf::Timer m_attackTimer;
@@ -254,13 +242,15 @@ private:
 
     // Invulnerability after taking damage
     float m_prevHealthFraction = 1.0f;
+    float m_prevStaminaFraction = 1.0f;
     float m_invulnSeconds = 1.0f;
     wolf::Timer m_invulnTimer;
+    wolf::Timer m_healthColorTimer;
 
     //picking up management
     bool m_isHoldingObject = false;
     float m_chargeTime = 0.0f;  // New variable to store charge time for throws
-    float m_throwSpeed = 300.0f;  // Speed multiplier for the throw
+    float m_throwSpeed = 5.0f;  // Speed multiplier for the throw
     float m_throwPower = 0.0f;       // Power for the throw
     const float m_maxThrowPower = 125.0f; // Max limit for the throw power
     const float m_powerChargeRate = 150.0f; // Rate at which power increases

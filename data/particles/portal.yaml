@@ -1,0 +1,55 @@
+particle_config:
+  color: [1.0, 1.0, 1.0, 0.8]
+  size: 5.0
+  lifetime: 2.0
+  rotation: 0.0
+  angular_velocity: 120.0
+  
+  velocity:
+    x: 0.0
+    y: -17.25
+  
+  max_particles: 75
+  emission_rate: 0.0
+  continuous_emission: true
+  autodestroy: false
+  
+  use_texture: true
+  texture_path: "data/textures/portal_particle.png"
+  additive: false
+  
+  modifiers:
+    emission_shape:
+      enabled: false
+      shape_type: 0
+      random_direction: true
+      direction_angle: 180.0
+      spread_angle: 34.5
+      emit_from_edge: false
+    
+    gravity:
+      enabled: false
+      gravity_x: 0.0
+      gravity_y: -34.5
+      strength: 1.0
+    
+    drag:
+      enabled: true
+      coefficient: 0.3
+    
+    size_over_lifetime:
+      enabled: true
+      start_scale: 1.0
+      end_scale: 8.0
+      curve_type: 2
+    
+    color_over_lifetime:
+      enabled: true
+      start_color: [1.0, 1.0, 1.0, 0.8]
+      end_color: [1.0, 1.0, 1.0, 0.0]
+    
+    rotation:
+      enabled: true
+      rotation_speed: 180.0
+      random_initial: true
+      random_direction: true

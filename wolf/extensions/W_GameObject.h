@@ -107,6 +107,24 @@ public:
         return HasAnyRecurse(this);
     }
 
+    // Returns the first instance in the game object hierarchy of the given component
+    // Returns nullptr if none could be found
+    template <typename T>
+    T* FindChildComponent()
+    {
+        std::function<T*(GameObject*)> FindRecurse = [&, this](GameObject* pGO) -> T* {
+            T* comp = m_scene.m_registry.try_get<T>(pGO->GetID());
+            if (comp) return comp;
+            for (auto child : pGO->GetChildren())
+            {
+                T* childComp = FindRecurse(child);
+                if (childComp) return childComp;
+            }
+            return nullptr;
+        };
+        return FindRecurse(this);
+    }
+
     // Hierarchy management
     
     // Adds a game object to our list of children

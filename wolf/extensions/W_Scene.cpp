@@ -125,6 +125,9 @@ void Scene::Render(float delta)
     std::map<int, std::vector<std::pair<Sprite2D*, Transform2D*>>> sortedSprites;
     for (auto&&[_, sprite, transform] : Each<Sprite2D, Transform2D>())
     {
+        // Ignore sprites that shouldn't have lighting applied
+        if (!sprite.IsLightingEnabled()) continue;
+        
         int layer = sprite.GetLayer();
 
         // Add new spritebatch if it doesn't exist
@@ -175,20 +178,6 @@ void Scene::Render(float delta)
             pair.first->Draw(pair.second->GetGlobalPosition(), pair.second->GetGlobalRotation(), pair.second->GetGlobalScale());
         }
     }
-
-    // Queue all colliders for debug rendering
-    if (m_renderDebugColliders)
-    {
-        for (auto&&[_, collider] : Each<ColliderComponent>())
-        {
-            if (collider.IsActive()) collider.FillVertexArray();
-        }
-        ColliderComponent::DebugDrawAndFlush();
-    }
-    
-    // Render Shapes
-    GLShapesRenderer::GetInstance()->RenderAndDeleteLines();
-    GLShapesRenderer::GetInstance()->RenderAndDeleteTriangles();
 }
 
 void _SceneTests()

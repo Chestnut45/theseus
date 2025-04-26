@@ -124,6 +124,20 @@ void NPCComponent::Update(float p_fDelta) {
         ChangeState(State::DEAD);
     }
 
+    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+    if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    {
+        if (m_state != State::DEAD) m_state = State::PETRIFIED;
+    }
+    else
+    {
+        if (m_state == State::PETRIFIED)
+        {
+            m_state = State::IDLE;
+            m_pAnimSpriteComp->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+        }
+    }
+
     // Handle the current state of the NPC accordingly
     switch (m_state)
     {
@@ -181,6 +195,13 @@ void NPCComponent::Init() {
 
 void NPCComponent::HandleDeadState(float p_fDelta) {
     // *** This method is taken directly from Nhat's HandleDeathState() in the PlayerController ***
+
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimSpriteComp->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
+
     // Fall over
     if(m_fFallDeadTimer <= m_fTimeToFallDead)
     {
@@ -430,7 +451,11 @@ void NPCComponent::EnterRoamState()
 void NPCComponent::EnterStunnedState()
 {
     m_fStunnedTimer = m_fStunnedTime; // Reset the stunned timer
-    m_pAnimSpriteComp->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE); // Set NPC sprite to be completely white
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimSpriteComp->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    }
     m_pVeloComp->SetVelocity(glm::vec2(0.0f, 0.0f)); // Set the NPC velocity to 0
 }
 
@@ -497,7 +522,11 @@ void NPCComponent::HandleStunnedState(float p_fDelta)
 void NPCComponent::ExitStunnedState()
 {
     // Disable the white sprite effect
-    m_pAnimSpriteComp->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimSpriteComp->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
 }
 
 void NPCComponent::CheckRoamSpeed()

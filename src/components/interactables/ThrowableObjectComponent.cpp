@@ -31,7 +31,7 @@ void ThrowableObjectComponent::Update(float delta) {
 
     switch (m_state) {
         case ThrowableState::IDLE:
-            m_pCollider->SetActive(false);
+            m_pCollider->SetColliderType(ColliderComponent::ColliderType::OCCLUDER);
             if (IsCloseToPlayer(150.0f)) {
                 m_hoverAnimationOffset = sin(ImGui::GetTime() * 3.0f) * 5.0f;
                 RenderPickupPrompt();
@@ -39,12 +39,12 @@ void ThrowableObjectComponent::Update(float delta) {
             break;
 
         case ThrowableState::PICKED_UP:
-            m_pCollider->SetActive(false);
-            FollowPlayer();
+            m_pCollider->SetColliderType(ColliderComponent::ColliderType::OCCLUDER);
+            FollowPlayer(delta);
             break;
 
         case ThrowableState::THROWN:
-            m_pCollider->SetActive(true);
+            m_pCollider->SetColliderType(ColliderComponent::ColliderType::HURTBOXDD);
             // Add the AttackDamageComponent to the GameObject
             if (!GetGameObject()->HasAll<AttackDamageComponent>()) {
                 auto& attackDamageComponent = GetGameObject()->AddComponent<AttackDamageComponent>(
@@ -111,7 +111,7 @@ void ThrowableObjectComponent::RenderPickupPrompt() {
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(2);
 }
-void ThrowableObjectComponent::FollowPlayer() {
+void ThrowableObjectComponent::FollowPlayer(float delta) {
     if (!m_pTransform) return;
 
     // Retrieve the player’s direction
@@ -136,7 +136,8 @@ void ThrowableObjectComponent::FollowPlayer() {
 
         // Smoothly update the object's position relative to the player with the calculated offset
         glm::vec2 targetPosition = playerTransform->GetGlobalPosition() + offset;
-        m_pTransform->SetPosition(glm::mix(m_pTransform->GetGlobalPosition(), targetPosition, 0.1f)); // 0.1f for smooth following
+        glm::vec2 dir = targetPosition - m_pTransform->GetGlobalPosition();
+        m_pTransform->Translate(dir * delta * 16.0f);
     }
 }
 

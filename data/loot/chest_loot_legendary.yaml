@@ -1,16 +1,15 @@
-min_items: 6
-max_items: 10
+min_items: 3
+max_items: 6
 loot_table: [
-  {name: Legendary Schematic, probability: 4},
-  {name: Liquid Life, probability: 4},
-  {name: Gold Pile, probability: 2},
-  {name: Gold Handful, probability: 2},
-  {name: Healing Heart, probability: 2},
-  {name: Gorgon Tears, probability: 1},
+  {name: Gold Pile, probability: 20},
+  {name: Liquid Life, probability: 15},
+  {name: Legendary Schematic, probability: 5},
+  {name: Juggin Juice, probability: 1},
 ]
 
 guaranteed_items: [
+  {name: Legendary Schematic},
   {name: Lapis Lazuli Ring},
-  {name: The Floor is Lava Boots},
   {name: Portal, amount: 2},
+  {name: Gold Pile},
 ]

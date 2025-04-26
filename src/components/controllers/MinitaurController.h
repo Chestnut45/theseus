@@ -88,9 +88,6 @@ private:
     std::vector<glm::ivec2> m_path;               // Current path to the player
     size_t m_currentPathIndex = 0;                // Index of the current tile in the path
     PathfindingManager* m_pPathfindingManager = nullptr;  // Pointer to the pathfinding manager
-    glm::ivec2 m_lastTargetTile; // Tracks the last target tile
-    glm::ivec2 m_lastStartTile;  // Tracks the last start tile
-    void RenderDebugPath();
         
 
     //-----------------//
@@ -130,4 +127,8 @@ private:
     glm::vec2 m_lastPosition = glm::vec2(0.0f);
     float m_stuckTimer = 0.0f;
     bool m_useNavMesh = true;
+
+    // SFX timer
+    wolf::Timer m_oinkTimer;
+    float m_nextOinkTime = 0.25f;
 };

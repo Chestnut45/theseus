@@ -13,14 +13,13 @@
 void MainMenuState::Enter()
 {
     // Initialize the main menu
-    wolf::Audio::Stop();
-    wolf::Audio::Play("data/sounds/bgm_title_screen.wav", 1.2f, 0.0f, 0.0f, false, true, 3.31f);
+    wolf::Audio::Play("data/sounds/bgm_title_screen.wav", 1.3f, 0.0f, 0.0f, false, true, 3.31f);
 }
 
 void MainMenuState::Exit()
 {
     // Clean up the main menu
-    wolf::Audio::Stop();
+    wolf::Audio::Stop("data/sounds/bgm_title_screen.wav");
 }
 
 void MainMenuState::Update(float delta)
@@ -69,15 +68,6 @@ void MainMenuState::Update(float delta)
 
     // Spacing
     ImGui::NewLine();
-
-    // Push the button style vars and colors
-    // ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 3.0f);
-    // ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
-    // ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.659f, 0.0f, 1.0f));
-    // ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.5f * buttonShade));
-    // ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-    // ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.75f * buttonShade));
-    
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
@@ -162,19 +152,54 @@ void MainMenuState::Update(float delta)
             ImGui::SeparatorText("Display");
             ImGui::EndChild();
             ImGui::SetCursorPosX(startX - 47);
-            if (ImGui::Checkbox("Fullscreen", &fullscreen)) m_pGameInstance->SetFullscreen(fullscreen);
+
+            static bool fsHovered = false;
+            static bool fsWasHovered = false;
+            if (ImGui::Checkbox("Fullscreen", &fullscreen))
+            {
+                m_pGameInstance->SetFullscreen(fullscreen);
+                wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
+            }
+            fsHovered = ImGui::IsItemHovered();
+            if (fsHovered && !fsWasHovered)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            fsWasHovered = fsHovered;
             ImGui::SetCursorPosX(startX - 47);
-            if (ImGui::Checkbox("Vsync", &vsync)) m_pGameInstance->SetVsync(vsync);
+            static bool vsyncHovered = false;
+            static bool vsyncWasHovered = false;
+            if (ImGui::Checkbox("Vsync", &vsync))
+            {
+                m_pGameInstance->SetVsync(vsync);
+                wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
+            }
+            vsyncHovered = ImGui::IsItemHovered();
+            if (vsyncHovered && !vsyncWasHovered)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            vsyncWasHovered = vsyncHovered;
             ImGui::SetCursorPosX(startX - 47);
             ImGui::BeginChild("###Constraint2", ImVec2(256, 20));
             ImGui::SeparatorText("Audio");
             ImGui::EndChild();
             ImGui::SetCursorPosX(startX - 47);
             ImGui::SetNextItemWidth(256);
+            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 32.0f);
+            static bool volHovered = false;
+            static bool volWasHovered = false;
             if (ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f, "%.2f"))
             {
                 wolf::Audio::SetGlobalVolume(volume * 1.2f);
             }
+            volHovered = ImGui::IsItemHovered();
+            if (volHovered && !volWasHovered)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            volWasHovered = volHovered;
+            ImGui::PopStyleVar();
 
             ImGui::NewLine();
             ImGui::SetCursorPosX(startX + 16);
@@ -199,19 +224,28 @@ void MainMenuState::Update(float delta)
 
             ImGui::SetCursorPosX(startX + 32);
             ImGui::SetCursorPosY(buttonY - 72);
-            if (ImGui::Checkbox("Random Seed", &m_randomSeed))
+            static bool csHovered = false;
+            static bool csWasHovered = false;
+            if (ImGui::Checkbox("Custom Seed", &m_customSeed))
             {
-                if (m_randomSeed)
+                wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
+                if (!m_customSeed)
                 {
                     m_seedText.clear();
                 }
             }
+            csHovered = ImGui::IsItemHovered();
+            if (csHovered && !csWasHovered)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            csWasHovered = csHovered;
+
             ImGui::SetCursorPosX(dimensions.x / 2 - 128);
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8);
             ImGui::SetNextItemWidth(256);
-            if (m_randomSeed) ImGui::BeginDisabled();
-            ImGui::InputText("Seed", &m_seedText, ImGuiInputTextFlags_CharsNoBlank);
-            if (m_randomSeed) ImGui::EndDisabled();
+            if (m_customSeed) ImGui::InputText("Seed", &m_seedText, ImGuiInputTextFlags_CharsNoBlank);
+            
             ImGui::SetCursorPosX(startX - 10);
             ImGui::SetCursorPosY(buttonY);
             static bool hovered4 = false;
@@ -219,8 +253,9 @@ void MainMenuState::Update(float delta)
             if (ImGui::Button("Enter the Labyrinth", {buttonWidth + 20, buttonHeight}))
             {
                 wolf::Audio::Stop();
-                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -8000.0f);
+                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, -8000.0f);
                 m_screen = Screen::FADE;
+                m_pGameInstance->SetDebugMode(m_debugModeEnabled);
             }
             hovered4 = ImGui::IsItemHovered();
             if (hovered4 && !wasHovered4)
@@ -228,7 +263,9 @@ void MainMenuState::Update(float delta)
                 wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
             }
             wasHovered4 = hovered4;
+
             ImGui::NewLine();
+
             ImGui::SetCursorPosX(startX + 16);
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
             static bool hovered5 = false;
@@ -236,8 +273,6 @@ void MainMenuState::Update(float delta)
             if (ImGui::Button("Back", {buttonWidth - 32, buttonHeight - 8}) || wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE))
             {
                 m_screen = Screen::MAIN;
-                m_randomSeed = true;
-                m_seedText.clear();
                 wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
             }
             hovered5 = ImGui::IsItemHovered();
@@ -246,9 +281,21 @@ void MainMenuState::Update(float delta)
                 wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
             }
             wasHovered5 = hovered5;
+
             ImGui::SetCursorPosX(14);
             ImGui::SetCursorPosY(ImGui::GetWindowSize().y - 32);
-            ImGui::Checkbox("Debug Mode Enabled", &m_debugModeEnabled);
+            static bool dmHovered = false;
+            static bool dmWasHovered = false;
+            if (ImGui::Checkbox("Debug Mode", &m_debugModeEnabled))
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
+            }
+            dmHovered = ImGui::IsItemHovered();
+            if (dmHovered && !dmWasHovered)
+            {
+                wolf::Audio::Play("data/sounds/sfx_ui_hover.wav", 0.15f);
+            }
+            dmWasHovered = dmHovered;
 
             break;
         

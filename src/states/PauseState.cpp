@@ -28,6 +28,7 @@ void PauseState::Update(float delta)
 {
     // Resume flag (deferred until end of function for safety)
     bool resume = false;
+    bool mainmenu = false;
 
     // Escape key triggers resume next frame
     if (wolf::Input::IsKeyJustDown(GLFW_KEY_ESCAPE)) resume = true;
@@ -121,7 +122,7 @@ void PauseState::Update(float delta)
     static bool wasHovered1 = false;
     if (ImGui::Button("Main Menu", {buttonWidth, buttonHeight}))
     {
-        m_pStateManager->ClearAndPushState(new MainMenuState(m_pStateManager, m_pGameInstance));
+        mainmenu = true;
         wolf::Audio::Play("data/sounds/sfx_ui_select.wav", 0.15f);
     }
     hovered1 = ImGui::IsItemHovered();
@@ -159,16 +160,64 @@ void PauseState::Update(float delta)
     ImGui::Text("Spacebar - Roll");
 
     ImGui::SetCursorPosX(controlsPosX);
-    ImGui::Text("E - Pickup / Interact");
+    ImGui::Text("E - Interact / Pickup");
 
     ImGui::SetCursorPosX(controlsPosX);
     ImGui::Text("M - Open / Close Minimap");
 
     ImGui::SetCursorPosX(controlsPosX);
-    ImGui::Text("Left-Click - Attack / Select");
+    ImGui::Text("Left Alt - Quick Inventory");
 
     ImGui::SetCursorPosX(controlsPosX);
-    ImGui::Text("Left-Click (held) - Charge Bow / Throw Object");
+    ImGui::Text("Left-Click - Attack / Select / Charge / Throw");
+
+    if (m_pGameInstance->IsDebugMode())
+    {
+        float dbgPosX = 12;
+        float dbgPosY = 12;
+        ImGui::NewLine();
+        ImGui::NewLine();
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::SetCursorPosY(dbgPosY);
+        ImGui::TextColored(ImColor(128, 128, 128, 255), "Debug Controls");
+        ImGui::NewLine();
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("` - Performance Window");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("; - Daedalus' Terminal");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("/ - Noclip");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("\\ - Collider Debug View");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("- - Zoom out");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("+ - Zoom in");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("1 - Fill Inventory");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("2 - Give Gold");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("3 - Take Gold");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("7 - Nav Mesh Debug View");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("Up - Apply Regeneration");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("Down - Apply Petrification");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("Left - Apply Burning");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("Right - Apply Poison");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("Home - Teleport to Spawn");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("Right Shift - Teleport to Minotaur's Chamber");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("Page Up - Superspeed");
+        ImGui::SetCursorPosX(dbgPosX);
+        ImGui::Text("Page Down - Godmode");
+    }
 
     // Pop the style color we added
     ImGui::PopStyleColor(1);
@@ -178,8 +227,8 @@ void PauseState::Update(float delta)
     // Debug information
     ImGui::SetCursorPosX(12);
     ImGui::SetCursorPosY(ImGui::GetWindowSize().y - 24);
-    std::string debugString = debugEnabled ? "- Debug Mode Enabled " : "";
-    ImGui::Text("Theseus v1.1 %s- Seed: %d", debugString.data(), seed);
+    std::string debugString = debugEnabled ? "- Debug Mode " : "";
+    ImGui::Text("Theseus v1.2 %s- Seed: %d", debugString.data(), seed);
 
     // Close window and pop vars
     ImGui::End();
@@ -189,6 +238,11 @@ void PauseState::Update(float delta)
     {
         wolf::EventManager::TriggerEvent(PauseEvent(false));
         m_pStateManager->PopState();
+    }
+
+    if (mainmenu)
+    {
+        m_pStateManager->ClearAndPushState(new MainMenuState(m_pStateManager, m_pGameInstance));
     }
 }
 

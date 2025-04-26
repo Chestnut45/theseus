@@ -1,0 +1,12 @@
+texture: data/textures/sheets/lightning_sheet.png
+frame_size: {x: 64.0, y: 64.0}
+
+animations: [
+  {
+    name: Strike,
+    start_frame: 1,
+    end_frame: 15,
+    origin: {x: 32.0, y: 0.0},
+    loops: false
+  },
+]

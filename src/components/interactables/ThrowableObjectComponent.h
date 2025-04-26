@@ -47,7 +47,7 @@ public:
     inline bool IsThrown() const { return m_state == ThrowableState::THROWN; }
 
 private:
-    void FollowPlayer(); // Makes the object follow the player when picked up
+    void FollowPlayer(float delta); // Makes the object follow the player when picked up
     void RenderPickupPrompt();
     void HandleCollision();
     void CheckLifetime(float delta);

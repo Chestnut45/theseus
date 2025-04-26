@@ -11,8 +11,6 @@
 #include "W_GameObject.h"
 #include "W_Logging.h"
 
-#include <yaml-cpp/yaml.h>
-
 // Initialize the counter
 int AnimatedSprite2D::s_iAnimSprite2DCount = 0;
 
@@ -32,8 +30,20 @@ AnimatedSprite2D::AnimatedSprite2D(const std::string& p_strPathToInit)
     IncreaseReferences();
 
     try {
-        // Grab the file
-        YAML::Node node = YAML::LoadFile(p_strPathToInit);
+
+        YAML::Node node;
+
+        if (s_configCache.contains(p_strPathToInit))
+        {
+            // Use cached config
+            node = s_configCache[p_strPathToInit];
+        }
+        else
+        {
+            // Load from disk and store in cache
+            node = YAML::LoadFile(p_strPathToInit);
+            s_configCache[p_strPathToInit] = node;
+        }
 
         // Get the frame size
         glm::vec2 v2Size;

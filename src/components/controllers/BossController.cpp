@@ -32,6 +32,7 @@
 
 #include <AttackDamageComponent.h>
 #include <TimedDestroyerComponent.h>
+#include <ThrowableObjectComponent.h>
 #include <GorgonBuilder.h>
 #include <MinitaurBuilder.h>
 #include <HarpyBuilder.h>
@@ -192,6 +193,22 @@ void BossController::Init()
 
     for (const auto& tile : locations)
     {
+        // Hack fix for throwables spawning on top of the pillars
+        if (roomOptional.has_value() && !roomOptional->IsEmpty(tile))
+        {
+            glm::vec2 tileWorldPos = m_pLabyrinthManager->GetWorldPosition(tile) + 48.0f;
+            for (auto&&[_, obj, transform] : GetGameObject()->GetScene().Each<ThrowableObjectComponent, wolf::Transform2D>())
+            {
+                // Delete the throwable that is occupying the pillar tile
+                // 48.0f = half tile radius (32px * 3 / 2)
+                if (glm::length(transform.GetGlobalPosition() - tileWorldPos) <= 48.0f)
+                {
+                    obj.GetGameObject()->Delete();
+                    break;
+                }
+            }
+        }
+
         m_pLabyrinthManager->SetTile(tile.x, tile.y, Tile::WallMinotaur);
 
         // Spawn a pillar as a child object of the pillar group object
@@ -208,12 +225,12 @@ void BossController::Init()
         collider.AddColliderBox(glm::vec2(96.0f), glm::vec2(0.0f, 96.0f));
 
         // Add a light
-        LightComponent& light = GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.8f), 100.0f, true);
+        LightComponent& light = GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.1f, 0.75f), 200.0f, true);
         pillar.AddChild(*light.GetGameObject());
         light.Init();
         light.SetIgnoreWallTiles(true);
+        light.SetShadowsEnabled(false);
         light.GetGameObject()->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(16, 16));
-        light.SetOn(false);
     }
     
     // Find player controller
@@ -244,37 +261,18 @@ void BossController::Init()
     sprite.SetOriginToCenterOfTexture();
 
     // Add a light
-    LightComponent& light = GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.8f), 150.0f, true);
-    GetGameObject()->AddChild(*light.GetGameObject());
-    light.Init();
-    light.SetIgnoreWallTiles(true);
-    light.SetOn(false);
-
-    // DEBUG: Fluid sim stress testing
-
-    // Calculate simulation bounds
-    // auto simBounds = wolf::Rectangle(r);
-    // simBounds.m_top *= 96;
-    // simBounds.m_left *= 96;
-    // simBounds.m_right *= 96;
-    // simBounds.m_bottom *= 96;
-
-    // // Create the fluid system
-    // auto& fluidObj = pObject->GetScene().CreateObject2D();
-    // auto& fluidSystem = fluidObj.AddComponent<BoundedFluidSystem2D>(simBounds);
-    // fluidSystem.SetupDamBreak(1000);
-    // fluidSystem.SetGravity(true);
-
-    // // TODO: Add pillars... (breaking?)
-    // auto rect = wolf::Rectangle(0.0f, 96.0f, 96.0f, 0.0f);
-    // for (const auto& tile : locations)
-    // {
-    //     auto bounds = rect;
-    //     bounds.Translate(m_pLabyrinthManager->GetWorldPosition(tile));
-    //     fluidSystem.AddStaticCollisionRect(bounds);
-    // }
+    m_pLight = &GetGameObject()->GetScene().CreateObject2D().AddComponent<LightComponent>(glm::vec4(0.8f, 0.32f, 0.08f, 0.75f), 225.0f, true);
+    GetGameObject()->AddChild(*m_pLight->GetGameObject());
+    m_pLight->Init();
+    m_pLight->SetOn(false);
 
     EnterPhase1();
+}
+
+void BossController::Deinit()
+{
+    m_pBossPillarGroup->Delete();
+    if (m_pAxeCollider) m_pAxeCollider->GetGameObject()->Delete();
 }
 
 // <----------------- GENERAL UPDATE METHODS ----------------->
@@ -285,6 +283,41 @@ void BossController::Update(float delta)
 
     // Update previous state
     m_prevState = m_state;
+
+    // Run petrification logic always
+    StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
+    if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
+    {
+        if (CanBePetrified())
+        {
+            m_state = State::PETRIFIED;
+        }
+    }
+    else
+    {
+        // On exiting petrified state
+        if (m_state == State::PETRIFIED)
+        {
+            m_pAnimSprite->SetTint(glm::vec3(1.0f));
+            switch (m_phase)
+            {
+                case FightPhase::PHASE_1:
+                    m_state = State::SIT;
+                    break;
+                
+                case FightPhase::PHASE_2:
+                    m_state = State::APPROACH;
+                    break;
+                
+                case FightPhase::PHASE_3:
+                    m_state = State::SEARCHING;
+                    break;
+            }
+
+            m_nextAttackTimer.Restart();
+            m_pAnimSprite->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+        }
+    }
 
     // Call phase-specific update method
     switch (m_phase)
@@ -302,7 +335,7 @@ void BossController::Update(float delta)
             break;
     }
 
-    UpdateAnimation();
+    if (m_state != State::PETRIFIED) UpdateAnimation();
     if (m_renderHealthBar) RenderHealthBar(delta);
 }
 
@@ -328,7 +361,7 @@ void BossController::StartBossfight()
             auto pLight = pChild->GetComponent<LightComponent>();
             if (pLight)
             {
-                pLight->SetOn(true);
+                pLight->SetShadowsEnabled(true);
             }
         }
     }
@@ -349,13 +382,12 @@ void BossController::UpdateAnimation()
     auto* pAnim = m_pAnimSprite->GetCurrentAnimation();
     if (pAnim->m_strName == "ThroneBreak")
     {
-        static bool growled = false;
         if (m_throneBreakTimer.Elapsed() < 3.0f)
         {
-            if (!growled && m_throneBreakTimer.Elapsed() >= 1.0f)
+            if (!m_phase2Growled && m_throneBreakTimer.Elapsed() >= 1.0f)
             {
-                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f);
-                growled = true;
+                wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f);
+                m_phase2Growled = true;
             }
             return;
         }
@@ -479,13 +511,17 @@ void BossController::RenderHealthBar(float delta)
         float colorCoefficient = m_damageFlashTimer.IsRunning() ? 1.0f - m_damageFlashTimer.Elapsed() : 0.0f;
 
         // Update health color
-        ImVec4 healthColor = ImVec4(1.0f, colorCoefficient, colorCoefficient, 1.0f);
+        ImVec4 healthColor = ImVec4(0.65f + colorCoefficient * 0.35, colorCoefficient, colorCoefficient, 1.0f);
 
         // Render previous health fraction underneath to indicate damage taken
         m_prevHealthFraction += (healthComponent->GetHealth() / healthComponent->GetMaxHealth() - m_prevHealthFraction) * delta * 4.0f;
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 32.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 32.0f);
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.9f, 0.559f, 0.0f, 1.0f));
 
         // Draw health bar
         ImGui::SetNextWindowPos(basePos);
@@ -524,7 +560,8 @@ void BossController::RenderHealthBar(float delta)
         }
         ImGui::End();
 
-        ImGui::PopStyleVar(2);
+        ImGui::PopStyleVar(5);
+        ImGui::PopStyleColor();
     }
 }
 
@@ -722,7 +759,7 @@ void BossController::StartWave()
     SpawnWave(1);
 
     // Start the boss music
-    wolf::Audio::Play("data/sounds/bgm_boss_theme.wav", 1.0f, 0.0f, 0.0f, false, true, 6.433f);
+    wolf::Audio::Play("data/sounds/bgm_boss_theme.wav", 1.1f, 0.0f, 0.0f, false, true, 6.433f);
 }
 
 bool BossController::IsValidSpawnTile(glm::ivec2 tilePos)
@@ -755,12 +792,10 @@ void BossController::SpawnWave(int waveIndex)
     }
 
     // Load enemy data
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies_bossfight.yaml");
-
-    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-    EnemyData harpyData = loader.LoadEnemyData("harpy");
-    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+    EnemyDataLoader::LoadAllEnemyData("data/enemies_bossfight.yaml");
+    EnemyData minitaurData = EnemyDataLoader::LoadEnemyData("minitaur");
+    EnemyData harpyData = EnemyDataLoader::LoadEnemyData("harpy");
+    EnemyData gorgonData = EnemyDataLoader::LoadEnemyData("gorgon");
 
     // Scene reference
     wolf::Scene& scene = GetGameObject()->GetScene();
@@ -789,13 +824,11 @@ void BossController::SpawnWave(int waveIndex)
     glm::ivec2 bossTilePos = m_pLabyrinthManager->GetTilePosition(bossPos);
 
     // If first wave, determine and save spawn locations
-    static std::vector<glm::vec2> savedMinitaurSpawns;
-    static std::vector<glm::vec2> savedHarpySpawns;
     
     // Define Minitaur spawn locations (grouped left & right)
-    if (waveIndex == 1 || savedMinitaurSpawns.empty())
+    if (waveIndex == 1 || m_savedMinitaurSpawns.empty())
     {
-        savedMinitaurSpawns.clear();
+        m_savedMinitaurSpawns.clear();
         glm::ivec2 leftGroupStart = bossTilePos + glm::ivec2(-4, -3);
         glm::ivec2 rightGroupStart = bossTilePos + glm::ivec2(4, -3);
 
@@ -804,29 +837,29 @@ void BossController::SpawnWave(int waveIndex)
             glm::ivec2 spawnTile = (i % 2 == 0) ? leftGroupStart + glm::ivec2(i, 0)
                                                 : rightGroupStart + glm::ivec2(i, 0);
             glm::vec2 spawnPos = m_pLabyrinthManager->GetWorldPosition(spawnTile);
-            if (IsValidSpawnTile(spawnTile)) savedMinitaurSpawns.push_back(spawnPos);
+            if (IsValidSpawnTile(spawnTile)) m_savedMinitaurSpawns.push_back(spawnPos);
         }
     }
 
     // Define Harpy spawn locations (split left & right)
-    if (waveIndex == 1 || savedHarpySpawns.empty())
+    if (waveIndex == 1 || m_savedHarpySpawns.empty())
     {
-        savedHarpySpawns.clear();
+        m_savedHarpySpawns.clear();
         glm::ivec2 leftHarpy = bossTilePos + glm::ivec2(-6, -7);
         glm::ivec2 rightHarpy = bossTilePos + glm::ivec2(6, -7);
 
         if (IsValidSpawnTile(leftHarpy))
-            savedHarpySpawns.push_back(m_pLabyrinthManager->GetWorldPosition(leftHarpy));
+            m_savedHarpySpawns.push_back(m_pLabyrinthManager->GetWorldPosition(leftHarpy));
         if (IsValidSpawnTile(rightHarpy))
-            savedHarpySpawns.push_back(m_pLabyrinthManager->GetWorldPosition(rightHarpy));
+            m_savedHarpySpawns.push_back(m_pLabyrinthManager->GetWorldPosition(rightHarpy));
     }
 
     // Spawn Minitaurs (use saved positions for later waves)
     if (waveIndex != 3) // Normal spawning for waves 1 & 2
     {
-        for (size_t i = 0; i < savedMinitaurSpawns.size() && i < minitaurs; i++)
+        for (size_t i = 0; i < m_savedMinitaurSpawns.size() && i < minitaurs; i++)
         {
-            auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, savedMinitaurSpawns[i]);
+            auto& minitaur = minitaurBuilder.BuildMinitaur(minitaurData, m_savedMinitaurSpawns[i]);
             minitaur.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
             m_enemyIDs.insert(minitaur.GetID());
         }
@@ -849,9 +882,9 @@ void BossController::SpawnWave(int waveIndex)
     }
 
     // Spawn Harpies (use saved positions for later waves)
-    for (size_t i = 0; i < savedHarpySpawns.size() && i < harpies; i++)
+    for (size_t i = 0; i < m_savedHarpySpawns.size() && i < harpies; i++)
     {
-        auto& harpy = harpyBuilder.BuildHarpy(harpyData, savedHarpySpawns[i]);
+        auto& harpy = harpyBuilder.BuildHarpy(harpyData, m_savedHarpySpawns[i]);
         harpy.GetComponent<wolf::Transform2D>()->SetScale(glm::vec2(3.0f));
         m_enemyIDs.insert(harpy.GetID());
     }
@@ -1029,10 +1062,6 @@ void BossController::EnterPhase2()
 
 void BossController::UpdatePhase2(float delta)
 {
-    // Timing variables
-    static float nextStrafeSwap = 1.0f;
-    static float nextAttackTime = 2.0f;
-
     // Don't update until fully entered
     if (m_state == State::SIT) return;
 
@@ -1250,6 +1279,13 @@ void BossController::UpdatePhase2(float delta)
                     m_pAxeCollider = &axe.AddComponent<ColliderComponent>(ColliderComponent::ColliderType::HURTBOXDD, false, false);
                     m_pAxeCollider->AddColliderBox(glm::vec2(224), glm::vec2(-112, 112));
 
+                    // Add a light to the axe
+                    wolf::GameObject* pLightGO = &GetGameObject()->GetScene().CreateObject2D();
+                    auto& pLightComponent = pLightGO->AddComponent<LightComponent>(glm::vec4(0.6f, 0.4f, 0.18f, 0.75f), 250.0f, true);
+                    axe.AddChild(*pLightGO);
+                    pLightComponent.Init();
+                    pLightComponent.SetShadowsEnabled(false);
+
                     // Change state
                     m_state = State::APPROACH;
 
@@ -1321,6 +1357,7 @@ void BossController::UpdatePhase2(float delta)
                     m_altitude = 0.0f;
                     m_pCollider->SetActive(true);
                     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+                    m_pLight->SetShadowsEnabled(true);
                     m_nextAttackTimer.Reset();
 
                     // Reset shadow scale
@@ -1420,12 +1457,36 @@ void BossController::UpdatePhase2(float delta)
     // Under half health, change to phase 3
     if (m_pHealth->GetHealth() <= m_maxHealth / 2 && m_state != State::TRANSITION_TO_PHASE_3)
     {
-        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -8000.0f);
+        // If somehow the boss is dead before phase 3 ever starts
+        if (!IsAlive())
+        {
+            // Skip the transition and force an update to begin the death animation
+            EnterPhase3();
+            UpdatePhase3(delta);
+        }
+        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, -8000.0f);
         m_state = State::TRANSITION_TO_PHASE_3;
         m_pCollider->SetActive(false);
         m_transitionTimer.Restart();
         m_transitionStartPos = m_pTransform->GetGlobalPosition();
     }
+}
+
+bool BossController::CanBePetrified() const
+{
+    return m_state != State::TRANSITION_TO_PHASE_3 &&
+        m_state != State::DEAD &&
+        m_phase != FightPhase::PHASE_1;
+}
+
+bool BossController::IsAirborne() const
+{
+    return m_state == State::LEAP_ATTACK && m_leapAttackTimer.Elapsed() < 1.25f;
+}
+
+bool BossController::IsAlive() const
+{
+    return m_pHealth->GetHealth() > 0;
 }
 
 void BossController::StartAxeAttack()
@@ -1440,7 +1501,7 @@ void BossController::StartAxeAttack()
     m_axeAttackTimer.Restart();
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
 
-    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f);
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f);
 
     // Update stats
     m_attackChain = (m_prevAttack == 0) ? m_attackChain + 1 : 1;
@@ -1459,6 +1520,9 @@ void BossController::StartLeapAttack()
     // Disable collider and restart timer
     m_pCollider->SetActive(false);
     m_leapAttackTimer.Restart();
+
+    // Disable shadows when leaping to prevent the light flickering
+    m_pLight->SetShadowsEnabled(false);
 
     // Update stats
     m_attackChain = (m_prevAttack == 1) ? m_attackChain + 1 : 1;
@@ -1508,7 +1572,7 @@ void BossController::UpdatePhase3(float delta)
         
         // Stop music, play death growl
         wolf::Audio::Stop("data/sounds/bgm_boss_theme.wav");
-        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -10000.0f);
+        wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, -10000.0f);
 
         // Instantly make the player invulnerable
         m_pPlayerObject->GetComponent<HealthComponent>()->SetActive(false);
@@ -1934,7 +1998,7 @@ void BossController::StartFireBreathAttack()
     m_pVelocity->SetVelocity(glm::vec2(0.0f, 0.0f));
     GetGameObject()->GetComponent<VelocityComponent>()->SetVelocity(glm::vec2(0.0f, 0.0f));
 
-    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, -3000.0f);
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, -3000.0f);
 }
 
 void BossController::AttackFireBreath(float delta)
@@ -1960,7 +2024,7 @@ void BossController::AttackFireBreath(float delta)
         if (!m_fireBreathSFXPlayed)
         {
             m_fireBreathSFXPlayed = true;
-            wolf::Audio::Play("data/sounds/sfx_fireball_shot.wav", 0.7f, 0.0f, 0.0f, true);
+            wolf::Audio::Play("data/sounds/sfx_fireball_shot.wav", 0.6f);
         }
 
         // If fire breath expired, change state to search
@@ -2215,7 +2279,7 @@ void BossController::StartChargeAttack()
     }
 
     m_chargeStompSFXTimer.Restart();
-    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.2f, 3000.0f);
+    wolf::Audio::Play("data/sounds/sfx_boss_growl.wav", 1.1f, 3000.0f);
 }
 
 void BossController::AttackCharge(float delta)

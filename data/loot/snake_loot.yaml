@@ -1,0 +1,8 @@
+min_items: 0
+max_items: 1
+loot_table: [
+  {name: Gold Coin, probability: 100},
+  {name: Gold Handful, probability: 50},
+  {name: Healing Heart, probability: 25},
+  {name: Poison-Tipped Spear, probability: 1},
+]

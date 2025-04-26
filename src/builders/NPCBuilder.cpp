@@ -11,6 +11,7 @@
 
 #include <unordered_map>
 #include <LightComponent.h>
+#include <StatusComponent.h>
 
 NPCBuilder* NPCBuilder::m_pInstance = nullptr;
 wolf::Scene* NPCBuilder::m_pScene = nullptr;
@@ -37,8 +38,8 @@ void NPCBuilder::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
 
 // Destroys the NPCBuilder instance (provided one exists)
 void NPCBuilder::DestroyInstance() {
-    // If an instance exists
-    assert(m_pInstance != nullptr);
+    // Early out if no instance exists
+    if (!m_pInstance) return;
 
     // Delete it
     delete(m_pInstance);
@@ -72,8 +73,18 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
     std::unordered_map<std::string, NPCDialogueEntry*> m_mDialogueMap;
 
     try {
-        // First load up the npc file
-        YAML::Node pNPCDetails = YAML::LoadFile(p_strFilePath);
+        YAML::Node pNPCDetails;
+
+        if (s_configCache.contains(p_strFilePath))
+        {
+            pNPCDetails = s_configCache[p_strFilePath];
+        }
+        else
+        {
+            // Load from disk
+            pNPCDetails = YAML::LoadFile(p_strFilePath);
+            s_configCache[p_strFilePath] = pNPCDetails;
+        }
 
         // Then start looking for the attributes we need to create an NPCComponent
         std::string strName = pNPCDetails["name"].as<std::string>();
@@ -165,6 +176,9 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
         // Use that information to create and attach an AnimatedSprite2D
         auto& pAnim = pConstructedNPC->AddComponent<AnimatedSprite2D>(strTexturePath, v2FrameSize, fPlaybackSpeed);
 
+        // Add a status component
+        pConstructedNPC->AddComponent<StatusComponent>();
+
         // Then loop through all of the animation sets
         YAML::Node animSets = animInit["animation_sets"];
         for (int i = 0; i < animSets.size(); ++i) {
@@ -198,9 +212,10 @@ wolf::GameObject* NPCBuilder::BuildNPC(const std::string& p_strFilePath) {
 
     // Finally, attach a LightComponent
     wolf::GameObject* pLightGO = &m_pScene->CreateObject2D();
-    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 75.0f, true);
+    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.65f, 0.48f, 0.26f, 0.75f), 75.0f, true);
     pConstructedNPC->AddChild(*pLightGO);
     pLightComp->Init();
+    pLightComp->SetIgnoreWallTiles(true);
     pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
 
     // If nothing went wrong, we're good to return the GameObject
@@ -213,8 +228,18 @@ wolf::GameObject* NPCBuilder::BuildRandomNPC() {
     wolf::GameObject* pRandomNPC = nullptr;
 
     try {
-        // Load up the NPC directory file
-        YAML::Node baseNode = YAML::LoadFile(NPC_DIRECTORY_PATH);
+        YAML::Node baseNode;
+
+        if (s_configCache.contains("SPECIAL_DIRECTORY_STRING"))
+        {
+            baseNode = s_configCache["SPECIAL_DIRECTORY_STRING"];
+        }
+        else
+        {
+            // Load from disk
+            baseNode = YAML::LoadFile(NPC_DIRECTORY_PATH);
+            s_configCache["SPECIAL_DIRECTORY_STRING"] = baseNode;
+        }
 
         // And grab the directory node
         YAML::Node directory = baseNode["directory"];
@@ -256,13 +281,6 @@ wolf::GameObject* NPCBuilder::BuildRandomNPC() {
         wolf::Error("YAML: Issue with ", NPC_DIRECTORY_PATH, ": ", e.what());
         return nullptr;
     }
-
-    // Finally, attach a LightComponent
-    wolf::GameObject* pLightGO = &m_pScene->CreateObject2D();
-    LightComponent* pLightComp = &pLightGO->AddComponent<LightComponent>(glm::vec4(0.45f, 0.37f, 0.18f, 0.75f), 75.0f, true);
-    pRandomNPC->AddChild(*pLightGO);
-    pLightComp->Init();
-    pLightGO->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(0.0f, -5.0f));
 
     // And return what we created (note that if the BuildNPC method ran into an error, this will return nullptr)
     return pRandomNPC;
