@@ -12,7 +12,12 @@
 #include <ParticleComponent.h>
 #include <PlayerController.h>
 #include <VelocityComponent.h>
+#include <BossController.h>
+#include <HarpyController.h>
 #include <W_Audio.h>
+#include <W_RNG.h>
+#include <W_TextureManager.h>
+
 
 PortalTileManager* PortalTileManager::s_pPTMG = nullptr;
 
@@ -26,6 +31,8 @@ void PortalTileManager::CreateInstance(LabyrinthManager* p_lbmg)
     if(s_pPTMG == nullptr)
     {
         s_pPTMG = new PortalTileManager(p_lbmg);
+        s_pParticleTex = wolf::TextureManager::CreateTexture("data/textures/portal_particle.png");
+        s_pParticleTex->SetFilterMode(wolf::Texture::FilterMode::FM_Nearest, wolf::Texture::FilterMode::FM_Nearest);
     }
 }
 
@@ -35,6 +42,8 @@ void PortalTileManager::DestroyInstance()
     {
         delete s_pPTMG;
         s_pPTMG = nullptr;
+        wolf::TextureManager::DestroyTexture(s_pParticleTex);
+        s_pParticleTex = nullptr;
     }
 }
 
@@ -185,6 +194,12 @@ PortalTileManager::PortalTileManager(LabyrinthManager* p_lbmg)
         m_pPlayer = playerController.GetGameObject();
         break;
     }
+
+    for (auto&& [_, boss] : p_lbmg->GetGameObject()->GetScene().Each<BossController>())
+    {
+        m_pBoss = boss.GetGameObject();
+        break;
+    }
 }
 
 PortalTileManager::~PortalTileManager()
@@ -333,6 +348,13 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
         break;
     }
 
+    // Get boss object
+    for (auto&& [_, boss] : p_lbmg->GetGameObject()->GetScene().Each<BossController>())
+    {
+        m_pBoss = boss.GetGameObject();
+        break;
+    }
+
     float scaledTileSize = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
 
     // Create sprite object
@@ -347,6 +369,7 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
 
     // Add particle component
     ParticleComponent* particleComponent = &m_pPortalTileSpriteObj->AddComponent<ParticleComponent>();
+    particleComponent->LoadConfigFromYAML("data/particles/portal.yaml");
 
     // Add collider component
     ColliderComponent* colliderComponent = &m_pPortalTileSpriteObj->AddComponent<ColliderComponent>(ColliderComponent::ColliderType::NONE, false, false);
@@ -355,11 +378,14 @@ PortalTileManager::PortalTile::PortalTile(glm::ivec2 p_tile_pos, LabyrinthManage
     // Add light component
     wolf::GameObject* lightObj = &p_lbmg->GetGameObject()->GetScene().CreateObject2D();
     lightObj->GetComponent<wolf::Transform2D>()->SetPosition(glm::vec2(LabyrinthManager::TILE_SIZE * 0.5f, LabyrinthManager::TILE_SIZE * 0.5f));
-    LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), scaledTileSize * 0.5f, true);
+    LightComponent* lightComponent = &lightObj->AddComponent<LightComponent>(glm::vec4(1.0f, 0.64f, 0.0f, 0.75f), scaledTileSize, true);
     m_pPortalTileSpriteObj->AddChild(*lightObj);
     lightComponent->Init();
+    lightComponent->SetIgnoreWallTiles(true);
 
     m_pChunk->AddChild(*m_pPortalTileSpriteObj);
+
+    m_emissionTimer.Start();
 }
 
 PortalTileManager::PortalTile::~PortalTile()
@@ -408,24 +434,28 @@ void PortalTileManager::PortalTile::Update(float p_dt)
 {
     bool isChunkActive = m_pLabyrinthManager->IsChunkActive(GetChunkID());
     
-    // Return if chunk is inactive
-    if(!isChunkActive) return;
-
+    // Return if chunk is inactive and we haven't started the bossfight yet
+    if(!isChunkActive && !m_pLabyrinthManager->IsBossfightStarted()) return;
        
-    // Emit particles
-    if(s_rng.NextFloat(0.0f, 1.0f) <= EMISSION_CHANCE)
+    // Emit particles (now with consistent speed)
+    if(m_emissionTimer.Elapsed() > m_nextEmission)
     {
-        m_pPortalTileSpriteObj->GetComponent<ParticleComponent>()->Emit(
-            glm::vec2(
-                m_vTilePos.x * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f,
-                m_vTilePos.y * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f
-            ),
-            glm::vec2(s_rng.NextInt(-25, 25), s_rng.NextInt(-25, 25)),
-            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-            4.0f,
-            4.0f
-        );
-
+        m_nextEmission = s_rng.NextFloat(0.01f, 1.0f);
+        m_emissionTimer.Restart();
+        if (auto* pParticles = m_pPortalTileSpriteObj->GetComponent<ParticleComponent>())
+        {
+            pParticles->Emit(
+                glm::vec2(
+                    m_vTilePos.x * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f,
+                    m_vTilePos.y * SCALED_TILE_SIZE + SCALED_TILE_SIZE * 0.5f
+                ),
+                glm::vec2(s_rng.NextInt(-25, 25), s_rng.NextInt(-25, 25)),
+                glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                4.0f,
+                4.0f,
+                s_pParticleTex
+            );
+        }
     }
     // Return if sibling is nullptr
     if(m_pSiblingPortalTile == nullptr) return;
@@ -433,9 +463,13 @@ void PortalTileManager::PortalTile::Update(float p_dt)
     // Check if occupant exists
     wolf::GameObject* occupant = m_pLabyrinthManager->GetGameObject()->GetScene().GetObject(m_occupantID);
     if(occupant != nullptr && occupant->HasAll<wolf::Transform2D>())
-    {   
+    {
         // Get occupant position data
         glm::vec2 occupantPos = occupant->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+        if (occupant->HasAll<PlayerController>())
+        {
+            occupantPos.y -= 12.0f;
+        }
         glm::ivec2 occupantTilePos = m_pLabyrinthManager->GetTilePosition(occupantPos);
         
         // If occupant has stepped out of portal tile, remove ID
@@ -456,9 +490,19 @@ void PortalTileManager::PortalTile::Update(float p_dt)
     // Check player
     CheckTeleport(m_pPlayer);
 
+    // Check boss
+    if (m_pBoss)
+    {
+        // But only if the controller is alive and not airborne
+        auto* pController = m_pBoss->GetComponent<BossController>();
+        if (pController && pController->IsAlive() && !pController->IsAirborne()) CheckTeleport(m_pBoss);
+    }
+
     // Check all objects within the portal tile chunk
     for(wolf::GameObject* obj : GetChunk()->GetChildren())
     {
+        // Don't tp harpies (they fly overhead)
+        if (obj->HasAny<HarpyController>()) continue;
         CheckTeleport(obj);
     }
 
@@ -483,9 +527,17 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
 
     glm::ivec2 portalTilePos = GetTilePos();
 
-    // Calculate tile position of object
+    // Ensure transform is present
     wolf::Transform2D* objTransform = p_obj->GetComponent<wolf::Transform2D>();
+    if (!objTransform) return;
+
+    // Calculate tile position of object
+
     glm::vec2 objPos = objTransform->GetGlobalPosition();
+    if (p_obj->HasAll<PlayerController>())
+    {
+        objPos.y -= 12.0f;
+    }
     glm::ivec2 objTilePos = m_pLabyrinthManager->GetTilePosition(objPos);
 
     // Skip if object is not on portal
@@ -507,8 +559,8 @@ void PortalTileManager::PortalTile::CheckTeleport(wolf::GameObject* p_obj)
         // If object is a projectile
         if(p_obj->HasAll<AttackDamageComponent, VelocityComponent>())
         {
-            // Teleport object
-            Teleport(p_obj);
+            // Don't teleport as it breaks multi-shot bows
+            // NOTE: You can still tp single projectiles no problem
             return;
         }
 
@@ -553,5 +605,6 @@ void PortalTileManager::PortalTile::Teleport(wolf::GameObject* p_obj)
     // Set object as new occupant
     m_pSiblingPortalTile->SetOccupantID(p_obj->GetID());
 
-    wolf::Audio::Play("data/sounds/sfx_portal.wav", 0.4f);
+    static wolf::RNG rng;
+    wolf::Audio::Play("data/sounds/sfx_portal.wav", 0.6f, rng.NextInt(-8000, 0));
 }

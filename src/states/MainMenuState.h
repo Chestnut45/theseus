@@ -39,6 +39,6 @@ private:
     Screen m_screen = Screen::MAIN;
     std::string m_seedText;
     bool m_debugModeEnabled = false;
-    bool m_randomSeed = true;
+    bool m_customSeed = false;
     float m_fadeTime = 0.0f;
 };

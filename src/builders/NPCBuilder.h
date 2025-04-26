@@ -24,6 +24,9 @@
 #include <NPCComponent.h>
 #include <imgui/imgui.h>
 
+#include <unordered_map>
+#include <string>
+
 class NPCBuilder {
     public:
         static void CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed);
@@ -51,6 +54,8 @@ class NPCBuilder {
         static NPCBuilder* m_pInstance;
         static wolf::Scene* m_pScene;
         static wolf::RNG* m_pRNG;
+
+        static inline std::unordered_map<std::string, YAML::Node> s_configCache;
 
         static int m_iRNGSeed;
 

@@ -39,6 +39,7 @@
 #include "EnemyDataLoader.h"
 #include "PathfindingManager.h"
 #include <events/GameWinEvent.h>
+#include <events/LabyrinthEvents.h>
 #include <W_Timer.h>
 #include <NavMeshComponent.h>
 #include <unordered_map>
@@ -71,6 +72,8 @@ private:
 
     wolf::GameObject* m_pPlayerObject = nullptr;
 
+    wolf::GameObject* m_pAriadne = nullptr;
+
     // Managers
     LabyrinthManager* m_pLabyrinthManager = nullptr;
     ColliderManager* m_pColliderManager = nullptr;
@@ -83,11 +86,13 @@ private:
     bool m_showLabyrinthManager = false;
     bool m_showInventoryGUI = false;
     bool m_noClip = false;
+    bool m_renderDebugColliders = false;
 
     // Boss data
     glm::vec2 m_bossfightPlayerPos;
     wolf::GameObject* m_pBoss = nullptr;
     wolf::GameObject* m_pBossWalls = nullptr;
+    wolf::GameObject* m_pBossTrigger = nullptr;
     std::vector<glm::ivec2> m_bossRoomDoorTiles;
     glm::ivec2 m_bossRoomOrigin;
     glm::ivec2 m_bossRoomSize;
@@ -113,6 +118,17 @@ private:
     std::unordered_map<std::string, wolf::GameObjectID> m_entityIDs;
     std::unordered_set<glm::ivec2> m_visitedChunks; // Track visited chunks
     bool m_isMapExpanded = false;                  // Toggle for expanded map
+
+    // Fog rendering data
+    glm::ivec2 m_fogMaskTexSize;
+    glm::vec4 m_cachedMapPosAndSize{0.0f};
+    float m_cachedMapZoom = 0.1f;
+    wolf::Program* m_pFogMapShader = nullptr;
+    wolf::Program* m_pFogWorldShader = nullptr;
+    GLuint m_fogTraversalTex = 0;
+    std::vector<uint8_t> m_fogMaskTexels;
+    static const int FOG_TEX_SCALE = 4;
+    friend void FogCallback(const ImDrawList* parent_list, const ImDrawCmd* cmd);
     
     // Navigation data
     NavMeshComponent* m_pNavMeshComponent = nullptr;
@@ -121,19 +137,23 @@ private:
     ParticleEditor* m_pParticleEditor = nullptr;
     wolf::FrameBuffer* m_pFBO = nullptr;
 
+    // Map from seed text to the path to the config to load
+    std::unordered_map<std::string, std::string> m_secretSeedConfigMap;
+
     // Private helper methods
     void ConvertPlayerTileToGold();
+    void RegisterClosestMinitaur();
 
     // Entity creation methods
     void CreatePlayer();
-    void CreateMinitaurEnemy();
-    void CreateHarpyEnemy();
-    void CreateGorgonEnemy();
-    void CreateTrappedChest();
+    void SpawnBossObjects();
+    void DestroyBossObjects();
     wolf::GameObject& CreateAriadneAndReturn(glm::vec2 playerPosition);
 
     // Handlers
     void OnGameOverEvent(const GameOverEvent& event);
+    void OnRegenerateEvent(const LabyrinthRegenerateEvent& event);
+    void OnDestroyEvent(const LabyrinthDestroyEvent& event);
 
     // Displays the open chest tooltip
     void ShowTooltip(const std::string& text);
@@ -143,6 +163,8 @@ private:
     void RenderTextCentered(const std::string& text, float size);
     void RenderCredits(float delta);
     void RenderFadeOverlay(float alpha);
+
+    void ResizeFogMaskTex(int x, int y);
 
     // Helpers
     bool IsWallTile(int tileID);

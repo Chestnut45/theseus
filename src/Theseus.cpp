@@ -42,8 +42,6 @@ Theseus::~Theseus()
 
 void Theseus::Update(float delta)
 {
-    if (wolf::Input::IsKeyJustDown(GLFW_KEY_GRAVE_ACCENT)) m_showDebug = !m_showDebug;
-
     // Handle window resizing
     if (m_windowResized)
     {
@@ -62,7 +60,7 @@ void Theseus::Update(float delta)
     // Update the current game state (whether MainMenu, Play, etc.)
     m_pStateManager->Update(delta);
     
-    if (m_showDebug) ShowDebug();
+    if (m_showDebugGUI) ShowDebug();
 }
 
 void Theseus::Render(float delta)

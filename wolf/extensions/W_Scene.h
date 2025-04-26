@@ -85,9 +85,6 @@ public:
     void SetPlayerID(GameObjectID p_uiGOId);
     GameObjectID const GetPlayerID();
 
-    // Enables or disables debug collider drawing
-    void ToggleDebugDrawing() { m_renderDebugColliders = !m_renderDebugColliders; }
-
 // Data / implementation
 protected:
 
@@ -100,10 +97,6 @@ protected:
 
     // Needed for game objects to have access to the scene's registry
     friend class GameObject;
-
-private:
-
-    bool m_renderDebugColliders = false;
 };
 
 // Tests the features and expected behaviour of the scene system

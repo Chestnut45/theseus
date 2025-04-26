@@ -4,6 +4,9 @@
 #include <map>
 #include <utility>
 
+#include <unordered_map>
+#include <yaml-cpp/yaml.h>
+
 //-----------------------------------------------------------------------------
 // File:			AnimatedSprite2D.h
 // Original Author:	Aurora Ryder
@@ -199,6 +202,9 @@ class AnimatedSprite2D : public wolf::BaseComponent {
         float m_fGradualFadeOutTimer = 0.0f;
         float m_fSEDurationTime = 0.0f;  // Duration in which the special effect is in full effect: after the fade-in and before the fade-out
         float m_fSEDurationTimer = 0.0f;
+
+        // Map of filepaths to cached animation config yaml nodes
+        static inline std::unordered_map<std::string, YAML::Node> s_configCache;
 
         static const float m_arBaseVertexData[]; // Array to hold geometry and base UV coordinates for all AnimatedSprite2Ds
 

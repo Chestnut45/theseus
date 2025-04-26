@@ -197,48 +197,48 @@ void PathfindingManager::UpdateEntities(float delta)
         }
 
         // **Track occupied tiles & prevent multiple entities from moving to the same tile**
-        if (!data.path.empty())
-        {
-            glm::ivec2 nextTile = data.path.front();
+        // if (!data.path.empty())
+        // {
+        //     glm::ivec2 nextTile = data.path.front();
 
-            if (tileOwners.find(nextTile) != tileOwners.end() && tileOwners[nextTile] != entity)
-            {
-                // Conflict detected: force alternative pathing
-                data.path = FindPath(currentTile, targetTile);
-                if (!data.path.empty())
-                {
-                    nextTile = data.path.front();
-                }
-            }
+        //     if (tileOwners.find(nextTile) != tileOwners.end() && tileOwners[nextTile] != entity)
+        //     {
+        //         // Conflict detected: force alternative pathing
+        //         data.path = FindPath(currentTile, targetTile);
+        //         if (!data.path.empty())
+        //         {
+        //             nextTile = data.path.front();
+        //         }
+        //     }
 
-            tileOwners[nextTile] = entity;
-            tileOccupationMap[nextTile].push_back(entity);
-        }
+        //     tileOwners[nextTile] = entity;
+        //     tileOccupationMap[nextTile].push_back(entity);
+        // }
     }
 
     // **Handle entity separation using glm::mix**
-    for (auto& [tile, entities] : tileOccupationMap)
-    {
-        if (entities.size() >= 2)
-        {
-            glm::vec2 avgPosition = glm::vec2(0.0f);
-            for (auto* entity : entities)
-            {
-                avgPosition += entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-            }
-            avgPosition /= entities.size();
+    // for (auto& [tile, entities] : tileOccupationMap)
+    // {
+    //     if (entities.size() >= 2)
+    //     {
+    //         glm::vec2 avgPosition = glm::vec2(0.0f);
+    //         for (auto* entity : entities)
+    //         {
+    //             avgPosition += entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    //         }
+    //         avgPosition /= entities.size();
 
-            for (auto* entity : entities)
-            {
-                glm::vec2 entityPosition = entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
-                glm::vec2 separationDirection = glm::normalize(entityPosition - avgPosition);
-                glm::vec2 softPush = separationDirection * SEPARATION_FORCE * delta;
+    //         for (auto* entity : entities)
+    //         {
+    //             glm::vec2 entityPosition = entity->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+    //             glm::vec2 separationDirection = glm::normalize(entityPosition - avgPosition);
+    //             glm::vec2 softPush = separationDirection * SEPARATION_FORCE * delta;
 
-                glm::vec2 newPos = glm::mix(entityPosition, entityPosition + softPush, 0.5f);
-                entity->GetComponent<wolf::Transform2D>()->SetPosition(newPos);
-            }
-        }
-    }
+    //             glm::vec2 newPos = glm::mix(entityPosition, entityPosition + softPush, 0.5f);
+    //             entity->GetComponent<wolf::Transform2D>()->SetPosition(newPos);
+    //         }
+    //     }
+    // }
 
     // **Move Entities Smoothly**
     for (auto& [entity, data] : m_registeredEntities)
@@ -265,7 +265,10 @@ void PathfindingManager::UpdateEntities(float delta)
     }
 }
 
-
+void PathfindingManager::ClearEntities()
+{
+    m_registeredEntities.clear();
+}
 
 void PathfindingManager::RegisterEntity(wolf::GameObject* entity)
 {

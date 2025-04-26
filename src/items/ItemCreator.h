@@ -172,6 +172,10 @@ namespace ItemCreator {
                     else if (strWeaponType == "BOW") { // If this is a bow
                         enWeaponType = WeaponType::BOW;
                     }
+                    else if (strWeaponType == "DIVINE")
+                    {
+                        enWeaponType = WeaponType::DIVINE;
+                    }
                     else {
                         // If the string version of the weapon type does not have a corresponding enum then we can't create the item
                         wolf::Error("ItemCreator Error: Invalid weapon type ", strWeaponType.c_str(), " for ", p_strItemName.c_str());

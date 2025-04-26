@@ -29,11 +29,23 @@ struct EnemyData
     float chaseSpeed = 1.0f;
     std::string animationInitFile = "";
 };
+
 class EnemyDataLoader {
 
 public:
-    void LoadAllEnemyData(const std::string& filepath);
-    EnemyData LoadEnemyData(const std::string& type);
+
+    // Loads the enemy data from the given yaml filepath
+    // NOTE: If file is already cached, will not load from disk again unless reload is true
+    static void LoadAllEnemyData(const std::string& filepath, bool reloadFromDisk = false);
+
+    // Loads a specific enemy's cached data after LoadAllEnemyData has been called
+    static EnemyData LoadEnemyData(const std::string& type);
+
 private:
-    std::unordered_map<std::string, EnemyData> m_enemyCache;
+    static inline std::unordered_map<std::string, EnemyData> s_enemyCache;
+
+    // Map of filepaths to cached config nodes
+    static inline std::unordered_map<std::string, YAML::Node> s_configCache;
+
+    static inline std::string s_lastLoadedConfig;
 };

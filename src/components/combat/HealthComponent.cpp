@@ -229,6 +229,7 @@ void HealthComponent::AddDamageIndicator(std::string p_damage_str, ImVec4 p_text
 // > p_event: the PercentHealthItemEvent object
 void HealthComponent::HandlePercentHealthItemEvent(const PercentHealthItemEvent& p_event) {
     if (!GetGameObject()->HasAll<PlayerController>()) return;
+    wolf::Audio::Play("data/sounds/sfx_heal.wav", 0.5f);
     if (p_event.fHealthChangeAmt >= 0) {
         this->Heal(p_event.fHealthChangeAmt * m_cap);
     }
@@ -242,6 +243,7 @@ void HealthComponent::HandlePercentHealthItemEvent(const PercentHealthItemEvent&
 // > p_event: the FlatHealthItemEvent object
 void HealthComponent::HandleFlatHealthItemEvent(const FlatHealthItemEvent& p_event) {
     if (!GetGameObject()->HasAll<PlayerController>()) return;
+    wolf::Audio::Play("data/sounds/sfx_heal.wav", 0.5f);
     if (p_event.fHealthChangeAmt >= 0) {
         this->Heal(p_event.fHealthChangeAmt);
     }

@@ -9,7 +9,7 @@ layout (location = 2) in float aSize;
 layout (location = 3) in vec2 aTexCoord;
 layout (location = 4) in float aRotation;  // Add rotation attribute
 
-out vec4 ParticleColor;
+out flat vec4 ParticleColor;
 out vec2 TexCoord;
 
 uniform mat4 model;

@@ -14,6 +14,7 @@
 
 ItemDropCreator* ItemDropCreator::m_pInstance = nullptr;
 wolf::Scene* ItemDropCreator::m_pScene = nullptr;
+LabyrinthManager* ItemDropCreator::m_pLabyrinthManager = nullptr;
 wolf::RNG* ItemDropCreator::m_pRNG = nullptr;
 
 int ItemDropCreator::m_iRNGSeed;
@@ -33,12 +34,18 @@ void ItemDropCreator::CreateInstance(wolf::Scene* p_pScene, int p_iRNGSeed) {
     m_pRNG = new wolf::RNG(p_iRNGSeed); // This seed value is completely arbitrary
     m_pScene = p_pScene;
     m_iRNGSeed = p_iRNGSeed;
+
+    for (auto&&[_, manager] : m_pScene->Each<LabyrinthManager>())
+    {
+        m_pLabyrinthManager = &manager;
+        break;
+    }
 }
 
 // Destroys the ItemDropCreator instance (provided one exists)
 void ItemDropCreator::DestroyInstance() {
-    // If an instance exists
-    assert(m_pInstance != nullptr);
+    // Early out if no instance exists
+    if (!m_pInstance) return;
 
     // Delete it
     delete(m_pInstance);
@@ -47,6 +54,7 @@ void ItemDropCreator::DestroyInstance() {
     m_pInstance = nullptr;
     m_pScene = nullptr;
     m_pRNG = nullptr;
+    m_pLabyrinthManager = nullptr;
 }
 
 // Returns a pointer to the ItemDropCreator instance (provided one exists)
@@ -71,6 +79,12 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromExistingItem(ItemBase* p_pI
     // Create the item's gameobject
     wolf::GameObject* pItemDropGO = &m_pScene->CreateObject2D();
 
+    // Add the drop to the labyrinth so it gets deleted
+    if (m_pLabyrinthManager)
+    {
+        m_pLabyrinthManager->GetGameObject()->AddChild(*pItemDropGO);
+    }
+
     // Add the dropped item component and the sprite
     pItemDropGO->AddComponent<DroppedItemComponent>(p_pItem, p_fLifespan);
 
@@ -84,7 +98,7 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromExistingItem(ItemBase* p_pI
     pItemDropTransform->SetPosition(p_v2SpawnPos + glm::vec2(m_pRNG->NextFloat(-1.5f, 1.5f), m_pRNG->NextFloat(-1.5f, 1.5f)));
 
     // Add the collider
-    auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_pScene->GetPlayerID());
+    auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::OCCLUDER, false, true, m_pScene->GetPlayerID());
     pCollider.AddColliderBox(glm::vec2(16.0f, 16.0f), glm::vec2(-8.0f, 8.0f));
 
     // Add the velocity component
@@ -107,6 +121,12 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromDirectory(const std::string
         // Create the item's gameobject
         wolf::GameObject* pItemDropGO = &m_pScene->CreateObject2D();
 
+        // Add the drop to the labyrinth so it gets deleted
+        if (m_pLabyrinthManager)
+        {
+            m_pLabyrinthManager->GetGameObject()->AddChild(*pItemDropGO);
+        }
+
         // Add the dropped item component and the sprite
         pItemDropGO->AddComponent<DroppedItemComponent>(pItem, p_fLifespan);
 
@@ -120,7 +140,7 @@ wolf::GameObject* ItemDropCreator::CreateItemDropFromDirectory(const std::string
         pItemDropTransform->SetPosition(p_v2SpawnPos + glm::vec2(m_pRNG->NextFloat(-1.5f, 1.5f), m_pRNG->NextFloat(-1.5f, 1.5f)));
 
         // Add the collider
-        auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_pScene->GetPlayerID());
+        auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::OCCLUDER, false, true, m_pScene->GetPlayerID());
         pCollider.AddColliderBox(glm::vec2(16.0f, 16.0f), glm::vec2(-8.0f, 8.0f));
 
         // Add the velocity component
@@ -213,6 +233,12 @@ std::vector<wolf::GameObject*> ItemDropCreator::CreateItemDropFromLootTable(cons
                 // Create the item's gameobject
                 wolf::GameObject* pItemDropGO = &m_pScene->CreateObject2D();
 
+                // Add the drop to the labyrinth so it gets deleted
+                if (m_pLabyrinthManager)
+                {
+                    m_pLabyrinthManager->GetGameObject()->AddChild(*pItemDropGO);
+                }
+
                 // Add the dropped item component and the sprite
                 pItemDropGO->AddComponent<DroppedItemComponent>(pItem, p_fLifespan);
 
@@ -226,7 +252,7 @@ std::vector<wolf::GameObject*> ItemDropCreator::CreateItemDropFromLootTable(cons
                 pItemDropTransform->SetPosition(p_v2SpawnPos + glm::vec2(m_pRNG->NextFloat(-25.0f, 25.0f), m_pRNG->NextFloat(-25.0f, 25.0f)));
 
                 // Add the collider
-                auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::HITBOX, false, true, m_pScene->GetPlayerID());
+                auto& pCollider = pItemDropGO->AddComponent<ColliderComponent>(ColliderComponent::OCCLUDER, false, true, m_pScene->GetPlayerID());
                 pCollider.AddColliderBox(glm::vec2(16.0f, 16.0f), glm::vec2(-8.0f, 8.0f));
 
                 // Add the velocity component

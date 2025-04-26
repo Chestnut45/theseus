@@ -6,11 +6,27 @@
 //-----------------------------------------------------------------------------
 #include "EnemyDataLoader.h"
 
-void EnemyDataLoader::LoadAllEnemyData(const std::string& filepath) {
+void EnemyDataLoader::LoadAllEnemyData(const std::string& filepath, bool reloadFromDisk) {
 
     try
     {
-        YAML::Node node = YAML::LoadFile(filepath);
+        YAML::Node node;
+        if (s_configCache.contains(filepath) && !reloadFromDisk)
+        {
+            // Early out if this config was already loaded last
+            if (s_lastLoadedConfig == filepath) return;
+            node = s_configCache[filepath];
+        }
+        else
+        {
+            // Load from disk
+            node = YAML::LoadFile(filepath);
+            s_configCache[filepath] = node;
+        }
+
+        // Update last loaded config
+        s_lastLoadedConfig = filepath;
+        
         YAML::Node enemiesNode = node["enemies"];
 
         for (std::size_t i = 0; i < enemiesNode.size(); ++i) {
@@ -32,7 +48,7 @@ void EnemyDataLoader::LoadAllEnemyData(const std::string& filepath) {
             data.animationInitFile = enemyNode["animation_init_file"].as<std::string>();
 
             // Store the data in the map with the type as the key
-            m_enemyCache[data.type] = data;
+            s_enemyCache[data.type] = data;
 
             // std::cout << "EnemyDataLoader - type: " << data.type << std::endl;
         }
@@ -44,8 +60,8 @@ void EnemyDataLoader::LoadAllEnemyData(const std::string& filepath) {
 }
 
 EnemyData EnemyDataLoader::LoadEnemyData(const std::string& type) {
-    if (m_enemyCache.find(type) != m_enemyCache.end()) {
-        return m_enemyCache[type];
+    if (s_enemyCache.find(type) != s_enemyCache.end()) {
+        return s_enemyCache[type];
     }
 
     // Log an error message using wolf's error logging system and return a default EnemyData

@@ -1,0 +1,33 @@
+texture: data/textures/sheets/TheseusBurningBladeSheet.png
+frame_size: {x: 32.0, y: 32.0}
+
+animations: [
+  {
+    name: BurningBladeAttackSouth,
+    start_frame: 1,
+    end_frame: 7,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: BurningBladeAttackEast,
+    start_frame: 8,
+    end_frame: 14,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: BurningBladeAttackNorth,
+    start_frame: 15,
+    end_frame: 21,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  },
+  {
+    name: BurningBladeAttackWest,
+    start_frame: 22,
+    end_frame: 28,
+    origin: {x: 16.0, y: 16.0},
+    loops: false
+  }
+]

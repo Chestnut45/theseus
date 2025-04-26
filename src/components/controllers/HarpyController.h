@@ -97,4 +97,8 @@ private:
     const float EMOTE_TIME = 1.0f;
     float m_fEmoteTimer = 0.0f;
     wolf::GameObject* m_pEmoteObj = nullptr;
+
+    // SFX Timer
+    wolf::Timer m_wingFlapTimer;
+    wolf::Timer m_onValidTileTimer;
 };

@@ -1,10 +1,14 @@
-min_items: 3
-max_items: 8
+min_items: 2
+max_items: 4
 loot_table: [
-  {name: Epic Schematic, probability: 2},
-  {name: Gold Pile, probability: 2},
-  {name: Healing Heart, probability: 2},
-  {name: Liquid Life, probability: 2},
-  {name: Copper Vambraces, probability: 1},
-  {name: Kilt, probability: 1}
+  {name: Gold Pile, probability: 20},
+  {name: Liquid Life, probability: 10},
+  {name: Epic Schematic, probability: 5},
+  {name: The Floor is Lava Boots, probability: 1},
+]
+
+guaranteed_items: [
+  {name: Epic Schematic},
+  {name: Liquid Life},
+  {name: Gold Pile},
 ]

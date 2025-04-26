@@ -37,6 +37,9 @@ void MinitaurController::Init(const EnemyData& data)
     // Call base initialization
     EnemyController::Init();
 
+    // Seed rng randomly
+    m_RNG.SetSeed(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+
     // Assign enemy data
     m_meleeRange = data.meleeRange;
     m_meleeCooldown = data.attackCooldown;
@@ -112,6 +115,9 @@ void MinitaurController::Init(const EnemyData& data)
     {
         wolf::Warning("MinitaurController: No navmesh found in the scene!");
     }
+
+    // Initialize first state
+    ChangeState(EnemyState::IDLE);
 }
 
 
@@ -138,7 +144,11 @@ void MinitaurController::Update(float delta)
     StatusComponent* statusComponent = this->GetGameObject()->GetComponent<StatusComponent>();
     if(statusComponent != nullptr && statusComponent->IsStatusEffectActive(StatusComponent::StatusEffectType::PETRIFIED))
     {
-        ChangeState(EnemyState::PETRIFIED);
+        if (m_state != EnemyState::PETRIFIED && m_state != EnemyState::DEATH)
+        {
+            ChangeState(EnemyState::PETRIFIED);
+            return;
+        }
     }
     else 
     {
@@ -153,10 +163,7 @@ void MinitaurController::Update(float delta)
     if (m_pHealth->GetHealth() <= 0 && m_state != EnemyState::DEATH)
     {
         // Switch to the DEATH state if the health is depleted
-        ColliderComponent* collider = this->GetGameObject()->GetComponent<ColliderComponent>();
-        collider->SetActive(false);
         ChangeState(EnemyState::DEATH);
-        
         return;
     }
 
@@ -315,11 +322,6 @@ void MinitaurController::SetUpAnimations(const std::string& animationInitPath)
     m_pAnimComponent->SetLightingEnabled(false);
 }
 
-void MinitaurController::RenderDebugPath()
-{
-
-}
-
 void MinitaurController::MoveTowardsTarget(float delta)
 {
     if (!m_pTarget || !m_pVelocity || !m_pTransform)
@@ -327,6 +329,14 @@ void MinitaurController::MoveTowardsTarget(float delta)
 
     glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPosition.y -= 16.0f;
+    }
+
+    // Reset flag to always attempt using the navmesh first
+    m_useNavMesh = true;
     
     // STEP 1: Try NavMesh pathfinding first
     if (m_pNavMeshComponent && m_useNavMesh)
@@ -352,7 +362,9 @@ void MinitaurController::MoveTowardsTarget(float delta)
                 m_useNavMesh = false;
             }
             
-            m_navMeshPathUpdateTimer = 0.5f;
+            // Add random variation so they don't stick on top of each other as much
+            static wolf::RNG navRNG(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+            m_navMeshPathUpdateTimer = navRNG.NextFloat(0.1f, 0.6f);
         }
         else
         {
@@ -367,7 +379,7 @@ void MinitaurController::MoveTowardsTarget(float delta)
             float distance = glm::length(direction);
             
             // More generous tolerance for waypoint arrival
-            if (distance <= 10.0f)
+            if (distance <= 48.0f)
             {
                 m_navMeshPath.erase(m_navMeshPath.begin());
             }
@@ -413,7 +425,7 @@ void MinitaurController::MoveTowardsTarget(float delta)
             glm::vec2 direction = nextTileWorldPos - currentPosition;
             float distance = glm::length(direction);
             
-            if (distance > 0.5f)
+            if (distance > 48.0f)
             {
                 direction = glm::normalize(direction);
                 m_pVelocity->SetVelocity(direction * m_chaseSpeed);
@@ -437,6 +449,12 @@ void MinitaurController::FallbackToDistanceChecking()
 {
     glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
     glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
+
+    if (m_pTarget->HasAny<PlayerController>())
+    {
+        targetPosition.y -= 16.0f;
+    }
+    
     glm::vec2 direction = targetPosition - currentPosition;
 
     if (glm::length(direction) > 0.01f)
@@ -539,6 +557,13 @@ void MinitaurController::HandleProspectState(float delta)
 void MinitaurController::HandleChasingState(float delta)
 {
     MoveTowardsTarget(delta);
+
+    if (m_oinkTimer.Elapsed() > m_nextOinkTime)
+    {
+        m_nextOinkTime = m_RNG.NextFloat(0.2f, 0.65f);
+        m_oinkTimer.Restart();
+        wolf::Audio::Play("data/sounds/sfx_minitaur_oink.wav", 1.45f, m_RNG.NextInt(-10000, 0));
+    }
 
     const glm::vec2 targetPosition = m_pTarget->GetComponent<wolf::Transform2D>()->GetGlobalPosition();
     const glm::vec2 currentPosition = m_pTransform->GetGlobalPosition();
@@ -665,7 +690,6 @@ void MinitaurController::HandleStunnedState(float delta)
     }
     else
     {
-        m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
         m_stunnedTimer += delta;
     }
 }
@@ -710,6 +734,12 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
 
     void MinitaurController::HandleDeathState(float delta)
     {
+        if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+        {
+            // Only reset effects if not petrified
+            if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+        }
+
         // Fall over
         if(m_fallDeadTimer <= m_timeToFallDead)
         {
@@ -754,13 +784,6 @@ void MinitaurController::UpdateAnimationBasedOnDirection()
                         // wall
                         pItemVel->ApplyKnockback(glm::vec2(1.0f, 0.0f), 10.0f);
                     }
-                    
-                    ColliderComponent* pItemCollider = pItem->GetComponent<ColliderComponent>();
-                    if (pItemCollider)
-                    {
-                        // Disable the collider after knockback
-                        pItemCollider->SetActive(false);
-                    }
                 }
                 GetGameObject()->Delete();
             }
@@ -773,21 +796,27 @@ void MinitaurController::EnterAttackState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
     m_meleeWindupTimer = m_meleeWindupTime;
+    wolf::Audio::Play("data/sounds/sfx_minitaur_attack.wav", 0.55f, m_RNG.NextInt(-15000, -5000));
 }
 
 void MinitaurController::EnterChasingState()
 {
     m_transitionTimer.Reset();
     m_transitionTimer.Start();
+    m_oinkTimer.Restart();
 }
 
 void MinitaurController::EnterIdleState()
 {
     m_pVelocity->SetVelocity(glm::vec2(0.0f));
+
+    // Idle in a random direction
+    static const char* dirs[] = {"StandNorth", "StandEast", "StandSouth", "StandWest"};
+    static wolf::RNG idleRNG(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    m_pAnimComponent->SetAnimation(std::string(dirs[idleRNG.NextInt(0, 3)]));
 }
 void MinitaurController::EnterPetrifiedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::MULTITEX_PETRIFIED);
 }
 
 void MinitaurController::EnterProspectState()
@@ -796,7 +825,11 @@ void MinitaurController::EnterProspectState()
 
 void MinitaurController::EnterStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::WHITE);
+    }
 }
 void MinitaurController::EnterDeathState()
 {
@@ -819,6 +852,7 @@ void MinitaurController::ExitChasingState()
     m_transitionTimer.Reset();
     m_transitionTimer.Stop();
     m_transitionDelay = 0.0f;
+    m_oinkTimer.Reset();
 }
 
 void MinitaurController::ExitIdleState()
@@ -828,7 +862,11 @@ void MinitaurController::ExitIdleState()
 
 void MinitaurController::ExitPetrifiedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_pAnimComponent->SetAnimPaused(false);
 }
 
@@ -841,7 +879,11 @@ void MinitaurController::ExitProspectState()
 
 void MinitaurController::ExitStunnedState()
 {
-    m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    if (auto* pStatus = GetGameObject()->GetComponent<StatusComponent>())
+    {
+        // Only reset effects if not petrified
+        if (!pStatus->IsStatusEffectActive(StatusComponent::PETRIFIED)) m_pAnimComponent->SetSpecialEffects(AnimatedSprite2D::SpecialEffectsType::NONE);
+    }
     m_stunnedTimer = 0.0f;
 }
 

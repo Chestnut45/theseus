@@ -10,6 +10,7 @@
 
 #include <LabyrinthManager.h>
 #include <PlaceableItem.h>
+#include <W_Texture.h>
 
 class PortalTileManager
 {
@@ -57,8 +58,10 @@ private:
         glm::ivec2 m_vChunkID = glm::ivec2(-1.0f, -1.0f);
         LabyrinthManager* m_pLabyrinthManager = nullptr;
         wolf::GameObject* m_pPlayer = nullptr;
+        wolf::GameObject* m_pBoss = nullptr;
+        wolf::Timer m_emissionTimer;
+        float m_nextEmission = 0.0f;
         const glm::vec2 SPAWN_OFFSET = glm::vec2(LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE * 0.5f);
-        const float EMISSION_CHANCE = 0.005f;
         const float SCALED_TILE_SIZE = LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE;
         static wolf::RNG s_rng; 
 
@@ -77,7 +80,9 @@ private:
     PortalTile* m_pAvailablePortalTile = nullptr;
     std::vector<PortalTile*> m_vPortalTiles;
     wolf::GameObject* m_pPlayer = nullptr;
+    wolf::GameObject* m_pBoss = nullptr;
     static PortalTileManager* s_pPTMG;
+    static inline wolf::Texture* s_pParticleTex = nullptr;
 
     int m_iRemovalIndex = -2; // -1 is for the available portal tile
 };

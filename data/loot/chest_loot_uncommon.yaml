@@ -1,8 +1,12 @@
 min_items: 2
 max_items: 4
 loot_table: [
-  {name: Uncommon Schematic, probability: 2},
-  {name: Gold Coin, probability: 2},
-  {name: Old Bow, probability: 1},
+  {name: Gold Handful, probability: 20},
+  {name: Uncommon Schematic, probability: 5},
+  {name: Copper Vambraces, probability: 1},
   {name: Theezys, probability: 1},
+]
+
+guaranteed_items: [
+  {name: Uncommon Schematic},
 ]

@@ -101,11 +101,10 @@ void MonsterSpawnerComponent::SpawnMonsters()
     QueryAvailableTiles();
 
     // Load enemy data
-    EnemyDataLoader loader;
-    loader.LoadAllEnemyData("data/enemies.yaml");
-    EnemyData minitaurData = loader.LoadEnemyData("minitaur");
-    EnemyData harpyData = loader.LoadEnemyData("harpy");
-    EnemyData gorgonData = loader.LoadEnemyData("gorgon");
+    EnemyDataLoader::LoadAllEnemyData("data/enemies.yaml");
+    EnemyData minitaurData = EnemyDataLoader::LoadEnemyData("minitaur");
+    EnemyData harpyData = EnemyDataLoader::LoadEnemyData("harpy");
+    EnemyData gorgonData = EnemyDataLoader::LoadEnemyData("gorgon");
     MinitaurBuilder minitaurBuilder(GetGameObject()->GetScene());
     HarpyBuilder harpyBuilder(GetGameObject()->GetScene());
     GorgonBuilder gorgonBuilder(GetGameObject()->GetScene());
@@ -137,7 +136,7 @@ void MonsterSpawnerComponent::SpawnMonsters()
             worldPos += glm::vec2(0.5f * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
 
             // Get chunk data
-            glm::ivec2 gorgonChunkID = m_pLBMG->GetChunkID(pos);
+            glm::ivec2 gorgonChunkID = m_pLBMG->GetChunkID(worldPos);
             wolf::GameObject* gorgonChunk = m_pLBMG->GetChunk(gorgonChunkID);
             
             // Skip if gorgon spawning in invalid chunk
@@ -178,7 +177,7 @@ void MonsterSpawnerComponent::SpawnMonsters()
             worldPos += glm::vec2(0.5f * LabyrinthManager::TILE_SIZE * LabyrinthManager::SCALE);
 
             // Get chunk data
-            glm::ivec2 minitaurChunkID = m_pLBMG->GetChunkID(pos);
+            glm::ivec2 minitaurChunkID = m_pLBMG->GetChunkID(worldPos);
             wolf::GameObject* minitaurChunk = m_pLBMG->GetChunk(minitaurChunkID);
             
             // Skip if minitaur spawning in invalid chunk

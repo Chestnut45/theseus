@@ -164,6 +164,19 @@ void LightComponent::Init() {
     m_pParentGO = this->GetGameObject()->GetParent();
 }
 
+void LightComponent::SetRadius(float p_fRadius)
+{
+    // Don't bother trying if we aren't initialized yet!
+    if (!m_pTransform) return;
+
+    m_v2InitRadius = glm::vec2(p_fRadius, p_fRadius);
+    m_v2CurRadius = m_v2InitRadius;
+
+    // Update the collider box
+    m_pCollider->ClearColliderBoxes();
+    m_pCollider->AddColliderBox(m_v2CurRadius, glm::vec2(-m_v2CurRadius.x / 2.0f, m_v2CurRadius.y / 2.0f));
+}
+
 // ------------------------------------------------------------------------------------------------------------
 //                                         Begin Lighting Pass
 // ------------------------------------------------------------------------------------------------------------
@@ -190,127 +203,143 @@ void LightComponent::Update(float p_fDelta) {
 
     // ---------------------------------- Phase 1: Finding colliders in AOE ----------------------------------------------
 
-    // Find the colliders that are inside the area of effect by iterating through the colliders in the scene
-    for (auto&& [_, collider] : m_pScene->Each<ColliderComponent>()) {
-        // If the collider is active and in this area of effect
-        if (collider.IsActive() && ColliderManager::StaticMethodIsColliding(*m_pCollider, collider, p_fDelta)) {
+    // Skip adding colliders if this light has shadows disabled
+    // Skip adding colliders if this light is on top of a wall tile and has wall tiles ignored
+    glm::ivec2 tilePos = m_pLabyrinthManager->GetTilePosition(m_v2Origin);
+    int tile = m_pLabyrinthManager->GetTile(tilePos.x, tilePos.y);
+    if (!m_castShadows || (m_ignoreWallTiles && tile >= Tile::WallBottomLeft && tile <= Tile::WallTop))
+    {
+        // Add the light's collider manually to ensure it renders
+        std::vector<glm::vec2> vv2ColliderCorners = m_pCollider->GetWorldSpaceCorners();
+        glm::vec2 v2TopLeft = vv2ColliderCorners.at(0);
+        glm::vec2 v2BotRight = vv2ColliderCorners.at(2);
+        vpRectanglesInAOE.push_back(wolf::Rectangle(v2TopLeft.x, v2TopLeft.y, v2BotRight.x, v2BotRight.y));
+    }
+    else
+    {
+        // Find the colliders that are inside the area of effect by iterating through the colliders in the scene
+        for (auto&& [_, collider] : m_pScene->Each<ColliderComponent>()) {
+            // If the collider is active and in this area of effect
+            if (collider.IsActive() && ColliderManager::StaticMethodIsColliding(*m_pCollider, collider, p_fDelta)) {
 
-            // If this light's GameObject has a parent and the collider we're looking at belongs to them
-            if (m_pParentGO && m_pParentGO->GetID() == collider.GetGameObject()->GetID()) {
-                // Then we want to ignore it
-                continue;
-            }
-
-            // If the collider we're looking at is another light's AOE collider
-            if (this->GetGameObject()->GetID() != collider.GetGameObject()->GetID() && collider.GetGameObject()->GetComponent<LightComponent>()) {
-                // Then we want to ignore it
-                continue;
-            }
-
-            // If this collider is part of a projectile
-            if (collider.IsHurtboxDamageDealer()) {
-                // Then we want to ignore it
-                continue;
-            }
-
-            // If this collider doesn't have a type AND it doesn't have a LightComponent then it's a trap
-            if (collider.GetColliderType() == ColliderComponent::ColliderType::NONE && collider.GetGameObject()->GetComponent<LightComponent>() == nullptr) {
-                // So we want to ignore it
-                continue;
-            }
-
-            // Go through the corner points of each rectangle in the collider
-            std::vector<glm::vec2> vv2ColliderCorners = collider.GetWorldSpaceCorners();
-            for (int k = 0; k < vv2ColliderCorners.size(); k += 4) {
-                // Find the top left and bottom right points
-                glm::vec2 v2TopLeft = vv2ColliderCorners.at(k);
-                glm::vec2 v2BotRight = vv2ColliderCorners.at(k + 2);
-
-                // Check if the light's origin is inside of the rectangle
-                if (m_v2Origin.x > v2TopLeft.x && m_v2Origin.x < v2BotRight.x && m_v2Origin.y > v2BotRight.y && m_v2Origin.y < v2TopLeft.y) {
-                    // If it is, and the rectangle is NOT the light's AOE collider
-                    if (this->GetGameObject()->GetID() != collider.GetGameObject()->GetID()) {
-                        // Then the light is inside of a wall/solid object and we don't want to draw ANY rays
-                        return;
-                    }
-                }
-
-                // Check if the rectangle is completely outside of the light's radius
-                // (This can happen because wall colliders are grouped by chunk)
-                if ((v2TopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
-                    (v2TopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
-                    (v2BotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
-                    (v2BotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
-                {
-                    // If it is, we do not want to cast rays to it
+                // If this light's GameObject has a parent and the collider we're looking at belongs to them
+                if (m_pParentGO && m_pParentGO->GetID() == collider.GetGameObject()->GetID()) {
+                    // Then we want to ignore it
                     continue;
                 }
 
-                // Check if the rectangle is part of a wall
-                if (!m_ignoreWallTiles && CheckForWallAtPos({(v2TopLeft.x + v2BotRight.x) * 0.5f, (v2TopLeft.y + v2BotRight.y) * 0.5f})) {
-
-                    // If it is, we want to make a rectangle for each individual tile within it.
-                    // To do that, we get the width and height of the rectangle...
-                    int iWidth = v2BotRight.x - v2TopLeft.x;
-                    int iHeight = v2TopLeft.y - v2BotRight.y;
-
-                    // ...and use that to determine how many tiles are inside of it
-                    int iNumTilesX = iWidth / 96;
-                    int iNumTilesY = iHeight / 96;
-
-                    // If we're subdividing along the X-axis
-                    if (iWidth >= 96) {
-                        // We iterate through each of the tiles
-                        for (int i = 0; i <= iNumTilesX - 1; i++) {
-                            // Figure out what we need to increment the initial X coordinate by for the next "step" in the subdivision
-                            float fXInc = i * 96.0f;
-
-                            // Use that incremental value to find the top-left and bottom-right of the next rectangle
-                            glm::vec2 v2SubXTopLeft = {v2TopLeft.x + fXInc, v2TopLeft.y};
-                            glm::vec2 v2SubXBotRight = {v2TopLeft.x + 96.0f + fXInc, v2BotRight.y};
-
-                            // Check if the new rectangle is outside of the light's AOE
-                            if ((v2SubXTopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
-                                (v2SubXTopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
-                                (v2SubXBotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
-                                (v2SubXBotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
-                            {
-                                // If it is, we move onto the next subdivision
-                                continue;
-                            }
-
-                            // Then add the new rectangle to the list of rects that will be checked later
-                            vpRectanglesInAOE.push_back(wolf::Rectangle(v2SubXTopLeft.x, v2SubXTopLeft.y, v2SubXBotRight.x, v2SubXBotRight.y)); 
-                        }
-                    }
-                    else if (iHeight > 96) { // If we're subdividing along the Y axis
-                        // We follow the same process as the X-axis and iterate through the tiles
-                        for (int j = 0; j <= iNumTilesY - 1; j++) {
-                            // Find the value we need to decrement the initial Y coordinate by for the next "step" in the subdivision
-                            float fYDec = j * 96.0f;
-
-                            // Find the top-left and bottom-right points on the new rectangle
-                            glm::vec2 v2SubYTopLeft = {v2TopLeft.x, v2TopLeft.y - fYDec};
-                            glm::vec2 v2SubYBotRight = {v2TopLeft.x + 96.0f, v2TopLeft.y - 96.0f - fYDec};
-
-                            // Check if the rectangle is outside of the light's AOE
-                            if ((v2SubYTopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
-                                (v2SubYTopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
-                                (v2SubYBotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
-                                (v2SubYBotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
-                            {
-                                // If it is, we move onto the next subdivision
-                                continue;
-                            }
-
-                            // Then we add the new rectangle to the list of rects that will be checked later
-                            vpRectanglesInAOE.push_back(wolf::Rectangle(v2SubYTopLeft.x, v2SubYTopLeft.y, v2SubYBotRight.x, v2SubYBotRight.y)); 
-                        }
-                    }
+                // If the collider we're looking at is another light's AOE collider
+                if (this->GetGameObject()->GetID() != collider.GetGameObject()->GetID() && collider.GetGameObject()->GetComponent<LightComponent>()) {
+                    // Then we want to ignore it
+                    continue;
                 }
-                else {
-                    // If we've made it this far, we send a copy of this rectangle to the next phase of the collision testing
-                    vpRectanglesInAOE.push_back(wolf::Rectangle(v2TopLeft.x, v2TopLeft.y, v2BotRight.x, v2BotRight.y));  
+
+                // If this collider is part of a projectile
+                if (collider.IsHurtboxDamageDealer()) {
+                    // Then we want to ignore it
+                    continue;
+                }
+
+                // If this collider doesn't have a type AND it doesn't have a LightComponent then it's a trap
+                if (collider.GetColliderType() == ColliderComponent::ColliderType::NONE && collider.GetGameObject()->GetComponent<LightComponent>() == nullptr) {
+                    // So we want to ignore it
+                    continue;
+                }
+
+                // Go through the corner points of each rectangle in the collider
+                std::vector<glm::vec2> vv2ColliderCorners = collider.GetWorldSpaceCorners();
+                for (int k = 0; k < vv2ColliderCorners.size(); k += 4) {
+                    // Find the top left and bottom right points
+                    glm::vec2 v2TopLeft = vv2ColliderCorners.at(k);
+                    glm::vec2 v2BotRight = vv2ColliderCorners.at(k + 2);
+
+                    // Check if the light's origin is inside of the rectangle
+                    if (m_v2Origin.x > v2TopLeft.x && m_v2Origin.x < v2BotRight.x && m_v2Origin.y > v2BotRight.y && m_v2Origin.y < v2TopLeft.y) {
+                        // If it is, and the rectangle is NOT the light's AOE collider
+                        if (this->GetGameObject()->GetID() != collider.GetGameObject()->GetID()) {
+                            // Then the light is inside of a wall/solid object and we don't want to draw ANY rays
+                            if (m_ignoreWallTiles) continue;
+                            return;
+                        }
+                    }
+
+                    // Check if the rectangle is completely outside of the light's radius
+                    // (This can happen because wall colliders are grouped by chunk)
+                    if ((v2TopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
+                        (v2TopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
+                        (v2BotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
+                        (v2BotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
+                    {
+                        // If it is, we do not want to cast rays to it
+                        continue;
+                    }
+
+                    // Check if the rectangle is part of a wall
+                    if (CheckForWallAtPos({(v2TopLeft.x + v2BotRight.x) * 0.5f, (v2TopLeft.y + v2BotRight.y) * 0.5f})) {
+
+                        // If it is, we want to make a rectangle for each individual tile within it.
+                        // To do that, we get the width and height of the rectangle...
+                        int iWidth = v2BotRight.x - v2TopLeft.x;
+                        int iHeight = v2TopLeft.y - v2BotRight.y;
+
+                        // ...and use that to determine how many tiles are inside of it
+                        int iNumTilesX = iWidth / 96;
+                        int iNumTilesY = iHeight / 96;
+
+                        // If we're subdividing along the X-axis
+                        if (iWidth >= 96) {
+                            // We iterate through each of the tiles
+                            for (int i = 0; i <= iNumTilesX - 1; i++) {
+                                // Figure out what we need to increment the initial X coordinate by for the next "step" in the subdivision
+                                float fXInc = i * 96.0f;
+
+                                // Use that incremental value to find the top-left and bottom-right of the next rectangle
+                                glm::vec2 v2SubXTopLeft = {v2TopLeft.x + fXInc, v2TopLeft.y};
+                                glm::vec2 v2SubXBotRight = {v2TopLeft.x + 96.0f + fXInc, v2BotRight.y};
+
+                                // Check if the new rectangle is outside of the light's AOE
+                                if ((v2SubXTopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
+                                    (v2SubXTopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
+                                    (v2SubXBotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
+                                    (v2SubXBotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
+                                {
+                                    // If it is, we move onto the next subdivision
+                                    continue;
+                                }
+
+                                // Then add the new rectangle to the list of rects that will be checked later
+                                vpRectanglesInAOE.push_back(wolf::Rectangle(v2SubXTopLeft.x, v2SubXTopLeft.y, v2SubXBotRight.x, v2SubXBotRight.y)); 
+                            }
+                        }
+                        else if (iHeight > 96) { // If we're subdividing along the Y axis
+                            // We follow the same process as the X-axis and iterate through the tiles
+                            for (int j = 0; j <= iNumTilesY - 1; j++) {
+                                // Find the value we need to decrement the initial Y coordinate by for the next "step" in the subdivision
+                                float fYDec = j * 96.0f;
+
+                                // Find the top-left and bottom-right points on the new rectangle
+                                glm::vec2 v2SubYTopLeft = {v2TopLeft.x, v2TopLeft.y - fYDec};
+                                glm::vec2 v2SubYBotRight = {v2TopLeft.x + 96.0f, v2TopLeft.y - 96.0f - fYDec};
+
+                                // Check if the rectangle is outside of the light's AOE
+                                if ((v2SubYTopLeft.x > m_v2Origin.x + m_v2CurRadius.x * 0.5f) ||
+                                    (v2SubYTopLeft.y < m_v2Origin.y - m_v2CurRadius.y * 0.5f) ||
+                                    (v2SubYBotRight.x < m_v2Origin.x - m_v2CurRadius.x * 0.5f) ||
+                                    (v2SubYBotRight.y > m_v2Origin.y + m_v2CurRadius.y * 0.5f))
+                                {
+                                    // If it is, we move onto the next subdivision
+                                    continue;
+                                }
+
+                                // Then we add the new rectangle to the list of rects that will be checked later
+                                vpRectanglesInAOE.push_back(wolf::Rectangle(v2SubYTopLeft.x, v2SubYTopLeft.y, v2SubYBotRight.x, v2SubYBotRight.y)); 
+                            }
+                        }
+                    }
+                    else {
+                        // If we've made it this far, we send a copy of this rectangle to the next phase of the collision testing
+                        vpRectanglesInAOE.push_back(wolf::Rectangle(v2TopLeft.x, v2TopLeft.y, v2BotRight.x, v2BotRight.y));  
+                    }
                 }
             }
         }
@@ -462,7 +491,7 @@ void LightComponent::Update(float p_fDelta) {
         glm::vec2 v2RightEnd = arv2RectCorners[3];
 
         // Determine if this rectangle is part of a wall tile
-        bool bRectIsWall = !m_ignoreWallTiles && CheckForWallAtPos({(v2TopStart.x + v2BotEnd.x) * 0.5f, (v2TopStart.y + v2BotEnd.y) * 0.5f});
+        bool bRectIsWall = CheckForWallAtPos({(v2TopStart.x + v2BotEnd.x) * 0.5f, (v2TopStart.y + v2BotEnd.y) * 0.5f});
 
         // Then go through all of the corner points that we THINK we'll be casting a light ray to
         for (std::pair<glm::vec2, float> v2fCorner : m_vv2fCollidingPoints) {
@@ -759,7 +788,17 @@ void LightComponent::RenderLightToFBO() {
     // Otherwise, render this light's geometry to the FBO
     glm::mat4 model = glm::mat4(1.0f);
     s_pProgram->SetUniform("model", model);
-    s_pProgram->SetUniform("colour", m_v4Color);
+    if (m_flicker)
+    {
+        // Shared static flicker RNG so no lights have the same flicker pattern
+        static wolf::RNG flickerRNG;
+        glm::vec4 flickerColor = m_v4Color * flickerRNG.NextFloat(0.8f, 1.0f);
+        s_pProgram->SetUniform("colour", flickerColor);
+    }
+    else
+    {
+        s_pProgram->SetUniform("colour", m_v4Color);
+    }
     s_pProgram->SetUniform("radius", m_v2CurRadius.x / 2.0f);
     s_pProgram->SetUniform("lightPos", glm::vec3(m_v2Origin, 0.0f));
     s_pProgram->Bind();
@@ -801,9 +840,9 @@ void LightComponent::ClearFBO() {
     GLint iCurrentFBO;
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &iCurrentFBO);
 
-    // Bind the lighting FBO and clear it to black
+    // Bind the lighting FBO and clear it with the shadow color
     glBindFramebuffer(GL_FRAMEBUFFER, s_uiFBO);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.64f);
+    glClearColor(s_shadowColor.r, s_shadowColor.g, s_shadowColor.b, s_shadowColor.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Then rebind the original FBO
@@ -815,7 +854,7 @@ void LightComponent::ResizeFBO(int p_iWidth, int p_iHeight) {
     // Ensure valid input
     assert(p_iWidth > 0 && p_iHeight > 0);
 
-    // Don't bother if no fluid system components exist
+    // Don't bother if no light components exist
     if (s_iRefCount < 1) return;
 
     // Create new texture
