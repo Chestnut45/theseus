@@ -4,21 +4,21 @@
 
 ### Fog of War
 
-![fog.png](https://github.com/Chestnut45/theseus/blob/main-config-polish/screenshots/fog.png)
+![fog.png](https://github.com/Chestnut45/theseus/blob/master/screenshots/fog.png)
 
 A dense fog now covers the labyrinth and obscures the minimap until explored.
 
 ### New Enemy: Snake
 
-![snake.png](https://github.com/Chestnut45/theseus/blob/main-config-polish/screenshots/snake.png)
+![snake.png](https://github.com/Chestnut45/theseus/blob/master/screenshots/snake.png)
 
-![snake_angry.png](https://github.com/Chestnut45/theseus/blob/main-config-polish/screenshots/snake_angry.png)
+![snake_angry.png](https://github.com/Chestnut45/theseus/blob/master/screenshots/snake_angry.png)
 
 Venomous snakes now slither around the labyrinth, beware!
 
 ### New Weapons
 
-![weapons.png](https://github.com/Chestnut45/theseus/blob/main-config-polish/screenshots/weapons.png)
+![weapons.png](https://github.com/Chestnut45/theseus/blob/master/screenshots/weapons.png)
 
 - Burning Blade
 - Poison-Tipped Spear
@@ -28,13 +28,13 @@ Venomous snakes now slither around the labyrinth, beware!
 
 ### Minimap
 
-![minimap.png](https://github.com/Chestnut45/theseus/blob/main-config-polish/screenshots/minimap.png)
+![minimap.png](https://github.com/Chestnut45/theseus/blob/master/screenshots/minimap.png)
 
 The minimap is now round, and icons have been reworked.
 
 ### Daedalus' Terminal v1.0
 
-![terminal.png](https://github.com/Chestnut45/theseus/blob/main-config-polish/screenshots/terminal.png)
+![terminal.png](https://github.com/Chestnut45/theseus/blob/master/screenshots/terminal.png)
 
 - Full styling pass to match with the rest of the UI
 - Shadow color and opacity can be set per config
@@ -117,7 +117,7 @@ The minimap is now round, and icons have been reworked.
 
 ## Secrets
 
-![secret.png](https://github.com/Chestnut45/theseus/blob/main-config-polish/screenshots/secret.png)
+![secret.png](https://github.com/Chestnut45/theseus/blob/master/screenshots/secret.png)
 
 Secret challenges await...
 
