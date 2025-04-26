@@ -84,6 +84,9 @@ add_executable(theseus
 # set(SUBSYSTEM_LINKER_OPTIONS "-mwindows")
 # target_link_options(theseus PRIVATE ${SUBSYSTEM_LINKER_OPTIONS})
 
+# Ensure the linker searches the executable path for required dynamic libs
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath='$ORIGIN'")
+
 target_link_libraries(theseus glfw glew yaml-cpp ${OPENGL_LIBRARIES} ${GLFW_LIBRARIES})
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
